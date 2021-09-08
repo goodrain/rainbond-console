@@ -5,10 +5,11 @@ import os
 import re
 from datetime import datetime
 
+from console.utils import perms
 from console.exception.exceptions import (AccountNotExistError, EmailExistError, PasswordTooShortError, PhoneExistError,
                                           TenantNotExistError, UserExistError, UserNotExistError)
 from console.exception.main import AbortRequest
-from console.models.main import EnterpriseUserPerm, UserRole
+from console.models.main import EnterpriseUserPerm, UserRole, PermsInfo, RoleInfo, RolePerms
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.team_repo import team_repo
@@ -136,11 +137,11 @@ class UserService(object):
             tenant = tenants[0]
             user_id_list = PermRelTenant.objects.filter(tenant_id=tenant.ID).values_list("user_id", flat=True)
             user_list = Users.objects.filter(user_id__in=user_id_list)
-            user_name_list = map(lambda x: x.nick_name.lower(), user_list)
+            user_name_list = [x.nick_name.lower() for x in user_list]
 
         else:
             user_name_map = list(Users.objects.values("nick_name"))
-            user_name_list = map(lambda x: x.get("nick_name").lower(), user_name_map)
+            user_name_list = [x.get("nick_name").lower() for x in user_name_map]
 
         find_user_name = list(fuzzyfinder(user_name.lower(), user_name_list))
         user_query = Q(nick_name__in=find_user_name)
@@ -270,10 +271,16 @@ class UserService(object):
         user.save()
         return user
 
-    def update_user_set_password(self, enterprise_id, user_id, raw_password, real_name):
+    def update_user_set_password(self, enterprise_id, user_id, raw_password, real_name, phone):
         user = Users.objects.get(user_id=user_id, enterprise_id=enterprise_id)
         user.real_name = real_name
-        user.set_password(raw_password)
+        if phone:
+            u = user_repo.get_user_by_phone(phone)
+            if u and int(u.user_id) != int(user.user_id):
+                raise AbortRequest(msg="phone exists", msg_show="手机号已存在")
+            user.phone = phone
+        if raw_password:
+            user.set_password(raw_password)
         return user
 
     def get_user_detail(self, tenant_name, nick_name):
@@ -464,12 +471,13 @@ class UserService(object):
         return users
 
     def create_admin_user(self, user, ent, roles):
-        # 判断用户是否为企业管理员
-        if user_services.is_user_admin_in_current_enterprise(user, ent.enterprise_id):
-            return
-        # 添加企业管理员
-        token = self.generate_key()
-        return enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, ent.enterprise_id, ",".join(roles), token)
+        try:
+            enterprise_user_perm_repo.get(ent.enterprise_id, user.user_id)
+            return enterprise_user_perm_repo.update_roles(ent.enterprise_id, user.user_id, ",".join(roles))
+        except EnterpriseUserPerm.DoesNotExist:
+            token = self.generate_key()
+            return enterprise_user_perm_repo.create_enterprise_user_perm(user.user_id, ent.enterprise_id, ",".join(roles),
+                                                                         token)
 
     def delete_admin_user(self, user_id):
         perm = enterprise_user_perm_repo.get_backend_enterprise_admin_by_user_id(user_id)
@@ -493,9 +501,10 @@ class UserService(object):
     def get_user_by_tenant_id(self, tenant_id, user_id):
         return user_repo.get_by_tenant_id(tenant_id, user_id)
 
-    def check_params(self, user_name, email, password, re_password, eid=None):
+    def check_params(self, user_name, email, password, re_password, eid=None, phone=None):
         self.__check_user_name(user_name, eid)
         self.__check_email(email)
+        self.__check_phone(phone)
         if password != re_password:
             raise AbortRequest("The two passwords do not match", "两次输入的密码不一致")
 
@@ -504,8 +513,8 @@ class UserService(object):
             raise AbortRequest("empty username", "用户名不能为空")
         if self.is_user_exist(user_name, eid):
             raise AbortRequest("username already exists", "用户{0}已存在".format(user_name), status_code=409, error_code=409)
-        r = re.compile(u'^[a-zA-Z0-9_\\-\u4e00-\u9fa5]+$')
-        if not r.match(user_name.decode("utf-8")):
+        r = re.compile('^[a-zA-Z0-9_\\-\\u4e00-\\u9fa5]+$')
+        if not r.match(user_name):
             raise AbortRequest("invalid username", "用户名称只支持中英文下划线和中划线")
 
     def __check_email(self, email):
@@ -518,6 +527,13 @@ class UserService(object):
             raise AbortRequest("invalid email", "邮箱地址不合法")
         if self.get_user_by_email(email):
             raise AbortRequest("username already exists", "邮箱已存在", status_code=409, error_code=409)
+
+    def __check_phone(self, phone):
+        if not phone:
+            return
+        user = user_repo.get_user_by_phone(phone)
+        if user is not None:
+            raise AbortRequest("user phone already exists", "用户手机号已存在", status_code=409)
 
     def init_webhook_user(self, service, hook_type, committer_name=None):
         nick_name = hook_type
@@ -535,6 +551,26 @@ class UserService(object):
                 nick_name = hook_type
         user_obj = Users(user_id=service.creater, nick_name=nick_name)
         return user_obj
+
+    @staticmethod
+    def list_user_team_perms(user, tenant):
+        admin_roles = user_services.list_roles(user.enterprise_id, user.user_id)
+        user_perms = list(perms.list_enterprise_perm_codes_by_roles(admin_roles))
+        if tenant.creater == user.user_id:
+            team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
+            user_perms.extend(team_perms)
+            user_perms.append(200000)
+        else:
+            team_roles = RoleInfo.objects.filter(kind="team", kind_id=tenant.tenant_id)
+            if team_roles:
+                role_ids = team_roles.values_list("ID", flat=True)
+                team_user_roles = UserRole.objects.filter(user_id=user.user_id, role_id__in=role_ids)
+                if team_user_roles:
+                    team_user_role_ids = team_user_roles.values_list("role_id", flat=True)
+                    team_role_perms = RolePerms.objects.filter(role_id__in=team_user_role_ids)
+                    if team_role_perms:
+                        user_perms.extend(list(team_role_perms.values_list("perm_code", flat=True)))
+        return list(set(user_perms))
 
 
 user_services = UserService()

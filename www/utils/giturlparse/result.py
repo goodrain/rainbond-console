@@ -13,7 +13,7 @@ class GitUrlParsed(object):
         self._parsed = parsed_info
 
         # Set parsed objects as attributes
-        for k, v in parsed_info.items():
+        for k, v in list(parsed_info.items()):
             setattr(self, k, v)
 
     def _valid_attrs(self):

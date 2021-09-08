@@ -5,8 +5,9 @@
 
 import hashlib
 import sys
+import importlib
 
-reload(sys)
+importlib.reload(sys)
 sys.setdefaultencoding('utf8')
 
 

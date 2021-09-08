@@ -1,13 +1,13 @@
 # -*- coding: utf8 -*-
-import time
-import uuid
 import base64
 import hashlib
+import time
+import uuid
 
 
 def encrypt_passwd(string):
-    new_word = str(ord(string[7])) + string + str(ord(string[5])) + 'goodrain' + str(ord(string[2]) / 7)
-    password = hashlib.sha224(new_word).hexdigest()[0:16]
+    new_word = str(ord(string[7])) + string + str(ord(string[5])) + 'goodrain' + str(int(ord(string[2]) / 7))
+    password = hashlib.sha224(new_word.encode("utf-8")).hexdigest()[0:16]
     return password
 
 
@@ -18,12 +18,8 @@ def make_tenant_id():
 def make_uuid(key=None):
     random_uuid = str(uuid.uuid4()).replace('-', '')
     if key is not None:
-        if isinstance(key, unicode):
-            merged_str = random_uuid + key.encode('utf8')
-        elif isinstance(key, str):
-            merged_str = random_uuid + key
-
-        return hashlib.md5(merged_str).hexdigest()
+        merged_str = random_uuid + key
+        return hashlib.md5(merged_str.encode("utf-8")).hexdigest()
     else:
         return random_uuid
 
@@ -47,6 +43,8 @@ class AuthCode(object):
         @param key: 密钥
         @return:原始字符串
         """
+        if type(string) is bytes:
+            string = string.decode()
         remainder = len(string) % 4
         if 0 < remainder < 4:
             string += '=' * (4 - remainder)
@@ -54,6 +52,8 @@ class AuthCode(object):
 
     @staticmethod
     def _md5(source_string):
+        if type(source_string) == str:
+            return hashlib.md5(source_string.encode('UTF-8')).hexdigest()
         return hashlib.md5(source_string).hexdigest()
 
     @classmethod
@@ -89,19 +89,24 @@ class AuthCode(object):
 
         if operation == 'DECODE':
             handled_string = base64.urlsafe_b64decode(input_string[rand_key_length:])
+            # Compatible with old backup package
+            try:
+                handled_string = handled_string.decode()
+            except UnicodeDecodeError:
+                pass
         else:
             expiration_time = expiry + int(time.time) if expiry else 0
             handled_string = '%010d' % expiration_time + cls._md5(input_string + key_b)[:16] + input_string
 
         rand_key = list()
-        for i in xrange(256):
+        for i in range(256):
             rand_key.append(ord(crypt_key[i % len(crypt_key)]))
 
         # ----------------------------------------------------------
 
-        box = range(256)
+        box = list(range(256))
         j = 0
-        for i in xrange(256):
+        for i in range(256):
             j = (j + box[i] + rand_key[i]) % 256
             tmp = box[i]
             box[i] = box[j]
@@ -115,13 +120,16 @@ class AuthCode(object):
         result = ''
         a = 0
         j = 0
-        for i in xrange(len(handled_string)):
+        for i in range(len(handled_string)):
             a = (a + 1) % 256
             j = (j + box[a]) % 256
             tmp = box[a]
             box[a] = box[j]
             box[j] = tmp
-            result += chr(ord(handled_string[i]) ^ (box[(box[a] + box[j]) % 256]))
+            if type(handled_string[i]) == str:
+                result += chr(ord(handled_string[i]) ^ (box[(box[a] + box[j]) % 256]))
+                continue
+            result += chr(handled_string[i] ^ (box[(box[a] + box[j]) % 256]))
 
         if operation == 'DECODE':
             if (int(result[:10]) == 0 or (int(result[:10]) - time.time() > 0)) and \
@@ -130,7 +138,7 @@ class AuthCode(object):
             else:
                 output_string = ''
         else:
-            encode_string = base64.urlsafe_b64encode(result)
-            output_string = key_c + encode_string.replace('=', '')
+            encode_string = base64.urlsafe_b64encode(result.encode('UTF-8'))
+            output_string = key_c + encode_string.decode().replace('=', '')
 
         return output_string

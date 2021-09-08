@@ -15,13 +15,10 @@ class MyLogRecord(logging.LogRecord):
             arg = args[0]
 
             try:
-                if isinstance(arg, unicode):
-                    msg = u'{0}{1}{2}'.format(msg, TOPIC_DELIM, arg)
-                else:
-                    msg = '{0}{1}{2}'.format(msg, TOPIC_DELIM, arg)
+                msg = '{0}{1}{2}'.format(msg, TOPIC_DELIM, arg)
             except Exception:
-                print "type is %s" % type(arg)
-                print "arg is", arg
+                print("type is %s" % type(arg))
+                print("arg is", arg)
             finally:
                 args = []
 

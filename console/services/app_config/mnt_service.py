@@ -8,10 +8,8 @@ import logging
 from console.enum.component_enum import is_state
 from console.exception.main import ErrDepVolumeNotFound
 from console.repositories.app import service_repo
-from console.repositories.app_config import mnt_repo
-from console.repositories.app_config import volume_repo
-from console.repositories.group import group_repo
-from console.repositories.group import group_service_relation_repo
+from console.repositories.app_config import mnt_repo, volume_repo
+from console.repositories.group import group_repo, group_service_relation_repo
 from console.services.app_config.volume_service import AppVolumeService
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
@@ -164,13 +162,9 @@ class AppMntService(object):
             source_path = dep_vol['path'].strip()
             dep_volume = volume_repo.get_service_volume_by_pk(dep_vol_id)
             try:
-                code, msg = self.add_service_mnt_relation(tenant, service, source_path, dep_volume, user_name)
+                self.add_service_mnt_relation(tenant, service, source_path, dep_volume, user_name)
             except Exception as e:
                 logger.exception(e)
-                code, msg = 500, "添加异常"
-            if code != 200:
-                return code, msg
-        return 200, "success"
 
     def create_service_volume(self, tenant, service, dep_vol):
         """
@@ -190,6 +184,8 @@ class AppMntService(object):
                                                  dep_volume.volume_name, source_path)
 
     def add_service_mnt_relation(self, tenant, service, source_path, dep_volume, user_name=''):
+        if not dep_volume:
+            return
         if service.create_status == "complete":
             if dep_volume.volume_type != "config-file":
                 data = {
@@ -200,7 +196,7 @@ class AppMntService(object):
                     "volume_type": dep_volume.volume_type
                 }
             else:
-                config_file = volume_repo.get_service_config_file(dep_volume.ID)
+                config_file = volume_repo.get_service_config_file(dep_volume)
                 data = {
                     "depend_service_id": dep_volume.service_id,
                     "volume_name": dep_volume.volume_name,
@@ -218,7 +214,6 @@ class AppMntService(object):
                                                          dep_volume.volume_name, source_path)
         logger.debug("mnt service {0} to service {1} on dir {2}".format(mnt_relation.service_id, mnt_relation.dep_service_id,
                                                                         mnt_relation.mnt_dir))
-        return 200, "success"
 
     def delete_service_mnt_relation(self, tenant, service, dep_vol_id, user_name=''):
         dep_volume = volume_repo.get_service_volume_by_pk(dep_vol_id)

@@ -20,6 +20,10 @@ class ServiceProbeRepository(object):
     def get_probe(self, service_id):
         return ServiceProbe.objects.filter(service_id=service_id).first()
 
+    @staticmethod
+    def list_probes(service_id):
+        return ServiceProbe.objects.filter(service_id=service_id)
+
     def add_service_probe(self, **probe_data):
         return ServiceProbe.objects.create(**probe_data)
 
@@ -44,6 +48,14 @@ class ServiceProbeRepository(object):
     def update_or_create(self, service_id, defaults):
         obj, _ = ServiceProbe.objects.update_or_create(service_id=service_id, defaults=defaults)
         return obj
+
+    @staticmethod
+    def bulk_create(probes):
+        ServiceProbe.objects.bulk_create(probes)
+
+    def overwrite_by_component_ids(self, component_ids, probes):
+        ServiceProbe.objects.filter(service_id__in=component_ids).delete()
+        self.bulk_create(probes)
 
 
 probe_repo = ServiceProbeRepository()

@@ -1,29 +1,29 @@
 # -*- coding: utf-8 -*-
 import logging
-
-from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db import connection
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
+from functools import cmp_to_key
 
 from console.exception.exceptions import GroupNotExistError
 from console.repositories.app_config import domain_repo, tcp_domain
 from console.repositories.group import group_repo
+from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
-from console.repositories.region_app import region_app_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.common_services import common_services
 from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.services.team_services import team_services
 from console.views.base import RegionTenantHeaderView
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db import connection
+from django.views.decorators.cache import never_cache
 from goodrain_web.tools import JuncheePaginator
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import RegionApp
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
-from www.models.main import RegionApp
 
 event_service = AppEventService()
 
@@ -190,7 +190,8 @@ class ServiceGroupView(RegionTenantHeaderView):
         """
         code = 200
         query = request.GET.get("query", "")
-        groups_services = group_service.get_groups_and_services(self.tenant, self.response_region, query)
+        app_type = request.GET.get("app_type", "")
+        groups_services = group_service.get_groups_and_services(self.tenant, self.response_region, query, app_type)
         return Response(general_message(200, "success", "查询成功", list=groups_services), status=code)
 
 
@@ -241,6 +242,8 @@ class GroupServiceView(RegionTenantHeaderView):
                     team_id=self.team.tenant_id,
                     region_name=self.response_region,
                     enterprise_id=self.team.enterprise_id)
+                if page_size == "-1" or page_size == "" or page_size == "0":
+                    page_size = len(no_group_service_list) if len(no_group_service_list) > 0 else 10
                 paginator = Paginator(no_group_service_list, page_size)
                 try:
                     no_group_service_list = paginator.page(page).object_list
@@ -264,6 +267,8 @@ class GroupServiceView(RegionTenantHeaderView):
                 team_name=self.team_name,
                 enterprise_id=self.team.enterprise_id,
                 query=query)
+            if page_size == "-1" or page_size == "" or page_size == "0":
+                page_size = len(group_service_list) if len(group_service_list) > 0 else 10
             paginator = Paginator(group_service_list, page_size)
             try:
                 group_service_list = paginator.page(page).object_list
@@ -281,14 +286,18 @@ class GroupServiceView(RegionTenantHeaderView):
 
 class ServiceEventsView(RegionTenantHeaderView):
     def __sort_events(self, event1, event2):
-        if event1.start_time < event2.start_time:
+        event1_start_time = event1.get("StartTime") if isinstance(event1, dict) else event1.start_time
+        event2_start_time = event2.get("StartTime") if isinstance(event2, dict) else event2.start_time
+        if event1_start_time < event2_start_time:
             return 1
-        if event1.start_time > event2.start_time:
+        if event1_start_time > event2_start_time:
             return -1
-        if event1.start_time == event2.start_time:
-            if event1.ID < event2.start_time:
+        if event1_start_time == event2_start_time:
+            event1_ID = event1.get("ID") if isinstance(event1, dict) else event1.ID
+            event2_ID = event2.get("ID") if isinstance(event2, dict) else event2.ID
+            if event1_ID < event2_ID:
                 return 1
-            if event1.ID > event2.ID:
+            if event1_ID > event2_ID:
                 return -1
             return 0
 
@@ -316,25 +325,27 @@ class ServiceEventsView(RegionTenantHeaderView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 3)
         total = 0
-        regionsList = region_repo.get_team_opened_region(self.tenant)
+        region_list = region_repo.get_team_opened_region(self.tenant.tenant_name)
         event_service_dynamic_list = []
-        for region in regionsList:
-            try:
-                events, event_count, has_next = event_service.get_target_events("tenant", self.tenant.tenant_id, self.tenant,
-                                                                                region.region_name, int(page), int(page_size))
-                event_service_dynamic_list = event_service_dynamic_list + events
-                total = total + event_count
-            except Exception as e:
-                logger.error("Region api return error {0}, ignore it".format(e))
+        if region_list:
+            for region in region_list:
+                try:
+                    events, event_count, has_next = event_service.get_target_events("tenant", self.tenant.tenant_id,
+                                                                                    self.tenant, region.region_name, int(page),
+                                                                                    int(page_size))
+                    event_service_dynamic_list = event_service_dynamic_list + events
+                    total = total + event_count
+                except Exception as e:
+                    logger.error("Region api return error {0}, ignore it".format(e))
 
-        event_service_dynamic_list = sorted(event_service_dynamic_list, self.__sort_events)
+        event_service_dynamic_list = sorted(event_service_dynamic_list, key=cmp_to_key(self.__sort_events))
 
         service_ids = []
         for event in event_service_dynamic_list:
             if event["Target"] == "service":
                 service_ids.append(event["TargetID"])
 
-        services = service_repo.get_service_by_service_ids(service_ids)
+        services = service_repo.list_by_component_ids(service_ids)
 
         event_service_list = []
         for event in event_service_dynamic_list:
@@ -477,9 +488,9 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         apps = []
         if groups:
             group_ids = [group.ID for group in groups]
+            group_ids = group_ids[start:end]
             apps = group_service.get_multi_apps_all_info(group_ids, self.response_region, self.team_name,
                                                          self.team.enterprise_id)
-            apps = apps[start:end]
         return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
 
 

@@ -23,6 +23,9 @@ class ComponentServiceMonitor(object):
     def get_component_service_monitors(self, tenant_id, service_id):
         return ServiceMonitor.objects.filter(tenant_id=tenant_id, service_id=service_id)
 
+    def get_tenant_service_monitor(self, tenant_id, name):
+        return ServiceMonitor.objects.filter(tenant_id=tenant_id, name=name)
+
     def get_component_service_monitor(self, tenant_id, service_id, name):
         sms = ServiceMonitor.objects.filter(tenant_id=tenant_id, service_id=service_id, name=name)
         if sms:
@@ -38,8 +41,9 @@ class ComponentServiceMonitor(object):
             raise ServiceHandleException(msg="port not found", msg_show="配置的组件端口不存在", status_code=400, error_code=400)
         req = {"name": name, "path": path, "port": port, "service_show_name": service_show_name, "interval": interval}
         req["operator"] = user.get_name() if user else None
-        region_api.create_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name,
-                                          service.service_alias, req)
+        if service.create_status == "complete":
+            region_api.create_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name,
+                                              service.service_alias, req)
         req.pop("operator")
         req["service_id"] = service.service_id
         req["tenant_id"] = tenant.tenant_id
@@ -47,7 +51,9 @@ class ComponentServiceMonitor(object):
             sm = ServiceMonitor.objects.create(**req)
             return sm
         except Exception as e:
-            region_api.delete_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name, name)
+            if service.create_status == "complete":
+                region_api.delete_service_monitor(tenant.enterprise_id, service.service_region, tenant.tenant_name,
+                                                  service.service_alias, name, None)
             raise e
 
     def update_component_service_monitor(self, tenant, service, user, name, path, port, service_show_name, interval):
@@ -100,6 +106,14 @@ class ComponentServiceMonitor(object):
 
     def delete_by_service_id(self, service_id):
         return ServiceMonitor.objects.filter(service_id=service_id).delete()
+
+    @staticmethod
+    def bulk_create(monitors):
+        ServiceMonitor.objects.bulk_create(monitors)
+
+    def overwrite_by_component_ids(self, component_ids, monitors):
+        ServiceMonitor.objects.filter(service_id__in=component_ids).delete()
+        self.bulk_create(monitors)
 
 
 service_monitor_repo = ComponentServiceMonitor()

@@ -5,16 +5,14 @@
 import json
 import logging
 
-from rest_framework.response import Response
-
 from console.services.app_config.plugin_service import app_plugin_service
 from console.services.plugin import plugin_version_service
 from console.views.app_config.base import AppBaseView
+from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.plugin import HasNoDownStreamService
 from www.services import plugin_svc
-from www.utils.return_message import error_message
-from www.utils.return_message import general_message
+from www.utils.return_message import error_message, general_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -140,7 +138,7 @@ class APPPluginInstallView(AppBaseView):
                         service_id=self.service.service_id, plugin_id=plugin_id, build_version=build_version)
             except region_api.CallApiError as e:
                 if e.status == 400:
-                    result = general_message(400, "plugin already related", u"该类型插件已关联，请先卸载同类插件")
+                    result = general_message(400, "plugin already related", "该类型插件已关联，请先卸载同类插件")
                     return Response(result, status=400)
                 else:
                     result = general_message(int(e.status), "region install error", "安装插件失败")
@@ -169,20 +167,20 @@ class APPPluginInstallView(AppBaseView):
                 plugin_svc.del_service_plugin_relation_and_attrs(self.service.service_id, plugin_id)
                 region_api.delPluginServiceRelation(self.service.service_region, self.tenant.tenant_name, plugin_id,
                                                     self.service.service_alias)
-            except Exception, e:
-                pass
-            result = general_message(400, "havs no downstream services", u'缺少关联组件，不能使用该类型插件')
+            except Exception as e:
+                logger.exception(e)
+            result = general_message(400, "havs no downstream services", '缺少关联组件，不能使用该类型插件')
             logger.exception(e)
             return Response(result, status=400)
-        except Exception, e:
+        except Exception as e:
             try:
                 plugin_svc.del_service_plugin_relation_and_attrs(self.service.service_id, plugin_id)
                 region_api.delPluginServiceRelation(self.service.service_region, self.tenant.tenant_name, plugin_id,
                                                     self.service.service_alias)
-            except Exception, e:
+            except Exception as e:
                 logger.exception(e)
                 pass
-            result = general_message(500, "service relate plugin error", u'关联插件失败')
+            result = general_message(500, "service relate plugin error", '关联插件失败')
             logger.exception(e)
             return Response(result, status=500)
 
@@ -217,7 +215,7 @@ class APPPluginInstallView(AppBaseView):
             else:
                 result = general_message(int(res.status), "success", "插件删除成功")
                 return Response(result, status=200)
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=200)
@@ -273,7 +271,7 @@ class APPPluginOpenView(AppBaseView):
             else:
                 result = general_message(500, "update plugin status error", "系统异常")
                 return Response(result, result["code"])
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=result["code"])
@@ -336,7 +334,7 @@ class APPPluginConfigView(AppBaseView):
         """
         build_version = request.GET.get("build_version", None)
         if not plugin_id or not build_version:
-            logger.error("plugin.relation", u'参数错误，plugin_id and version_id')
+            logger.error("plugin.relation", '参数错误，plugin_id and version_id')
             return Response(general_message(400, "params error", "参数错误"), status=400)
         result = {}
         try:
@@ -350,10 +348,10 @@ class APPPluginConfigView(AppBaseView):
             result["build_version"] = bl
             result["success"] = True
             result["code"] = 200
-            result["msg"] = u"操作成功"
-            result = general_message(200, "success", u"操作成功", result["build_version"], result["config_group"])
+            result["msg"] = "操作成功"
+            result = general_message(200, "success", "操作成功", result["build_version"], result["config_group"])
             return Response(result, status=200)
-        except HasNoDownStreamService as e:
+        except HasNoDownStreamService:
             logger.error("service has no dependence services operation suspend")
             return Response(general_message(409, "service has no dependence", "组件没有依赖其他组件，配置无效"), status=409)
         except Exception as e:

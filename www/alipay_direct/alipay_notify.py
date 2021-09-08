@@ -3,11 +3,11 @@
 # Note:
 #     支付宝通知处理
 
-from alipay_config import *
-from alipay_core import *
-from alipay_md5 import *
+from .alipay_config import *
+from .alipay_core import *
+from .alipay_md5 import *
 
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 
 class AlipayNotify:

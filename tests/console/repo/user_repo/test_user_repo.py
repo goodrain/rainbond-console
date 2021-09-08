@@ -16,7 +16,6 @@ def test_list_users_by_tenant_id():
         "tenant_id": tenant_id,
         "tenant_name": "xxxxxxxx",
         "creater": 1,
-        "region": "rainbond",
         "tenant_alias": "foobar team",
         "enterprise_id": eid,
     }
@@ -96,7 +95,7 @@ def test_list_users_by_tenant_id():
 
     for tc in testcases:
         result = user_repo.list_users_by_tenant_id(tc["tenant_id"], tc["query"], tc["page"], tc["size"])
-        print result
+        print(result)
         assert len(result) == tc["count"]
         if len(result) > 0:
             assert result[0].get("user_id") == tc["user_id"]

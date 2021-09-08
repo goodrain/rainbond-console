@@ -18,9 +18,9 @@ from drf_yasg.utils import swagger_auto_schema
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import (
     CreateTeamReqSerializer, CreateTeamUserReqSerializer, ListRegionTeamServicesSerializer, ListTeamRegionsRespSerializer,
-    ListTeamRespSerializer, TeamAppsResourceSerializer, TeamBaseInfoSerializer, TeamCertificatesCSerializer,
-    TeamCertificatesLSerializer, TeamCertificatesRSerializer, TeamInfoSerializer, TeamRegionReqSerializer,
-    TenantRegionListSerializer, UpdateTeamInfoReqSerializer)
+    TeamOverviewSerializer, ListTeamRespSerializer, TeamAppsResourceSerializer, TeamBaseInfoSerializer,
+    TeamCertificatesCSerializer, TeamCertificatesLSerializer, TeamCertificatesRSerializer, TeamInfoSerializer,
+    TeamRegionReqSerializer, TenantRegionListSerializer, UpdateTeamInfoReqSerializer)
 from openapi.serializer.utils import pagination
 from openapi.views.base import (BaseOpenAPIView, TeamAPIView, TeamNoRegionAPIView)
 from openapi.views.exceptions import ErrRegionNotFound, ErrTeamNotFound
@@ -141,7 +141,7 @@ class TeamInfo(TeamNoRegionAPIView):
         serializer.is_valid(raise_exception=True)
 
         if req.data.get("enterprise_id", ""):
-            ent = enterprise_services.get_enterprise_by_enterprise_id()
+            ent = enterprise_services.get_enterprise_by_enterprise_id(req.data["enterprise_id"])
             if not ent:
                 raise serializers.ValidationError("指定企业不存在", status.HTTP_404_NOT_FOUND)
         if req.data.get("creator", 0):
@@ -352,6 +352,8 @@ class TeamCertificatesLCView(TeamNoRegionAPIView):
         new_c = domain_service.add_certificate(**data)
         rst = new_c.to_dict()
         rst["id"] = rst["ID"]
+        if isinstance(rst["certificate"], bytes):
+            rst["certificate"] = rst["certificate"].decode()
         rst_serializer = TeamCertificatesRSerializer(data=rst)
         rst_serializer.is_valid(raise_exception=True)
         return Response(rst_serializer.data, status=status.HTTP_200_OK)
@@ -388,6 +390,8 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
         new_c = domain_service.update_certificate(**data)
         rst = new_c.to_dict()
         rst["id"] = rst["ID"]
+        if isinstance(rst["certificate"], bytes):
+            rst["certificate"] = rst["certificate"].decode()
         rst_serializer = TeamCertificatesRSerializer(data=rst)
         rst_serializer.is_valid(raise_exception=True)
         return Response(rst_serializer.data, status=status.HTTP_200_OK)
@@ -406,13 +410,28 @@ class TeamAppsResourceView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="获取团队资源统计",
         responses={
-            status.HTTP_200_OK: TeamAppsResourceSerializer,
+            status.HTTP_200_OK: TeamAppsResourceSerializer(),
         },
         tags=['openapi-team'],
     )
     def get(self, request, team_id, region_name, *args, **kwargs):
         data = team_services.get_tenant_resource(self.team, self.region_name)
         serializer = TeamAppsResourceSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=200)
+
+
+class TeamOverviewView(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="团队统计",
+        responses={
+            status.HTTP_200_OK: TeamAppsResourceSerializer(),
+        },
+        tags=['openapi-team'],
+    )
+    def get(self, request, team_id, region_name, *args, **kwargs):
+        data = team_services.overview(self.team, self.region_name)
+        serializer = TeamOverviewSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=200)
 

@@ -7,6 +7,7 @@ import logging
 import os
 import pickle
 
+from console.exception.main import ServiceHandleException
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
@@ -36,30 +37,27 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
 
         group_id = request.data.get("group_id", -1)
         service_cname = request.data.get("service_cname", None)
-        endpoints = request.data.get("endpoints", None)
+        static = request.data.get("static", None)
         endpoints_type = request.data.get("endpoints_type", None)
+        service_name = request.data.get("serviceName", "")
 
         if not service_cname:
             return Response(general_message(400, "service_cname is null", "组件名未指明"), status=400)
-        if not endpoints and endpoints_type != "api":
-            return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
-        validate_endpoints_info(endpoints)
-
-        new_service = app_service.create_third_party_app(self.response_region, self.tenant, self.user, service_cname, endpoints,
-                                                         endpoints_type)
-
+        if endpoints_type == "static":
+            validate_endpoints_info(static)
+        source_config = {}
+        if endpoints_type == "kubernetes":
+            if not service_name:
+                return Response(general_message(400, "kubernetes service name is null", "Kubernetes Service名称必须指定"), status=400)
+            source_config = {"service_name": service_name, "namespace": request.data.get("namespace", "")}
+        new_service = app_service.create_third_party_app(self.response_region, self.tenant, self.user, service_cname, static,
+                                                         endpoints_type, source_config)
         # 添加组件所在组
         code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id, new_service.service_id)
         if code != 200:
-            logger.debug("service.create", msg_show)
-
-        if endpoints_type == "discovery":
-            # 添加username,password信息
-            if "username" in endpoints and "password" in endpoints:
-                if endpoints["username"] or endpoints["password"]:
-                    app_service.create_service_source_info(self.tenant, new_service, endpoints["username"],
-                                                           endpoints["password"])
-
+            new_service.delete()
+            raise ServiceHandleException(
+                msg="add component to app failure", msg_show=msg_show, status_code=code, error_code=code)
         bean = new_service.to_dict()
         if endpoints_type == "api":
             # 生成秘钥
@@ -70,6 +68,7 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
             api_url = host + "/console/" + "third_party/{0}".format(new_service.service_id)
             bean["api_service_key"] = api_secret_key
             bean["url"] = api_url
+            service_endpoints_repo.create_api_endpoints(self.tenant, new_service)
 
         result = general_message(200, "success", "创建成功", bean=bean)
         return Response(result, status=result["code"])
@@ -112,8 +111,6 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
         # 加密
         deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
         deploy_key_decode = pickle.loads(base64.b64decode(deploy_key)).get("secret_key")
-        logger.debug('---------===========>{0}'.format(deploy_key_decode))
-        logger.debug('---------===========>{0}'.format(secret_key))
 
         if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
@@ -205,7 +202,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
                     return Response(result, status=200)
         except region_api.CallApiFrequentError as e:
             logger.exception(e)
-            return 409, u"操作过于频繁，请稍后再试"
+            return 409, "操作过于频繁，请稍后再试"
 
     # 删除实例endpoint
     def delete(self, request, service_id, *args, **kwargs):
@@ -305,11 +302,10 @@ class ThirdPartyAppPodsView(AppBaseView):
         :return:
         """
         address = request.data.get("ip", None)
-        is_online = request.data.get("is_online", True)
         if not address:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         validate_endpoints_info([address])
-        endpoint_service.add_endpoint(self.tenant, self.service, address, is_online)
+        endpoint_service.add_endpoint(self.tenant, self.service, address)
 
         result = general_message(200, "success", "添加成功")
         return Response(result)
@@ -354,7 +350,6 @@ class ThirdPartyAppPodsView(AppBaseView):
         :param kwargs:
         :return:
         """
-        is_online = request.data.get("is_online", True)
         ep_id = request.data.get("ep_id", None)
         if not ep_id:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
@@ -371,7 +366,6 @@ class ThirdPartyAppPodsView(AppBaseView):
 
         endpoint_dict = dict()
         endpoint_dict["ep_id"] = ep_id
-        endpoint_dict["is_online"] = is_online
 
         res, body = region_api.put_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
                                                                  self.service.service_alias, endpoint_dict)

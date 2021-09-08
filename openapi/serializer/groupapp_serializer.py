@@ -74,6 +74,7 @@ class AppChangeBuildSourceSerializer(serializers.Serializer):
 
 class AppModifyInfoSerializer(serializers.Serializer):
     build_source = serializers.SerializerMethodField()
+    envs = serializers.DictField(default=dict())
 
     def get_build_source(self, instance):
         default_build_source = {"version": None}
@@ -94,7 +95,7 @@ class AppCopyModifySerializer(serializers.Serializer):
     change = serializers.SerializerMethodField()
 
     def get_change(self, instance):
-        default_change = {"build_source": {"version": None}}
+        default_change = {"build_source": {"version": None}, "envs": {}}
         change = instance.get("change")
         if not change:
             return default_change

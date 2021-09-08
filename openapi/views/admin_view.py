@@ -2,24 +2,18 @@
 # creater by: barnett
 import logging
 
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import exceptions
-from rest_framework import serializers
-from rest_framework import status
-from rest_framework.response import Response
-
 from console.enum.enterprise_enum import EnterpriseRolesEnum
 from console.exception.exceptions import UserNotExistError
 from console.services.enterprise_services import enterprise_services
-from console.services.exception import ErrAdminUserDoesNotExist
-from console.services.exception import ErrCannotDelLastAdminUser
+from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
 from console.services.user_services import user_services
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from openapi.serializer.base_serializer import FailSerializer
-from openapi.serializer.user_serializer import CreateAdminUserReqSerializer
-from openapi.serializer.user_serializer import ListUsersRespView
-from openapi.serializer.user_serializer import UserInfoSerializer
+from openapi.serializer.user_serializer import (CreateAdminUserReqSerializer, ListUsersRespView, UserInfoSerializer)
 from openapi.views.base import BaseOpenAPIView
+from rest_framework import exceptions, serializers, status
+from rest_framework.response import Response
 
 logger = logging.getLogger("default")
 
@@ -92,7 +86,7 @@ class AdminInfoView(BaseOpenAPIView):
         try:
             user_services.delete_admin_user(user_id)
             return Response(None, status.HTTP_200_OK)
-        except ErrAdminUserDoesNotExist as e:
+        except ErrAdminUserDoesNotExist:
             raise exceptions.NotFound(detail="用户'{}'不是企业管理员".format(user_id))
         except ErrCannotDelLastAdminUser as e:
             raise serializers.ValidationError({"msg": e.message}, status.HTTP_400_BAD_REQUEST)

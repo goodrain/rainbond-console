@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import copy
 from collections import Counter
+
 from console.enum.enterprise_enum import EnterpriseRolesEnum
 """
 - enterprise 100
@@ -26,156 +27,156 @@ ENTERPRISE = {
     },
     "app_store": {
         "perms": [
-            ["create_app", u"创建应用模板", 110000],
-            ["edit_app", u"编辑应用模板", 110001],
-            ["delete_app", u"删除应用模板", 110002],
-            ["import_app", u"导入应用模板", 110003],
-            ["export_app", u"导出应用模板", 110004],
-            ["create_app_store", u"添加应用商店", 110005],
-            ["get_app_store", u"获取应用商店", 110006],  # Can find access_key
-            ["edit_app_store", u"编辑应用商店", 110007],
-            ["delete_app_store", u"删除应用商店", 110008],
-            ["edit_app_version", u"编辑应用版本", 110009],
-            ["delete_app_version", u"删除应用版本", 110010],
+            ["create_app", "创建应用模板", 110000],
+            ["edit_app", "编辑应用模板", 110001],
+            ["delete_app", "删除应用模板", 110002],
+            ["import_app", "导入应用模板", 110003],
+            ["export_app", "导出应用模板", 110004],
+            ["create_app_store", "添加应用商店", 110005],
+            ["get_app_store", "获取应用商店", 110006],  # Can find access_key
+            ["edit_app_store", "编辑应用商店", 110007],
+            ["delete_app_store", "删除应用商店", 110008],
+            ["edit_app_version", "编辑应用版本", 110009],
+            ["delete_app_version", "删除应用版本", 110010],
         ]
     }
 }
 
 common_perms = [
-    ["create_app", u"创建应用模板", 110000],
-    ["edit_app", u"编辑应用模板", 110001],
-    ["delete_app", u"删除应用模板", 110002],
-    ["import_app", u"导入应用模板", 110003],
-    ["get_app_store", u"获取应用商店", 110006],  # Can find access_key
+    ["create_app", "创建应用模板", 110000],
+    ["edit_app", "编辑应用模板", 110001],
+    ["delete_app", "删除应用模板", 110002],
+    ["import_app", "导入应用模板", 110003],
+    ["get_app_store", "获取应用商店", 110006],  # Can find access_key
     # 120000 ~ 129999 enterprise teams
-    ["get_ent_teams", u"获取企业的团队列表", 120000],
+    ["get_ent_teams", "获取企业的团队列表", 120000],
 ]
 
 TEAM = {
     "perms": [
-        ["describe", u"查看团队信息", 200001],
-        ["dynamic_describe", u"查看团队动态", 200009],
-        ["maven_setting", u"管理Maven配置", 200014],
+        ["describe", "查看团队信息", 200001],
+        ["dynamic_describe", "查看团队动态", 200009],
+        ["maven_setting", "管理Maven配置", 200014],
     ],
     "teamRegion": {
-        "perms": [["describe", u"查看", 200002], ["install", u"开通", 200003], ["uninstall", u"卸载", 200004]]
+        "perms": [["describe", "查看", 200002], ["install", "开通", 200003], ["uninstall", "卸载", 200004]]
     },
     "teamMember": {
         "perms": [
-            ["describe", u"查看", 200005],
-            ["create", u"创建", 200006],
-            ["edit", u"编辑", 200007],
-            ["delete", u"删除", 200008],
+            ["describe", "查看", 200005],
+            ["create", "创建", 200006],
+            ["edit", "编辑", 200007],
+            ["delete", "删除", 200008],
         ]
     },
     "teamRole": {
         "perms": [
-            ["describe", u"查看", 200010],
-            ["create", u"创建", 200011],
-            ["edit", u"编辑", 200012],
-            ["delete", u"删除", 200013],
+            ["describe", "查看", 200010],
+            ["create", "创建", 200011],
+            ["edit", "编辑", 200012],
+            ["delete", "删除", 200013],
         ]
     },
     "app": {
         "perms": [
-            ["describe", u"查看", 300001],
-            ["create", u"创建", 300002],
-            ["edit", u"编辑", 300003],
-            ["delete", u"删除", 300004],
-            ["start", u"启动", 300005],
-            ["stop", u"停用", 300006],
-            ["update", u"更新", 300007],
-            ["construct", u"构建", 300008],
-            ["backup", u"备份", 300009],
-            ["migrate", u"迁移", 300010],
-            ["share", u"发布", 300012],
-            ["upgrade", u"升级", 300013],
-            ["copy", u"复制", 300014],
-            ["import", u"导入", 300015],
-            ["export", u"导出", 300016],
+            ["describe", "查看", 300001],
+            ["create", "创建", 300002],
+            ["edit", "编辑", 300003],
+            ["delete", "删除", 300004],
+            ["start", "启动", 300005],
+            ["stop", "停用", 300006],
+            ["update", "更新", 300007],
+            ["construct", "构建", 300008],
+            ["backup", "备份", 300009],
+            ["migrate", "迁移", 300010],
+            ["share", "发布", 300012],
+            ["upgrade", "升级", 300013],
+            ["copy", "复制", 300014],
+            ["import", "导入", 300015],
+            ["export", "导出", 300016],
         ]
     },
     "app_config_group": {
         "perms": [
-            ["describe", u"查看", 300017],
-            ["create", u"创建", 300018],
-            ["edit", u"编辑", 300019],
-            ["delete", u"删除", 300020],
+            ["describe", "查看", 300017],
+            ["create", "创建", 300018],
+            ["edit", "编辑", 300019],
+            ["delete", "删除", 300020],
         ]
     },
     "component": {
         "perms": [
-            ["describe", u"查看", 400001],
-            ["create", u"创建", 400002],
-            ["edit", u"编辑", 400003],
-            ["delete", u"删除", 400004],
-            ["visit_web_terminal", u"访问web终端", 400005],
-            ["start", u"启动", 400006],
-            ["restart", u"重启", 400007],
-            ["stop", u"关闭", 400008],
-            ["update", u"更新", 400009],
-            ["construct", u"构建", 400010],
-            ["rollback", u"回滚", 400011],
-            ["telescopic", u"伸缩管理", 400012],
-            ["env", u"环境管理", 400013],
-            ["rely", u"依赖管理", 400014],
-            ["storage", u"存储管理", 400015],
-            ["port", u"端口管理", 400016],
-            ["plugin", u"插件管理", 400017],
-            ["source", u"构建源管理", 400018],
-            ["deploy_type", u"部署类型", 400019],
-            ["characteristic", u"特性", 400020],
-            ["health", u"健康检测", 400021],
-            ["service_monitor", u"业务监控管理", 400022],
+            ["describe", "查看", 400001],
+            ["create", "创建", 400002],
+            ["edit", "编辑", 400003],
+            ["delete", "删除", 400004],
+            ["visit_web_terminal", "访问web终端", 400005],
+            ["start", "启动", 400006],
+            ["restart", "重启", 400007],
+            ["stop", "关闭", 400008],
+            ["update", "更新", 400009],
+            ["construct", "构建", 400010],
+            ["rollback", "回滚", 400011],
+            ["telescopic", "伸缩管理", 400012],
+            ["env", "环境管理", 400013],
+            ["rely", "依赖管理", 400014],
+            ["storage", "存储管理", 400015],
+            ["port", "端口管理", 400016],
+            ["plugin", "插件管理", 400017],
+            ["source", "构建源管理", 400018],
+            ["deploy_type", "部署类型", 400019],
+            ["characteristic", "特性", 400020],
+            ["health", "健康检测", 400021],
+            ["service_monitor", "业务监控管理", 400022],
         ]
     },
     "gatewayRule": {
         "perms": [
-            ["describe", u"查看", 500001],
-            ["create", u"创建", 500002],
-            ["edit", u"编辑", 500003],
-            ["delete", u"删除", 500004],
+            ["describe", "查看", 500001],
+            ["create", "创建", 500002],
+            ["edit", "编辑", 500003],
+            ["delete", "删除", 500004],
         ]
     },
     "certificate": {
         "perms": [
-            ["describe", u"查看", 600001],
-            ["create", u"创建", 600002],
-            ["edit", u"编辑", 600003],
-            ["delete", u"删除", 600004],
+            ["describe", "查看", 600001],
+            ["create", "创建", 600002],
+            ["edit", "编辑", 600003],
+            ["delete", "删除", 600004],
         ]
     },
     "plugin": {
         "perms": [
-            ["describe", u"查看", 700001],
-            ["create", u"创建", 700002],
-            ["edit", u"编辑", 700003],
-            ["delete", u"删除", 700004],
+            ["describe", "查看", 700001],
+            ["create", "创建", 700002],
+            ["edit", "编辑", 700003],
+            ["delete", "删除", 700004],
         ]
     }
 }
 
 DEFAULT_ENTERPRISE_ROLE_PERMS = {
-    u"管理员": [],
-    u"开发者": [],
-    u"观察者": [],
+    "管理员": [],
+    "开发者": [],
+    "观察者": [],
 }
 
 DEFAULT_TEAM_ROLE_PERMS = {
-    u"管理员": [
-        200001, 200002, 200003, 200004, 200005, 200006, 200007, 200008, 200009, 200010, 200011, 200012, 200013, 300001, 300002,
-        300003, 300004, 300005, 300006, 300007, 300008, 300009, 300010, 300011, 300012, 300013, 300014, 300017, 300018, 300019,
-        300020, 400001, 400002, 400003, 400004, 400005, 400006, 400007, 400008, 400009, 400010, 400011, 400012, 400013, 400014,
-        400015, 400016, 400017, 400018, 400019, 400020, 400021, 400022, 500001, 500002, 500003, 500004, 600001, 600002, 600003,
-        600004, 700001, 700002, 700003, 700004
+    "管理员": [
+        200001, 200002, 200003, 200004, 200005, 200006, 200007, 200008, 200009, 200010, 200011, 200012, 200013, 200014, 300001,
+        300002, 300003, 300004, 300005, 300006, 300007, 300008, 300009, 300010, 300011, 300012, 300013, 300014, 300015, 300016,
+        300017, 300018, 300019, 300020, 400001, 400002, 400003, 400004, 400005, 400006, 400007, 400008, 400009, 400010, 400011,
+        400012, 400013, 400014, 400015, 400016, 400017, 400018, 400019, 400020, 400021, 400022, 500001, 500002, 500003, 500004,
+        600001, 600002, 600003, 600004, 700001, 700002, 700003, 700004
     ],
-    u"开发者": [
-        200001, 200002, 200005, 200009, 200010, 300001, 300002, 300003, 300005, 300006, 300007, 300008, 300009, 300010, 300011,
+    "开发者": [
+        200001, 200002, 200005, 200010, 200014, 300001, 300002, 300003, 300005, 300006, 300007, 300008, 300009, 300010, 300011,
         300012, 300013, 300014, 300017, 300018, 300019, 300020, 400001, 400002, 400003, 400005, 400006, 400007, 400008, 400009,
         400010, 400011, 400012, 400013, 400014, 400015, 400016, 400017, 400022, 400018, 400019, 400020, 400021, 500001, 500002,
         500003, 600001, 600002, 600003, 700001, 700002, 700003
     ],
-    u"观察者": [200001, 200002, 200005, 200009, 200010, 300001, 400001, 500001, 600001, 700001],
+    "观察者": [200001, 200002, 200005, 200010, 300001, 400001, 500001, 600001, 700001],
 }
 
 
@@ -183,14 +184,14 @@ def get_structure(kind, kind_name):
     structure = {
         kind_name: {
             "sub_models": [],
-            "perms": map(lambda x: {
+            "perms": [{
                 "name": x[0],
                 "desc": x[1],
                 "code": x[2]
-            }, kind.get("perms", []))
+            } for x in kind.get("perms", [])]
         }
     }
-    subs = kind.keys()
+    subs = list(kind.keys())
     try:
         subs.remove("perms")
     except ValueError:
@@ -203,8 +204,8 @@ def get_structure(kind, kind_name):
 
 
 def get_model(kind, kind_name):
-    structure = {kind_name: {"sub_models": [], "perms": map(lambda x: {x[0]: False, "code": x[2]}, kind["perms"])}}
-    subs = kind.keys()
+    structure = {kind_name: {"sub_models": [], "perms": [{x[0]: False, "code": x[2]} for x in kind["perms"]]}}
+    subs = list(kind.keys())
     if "perms" in subs:
         subs.remove("perms")
     if subs:
@@ -249,8 +250,9 @@ def assemble_perms(perm, group, kind_name):
 def get_perms(kind, group, kind_name):
     if isinstance(kind, dict) and kind and kind.get("perms"):
         perms_list = []
-        perms_list.extend(map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"])))
-        kind_elements = kind.keys()
+        perms_list.extend(
+            list(map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"]))))
+        kind_elements = list(kind.keys())
         if "perms" in kind_elements:
             kind_elements.remove("perms")
         if kind_elements:
@@ -269,8 +271,8 @@ def get_perms_metadata():
     enterprise_perms = get_perms(copy.deepcopy(ENTERPRISE), "enterprise", "enterprise")
     perms.extend(team_perms)
     perms.extend(enterprise_perms)
-    name = map(lambda z: z[0], filter(lambda y: y[-1] > 1, Counter(map(lambda x: x[0], perms)).items()))
-    code = map(lambda z: z[0], filter(lambda y: y[-1] > 1, Counter(map(lambda x: x[2], perms)).items()))
+    name = [z[0] for z in [y for y in list(Counter([x[0] for x in perms]).items()) if y[-1] > 1]]
+    code = [z[0] for z in [y for y in list(Counter([x[2] for x in perms]).items()) if y[-1] > 1]]
     if name:
         raise ServiceHandleException(msg="init perms error", msg_show="初始化权限列表失败，权限列表存在重复名称: {}".format(','.join(name)))
     if code:
@@ -284,19 +286,19 @@ def check_perms_metadata():
     enterprise_perms = get_perms(copy.deepcopy(ENTERPRISE), "enterprise", "enterprise")
     perms.extend(team_perms)
     perms.extend(enterprise_perms)
-    name = map(lambda z: z[0], filter(lambda y: y[-1] > 1, Counter(map(lambda x: x[0], perms)).items()))
-    code = map(lambda z: z[0], filter(lambda y: y[-1] > 1, Counter(map(lambda x: x[2], perms)).items()))
+    name = [z[0] for z in [y for y in list(Counter([x[0] for x in perms]).items()) if y[-1] > 1]]
+    code = [z[0] for z in [y for y in list(Counter([x[2] for x in perms]).items()) if y[-1] > 1]]
     if name:
-        print "初始化权限列表失败，权限列表存在重复名称: {}".format(', '.join(name))
+        print(("初始化权限列表失败，权限列表存在重复名称: {}".format(', '.join(name))))
     if code:
-        code = map(lambda x: str(x), code)
-        print "初始化权限列表失败，权限列表存在重复编码: {}".format(', '.join(code))
+        code = [str(x) for x in code]
+        print(("初始化权限列表失败，权限列表存在重复编码: {}".format(', '.join(code))))
     return perms
 
 
 def get_perms_name_code(perms_model, kind_name):
     perms = {}
-    sub_models = perms_model.keys()
+    sub_models = list(perms_model.keys())
     if "perms" in sub_models:
         sub_models.remove("perms")
     for perm in perms_model.get("perms", []):
@@ -377,7 +379,7 @@ def list_enterprise_perms_by_roles(roles):
 if __name__ == '__main__':
     # 检测权限命名和权限编码是否重复
     check_perms_metadata()
-    print get_enterprise_adminer_codes()
+    print((get_enterprise_adminer_codes()))
     # print get_perms_structure()
     # print get_perms_model()
     # print get_perms_name_code_kv()

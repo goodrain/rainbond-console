@@ -4,7 +4,8 @@
 """
 import logging
 
-from console.exception.main import (AccountOverdueException, BusinessException, ResourceNotEnoughException)
+from console.exception.main import (AccountOverdueException, BusinessException, ResourceNotEnoughException,
+                                    ServiceHandleException)
 from console.repositories.compose_repo import compose_repo
 from console.repositories.group import group_repo
 from console.services.app_check_service import app_check_service
@@ -135,9 +136,9 @@ class GetComposeCheckUUID(ComposeGroupBaseView):
             return Response(general_message(400, "params error", "参数错误，请求参数应该包含compose ID"), status=400)
         group_compose = compose_service.get_group_compose_by_compose_id(compose_id)
         if group_compose:
-            result = general_message(200, u"success", "获取成功", bean={"check_uuid": group_compose.check_uuid})
+            result = general_message(200, "success", "获取成功", bean={"check_uuid": group_compose.check_uuid})
         else:
-            result = general_message(404, u"success", "compose不存在", bean={"check_uuid": ""})
+            result = general_message(404, "success", "compose不存在", bean={"check_uuid": ""})
         return Response(result, status=200)
 
 
@@ -281,7 +282,7 @@ class ComposeCheckUpdate(ComposeGroupBaseView):
             code, msg, new_compose = compose_service.update_compose(group_id, json_data)
             if code != 200:
                 return Response(general_message(code, "save yaml content error", msg), status=code)
-        result = general_message(200, u"success", "修改成功")
+        result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
 
@@ -312,6 +313,10 @@ class ComposeDeleteView(ComposeGroupBaseView):
         """
         compose_id = request.data.get("compose_id", None)
         group_id = kwargs.get("group_id", None)
+        try:
+            group_id = int(group_id)
+        except ValueError:
+            raise ServiceHandleException(msg="group id is invalid", msg_show="参数不合法")
         if group_id:
             if group_id < 1:
                 return Response(general_message(400, "params error", "所在组参数错误 "), status=400)

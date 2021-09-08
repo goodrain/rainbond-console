@@ -5,9 +5,6 @@ import os
 import pickle
 import re
 
-from docker_image import reference
-from rest_framework.response import Response
-
 from console.constants import AppConstants
 from console.models.main import DeployRelation
 from console.repositories.app import service_repo, service_webhooks_repo
@@ -16,6 +13,8 @@ from console.services.app import app_service
 from console.services.user_services import user_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import AlowAnyApiView
+from docker_image import reference
+from rest_framework.response import Response
 from www.models.main import Tenants, TenantServiceInfo
 from www.utils.return_message import error_message, general_message
 
@@ -34,7 +33,7 @@ class WebHooksDeploy(AlowAnyApiView):
             tenant_obj = Tenants.objects.get(tenant_id=service_obj.tenant_id)
             service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
                 service_obj.service_id, "code_webhooks")
-            if not service_webhook.state:
+            if not service_webhook or not service_webhook.state:
                 logger.debug("没开启webhooks自动部署")
                 result = general_message(400, "failed", "没有开启此功能")
                 return Response(result, status=400)
@@ -311,18 +310,13 @@ class WebHooksDeploy(AlowAnyApiView):
                 result = general_message(400, "failed", "暂时仅支持github与gitlab哦～")
                 return Response(result, status=400)
 
-        except Tenants.DoesNotExist as e:
-            logger.exception(e)
-            logger.error(e)
-            return Response(e.message, status=400)
-        except TenantServiceInfo.DoesNotExist as e:
-            logger.exception(e)
-            logger.error(e)
-            return Response(e.message, status=400)
+        except Tenants.DoesNotExist:
+            return Response("tenant not exist", status=400)
+        except TenantServiceInfo.DoesNotExist:
+            return Response("component not exist", status=400)
         except Exception as e:
             logger.exception(e)
-            logger.error(e)
-            return Response(e.message, status=500)
+            return Response("Internal error occurred", status=500)
 
     def _check_warehouse(self, service_git_url, clone_url, ssh_url):
         # 判断地址是否相同
@@ -509,8 +503,8 @@ class CustomWebHooksDeploy(AlowAnyApiView):
     def post(self, request, service_id, *args, **kwargs):
         """自定义回调接口处发自动部署"""
         logger.debug(request.data)
-        import pickle
         import base64
+        import pickle
         secret_key = request.data.get("secret_key")
         # 加密
         deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)

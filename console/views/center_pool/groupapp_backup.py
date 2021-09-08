@@ -3,7 +3,8 @@
   Created on 18/5/23.
 """
 import logging
-import StringIO
+import io
+import urllib
 
 from django.http import StreamingHttpResponse
 from django.views.decorators.cache import never_cache
@@ -318,11 +319,11 @@ class GroupAppsBackupExportView(AlowAnyApiView):
             if code != 200:
                 return Response(general_message(code, "export backup failed", msg), status=code)
             file_name = group.group_name + ".bak"
-            output = StringIO.StringIO()
+            output = io.StringIO()
             output.write(data_str)
             res = StreamingHttpResponse(output.getvalue())
             res['Content-Type'] = 'application/octet-stream'
-            res['Content-Disposition'] = 'attachment;filename="{0}"'.format(file_name)
+            res['Content-Disposition'] = "attachment;filename*=UTF-8''" + urllib.parse.quote(file_name)
             return res
         except Exception as e:
             logger.exception(e)

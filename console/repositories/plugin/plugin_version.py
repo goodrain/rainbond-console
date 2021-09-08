@@ -41,5 +41,9 @@ class PluginVersionRepository(object):
         except PluginBuildVersion.DoesNotExist:
             return PluginBuildVersion.objects.create(**plugin_build_version)
 
+    @staticmethod
+    def bulk_create(build_versions):
+        PluginBuildVersion.objects.bulk_create(build_versions)
+
 
 build_version_repo = PluginVersionRepository()

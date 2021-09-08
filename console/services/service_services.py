@@ -180,81 +180,104 @@ class BaseService(object):
         result = conn.query(sql)
         return result
 
-    def get_build_info(self, tenant, service):
-        service_source = service_source_repo.get_service_source(team_id=service.tenant_id, service_id=service.service_id)
+    def get_build_infos(self, tenant, service_ids):
+        from console.repositories.service_repo import service_repo
+        apps = dict()
+        markets = dict()
+        build_infos = dict()
+        services = service_repo.list_by_component_ids(service_ids=service_ids)
+        svc_sources = service_source_repo.get_service_sources(team_id=tenant.tenant_id, service_ids=service_ids)
+        service_sources = {svc_ss.service_id: svc_ss for svc_ss in svc_sources}
 
-        code_from = service.code_from
-        oauth_type = support_oauth_type.keys()
-        if code_from in oauth_type:
-            result_url = re_split("[:,@]", service.git_url)
-            service.git_url = result_url[0] + '//' + result_url[-1]
-        bean = {
-            "user_name": "",
-            "password": "",
-            "service_source": service.service_source,
-            "image": service.image,
-            "cmd": service.cmd,
-            "code_from": service.code_from,
-            "version": service.version,
-            "docker_cmd": service.docker_cmd,
-            "create_time": service.create_time,
-            "git_url": service.git_url,
-            "code_version": service.code_version,
-            "server_type": service.server_type,
-            "language": service.language,
-            "oauth_service_id": service.oauth_service_id,
-            "full_name": service.git_full_name
-        }
-        if service_source:
-            bean["user"] = service_source.user_name
-            bean["password"] = service_source.password
-        if service.service_source == 'market':
-            from console.services.market_app_service import market_app_service
-            from console.services.app import app_market_service
+        for service in services:
+            service_source = service_sources.get(service.service_id, None)
+            code_from = service.code_from
+            oauth_type = list(support_oauth_type.keys())
+            if code_from in oauth_type:
+                result_url = re_split("[:,@]", service.git_url)
+                service.git_url = result_url[0] + '//' + result_url[-1]
+            bean = {
+                "user_name": "",
+                "password": "",
+                "service_source": service.service_source,
+                "image": service.image,
+                "cmd": service.cmd,
+                "code_from": service.code_from,
+                "version": service.version,
+                "docker_cmd": service.docker_cmd,
+                "create_time": service.create_time,
+                "git_url": service.git_url,
+                "code_version": service.code_version,
+                "server_type": service.server_type,
+                "language": service.language,
+                "oauth_service_id": service.oauth_service_id,
+                "full_name": service.git_full_name
+            }
             if service_source:
+                bean["user"] = service_source.user_name
+                bean["password"] = service_source.password
+            if service.service_source == 'market':
+                from console.services.app import app_market_service
+                from console.services.market_app_service import market_app_service
+                if not service_source:
+                    build_infos[service.service_id] = bean
+                    continue
+
                 # get from cloud
                 app = None
-                app_version = None
                 if service_source.extend_info:
                     extend_info = json.loads(service_source.extend_info)
                     if extend_info and extend_info.get("install_from_cloud", False):
                         market_name = extend_info.get("market_name")
                         bean["install_from_cloud"] = True
                         try:
-                            market = app_market_service.get_app_market_by_name(
-                                tenant.enterprise_id, market_name, raise_exception=True)
-                            app, app_version = app_market_service.cloud_app_model_to_db_model(
-                                market, service_source.group_key, service_source.version)
+                            market = markets.get(market_name, None)
+                            if not market:
+                                market = app_market_service.get_app_market_by_name(
+                                    tenant.enterprise_id, market_name, raise_exception=True)
+                                markets[market_name] = market
+
+                            app = apps.get(service_source.group_key, None)
+                            if not app:
+                                app, _ = app_market_service.cloud_app_model_to_db_model(market, service_source.group_key, None)
+                                apps[service_source.group_key] = app
+
                             bean["market_error_code"] = 200
                             bean["market_status"] = 1
                         except ServiceHandleException as e:
                             logger.debug(e)
                             bean["market_status"] = 0
                             bean["market_error_code"] = e.error_code
-                            return bean
+                            bean["version"] = service_source.version
+                            bean["app_version"] = service_source.version
+                            build_infos[service.service_id] = bean
+                            continue
+
                         bean["install_from_cloud"] = True
                         bean["app_detail_url"] = app.describe
                 if not app:
                     try:
-                        app, app_version = market_app_service.get_rainbond_app_and_version(
-                            tenant.enterprise_id, service_source.group_key, service_source.version)
+                        app = market_app_service.get_rainbond_app(tenant.enterprise_id, service_source.group_key)
                     except RbdAppNotFound:
                         logger.warning("not found app {0} version {1} in local market".format(
                             service_source.group_key, service_source.version))
-                if app and app_version:
+                if app:
                     bean["rain_app_name"] = app.app_name
                     bean["details"] = app.details
-                    logger.debug("app_version: {}".format(app_version.version))
-                    bean["app_version"] = app_version.version
-                    bean["version"] = app_version.version
                     bean["group_key"] = app.app_id
-        return bean
+                    bean["app_version"] = service_source.version
+                    bean["version"] = service_source.version
+            build_infos[service.service_id] = bean
+        return build_infos
 
     def get_not_run_services_request_memory(self, tenant, services):
+        if not services or len(services) == 0:
+            return 0
         not_run_service_ids = []
         memory = 0
         service_ids = [service.service_id for service in services]
-        service_status_list = self.status_multi_service(tenant.region, tenant.tenant_name, service_ids, tenant.enterprise_id)
+        service_status_list = self.status_multi_service(services[0].service_region, tenant.tenant_name, service_ids,
+                                                        tenant.enterprise_id)
         if service_status_list:
             for status_map in service_status_list:
                 if status_map.get("status") in ["undeploy", "closed"]:

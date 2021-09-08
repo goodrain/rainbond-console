@@ -1,6 +1,6 @@
 # Imports
-from parser import parse as _parse
-from result import GitUrlParsed
+from .parser import parse as _parse
+from .result import GitUrlParsed
 
 
 def parse(url, check_domain=True):

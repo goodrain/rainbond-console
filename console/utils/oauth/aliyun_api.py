@@ -1,9 +1,7 @@
 # -*- coding: utf8 -*-
 import requests
-
-from console.utils.oauth.base.oauth import OAuth2Interface
-from console.utils.oauth.base.oauth import OAuth2User
-from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
+from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
+from console.utils.oauth.base.oauth import OAuth2Interface, OAuth2User
 from console.utils.urlutil import set_get_url
 
 
@@ -23,7 +21,6 @@ class AliYun(object):
         url = '/'.join([self._url, url_suffix])
         try:
             rst = self.session.request(method='GET', url=url, headers=self.headers, params=params)
-            print rst.json()
             if rst.status_code == 200:
                 data = rst.json()
                 if not isinstance(data, (list, dict)):
@@ -40,7 +37,7 @@ class AliYun(object):
             rst = self.session.request(method='POST', url=url, headers=self.headers, data=data, params=params)
             if rst.status_code == 200:
                 dat = rst.json()
-                if data.get("error_description"):
+                if dat.get("error_description"):
                     dat = None
             else:
                 dat = None
@@ -132,7 +129,8 @@ class AliYunApiV1(AliYunApiV1MiXin, OAuth2Interface):
     def get_user_info(self, code=None):
         access_token, refresh_token = self._get_access_token(code=code)
         user = self.api.get_user()
-        return OAuth2User(user["login_name"], user["sub"], None), access_token, refresh_token
+
+        return OAuth2User(user.get("name", user["sub"]), user["sub"], None), access_token, refresh_token
 
     def get_authorize_url(self):
         if self.oauth_service:

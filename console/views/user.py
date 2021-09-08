@@ -2,12 +2,10 @@
 import json
 import logging
 
-from console.exception.main import AbortRequest
 from console.enum.enterprise_enum import EnterpriseRolesEnum
-from console.utils.reqparse import parse_item
+from console.exception.bcode import ErrEnterpriseNotFound, ErrUserNotFound
 from console.exception.exceptions import UserNotExistError
-from console.exception.main import ServiceHandleException
-from console.exception.bcode import ErrUserNotFound, ErrEnterpriseNotFound
+from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
@@ -17,6 +15,7 @@ from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLa
 from console.services.perm_services import user_kind_role_service
 from console.services.team_services import team_services
 from console.services.user_services import user_services
+from console.utils.reqparse import parse_item
 from console.views.base import (AlowAnyApiView, BaseApiView, EnterpriseAdminView, JWTAuthApiView, TeamOwnerView)
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -177,7 +176,7 @@ class UserPemTraView(TeamOwnerView):
         return Response(result, status=200)
 
 
-class AdminUserLCView(JWTAuthApiView):
+class AdminUserLCView(EnterpriseAdminView):
     def get(self, request, enterprise_id, *args, **kwargs):
         users = user_services.get_admin_users(enterprise_id)
         result = general_message(200, "success", "获取企业管理员列表成功", list=users)
@@ -189,6 +188,8 @@ class AdminUserLCView(JWTAuthApiView):
             raise AbortRequest("invalid roles", msg_show="角色不正确")
 
         user_id = request.data.get("user_id")
+        if user_id == self.user.user_id:
+            raise AbortRequest("cannot edit your own role", msg_show="不可操作自己的角色")
         try:
             user = user_services.get_user_by_user_id(user_id)
         except UserNotExistError:
@@ -256,6 +257,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                     "nick_name": user.nick_name,
                     "real_name": (user.nick_name if user.real_name is None else user.real_name),
                     "user_id": user.user_id,
+                    "phone": user.phone,
                     "create_time": user.create_time,
                     "default_favorite_name": default_favorite_name,
                     "default_favorite_url": default_favorite_url,
@@ -278,7 +280,7 @@ class EnterPriseUsersCLView(JWTAuthApiView):
             result = general_message(400, "len error", "密码长度最少为8位")
             return Response(result)
         # check user info
-        user_services.check_params(user_name, email, password, re_password, request.user.enterprise_id)
+        user_services.check_params(user_name, email, password, re_password, request.user.enterprise_id, phone)
         client_ip = user_services.get_client_ip(request)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
         # create user
@@ -312,13 +314,16 @@ class EnterPriseUsersUDView(JWTAuthApiView):
     def put(self, request, enterprise_id, user_id, *args, **kwargs):
         password = request.data.get("password", None)
         real_name = request.data.get("real_name", None)
-        user = user_services.update_user_set_password(enterprise_id, user_id, password, real_name)
+        phone = request.data.get("phone", None)
+
+        user = user_services.update_user_set_password(enterprise_id, user_id, password, real_name, phone)
         user.save()
         oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
         if oauth_instance:
             data = {
                 "password": password,
                 "real_name": real_name,
+                "phone": phone,
             }
             oauth_instance.update_user(enterprise_id, user.enterprise_center_user_id, data)
         result = general_message(200, "success", "更新用户成功")
@@ -345,7 +350,7 @@ class AdministratorJoinTeamView(EnterpriseAdminView):
         team_name = request.data.get("team_name")
         team = team_services.get_enterprise_tenant_by_tenant_name(self.user.enterprise_id, team_name)
         if not team:
-            raise ServiceHandleException(msg="no found team", msg_show=u"团队不存在", status_code=404)
+            raise ServiceHandleException(msg="no found team", msg_show="团队不存在", status_code=404)
         users = team_services.get_team_users(team)
         if users:
             nojoin_user_ids = users.values_list("user_id", flat=True)

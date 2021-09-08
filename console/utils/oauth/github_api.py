@@ -2,14 +2,14 @@
 
 import logging
 
-from github import Github
-from urllib3.exceptions import MaxRetryError, ReadTimeoutError, SSLError
-
 from console.exception.main import ServiceHandleException
+from console.exception.bcode import ErrUnAuthnOauthService, ErrExpiredAuthnOauthService
 from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
 from console.utils.oauth.base.git_oauth import GitOAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.urlutil import set_get_url
+from github import Github
+from urllib3.exceptions import MaxRetryError, ReadTimeoutError, SSLError
 
 logger = logging.getLogger("default")
 
@@ -82,21 +82,23 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
                             self.refresh_access_token()
                         except Exception:
                             self.oauth_user.delete()
-                            raise NoAccessKeyErr("refresh key is expired, please reauthorize")
+                            raise ErrExpiredAuthnOauthService
                     elif isinstance(e, (SSLError, MaxRetryError, ReadTimeoutError)):
-                        raise ServiceHandleException(msg=e.message, msg_show=u"连接github不稳定, 请刷新后重试")
+                        raise ServiceHandleException(msg=e.message, msg_show="连接github不稳定, 请刷新后重试")
                     else:
                         self.oauth_user.delete()
-                        raise NoAccessKeyErr("access key is expired, please reauthorize")
-        raise NoAccessKeyErr("can not get access key")
+                        raise ErrExpiredAuthnOauthService
+        raise ErrUnAuthnOauthService
 
     def refresh_access_token(self):
         pass
 
     def get_user_info(self, code=None):
         access_token, refresh_token = self._get_access_token(code=code)
-        user = self.api.get_user()
-        return OAuth2User(user.login, user.id, user.email), access_token, refresh_token
+        if self.api:
+            user = self.api.get_user()
+            return OAuth2User(user.login, user.id, user.email), access_token, refresh_token
+        raise ServiceHandleException(msg="can not get user info, api not set", msg_show="无法获取用户信息")
 
     def get_authorize_url(self):
         if self.oauth_service:

@@ -7,57 +7,38 @@ import datetime
 import json
 import logging
 
-from django.db import transaction
-
-from console.services.app_config import port_service
-from console.enum.app import GovernanceModeEnum
 from console.constants import AppMigrateType
-from console.models.main import ServiceRelPerms
-from console.models.main import ServiceSourceInfo
-from console.repositories.app_config import domain_repo
-from console.repositories.app_config import tcp_domain
+from console.enum.app import GovernanceModeEnum
+from console.models.main import ServiceRelPerms, ServiceSourceInfo
+from console.repositories.app_config import (domain_repo, tcp_domain, volume_repo)
+from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.group import group_repo
 from console.repositories.migration_repo import migrate_repo
 from console.repositories.plugin.plugin import plugin_repo
-from console.repositories.plugin.plugin_config import plugin_config_group_repo
-from console.repositories.plugin.plugin_config import plugin_config_items_repo
+from console.repositories.plugin.plugin_config import (plugin_config_group_repo, plugin_config_items_repo)
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
-from console.repositories.app_config import volume_repo
-from console.repositories.app_config_group import app_config_group_repo
-from console.services.app_config_group import app_config_group_service
+from console.services.app import app_service
+from console.services.app_config import port_service, volume_service
+from console.services.app_config.component_graph import component_graph_service
 from console.services.app_config.port_service import port_repo
 from console.services.app_config.service_monitor import service_monitor_repo
-from console.services.app_config.component_graph import component_graph_service
+from console.services.app_config_group import app_config_group_service
 from console.services.config_service import EnterpriseConfigService
-from console.services.exception import ErrBackupRecordNotFound
-from console.services.exception import ErrNeedAllServiceCloesed
-from console.services.exception import ErrObjectStorageInfoNotFound
+from console.services.exception import (ErrBackupRecordNotFound, ErrNeedAllServiceCloesed, ErrObjectStorageInfoNotFound)
 from console.services.group_service import group_service
-from console.services.app import app_service
+from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.label import ServiceLabels
-from www.models.main import ImageServiceRelation
-from www.models.main import ServiceDomain
-from www.models.main import ServiceEvent
-from www.models.main import ServiceProbe
-from www.models.main import TenantServiceAuth
-from www.models.main import TenantServiceConfigurationFile
-from www.models.main import TenantServiceEnv
-from www.models.main import TenantServiceEnvVar
-from www.models.main import TenantServiceInfo
-from www.models.main import TenantServiceMountRelation
-from www.models.main import TenantServiceRelation
-from www.models.main import TenantServicesPort
-from www.models.main import TenantServiceVolume
-from www.models.main import ThirdPartyServiceEndpoints
-from www.models.plugin import ServicePluginConfigVar
-from www.models.plugin import TenantServicePluginRelation
+from www.models.main import (ImageServiceRelation, ServiceDomain, ServiceEvent, ServiceProbe, TenantServiceAuth,
+                             TenantServiceConfigurationFile, TenantServiceEnv, TenantServiceEnvVar, TenantServiceInfo,
+                             TenantServiceMountRelation, TenantServiceRelation, TenantServicesPort, TenantServiceVolume,
+                             ThirdPartyServiceEndpoints)
+from www.models.plugin import (ServicePluginConfigVar, TenantServicePluginRelation)
 from www.utils.crypt import make_uuid
-from console.services.app_config import volume_service
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -200,7 +181,7 @@ class GroupappsMigrateService(object):
                 return False
         return True
 
-    def get_and_save_migrate_status(self, user, restore_id):
+    def get_and_save_migrate_status(self, user, restore_id, current_team_name, current_region):
         migrate_record = migrate_repo.get_by_restore_id(restore_id)
         if not migrate_record:
             return None
@@ -217,7 +198,8 @@ class GroupappsMigrateService(object):
                 try:
                     with transaction.atomic():
                         self.save_data(migrate_team, migrate_record.migrate_region, user, service_change, json.loads(metadata),
-                                       migrate_record.group_id, True)
+                                       migrate_record.group_id, migrate_record.migrate_team == current_team_name,
+                                       migrate_record.migrate_region == current_region, True)
                         if migrate_record.migrate_type == "recover":
                             # 如果为恢复操作，将原有备份和迁移的记录的组信息修改
                             backup_record_repo.get_record_by_group_id(
@@ -230,7 +212,18 @@ class GroupappsMigrateService(object):
                 migrate_record.save()
         return migrate_record
 
-    def save_data(self, migrate_tenant, migrate_region, user, changed_service_map, metadata, group_id, sync_flag=False):
+    def save_data(
+            self,
+            migrate_tenant,
+            migrate_region,
+            user,
+            changed_service_map,
+            metadata,
+            group_id,
+            same_team,
+            same_region,
+            sync_flag=False,
+    ):
         from console.services.groupcopy_service import groupapp_copy_service
         group = group_repo.get_group_by_id(group_id)
         apps = metadata["apps"]
@@ -253,7 +246,8 @@ class GroupappsMigrateService(object):
                                app["service_config_file"] if 'service_config_file' in app else None)
             self.__save_compile_env(ts, app["service_compile_env"])
             self.__save_service_label(migrate_tenant, ts, migrate_region, app["service_labels"])
-            self.__save_service_probes(ts, app["service_probes"])
+            if sync_flag:
+                self.__save_service_probes(ts, app["service_probes"])
             self.__save_service_source(migrate_tenant, ts, app["service_source"])
             self.__save_service_auth(ts, app["service_auths"])
             self.__save_third_party_service_endpoints(ts, app.get("third_party_service_endpoints", []))
@@ -307,10 +301,10 @@ class GroupappsMigrateService(object):
             ts.save()
 
         # restore plugin info
+        self.__save_plugins(migrate_region, migrate_tenant, metadata["plugin_info"]["plugins"])
         self.__save_plugin_config_items(metadata["plugin_info"]["plugin_config_items"])
         self.__save_plugin_config_groups(metadata["plugin_info"]["plugin_config_groups"])
         versions = self.__save_plugin_build_versions(migrate_tenant, metadata["plugin_info"]["plugin_build_versions"])
-        self.__save_plugins(migrate_region, migrate_tenant, metadata["plugin_info"]["plugins"])
         for app in apps:
             new_service_id = old_new_service_id_map[app["service_base"]["service_id"]]
             # plugin
@@ -318,10 +312,11 @@ class GroupappsMigrateService(object):
                 self.__save_plugin_relations(new_service_id, app["service_plugin_relation"], versions)
             if app.get("service_plugin_config", None):
                 self.__save_service_plugin_config(new_service_id, app["service_plugin_config"])
-        self.__save_service_relations(migrate_tenant, service_relations_list, old_new_service_id_map)
-        self.__save_service_mnt_relation(migrate_tenant, service_mnt_list, old_new_service_id_map)
+        self.__save_service_relations(migrate_tenant, service_relations_list, old_new_service_id_map, same_team, same_region)
+        self.__save_service_mnt_relation(migrate_tenant, service_mnt_list, old_new_service_id_map, same_team, same_region)
         # restore application config group
-        self.__save_app_config_groups(metadata.get("app_config_group_info"), migrate_tenant, group_id, changed_service_map)
+        self.__save_app_config_groups(
+            metadata.get("app_config_group_info"), migrate_tenant, migrate_region, group_id, changed_service_map)
 
     def __init_app(self, service_base_info, new_service_id, new_servie_alias, user, region, tenant):
         service_base_info.pop("ID")
@@ -335,6 +330,7 @@ class GroupappsMigrateService(object):
         ts.creater = user.user_id
         ts.tenant_id = tenant.tenant_id
         ts.create_status = "creating"
+        ts.service_cname = ts.service_cname + "-copy"
         # compatible component type
         if ts.extend_method == "state":
             ts.extend_method = "state_multiple"
@@ -380,6 +376,8 @@ class GroupappsMigrateService(object):
                 volume["volume_type"] = settings["volume_type"]
             new_volume = TenantServiceVolume(**volume)
             new_volume.service_id = service.service_id
+            host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id, new_volume.volume_path)
+            new_volume.host_path = host_path
             volume_list.append(new_volume)
         if volume_list:
             # bulk_create do not return volume's id(django database connection feature can_return_ids_from_bulk_insert)
@@ -458,7 +456,6 @@ class GroupappsMigrateService(object):
         if port_list:
             TenantServicesPort.objects.bulk_create(port_list)
             region = region_repo.get_region_by_region_name(service.service_region)
-            # 为每一个端口状态是打开的生成默认域名
             for port in port_list:
                 if port.is_outer_service:
                     if port.protocol == "http":
@@ -485,21 +482,6 @@ class GroupappsMigrateService(object):
                             domain_repo.create_service_domains(service_id, service_name, domain_name, create_time,
                                                                container_port, protocol, http_rule_id, tenant_id, service_alias,
                                                                region_id)
-                            # 给数据中心发请求添加默认域名
-                            data = dict()
-                            data["domain"] = domain_name
-                            data["service_id"] = service.service_id
-                            data["tenant_id"] = tenant.tenant_id
-                            data["tenant_name"] = tenant.tenant_name
-                            data["protocol"] = protocol
-                            data["container_port"] = int(container_port)
-                            data["http_rule_id"] = http_rule_id
-                            try:
-                                region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
-                            except Exception as e:
-                                logger.exception(e)
-                                domain_repo.delete_http_domains(http_rule_id)
-                                continue
 
                     else:
                         service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
@@ -510,9 +492,8 @@ class GroupappsMigrateService(object):
                                 service_tcp_domain.is_outer_service = True
                                 service_tcp_domain.save()
                         else:
-                            # ip+port
                             # 在service_tcp_domain表中保存数据
-                            res, data = region_api.get_port(region.region_name, tenant.tenant_name)
+                            res, data = region_api.get_port(region.region_name, tenant.tenant_name, True)
                             if int(res.status) != 200:
                                 continue
                             end_point = str(region.tcpdomain) + ":" + str(data["bean"])
@@ -528,23 +509,6 @@ class GroupappsMigrateService(object):
                             tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time,
                                                                   container_port, protocol, service_alias, tcp_rule_id,
                                                                   tenant_id, region_id)
-                            # 默认ip不需要传给数据中心
-                            # ip = end_point.split(":")[0]
-                            port = end_point.split(":")[1]
-                            data = dict()
-                            data["service_id"] = service.service_id
-                            data["container_port"] = int(container_port)
-                            # data["ip"] = ip
-                            data["port"] = int(port)
-                            data["tcp_rule_id"] = tcp_rule_id
-                            logger.debug('--------------------------------->{0}'.format(data["port"]))
-                            try:
-                                # 给数据中心传送数据添加策略
-                                region_api.bindTcpDomain(service.service_region, tenant.tenant_name, data)
-                            except Exception as e:
-                                logger.exception(e)
-                                tcp_domain.delete_tcp_domain(tcp_rule_id)
-                                continue
 
     def __save_compile_env(self, service, compile_env):
         if compile_env:
@@ -634,7 +598,7 @@ class GroupappsMigrateService(object):
             new_image_relation.service_id = service.service_id
             new_image_relation.save()
 
-    def __save_service_relations(self, tenant, service_relations_list, old_new_service_id_map):
+    def __save_service_relations(self, tenant, service_relations_list, old_new_service_id_map, same_team, same_region):
         new_service_relation_list = []
         if service_relations_list:
             for relation in service_relations_list:
@@ -644,12 +608,15 @@ class GroupappsMigrateService(object):
                 new_service_relation.service_id = old_new_service_id_map[relation["service_id"]]
                 if old_new_service_id_map.get(relation["dep_service_id"]):
                     new_service_relation.dep_service_id = old_new_service_id_map[relation["dep_service_id"]]
-                else:
+                elif same_team and same_region:
+                    # check new app region is same as old app
                     new_service_relation.dep_service_id = relation["dep_service_id"]
+                else:
+                    continue
                 new_service_relation_list.append(new_service_relation)
             TenantServiceRelation.objects.bulk_create(new_service_relation_list)
 
-    def __save_service_mnt_relation(self, tenant, service_mnt_relation_list, old_new_service_id_map):
+    def __save_service_mnt_relation(self, tenant, service_mnt_relation_list, old_new_service_id_map, same_team, same_region):
         new_service_mnt_relation_list = []
         if service_mnt_relation_list:
             for mnt in service_mnt_relation_list:
@@ -659,8 +626,10 @@ class GroupappsMigrateService(object):
                 new_service_mnt.service_id = old_new_service_id_map[mnt["service_id"]]
                 if old_new_service_id_map.get(mnt["dep_service_id"]):
                     new_service_mnt.dep_service_id = old_new_service_id_map[mnt["dep_service_id"]]
-                else:
+                elif same_team and same_region:
                     new_service_mnt.dep_service_id = mnt["dep_service_id"]
+                else:
+                    continue
                 new_service_mnt_relation_list.append(new_service_mnt)
             TenantServiceMountRelation.objects.bulk_create(new_service_mnt_relation_list)
 
@@ -686,17 +655,14 @@ class GroupappsMigrateService(object):
             pr.pop("ID")
             new_pr = TenantServicePluginRelation(**pr)
             new_pr.service_id = service_id
-            if not new_pr.min_memory:
+            if new_pr.min_memory is None:
+                new_pr.min_memory = 0
+                new_pr.min_cpu = 0
                 for plugin_version in plugin_versions:
                     if new_pr.plugin_id == plugin_version.plugin_id:
                         new_pr.min_memory = plugin_version.min_memory
                         new_pr.min_cpu = plugin_version.min_cpu
                         break
-            if not new_pr.min_memory:
-                new_pr.min_memory = 64
-            # The CPU is not used as a setting parameter
-            if not new_pr.min_cpu:
-                new_pr.min_cpu = 1
             new_plugin_relations.append(new_pr)
         TenantServicePluginRelation.objects.bulk_create(new_plugin_relations)
 
@@ -762,12 +728,12 @@ class GroupappsMigrateService(object):
             service_endpoint_list.append(ThirdPartyServiceEndpoints(**endpoint))
         ThirdPartyServiceEndpoints.objects.bulk_create(service_endpoint_list)
 
-    def __save_app_config_groups(self, config_groups, tenant, app_id, changed_service_map):
+    def __save_app_config_groups(self, config_groups, tenant, region_name, app_id, changed_service_map):
         if not config_groups:
             return
         for cgroup in config_groups:
             service_ids = []
-            is_exists = app_config_group_repo.is_exists(tenant.region, app_id, cgroup["config_group_name"])
+            is_exists = app_config_group_repo.is_exists(region_name, app_id, cgroup["config_group_name"])
             if is_exists:
                 cgroup["config_group_name"] = "-".join([cgroup["config_group_name"], make_uuid()[-4:]])
             for service in cgroup["services"]:
@@ -777,7 +743,7 @@ class GroupappsMigrateService(object):
                     continue
 
             app_config_group_service.create_config_group(app_id, cgroup["config_group_name"], cgroup["config_items"],
-                                                         cgroup["deploy_type"], cgroup["enable"], service_ids, tenant.region,
+                                                         cgroup["deploy_type"], cgroup["enable"], service_ids, region_name,
                                                          tenant.tenant_name)
 
     def __save_service_monitors(self, tenant, service, service_monitors):

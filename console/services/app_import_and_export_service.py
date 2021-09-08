@@ -5,7 +5,10 @@
 import base64
 import json
 import logging
-import urllib2
+import os
+import urllib.error
+import urllib.parse
+import urllib.request
 
 from console.appstore.appstore import app_store
 from console.exception.main import (ExportAppError, RbdAppNotFound, RecordNotFound, RegionNotFound)
@@ -14,8 +17,9 @@ from console.repositories.market_app_repo import (app_export_record_repo, app_im
 from console.repositories.region_repo import region_repo
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
+from console.services.region_services import region_services
+from goodrain_web import settings
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantRegionInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 
@@ -26,39 +30,22 @@ region_api = RegionInvokeApi()
 
 
 class AppExportService(object):
-    def create_export_repo(self, event_id, export_format, group_key, version, enterprise_id):
-        export_record = app_export_record_repo.get_enter_export_record_by_unique_key(enterprise_id, group_key, version,
-                                                                                     export_format)
-        if export_record:
-            return 409, "已存在该导出类型的文件", None
-
-        if event_id is None:
-            event_id = make_uuid()
-        params = {
-            "event_id": event_id,
-            "group_key": group_key,
-            "version": version,
-            "format": export_format,
-            "status": "exporting",
-            "enterprise_id": enterprise_id
-        }
-        new_export_record = app_export_record_repo.create_app_export_record(**params)
-        return 200, "success", new_export_record
-
-    def _export_app_region(self, eid):
-        tenant_region_info = region_repo.get_team_used_region_by_enterprise_id(eid)
-        if tenant_region_info:
-            return tenant_region_info.region_name
-        raise RecordNotFound("数据中心未找到")
+    def select_handle_region(self, eid):
+        data = region_services.get_enterprise_regions(eid, level="safe", status=1, check_status=True)
+        if data:
+            for region in data:
+                if region["rbd_version"] != "":
+                    return region_services.get_region_by_region_id(data[0]["region_id"])
+        raise RegionNotFound("暂无可用的集群，应用导出功能不可用")
 
     def export_app(self, eid, app_id, version, export_format):
         app, app_version = rainbond_app_repo.get_rainbond_app_and_version(eid, app_id, version)
         if not app or not app_version:
             raise RbdAppNotFound("未找到该应用")
 
-        # get region
-        region = self._export_app_region(eid)
-
+        # get region TODO: get region by app publish meta info
+        region = self.select_handle_region(eid)
+        region_name = region.region_name
         export_record = app_export_record_repo.get_export_record(eid, app_id, version, export_format)
         if export_record:
             if export_record.status == "success":
@@ -78,7 +65,7 @@ class AppExportService(object):
         }
 
         try:
-            region_api.export_app(region, eid, data)
+            region_api.export_app(region_name, eid, data)
         except region_api.CallApiError as e:
             logger.exception(e)
             raise ExportAppError()
@@ -90,6 +77,7 @@ class AppExportService(object):
             "format": export_format,
             "status": "exporting",
             "enterprise_id": eid,
+            "region_name": region.region_name
         }
 
         return app_export_record_repo.create_app_export_record(**params)
@@ -105,19 +93,24 @@ class AppExportService(object):
             image_base64_string = ""
 
         app_template = json.loads(app_version.app_template)
-        app_template["suffix"] = suffix
-        app_template["describe"] = describe
-        app_template["image_base64_string"] = image_base64_string
-        return json.dumps(app_template)
+        app_template["annotations"] = {
+            "suffix": suffix,
+            "describe": describe,
+            "image_base64_string": image_base64_string,
+            "version_info": app_version.app_version_info,
+            "version_alias": app_version.version_alias,
+        }
+        return json.dumps(app_template, cls=MyEncoder)
 
     def encode_image(self, image_url):
         if not image_url:
             return None
         if image_url.startswith("http"):
-            response = urllib2.urlopen(image_url)
+            response = urllib.request.urlopen(image_url)
         else:
-            response = open(image_url)
-        image_base64_string = base64.encodestring(response.read())
+            image_url = "{}/media/uploads/{}".format(settings.DATA_DIR, image_url.split('/')[-1])
+            response = open(image_url, mode='rb')
+        image_base64_string = base64.encodebytes(response.read()).decode('utf-8')
         response.close()
         return image_base64_string
 
@@ -131,14 +124,17 @@ class AppExportService(object):
             "is_export_before": False,
         }
 
-        # get region
-        region = self._export_app_region(enterprise_id)
-
         if app_export_records:
             for export_record in app_export_records:
+                if not export_record.region_name:
+                    continue
+                region = region_services.get_enterprise_region_by_region_name(enterprise_id, export_record.region_name)
+                if not region:
+                    continue
                 if export_record.event_id and export_record.status == "exporting":
                     try:
-                        res, body = region_api.get_app_export_status(region, enterprise_id, export_record.event_id)
+                        res, body = region_api.get_app_export_status(export_record.region_name, enterprise_id,
+                                                                     export_record.event_id)
                         result_bean = body["bean"]
                         if result_bean["status"] in ("failed", "success"):
                             export_record.status = result_bean["status"]
@@ -154,7 +150,8 @@ class AppExportService(object):
                         "status":
                         export_record.status,
                         "file_path":
-                        self._wrapper_director_download_url(region, export_record.file_path.replace("/v2", ""))
+                        self._wrapper_director_download_url(export_record.region_name, export_record.file_path.replace(
+                            "/v2", ""))
                     })
                 if export_record.format == "docker-compose":
                     docker_compose_init_data.update({
@@ -163,7 +160,8 @@ class AppExportService(object):
                         "status":
                         export_record.status,
                         "file_path":
-                        self._wrapper_director_download_url(region, export_record.file_path.replace("/v2", ""))
+                        self._wrapper_director_download_url(export_record.region_name, export_record.file_path.replace(
+                            "/v2", ""))
                     })
 
         result = {"rainbond_app": rainbond_app_init_data, "docker_compose": docker_compose_init_data}
@@ -207,6 +205,14 @@ class AppExportService(object):
 
 
 class AppImportService(object):
+    def select_handle_region(self, eid):
+        data = region_services.get_enterprise_regions(eid, level="safe", status=1, check_status=True)
+        if data:
+            for region in data:
+                if region["rbd_version"] != "":
+                    return region_services.get_region_by_region_id(data[0]["region_id"])
+        raise RegionNotFound("暂无可用的集群、应用导入功能不可用")
+
     def start_import_apps(self, scope, event_id, file_names, team_name=None, enterprise_id=None):
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
         if not import_record:
@@ -378,29 +384,48 @@ class AppImportService(object):
         rainbond_app_versions = []
         metadata = json.loads(metadata)
         key_and_version_list = []
+        if not metadata:
+            return
         for app_template in metadata:
+            annotations = app_template.get("annotations", {})
+            app_describe = app_template.pop("describe", "")
+            if annotations.get("describe", ""):
+                app_describe = annotations.pop("describe", "")
             app = rainbond_app_repo.get_rainbond_app_by_app_id(import_record.enterprise_id, app_template["group_key"])
             # if app exists, update it
             if app:
                 app.scope = import_record.scope
-                app.describe = app_template.pop("describe", "")
+                app.describe = app_describe
                 app.save()
                 app_version = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(
                     app.app_id, app_template["group_version"])
                 if app_version:
+                    version_info = annotations.get("version_info")
+                    version_alias = annotations.get("version_alias")
+                    if not version_info:
+                        version_info = app_version.app_version_info
+                    if not version_alias:
+                        version_alias = app_version.version_alias
                     # update version if exists
                     app_version.scope = import_record.scope
                     app_version.app_template = json.dumps(app_template)
                     app_version.template_version = app_template["template_version"]
+                    app_version.app_version_info = version_info,
+                    app_version.version_alias = version_alias,
                     app_version.save()
                 else:
                     # create a new version
                     rainbond_app_versions.append(self.create_app_version(app, import_record, app_template))
             else:
                 image_base64_string = app_template.pop("image_base64_string", "")
+                if annotations.get("image_base64_string"):
+                    image_base64_string = annotations.pop("image_base64_string", "")
                 pic_url = ""
                 if image_base64_string:
-                    pic_url = self.decode_image(image_base64_string, app_template.pop("suffix", "jpg"))
+                    suffix = app_template.pop("suffix", "jpg")
+                    if annotations.get("suffix"):
+                        suffix = annotations.pop("suffix", "jpg")
+                    pic_url = self.decode_image(image_base64_string, suffix)
                 key_and_version = "{0}:{1}".format(app_template["group_key"], app_template['group_version'])
                 if key_and_version in key_and_version_list:
                     continue
@@ -412,7 +437,7 @@ class AppImportService(object):
                     source="import",
                     create_team=import_record.team_name,
                     scope=import_record.scope,
-                    describe=app_template.pop("describe", ""),
+                    describe=app_describe,
                     pic=pic_url,
                 )
                 rainbond_apps.append(rainbond_app)
@@ -423,7 +448,7 @@ class AppImportService(object):
 
     @staticmethod
     def create_app_version(app, import_record, app_template):
-        return RainbondCenterAppVersion(
+        version = RainbondCenterAppVersion(
             scope=import_record.scope,
             enterprise_id=import_record.enterprise_id,
             app_id=app.app_id,
@@ -433,7 +458,12 @@ class AppImportService(object):
             record_id=import_record.ID,
             share_user=0,
             is_complete=1,
+            app_version_info=app_template.get("annotations", {}).get("version_info", ""),
+            version_alias=app_template.get("annotations", {}).get("version_alias", ""),
         )
+        if app_store.is_no_multiple_region_hub(import_record.enterprise_id):
+            version.region_name = import_record.region
+        return version
 
     def __save_import_info(self, tenant, scope, metadata):
         rainbond_apps = []
@@ -483,11 +513,12 @@ class AppImportService(object):
         if not image_base64_string:
             return ""
         try:
-            file_name = make_uuid() + "." + suffix
-            file_path = "{0}/{1}".format("/data/media/uploads", file_name)
-            with open(file_path, "wb") as f:
-                f.write(image_base64_string.decode("base64"))
-            return file_path
+            filename = 'uploads/{0}.{1}'.format(make_uuid(), suffix)
+            savefilename = os.path.join(settings.MEDIA_ROOT, filename)
+            queryfilename = os.path.join(settings.MEDIA_URL, filename)
+            with open(savefilename, "wb") as f:
+                f.write(base64.decodebytes(image_base64_string.encode('utf-8')))
+            return queryfilename
         except Exception as e:
             logger.exception(e)
         return ""
@@ -520,12 +551,7 @@ class AppImportService(object):
 
     def create_app_import_record_2_enterprise(self, eid, user_name):
         event_id = make_uuid()
-        try:
-            region = region_repo.get_team_used_region_by_enterprise_id(eid)
-        except TenantRegionInfo.DoesNotExist:
-            raise RegionNotFound("region not found")
-        if not region:
-            raise RegionNotFound("region not found")
+        region = self.select_handle_region(eid)
         import_record_params = {
             "event_id": event_id,
             "status": "uploading",
@@ -546,6 +572,13 @@ class AppImportService(object):
             else:
                 upload_url = "http://" + splits_texts[1] + raw_url
         return upload_url + "/" + event_id
+
+
+class MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return str(obj, encoding='utf-8')
+        return json.JSONEncoder.default(self, obj)
 
 
 export_service = AppExportService()

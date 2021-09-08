@@ -10,11 +10,11 @@ from www.models.main import Tenants
 
 
 class Command(BaseCommand):
-    help = u'初始化所有团队的角色和团队成员的角色分配'
+    help = '初始化所有团队的角色和团队成员的角色分配'
 
     def add_arguments(self, parser):
-        parser.add_argument('--tenant_id', default=None, help=u"指定团队初始化权限")
-        parser.add_argument('--enterprise_id', default=None, help=u"指定企业初始化权限")
+        parser.add_argument('--tenant_id', default=None, help="指定团队初始化权限")
+        parser.add_argument('--enterprise_id', default=None, help="指定企业初始化权限")
 
     @transaction.atomic()
     def handle(self, *args, **options):
@@ -29,15 +29,15 @@ class Command(BaseCommand):
         else:
             teams = Tenants.objects.all()
         if not teams:
-            print(u"未发现团队, 初始化结束")
+            print("未发现团队, 初始化结束")
             return
         for team in teams:
             role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
             users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
-            admin = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
-            developer = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"开发者")
+            admin = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="管理员")
+            developer = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="开发者")
             if not admin or not developer:
-                raise ServiceHandleException(msg="init failed", msg_show=u"初始化失败")
+                raise ServiceHandleException(msg="init failed", msg_show="初始化失败")
             if users:
                 for user in users:
                     if user.user_id == team.creater:

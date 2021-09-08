@@ -22,12 +22,6 @@ REGION_BUILD_STATUS_MAP = {
 
 
 class PluginBuildVersionService(object):
-    def calculate_cpu(self, region, min_memory):
-        min_cpu = int(min_memory) / 128 * 20
-        if region == "ali-hz":
-            min_cpu *= 2
-        return min_cpu
-
     def create_build_version(self,
                              region,
                              plugin_id,
@@ -39,9 +33,11 @@ class PluginBuildVersionService(object):
                              build_cmd="",
                              image_tag="latest",
                              code_version="master",
-                             build_version=None):
+                             build_version=None,
+                             min_cpu=None):
         """创建插件版本信息"""
-        min_cpu = self.calculate_cpu(region, int(min_memory))
+        if min_cpu is None or type(min_cpu) != int:
+            min_cpu = 0
         if not build_version:
             build_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 
@@ -89,7 +85,6 @@ class PluginBuildVersionService(object):
 
     def update_plugin_build_status(self, region, tenant):
         logger.debug("start thread to update build status")
-
         pbvs = plugin_version_repo.get_plugin_build_version_by_tenant_and_region(
             tenant.tenant_id, region).filter(build_status__in=["building", "timeout", "time_out"])
         for pbv in pbvs:

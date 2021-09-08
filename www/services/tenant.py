@@ -163,7 +163,7 @@ class TenantService(object):
                                                    tenant.enterprise_id)
             bean = body["bean"]
 
-        except Exception, e:
+        except Exception as e:
             logger.debug(service.service_region + "-" + service.service_id + " check_service_status is error")
             logger.exception(e)
 
@@ -222,7 +222,7 @@ class TenantService(object):
                 tenant_region.enterprise_id = tenant.enterprise_id
 
                 tenant_region.save()
-            except api.CallApiError, e:
+            except api.CallApiError as e:
                 logger.error("create tenant {0} failed".format(tenant.tenant_name))
                 logger.exception(e)
                 success = False

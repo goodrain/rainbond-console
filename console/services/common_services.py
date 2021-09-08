@@ -2,7 +2,6 @@
 import logging
 
 from django.conf import settings
-
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantRegionInfo
 
@@ -38,15 +37,8 @@ class CommonServices(object):
                 resource = d_list[0]
                 return resource
         except Exception as e:
-            logger.debug(e)
+            logger.exception(e)
             return None
-
-    def calculate_cpu(self, region, memory):
-        """根据内存和数据中心计算cpu"""
-        min_cpu = int(memory) * 20 / 128
-        if region == "ali-hz":
-            min_cpu = min_cpu * 2
-        return min_cpu
 
     def is_public(self):
         return settings.MODULES.get('SSO_LOGIN')

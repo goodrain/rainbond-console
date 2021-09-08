@@ -1641,7 +1641,7 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         ServiceWebhooks.objects.create(
             service_id="b6098f52dabe91244f3d9d908073506c",
             state=False,
-            webhooks_type='code_Webhooks',
+            webhooks_type='code_webhooks',
             deploy_keyword="deploy",
             trigger="",
         ).save()

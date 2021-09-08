@@ -7,6 +7,7 @@ from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceEr
 from console.utils.oauth.base.git_oauth import GitOAuth2Interface
 from console.utils.oauth.base.oauth import OAuth2User
 from console.utils.urlutil import set_get_url
+from console.exception.bcode import ErrUnAuthnOauthService, ErrExpiredAuthnOauthService
 
 logger = logging.getLogger("default")
 
@@ -166,11 +167,11 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
                             return self.access_token, self.refresh_token
                         except Exception:
                             self.oauth_user.delete()
-                            raise NoAccessKeyErr("access key is expired, please reauthorize")
+                            raise ErrExpiredAuthnOauthService
                     else:
                         self.oauth_user.delete()
-                        raise NoAccessKeyErr("access key is expired, please reauthorize")
-            raise NoAccessKeyErr("can not get access key")
+                        raise ErrExpiredAuthnOauthService
+            raise ErrUnAuthnOauthService
 
     def refresh_access_token(self):
         headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
@@ -217,15 +218,15 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
         if repos:
             for repo in repos:
                 repo_list.append({
-                    "project_id": repo["id"],
-                    "project_full_name": repo["full_name"],
-                    "project_name": repo["name"],
-                    "project_description": repo["description"],
-                    "project_url": repo["html_url"],
-                    "project_default_branch": repo["default_branch"],
-                    "project_ssl_url": repo["ssh_url"],
-                    "updated_at": repo["updated_at"],
-                    "created_at": repo["created_at"]
+                    "project_id": repo.get("id"),
+                    "project_full_name": repo.get("full_name"),
+                    "project_name": repo.get("name"),
+                    "project_description": repo.get("description"),
+                    "project_url": repo.get("html_url"),
+                    "project_default_branch": repo.get("default_branch"),
+                    "project_ssl_url": repo.get("ssh_url"),
+                    "updated_at": repo.get("updated_at"),
+                    "created_at": repo.get("created_at")
                 })
         return repo_list, total
 
@@ -241,34 +242,34 @@ class GiteeApiV5(GiteeApiV5MiXin, GitOAuth2Interface):
             for repo in repos:
                 if repo:
                     repo_list.append({
-                        "project_id": repo["id"],
-                        "project_full_name": repo["full_name"],
-                        "project_name": repo["name"],
-                        "project_description": repo["description"],
-                        "project_url": repo["html_url"],
-                        "project_default_branch": repo["default_branch"],
-                        "project_ssl_url": repo["ssh_url"],
-                        "updated_at": repo["updated_at"],
-                        "created_at": repo["created_at"]
+                        "project_id": repo.get("id"),
+                        "project_full_name": repo.get("full_name"),
+                        "project_name": repo.get("name"),
+                        "project_description": repo.get("description"),
+                        "project_url": repo.get("html_url"),
+                        "project_default_branch": repo.get("default_branch"),
+                        "project_ssl_url": repo.get("ssh_url"),
+                        "updated_at": repo.get("updated_at"),
+                        "created_at": repo.get("created_at")
                     })
         return repo_list, total
 
     def get_repo_detail(self, full_name, *args, **kwargs):
         access_token, _ = self._get_access_token()
         repo_list = []
-        repos = [self.api.get_repo(full_name)]
-        for repo in repos:
-            if repo and full_name == repo["full_name"]:
+        repos, _ = self.api.get_repo(full_name)
+        for repo in [repos]:
+            if repo and full_name == repo.get("full_name"):
                 repo_list.append({
-                    "project_id": repo["id"],
-                    "project_full_name": repo["full_name"],
-                    "project_name": repo["name"],
-                    "project_description": repo["description"],
-                    "project_url": repo["html_url"],
-                    "project_default_branch": repo["default_branch"],
-                    "project_ssl_url": repo["ssh_url"],
-                    "updated_at": repo["updated_at"],
-                    "created_at": repo["created_at"]
+                    "project_id": repo.get("id"),
+                    "project_full_name": repo.get("full_name"),
+                    "project_name": repo.get("name"),
+                    "project_description": repo.get("description"),
+                    "project_url": repo.get("html_url"),
+                    "project_default_branch": repo.get("default_branch"),
+                    "project_ssl_url": repo.get("ssh_url"),
+                    "updated_at": repo.get("updated_at"),
+                    "created_at": repo.get("created_at")
                 })
         return repo_list
 

@@ -27,14 +27,23 @@ class AppStore(object):
             image_config["namespace"] = data.namespace
         if not data:
             data = EnterpriseConfigService(enterprise_id).get_config_by_key("APPSTORE_IMAGE_HUB")
-            if data:
+            if data and data.enable:
                 image_config_dict = eval(data.value)
                 namespace = (image_config_dict.get("namespace") if image_config_dict.get("namespace") else data.enterprise_id)
-                image_config["hub_url"] = image_config_dict.get("hub_url", None)
-                image_config["hub_user"] = image_config_dict.get("hub_user", None)
-                image_config["hub_password"] = image_config_dict.get("hub_password", None)
-                image_config["namespace"] = namespace
+                if image_config_dict["hub_url"]:
+                    image_config["hub_url"] = image_config_dict.get("hub_url", None)
+                    image_config["hub_user"] = image_config_dict.get("hub_user", None)
+                    image_config["hub_password"] = image_config_dict.get("hub_password", None)
+                    image_config["namespace"] = namespace
         return image_config
+
+    def is_no_multiple_region_hub(self, enterprise_id):
+        data = EnterpriseConfigService(enterprise_id).get_config_by_key("APPSTORE_IMAGE_HUB")
+        if data and data.enable:
+            image_config_dict = eval(data.value)
+            if image_config_dict["hub_url"]:
+                return False
+        return True
 
     @apiException
     def get_slug_hub_info(self, store=None, app_id=None, enterprise_id=None):
@@ -115,6 +124,12 @@ class AppStore(object):
     def list_bindable_markets(self, store):
         store_client = get_market_client(store.access_key, store.url)
         return store_client.bindable_markets()
+
+    @apiException
+    def get_orgs(self, store):
+        store_client = get_market_client(store.access_key, store.url)
+        data = store_client.get_orgs()
+        return data
 
 
 app_store = AppStore()

@@ -2,9 +2,8 @@
 """
   Created on 18/1/15.
 """
-from rest_framework.response import Response
-
 from console.utils.response import MessageResponse
+from rest_framework.response import Response
 from www.utils.return_message import general_message
 
 
@@ -61,7 +60,7 @@ class RegionNotFound(ServiceHandleException):
     """
 
     def __init__(self, msg):
-        super(RegionNotFound, self).__init__("region not found")
+        super(RegionNotFound, self).__init__("region not found", msg)
 
 
 class AbortRequest(ServiceHandleException):
@@ -69,7 +68,7 @@ class AbortRequest(ServiceHandleException):
     pass
 
 
-class RecordNotFound(Exception):
+class RecordNotFound(ServiceHandleException):
     """
     There is no corresponding record in the database
     """
@@ -161,3 +160,23 @@ class StoreNoPermissionsError(ServiceHandleException):
 class ErrVolumePath(ServiceHandleException):
     def __init__(self, msg="path error", msg_show="路径错误", status_code=412):
         super(ErrVolumePath, self).__init__(msg, msg_show, status_code)
+
+
+class ErrInsufficientResource(ServiceHandleException):
+    pass
+
+
+class ErrClusterLackOfMemory(ErrInsufficientResource):
+    def __init__(self):
+        super(ErrClusterLackOfMemory, self).__init__("cluster lack of memory")
+        self.msg_show = "集群可用资源不足，请联系集群管理员"
+        self.status_code = 412
+        self.error_code = 10406
+
+
+class ErrTenantLackOfMemory(ErrInsufficientResource):
+    def __init__(self):
+        super(ErrTenantLackOfMemory, self).__init__("tenant lack of memory")
+        self.msg_show = "团队使用内存已超过限额，请联系企业管理员增加限额"
+        self.status_code = 412
+        self.error_code = 10413

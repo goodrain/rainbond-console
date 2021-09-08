@@ -1,62 +1,24 @@
 # -*- coding: utf8 -*-
 import logging
 import re
+
 import requests
-from django.http import HttpResponse
-from django.http import QueryDict
+from django.http import HttpResponse, QueryDict
+
 try:
-    from urlparse import urlparse
+    from urllib.parse import urlparse
 except Exception:
     from urllib.parse import urlparse
-from rest_framework.response import Response
-from console.views.base import CloudEnterpriseCenterView
-from www.utils.return_message import general_message
+
 import os
+
+from console.views.base import JWTAuthApiView
 
 logger = logging.getLogger("default")
 
 
-class EnterpriseSubscribe(CloudEnterpriseCenterView):
-    def get(self, request, enterprise_id, *args, **kwargs):
-        rst = self.oauth_instance.get_ent_subscribe(eid=enterprise_id)
-        result = general_message(200, "success", None, bean=rst.to_dict())
-        return Response(result, status=200)
-
-
-class EnterpriseOrdersCLView(CloudEnterpriseCenterView):
-    def get(self, request, enterprise_id, *args, **kwargs):
-        path_params = {
-            "query": request.GET.get("query", None),
-            "page": request.GET.get("page", None),
-            "page_size": request.GET.get("page_size", None)
-        }
-        order_list = self.oauth_instance.list_ent_order(enterprise_id, **path_params)
-        result = general_message(200, "success", None, **order_list.to_dict())
-        return Response(result, status=200)
-
-    def post(self, request, enterprise_id, *args, **kwargs):
-        data = request.data
-        order = self.oauth_instance.create_ent_order(eid=enterprise_id, body=data)
-        result = general_message(200, "success", None, bean=order.to_dict())
-        return Response(result, status=200)
-
-
-class EnterpriseOrdersRView(CloudEnterpriseCenterView):
-    def get(self, request, enterprise_id, order_id, *args, **kwargs):
-        order = self.oauth_instance.get_ent_order(eid=enterprise_id, order_id=order_id)
-        result = general_message(200, "success", None, bean=order.to_dict())
-        return Response(result, status=200)
-
-
-class BankInfoView(CloudEnterpriseCenterView):
-    def get(self, request, *args, **kwargs):
-        bank = self.oauth_instance.get_bank_info()
-        result = general_message(200, "success", None, bean=bank.to_dict())
-        return Response(result, status=200)
-
-
 # proxy api to enterprise api
-class ProxyView(CloudEnterpriseCenterView):
+class ProxyView(JWTAuthApiView):
     def dispatch(self, request, path, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
@@ -65,18 +27,9 @@ class ProxyView(CloudEnterpriseCenterView):
         self.headers = self.default_response_headers
         try:
             self.initial(request, *args, **kwargs)
-            token, _ = self.oauth_instance._get_access_token()
-            extra_requests_args = {
-                "headers": {
-                    "Authorization": token
-                },
-            }
-            if self.oauth_instance.oauth_service.home_url:
-                remoteurl = "{0}/{1}".format(self.oauth_instance.oauth_service.home_url, path)
-            else:
-                remoteurl = "http://{0}:{1}/{2}".format(
-                    os.getenv("ENTERPRISE_HOST", "127.0.0.1"), os.getenv("ENTERPRISE_PORT", "8080"), path)
-            response = self.proxy_view(request, remoteurl, extra_requests_args)
+            remoteurl = "http://{0}:{1}/{2}".format(
+                os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8080"), path)
+            response = self.proxy_view(request, remoteurl)
         except Exception as exc:
             response = self.handle_exception(exc)
         self.response = self.finalize_response(request, response, *args, **kwargs)
@@ -145,7 +98,7 @@ class ProxyView(CloudEnterpriseCenterView):
             # should be.
             'content-length',
         ])
-        for key, value in response.headers.items():
+        for key, value in list(response.headers.items()):
             if key.lower() in excluded_headers:
                 continue
             elif key.lower() == 'location':
@@ -185,7 +138,7 @@ class ProxyView(CloudEnterpriseCenterView):
         https://docs.djangoproject.com/en/dev/ref/request-response/#django.http.HttpRequest.META
         """
         headers = {}
-        for key, value in environ.items():
+        for key, value in list(environ.items()):
             # Sometimes, things don't like when you send the requesting host through.
             if key.startswith('HTTP_') and key != 'HTTP_HOST':
                 headers[key[5:].replace('_', '-')] = value

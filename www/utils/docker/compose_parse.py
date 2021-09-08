@@ -69,7 +69,7 @@ def compose_list(file_path):
         volume_dict = {}
         for service_info in compose_config.services:
             # 检查是否build标签
-            if "build" in service_info.keys():
+            if "build" in list(service_info.keys()):
                 return None, "now we donot support build!"
             # new docker service
             docker_service = DockerService(compose_id=yaml_info.ID)
@@ -79,7 +79,7 @@ def compose_list(file_path):
             docker_service.name = compose_name
             compose_image = service_info.get("image")
             docker_service.image = compose_image
-            if "command" in service_info.keys():
+            if "command" in list(service_info.keys()):
                 compose_command = service_info.get("command")
                 docker_service.command = compose_command
 
@@ -108,9 +108,9 @@ def compose_list(file_path):
             if service_info.get("entrypoint", None):
                 docker_service.command = service_info.get("entrypoint")
 
-            if "environment" in service_info.keys():
+            if "environment" in list(service_info.keys()):
                 docker_service.environment = json.dumps(service_info.get("environment"))
-            if "ports" in service_info.keys():
+            if "ports" in list(service_info.keys()):
                 compose_ports = service_info.get("ports")
                 result = []
                 for info_port in compose_ports:
@@ -139,16 +139,16 @@ def compose_list(file_path):
                             for i in range(int(port_array[0]), int(port_array[1]) + 1):
                                 result.append(i)
                 docker_service.ports = json.dumps(result)
-            if "expose" in service_info.keys():
+            if "expose" in list(service_info.keys()):
                 # 内部端口
                 docker_service.expose = json.dumps(service_info.get("expose"))
-            if "links" in service_info.keys():
+            if "links" in list(service_info.keys()):
                 compose_links = service_info.get("links")
                 result = []
                 for link in compose_links:
                     result.append(link.split(":")[0])
                 docker_service.links = json.dumps(result)
-            if "volumes" in service_info.keys():
+            if "volumes" in list(service_info.keys()):
                 compose_volumes = service_info.get("volumes")
                 volume_path_list = []
                 for vol in compose_volumes:
@@ -157,7 +157,7 @@ def compose_list(file_path):
                         volume_dict[vol.external] = service_info
                 docker_service.volumes = json.dumps(volume_path_list)
 
-            if "depends_on" in service_info.keys():
+            if "depends_on" in list(service_info.keys()):
                 compose_depends = service_info.get("depends_on")
                 depend_list = []
                 for depend in compose_depends:

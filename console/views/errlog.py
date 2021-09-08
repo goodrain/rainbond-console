@@ -19,4 +19,4 @@ class ErrLogView(JWTAuthApiView):
         if msg:
             logger.error("error from frontend: {}".format(msg))
             errlog_service.create(msg, username, enterprise_id, address)
-        return Response(general_message(200, "success", u"ok"), status=200)
+        return Response(general_message(200, "success", "ok"), status=200)

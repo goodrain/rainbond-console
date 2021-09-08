@@ -1,7 +1,8 @@
 # -*- coding: utf8 -*-
 
 from abc import ABCMeta, abstractmethod
-from oauth import OAuth2Interface
+
+from .oauth import OAuth2Interface
 
 
 class CommunicationOAuth2User(object):
@@ -14,9 +15,7 @@ class CommunicationOAuth2User(object):
         self.domain = domain
 
 
-class CommunicationOAuth2Interface(OAuth2Interface):
-    __metaclass__ = ABCMeta
-
+class CommunicationOAuth2Interface(OAuth2Interface, metaclass=ABCMeta):
     def is_git_oauth(self):
         '''
         Identifies whether the code repository class is serviced

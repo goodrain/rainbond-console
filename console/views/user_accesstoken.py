@@ -1,16 +1,13 @@
 # -*- coding: utf8 -*-
 import logging
 
-from django.db import IntegrityError
-
-from rest_framework.response import Response
-
-from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.return_message import general_message
-
 from console.exception.main import ServiceHandleException
 from console.services.user_accesstoken_services import user_access_services
 from console.views.base import JWTAuthApiView
+from django.db import IntegrityError
+from rest_framework.response import Response
+from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -27,11 +24,10 @@ class UserAccessTokenCLView(JWTAuthApiView):
             result = general_message(200, None, None, bean=access_key.to_dict())
             return Response(result, status=200)
         except ValueError as e:
-            logger.debug(e.message)
-            raise ServiceHandleException(msg="params error", msg_show="创建失败，请检查参数是否合法")
-        except IntegrityError as e:
-            logger.debug(e.message)
-            raise ServiceHandleException(msg="note duplicate", msg_show="创建失败，注释内容不能重复")
+            logger.exception(e)
+            raise ServiceHandleException(msg="params error", msg_show="请检查参数是否合法")
+        except IntegrityError:
+            raise ServiceHandleException(msg="note duplicate", msg_show="令牌用途不能重复")
 
     def get(self, request, *args, **kwargs):
         access_key_list = user_access_services.get_user_access_key(request.user.user_id)
@@ -53,7 +49,7 @@ class UserAccessTokenRUDView(JWTAuthApiView):
         try:
             access_key = user_access_services.update_user_access_key_by_id(request.user.user_id, id)
         except IntegrityError as e:
-            logger.debug(e.message)
+            logger.exception(e)
             raise ServiceHandleException(msg="access key duplicate", msg_show="刷新失败，请重试")
         if not access_key:
             result = general_message(404, "no found access key", "未找到该凭证")

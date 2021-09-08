@@ -2,25 +2,14 @@
 import hashlib
 import logging
 import random
-import uuid
 import re
+import uuid
+from io import BytesIO
 
+from console.views.base import AlowAnyApiView
 from django.conf import settings
 from django.http import HttpResponse
-
-from console.views.base import BaseApiView
-
-try:
-    from PIL import Image, ImageDraw, ImageFont
-except ImportError:
-    import Image
-    import ImageDraw
-    import ImageFont
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from io import BytesIO as StringIO
+from PIL import Image, ImageDraw, ImageFont
 
 from_top = 4
 logger = logging.getLogger('default')
@@ -29,7 +18,7 @@ current_path = settings.BASE_DIR
 NON_DIGITS_RX = re.compile('[^\d]')
 
 
-class CaptchaView(BaseApiView):
+class CaptchaView(AlowAnyApiView):
     def getsize(self, font, text):
         if hasattr(font, 'getoffset'):
             return [x + y for x, y in zip(font.getsize(text), font.getoffset(text))]
@@ -86,7 +75,7 @@ class CaptchaView(BaseApiView):
 
         ImageDraw.Draw(image)
 
-        out = StringIO()
+        out = BytesIO()
         image.save(out, "PNG")
         out.seek(0)
 

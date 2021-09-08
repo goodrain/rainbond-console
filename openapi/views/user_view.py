@@ -140,7 +140,7 @@ class ChangePassword(BaseOpenAPIView):
         serializer.is_valid(raise_exception=True)
         new_password = serializer.data.get("password", None)
         new_password1 = serializer.data.get("password1", None)
-        info = u"缺少参数"
+        info = "缺少参数"
         if new_password and new_password == new_password1:
             status, info = user_services.update_password(user_id=request.user.user_id, new_password=new_password)
             oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
@@ -189,10 +189,10 @@ class ChangeUserPassword(BaseOpenAPIView):
         user_id = serializer.data.get("user_id", None)
         new_password = serializer.data.get("password", None)
         new_password1 = serializer.data.get("password1", None)
-        info = u"缺少参数"
+        info = "缺少参数"
         user = user_repo.get_enterprise_user_by_id(request.user.enterprise_id, user_id)
         if not user:
-            raise ServiceHandleException(msg="no found user", msg_show=u"用户不存在", status_code=404)
+            raise ServiceHandleException(msg="no found user", msg_show="用户不存在", status_code=404)
         if new_password and new_password == new_password1:
             status, info = user_services.update_password(user_id=user_id, new_password=new_password)
             oauth_instance, _ = user_services.check_user_is_enterprise_center_user(user_id)

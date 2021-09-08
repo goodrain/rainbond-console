@@ -86,10 +86,7 @@ class MultiAppService(object):
                     group_id, new_service.service_id))
                 raise AbortRequest("app not found", "创建多组件应用失败", 404, 404)
             # save service info, such as envs, ports, etc
-            code, msg = app_check_service.save_service_info(tenant, new_service, service_info)
-            if code != 200:
-                logger.debug("Group ID: {0}; Service ID: {1}; error saving services".format(group_id, new_service.service_id))
-                raise AbortRequest(msg, "创建多组件应用失败")
+            app_check_service.save_service_info(tenant, new_service, service_info)
             new_service = app_service.create_region_service(tenant, new_service, user.nick_name)
             new_service.create_status = "complete"
             new_service.save()

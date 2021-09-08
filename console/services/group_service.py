@@ -4,32 +4,31 @@
 """
 import logging
 import re
+from datetime import datetime
 
-from django.db import transaction
+from deprecated import deprecated
 
-from console.exception.bcode import ErrUserNotFound
-from console.enum.app import GovernanceModeEnum
-from console.repositories.app_config import env_var_repo
+from console.enum.app import GovernanceModeEnum, AppType
+from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound
+from console.exception.main import AbortRequest, ServiceHandleException
+from console.repositories.app import service_repo, service_source_repo
+from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain)
+from console.repositories.backup_repo import backup_record_repo
+from console.repositories.compose_repo import compose_repo
+from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.plugin import app_plugin_relation_repo
+from console.repositories.region_app import region_app_repo
+from console.repositories.region_repo import region_repo
+from console.repositories.share_repo import share_repo
+from console.repositories.upgrade_repo import upgrade_repo
+from console.repositories.user_repo import user_repo
+from console.repositories.migration_repo import migrate_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.service_services import base_service
-from console.repositories.compose_repo import compose_repo
-from console.repositories.share_repo import share_repo
-from console.repositories.region_repo import region_repo
-from console.repositories.app_config import domain_repo, tcp_domain, port_repo
-from console.repositories.app import service_repo
-from console.repositories.app import service_source_repo
-from console.repositories.backup_repo import backup_record_repo
-from console.repositories.group import group_repo, group_service_relation_repo
-from console.repositories.region_app import region_app_repo
-from console.repositories.upgrade_repo import upgrade_repo
-from console.repositories.plugin import app_plugin_relation_repo
-from console.repositories.user_repo import user_repo
 from console.utils.shortcuts import get_object_or_404
-from console.exception.main import ServiceHandleException
-from www.models.main import ServiceGroup, ServiceGroupRelation
-from console.exception.main import AbortRequest
+from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import RegionApp
+from www.models.main import RegionApp, ServiceGroup, ServiceGroupRelation
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -40,19 +39,65 @@ class GroupService(object):
         return group_repo.list_tenant_group_on_region(tenant, region_name)
 
     @staticmethod
-    def check_app_name(tenant, region_name, group_name):
+    def check_app_name(tenant, region_name, group_name, app: ServiceGroup = None):
         if not group_name:
             raise ServiceHandleException(msg="app name required", msg_show="应用名不能为空")
         if len(group_name) > 128:
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称最多支持128个字符")
-        r = re.compile(u'^[a-zA-Z0-9_\\.\\-\u4e00-\u9fa5]+$')
-        if not r.match(group_name.decode("utf-8")):
+        r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
+        if not r.match(group_name):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
+        exist_app = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
+        if not exist_app:
+            return
+        if not app or exist_app.app_id != app.app_id:
+            raise ServiceHandleException(msg="app name exist", msg_show="应用名称已存在")
 
     @transaction.atomic
-    def create_app(self, tenant, region_name, app_name, note="", username=""):
-        app = self.__add_group(tenant, region_name, app_name, note, username)
-        self.create_region_app(tenant, region_name, app)
+    def create_app(self,
+                   tenant,
+                   region_name,
+                   app_name,
+                   note="",
+                   username="",
+                   app_store_name="",
+                   app_store_url="",
+                   app_template_name="",
+                   version="",
+                   eid=""):
+        self.check_app_name(tenant, region_name, app_name)
+        # check parameter for helm app
+        app_type = AppType.rainbond.name
+        if app_store_name or app_template_name or version:
+            app_type = AppType.helm.name
+            if not app_store_name:
+                raise AbortRequest("the field 'app_store_name' is required")
+            if not app_store_url:
+                raise AbortRequest("the field 'app_store_url' is required")
+            if not app_template_name:
+                raise AbortRequest("the field 'app_template_name' is required")
+            if not version:
+                raise AbortRequest("the field 'version' is required")
+
+        app = ServiceGroup(
+            tenant_id=tenant.tenant_id,
+            region_name=region_name,
+            group_name=app_name,
+            note=note,
+            is_default=False,
+            username=username,
+            update_time=datetime.now(),
+            create_time=datetime.now(),
+            app_type=app_type,
+            app_store_name=app_store_name,
+            app_store_url=app_store_url,
+            app_template_name=app_template_name,
+            version=version,
+        )
+        group_repo.create(app)
+
+        self.create_region_app(tenant, region_name, app, eid=eid)
+
         res = app.to_dict()
         # compatible with the old version
         res["group_id"] = app.ID
@@ -65,14 +110,17 @@ class GroupService(object):
         self.create_region_app(tenant, region_name, app)
         return app.to_dict()
 
-    def __add_group(self, tenant, region_name, app_name, note="", username=""):
-        self.check_app_name(tenant, region_name, app_name)
-        return group_repo.add_group(tenant.tenant_id, region_name, app_name, group_note=note, username=username)
-
-    def create_region_app(self, tenant, region_name, app):
-        region_app = region_api.create_application(region_name, tenant.tenant_name, {
-            "app_name": app.group_name,
-        })
+    def create_region_app(self, tenant, region_name, app, eid=""):
+        region_app = region_api.create_application(
+            region_name, tenant.tenant_name, {
+                "eid": eid,
+                "app_name": app.group_name,
+                "app_type": app.app_type,
+                "app_store_name": app.app_store_name,
+                "app_store_url": app.app_store_url,
+                "app_template_name": app.app_template_name,
+                "version": app.version,
+            })
 
         # record the dependencies between region app and console app
         data = {
@@ -82,47 +130,89 @@ class GroupService(object):
         }
         region_app_repo.create(**data)
 
-    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None):
-        # check app id
-        if not app_id or app_id < 0:
-            raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
-        # check username
-        if username:
-            user_repo.get_user_by_username(username)
-        # check app name
-        self.check_app_name(tenant, region_name, app_name)
+    @staticmethod
+    def _parse_overrides(overrides):
+        new_overrides = []
+        for key in overrides:
+            val = overrides[key]
+            if type(val) == int:
+                val = str(val)
+            if type(val) != str:
+                raise AbortRequest("wrong override value which type is {}".format(type(val)))
+            new_overrides.append(key + "=" + val)
+        return new_overrides
 
+    @transaction.atomic
+    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None, overrides="", version="", revision=0):
+        # check app id
+        if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
+            raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
         data = {
             "note": note,
         }
         if username:
-            data["username"] = username
+            # check username
+            try:
+                data["username"] = username
+                user_repo.get_user_by_username(username)
+            except ErrUserNotFound:
+                raise ServiceHandleException(msg="user not exists", msg_show="用户不存在,请选择其他应用负责人", status_code=404)
+
+        app = group_repo.get_group_by_id(app_id)
+
+        # check app name
+        if app_name:
+            self.check_app_name(tenant, region_name, app_name, app)
+        if overrides:
+            overrides = self._parse_overrides(overrides)
+
         if app_name:
             data["group_name"] = app_name
+        if version:
+            data["version"] = version
 
         group_repo.update(app_id, **data)
 
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        region_api.update_app(region_name, tenant.tenant_name, region_app_id, {
+            "overrides": overrides,
+            "version": version,
+            "revision": revision,
+        })
+
     def delete_group(self, group_id, default_group_id):
-        if not group_id or group_id < 0:
-            return 400, u"需要删除的应用不合法", None
+        if not group_id or not str.isdigit(group_id) or int(group_id) < 0:
+            return 400, "需要删除的应用不合法", None
         backups = backup_record_repo.get_record_by_group_id(group_id)
         if backups:
-            return 409, u"当前应用有备份记录，暂无法删除", None
+            return 409, "当前应用有备份记录，暂无法删除", None
         # 删除应用
         group_repo.delete_group_by_pk(group_id)
         # 删除应用与应用的关系
         group_service_relation_repo.update_service_relation(group_id, default_group_id)
-        return 200, u"删除成功", group_id
+        return 200, "删除成功", group_id
 
+    @staticmethod
+    def add_component_to_app(tenant, region_name, app_id, component_id):
+        if not app_id:
+            return
+        app_id = int(app_id)
+        if app_id > 0:
+            group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
+            if not group:
+                raise ErrApplicationNotFound
+            group_service_relation_repo.add_service_group_relation(app_id, component_id, tenant.tenant_id, region_name)
+
+    @deprecated("You should use 'add_component_to_app'")
     def add_service_to_group(self, tenant, region_name, group_id, service_id):
         if group_id:
             group_id = int(group_id)
             if group_id > 0:
                 group = group_repo.get_group_by_pk(tenant.tenant_id, region_name, group_id)
                 if not group:
-                    return 404, u"应用不存在"
+                    return 404, "应用不存在"
                 group_service_relation_repo.add_service_group_relation(group_id, service_id, tenant.tenant_id, region_name)
-        return 200, u"success"
+        return 200, "success"
 
     def sync_app_services(self, tenant, region_name, app_id):
         group_services = base_service.get_group_services_list(tenant.tenant_id, region_name, app_id)
@@ -134,7 +224,7 @@ class GroupService(object):
         try:
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
             body = {"service_ids": service_ids}
-            region_api.batch_update_service_app_id(region_name, tenant, region_app_id, body)
+            region_api.batch_update_service_app_id(region_name, tenant.tenant_name, region_app_id, body)
         except RegionApp.DoesNotExist:
             app = group_repo.get_group_by_id(app_id)
             create_body = {"app_name": app.group_name, "service_ids": service_ids}
@@ -151,6 +241,7 @@ class GroupService(object):
         res = app.to_dict()
         res['app_id'] = app.ID
         res['app_name'] = app.group_name
+        res['app_type'] = app.app_type
         res['service_num'] = group_service_relation_repo.count_service_by_app_id(app_id)
         res['backup_num'] = backup_record_repo.count_by_app_id(app_id)
         res['share_num'] = share_repo.count_by_app_id(app_id)
@@ -160,6 +251,7 @@ class GroupService(object):
         try:
             principal = user_repo.get_user_by_username(app.username)
             res['principal'] = principal.get_name()
+            res['email'] = principal.email
         except ErrUserNotFound:
             res['principal'] = app.username
 
@@ -174,10 +266,22 @@ class GroupService(object):
         return res
 
     def get_group_by_id(self, tenant, region, group_id):
+        principal_info = dict()
+        principal_info["email"] = ""
+        principal_info["is_delete"] = False
         group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_id)
         if not group:
             raise ServiceHandleException(status_code=404, msg="app not found", msg_show="目标应用不存在")
-        return {"group_id": group.ID, "group_name": group.group_name, "group_note": group.note}
+        try:
+            user = user_repo.get_user_by_username(group.username)
+            principal_info["real_name"] = user.get_name()
+            principal_info["username"] = user.nick_name
+            principal_info["email"] = user.email
+        except ErrUserNotFound:
+            principal_info["is_delete"] = True
+            principal_info["real_name"] = group.username
+            principal_info["username"] = group.username
+        return {"group_id": group.ID, "group_name": group.group_name, "group_note": group.note, "principal": principal_info}
 
     def get_app_by_id(self, tenant, region, app_id):
         return group_repo.get_group_by_pk(tenant.tenant_id, region, app_id)
@@ -192,7 +296,7 @@ class GroupService(object):
         return get_object_or_404(
             ServiceGroup,
             msg="Group does not exist",
-            msg_show=u"应用不存在",
+            msg_show="应用不存在",
             tenant_id=tenant.tenant_id,
             region_name=response_region,
             pk=group_id)
@@ -220,15 +324,15 @@ class GroupService(object):
             }
             group_service_relation_repo.create_service_group_relation(**params)
 
-    def get_groups_and_services(self, tenant, region, query=""):
-        groups = group_repo.get_tenant_region_groups(tenant.tenant_id, region, query)
+    def get_groups_and_services(self, tenant, region, query="", app_type=""):
+        groups = group_repo.get_tenant_region_groups(tenant.tenant_id, region, query, app_type)
         services = service_repo.get_tenant_region_services(region, tenant.tenant_id).values(
             "service_id", "service_cname", "service_alias")
         service_id_map = {s["service_id"]: s for s in services}
         service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups([g.ID for g in groups])
         service_group_map = {sgr.service_id: sgr.group_id for sgr in service_group_relations}
         group_services_map = dict()
-        for k, v in service_group_map.iteritems():
+        for k, v in list(service_group_map.items()):
             service_list = group_services_map.get(v, None)
             service_info = service_id_map.get(k, None)
             if service_info:
@@ -268,10 +372,11 @@ class GroupService(object):
             service_status[status["service_id"]] = status
 
         for service in service_list:
-            service.status = service_status[service.service_id]["status"]
-            service.used_mem = service_status[service.service_id]["used_mem"]
+            svc_sas = service_status.get(service.service_id, {"status": "failure", "used_mem": 0})
+            service.status = svc_sas["status"]
+            service.used_mem = svc_sas["used_mem"]
 
-        plugin_list = app_plugin_relation_repo.get_multi_service_plugin(service_ids)
+        plugin_list = app_plugin_relation_repo.list_by_component_ids(service_ids)
         plugins = dict()
         for plugin in plugin_list:
             if not plugins.get(plugin.service_id):
@@ -280,8 +385,10 @@ class GroupService(object):
                 # if plugin is turn on means component is using this plugin
                 plugins[plugin.service_id] += plugin.min_memory
 
+        app_id_statuses = self.get_region_app_statuses(tenant_name, region, app_ids)
         apps = dict()
         for app in app_list:
+            app_status = app_id_statuses.get(app.ID)
             apps[app.ID] = {
                 "group_id": app.ID,
                 "update_time": app.update_time,
@@ -289,10 +396,9 @@ class GroupService(object):
                 "group_name": app.group_name,
                 "group_note": app.note,
                 "service_list": [],
+                "used_mem": app_status.get("memory", 0) if app_status else 0
             }
         for service in service_list:
-            # memory used for plugin
-            service.min_memory += plugins.get(service.service_id, 0)
             apps[service.group_id]["service_list"].append(service)
 
         share_list = share_repo.get_multi_app_share_records(app_ids)
@@ -327,17 +433,54 @@ class GroupService(object):
                 app["allocate_mem"] += svc.min_memory
                 if svc.status in ["running", "upgrade", "starting", "some_abnormal"]:
                     # if is running used_mem ++
-                    app["used_mem"] += svc.min_memory
                     app["run_service_num"] += 1
+            if app["used_mem"] > app["allocate_mem"]:
+                app["allocate_mem"] = app["used_mem"]
             app.pop("service_list")
             re_app_list.append(app)
         return re_app_list
 
-    def get_rainbond_services(self, group_id, group_key):
+    @staticmethod
+    def get_region_app_statuses(tenant_name, region_name, app_ids):
+        # Obtain the application ID of the cluster and
+        # record the corresponding relationship of the console application ID
+        region_apps = region_app_repo.list_by_app_ids(region_name, app_ids)
+        region_app_ids = []
+        app_id_rels = dict()
+        for region_app in region_apps:
+            region_app_ids.append(region_app.region_app_id)
+            app_id_rels[region_app.app_id] = region_app.region_app_id
+        # Get the status of cluster application
+        resp = region_api.list_app_statuses_by_app_ids(tenant_name, region_name, {"app_ids": region_app_ids})
+        app_statuses = resp.get("list", [])
+        # The relationship between cluster application ID and state
+        # is transformed into that between console application ID and state
+        # Returns the relationship between console application ID and status
+        app_id_status_rels = dict()
+        region_app_id_status_rels = dict()
+        for app_status in app_statuses:
+            region_app_id_status_rels[app_status.get("app_id", "")] = app_status
+        for app_id in app_ids:
+            if not app_id_rels.get(app_id):
+                continue
+            app_id_status_rels[app_id] = region_app_id_status_rels.get(app_id_rels[app_id])
+        return app_id_status_rels
+
+    @staticmethod
+    def list_components_by_upgrade_group_id(group_id, upgrade_group_id):
+        gsr = group_service_relation_repo.get_services_by_group(group_id)
+        service_ids = gsr.values_list('service_id', flat=True)
+        components = service_repo.list_by_ids(service_ids)
+        return components.filter(tenant_service_group_id=upgrade_group_id)
+
+    def get_rainbond_services(self, group_id, group_key, upgrade_group_id=None):
         """获取云市应用下的所有组件"""
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = gsr.values_list('service_id', flat=True)
-        return service_repo.get_services_by_service_ids_and_group_key(group_key, service_ids)
+        components = service_repo.get_services_by_service_ids_and_group_key(group_key, service_ids)
+        if upgrade_group_id:
+            return components.filter(tenant_service_group_id=upgrade_group_id)
+        return components
 
     def get_group_service_sources(self, group_id):
         """查询某一应用下的组件源信息"""
@@ -345,28 +488,64 @@ class GroupService(object):
         service_ids = gsr.values_list('service_id', flat=True)
         return service_source_repo.get_service_sources_by_service_ids(service_ids)
 
+    # get component resource list, component will in app and belong to group_ids
+    def get_component_and_resource_by_group_ids(self, app_id, group_ids):
+        gsr = group_service_relation_repo.get_services_by_group(app_id)
+        components = service_repo.get_services_by_service_group_ids(gsr.values_list('service_id', flat=True), group_ids)
+        service_ids = components.values_list('service_id', flat=True)
+        return components, service_source_repo.get_service_sources_by_service_ids(service_ids)
+
     def get_group_service_source(self, service_id):
         """ get only one service source"""
         return service_source_repo.get_service_sources_by_service_ids([service_id])
 
     def get_service_source_by_group_key(self, group_key):
-        """ geet service source by group key"""
+        """ get service source by group key"""
         return service_source_repo.get_service_sources_by_group_key(group_key)
 
-    # 应用内没有组件情况下删除应用
     @transaction.atomic
-    def delete_group_no_service(self, group_id):
-        if not group_id or group_id < 0:
-            return 400, u"需要删除的应用不合法", None
-        # backups = backup_record_repo.get_record_by_group_id(group_id)
-        # if backups:
-        #     return 409, u"当前应用有备份记录，暂无法删除", None
-        # 删除应用
-        group_repo.delete_group_by_pk(group_id)
-        # 删除升级记录
-        upgrade_repo.delete_app_record_by_group_id(group_id)
+    def delete_app(self, tenant, region_name, app):
+        if app.app_type == AppType.helm.name:
+            self._delete_helm_app(tenant, region_name, app)
+            return
+        self._delete_rainbond_app(tenant, region_name, app)
 
-        return 200, u"删除成功", group_id
+    def _delete_helm_app(self, tenant, region_name, app, user=None):
+        """
+        For helm application,  can be delete directly, regardless of whether there are components
+        """
+        # delete components
+        components = self.list_components(app.app_id)
+        group_service_relation_repo.delete_relation_by_group_id(app.app_id)
+        # avoid circular import
+        from console.services.app_actions import app_manage_service
+        app_manage_service.delete_components(tenant, components, user)
+        self._delete_app(tenant.tenant_name, region_name, app.app_id)
+
+    def _delete_rainbond_app(self, tenant, region_name, app):
+        """
+        For rainbond application, with components, cannot be deleted directly
+        """
+        service = group_service_relation_repo.get_service_by_group(app.app_id)
+        if service:
+            raise AbortRequest(msg="the app still has components", msg_show="当前应用内存在组件，无法删除")
+
+        self._delete_app(region_name, tenant.tenant_name, app.app_id)
+
+    @staticmethod
+    def _delete_app(tenant_name, region_name, app_id):
+        group_repo.delete_group_by_pk(app_id)
+        upgrade_repo.delete_app_record_by_group_id(app_id)
+        try:
+            region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        except RegionApp.DoesNotExist:
+            return
+        keys = []
+        migrate_record = migrate_repo.get_by_original_group_id(app_id)
+        if migrate_record:
+            for record in migrate_record:
+                keys.append(record.restore_id)
+        region_api.delete_app(region_name, tenant_name, region_app_id, {"etcd_keys": keys})
 
     def get_service_group_memory(self, app_template):
         """获取一应用组件内存"""
@@ -375,7 +554,9 @@ class GroupService(object):
             total_memory = 0
             for app in apps:
                 extend_method_map = app.get("extend_method_map", None)
-                if extend_method_map:
+                if extend_method_map and extend_method_map["init_memory"]:
+                    total_memory += extend_method_map["min_node"] * extend_method_map["init_memory"]
+                elif extend_method_map and extend_method_map["min_memory"]:
                     total_memory += extend_method_map["min_node"] * extend_method_map["min_memory"]
                 else:
                     total_memory += 128
@@ -410,28 +591,71 @@ class GroupService(object):
         if sg and sg.ID:
             group_repo.update_group_time(sg.ID)
 
-    @staticmethod
     @transaction.atomic
-    def update_governance_mode(tenant, region_name, app_id, governance_mode):
+    def update_governance_mode(self, tenant, region_name, app_id, governance_mode):
         # update the value of host env. eg. MYSQL_HOST
-        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
-        ports = port_repo.list_inner_ports_by_service_ids(tenant.tenant_id, service_ids)
-        for port in ports:
-            env = env_var_repo.get_service_host_env(tenant.tenant_id, port.service_id, port.container_port)
-            service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, port.service_id)
+        component_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
+
+        components = service_repo.list_by_ids(component_ids)
+        components = {cpt.component_id: cpt for cpt in components}
+
+        ports = port_repo.list_inner_ports_by_service_ids(tenant.tenant_id, component_ids)
+        ports = {port.service_id + str(port.container_port): port for port in ports}
+
+        envs = env_var_repo.list_envs_by_component_ids(tenant.tenant_id, component_ids)
+        for env in envs:
+            if not env.is_host_env():
+                continue
+            cpt = components.get(env.service_id)
+            if not cpt:
+                continue
+            port = ports.get(env.service_id + str(env.container_port))
+            if not port:
+                continue
             if governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
-                env.attr_value = port.k8s_service_name if port.k8s_service_name else service.service_alias + "-" + str(
+                env.attr_value = port.k8s_service_name if port.k8s_service_name else cpt.service_alias + "-" + str(
                     port.container_port)
             else:
                 env.attr_value = "127.0.0.1"
-            env.save()
-            if service.create_status == "complete":
-                body = {"env_name": env.attr_name, "env_value": env.attr_value, "scope": env.scope}
-                region_api.update_service_env(service.service_region, tenant.tenant_name, service.service_alias, body)
-
+        env_var_repo.bulk_update(envs)
         group_repo.update_governance_mode(tenant.tenant_id, region_name, app_id, governance_mode)
+
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        self.sync_envs(tenant.tenant_name, region_name, region_app_id, components.values(), envs)
         region_api.update_app(region_name, tenant.tenant_name, region_app_id, {"governance_mode": governance_mode})
+
+    @staticmethod
+    def sync_envs(tenant_name, region_name, region_app_id, components, envs):
+        # make sure attr_value is string.
+        for env in envs:
+            if type(env.attr_value) != str:
+                env.attr_value = str(env.attr_value)
+
+        new_components = []
+        for cpt in components:
+            if cpt.create_status != "complete":
+                continue
+
+            component_base = cpt.to_dict()
+            component_base["component_id"] = component_base["service_id"]
+            component_base["component_name"] = component_base["service_name"]
+            component_base["component_alias"] = component_base["service_alias"]
+            component_base["container_cpu"] = cpt.min_cpu
+            component_base["container_memory"] = cpt.min_memory
+            component_base["replicas"] = cpt.min_node
+            component = {
+                "component_base": component_base,
+                "envs": [env.to_dict() for env in envs if env.service_id == cpt.component_id]
+            }
+            new_components.append(component)
+
+        if not new_components:
+            return
+
+        body = {
+            "components": new_components,
+        }
+        region_api.sync_components(tenant_name, region_name, region_app_id, body)
 
     @staticmethod
     def list_kubernetes_services(tenant_id, region_name, app_id):
@@ -462,27 +686,19 @@ class GroupService(object):
         return k8s_services
 
     @transaction.atomic()
-    def update_kubernetes_services(self, tenant, region_name, app_id, k8s_services):
+    def update_kubernetes_services(self, tenant, region_name, app, k8s_services):
         from console.services.app_config import port_service
-        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
-        for k8s_service in k8s_services:
-            port_service.check_k8s_service_name(tenant.tenant_id, k8s_service.get("k8s_service_name"),
-                                                k8s_service["service_id"], k8s_service["port"])
-            # check if the given k8s_services belong to the app based on app_id
-            if k8s_service["service_id"] not in service_ids:
-                raise AbortRequest("service({}) not belong to app({})".format(k8s_service["service_id"], app_id))
+        port_service.check_k8s_service_names(tenant.tenant_id, k8s_services)
 
-        # bulk_update is only available after django 2.2
+        # check if the given k8s_services belong to the app based on app_id
+        app_component_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app.app_id)
+        component_ids = []
         for k8s_service in k8s_services:
-            service = service_repo.get_service_by_service_id(k8s_service["service_id"])
-            port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, k8s_service["port"])
-            port_service.change_port_alias(
-                tenant,
-                service,
-                port,
-                k8s_service["port_alias"],
-                k8s_service["k8s_service_name"],
-            )
+            if k8s_service["service_id"] not in app_component_ids:
+                raise AbortRequest("service({}) not belong to app({})".format(k8s_service["service_id"], app.app_id))
+            component_ids.append(k8s_service["service_id"])
+
+        port_service.update_by_k8s_services(tenant, region_name, app, k8s_services)
 
     @staticmethod
     def get_app_status(tenant, region_name, app_id):
@@ -490,7 +706,34 @@ class GroupService(object):
         status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
         if status.get("status") == "NIL":
             status["status"] = None
+        overrides = status.get("overrides", [])
+        if overrides:
+            status["overrides"] = [{override.split("=")[0]: override.split("=")[1]} for override in overrides]
         return status
+
+    @staticmethod
+    def get_detect_process(tenant, region_name, app_id):
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        process = region_api.get_app_detect_process(region_name, tenant.tenant_name, region_app_id)
+        return process
+
+    def install_app(self, tenant, region_name, app_id, overrides):
+        if overrides:
+            overrides = self._parse_overrides(overrides)
+
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        region_api.install_app(region_name, tenant.tenant_name, region_app_id, {
+            "overrides": overrides,
+        })
+
+    @staticmethod
+    def get_pod(tenant, region_name, pod_name):
+        return region_api.get_pod(region_name, tenant.tenant_name, pod_name)
+
+    @staticmethod
+    def list_components(app_id):
+        service_groups = group_service_relation_repo.list_service_groups(app_id)
+        return service_repo.list_by_ids([sg.service_id for sg in service_groups])
 
 
 group_service = GroupService()

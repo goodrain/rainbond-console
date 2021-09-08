@@ -1,4 +1,4 @@
-FROM python:2.7.18-stretch
+FROM python:3.6-stretch
 
 LABEL email="zengqg@goodrain.com"
 LABEL runtime="rainbond"

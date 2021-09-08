@@ -4,20 +4,22 @@ import os
 import random
 import re
 import string
-from django.core.paginator import Paginator
-from django.db.transaction import atomic
+import json
+
 from console.exception.main import ServiceHandleException
-from console.repositories.group import group_repo
-from console.repositories.group import group_service_relation_repo
+from console.exception.bcode import ErrUserNotFound, ErrTenantNotFound
+from console.services.perm_services import user_kind_role_service
 from console.repositories.enterprise_repo import enterprise_repo
-from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantEnterprise
-from www.models.main import TenantEnterpriseToken
-from www.models.main import Tenants
-from www.utils.crypt import make_uuid
+from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from django.core.paginator import Paginator
+from django.db.transaction import atomic
+from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import TenantEnterprise, TenantEnterpriseToken, Tenants
+from www.utils.crypt import make_uuid
+from console.utils.cache import cache
 
 logger = logging.getLogger('default')
 
@@ -102,7 +104,7 @@ class EnterpriseServices(object):
         """
         enterprise = TenantEnterprise()
 
-        # 处理企业英文名
+        # Deal with enterprise English name, discard logic.
         if enterprise_name:
             enterprise_name_regx = re.compile(r'^[a-z0-9-]*$')
             if enterprise_name and not enterprise_name_regx.match(enterprise_name):
@@ -118,12 +120,14 @@ class EnterpriseServices(object):
         enterprise.enterprise_name = enter_name
 
         # 根据企业英文名确认UUID
+        is_first_ent = TenantEnterprise.objects.count() == 0
         eid = os.environ.get('ENTERPRISE_ID')
-        if not eid:
+        if not eid or not is_first_ent:
             eid = make_uuid(enter_name)
         region = region_repo.get_all_regions().first()
-        region.enterprise_id = eid
-        region.save()
+        if region:
+            region.enterprise_id = eid
+            region.save()
         enterprise.enterprise_id = eid
 
         # 处理企业别名
@@ -227,6 +231,11 @@ class EnterpriseServices(object):
 
     # def get_services_status_by_service_ids(self, region_name, enterprise_id, service_ids):
     def get_enterprise_runing_service(self, enterprise_id, regions):
+        cache_key = "{}+enterprise_running_service".format(enterprise_id)
+        cache_data = cache.get(cache_key)
+        if cache_data:
+            return json.loads(cache_data)
+
         app_total_num = 0
         app_running_num = 0
         component_total_num = 0
@@ -249,7 +258,8 @@ class EnterpriseServices(object):
             }
         # 2. get all apps in all teams
         team_ids = [team.tenant_id for team in teams]
-        apps = group_repo.get_apps_in_multi_team(team_ids)
+        region_names = [region.region_name for region in regions]
+        apps = group_repo.get_apps_in_multi_team(team_ids, region_names)
         app_total_num = len(apps)
 
         app_ids = [app.ID for app in apps]
@@ -294,7 +304,21 @@ class EnterpriseServices(object):
                 "closed": component_total_num - component_running_num
             }
         }
+        cache.set(cache_key, json.dumps(data), 30)
         return data
+
+    @staticmethod
+    def create_user_roles(eid, user_id, tenant_name, role_ids):
+        # the user must belong to the enterprise with eid
+        user = user_repo.get_enterprise_user_by_id(eid, user_id)
+        if not user:
+            raise ErrUserNotFound
+        tenant = team_repo.get_enterprise_team_by_name(eid, tenant_name)
+        if not tenant:
+            raise ErrTenantNotFound
+        from console.services.team_services import team_services
+        team_services.add_user_to_team(tenant, user.user_id, role_ids=role_ids)
+        return user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
 
 
 enterprise_services = EnterpriseServices()

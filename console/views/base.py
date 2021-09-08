@@ -4,6 +4,20 @@ import os
 
 import jwt
 from addict import Dict
+from console.exception.exceptions import AuthenticationInfoHasExpiredError
+from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException,
+                                    AbortRequest)
+from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
+# repository
+from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
+from console.repositories.group import group_repo
+from console.repositories.user_repo import user_repo
+from console.repositories.upgrade_repo import upgrade_repo
+from console.repositories.region_repo import region_repo
+# service
+from console.services.user_services import user_services
+from console.utils import perms
+from console.utils.oauth.oauth_types import get_oauth_instance
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
@@ -11,6 +25,7 @@ from django.utils import six
 from django.utils.encoding import smart_text
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as trans
+from goodrain_web import errors
 from rest_framework import exceptions, status
 from rest_framework.authentication import get_authorization_header
 from rest_framework.exceptions import NotFound, ValidationError
@@ -19,20 +34,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView, set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
-
-from console.services.user_services import user_services
-from console.repositories.enterprise_repo import enterprise_user_perm_repo
-from console.repositories.user_repo import user_repo
-from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException)
-from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
-from console.repositories.enterprise_repo import enterprise_repo
-from console.repositories.group import group_repo
-from console.utils.oauth.oauth_types import get_oauth_instance
-from console.utils import perms
-from goodrain_web import errors
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, Tenants, Users
+from console.login.jwt_manager import JwtManager
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -81,6 +85,12 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         if jwt_value is None:
             msg = _('未提供验证信息')
             raise AuthenticationInfoHasExpiredError(msg)
+
+        # Check if the jwt is expired.If not, reset the expire time
+        jwt_manager = JwtManager()
+        if not jwt_manager.exists(jwt_value):
+            raise AuthenticationInfoHasExpiredError("token expired")
+
         # if have SSO login modules
         if settings.MODULES.get('SSO_LOGIN', None):
             sso_user_id = request.COOKIES.get('uid')
@@ -113,6 +123,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
                 raise AuthenticationInfoHasExpiredError(msg)
 
             user = self.authenticate_credentials(payload)
+            jwt_manager.set(jwt_value, user.user_id)
             return user, jwt_value
 
     def authenticate_credentials(self, payload):
@@ -139,8 +150,24 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         return user
 
 
+class JWTAuthenticationSafe(JSONWebTokenAuthentication):
+    """
+    Use authentication_classes=[] in the view, but this always bypasses JWT authentication,
+    even when there is a valid Authorization-header with a token.
+    This class can obtain relevant user information when it has a token,
+    and is used for apis that do not require authentication
+    """
+
+    def authenticate(self, request):
+        try:
+            return super().authenticate(request=request)
+        except AuthenticationInfoHasExpiredError:
+            return None
+
+
 class BaseApiView(APIView):
     permission_classes = (AllowAny, )
+    authentication_classes = (JWTAuthenticationSafe, )
 
     def __init__(self, *args, **kwargs):
         super(BaseApiView, self).__init__(*args, **kwargs)
@@ -233,6 +260,8 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
 
     def initial(self, request, *args, **kwargs):
         super(CloudEnterpriseCenterView, self).initial(request, *args, **kwargs)
+        if not os.getenv("IS_PUBLIC", False):
+            return
         try:
             oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
@@ -250,11 +279,9 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
             raise AuthenticationInfoHasExpiredError(msg)
 
 
-class RegionTenantHeaderView(JWTAuthApiView):
+class TenantHeaderView(JWTAuthApiView):
     def __init__(self, *args, **kwargs):
-        super(RegionTenantHeaderView, self).__init__(*args, **kwargs)
-        self.response_region = None
-        self.region_name = None
+        super(TenantHeaderView, self).__init__(*args, **kwargs)
         self.tenant_name = None
         self.team_name = None
         self.tenant = None
@@ -262,6 +289,7 @@ class RegionTenantHeaderView(JWTAuthApiView):
         self.report = Dict({"ok": True})
         self.user = None
         self.is_team_owner = False
+        self.response_region = None
 
     def get_perms(self):
         self.user_perms = []
@@ -291,7 +319,6 @@ class RegionTenantHeaderView(JWTAuthApiView):
         if enterprise_user_perms:
             self.is_enterprise_admin = True
         self.tenant_name = kwargs.get("tenantName", None)
-        self.response_region = kwargs.get("region_name", None)
 
         if not self.tenant_name:
             self.tenant_name = kwargs.get("team_name", None)
@@ -301,6 +328,8 @@ class RegionTenantHeaderView(JWTAuthApiView):
             self.tenant_name = self.request.COOKIES.get('team', None)
         if not self.tenant_name:
             self.tenant_name = self.request.COOKIES.get('team_name', None)
+        if not self.tenant_name:
+            self.tenant_name = self.request.GET.get('team_name', None)
         self.team_name = self.tenant_name
 
         if not self.response_region:
@@ -313,9 +342,9 @@ class RegionTenantHeaderView(JWTAuthApiView):
             self.response_region = self.request.COOKIES.get('region_name', None)
         self.region_name = self.response_region
         if not self.response_region:
-            raise ImportError("region_name not found !")
+            raise AbortRequest("region_name not found !")
         if not self.tenant_name:
-            raise ImportError("team_name not found !")
+            raise AbortRequest("team_name not found !")
         try:
             self.tenant = Tenants.objects.get(tenant_name=self.tenant_name)
             self.team = self.tenant
@@ -332,6 +361,82 @@ class RegionTenantHeaderView(JWTAuthApiView):
             self.is_enterprise_admin = True
         self.get_perms()
         self.check_perms(request, *args, **kwargs)
+
+
+class RegionTenantHeaderView(TenantHeaderView):
+    def __init__(self, *args, **kwargs):
+        super(RegionTenantHeaderView, self).__init__(*args, **kwargs)
+        self.response_region = None
+        self.region_name = None
+        self.region = None
+
+    def initial(self, request, *args, **kwargs):
+        super(RegionTenantHeaderView, self).initial(request, *args, **kwargs)
+        self.response_region = kwargs.get("region_name", None)
+        if not self.response_region:
+            self.response_region = request.GET.get("region_name", None)
+        if not self.response_region:
+            self.response_region = request.GET.get("region", None)
+        if not self.response_region:
+            self.response_region = request.META.get('HTTP_X_REGION_NAME', None)
+        if not self.response_region:
+            self.response_region = self.request.COOKIES.get('region_name', None)
+        self.region_name = self.response_region
+        if not self.response_region:
+            raise ImportError("region_name not found !")
+        region = region_repo.get_region_by_region_name(self.region_name)
+        if not region:
+            raise AbortRequest("region not found", "数据中心不存在", status_code=404, error_code=404)
+        self.region = region
+
+
+class RegionTenantHeaderCloudEnterpriseCenterView(RegionTenantHeaderView, CloudEnterpriseCenterView):
+    def __init__(self, *args, **kwargs):
+        super(RegionTenantHeaderCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
+
+    def initial(self, request, *args, **kwargs):
+        RegionTenantHeaderView.initial(self, request, *args, **kwargs)
+        CloudEnterpriseCenterView.initial(self, request, *args, **kwargs)
+
+
+class ApplicationView(RegionTenantHeaderView):
+    def __init__(self, *args, **kwargs):
+        super(ApplicationView, self).__init__(*args, **kwargs)
+        self.app = None
+        self.app_id = None
+
+    def initial(self, request, *args, **kwargs):
+        super(ApplicationView, self).initial(request, *args, **kwargs)
+        app_id = kwargs.get("app_id") if kwargs.get("app_id") else kwargs.get("group_id")
+        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
+        if not app:
+            raise ServiceHandleException("app not found", "应用不存在", status_code=404)
+        self.app = app
+        self.app_id = self.app.ID
+
+        # update update_time if the http method is not a get.
+        if request.method != 'GET':
+            group_repo.update_group_time(app_id)
+
+
+class AppUpgradeRecordView(ApplicationView):
+    def __init__(self, *args, **kwargs):
+        super(AppUpgradeRecordView, self).__init__(*args, **kwargs)
+        self.app_upgrade_record = None
+
+    def initial(self, request, *args, **kwargs):
+        super(AppUpgradeRecordView, self).initial(request, *args, **kwargs)
+        record_id = kwargs.get("record_id") if kwargs.get("record_id") else kwargs.get("upgrade_record_id")
+        self.app_upgrade_record = upgrade_repo.get_by_record_id(record_id)
+
+
+class ApplicationViewCloudEnterpriseCenterView(ApplicationView, CloudEnterpriseCenterView):
+    def __init__(self, *args, **kwargs):
+        super(RegionTenantHeaderCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
+
+    def initial(self, request, *args, **kwargs):
+        ApplicationView.initial(self, request, *args, **kwargs)
+        CloudEnterpriseCenterView.initial(self, request, *args, **kwargs)
 
 
 class TeamOwnerView(RegionTenantHeaderView):
@@ -359,24 +464,6 @@ class EnterpriseHeaderView(JWTAuthApiView):
             raise NotFound("enterprise id: {};enterprise not found".format(eid))
 
 
-class ApplicationView(RegionTenantHeaderView):
-    def __init__(self, *args, **kwargs):
-        super(ApplicationView, self).__init__(*args, **kwargs)
-        self.app = None
-
-    def initial(self, request, *args, **kwargs):
-        super(ApplicationView, self).initial(request, *args, **kwargs)
-        app_id = kwargs.get("app_id") if kwargs.get("app_id") else kwargs.get("group_id")
-        app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
-        if not app:
-            raise ServiceHandleException("app not found", "应用不存在", status_code=404)
-        self.app = app
-
-        # update update_time if the http method is not a get.
-        if request.method != 'GET':
-            group_repo.update_group_time(app_id)
-
-
 def custom_exception_handler(exc, context):
     """
         Returns the response that should be used for any given exception.
@@ -400,11 +487,12 @@ def custom_exception_handler(exc, context):
         return Response(data, status=409)
     elif isinstance(exc, RegionApiBaseHttpClient.CallApiError):
         if exc.message.get("httpcode") == 404:
-            data = {"code": 404, "msg": "region no found this resource", "msg_show": u"数据中心资源不存在"}
+            data = {"code": 404, "msg": "region no found this resource", "msg_show": "数据中心资源不存在"}
         else:
-            data = {"code": 400, "msg": exc.message, "msg_show": u"数据中心操作故障，请稍后重试"}
+            data = {"code": 400, "msg": exc.message, "msg_show": "数据中心操作故障，请稍后重试"}
         return Response(data, status=data["code"])
     elif isinstance(exc, ValidationError):
+        logger.error(exc)
         return Response({"detail": "参数错误", "err": exc.detail, "code": 20400}, status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):
         headers = {}
@@ -462,8 +550,17 @@ def custom_exception_handler(exc, context):
         return exc.get_response()
     elif isinstance(exc, ImportError):
         # 处理数据为标准返回格式
-        data = {"code": status.HTTP_400_BAD_REQUEST, "msg": exc.message, "msg_show": "{0}".format("请求参数不全")}
+        data = {
+            "code": status.HTTP_400_BAD_REQUEST,
+            "msg": exc.message if hasattr(exc, 'message') else '',
+            "msg_show": "{0}".format("请求参数不全")
+        }
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
-        return Response({"code": 10401, "msg": exc.message, "msg_show": "服务端异常"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({
+            "code": 10401,
+            "msg": exc.message if hasattr(exc, 'message') else '',
+            "msg_show": "服务端异常"
+        },
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)

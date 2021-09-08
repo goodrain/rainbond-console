@@ -13,7 +13,7 @@ import string
 import types
 import logging
 import logging.handlers
-from mns_exception import *
+from .mns_exception import *
 
 METHODS = ["PUT", "POST", "GET", "DELETE"]
 PERMISSION_ACTIONS = [
@@ -67,7 +67,7 @@ class ValidatorBase:
 
     @staticmethod
     def is_str(item, param_name=None, req_id=None):
-        if not isinstance(item, basestring):
+        if not isinstance(item, str):
             if param_name is None:
                 raise MNSClientParameterException("TypeInvalid", "Bad type: '%s', '%s' expect basestring." % (type(item), item),
                                                   req_id)
@@ -82,7 +82,7 @@ class ValidatorBase:
 
     @staticmethod
     def retnumber_validate(req):
-        ValidatorBase.type_validate(req.ret_number, types.IntType, req_id=req.request_id)
+        ValidatorBase.type_validate(req.ret_number, int, req_id=req.request_id)
         if (req.ret_number != -1 and req.ret_number <= 0):
             raise MNSClientParameterException(
                 "HeaderInvalid", "Bad value: '%s', x-mns-number should larger than 0." % req.ret_number, req.request_id)
@@ -118,11 +118,11 @@ class QueueValidator(ValidatorBase):
     @staticmethod
     def queue_validate(req):
         #type
-        ValidatorBase.type_validate(req.visibility_timeout, types.IntType, req_id=req.request_id)
-        ValidatorBase.type_validate(req.maximum_message_size, types.IntType, req_id=req.request_id)
-        ValidatorBase.type_validate(req.message_retention_period, types.IntType, req_id=req.request_id)
-        ValidatorBase.type_validate(req.delay_seconds, types.IntType, req_id=req.request_id)
-        ValidatorBase.type_validate(req.polling_wait_seconds, types.IntType, req_id=req.request_id)
+        ValidatorBase.type_validate(req.visibility_timeout, int, req_id=req.request_id)
+        ValidatorBase.type_validate(req.maximum_message_size, int, req_id=req.request_id)
+        ValidatorBase.type_validate(req.message_retention_period, int, req_id=req.request_id)
+        ValidatorBase.type_validate(req.delay_seconds, int, req_id=req.request_id)
+        ValidatorBase.type_validate(req.polling_wait_seconds, int, req_id=req.request_id)
 
         #value
         if req.visibility_timeout != -1 and req.visibility_timeout <= 0:
@@ -156,8 +156,8 @@ class MessageValidator(ValidatorBase):
     def sendmessage_attr_validate(req, req_id):
         #type
         ValidatorBase.is_str(req.message_body, None, req_id)
-        ValidatorBase.type_validate(req.delay_seconds, types.IntType, None, req_id)
-        ValidatorBase.type_validate(req.priority, types.IntType, None, req_id)
+        ValidatorBase.type_validate(req.delay_seconds, int, None, req_id)
+        ValidatorBase.type_validate(req.priority, int, None, req_id)
 
         #value
         if req.message_body == "":
@@ -325,7 +325,7 @@ class TopicValidator(ValidatorBase):
     @staticmethod
     def topic_validate(req):
         #type
-        ValidatorBase.type_validate(req.maximum_message_size, types.IntType, "maximum_message_size", req_id=req.request_id)
+        ValidatorBase.type_validate(req.maximum_message_size, int, "maximum_message_size", req_id=req.request_id)
 
         #value
         if req.maximum_message_size != -1 and req.maximum_message_size <= 0:

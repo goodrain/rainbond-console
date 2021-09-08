@@ -41,13 +41,13 @@ def user_passes_test(test_func, login_url=None, redirect_field_name=REDIRECT_FIE
                     return view_func(view_object, *args, **kwargs)
                 else:
                     return redirect(get_redirect_url('/error', request=view_object.request))
-            except PermissionDenied, e:
+            except PermissionDenied as e:
                 if e.redirect_url is not None:
                     request = view_object.request
                     return login_redirect(request)
                 else:
                     return JsonResponse({"reason": e.error}, status=403)
-            except UrlParseError, e:
+            except UrlParseError as e:
                 if e.code == 403:
                     response = HttpResponseRedirect(settings.LOGIN_URL)
                     response.delete_cookie('tenant_name')

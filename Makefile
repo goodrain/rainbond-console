@@ -6,4 +6,6 @@ format:
 check:
 	@flake8 --exclude venv,env,static,www/alipay_direct,www/utils/mnssdk,backends,migrations --extend-ignore=W605 --max-line-length 129 ./
 build-base:
-	docker build -t rainbond/rbd-ui-base:V5.2 -f Dockerfile.base .
+	docker build -t rainbond/rbd-ui-base:V5.3 -f Dockerfile.base .
+build-allinone-image:
+	docker build --build-arg VERSION=V5.3 -t rainbond/rainbond:v5.3 -f Dockerfile.allinone .

@@ -112,14 +112,14 @@ class UserKindRoleRepo(object):
     def get_user_roles_model(self, kind, kind_id, user):
         user_roles = []
         if not user:
-            raise ServiceHandleException(msg="no found user", msg_show=u"用户不存在", status_code=404)
+            raise ServiceHandleException(msg="no found user", msg_show="用户不存在", status_code=404)
         roles = RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
         if roles:
             role_ids = roles.values_list("ID", flat=True)
             user_roles = UserRole.objects.filter(role_id__in=role_ids, user_id=user.user_id)
         return user_roles
 
-    def get_users_roles(self, kind, kind_id, users):
+    def get_users_roles(self, kind, kind_id, users, creater_id=0):
         data = []
         user_roles_kv = {}
         roles = RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
@@ -133,11 +133,13 @@ class UserKindRoleRepo(object):
             role_ids = roles.values_list("ID", flat=True)
             users_roles = UserRole.objects.filter(role_id__in=role_ids)
             for user_role in users_roles:
-                user_roles_kv[str(user_role.user_id)].append({
+                user_roles_kv.get(str(user_role.user_id), []).append({
                     "role_id": user_role.role_id,
                     "role_name": role_id_name_kv[str(user_role.role_id)]
                 })
         for user in users:
+            if int(user.user_id) == int(creater_id):
+                user_roles_kv.get(str(user.user_id), []).append({"role_id": 0, "role_name": "拥有者"})
             data.append({
                 "nick_name": user.nick_name,
                 "email": user.email,
@@ -148,7 +150,7 @@ class UserKindRoleRepo(object):
 
     def get_user_roles(self, kind, kind_id, user):
         if not user:
-            raise ServiceHandleException(msg="no found user", msg_show=u"用户不存在", status_code=404)
+            raise ServiceHandleException(msg="no found user", msg_show="用户不存在", status_code=404)
         user_roles_list = []
         roles = RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
         if roles:
@@ -166,19 +168,19 @@ class UserKindRoleRepo(object):
     def update_user_roles(self, kind, kind_id, user, role_ids):
         update_role_list = []
         if not user:
-            raise ServiceHandleException(msg="no found user", msg_show=u"用户不存在", status_code=404)
+            raise ServiceHandleException(msg="no found user", msg_show="用户不存在", status_code=404)
         roles = RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
         has_role_ids = roles.values_list("ID", flat=True)
         update_role_ids = list(set(has_role_ids) & set(role_ids))
         if not update_role_ids and len(role_ids):
-            raise ServiceHandleException(msg="no found can update params", msg_show=u"传入角色不可被分配，请检查参数", status_code=404)
+            raise ServiceHandleException(msg="no found can update params", msg_show="传入角色不可被分配，请检查参数", status_code=404)
         for role_id in update_role_ids:
             update_role_list.append(UserRole(user_id=user.user_id, role_id=role_id))
         UserRole.objects.bulk_create(update_role_list)
 
     def delete_user_roles(self, kind, kind_id, user, role_ids=None):
         if not user:
-            raise ServiceHandleException(msg="no found user", msg_show=u"用户不存在", status_code=404)
+            raise ServiceHandleException(msg="no found user", msg_show="用户不存在", status_code=404)
         roles = RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
         if roles:
             has_role_ids = roles.values_list("ID", flat=True)

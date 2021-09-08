@@ -7,12 +7,12 @@
 
 #THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from mns_client import MNSClient
-from mns_request import *
-from queue import Queue
-from topic import Topic
-from subscription import Subscription
-from mns_tool import MNSLogger
+from .mns_client import MNSClient
+from .mns_request import *
+from .queue import Queue
+from .topic import Topic
+from .subscription import Subscription
+from .mns_tool import MNSLogger
 
 
 class Account:
@@ -231,9 +231,9 @@ class Account:
 
     def debuginfo(self, resp):
         if self.debug:
-            print "===================DEBUG INFO==================="
-            print "RequestId: %s" % resp.header["x-mns-request-id"]
-            print "================================================"
+            print("===================DEBUG INFO===================")
+            print("RequestId: %s" % resp.header["x-mns-request-id"])
+            print("================================================")
 
     def __resp2meta__(self, account_meta, resp):
         account_meta.logging_bucket = resp.logging_bucket
@@ -249,4 +249,4 @@ class AccountMeta:
 
     def __str__(self):
         meta_info = {"LoggingBucket": self.logging_bucket}
-        return "\n".join(["%s: %s" % (k.ljust(30), v) for k, v in meta_info.items()])
+        return "\n".join(["%s: %s" % (k.ljust(30), v) for k, v in list(meta_info.items())])

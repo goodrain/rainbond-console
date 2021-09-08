@@ -4,11 +4,10 @@ import logging
 import os
 
 import httplib2
-from django import http
-from django.conf import settings
-
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
+from django import http
+from django.conf import settings
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
@@ -45,7 +44,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         # logger.debug('Default headers: {0}'.format(self.default_headers))
 
     def __get_tenant_region_info(self, tenant_name, region):
-
+        if type(tenant_name) == Tenants:
+            tenant_name = tenant_name.tenant_name
         tenants = Tenants.objects.filter(tenant_name=tenant_name)
         if tenants:
             tenant = tenants[0]
@@ -54,7 +54,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 logger.error("tenant {0} is not init in region {1}".format(tenant_name, region))
                 raise http.Http404
         else:
-            logger.error("tenant {0} is not found!".format(tenant_name))
+            logger.error("team {0} is not found!".format(tenant_name))
             raise http.Http404
         return tenant_regions[0]
 
@@ -114,7 +114,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services"
 
         self._set_headers(token)
-        logger.debug('------------region_body------------->{0}'.format(json.dumps(body)))
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
@@ -438,7 +437,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 raise ServiceHandleException(
                     status_code=400,
                     msg="do not allow operate outer port for thirdpart domain endpoints",
-                    msg_show=u"该第三方组件具有域名类实例，暂不支持开放网关访问")
+                    msg_show="该第三方组件具有域名类实例，暂不支持开放网关访问")
             else:
                 raise e
 
@@ -546,8 +545,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def get_volume_options(self, region, tenant_name):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        tenant_name = tenant_region.region_tenant_name
         url = uri_prefix + "/v2/volume-options"
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
@@ -609,7 +606,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def add_service_dep_volumes(self, region, tenant_name, service_alias, body):
         """ Add dependent volumes """
-        # token, uri_prefix = self._get_region_request_info(region)
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         tenant_name = tenant_region.region_tenant_name
@@ -620,7 +616,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def delete_service_dep_volumes(self, region, tenant_name, service_alias, body):
         """ Delete dependent volume"""
-        # token, uri_prefix = self._get_region_request_info(region)
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         tenant_name = tenant_region.region_tenant_name
@@ -699,7 +694,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"\
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" \
             + service_alias + "/log-instance?enterprise_id=" + enterprise_id
 
         self._set_headers(token)
@@ -778,32 +773,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region, **kwargs)
         return res, body
 
-    def get_opentsdb_data(self, region, tenant_name, body):
-        """获取opentsdb数据"""
-
-        url, token = self.__get_region_access_info(tenant_name, region)
-        url = url + "/v2/opentsdb/query"
-
-        self._set_headers(token)
-        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
-        try:
-            bean = body["bean"]
-            body_list = bean["body"]
-            if not isinstance(body_list, list):
-                body_list = json.loads(body_list)
-            dps = body_list[0]['dps']
-            return dps
-        except IndexError:
-            logger.info('tsdb_query', "request: {0}".format(url))
-            logger.info('tsdb_query', "response: {0} ====== {1}".format(res, body))
-            return None
-
     def get_region_tenants_resources(self, region, data, enterprise_id=""):
         """获取租户在数据中心下的资源使用情况"""
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region)
         url += "/v2/resources/tenants"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, json.dumps(data), region=region, timeout=20)
+        res, body = self._post(url, self.default_headers, json.dumps(data), region=region, timeout=15.0)
         return body
 
     def get_service_resources(self, tenant_name, region, data):
@@ -811,7 +786,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         url += "/v2/resources/services"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, json.dumps(data), region=region, timeout=10)
+        res, body = self._post(url, self.default_headers, json.dumps(data), region=region, timeout=10.0)
         return body
 
     # v3.5版本后弃用
@@ -946,9 +921,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def get_port(self, region, tenant_name):
+    def get_port(self, region, tenant_name, lock=False):
         url, token = self.__get_region_access_info(tenant_name, region)
-        url = url + "/v2/gateway/ports"
+        url = url + "/v2/gateway/ports?lock={}".format(lock)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
@@ -1131,6 +1106,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         # 根据团队名获取其归属的企业在指定数据中心的访问信息
         token = None
         if tenant_name:
+            if type(tenant_name) == Tenants:
+                tenant_name = tenant_name.tenant_name
             url, token = client_auth_service.get_region_access_token_by_tenant(tenant_name, region)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
@@ -1148,6 +1125,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = client_auth_service.get_region_access_token_by_enterprise_id(enterprise_id, region)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
         region_info = self.get_region_info(region_name=region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
         url = region_info.url
         if not token:
             token = region_info.token
@@ -1162,7 +1141,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/protocols"
-        logger.debug("multi protocol url is {}".format(url))
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return body
@@ -1275,7 +1253,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             + enterprise_id + "&service_ids=" + service_ids
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, None, region=region)
+        res, body = self._get(url, self.default_headers, None, region=region, timeout=10)
         return body
 
     def export_app(self, region, enterprise_id, data):
@@ -1784,6 +1762,41 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region_name)
         return body["bean"]
 
+    def get_app_detect_process(self, region_name, tenant_name, region_app_id):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/detect-process"
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body["list"]
+
+    def get_pod(self, region_name, tenant_name, pod_name):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/pods/" + pod_name
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body["bean"]
+
+    def install_app(self, region_name, tenant_name, region_app_id, data):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/install"
+
+        self._set_headers(token)
+        _, _ = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
+
+    def list_app_services(self, region_name, tenant_name, region_app_id):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/services"
+
+        self._set_headers(token)
+        _, body = self._get(url, self.default_headers, region=region_name)
+        return body["list"]
+
     def create_application(self, region_name, tenant_name, body):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
@@ -1847,6 +1860,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
+    def delete_app(self, region_name, tenant_name, app_id, data={}):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id
+
+        self._set_headers(token)
+        _, _ = self._delete(url, self.default_headers, region=region_name, body=json.dumps(data))
+
     def delete_app_config_group(self, region_name, tenant_name, app_id, config_group_name):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
@@ -1863,3 +1884,84 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
+
+    def check_resource_name(self, tenant_name, region_name, rtype, name):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/checkResourceName"
+
+        self._set_headers(token)
+        _, body = self._post(
+            url, self.default_headers, region=region_name, body=json.dumps({
+                "type": rtype,
+                "name": name,
+            }))
+        return body["bean"]
+
+    def parse_app_services(self, region_name, tenant_name, app_id, values):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/parse-services"
+
+        self._set_headers(token)
+        _, body = self._post(
+            url, self.default_headers, region=region_name, body=json.dumps({
+                "values": values,
+            }))
+        return body["list"]
+
+    def list_app_releases(self, region_name, tenant_name, app_id):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/releases"
+
+        self._set_headers(token)
+        _, body = self._get(url, self.default_headers, region=region_name)
+        return body["list"]
+
+    def sync_components(self, tenant_name, region_name, app_id, components):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/apps/{app_id}/components".format(tenant_name=tenant_name, app_id=app_id)
+        self._set_headers(token)
+        self._post(url, self.default_headers, body=json.dumps(components), region=region_name)
+
+    def sync_config_groups(self, tenant_name, region_name, app_id, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/apps/{app_id}/app-config-groups".format(tenant_name=tenant_name, app_id=app_id)
+        self._set_headers(token)
+        self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+
+    def sync_plugins(self, tenant_name, region_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/plugins".format(tenant_name=tenant_name)
+        self._set_headers(token)
+        self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+
+    def build_plugins(self, tenant_name, region_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/batch-build-plugins".format(tenant_name=tenant_name)
+        self._set_headers(token)
+        self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+
+    def get_region_license_feature(self, tenant: Tenants, region_name):
+        url, token = self.__get_region_access_info(tenant.tenant_name, region_name)
+        url = url + "/license/features"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body
+
+    def list_app_statuses_by_app_ids(self, tenant_name, region_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/appstatuses".format(tenant_name=tenant_name)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return body
+
+    def get_component_log(self, tenant_name, region_name, service_alias, pod_name, container_name, follow=False):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        follow = "true" if follow else "false"
+        url = url + "/v2/tenants/{}/services/{}/log?podName={}&containerName={}&follow={}".format(
+            tenant_name, service_alias, pod_name, container_name, follow)
+        self._set_headers(token)
+        resp, _ = self._get(url, self._set_headers(token), region=region_name, preload_content=False)
+        return resp

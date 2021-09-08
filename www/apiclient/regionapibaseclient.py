@@ -12,19 +12,13 @@ import ssl
 import certifi
 import urllib3
 from addict import Dict
+from console.exception.main import ServiceHandleException, ErrClusterLackOfMemory, ErrTenantLackOfMemory
+from console.repositories.region_repo import region_repo
 from django.conf import settings
 from django.http import HttpResponse, QueryDict
 from urllib3.exceptions import MaxRetryError
 
-from console.exception.main import ServiceHandleException
-from console.repositories.region_repo import region_repo
-
 logger = logging.getLogger('default')
-
-resource_not_enough_message = {
-    "cluster_lack_of_memory": "集群可用资源不足，请联系集群管理员",
-    "tenant_lack_of_memory": "团队使用内存已超过限额，请联系企业管理员增加限额"
-}
 
 
 class RegionApiBaseHttpClient(object):
@@ -70,15 +64,6 @@ class RegionApiBaseHttpClient(object):
     class InvalidLicenseError(Exception):
         pass
 
-    class ResourceNotEnoughError(Exception):
-        def __init__(self, status, body):
-            self.body = body
-            self.status = status
-            if resource_not_enough_message[body.msg]:
-                self.msg = resource_not_enough_message[body.msg]
-            else:
-                self.msg = "资源不足，请联系管理员"
-
     def __init__(self, *args, **kwargs):
         self.timeout = 5
         # cache client
@@ -103,15 +88,20 @@ class RegionApiBaseHttpClient(object):
         if isinstance(body, dict):
             body = Dict(body)
         if 400 <= status <= 600:
+            if not body:
+                raise ServiceHandleException(msg="request region api body is nil", msg_show="集群请求网络异常", status_code=status)
             if "code" in body:
-                raise ServiceHandleException(msg=body.get("msg"), status_code=body.get("status"), error_code=body.get("code"))
+                raise ServiceHandleException(msg=body.get("msg"), status_code=status, error_code=body.get("code"))
             if status == 409:
                 raise self.CallApiFrequentError(self.apitype, url, method, res, body)
             if status == 401 and isinstance(body, dict) and body.get("bean", {}).get("code", -1) == 10400:
                 logger.warning(body["bean"]["msg"])
                 raise self.InvalidLicenseError()
             if status == 412:
-                raise self.ResourceNotEnoughError(status, body)
+                if body.get("msg") == "cluster_lack_of_memory":
+                    raise ErrClusterLackOfMemory()
+                if body.get("msg") == "tenant_lack_of_memory":
+                    raise ErrTenantLackOfMemory()
             raise self.CallApiError(self.apitype, url, method, res, body)
         else:
             return res, body
@@ -128,10 +118,21 @@ class RegionApiBaseHttpClient(object):
         else:
             return dict()
 
+    def get_default_timeout_conifg(self):
+        connect, red = 2.0, 5.0
+        try:
+            connect = float(os.environ.get("REGION_CONNECTION_TIMEOUT", 2.0))
+            red = float(os.environ.get("REGION_RED_TIMEOUT", 5.0))
+        except Exception:
+            connect, red = 2.0, 5.0
+        return connect, red
+
     def _request(self, url, method, headers=None, body=None, *args, **kwargs):
         region_name = kwargs.get("region")
         retries = kwargs.get("retries", 2)
-        timeout = kwargs.get("timeout", 5.0)
+        d_connect, d_red = self.get_default_timeout_conifg()
+        timeout = kwargs.get("timeout", d_red)
+        preload_content = kwargs.get("preload_content")
         if kwargs.get("for_test"):
             region = region_name
             region_name = region.region_name
@@ -144,12 +145,21 @@ class RegionApiBaseHttpClient(object):
             raise ServiceHandleException(
                 msg="create region api client failure", msg_show="创建集群通信客户端错误，请检查集群配置", error_code=10411)
         try:
+            if preload_content is False:
+                response = client.request(
+                    url=url,
+                    method=method,
+                    headers=headers,
+                    preload_content=preload_content,
+                    timeout=None,  # None will set an infinite timeout.
+                )
+                return response, None
             if body is None:
                 response = client.request(
                     url=url,
                     method=method,
                     headers=headers,
-                    timeout=urllib3.Timeout(connect=2.0, read=timeout),
+                    timeout=urllib3.Timeout(connect=d_connect, read=timeout),
                     retries=retries)
             else:
                 response = client.request(
@@ -157,9 +167,12 @@ class RegionApiBaseHttpClient(object):
                     method=method,
                     headers=headers,
                     body=body,
-                    timeout=urllib3.Timeout(connect=2.0, read=timeout),
+                    timeout=urllib3.Timeout(connect=d_connect, read=timeout),
                     retries=retries)
             return response.status, response.data
+        except urllib3.exceptions.SSLError:
+            self.destroy_client(region_config=region)
+            raise ServiceHandleException(error_code=10411, msg="SSLError", msg_show="访问数据中心异常，请稍后重试")
         except socket.timeout as e:
             raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {
                 "type": "request time out",
@@ -174,6 +187,10 @@ class RegionApiBaseHttpClient(object):
             logger.debug("error url {}".format(url))
             logger.exception(e)
             raise ServiceHandleException(error_code=10411, msg="Exception", msg_show="访问数据中心异常，请稍后重试")
+
+    def destroy_client(self, region_config):
+        key = hash(region_config.url + region_config.ssl_ca_cert + region_config.cert_file + region_config.key_file)
+        self.clients[key] = None
 
     def get_client(self, region_config):
         # get client from cache
@@ -240,6 +257,9 @@ class RegionApiBaseHttpClient(object):
             response, content = self._request(url, 'GET', headers=headers, body=body, *args, **kwargs)
         else:
             response, content = self._request(url, 'GET', headers=headers, *args, **kwargs)
+        preload_content = kwargs.get("preload_content")
+        if preload_content is False:
+            return response, None
         res, body = self._check_status(url, 'GET', response, content)
         return res, body
 
@@ -330,7 +350,7 @@ class RegionApiBaseHttpClient(object):
             # should be.
             'content-length',
         ])
-        for key, value in response.headers.items():
+        for key, value in list(response.headers.items()):
             if key.lower() in excluded_headers:
                 continue
             elif key.lower() == 'location':
@@ -348,7 +368,7 @@ class RegionApiBaseHttpClient(object):
         https://docs.djangoproject.com/en/dev/ref/request-response/#django.http.HttpRequest.META
         """
         headers = {}
-        for key, value in environ.items():
+        for key, value in list(environ.items()):
             # Sometimes, things don't like when you send the requesting host through.
             if key.startswith('HTTP_') and key != 'HTTP_HOST':
                 headers[key[5:].replace('_', '-')] = value

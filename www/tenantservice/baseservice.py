@@ -2,38 +2,26 @@
 import datetime
 import json
 import logging
+from functools import reduce
 
+from console.repositories.region_app import region_app_repo
+from console.repositories.service_group_relation_repo import \
+    service_group_relation_repo
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.forms import model_to_dict
-
 from goodrain_web.custom_config import custom_config
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db.base import BaseConnection
 from www.github_http import GitHubApi
 from www.gitlab_http import GitlabApi
-from www.models.main import PermRelTenant
-from www.models.main import ServiceAttachInfo
-from www.models.main import ServiceEvent
-from www.models.main import ServiceProbe
-from www.models.main import TenantRegionInfo
-from www.models.main import TenantRegionPayModel
-from www.models.main import TenantRegionResource
-from www.models.main import Tenants
-from www.models.main import TenantServiceAuth
-from www.models.main import TenantServiceEnvVar
-from www.models.main import TenantServiceInfo
-from www.models.main import TenantServiceMountRelation
-from www.models.main import TenantServiceRelation
-from www.models.main import TenantServicesPort
-from www.models.main import TenantServiceVolume
-from www.models.main import Users
-from www.models.plugin import PluginBuildVersion
-from www.models.plugin import TenantServicePluginRelation
+from www.models.main import (PermRelTenant, ServiceAttachInfo, ServiceEvent, ServiceProbe, TenantRegionInfo,
+                             TenantRegionPayModel, TenantRegionResource, Tenants, TenantServiceAuth, TenantServiceEnvVar,
+                             TenantServiceInfo, TenantServiceMountRelation, TenantServiceRelation, TenantServicesPort,
+                             TenantServiceVolume, Users)
+from www.models.plugin import PluginBuildVersion, TenantServicePluginRelation
 from www.utils.crypt import make_uuid
 from www.utils.giturlparse import parse as git_url_parse
-from console.repositories.region_app import region_app_repo
-from console.repositories.service_group_relation_repo import service_group_relation_repo
 
 logger = logging.getLogger('default')
 
@@ -112,10 +100,9 @@ class BaseTenantService(object):
         return max_port + 1
 
     def calculate_service_cpu(self, region, min_memory):
+        # The algorithm is obsolete
         min_cpu = int(min_memory) / 128 * 20
-        if region == "ali-hz":
-            min_cpu = min_cpu * 2
-        return min_cpu
+        return int(min_cpu)
 
     def create_service(self,
                        service_id,
@@ -290,7 +277,7 @@ class BaseTenantService(object):
                         port.tenant_id,
                         port.service_id,
                         port.container_port,
-                        u"连接地址",
+                        "连接地址",
                         port.port_alias + "_HOST",
                         "127.0.0.1",
                         False,
@@ -299,7 +286,7 @@ class BaseTenantService(object):
                         port.tenant_id,
                         port.service_id,
                         port.container_port,
-                        u"端口",
+                        "端口",
                         port.port_alias + "_PORT",
                         mapping_port,
                         False,
@@ -420,7 +407,7 @@ class BaseTenantService(object):
                         service.tenant_id,
                         service.service_id,
                         container_port,
-                        u"连接地址",
+                        "连接地址",
                         env_prefix + "_PORT_" + str(container_port) + "_TCP_ADDR",
                         "127.0.0.1",
                         False,
@@ -429,7 +416,7 @@ class BaseTenantService(object):
                         service.tenant_id,
                         service.service_id,
                         container_port,
-                        u"端口",
+                        "端口",
                         env_prefix + "_PORT_" + str(container_port) + "_TCP_PORT",
                         mapping_port,
                         False,
@@ -439,7 +426,7 @@ class BaseTenantService(object):
                         service.tenant_id,
                         service.service_id,
                         container_port,
-                        u"连接地址",
+                        "连接地址",
                         env_prefix + "_HOST",
                         "127.0.0.1",
                         False,
@@ -448,7 +435,7 @@ class BaseTenantService(object):
                         service.tenant_id,
                         service.service_id,
                         container_port,
-                        u"端口",
+                        "端口",
                         env_prefix + "_PORT",
                         mapping_port,
                         False,
@@ -457,9 +444,9 @@ class BaseTenantService(object):
                 password = service.service_id[:8]
                 TenantServiceAuth.objects.create(service_id=service.service_id, user="admin", password=password)
                 self.saveServiceEnvVar(
-                    service.tenant_id, service.service_id, -1, u"用户名", env_prefix + "_USER", "admin", False, scope="both")
+                    service.tenant_id, service.service_id, -1, "用户名", env_prefix + "_USER", "admin", False, scope="both")
                 self.saveServiceEnvVar(
-                    service.tenant_id, service.service_id, -1, u"密码", env_prefix + "_PASS", password, False, scope="both")
+                    service.tenant_id, service.service_id, -1, "密码", env_prefix + "_PASS", password, False, scope="both")
             port.save()
         except Exception as e:
             logger.exception(e)
@@ -626,7 +613,7 @@ class BaseTenantService(object):
                     failed.append(dep_volume.volume_name)
                     message.append(json.dumps(body))
             except Exception as e:
-                logger.error(e)
+                logger.exception(e)
                 failed.append(dep_volume.volume_name)
                 message.append(e.message)
         if not failed:

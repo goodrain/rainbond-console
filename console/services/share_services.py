@@ -17,6 +17,9 @@ from console.repositories.component_graph import component_graph_repo
 from console.repositories.market_app_repo import (app_export_record_repo, rainbond_app_repo)
 from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
+from console.repositories.app_config import domain_repo, configuration_repo, port_repo
+from console.repositories.label_repo import service_label_repo
+from console.repositories.label_repo import label_repo
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
 from console.services.group_service import group_service
@@ -35,21 +38,16 @@ class ShareService(object):
     def check_service_source(self, team, team_name, group_id, region_name):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         if service_list:
-            can_publish_list = [service for service in service_list if service.service_source != "market"]
-            if not can_publish_list:
-                data = {"code": 400, "success": False, "msg_show": "此应用中的组件全部来源于共享库或应用商店,无法再次发布", "list": [], "bean": {}}
-                return data
-            else:
-                # 批量查询组件状态
-                service_ids = [service.service_id for service in service_list]
-                status_list = base_service.status_multi_service(
-                    region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
-                for status in status_list:
-                    if status["status"] != "running":
-                        data = {"code": 400, "success": False, "msg_show": "您有组件未在运行状态不能发布。", "list": list(), "bean": dict()}
-                        return data
-                data = {"code": 200, "success": True, "msg_show": "您的组件都在运行中可以发布。", "list": list(), "bean": dict()}
-                return data
+            # 批量查询组件状态
+            service_ids = [service.service_id for service in service_list]
+            status_list = base_service.status_multi_service(
+                region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
+            for status in status_list:
+                if status["status"] == "running":
+                    data = {"code": 200, "success": True, "msg_show": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
+                    return data
+            data = {"code": 400, "success": False, "msg_show": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
+            return data
         else:
             data = {"code": 400, "success": False, "msg_show": "当前应用内无组件", "list": list(), "bean": dict()}
             return data
@@ -69,7 +67,7 @@ class ShareService(object):
             for port in port_list:
                 service_id = port.service_id
                 tmp_list = []
-                if service_id in service_port_map.keys():
+                if service_id in list(service_port_map.keys()):
                     tmp_list = service_port_map.get(service_id)
                 tmp_list.append(port)
                 service_port_map[service_id] = tmp_list
@@ -121,6 +119,24 @@ class ShareService(object):
             result[graph.component_id].append(g)
         return result
 
+    @staticmethod
+    def list_component_labels(component_ids):
+        component_labels = service_label_repo.list_by_component_ids(component_ids)
+        labels = label_repo.list_by_label_ids([label.label_id for label in component_labels])
+        labels = {label.label_id: label for label in labels}
+
+        res = {}
+        for component_label in component_labels:
+            clabels = res.get(component_label.service_id, {})
+            label = labels.get(component_label.label_id)
+            if not label:
+                logger.warning("component id: {}; label id: {}; label not found".format(component_label.service_id,
+                                                                                        component_label.label_id))
+                continue
+            clabels[label.label_name] = label.label_alias
+            res[component_label.service_id] = clabels
+        return res
+
     def get_dep_mnts_by_ids(self, tenant_id, service_ids):
         mnt_relations = mnt_repo.list_mnt_relations_by_service_ids(tenant_id, service_ids)
         if not mnt_relations:
@@ -128,7 +144,7 @@ class ShareService(object):
         result = {}
         for mnt_relation in mnt_relations:
             service_id = mnt_relation.service_id
-            if service_id in result.keys():
+            if service_id in list(result.keys()):
                 values = result.get(service_id)
             else:
                 values = []
@@ -152,7 +168,7 @@ class ShareService(object):
                     continue
                 service_id = env.service_id
                 tmp_list = []
-                if service_id in service_env_map.keys():
+                if service_id in list(service_env_map.keys()):
                     tmp_list = service_env_map.get(service_id)
                 tmp_list.append(env)
                 service_env_map[service_id] = tmp_list
@@ -170,7 +186,7 @@ class ShareService(object):
             for volume in volume_list:
                 service_id = volume.service_id
                 tmp_list = []
-                if service_id in service_volume_map.keys():
+                if service_id in list(service_volume_map.keys()):
                     tmp_list = service_volume_map.get(service_id)
                 tmp_list.append(volume)
                 service_volume_map[service_id] = tmp_list
@@ -206,7 +222,7 @@ class ShareService(object):
             for probe in probe_list:
                 service_id = probe.service_id
                 tmp_list = []
-                if service_id in service_probe_map.keys():
+                if service_id in list(service_probe_map.keys()):
                     tmp_list = service_probe_map.get(service_id)
                 tmp_list.append(probe)
                 service_probe_map[service_id] = tmp_list
@@ -220,7 +236,8 @@ class ShareService(object):
             if res.status == 200:
                 service_versions = {}
                 for version in body["list"]:
-                    service_versions[version["service_id"]] = version["build_version"]
+                    if version and "service_id" in version and "build_version" in version:
+                        service_versions[version["service_id"]] = version["build_version"]
                 return service_versions
         except Exception as e:
             logger.exception(e)
@@ -228,11 +245,6 @@ class ShareService(object):
         return None
 
     def query_share_service_info(self, team, group_id, scope=None):
-        service_last_share_info, _ = self.get_last_shared_app_version(team, group_id, scope)
-        if service_last_share_info:
-            service_last_share_info = service_last_share_info.get("apps")
-            if service_last_share_info:
-                service_last_share_info = {service["service_id"]: service for service in service_last_share_info}
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         if service_list:
             array_ids = [x.service_id for x in service_list]
@@ -259,19 +271,19 @@ class ShareService(object):
             sid_2_graphs = self.list_component_graphs(array_ids)
             all_data_map = dict()
 
+            labels = self.list_component_labels(array_ids)
+
             for service in service_list:
+                if not deploy_versions or not deploy_versions.get(service.service_id):
+                    continue
                 data = dict()
                 data['service_id'] = service.service_id
                 data['tenant_id'] = service.tenant_id
                 data['service_cname'] = service.service_cname
-                data['service_key'] = service.service_key
-                if (service.service_key == 'application' or service.service_key == '0000' or service.service_key == 'mysql'):
-                    data['service_key'] = make_uuid()
-                    service.service_key = data['service_key']
-                    service.save()
-                #     data['need_share'] = True
-                # else:
-                #     data['need_share'] = False
+                # The component is redistributed without the key from the installation source, which would cause duplication.
+                # service_id  can be thought of as following a component lifecycle.
+                data['service_key'] = service.service_id
+                # service_share_uuid The build policy cannot be changed
                 data["service_share_uuid"] = "{0}+{1}".format(data['service_key'], data['service_id'])
                 data['need_share'] = True
                 data['category'] = service.category
@@ -291,15 +303,17 @@ class ShareService(object):
                 data['probes'] = [probe.to_dict() for probe in probe_map.get(service.service_id, [])]
                 e_m = dict()
                 e_m['step_node'] = 1
-                e_m['min_memory'] = service.min_memory
+                e_m['min_memory'] = 64
+                e_m['init_memory'] = service.min_memory
                 e_m['max_memory'] = 65536
-                e_m['step_memory'] = 128
+                e_m['step_memory'] = 64
                 e_m['is_restart'] = 0
                 e_m['min_node'] = service.min_node
+                e_m['container_cpu'] = service.min_cpu
                 if is_singleton(service.extend_method):
                     e_m['max_node'] = 1
                 else:
-                    e_m['max_node'] = 20
+                    e_m['max_node'] = 64
                 data['extend_method_map'] = e_m
                 data['port_map_list'] = list()
                 if service_port_map.get(service.service_id):
@@ -321,7 +335,7 @@ class ShareService(object):
                         s_v = dict()
                         s_v['file_content'] = ''
                         if volume.volume_type == "config-file":
-                            config_file = volume_repo.get_service_config_file(volume.ID)
+                            config_file = volume_repo.get_service_config_file(volume)
                             if config_file:
                                 s_v['file_content'] = config_file.file_content
                         s_v['category'] = volume.category
@@ -333,6 +347,7 @@ class ShareService(object):
                         s_v['access_mode'] = volume.access_mode
                         s_v['share_policy'] = volume.share_policy
                         s_v['backup_policy'] = volume.backup_policy
+                        s_v['mode'] = volume.mode
                         data['service_volume_map_list'].append(s_v)
 
                 data['service_env_map_list'] = list()
@@ -351,7 +366,6 @@ class ShareService(object):
                             data['service_env_map_list'].append(e_c)
 
                 data['service_related_plugin_config'] = list()
-                # plugins_attr_list = share_repo.get_plugin_config_var_by_service_ids(service_ids=service_ids)
                 plugins_relation_list = share_repo.get_plugins_relation_by_service_ids(service_ids=[service.service_id])
                 for spr in plugins_relation_list:
                     service_plugin_config_var = service_plugin_config_repo.get_service_plugin_config_var(
@@ -359,16 +373,10 @@ class ShareService(object):
                     plugin_data = spr.to_dict()
                     plugin_data["attr"] = [var.to_dict() for var in service_plugin_config_var]
                     data['service_related_plugin_config'].append(plugin_data)
-                if service_last_share_info:
-                    service_data = service_last_share_info.get(service.service_id)
-                    if service_data:
-                        data["extend_method_map"] = self.service_last_share_cache(data["extend_method_map"],
-                                                                                  service_data["extend_method_map"])
-                        data["service_env_map_list"] = self.service_last_share_cache(data["service_env_map_list"],
-                                                                                     service_data["service_env_map_list"])
-                        # component moniotr
+                # component monitor
                 data["component_monitors"] = sid_2_monitors.get(service.service_id, None)
                 data["component_graphs"] = sid_2_graphs.get(service.service_id, None)
+                data["labels"] = labels.get(service.component_id, {})
 
                 all_data_map[service.service_id] = data
 
@@ -408,7 +416,7 @@ class ShareService(object):
             if isinstance(service_info, dict):
                 service_info.update(last_share_info)
             elif isinstance(service_info, list):
-                for i in xrange(len(service_info)):
+                for i in range(len(service_info)):
                     for last_info in last_share_info:
                         if not service_info[i].get("attr_name"):
                             service_info[i].update(last_info)
@@ -513,6 +521,7 @@ class ShareService(object):
                         "image_info": app.get("service_image", None),
                         "slug_info": app.get("service_slug", None)
                     }
+                    re_body = None
                     try:
                         res, re_body = region_api.share_service(region_name, tenant_name, record_event.service_alias, body)
                         bean = re_body.get("bean")
@@ -534,6 +543,7 @@ class ShareService(object):
                             raise ServiceHandleException(msg="share failed", msg_show="数据中心分享错误")
                     except region_api.CallApiFrequentError as e:
                         logger.exception(e)
+                        transaction.savepoint_rollback(sid)
                         raise ServiceHandleException(msg="wait a moment please", msg_show="操作过于频繁，请稍后再试", status_code=409)
                     except Exception as e:
                         logger.exception(e)
@@ -549,6 +559,11 @@ class ShareService(object):
             app_version.save()
             transaction.savepoint_commit(sid)
             return record_event
+        except ServiceHandleException as e:
+            logger.exception(e)
+            if sid:
+                transaction.savepoint_rollback(sid)
+            raise e
         except Exception as e:
             logger.exception(e)
             if sid:
@@ -561,6 +576,8 @@ class ShareService(object):
         if not apps_version:
             raise RbdAppNotFound("分享的应用不存在")
         app_template = json.loads(apps_version.app_template)
+        if "plugins" not in app_template:
+            return
         plugins_info = app_template["plugins"]
         plugin_list = []
         for plugin in plugins_info:
@@ -698,7 +715,7 @@ class ShareService(object):
     # 创建应用记录
     # 创建介质同步记录
     @transaction.atomic
-    def create_share_info(self, region_name, share_record, share_team, share_user, share_info, use_force):
+    def create_share_info(self, tenant, region_name, share_record, share_team, share_user, share_info, use_force):
         # 开启事务
         sid = transaction.savepoint()
         try:
@@ -712,6 +729,7 @@ class ShareService(object):
             market_id = None
             market = None
             app_model_name = None
+            share_store_name = ''
             if target:
                 market_id = target.get("store_id")
             if not market_id:
@@ -719,9 +737,10 @@ class ShareService(object):
             if market_id:
                 scope = "goodrain"
                 market = app_market_service.get_app_market_by_name(share_team.enterprise_id, market_id, raise_exception=True)
-                cloud_app = app_market_service.get_market_app_model(market, app_model_id)
+                cloud_app = app_market_service.get_market_app_model(market, app_model_id, True)
                 if cloud_app:
                     app_model_name = cloud_app.app_name
+                    share_store_name = cloud_app.market_name
             else:
                 local_app_version = RainbondCenterApp.objects.filter(app_id=app_model_id).first()
                 if not local_app_version:
@@ -749,8 +768,12 @@ class ShareService(object):
                 raise ServiceHandleException(msg="Basic information processing error", msg_show="基本信息处理错误")
 
             # group config
-            service_ids = [svc["service_id"] for svc in share_info["share_service_list"]]
-            app_templete["app_config_groups"] = self.config_groups(region_name, service_ids)
+            service_ids_keys_map = {svc["service_id"]: svc['service_key'] for svc in share_info["share_service_list"]}
+            app_templete["app_config_groups"] = self.config_groups(region_name, service_ids_keys_map)
+
+            # ingress
+            ingress_http_routes = self._list_http_ingresses(tenant, service_ids_keys_map)
+            app_templete["ingress_http_routes"] = ingress_http_routes
 
             # plugins
             try:
@@ -794,8 +817,10 @@ class ShareService(object):
                     dep_service_keys = {service['service_share_uuid'] for service in services}
 
                     for service in services:
-                        # slug组件
-                        if delivered_type_map[service['service_id']] == "slug":
+                        delivered_type = delivered_type_map.get(service['service_id'], None)
+                        if not delivered_type:
+                            continue
+                        if delivered_type == "slug":
                             service['service_slug'] = app_store.get_slug_hub_info(market, app_model_id,
                                                                                   share_team.enterprise_id)
                             service["share_type"] = "slug"
@@ -860,6 +885,8 @@ class ShareService(object):
                 enterprise_id=share_team.enterprise_id,
                 upgrade_time=time.time(),
             )
+            if app_store.is_no_multiple_region_hub(enterprise_id=share_team.enterprise_id):
+                app_version.region_name = region_name
             app_version.save()
             share_record.step = 2
             share_record.scope = scope
@@ -867,7 +894,10 @@ class ShareService(object):
             share_record.share_version = version
             share_record.share_version_alias = version_alias
             share_record.share_app_market_name = market_id
+            share_record.share_app_model_name = app_model_name
+            share_record.share_store_name = share_store_name
             share_record.update_time = datetime.datetime.now()
+            share_record.share_app_version_info = version_describe
             share_record.save()
             # 提交事务
             if sid:
@@ -881,18 +911,76 @@ class ShareService(object):
                 transaction.savepoint_rollback(sid)
             return 500, "应用分享处理发生错误", None
 
-    def config_groups(self, region_name, service_ids):
-        groups = app_config_group_repo.list_by_service_ids(region_name, service_ids)
+    def _list_http_ingresses(self, tenant, component_keys):
+        service_domains = domain_repo.list_by_component_ids(component_keys.keys())
+        if not service_domains:
+            return []
+        configs = configuration_repo.list_by_rule_ids([sd.http_rule_id for sd in service_domains])
+        configs = {cfg.rule_id: json.loads(cfg.value) for cfg in configs}
+
+        ports = port_repo.list_by_service_ids(tenant.tenant_id, component_keys.keys())
+        ports = {port.container_port: port for port in ports}
+
+        ingress_http_routes = []
+        for sd in service_domains:
+            # only work for outer port
+            port = ports.get(sd.container_port)
+            if not port or not port.is_outer_service:
+                continue
+
+            config = configs.get(sd.http_rule_id, {})
+            ingress_http_route = {
+                "default_domain": sd.type == 0,
+                "location": sd.domain_path,
+                "cookies": self._parse_cookie_or_header(sd.domain_cookie),
+                "headers": self._parse_cookie_or_header(sd.domain_heander),
+                "ssl": sd.auto_ssl,
+                "load_balancing": sd.load_balancing,
+                "connection_timeout": config.get("proxy_connect_timeout"),
+                "request_timeout": config.get("proxy_send_timeout"),
+                "response_timeout": config.get("proxy_read_timeout"),
+                "request_body_size_limit": config.get("proxy_body_size"),
+                "proxy_buffer_numbers": config.get("proxy_buffer_numbers"),
+                "proxy_buffer_size": config.get("proxy_buffer_size"),
+                "websocket": config.get("WebSocket"),
+                "component_key": component_keys.get(sd.service_id),
+                "port": sd.container_port,
+                "proxy_header": config.get("set_headers"),
+            }
+            ingress_http_routes.append(ingress_http_route)
+        return ingress_http_routes
+
+    @staticmethod
+    def _parse_cookie_or_header(cookies: str):
+        # example: foo=bar;apple=pie
+        cookies = cookies.replace(" ", "")
+        result = {}
+        for cookie in cookies.split(";"):
+            kvs = cookie.split("=")
+            if len(kvs) != 2 or kvs[0] == "" or kvs[1] == "":
+                continue
+            result[kvs[0]] = kvs[1]
+        return result
+
+    def config_groups(self, region_name, service_ids_keys_map):
+        groups = app_config_group_repo.list_by_service_ids(region_name, service_ids_keys_map.keys())
         cgs = []
         for group in groups:
             # list related items
             cg = {
-                "name": group.config_group_name,
-                "injection_type": group.deploy_type,
+                "name":
+                group.config_group_name,
+                "injection_type":
+                group.deploy_type,
+                "enable":
+                group.enable,
                 "config_items":
                 {item.item_key: item.item_value
                  for item in app_config_group_item_repo.list(group.config_group_id)},
-                "component_ids": [service.service_id for service in app_config_group_service_repo.list(group.config_group_id)],
+                "component_keys": [
+                    service_ids_keys_map.get(service.service_id)
+                    for service in app_config_group_service_repo.list(group.config_group_id)
+                ]
             }
             cgs.append(cg)
 
@@ -911,7 +999,7 @@ class ShareService(object):
                 raise AbortRequest(
                     error_code=10501,
                     msg="{} service is missing dependencies".format(service['service_cname']),
-                    msg_show=u"{}组件缺少依赖组件，请添加依赖组件，或强制执行".format(service['service_cname']))
+                    msg_show="{}组件缺少依赖组件，请添加依赖组件，或强制执行".format(service['service_cname']))
             else:
                 return True
 
@@ -1032,7 +1120,7 @@ class ShareService(object):
                     "versions":
                     sorted(
                         app_versions,
-                        key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x["version"].split(".")),
+                        key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x["version"].split(".")],
                         reverse=True),
                     "scope":
                     app.scope,
@@ -1067,7 +1155,7 @@ class ShareService(object):
                         "versions":
                         sorted(
                             versions,
-                            key=lambda x: map(lambda y: int(filter(str.isdigit, str(y))), x["version"].split(".")),
+                            key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x["version"].split(".")],
                             reverse=True),
                         "pic":
                         app.logo,

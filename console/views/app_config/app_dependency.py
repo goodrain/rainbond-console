@@ -4,14 +4,13 @@
 """
 import logging
 
+from console.services.app_config import dependency_service, port_service
+from console.services.group_service import group_service
+from console.views.app_config.base import AppBaseView
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-
-from console.services.app_config import dependency_service
-from console.views.app_config.base import AppBaseView
 from www.utils.return_message import general_message
-from console.services.group_service import group_service
-from console.services.app_config import port_service
+from console.exception.main import AbortRequest
 
 logger = logging.getLogger("default")
 
@@ -45,6 +44,8 @@ class AppDependencyView(AppBaseView):
               paramType: query
         """
         page_num = int(request.GET.get("page", 1))
+        if page_num < 1:
+            page_num = 1
         page_size = int(request.GET.get("page_size", 25))
         dependencies = dependency_service.get_service_dependencies(self.tenant, self.service)
         service_ids = [s.service_id for s in dependencies]
@@ -66,14 +67,19 @@ class AppDependencyView(AppBaseView):
                 "ports_list": ports_list
             }
             dep_list.append(dep_service_info)
-        rt_list = dep_list[(page_num - 1) * page_size:page_num * page_size]
+        start = (page_num - 1) * page_size
+        end = page_num * page_size
+        if start >= len(dep_list):
+            start = len(dep_list) - 1
+            end = len(dep_list) - 1
+        rt_list = dep_list[start:end]
 
         service_ports = port_service.get_service_ports(self.service)
         port_list = []
         if service_ports:
             for port in service_ports:
                 port_list.append(port.container_port)
-        bean = {"port_list": port_list}
+        bean = {"port_list": port_list, 'total': len(dep_list)}
         result = general_message(200, "success", "查询成功", list=rt_list, total=len(dep_list), bean=bean)
         return Response(result, status=result["code"])
 
@@ -105,7 +111,11 @@ class AppDependencyView(AppBaseView):
         open_inner = request.data.get("open_inner", False)
         container_port = request.data.get("container_port", None)
         if not dep_service_id:
-            return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的组件"), status=400)
+            return Response(general_message(400, "dependency service not specify", "请指明需要依赖的组件"), status=400)
+        if self.service.is_third_party():
+            raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖组件")
+        if dep_service_id == self.service.service_id:
+            raise AbortRequest(msg="components cannot rely on themselves", msg_show="组件不能依赖自己")
         code, msg, data = dependency_service.add_service_dependency(self.tenant, self.service, dep_service_id, open_inner,
                                                                     container_port, self.user.nick_name)
         if code == 201:
@@ -114,7 +124,7 @@ class AppDependencyView(AppBaseView):
         if code != 200:
             result = general_message(code, "add dependency error", msg, list=data)
             return Response(result, status=code)
-        result = general_message(code, msg, u"依赖添加成功", bean=data.to_dict())
+        result = general_message(code, msg, "依赖添加成功", bean=data.to_dict())
         return Response(result, status=result["code"])
 
     @never_cache
@@ -142,14 +152,16 @@ class AppDependencyView(AppBaseView):
         """
         dep_service_ids = request.data.get("dep_service_ids", None)
         if not dep_service_ids:
-            return Response(general_message(400, "dependency service not specify", u"请指明需要依赖的组件"), status=400)
+            return Response(general_message(400, "dependency service not specify", "请指明需要依赖的组件"), status=400)
+        if self.service.is_third_party():
+            raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖组件")
         dep_service_list = dep_service_ids.split(",")
         code, msg = dependency_service.patch_add_dependency(
             self.tenant, self.service, dep_service_list, user_name=self.user.nick_name)
         if code != 200:
             result = general_message(code, "add dependency error", msg)
             return Response(result, status=code)
-        result = general_message(code, msg, u"依赖添加成功")
+        result = general_message(code, msg, "依赖添加成功")
         return Response(result, status=result["code"])
 
 
@@ -217,7 +229,7 @@ class AppNotDependencyView(AppBaseView):
                     if search_key.lower() in un_dep.service_cname.lower():
                         un_dep_list.append(dep_service_info)
                 else:
-                    result = general_message(400, "error", u"condition参数错误")
+                    result = general_message(400, "error", "condition参数错误")
                     return Response(result, status=400)
             elif search_key is not None and not condition:
                 if search_key.lower() in service_group_map[
@@ -257,11 +269,11 @@ class AppDependencyManageView(AppBaseView):
         """
         dep_service_id = kwargs.get("dep_service_id", None)
         if not dep_service_id:
-            return Response(general_message(400, "attr_name not specify", u"未指定需要删除的依赖组件"))
+            return Response(general_message(400, "attr_name not specify", "未指定需要删除的依赖组件"))
         code, msg, dependency = dependency_service.delete_service_dependency(self.tenant, self.service, dep_service_id,
                                                                              self.user.nick_name)
         if code != 200:
             return Response(general_message(code, "delete dependency error", msg))
 
-        result = general_message(200, "success", u"删除成功", bean=dependency.to_dict())
+        result = general_message(200, "success", "删除成功", bean=dependency.to_dict())
         return Response(result, status=result["code"])

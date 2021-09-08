@@ -6,16 +6,14 @@ import logging
 import re
 
 from console.constants import AppConstants, ServiceLanguageConstants
-from console.enum.component_enum import ComponentType
-from console.enum.component_enum import is_state
-from console.exception.main import ServiceHandleException, ErrVolumePath
-from console.repositories.app_config import mnt_repo
-from console.repositories.app_config import volume_repo
-from console.services.exception import ErrVolumeTypeDoNotAllowMultiNode
-from console.services.exception import ErrVolumeTypeNotFound
+from console.enum.component_enum import ComponentType, is_state
+from console.exception.main import ErrVolumePath, ServiceHandleException
+from console.repositories.app_config import mnt_repo, volume_repo
 from console.services.app_config.label_service import LabelService
+from console.services.exception import (ErrVolumeTypeDoNotAllowMultiNode, ErrVolumeTypeNotFound)
 from console.utils.urlutil import is_path_legal
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import TenantServiceVolume
 from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
@@ -70,12 +68,13 @@ class AppVolumeService(object):
             state = True
             base_opts.append({"volume_type": "local", "name_show": "本地存储"})
         body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
-        for opt in body.list:
-            if len(opt["access_mode"]) > 0 and opt["access_mode"][0] == "RWO":
-                if state:
+        if body and hasattr(body, 'list') and body.list:
+            for opt in body.list:
+                if len(opt["access_mode"]) > 0 and opt["access_mode"][0] == "RWO":
+                    if state:
+                        base_opts.append(opt)
+                else:
                     base_opts.append(opt)
-            else:
-                base_opts.append(opt)
         return base_opts
 
     def get_best_suitable_volume_settings(self,
@@ -159,11 +158,11 @@ class AppVolumeService(object):
         return vos
 
     def check_volume_name(self, service, volume_name):
-        r = re.compile(u'^[a-zA-Z0-9_]+$')
+        r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')
         if not r.match(volume_name):
             if service.service_source != AppConstants.MARKET:
                 raise ServiceHandleException(msg="volume name illegal", msg_show="持久化名称只支持数字字母下划线")
-            volume_name = service.service_cname + make_uuid()[-3:]
+            volume_name = service.service_alias + "-" + make_uuid()[-3:]
         volume = volume_repo.get_service_volume_by_name(service.service_id, volume_name)
 
         if volume:
@@ -281,6 +280,37 @@ class AppVolumeService(object):
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
                 raise ErrVolumeTypeDoNotAllowMultiNode
 
+    def create_service_volume(self, tenant, service, volume_path, volume_type, volume_name, settings=None, mode=None):
+        volume_name = volume_name.strip()
+        volume_path = volume_path.strip()
+        volume_name = self.check_volume_name(service, volume_name)
+
+        self.check_volume_path(service, volume_path)
+        host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id, volume_path)
+
+        volume_data = {
+            "service_id": service.service_id,
+            "category": service.category,
+            "host_path": host_path,
+            "volume_type": volume_type,
+            "volume_path": volume_path,
+            "volume_name": volume_name,
+            "mode": mode,
+        }
+
+        if settings:
+            self.check_volume_options(tenant, service, volume_type, settings)
+            settings = self.setting_volume_properties(tenant, service, volume_type, settings)
+
+            volume_data['volume_capacity'] = settings['volume_capacity']
+            volume_data['volume_provider_name'] = settings['volume_provider_name']
+            volume_data['access_mode'] = settings['access_mode']
+            volume_data['share_policy'] = settings['share_policy']
+            volume_data['backup_policy'] = settings['backup_policy']
+            volume_data['reclaim_policy'] = settings['reclaim_policy']
+            volume_data['allow_expansion'] = settings['allow_expansion']
+        return TenantServiceVolume(**volume_data)
+
     def add_service_volume(self,
                            tenant,
                            service,
@@ -289,55 +319,43 @@ class AppVolumeService(object):
                            volume_name,
                            file_content=None,
                            settings=None,
-                           user_name=''):
-        volume_name = volume_name.strip()
-        volume_path = volume_path.strip()
-        volume_name = self.check_volume_name(service, volume_name)
-        self.check_volume_path(service, volume_path)
-        host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id, volume_path)
-        volume_data = {
-            "service_id": service.service_id,
-            "category": service.category,
-            "host_path": host_path,
-            "volume_type": volume_type,
-            "volume_path": volume_path,
-            "volume_name": volume_name
-        }
+                           user_name='',
+                           mode=None):
 
-        self.check_volume_options(tenant, service, volume_type, settings)
-        settings = self.setting_volume_properties(tenant, service, volume_type, settings)
+        volume = self.create_service_volume(
+            tenant,
+            service,
+            volume_path,
+            volume_type,
+            volume_name,
+            settings,
+            mode=mode,
+        )
 
-        volume_data['volume_capacity'] = settings['volume_capacity']
-        volume_data['volume_provider_name'] = settings['volume_provider_name']
-        volume_data['access_mode'] = settings['access_mode']
-        volume_data['share_policy'] = settings['share_policy']
-        volume_data['backup_policy'] = settings['backup_policy']
-        volume_data['reclaim_policy'] = settings['reclaim_policy']
-        volume_data['allow_expansion'] = settings['allow_expansion']
-        logger.debug("add console service volume is {0}".format(volume_data))
         # region端添加数据
         if service.create_status == "complete":
             data = {
                 "category": service.category,
-                "volume_name": volume_name,
-                "volume_path": volume_path,
-                "volume_type": volume_type,
+                "volume_name": volume.volume_name,
+                "volume_path": volume.volume_path,
+                "volume_type": volume.volume_type,
                 "enterprise_id": tenant.enterprise_id,
-                "volume_capacity": settings['volume_capacity'],
-                "volume_provider_name": settings['volume_provider_name'],
-                "access_mode": settings['access_mode'],
-                "share_policy": settings['share_policy'],
-                "backup_policy": settings['backup_policy'],
-                "reclaim_policy": settings['reclaim_policy'],
-                "allow_expansion": settings['allow_expansion'],
+                "volume_capacity": volume.volume_capacity,
+                "volume_provider_name": volume.volume_provider_name,
+                "access_mode": volume.access_mode,
+                "share_policy": volume.share_policy,
+                "backup_policy": volume.backup_policy,
+                "reclaim_policy": volume.reclaim_policy,
+                "allow_expansion": volume.allow_expansion,
                 "operator": user_name,
+                "mode": mode,
             }
             if volume_type == "config-file":
                 data["file_content"] = file_content
             res, body = region_api.add_service_volumes(service.service_region, tenant.tenant_name, service.service_alias, data)
             logger.debug(body)
 
-        volume = volume_repo.add_service_volume(**volume_data)
+        volume.save()
         if volume_type == "config-file":
             file_data = {"service_id": service.service_id, "volume_id": volume.ID, "file_content": file_content}
             volume_repo.add_service_config_file(**file_data)
@@ -346,12 +364,12 @@ class AppVolumeService(object):
     def delete_service_volume_by_id(self, tenant, service, volume_id, user_name=''):
         volume = volume_repo.get_service_volume_by_pk(volume_id)
         if not volume:
-            return 404, u"需要删除的路径不存在", None
+            return 404, "需要删除的路径不存在", None
         # if volume.volume_type == volume.SHARE:
         # 判断当前共享目录是否被使用
         mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
         if mnt:
-            return 403, u"当前路径被共享,无法删除", None
+            return 403, "当前路径被共享,无法删除", None
         if service.create_status == "complete":
             data = dict()
             data["operator"] = user_name
@@ -365,9 +383,9 @@ class AppVolumeService(object):
                     raise ServiceHandleException(
                         msg="delete volume from region failure", msg_show="从集群删除存储发生错误", status_code=500)
         volume_repo.delete_volume_by_id(volume_id)
-        volume_repo.delete_file_by_volume_id(volume_id)
+        volume_repo.delete_file_by_volume(volume)
 
-        return 200, u"success", volume
+        return 200, "success", volume
 
     def delete_service_volumes(self, service):
         volume_repo.delete_service_volumes(service.service_id)

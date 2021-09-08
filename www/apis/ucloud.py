@@ -4,6 +4,7 @@ from goodrain_web.base import BaseHttpClient
 from www.partners.ucloud.auth import verfy_ac
 
 import logging
+
 logger = logging.getLogger('default')
 
 
@@ -14,7 +15,7 @@ class UCloudApi(BaseHttpClient):
         self.default_params = {'AccessToken': token}
 
         api_info = settings.UCLOUD_APP
-        for k, v in api_info.items():
+        for k, v in list(api_info.items()):
             setattr(self, k, v)
 
     def parse_url(self, params):

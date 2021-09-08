@@ -1,6 +1,7 @@
 from django.contrib.sessions.backends.cache import SessionStore as BaseSessionStore
 
 import logging
+
 logger = logging.getLogger('default')
 
 
@@ -9,7 +10,7 @@ class SessionStore(BaseSessionStore):
         try:
             logger.debug('session', 'start load key {}'.format(self.cache_key))
             session_data = self._cache.get(self.cache_key, None)
-        except Exception, e:
+        except Exception as e:
             logger.error('session', 'load key {} error.'.format(self.cache_key))
             logger.exception('session', e)
             # Some backends (e.g. memcache) raise an exception on invalid

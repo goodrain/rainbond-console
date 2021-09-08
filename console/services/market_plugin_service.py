@@ -172,7 +172,7 @@ class MarketPluginService(object):
             RainbondCenterPlugin.objects.filter(record_id=share_record.ID).delete()
 
             plugin_info = share_info.get("share_plugin_info")
-            if isinstance(plugin_info, unicode):
+            if isinstance(plugin_info, str):
                 plugin_info = json.loads(plugin_info)
 
             if plugin_info.get('scope') == 'goodrain':

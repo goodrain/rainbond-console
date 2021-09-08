@@ -5,13 +5,10 @@
 import json
 import logging
 
+from console.services.plugin import app_plugin_service, plugin_version_service
+from console.views.app_config.base import AppBaseView
 from django.db import transaction
 from rest_framework.response import Response
-
-from console.services.common_services import common_services
-from console.services.plugin import app_plugin_service
-from console.services.plugin import plugin_version_service
-from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -161,17 +158,18 @@ class ServicePluginOperationView(AppBaseView):
             return Response(general_message(404, "not found plugin relation", "未找到组件使用的插件"), status=404)
         else:
             build_version = service_plugin_relation.build_version
-        pbv = plugin_version_service.get_by_id_and_version(self.tenant.tenant_id, plugin_id, build_version)
         # 更新内存和cpu
-        memory = request.data.get("min_memory", pbv.min_memory)
-        cpu = common_services.calculate_cpu(self.service.service_region, memory)
+        memory = request.data.get("min_memory")
+        cpu = request.data.get("min_cpu")
 
         data = dict()
         data["plugin_id"] = plugin_id
         data["switch"] = is_active
         data["version_id"] = build_version
-        data["plugin_memory"] = memory
-        data["plugin_cpu"] = cpu
+        if memory is not None:
+            data["plugin_memory"] = int(memory)
+        if cpu is not None:
+            data["plugin_cpu"] = int(cpu)
         # 更新数据中心数据参数
         region_api.update_plugin_service_relation(self.response_region, self.tenant.tenant_name, self.service.service_alias,
                                                   data)
@@ -210,7 +208,7 @@ class ServicePluginConfigView(AppBaseView):
         """
         build_version = request.GET.get("build_version", None)
         if not plugin_id or not build_version:
-            logger.error("plugin.relation", u'参数错误，plugin_id and version_id')
+            logger.error("plugin.relation", '参数错误，plugin_id and version_id')
             return Response(general_message(400, "params error", "请指定插件版本"), status=400)
         result_bean = app_plugin_service.get_service_plugin_config(self.tenant, self.service, plugin_id, build_version)
         svc_plugin_relation = app_plugin_service.get_service_plugin_relation(self.service.service_id, plugin_id)

@@ -1,16 +1,16 @@
 # -*- coding: utf8 -*-
-import requests
-
-from console.utils.oauth.base.oauth import OAuth2Interface
-from console.utils.oauth.base.oauth import OAuth2User
-from console.utils.oauth.base.exception import NoAccessKeyErr, NoOAuthServiceErr
-from console.utils.urlutil import set_get_url
-
-import time
-import hmac
 import base64
 import hashlib
-import urllib
+import hmac
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+import requests
+from console.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
+from console.utils.oauth.base.oauth import OAuth2Interface, OAuth2User
+from console.utils.urlutil import set_get_url
 
 
 class Dingtalk(object):
@@ -28,7 +28,7 @@ class Dingtalk(object):
         url = '/'.join([self._url, url_suffix])
         try:
             rst = self.session.request(method='GET', url=url, headers=self.headers, params=params)
-            print rst.json()
+            print((rst.json()))
             if rst.status_code == 200:
                 data = rst.json()
                 if not isinstance(data, (list, dict)):
@@ -82,7 +82,7 @@ class DingtalkApiV1(DingtalkApiV1MiXin, OAuth2Interface):
     def _compute_signature(self, secret, canonicalString):
         message = canonicalString.encode(encoding="utf-8")
         sec = secret.encode(encoding="utf-8")
-        return str(base64.b64encode(hmac.new(sec, message, digestmod=hashlib.sha256).digest()))
+        return base64.b64encode(hmac.new(sec, message, digestmod=hashlib.sha256).digest()).decode()
 
     def _get_user_info(self, code=None):
         '''
@@ -100,7 +100,7 @@ class DingtalkApiV1(DingtalkApiV1MiXin, OAuth2Interface):
                 "accessKey": self.oauth_service.client_id,
                 "signature": signature,
             }
-            query_str = urllib.urlencode(query)
+            query_str = urllib.parse.urlencode(query)
             params = {
                 "tmp_auth_code": code,
             }
@@ -123,7 +123,7 @@ class DingtalkApiV1(DingtalkApiV1MiXin, OAuth2Interface):
             raise NoAccessKeyErr("no code")
 
     def refresh_access_token(self):
-        pass
+        print("refresh_access_token")
 
     def get_user_info(self, code=None):
         raw_user_info = self._get_user_info(code=code)
@@ -134,7 +134,8 @@ class DingtalkApiV1(DingtalkApiV1MiXin, OAuth2Interface):
             params = {
                 "appid": self.oauth_service.client_id,
                 "scope": "snsapi_login",
-                "redirect_uri": urllib.quote(self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID)),
+                "redirect_uri":
+                urllib.parse.quote(self.oauth_service.redirect_uri + "?service_id=" + str(self.oauth_service.ID)),
             }
             params.update(self.request_params)
             return set_get_url(self.oauth_service.auth_url, params)

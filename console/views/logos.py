@@ -32,49 +32,50 @@ class ConfigRUDView(AlowAnyApiView):
         data = platform_config_service.initialization_or_get_config
         if data.get("enterprise_id", None) is None:
             data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
-        result = general_message(code, "query success", u"Logo获取成功", bean=data, initialize_info=status)
+        data["is_disable_logout"] = os.getenv('IS_DISABLE_LOGOUT', False)
+        result = general_message(code, "query success", "Logo获取成功", bean=data, initialize_info=status)
         return Response(result, status=code)
 
     def put(self, request, *args, **kwargs):
         key = request.GET.get("key")
         if not key:
-            result = general_message(404, u"no found config key", u"更新失败")
+            result = general_message(404, "no found config key", "更新失败")
             return Response(result, status=result.get("code", 200))
         value = request.data.get(key, None)
         if not value:
-            result = general_message(404, u"no found config value", u"更新失败")
+            result = general_message(404, "no found config value", "更新失败")
             return Response(result, status=result.get("code", 200))
         key = key.upper()
         if key in platform_config_service.base_cfg_keys + platform_config_service.cfg_keys:
             data = platform_config_service.update_config(key, value)
             try:
-                result = general_message(200, u"success", u"更新成功", bean=data)
+                result = general_message(200, "success", "更新成功", bean=data)
             except Exception as e:
                 logger.debug(e)
-                raise ServiceHandleException(msg=u"update enterprise config failed", msg_show=u"更新失败")
+                raise ServiceHandleException(msg="update enterprise config failed", msg_show="更新失败")
         else:
-            result = general_message(404, u"no found config key", u"更新失败")
+            result = general_message(404, "no found config key", "更新失败")
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, *args, **kwargs):
         key = request.GET.get("key")
         if not key:
-            result = general_message(404, u"no found config key", u"重置失败")
+            result = general_message(404, "no found config key", "重置失败")
             return Response(result, status=result.get("code", 200))
         value = request.data.get(key)
         if not value:
-            result = general_message(404, u"no found config value", u"重置失败")
+            result = general_message(404, "no found config value", "重置失败")
             return Response(result, status=result.get("code", 200))
         key = key.upper()
         if key in platform_config_service.cfg_keys:
             data = platform_config_service.delete_config(key)
             try:
-                result = general_message(200, u"success", u"重置成功", bean=data)
+                result = general_message(200, "success", "重置成功", bean=data)
             except Exception as e:
                 logger.debug(e)
-                raise ServiceHandleException(msg=u"update enterprise config failed", msg_show=u"重置失败")
+                raise ServiceHandleException(msg="update enterprise config failed", msg_show="重置失败")
         else:
-            result = general_message(404, u"can not delete key value", u"该配置不可重置")
+            result = general_message(404, "can not delete key value", "该配置不可重置")
         return Response(result, status=result.get("code", 200))
 
 
@@ -240,15 +241,15 @@ class InitPerms(AlowAnyApiView):
         else:
             teams = Tenants.objects.all()
         if not teams:
-            print(u"未发现团队, 初始化结束")
+            print("未发现团队, 初始化结束")
             return
         for team in teams:
             role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
             users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
-            admin = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
-            developer = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"开发者")
+            admin = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="管理员")
+            developer = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="开发者")
             if not admin or not developer:
-                raise ServiceHandleException(msg="init failed", msg_show=u"初始化失败")
+                raise ServiceHandleException(msg="init failed", msg_show="初始化失败")
             if users:
                 for user in users:
                     if user.user_id == team.creater:
@@ -257,5 +258,5 @@ class InitPerms(AlowAnyApiView):
                     else:
                         user_kind_role_service.update_user_roles(
                             kind="team", kind_id=team.tenant_id, user=user, role_ids=[developer.ID])
-        result = general_message(msg="success", msg_show=u"初始化权限分配成功", code=200)
+        result = general_message(msg="success", msg_show="初始化权限分配成功", code=200)
         return Response(result, status=200)

@@ -5,6 +5,7 @@ Desktop.ini
 logs/
 .gitattributes
 *.pyc
+*.py.bak
 /.settings/
 /.project
 /.pydevproject
@@ -145,5 +146,5 @@ Dockerfile.test
 
 static
 !www/static
-bin
-promql-parser
+
+local_allinone.sh

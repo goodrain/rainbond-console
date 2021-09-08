@@ -13,6 +13,8 @@ from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.tenant_region_repo import tenant_region_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.service_repo import service_repo
+from console.repositories.group import group_repo
 from console.services.common_services import common_services
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrTenantRegionNotFound
@@ -63,17 +65,19 @@ class TeamService(object):
     def add_user_to_team(self, tenant, user_id, role_ids=None):
         user = user_repo.get_by_user_id(user_id)
         if not user:
-            raise ServiceHandleException(msg="user not found", msg_show=u"用户不存在", status_code=404)
+            raise ServiceHandleException(msg="user not found", msg_show="用户不存在", status_code=404)
         exist_team_user = PermRelTenant.objects.filter(tenant_id=tenant.ID, user_id=user.user_id)
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if exist_team_user:
-            raise ServiceHandleException(msg="user exist", msg_show=u"用户已经加入此团队")
+            raise ServiceHandleException(msg="user exist", msg_show="用户已经加入此团队")
         PermRelTenant.objects.create(tenant_id=tenant.ID, user_id=user.user_id, identity="", enterprise_id=enterprise.ID)
         if role_ids:
             user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
 
-    def get_team_users(self, team):
+    def get_team_users(self, team, name=None):
         users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
+        if users and name:
+            users = users.filter(Q(nick_name__contains=name) | Q(real_name__contains=name))
         return users
 
     def get_tenant_users_by_tenant_name(self, tenant_name):
@@ -233,9 +237,6 @@ class TeamService(object):
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id)
         return tenants
 
-    def get_active_user_tenants(self, user_id):
-        return team_repo.get_active_tenants_by_user_id(user_id=user_id)
-
     @transaction.atomic
     def exit_current_team(self, team_name, user_id):
         s_id = transaction.savepoint()
@@ -245,11 +246,11 @@ class TeamService(object):
             user = user_repo.get_by_user_id(user_id)
             user_kind_role_service.delete_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
             transaction.savepoint_commit(s_id)
-            return 200, u"退出团队成功"
+            return 200, "退出团队成功"
         except Exception as e:
             logger.exception(e)
             transaction.savepoint_rollback(s_id)
-            return 400, u"退出团队失败"
+            return 400, "退出团队失败"
 
     def get_team_by_team_id(self, team_id):
         team = team_repo.get_team_by_team_id(team_id=team_id)
@@ -272,9 +273,6 @@ class TeamService(object):
         if hasattr(settings, "TENANT_VALID_TIME"):
             expired_day = int(settings.TENANT_VALID_TIME)
         expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
-        default_region = ""
-        if region_list and len(region_list) > 0:
-            default_region = region_list[0]
         if not team_alias:
             team_alias = "{0}的团队".format(user.nick_name)
         params = {
@@ -282,7 +280,6 @@ class TeamService(object):
             "pay_type": pay_type,
             "pay_level": pay_level,
             "creater": user.user_id,
-            "region": default_region,
             "expired_time": expire_time,
             "tenant_alias": team_alias,
             "enterprise_id": enterprise.enterprise_id,
@@ -298,7 +295,7 @@ class TeamService(object):
         team_repo.create_team_perms(**create_perm_param)
         # init default roles
         role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
-        admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name=u"管理员")
+        admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="管理员")
         user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin_role.ID])
         return team
 
@@ -326,7 +323,7 @@ class TeamService(object):
             raw_tenants = tall
         tenants = []
         for tenant in raw_tenants:
-            tenants.append(self.__team_with_region_info(tenant, user))
+            tenants.append(self.team_with_region_info(tenant, user))
         return tenants, total
 
     def list_teams_v2(self, eid, query=None, page=None, page_size=None):
@@ -353,47 +350,62 @@ class TeamService(object):
             tenant["role_infos"] = roles["roles"]
         return tenants, total
 
-    def __team_with_region_info(self, tenant, request_user=None):
+    def team_with_region_info(self, tenant, request_user=None, get_region=True):
         try:
             user = user_repo.get_user_by_user_id(tenant.creater)
             owner_name = user.get_name()
         except UserNotExistError:
             owner_name = None
-        if request_user:
-            user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=request_user)
-            roles = map(lambda x: x["role_name"], user_role_list["roles"])
-            if tenant.creater == request_user.user_id:
-                roles.append("owner")
-        region_info_map = []
-        region_list = team_repo.get_team_regions(tenant.tenant_id)
-        if region_list:
-            region_name_list = region_list.values_list("region_name", flat=True)
-            region_infos = region_repo.get_region_by_region_names(region_name_list)
-            if region_infos:
-                for region in region_infos:
-                    region_info_map.append({"region_name": region.region_name, "region_alias": region.region_alias})
+
         info = {
             "team_name": tenant.tenant_name,
             "team_alias": tenant.tenant_alias,
             "team_id": tenant.tenant_id,
             "create_time": tenant.create_time,
-            "region": tenant.region,
-            "region_list": region_info_map,
             "enterprise_id": tenant.enterprise_id,
             "owner": tenant.creater,
             "owner_name": owner_name,
         }
+
         if request_user:
+            user_role_list = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=request_user)
+            roles = [x["role_name"] for x in user_role_list["roles"]]
+            if tenant.creater == request_user.user_id:
+                roles.append("owner")
             info["roles"] = roles
+
+        if get_region:
+            region_info_map = []
+            region_name_list = team_repo.get_team_region_names(tenant.tenant_id)
+            if region_name_list:
+                region_infos = region_repo.get_region_by_region_names(region_name_list)
+                if region_infos:
+                    for region in region_infos:
+                        region_info_map.append({"region_name": region.region_name, "region_alias": region.region_alias})
+            info["region"] = region_info_map[0]["region_name"] if len(region_info_map) > 0 else ""
+            info["region_list"] = region_info_map
+
         return info
 
-    def get_teams_region_by_user_id(self, enterprise_id, user, name=None):
+    def get_teams_region_by_user_id(self, enterprise_id, user, name=None, get_region=True):
         teams_list = list()
         tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user.user_id, name)
         if tenants:
             for tenant in tenants:
-                teams_list.append(self.__team_with_region_info(tenant, user))
+                team = self.team_with_region_info(tenant, user, get_region=get_region)
+                teams_list.append(team)
         return teams_list
+
+    def list_user_teams(self, enterprise_id, user, name):
+        # User joined team
+        teams = self.get_teams_region_by_user_id(enterprise_id, user, name, get_region=False)
+        # The team that the user did not join
+        user_id = user.user_id if user else ""
+        nojoin_teams = team_repo.get_user_notjoin_teams(enterprise_id, user_id, name)
+        for nojoin_team in nojoin_teams:
+            team = self.team_with_region_info(nojoin_team, get_region=False)
+            teams.append(team)
+        return teams
 
     def check_and_get_user_team_by_name_and_region(self, user_id, tenant_name, region_name):
         tenant = team_repo.get_user_tenant_by_name(user_id, tenant_name)
@@ -423,6 +435,19 @@ class TeamService(object):
         if data.get("tenant_alias", ""):
             d["tenant_alias"] = data.get("tenant_alias")
         team_repo.update_by_tenant_id(tenant_id).update(**d)
+
+    def overview(self, team, region_name):
+        resource = self.get_tenant_resource(team, region_name)
+        component_nums = service_repo.get_team_service_num_by_team_id(team.tenant_id, region_name)
+        app_nums = group_repo.get_tenant_region_groups_count(team.tenant_id, region_name)
+        return {
+            "total_memory": resource.get("total_memory", 0),
+            "used_memory": resource.get("used_memory", 0),
+            "total_cpu": resource.get("total_cpu", 0),
+            "used_cpu": resource.get("used_cpu", 0),
+            "app_nums": app_nums,
+            "component_nums": component_nums,
+        }
 
     def get_tenant_resource(self, team, region_name):
         if team:
@@ -487,10 +512,14 @@ class TeamService(object):
             region_api.set_tenant_limit_memory(eid, tenant_name, region_id, body=limit)
         except RegionApiBaseHttpClient.CallApiError as e:
             logger.exception(e)
-            raise ServiceHandleException(status_code=500, msg="", msg_show=u"设置租户限额失败")
+            raise ServiceHandleException(status_code=500, msg="", msg_show="设置租户限额失败")
 
     def update(self, tenant_id, data):
         team_repo.update_by_tenant_id(tenant_id, **data)
+
+    @staticmethod
+    def check_resource_name(tenant_name: str, region_name: str, rtype: string, name: str):
+        return region_api.check_resource_name(tenant_name, region_name, rtype, name)
 
 
 team_services = TeamService()

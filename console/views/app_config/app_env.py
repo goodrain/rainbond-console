@@ -13,6 +13,7 @@ from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.views.app_config.base import AppBaseView
 from www.utils.return_message import general_message
+from console.exception.main import AbortRequest
 
 logger = logging.getLogger("default")
 
@@ -215,13 +216,13 @@ class AppEnvView(AppBaseView):
               paramType: form
 
         """
-        name = request.data.get("name", None)
-        attr_name = request.data.get("attr_name", None)
-        attr_value = request.data.get("attr_value", None)
-        scope = request.data.get('scope', None)
+        name = request.data.get("name", "")
+        attr_name = request.data.get("attr_name", "")
+        attr_value = request.data.get("attr_value", "")
+        scope = request.data.get('scope', "")
         is_change = request.data.get('is_change', True)
         # try:
-        if not scope:
+        if not scope or not attr_name:
             return Response(general_message(400, "params error", "参数异常"), status=400)
         if scope not in ("inner", "outer"):
             return Response(general_message(400, "params error", "scope范围只能是inner或outer"), status=400)
@@ -230,7 +231,7 @@ class AppEnvView(AppBaseView):
         if code != 200:
             result = general_message(code, "add env error", msg)
             return Response(result, status=code)
-        result = general_message(code, msg, u"环境变量添加成功", bean=data.to_dict())
+        result = general_message(code, msg, "环境变量添加成功", bean=data.to_dict())
         return Response(result, status=result["code"])
 
 
@@ -260,9 +261,9 @@ class AppEnvManageView(AppBaseView):
         """
         env_id = kwargs.get("env_id", None)
         if not env_id:
-            return Response(general_message(400, "env_id not specify", u"环境变量ID未指定"))
+            return Response(general_message(400, "env_id not specify", "环境变量ID未指定"))
         env_var_service.delete_env_by_env_id(self.tenant, self.service, env_id, self.user.nick_name)
-        result = general_message(200, "success", u"删除成功")
+        result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
     @never_cache
@@ -290,10 +291,10 @@ class AppEnvManageView(AppBaseView):
         """
         attr_name = kwargs.get("attr_name", None)
         if not attr_name:
-            return Response(general_message(400, "attr_name not specify", u"环境变量名未指定"))
+            return Response(general_message(400, "attr_name not specify", "环境变量名未指定"))
         env = env_var_service.get_env_by_attr_name(self.tenant, self.service, attr_name)
 
-        result = general_message(200, "success", u"查询成功", bean=model_to_dict(env))
+        result = general_message(200, "success", "查询成功", bean=model_to_dict(env))
         return Response(result, status=result["code"])
 
     @never_cache
@@ -331,15 +332,15 @@ class AppEnvManageView(AppBaseView):
         """
         env_id = kwargs.get("env_id", None)
         if not env_id:
-            return Response(general_message(400, "env_id not specify", u"环境变量ID未指定"))
-        name = request.data.get("name", None)
-        attr_value = request.data.get("attr_value", None)
+            return Response(general_message(400, "env_id not specify", "环境变量ID未指定"))
+        name = request.data.get("name", "")
+        attr_value = request.data.get("attr_value", "")
 
         code, msg, env = env_var_service.update_env_by_env_id(self.tenant, self.service, env_id, name, attr_value,
                                                               self.user.nick_name)
         if code != 200:
-            return Response(general_message(code, "update value error", msg))
-        result = general_message(200, "success", u"更新成功", bean=model_to_dict(env))
+            raise AbortRequest(msg="update value error", msg_show=msg, status_code=code)
+        result = general_message(200, "success", "更新成功", bean=model_to_dict(env))
         return Response(result, status=result["code"])
 
     @never_cache
@@ -348,9 +349,9 @@ class AppEnvManageView(AppBaseView):
         scope = parse_item(request, 'scope', required=True, error="scope is is a required parameter")
         env = env_var_service.patch_env_scope(self.tenant, self.service, env_id, scope, self.user.nick_name)
         if env:
-            return MessageResponse(msg="success", msg_show=u"更新成功", bean=env.to_dict())
+            return MessageResponse(msg="success", msg_show="更新成功", bean=env.to_dict())
         else:
-            return MessageResponse(msg="success", msg_show=u"更新成功", bean={})
+            return MessageResponse(msg="success", msg_show="更新成功", bean={})
 
 
 class AppBuildEnvView(AppBaseView):
@@ -382,7 +383,7 @@ class AppBuildEnvView(AppBaseView):
         if build_envs:
             for build_env in build_envs:
                 build_env_dict[build_env.attr_name] = build_env.attr_value
-        result = general_message(200, "success", u"查询成功", bean=build_env_dict)
+        result = general_message(200, "success", "查询成功", bean=build_env_dict)
         return Response(result, status=result["code"])
 
     # 全量更新，build_env_dict必须为包含环境变量
@@ -400,13 +401,13 @@ class AppBuildEnvView(AppBaseView):
         if not build_env_dict:
             for build_env in build_envs:
                 build_env.delete()
-            return Response(general_message(200, "success", u"设置成功"))
+            return Response(general_message(200, "success", "设置成功"))
 
         # 传入有值，清空再添加
         if build_envs:
             for build_env in build_envs:
                 build_env.delete()
-        for key, value in build_env_dict.items():
+        for key, value in list(build_env_dict.items()):
             name = "构建运行时环境变量"
             attr_name = key
             attr_value = value
@@ -416,5 +417,5 @@ class AppBuildEnvView(AppBaseView):
             if code != 200:
                 continue
 
-        result = general_message(200, "success", u"环境变量添加成功")
+        result = general_message(200, "success", "环境变量添加成功")
         return Response(result, status=result["code"])
