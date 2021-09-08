@@ -22,6 +22,7 @@ from console.views.app_config.graph import (ComponentExchangeGraphsView, Compone
                                             ComponentInternalGraphsView)
 from console.views.app_config.service_monitor import (ComponentMetricsView, ComponentServiceMonitorEditView,
                                                       ComponentServiceMonitorView)
+from console.views.app_config.app_log import ComponentLogView
 from console.views.app_config_group import (AppConfigGroupView, ListAppConfigGroupView)
 from console.views.app_create.app_build import AppBuild, ComposeBuildView
 from console.views.app_create.app_check import (AppCheck, AppCheckUpdate, GetCheckUUID)
@@ -118,6 +119,7 @@ from console.views.user_operation import (ChangeLoginPassword, PasswordResetBegi
                                           UserDetailsView, UserFavoriteLCView, UserFavoriteUDView)
 from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWebHooksDeploy, ImageWebHooksTrigger,
                                    UpdateSecretKey, WebHooksDeploy, WebHooksStatus)
+from console.views.custom_configs import CustomConfigsCLView
 
 urlpatterns = [
     # record error logs
@@ -127,6 +129,7 @@ urlpatterns = [
     url(r'^init/perms$', InitPerms.as_view()),
     # 获取权限列表
     url(r'^perms$', PermsInfoLView.as_view()),
+    url(r'^custom_configs$', CustomConfigsCLView.as_view()),
     # OAuth
     url(r"^oauth/oauth-config$", OauthConfig.as_view(), perms.OauthConfig),
     url(r"^oauth/oauth-services$", OauthService.as_view(), perms.OauthService),
@@ -554,6 +557,7 @@ urlpatterns = [
         ComponentGraphView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/metrics$', ComponentMetricsView.as_view(),
         perms.AppServiceMonitor),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/logs$', ComponentLogView.as_view(), perms.AppLogView),
 
     # 获取当前可用全部数据中心
     url(r'^regions$', QyeryRegionView.as_view()),

@@ -4,9 +4,9 @@ from datetime import datetime
 
 # enum
 from console.enum.app import GovernanceModeEnum
+from .enum import ActionType
 # exception
 from console.exception.main import EnvAlreadyExist, InvalidEnvName
-from console.models.main import ComponentGraph, ServiceMonitor
 # repository
 from console.repositories.app_config import port_repo
 # service
@@ -14,6 +14,9 @@ from console.services.app_config import env_var_service
 # model
 from www.models.main import (ServiceProbe, TenantServiceConfigurationFile, TenantServiceEnvVar, TenantServicesPort,
                              TenantServiceVolume)
+from www.models.label import ServiceLabels
+from console.models.main import ComponentGraph, ServiceMonitor
+from console.models.main import ServiceSourceInfo
 # util
 from www.utils.crypt import make_uuid
 
@@ -23,26 +26,32 @@ logger = logging.getLogger("default")
 class Component(object):
     def __init__(self,
                  component,
-                 component_source,
+                 component_source: ServiceSourceInfo,
                  envs,
                  ports,
                  volumes,
                  config_files,
-                 probe,
+                 probes: [ServiceProbe],
                  extend_info,
                  monitors,
                  graphs,
                  plugin_deps,
                  http_rules=None,
-                 service_group_rel=None):
+                 http_rule_configs=None,
+                 tcp_rules=None,
+                 service_group_rel=None,
+                 labels=None,
+                 support_labels=None):
         self.component = component
         self.component_source = component_source
         self.envs = list(envs)
         self.ports = list(ports)
         self.http_rules = list(http_rules) if http_rules else []
+        self.http_rule_configs = list(http_rule_configs) if http_rule_configs else []
+        self.tcp_rules = list(tcp_rules) if tcp_rules else []
         self.volumes = list(volumes)
         self.config_files = list(config_files)
-        self.probe = probe
+        self.probes = list(probes) if probes else []
         self.extend_info = extend_info
         self.monitors = list(monitors)
         self.graphs = list(graphs)
@@ -50,9 +59,12 @@ class Component(object):
         self.volume_deps = []
         self.plugin_deps = list(plugin_deps)
         self.app_config_groups = []
+        self.labels = list(labels) if labels else []
         self.service_group_rel = service_group_rel
+        self.support_labels = {label.label_name: label for label in support_labels}
+        self.action_type = ActionType.NOTHING.value
 
-    def set_changes(self, changes, governance_mode):
+    def set_changes(self, tenant, region, changes, governance_mode):
         """
         Set changes to the component
         """
@@ -62,9 +74,10 @@ class Component(object):
                 continue
             update_func = update_funcs[key]
             update_func(changes.get(key))
-        self._ensure_port_envs(governance_mode)
 
-    def _ensure_port_envs(self, governance_mode):
+        self.ensure_port_envs(governance_mode)
+
+    def ensure_port_envs(self, governance_mode):
         # filter out the old port envs
         envs = [env for env in self.envs if env.container_port == 0]
         # create outer envs for every port
@@ -73,12 +86,15 @@ class Component(object):
         self.envs = envs
 
     def _create_envs_4_ports(self, port: TenantServicesPort, governance_mode):
-        port_alias = self.component.service_alias.upper()
+        attr_name_prefix = port.port_alias.upper() if port.port_alias else self._create_default_attr_name_prefix(port)
         host_value = "127.0.0.1" if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else port.k8s_service_name
-        attr_name_prefix = port_alias + str(port.container_port)
         host_env = self._create_port_env(port, "连接地址", attr_name_prefix + "_HOST", host_value)
         port_env = self._create_port_env(port, "端口", attr_name_prefix + "_PORT", str(port.container_port))
         return [host_env, port_env]
+
+    def _create_default_attr_name_prefix(self, port: TenantServicesPort):
+        port_alias = self.component.service_alias.upper()
+        return port_alias + str(port.container_port)
 
     def _create_port_env(self, port: TenantServicesPort, name, attr_name, attr_value):
         return TenantServiceEnvVar(
@@ -101,7 +117,8 @@ class Component(object):
             "connect_infos": self._update_outer_envs,
             "ports": self._update_ports,
             "volumes": self._update_volumes,
-            "probe": self._update_probe,
+            "probes": self._update_probe,
+            "labels": self._update_labels,
             "component_graphs": self._update_component_graphs,
             "component_monitors": self._update_component_monitors,
         }
@@ -110,6 +127,7 @@ class Component(object):
         if not dv["is_change"]:
             return
         self.component.deploy_version = dv["new"]
+        self.update_action_type(ActionType.BUILD.value)
 
     def _update_version(self, v):
         if not v["is_change"]:
@@ -118,9 +136,11 @@ class Component(object):
 
     def _update_inner_envs(self, envs):
         self._update_envs(envs, "inner")
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_outer_envs(self, envs):
         self._update_envs(envs, "outer")
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_envs(self, envs, scope):
         if envs is None:
@@ -174,6 +194,7 @@ class Component(object):
                 old_port.is_inner_service = port["is_inner_service"]
             if not old_port.is_outer_service:
                 old_port.is_outer_service = port["is_outer_service"]
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_component_graphs(self, component_graphs):
         if not component_graphs:
@@ -193,6 +214,7 @@ class Component(object):
                 continue
             old_graph.promql = graph.get("promql", "")
             old_graph.sequence = graph.get("sequence", 99)
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_component_monitors(self, component_monitors):
         if not component_monitors:
@@ -203,6 +225,25 @@ class Component(object):
             new_monitor.service_id = self.component.component_id
             new_monitor.tenant_id = self.component.tenant_id
             self.monitors.append(new_monitor)
+        self.update_action_type(ActionType.UPDATE.value)
+
+    def _update_labels(self, labels):
+        if not labels:
+            return
+        labels = labels.get("add", [])
+        for key in labels:
+            label = self.support_labels.get(key)
+            if not label:
+                continue
+            self.labels.append(
+                ServiceLabels(
+                    tenant_id=self.component.tenant_id,
+                    service_id=self.component.component_id,
+                    label_id=label.label_id,
+                    region=self.component.service_region,
+                    create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                ))
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_port_data(self, port):
         container_port = int(port["container_port"])
@@ -221,6 +262,7 @@ class Component(object):
         port["port_alias"] = port_alias
 
     def _update_volumes(self, volumes):
+        old_volumes = {volume.volume_name: volume for volume in self.volumes}
         for volume in volumes.get("add"):
             volume["service_id"] = self.component.service_id
             host_path = "/grdata/tenant/{0}/service/{1}{2}".format(self.component.tenant_id, self.component.service_id,
@@ -240,22 +282,48 @@ class Component(object):
 
         old_config_files = {config_file.volume_name: config_file for config_file in self.config_files}
         for volume in volumes.get("upd"):
+            old_volume = old_volumes.get(volume["volume_name"])
+            old_volume.mode = volume.get("mode")
             old_config_file = old_config_files.get(volume.get("volume_name"))
             if not old_config_file:
                 continue
             old_config_file.file_content = volume.get("file_content")
 
         self.config_files = old_config_files.values()
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_probe(self, probe):
+        old_probes = {probe.mode: probe for probe in self.probes}
+
+        new_probes = []
         add = probe.get("add")
         if add:
-            add["probe_id"] = make_uuid()
-            self.probe = ServiceProbe(**add)
-            self.probe.service_id = self.component.component_id
-        upd = probe.get("upd", None)
+            new_probes.extend(add)
+        upd = probe.get("upd")
         if upd:
-            probe = ServiceProbe(**upd)
-            probe.ID = self.probe.ID
-            probe.service_id = self.probe.service_id
-            self.probe = probe
+            new_probes.extend(upd)
+        # There can only be one probe of the same mode
+        # Dedup new probes based on mode
+        new_probes = {probe["mode"]: probe for probe in new_probes}
+
+        probes = []
+        for key in new_probes:
+            probe = new_probes[key]
+            old_probe = old_probes.get(probe["mode"])
+            if not old_probe:
+                # create new probe
+                probe["probe_id"] = make_uuid()
+                probe["service_id"] = self.component.component_id
+                probes.append(ServiceProbe(**probe))
+                continue
+            # update probe
+            probe = ServiceProbe(**probe)
+            probe.ID = old_probe.ID
+            probe.service_id = self.component.component_id
+            probes.append(probe)
+        self.probes = probes
+        self.update_action_type(ActionType.UPDATE.value)
+
+    def update_action_type(self, action_type):
+        if action_type > self.action_type:
+            self.action_type = action_type

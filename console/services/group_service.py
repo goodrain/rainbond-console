@@ -22,6 +22,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.user_repo import user_repo
+from console.repositories.migration_repo import migrate_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.service_services import base_service
 from console.utils.shortcuts import get_object_or_404
@@ -38,7 +39,7 @@ class GroupService(object):
         return group_repo.list_tenant_group_on_region(tenant, region_name)
 
     @staticmethod
-    def check_app_name(tenant, region_name, group_name):
+    def check_app_name(tenant, region_name, group_name, app: ServiceGroup = None):
         if not group_name:
             raise ServiceHandleException(msg="app name required", msg_show="应用名不能为空")
         if len(group_name) > 128:
@@ -46,6 +47,11 @@ class GroupService(object):
         r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
         if not r.match(group_name):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
+        exist_app = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
+        if not exist_app:
+            return
+        if not app or exist_app.app_id != app.app_id:
+            raise ServiceHandleException(msg="app name exist", msg_show="应用名称已存在")
 
     @transaction.atomic
     def create_app(self,
@@ -141,27 +147,25 @@ class GroupService(object):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
-        # check username
-        if username:
-            try:
-                data = {"username": username}
-                user_repo.get_user_by_username(username)
-                group_repo.update(app_id, **data)
-                return
-            except ErrUserNotFound:
-                raise ServiceHandleException(msg="user not exists", msg_show="用户不存在,请选择其他应用负责人", status_code=404)
-        # check app name
-        if app_name:
-            self.check_app_name(tenant, region_name, app_name)
-        if overrides:
-            overrides = self._parse_overrides(overrides)
-
-        group = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, app_name)
-        if group and int(group.ID) != int(app_id):
-            raise ServiceHandleException(msg="app already exists", msg_show="应用名{0}已存在".format(app_name))
         data = {
             "note": note,
         }
+        if username:
+            # check username
+            try:
+                data["username"] = username
+                user_repo.get_user_by_username(username)
+            except ErrUserNotFound:
+                raise ServiceHandleException(msg="user not exists", msg_show="用户不存在,请选择其他应用负责人", status_code=404)
+
+        app = group_repo.get_group_by_id(app_id)
+
+        # check app name
+        if app_name:
+            self.check_app_name(tenant, region_name, app_name, app)
+        if overrides:
+            overrides = self._parse_overrides(overrides)
+
         if app_name:
             data["group_name"] = app_name
         if version:
@@ -381,8 +385,10 @@ class GroupService(object):
                 # if plugin is turn on means component is using this plugin
                 plugins[plugin.service_id] += plugin.min_memory
 
+        app_id_statuses = self.get_region_app_statuses(tenant_name, region, app_ids)
         apps = dict()
         for app in app_list:
+            app_status = app_id_statuses.get(app.ID)
             apps[app.ID] = {
                 "group_id": app.ID,
                 "update_time": app.update_time,
@@ -390,10 +396,9 @@ class GroupService(object):
                 "group_name": app.group_name,
                 "group_note": app.note,
                 "service_list": [],
+                "used_mem": app_status.get("memory", 0) if app_status else 0
             }
         for service in service_list:
-            # memory used for plugin
-            service.min_memory += plugins.get(service.service_id, 0)
             apps[service.group_id]["service_list"].append(service)
 
         share_list = share_repo.get_multi_app_share_records(app_ids)
@@ -428,11 +433,38 @@ class GroupService(object):
                 app["allocate_mem"] += svc.min_memory
                 if svc.status in ["running", "upgrade", "starting", "some_abnormal"]:
                     # if is running used_mem ++
-                    app["used_mem"] += svc.min_memory
                     app["run_service_num"] += 1
+            if app["used_mem"] > app["allocate_mem"]:
+                app["allocate_mem"] = app["used_mem"]
             app.pop("service_list")
             re_app_list.append(app)
         return re_app_list
+
+    @staticmethod
+    def get_region_app_statuses(tenant_name, region_name, app_ids):
+        # Obtain the application ID of the cluster and
+        # record the corresponding relationship of the console application ID
+        region_apps = region_app_repo.list_by_app_ids(region_name, app_ids)
+        region_app_ids = []
+        app_id_rels = dict()
+        for region_app in region_apps:
+            region_app_ids.append(region_app.region_app_id)
+            app_id_rels[region_app.app_id] = region_app.region_app_id
+        # Get the status of cluster application
+        resp = region_api.list_app_statuses_by_app_ids(tenant_name, region_name, {"app_ids": region_app_ids})
+        app_statuses = resp.get("list", [])
+        # The relationship between cluster application ID and state
+        # is transformed into that between console application ID and state
+        # Returns the relationship between console application ID and status
+        app_id_status_rels = dict()
+        region_app_id_status_rels = dict()
+        for app_status in app_statuses:
+            region_app_id_status_rels[app_status.get("app_id", "")] = app_status
+        for app_id in app_ids:
+            if not app_id_rels.get(app_id):
+                continue
+            app_id_status_rels[app_id] = region_app_id_status_rels.get(app_id_rels[app_id])
+        return app_id_status_rels
 
     @staticmethod
     def list_components_by_upgrade_group_id(group_id, upgrade_group_id):
@@ -508,7 +540,12 @@ class GroupService(object):
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         except RegionApp.DoesNotExist:
             return
-        region_api.delete_app(region_name, tenant_name, region_app_id)
+        keys = []
+        migrate_record = migrate_repo.get_by_original_group_id(app_id)
+        if migrate_record:
+            for record in migrate_record:
+                keys.append(record.restore_id)
+        region_api.delete_app(region_name, tenant_name, region_app_id, {"etcd_keys": keys})
 
     def get_service_group_memory(self, app_template):
         """获取一应用组件内存"""
@@ -603,6 +640,9 @@ class GroupService(object):
             component_base["component_id"] = component_base["service_id"]
             component_base["component_name"] = component_base["service_name"]
             component_base["component_alias"] = component_base["service_alias"]
+            component_base["container_cpu"] = cpt.min_cpu
+            component_base["container_memory"] = cpt.min_memory
+            component_base["replicas"] = cpt.min_node
             component = {
                 "component_base": component_base,
                 "envs": [env.to_dict() for env in envs if env.service_id == cpt.component_id]

@@ -302,11 +302,10 @@ class ThirdPartyAppPodsView(AppBaseView):
         :return:
         """
         address = request.data.get("ip", None)
-        is_online = request.data.get("is_online", True)
         if not address:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
         validate_endpoints_info([address])
-        endpoint_service.add_endpoint(self.tenant, self.service, address, is_online)
+        endpoint_service.add_endpoint(self.tenant, self.service, address)
 
         result = general_message(200, "success", "添加成功")
         return Response(result)
@@ -351,7 +350,6 @@ class ThirdPartyAppPodsView(AppBaseView):
         :param kwargs:
         :return:
         """
-        is_online = request.data.get("is_online", True)
         ep_id = request.data.get("ep_id", None)
         if not ep_id:
             return Response(general_message(400, "end_point is null", "end_point未指明"), status=400)
@@ -368,7 +366,6 @@ class ThirdPartyAppPodsView(AppBaseView):
 
         endpoint_dict = dict()
         endpoint_dict["ep_id"] = ep_id
-        endpoint_dict["is_online"] = is_online
 
         res, body = region_api.put_third_party_service_endpoints(self.response_region, self.tenant.tenant_name,
                                                                  self.service.service_alias, endpoint_dict)

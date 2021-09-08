@@ -68,7 +68,7 @@ class AppVolumeService(object):
             state = True
             base_opts.append({"volume_type": "local", "name_show": "本地存储"})
         body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
-        if body and hasattr(body, 'list'):
+        if body and hasattr(body, 'list') and body.list:
             for opt in body.list:
                 if len(opt["access_mode"]) > 0 and opt["access_mode"][0] == "RWO":
                     if state:
@@ -158,11 +158,11 @@ class AppVolumeService(object):
         return vos
 
     def check_volume_name(self, service, volume_name):
-        r = re.compile('^[a-zA-Z0-9_]+$')
+        r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')
         if not r.match(volume_name):
             if service.service_source != AppConstants.MARKET:
                 raise ServiceHandleException(msg="volume name illegal", msg_show="持久化名称只支持数字字母下划线")
-            volume_name = service.service_cname + make_uuid()[-3:]
+            volume_name = service.service_alias + "-" + make_uuid()[-3:]
         volume = volume_repo.get_service_volume_by_name(service.service_id, volume_name)
 
         if volume:
@@ -280,7 +280,7 @@ class AppVolumeService(object):
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
                 raise ErrVolumeTypeDoNotAllowMultiNode
 
-    def create_service_volume(self, tenant, service, volume_path, volume_type, volume_name, settings=None):
+    def create_service_volume(self, tenant, service, volume_path, volume_type, volume_name, settings=None, mode=None):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         volume_name = self.check_volume_name(service, volume_name)
@@ -294,7 +294,8 @@ class AppVolumeService(object):
             "host_path": host_path,
             "volume_type": volume_type,
             "volume_path": volume_path,
-            "volume_name": volume_name
+            "volume_name": volume_name,
+            "mode": mode,
         }
 
         if settings:
@@ -318,7 +319,8 @@ class AppVolumeService(object):
                            volume_name,
                            file_content=None,
                            settings=None,
-                           user_name=''):
+                           user_name='',
+                           mode=None):
 
         volume = self.create_service_volume(
             tenant,
@@ -327,15 +329,16 @@ class AppVolumeService(object):
             volume_type,
             volume_name,
             settings,
+            mode=mode,
         )
 
         # region端添加数据
         if service.create_status == "complete":
             data = {
                 "category": service.category,
-                "volume_name": volume_name,
-                "volume_path": volume_path,
-                "volume_type": volume_type,
+                "volume_name": volume.volume_name,
+                "volume_path": volume.volume_path,
+                "volume_type": volume.volume_type,
                 "enterprise_id": tenant.enterprise_id,
                 "volume_capacity": volume.volume_capacity,
                 "volume_provider_name": volume.volume_provider_name,
@@ -345,6 +348,7 @@ class AppVolumeService(object):
                 "reclaim_policy": volume.reclaim_policy,
                 "allow_expansion": volume.allow_expansion,
                 "operator": user_name,
+                "mode": mode,
             }
             if volume_type == "config-file":
                 data["file_content"] = file_content

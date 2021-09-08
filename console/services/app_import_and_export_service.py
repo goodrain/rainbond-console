@@ -93,9 +93,13 @@ class AppExportService(object):
             image_base64_string = ""
 
         app_template = json.loads(app_version.app_template)
-        app_template["suffix"] = suffix
-        app_template["describe"] = describe
-        app_template["image_base64_string"] = image_base64_string
+        app_template["annotations"] = {
+            "suffix": suffix,
+            "describe": describe,
+            "image_base64_string": image_base64_string,
+            "version_info": app_version.app_version_info,
+            "version_alias": app_version.version_alias,
+        }
         return json.dumps(app_template, cls=MyEncoder)
 
     def encode_image(self, image_url):
@@ -104,8 +108,9 @@ class AppExportService(object):
         if image_url.startswith("http"):
             response = urllib.request.urlopen(image_url)
         else:
-            response = open(image_url)
-        image_base64_string = base64.encodestring(response.read())
+            image_url = "{}/media/uploads/{}".format(settings.DATA_DIR, image_url.split('/')[-1])
+            response = open(image_url, mode='rb')
+        image_base64_string = base64.encodebytes(response.read()).decode('utf-8')
         response.close()
         return image_base64_string
 
@@ -382,28 +387,45 @@ class AppImportService(object):
         if not metadata:
             return
         for app_template in metadata:
+            annotations = app_template.get("annotations", {})
+            app_describe = app_template.pop("describe", "")
+            if annotations.get("describe", ""):
+                app_describe = annotations.pop("describe", "")
             app = rainbond_app_repo.get_rainbond_app_by_app_id(import_record.enterprise_id, app_template["group_key"])
             # if app exists, update it
             if app:
                 app.scope = import_record.scope
-                app.describe = app_template.pop("describe", "")
+                app.describe = app_describe
                 app.save()
                 app_version = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(
                     app.app_id, app_template["group_version"])
                 if app_version:
+                    version_info = annotations.get("version_info")
+                    version_alias = annotations.get("version_alias")
+                    if not version_info:
+                        version_info = app_version.app_version_info
+                    if not version_alias:
+                        version_alias = app_version.version_alias
                     # update version if exists
                     app_version.scope = import_record.scope
                     app_version.app_template = json.dumps(app_template)
                     app_version.template_version = app_template["template_version"]
+                    app_version.app_version_info = version_info,
+                    app_version.version_alias = version_alias,
                     app_version.save()
                 else:
                     # create a new version
                     rainbond_app_versions.append(self.create_app_version(app, import_record, app_template))
             else:
                 image_base64_string = app_template.pop("image_base64_string", "")
+                if annotations.get("image_base64_string"):
+                    image_base64_string = annotations.pop("image_base64_string", "")
                 pic_url = ""
                 if image_base64_string:
-                    pic_url = self.decode_image(image_base64_string, app_template.pop("suffix", "jpg"))
+                    suffix = app_template.pop("suffix", "jpg")
+                    if annotations.get("suffix"):
+                        suffix = annotations.pop("suffix", "jpg")
+                    pic_url = self.decode_image(image_base64_string, suffix)
                 key_and_version = "{0}:{1}".format(app_template["group_key"], app_template['group_version'])
                 if key_and_version in key_and_version_list:
                     continue
@@ -415,7 +437,7 @@ class AppImportService(object):
                     source="import",
                     create_team=import_record.team_name,
                     scope=import_record.scope,
-                    describe=app_template.pop("describe", ""),
+                    describe=app_describe,
                     pic=pic_url,
                 )
                 rainbond_apps.append(rainbond_app)
@@ -436,6 +458,8 @@ class AppImportService(object):
             record_id=import_record.ID,
             share_user=0,
             is_complete=1,
+            app_version_info=app_template.get("annotations", {}).get("version_info", ""),
+            version_alias=app_template.get("annotations", {}).get("version_alias", ""),
         )
         if app_store.is_no_multiple_region_hub(import_record.enterprise_id):
             version.region_name = import_record.region
@@ -493,7 +517,7 @@ class AppImportService(object):
             savefilename = os.path.join(settings.MEDIA_ROOT, filename)
             queryfilename = os.path.join(settings.MEDIA_URL, filename)
             with open(savefilename, "wb") as f:
-                f.write(image_base64_string.decode("base64"))
+                f.write(base64.decodebytes(image_base64_string.encode('utf-8')))
             return queryfilename
         except Exception as e:
             logger.exception(e)

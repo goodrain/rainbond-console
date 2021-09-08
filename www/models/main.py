@@ -568,11 +568,6 @@ class TenantServiceInfo(BaseModel):
             return True
         return False
 
-    def calculate_min_cpu(self, min_memory):
-        # The algorithm is absolete
-        min_cpu = int(min_memory) / 128 * 20
-        return int(min_cpu)
-
 
 class TenantServiceInfoDelete(BaseModel):
     class Meta:
@@ -736,6 +731,17 @@ class ServiceDomain(BaseModel):
 
     def __unicode__(self):
         return self.domain_name
+
+    @property
+    def load_balancing(self):
+        for ext in self.rule_extensions.split(","):
+            ext = ext.split(":")
+            if len(ext) != 2 or ext[0] == "" or ext[1] == "":
+                continue
+            if ext[0] == "lb-type":
+                return ext[1]
+        # round-robin is the default value of load balancing
+        return "round-robin"
 
 
 class ServiceDomainCertificate(BaseModel):
@@ -1013,6 +1019,7 @@ class TenantServiceVolume(BaseModel):
     backup_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text="备份策略")
     reclaim_policy = models.CharField(max_length=100, null=True, default='', blank=True, help_text="回收策略")
     allow_expansion = models.NullBooleanField(max_length=100, null=True, default=0, blank=True, help_text="只是支持控制扩展，0：不支持；1：支持")
+    mode = models.IntegerField(null=True, help_text="存储权限")
 
 
 class TenantServiceConfigurationFile(BaseModel):
@@ -1384,6 +1391,17 @@ class ServiceTcpDomain(BaseModel):
     type = models.IntegerField(default=0, help_text="类型（默认：0， 自定义：1）")
     rule_extensions = models.TextField(null=True, blank=True, help_text="扩展功能")
     is_outer_service = models.BooleanField(default=True, help_text="是否已开启对外端口")
+
+    @property
+    def load_balancing(self):
+        for ext in self.rule_extensions.split(","):
+            ext = ext.split(":")
+            if len(ext) != 2 or ext[0] == "" or ext[1] == "":
+                continue
+            if ext[0] == "lb-type":
+                return ext[1]
+        # round-robin is the default value of load balancing
+        return "round-robin"
 
 
 class ThirdPartyServiceEndpoints(BaseModel):

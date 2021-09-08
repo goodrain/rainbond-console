@@ -132,6 +132,7 @@ class RegionApiBaseHttpClient(object):
         retries = kwargs.get("retries", 2)
         d_connect, d_red = self.get_default_timeout_conifg()
         timeout = kwargs.get("timeout", d_red)
+        preload_content = kwargs.get("preload_content")
         if kwargs.get("for_test"):
             region = region_name
             region_name = region.region_name
@@ -144,6 +145,15 @@ class RegionApiBaseHttpClient(object):
             raise ServiceHandleException(
                 msg="create region api client failure", msg_show="创建集群通信客户端错误，请检查集群配置", error_code=10411)
         try:
+            if preload_content is False:
+                response = client.request(
+                    url=url,
+                    method=method,
+                    headers=headers,
+                    preload_content=preload_content,
+                    timeout=None,  # None will set an infinite timeout.
+                )
+                return response, None
             if body is None:
                 response = client.request(
                     url=url,
@@ -247,6 +257,9 @@ class RegionApiBaseHttpClient(object):
             response, content = self._request(url, 'GET', headers=headers, body=body, *args, **kwargs)
         else:
             response, content = self._request(url, 'GET', headers=headers, *args, **kwargs)
+        preload_content = kwargs.get("preload_content")
+        if preload_content is False:
+            return response, None
         res, body = self._check_status(url, 'GET', response, content)
         return res, body
 

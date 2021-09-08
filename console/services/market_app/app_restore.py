@@ -4,16 +4,20 @@ import logging
 import copy
 from datetime import datetime
 
+from .enum import ActionType
 from .market_app import MarketApp
 from .original_app import OriginalApp
 from .new_app import NewApp
 from .component import Component
 from .component_group import ComponentGroup
+# service
+from console.services.app_config import label_service
 # repository
 from console.repositories.app_snapshot import app_snapshot_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
 # model
+from www.models.label import ServiceLabels
 from www.models.main import ServiceGroup
 from www.models.main import TenantServiceGroup
 from www.models.main import TenantServiceInfo
@@ -62,7 +66,9 @@ class AppRestore(MarketApp):
         self.rollback_record = None
         self.component_group = component_group
 
-        self.original_app = OriginalApp(tenant.tenant_id, region, app, component_group.ID)
+        self.support_labels = label_service.list_available_labels(tenant, region.region_name)
+
+        self.original_app = OriginalApp(tenant, region, app, component_group.ID, self.support_labels)
         self.snapshot = self._get_snapshot()
         self.new_app = self._create_new_app()
         super(AppRestore, self).__init__(self.original_app, self.new_app)
@@ -159,11 +165,11 @@ class AppRestore(MarketApp):
 
         # component dependencies
         new_deps = self._create_component_deps(component_ids)
-        component_deps = self.ensure_component_deps(self.original_app, new_deps)
+        component_deps = self.ensure_component_deps(new_deps)
 
         # volume dependencies
         new_volume_deps = self._create_volume_deps(component_ids)
-        volume_deps = self.ensure_volume_deps(self.original_app, new_volume_deps)
+        volume_deps = self.ensure_volume_deps(new_volume_deps)
 
         # plugins
         plugins = self.list_original_plugins()
@@ -182,8 +188,7 @@ class AppRestore(MarketApp):
             plugin_configs=self._create_plugins_configs(),
         )
 
-    @staticmethod
-    def _create_component(snap):
+    def _create_component(self, snap):
         # component
         component = TenantServiceInfo(**snap["service_base"])
         # component source
@@ -193,7 +198,9 @@ class AppRestore(MarketApp):
         # ports
         ports = [TenantServicesPort(**port) for port in snap["service_ports"]]
         # service_extend_method
-        extend_info = ServiceExtendMethod(**snap["service_extend_method"])
+        extend_info = None
+        if snap.get("service_extend_method"):
+            extend_info = ServiceExtendMethod(**snap.get("service_extend_method"))
         # volumes
         volumes = [TenantServiceVolume(**volume) for volume in snap["service_volumes"]]
         # configuration files
@@ -204,19 +211,24 @@ class AppRestore(MarketApp):
         monitors = [ServiceMonitor(**monitor) for monitor in snap["service_monitors"]]
         # graphs
         graphs = [ComponentGraph(**graph) for graph in snap["component_graphs"]]
-        return Component(
+        service_labels = [ServiceLabels(**label) for label in snap["service_labels"]]
+        cpt = Component(
             component=component,
             component_source=component_source,
             envs=envs,
             ports=ports,
             volumes=volumes,
             config_files=config_files,
-            probe=probes[0] if probes else None,
+            probes=probes,
             extend_info=extend_info,
             monitors=monitors,
             graphs=graphs,
             plugin_deps=[],
+            labels=service_labels,
+            support_labels=self.support_labels,
         )
+        cpt.action_type = snap.get("action_type", ActionType.BUILD.value)
+        return cpt
 
     def _create_component_deps(self, component_ids):
         component_deps = []

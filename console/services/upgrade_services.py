@@ -64,7 +64,7 @@ class UpgradeService(object):
             },
         }
 
-    def upgrade(self, tenant, region, user, version, record: AppUpgradeRecord, component_keys=None):
+    def upgrade(self, tenant, region, user, app, version, record: AppUpgradeRecord, component_keys=None):
         """
         Upgrade application market applications
         """
@@ -80,6 +80,7 @@ class UpgradeService(object):
             tenant,
             region,
             user,
+            app,
             version,
             component_group,
             app_template,
@@ -92,7 +93,7 @@ class UpgradeService(object):
         app_template_name = component_group.group_alias
         return self.serialized_upgrade_record(record), app_template_name
 
-    def upgrade_component(self, tenant, region, user, component: TenantServiceInfo, version):
+    def upgrade_component(self, tenant, region, user, app, component: TenantServiceInfo, version):
         component_group = tenant_service_group_repo.get_component_group(component.upgrade_group_id)
         app_template_source = service_source_repo.get_service_source(component.tenant_id, component.component_id)
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
@@ -102,6 +103,7 @@ class UpgradeService(object):
             tenant,
             region,
             user,
+            app,
             version,
             component_group,
             app_template,
@@ -118,7 +120,6 @@ class UpgradeService(object):
 
         component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
         app_restore = AppRestore(tenant, region, user, app, component_group, record)
-        record = app_restore.restore()
         record, component_group = app_restore.restore()
         return self.serialized_upgrade_record(record), component_group.group_alias
 
@@ -144,7 +145,9 @@ class UpgradeService(object):
             raise AbortRequest("app template not found", "找不到应用模板", status_code=404, error_code=404)
 
         try:
-            return json.loads(app_version.app_template)
+            app_template = json.loads(app_version.app_template)
+            app_template["update_time"] = app_version.update_time
+            return app_template
         except JSONDecodeError:
             raise AbortRequest("invalid app template", "该版本应用模板已损坏, 无法升级")
 
@@ -154,7 +157,7 @@ class UpgradeService(object):
         app_template_source = self._app_template_source(app.app_id, component_group.group_key, upgrade_group_id)
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
 
-        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region, user, version, component_group, app_template,
+        app_upgrade = AppUpgrade(user.enterprise_id, tenant, region, user, app, version, component_group, app_template,
                                  app_template_source.is_install_from_cloud(), app_template_source.get_market_name())
         return app_upgrade.changes()
 

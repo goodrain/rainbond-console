@@ -5,7 +5,6 @@
 import json
 import logging
 
-from console.services.common_services import common_services
 from console.services.plugin import app_plugin_service, plugin_version_service
 from console.views.app_config.base import AppBaseView
 from django.db import transaction
@@ -159,17 +158,18 @@ class ServicePluginOperationView(AppBaseView):
             return Response(general_message(404, "not found plugin relation", "未找到组件使用的插件"), status=404)
         else:
             build_version = service_plugin_relation.build_version
-        pbv = plugin_version_service.get_by_id_and_version(self.tenant.tenant_id, plugin_id, build_version)
         # 更新内存和cpu
-        memory = request.data.get("min_memory", pbv.min_memory)
-        cpu = common_services.calculate_cpu(self.service.service_region, memory)
+        memory = request.data.get("min_memory")
+        cpu = request.data.get("min_cpu")
 
         data = dict()
         data["plugin_id"] = plugin_id
         data["switch"] = is_active
         data["version_id"] = build_version
-        data["plugin_memory"] = int(memory)
-        data["plugin_cpu"] = int(cpu)
+        if memory is not None:
+            data["plugin_memory"] = int(memory)
+        if cpu is not None:
+            data["plugin_cpu"] = int(cpu)
         # 更新数据中心数据参数
         region_api.update_plugin_service_relation(self.response_region, self.tenant.tenant_name, self.service.service_alias,
                                                   data)

@@ -38,6 +38,14 @@ FROM
  tenant_service_group 
 WHERE
  id NOT IN ( SELECT id FROM ( SELECT min( id ) AS id FROM tenant_service_group GROUP BY group_key, service_group_id ) AS b );
+UPDATE tenant_service a
+	JOIN service_group_relation b
+	JOIN tenant_service_group c ON a.service_id = b.service_id 
+	AND c.service_group_id = b.group_id 
+	AND b.group_id 
+	AND a.service_source = "market" 
+	AND a.tenant_service_group_id <> c.ID
+	SET a.tenant_service_group_id = c.ID;
 
 -- update tenant_service_group version --
 UPDATE `tenant_service_group` 
@@ -71,6 +79,6 @@ WHERE
 UPDATE service_source SET service_share_uuid=CONCAT(SUBSTRING(service_share_uuid, 34),"+",SUBSTRING(service_share_uuid, 34));
 UPDATE tenant_service a
 JOIN service_source b ON a.service_id = b.service_id 
-SET a.service_key = SUBSTRING ( b.service_share_uuid, 34 ) 
+SET a.service_key = SUBSTRING( b.service_share_uuid, 34 )
 WHERE
 	a.service_source = "market";

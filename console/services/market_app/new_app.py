@@ -8,6 +8,7 @@ from console.services.app_config.service_monitor import service_monitor_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import domain_repo
+from console.repositories.app_config import configuration_repo
 from console.repositories.app_config import env_var_repo
 from console.repositories.app_config import port_repo
 from console.repositories.app_config import dep_relation_repo
@@ -24,6 +25,7 @@ from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.plugin import service_plugin_config_repo
+from console.repositories.label_repo import service_label_repo
 # model
 from www.models.main import ServiceGroup
 # utils
@@ -101,7 +103,12 @@ class NewApp(object):
         self.component_group.save()
 
     def components(self):
-        components = self._components()
+        return self._ensure_components(self._components())
+
+    def list_update_components(self):
+        return self._ensure_components(self.update_components)
+
+    def _ensure_components(self, components):
         # component dependency
         component_deps = {}
         for dep in self.component_deps:
@@ -150,6 +157,7 @@ class NewApp(object):
         envs = []
         ports = []
         http_rules = []
+        http_rule_configs = []
         volumes = []
         config_files = []
         probes = []
@@ -157,20 +165,23 @@ class NewApp(object):
         monitors = []
         graphs = []
         service_group_rels = []
+        labels = []
         for cpt in self.new_components:
             component_sources.append(cpt.component_source)
             envs.extend(cpt.envs)
             ports.extend(cpt.ports)
             http_rules.extend(cpt.http_rules)
+            http_rule_configs.extend(cpt.http_rule_configs)
             volumes.extend(cpt.volumes)
             config_files.extend(cpt.config_files)
-            if cpt.probe:
-                probes.append(cpt.probe)
+            if cpt.probes:
+                probes.extend(cpt.probes)
             if cpt.extend_info:
                 extend_infos.append(cpt.extend_info)
             monitors.extend(cpt.monitors)
             graphs.extend(cpt.graphs)
             service_group_rels.append(cpt.service_group_rel)
+            labels.extend(cpt.labels)
         components = [cpt.component for cpt in self.new_components]
 
         service_repo.bulk_create(components)
@@ -178,6 +189,7 @@ class NewApp(object):
         env_var_repo.bulk_create(envs)
         port_repo.bulk_create(ports)
         domain_repo.bulk_create(http_rules)
+        configuration_repo.bulk_create(http_rule_configs)
         volume_repo.bulk_create(volumes)
         config_file_repo.bulk_create(config_files)
         probe_repo.bulk_create(probes)
@@ -185,6 +197,7 @@ class NewApp(object):
         service_monitor_repo.bulk_create(monitors)
         component_graph_repo.bulk_create(graphs)
         service_group_relation_repo.bulk_create(service_group_rels)
+        service_label_repo.bulk_create(labels)
 
     def _update_components(self):
         """
@@ -202,6 +215,7 @@ class NewApp(object):
         extend_infos = []
         monitors = []
         graphs = []
+        labels = []
         # TODO(huangrh): merged with _save_components
         for cpt in self.update_components:
             sources.append(cpt.component_source)
@@ -209,12 +223,13 @@ class NewApp(object):
             ports.extend(cpt.ports)
             volumes.extend(cpt.volumes)
             config_files.extend(cpt.config_files)
-            if cpt.probe:
-                probes.append(cpt.probe)
+            if cpt.probes:
+                probes.extend(cpt.probes)
             if cpt.extend_info:
                 extend_infos.append(cpt.extend_info)
             monitors.extend(cpt.monitors)
             graphs.extend(cpt.graphs)
+            labels.extend(cpt.labels)
 
         components = [cpt.component for cpt in self.update_components]
         component_ids = [cpt.component_id for cpt in components]
@@ -228,6 +243,7 @@ class NewApp(object):
         probe_repo.overwrite_by_component_ids(component_ids, probes)
         service_monitor_repo.overwrite_by_component_ids(component_ids, monitors)
         component_graph_repo.overwrite_by_component_ids(component_ids, graphs)
+        service_label_repo.overwrite_by_component_ids(component_ids, labels)
 
     def _save_component_deps(self):
         dep_relation_repo.overwrite_by_component_id(self.component_ids, self.component_deps)

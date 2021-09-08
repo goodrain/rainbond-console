@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from .new_app import NewApp
+from .original_app import OriginalApp
 from .utils import get_component_template
+from .enum import ActionType
 # service
 from console.services.market_app.component import Component
 from console.services.app_config.promql_service import promql_service
@@ -19,20 +22,55 @@ logger = logging.getLogger("default")
 
 
 class PropertyChanges(object):
-    def __init__(self, components, plugins: [TenantPlugin], app_template):
+    def __init__(self, components: [Component], plugins: [TenantPlugin], app_template, support_labels):
         self.components = components
         self.plugins = plugins
         self.app_template = app_template
+        self.support_labels = support_labels
         self.changes = self._get_component_changes(components, app_template)
 
     def need_change(self):
         return self.changes
 
+    def ensure_dep_changes(self, new_app: NewApp, original_app: OriginalApp):
+        update_components = {component.component.component_id: component for component in new_app.list_update_components()}
+        original_components = {component.component.component_id: component for component in original_app.components()}
+
+        for change in self.changes:
+            component_id = change["component_id"]
+            update_component = update_components.get(component_id)
+            if not update_component:
+                continue
+            original_component = original_components.get(component_id)
+            # update component if component dependencies changed
+            original_component.component_deps = original_component.component_deps if original_component.component_deps else []
+            original_component.component_deps = original_component.component_deps if original_component.component_deps else []
+            if self._is_dep_equal(original_component.component_deps, update_component.component_deps):
+                update_component.update_action_type(ActionType.UPDATE.value)
+            # update component if volume dependencies changed
+            if self._is_dep_equal(original_component.volume_deps, update_component.volume_deps):
+                update_component.update_action_type(ActionType.UPDATE.value)
+
+    @staticmethod
+    def _is_dep_equal(old_deps, new_deps):
+        old_deps = old_deps if old_deps else []
+        new_deps = new_deps if new_deps else []
+        if len(old_deps) != len(new_deps):
+            return False
+
+        old_deps = {dep.service_id + dep.dep_service_id: dep for dep in old_deps}
+        for dep in new_deps:
+            key = dep.service_id + dep.dep_service_id
+            if not old_deps.get(key):
+                return False
+
+        return True
+
     def _get_component_changes(self, components, app_template):
         cpt_changes = []
         for cpt in components:
             # get component template
-            tmpl = get_component_template(cpt.component_source, app_template)
+            tmpl = get_component_template(cpt, app_template)
             if not tmpl:
                 continue
             cpt_changes.append(self._get_component_change(cpt, tmpl))
@@ -56,9 +94,12 @@ class PropertyChanges(object):
         volumes = self._volumes(component.volumes, component_tmpl.get("service_volume_map_list", []), component.config_files)
         if volumes:
             result["volumes"] = volumes
-        probe = self._probe(component.probe, component_tmpl["probes"])
-        if probe:
-            result["probe"] = probe
+        probes = self._probe(component.probes, component_tmpl["probes"])
+        if probes:
+            result["probes"] = probes
+        labels = self._labels(component.labels, component_tmpl.get("labels"))
+        if labels:
+            result["labels"] = labels
         # plugin dependency
         plugin_deps = self._plugin_deps(component.plugin_deps, component_tmpl.get("service_related_plugin_config"))
         if plugin_deps:
@@ -163,7 +204,7 @@ class PropertyChanges(object):
                 continue
             # configuration file
             config_file = config_files.get(new_volume["volume_name"])
-            if config_file and config_file.file_content != new_volume["file_content"]:
+            if config_file and config_file.file_content != new_volume["file_content"] or old_volume.mode != new_volume["mode"]:
                 update.append(new_volume)
         if not add and not update:
             return None
@@ -173,24 +214,49 @@ class PropertyChanges(object):
         }
 
     @staticmethod
-    def _probe(old_probe, new_probes):
+    def _probe(old_probes, new_probes):
         """
         Support adding and updating all attributes
         """
         if not new_probes:
             return None
-        new_probe = new_probes[0]
-        # remove redundant keys
-        for key in ["ID", "probe_id", "service_id"]:
-            if key in list(new_probe.keys()):
-                new_probe.pop(key)
-        if not old_probe:
-            return {"add": new_probe, "upd": []}
-        old_probe = old_probe.to_dict()
-        for k, v in list(new_probe.items()):
-            if k in list(old_probe.keys()) and old_probe[k] != v:
-                return {"add": [], "upd": new_probe}
-        return None
+
+        old_probes = {probe.mode: probe for probe in old_probes}
+        # There can only be one probe of the same mode
+        # Dedup new probes based on mode
+        new_probes = {probe["mode"]: probe for probe in new_probes}
+
+        add = []
+        upd = []
+        for key in new_probes:
+            new_probe = new_probes[key]
+            # remove redundant keys
+            for key in ["ID", "probe_id", "service_id"]:
+                if key in list(new_probe.keys()):
+                    new_probe.pop(key)
+
+            old_probe = old_probes.get(new_probe["mode"])
+            if not old_probe:
+                # create new probe
+                add.append(new_probe)
+                continue
+            # update old probe
+            old_probe = old_probe.to_dict()
+            for k, v in list(new_probe.items()):
+                if k in list(old_probe.keys()) and old_probe[k] != v:
+                    upd.append(new_probe)
+            del old_probes[old_probe["mode"]]
+
+        delete = []
+        for mode in old_probes:
+            probe = old_probes[mode]
+            delete.append(probe.to_dict())
+
+        return {
+            "add": add,
+            "upd": upd,
+            "delete": delete,
+        }
 
     @staticmethod
     def _graphs(component_id, old_graphs, graphs):
@@ -263,4 +329,23 @@ class PropertyChanges(object):
                 continue
             plugin_dep["plugin"] = plugin.to_dict()
             add.append(plugin_dep)
+        return {"add": add}
+
+    def _labels(self, old_labels, new_labels):
+        """
+        Support adding.
+        """
+        if not new_labels:
+            return None
+
+        old_label_names = [
+            self.support_labels.get(label.label_id) for label in old_labels if self.support_labels.get(label.label_id)
+        ]
+
+        add = {}
+        for label in new_labels:
+            if label not in old_label_names:
+                add[label] = new_labels[label]
+        if not add:
+            return None
         return {"add": add}

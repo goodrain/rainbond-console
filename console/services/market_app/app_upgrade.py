@@ -6,6 +6,7 @@ from datetime import datetime
 
 from django.db import transaction
 
+from .enum import ActionType
 from console.services.market_app.plugin import Plugin
 from console.services.market_app.market_app import MarketApp
 from console.services.market_app.new_app import NewApp
@@ -17,9 +18,9 @@ from console.services.market_app.component_group import ComponentGroup
 from console.services.market_app.component import Component
 # service
 from console.services.backup_service import groupapp_backup_service
+from console.services.app_config import label_service
 # repo
 from console.repositories.upgrade_repo import component_upgrade_record_repo
-from console.repositories.group import group_repo
 from console.repositories.app_snapshot import app_snapshot_repo
 from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.app_config_group import app_config_group_item_repo
@@ -38,6 +39,7 @@ from console.models.main import ConfigGroupService
 from console.models.main import RegionConfig
 from www.models.main import TenantServiceRelation
 from www.models.main import TenantServiceMountRelation
+from www.models.main import ServiceGroup
 from www.models.plugin import TenantServicePluginRelation
 from www.models.plugin import ServicePluginConfigVar
 from www.models.plugin import TenantPlugin
@@ -58,6 +60,7 @@ class AppUpgrade(MarketApp):
                  tenant,
                  region: RegionConfig,
                  user,
+                 app: ServiceGroup,
                  version,
                  component_group,
                  app_template,
@@ -79,8 +82,8 @@ class AppUpgrade(MarketApp):
 
         self.component_group = ComponentGroup(enterprise_id, component_group, version)
         self.record = record
-        self.app_id = self.component_group.app_id
-        self.app = group_repo.get_group_by_pk(tenant.tenant_id, region.region_name, self.app_id)
+        self.app = app
+        self.app_id = app.app_id
         self.upgrade_group_id = self.component_group.upgrade_group_id
         self.app_model_key = self.component_group.app_model_key
         self.old_version = self.component_group.version
@@ -94,17 +97,20 @@ class AppUpgrade(MarketApp):
         self.install_from_cloud = install_from_cloud
         self.market_name = market_name
 
+        self.support_labels = label_service.list_available_labels(tenant, region.region_name)
+
         # original app
-        self.original_app = OriginalApp(self.tenant_id, self.region, self.app, self.upgrade_group_id)
+        self.original_app = OriginalApp(self.tenant, self.region, self.app, self.upgrade_group_id, self.support_labels)
 
         # plugins
         self.original_plugins = self.list_original_plugins()
         self.new_plugins = self._create_new_plugins()
         plugins = [plugin.plugin for plugin in self._plugins()]
 
-        self.property_changes = PropertyChanges(self.original_app.components(), plugins, self.app_template)
+        self.property_changes = PropertyChanges(self.original_app.components(), plugins, self.app_template, self.support_labels)
 
         self.new_app = self._create_new_app()
+        self.property_changes.ensure_dep_changes(self.new_app, self.original_app)
 
         super(AppUpgrade, self).__init__(self.original_app, self.new_app)
 
@@ -318,22 +324,36 @@ class AppUpgrade(MarketApp):
 
     def _create_new_app(self):
         # new components
-        new_components = NewComponents(self.tenant, self.region, self.user, self.original_app, self.app_model_key,
-                                       self.app_template, self.version, self.install_from_cloud, self.component_keys,
-                                       self.market_name, self.is_deploy).components
+        new_components = NewComponents(
+            self.tenant,
+            self.region,
+            self.user,
+            self.original_app,
+            self.app_model_key,
+            self.app_template,
+            self.version,
+            self.install_from_cloud,
+            self.component_keys,
+            self.market_name,
+            self.is_deploy,
+            support_labels=self.support_labels).components
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
                                              self.component_keys, self.property_changes).components
 
         components = new_components + update_components
 
+        # component existing in the template.
+        tmpl_components = self._tmpl_components(components)
+        tmpl_component_ids = [cpt.component.component_id for cpt in tmpl_components]
+
         # create new component dependency from app_template
         new_component_deps = self._create_component_deps(components)
-        component_deps = self.ensure_component_deps(self.original_app, new_component_deps)
+        component_deps = self.ensure_component_deps(new_component_deps, tmpl_component_ids, self.is_upgrade_one)
 
         # volume dependencies
         new_volume_deps = self._create_volume_deps(components)
-        volume_deps = self.ensure_volume_deps(self.original_app, new_volume_deps)
+        volume_deps = self.ensure_volume_deps(new_volume_deps, tmpl_component_ids, self.is_upgrade_one)
 
         # config groups
         config_groups = self._config_groups()
@@ -378,6 +398,7 @@ class AppUpgrade(MarketApp):
         被依赖组件唯一标识: dep["dep_service_key"]
         """
         components = {cpt.component_source.service_share_uuid: cpt.component for cpt in components}
+        original_components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self.original_app.components()}
 
         deps = []
         for tmpl in self.app_template.get("apps", []):
@@ -388,7 +409,8 @@ class AppUpgrade(MarketApp):
                     continue
 
                 dep_component_key = dep["dep_service_key"]
-                dep_component = components.get(dep_component_key)
+                dep_component = components.get(dep_component_key) if components.get(
+                    dep_component_key) else original_components.get(dep_component_key)
                 if not dep_component:
                     logger.info("The component({}) cannot find the dependent component({})".format(
                         component_key, dep_component_key))
@@ -412,6 +434,8 @@ class AppUpgrade(MarketApp):
         for cpt in raw_components:
             volumes.extend(cpt.volumes)
         components = {cpt.component_source.service_share_uuid: cpt.component for cpt in raw_components}
+        original_components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self.original_app.components()}
+
         deps = []
         for tmpl in self.app_template.get("apps", []):
             component_key = tmpl.get("service_share_uuid")
@@ -425,7 +449,8 @@ class AppUpgrade(MarketApp):
             for dep in volume_deps:
                 # check if the dependent component exists
                 dep_component_key = dep["service_share_uuid"]
-                dep_component = components.get(dep_component_key)
+                dep_component = components.get(dep_component_key) if components.get(
+                    dep_component_key) else original_components.get(dep_component_key)
                 if not dep_component:
                     logger.info("dependent component({}) not found".format(dep_component.service_id))
                     continue
@@ -456,7 +481,7 @@ class AppUpgrade(MarketApp):
         """
         config_groups = list(app_config_group_repo.list(self.region_name, self.app_id))
         config_group_names = [cg.config_group_name for cg in config_groups]
-        tmpl = self.app_template.get("app_config_groups", [])
+        tmpl = self.app_template.get("app_config_groups") if self.app_template.get("app_config_groups") else []
         for cg in tmpl:
             if cg["name"] in config_group_names:
                 continue
@@ -482,10 +507,19 @@ class AppUpgrade(MarketApp):
     def _take_snapshot(self):
         if self.is_upgrade_one:
             return
+
+        new_components = {cpt.component.component_id: cpt for cpt in self.new_app.components()}
+
         components = []
         for cpt in self.original_app.components():
             # component snapshot
             csnap, _ = groupapp_backup_service.get_service_details(self.tenant, cpt.component)
+            new_component = new_components.get(cpt.component.component_id)
+            if new_component:
+                csnap["action_type"] = new_component.action_type
+            else:
+                # no action for original component without changes
+                csnap["action_type"] = ActionType.NOTHING.value
             components.append(csnap)
         if not components:
             return None
@@ -509,7 +543,7 @@ class AppUpgrade(MarketApp):
         config_group_items = list(app_config_group_item_repo.list_by_app_id(self.app_id))
 
         item_keys = [item.config_group_name + item.item_key for item in config_group_items]
-        tmpl = self.app_template.get("app_config_groups", [])
+        tmpl = self.app_template.get("app_config_groups") if self.app_template.get("app_config_groups") else []
         for cg in tmpl:
             config_group = config_groups.get(cg["name"])
             if not config_group:
@@ -544,7 +578,7 @@ class AppUpgrade(MarketApp):
         config_group_components = list(app_config_group_service_repo.list_by_app_id(self.app_id))
         config_group_component_keys = [cgc.config_group_name + cgc.service_id for cgc in config_group_components]
 
-        tmpl = self.app_template.get("app_config_groups", [])
+        tmpl = self.app_template.get("app_config_groups") if self.app_template.get("app_config_groups") else []
         for cg in tmpl:
             config_group = config_groups.get(cg["name"])
             if not config_group:
@@ -749,3 +783,7 @@ class AppUpgrade(MarketApp):
                     protocol=option.get("protocol", ""))
                 config_items.append(config_item)
         return config_groups, config_items
+
+    def _tmpl_components(self, components: [Component]):
+        component_keys = [tmpl.get("service_key") for tmpl in self.app_template.get("apps")]
+        return [cpt for cpt in components if cpt.component.service_key in component_keys]
