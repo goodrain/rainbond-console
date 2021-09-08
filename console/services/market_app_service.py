@@ -694,6 +694,10 @@ class MarketAppService(object):
         if not inner_envs and not outer_envs:
             return
         envs = []
+        if inner_envs is None:
+            inner_envs = []
+        if outer_envs is None:
+            outer_envs = []
         for env in inner_envs:
             if env.get("attr_name"):
                 envs.append(
