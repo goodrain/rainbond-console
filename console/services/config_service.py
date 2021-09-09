@@ -169,6 +169,7 @@ class EnterpriseConfigService(ConfigService):
             "CLOUD_MARKET",
             "OBJECT_STORAGE",
             "AUTO_SSL",
+            "VISUAL_MONITOR",
         ]
         self.cfg_keys_value = {
             "APPSTORE_IMAGE_HUB": {
@@ -211,7 +212,18 @@ class EnterpriseConfigService(ConfigService):
                 "value": None,
                 "desc": "证书自动签发",
                 "enable": False
-            }
+            },
+            "VISUAL_MONITOR": {
+                "value": {
+                    "home_url": "",
+                    "cluster_monitor_suffix": "/d/cluster/ji-qun-jian-kong-ke-shi-hua",
+                    "node_monitor_suffix": "/d/node/jie-dian-jian-kong-ke-shi-hua",
+                    "component_monitor_suffix": "/d/component/zu-jian-jian-kong-ke-shi-hua",
+                    "slo_monitor_suffix": "/d/service/fu-wu-jian-kong-ke-shi-hua",
+                },
+                "desc": "可视化监控配置(链接外部监控)",
+                "enable": False
+            },
         }
 
     def init_base_config_value(self):
