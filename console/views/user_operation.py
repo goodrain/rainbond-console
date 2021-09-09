@@ -343,6 +343,7 @@ class UserDetailsView(JWTAuthApiView):
         user_detail = dict()
         user_detail["user_id"] = user.user_id
         user_detail["user_name"] = user.nick_name
+        user_detail["real_name"] = user.real_name
         user_detail["email"] = user.email
         user_detail["enterprise_id"] = user.enterprise_id
         user_detail["phone"] = user.phone
