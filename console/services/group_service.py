@@ -145,7 +145,17 @@ class GroupService(object):
         return new_overrides
 
     @transaction.atomic
-    def update_group(self, tenant, region_name, app_id, app_name, note="", username=None, overrides="", version="", revision=0, logo=""):
+    def update_group(self,
+                     tenant,
+                     region_name,
+                     app_id,
+                     app_name,
+                     note="",
+                     username=None,
+                     overrides="",
+                     version="",
+                     revision=0,
+                     logo=""):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
