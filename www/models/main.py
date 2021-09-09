@@ -1060,6 +1060,7 @@ class ServiceGroup(BaseModel):
     app_store_url = models.CharField(max_length=255, null=True, blank=True, help_text="应用商店 URL")
     app_template_name = models.CharField(max_length=255, null=True, blank=True, help_text="应用模板名称")
     version = models.CharField(max_length=255, null=True, blank=True, help_text="Helm 应用版本")
+    logo = models.CharField(max_length=255, blank=True, null=True, default='', help_text="应用logo")
 
     @property
     def app_id(self):
