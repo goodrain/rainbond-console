@@ -98,6 +98,7 @@ class TeamOverView(RegionTenantHeaderView):
             share_app_num = 0
 
             batch_create_app_body = []
+            region_app_ids = []
             if groups:
                 for group in groups:
                     share_record = share_repo.get_service_share_record_by_groupid(group_id=group.ID)
@@ -105,7 +106,8 @@ class TeamOverView(RegionTenantHeaderView):
                         share_app_num += 1
 
                     try:
-                        region_app_repo.get_region_app_id(region.region_name, group.ID)
+                        region_app_id = region_app_repo.get_region_app_id(region.region_name, group.ID)
+                        region_app_ids.append(region_app_id)
                     except RegionApp.DoesNotExist:
                         create_app_body = dict()
                         group_services = base_service.get_group_services_list(self.team.tenant_id, region.region_name, group.ID)
@@ -127,10 +129,21 @@ class TeamOverView(RegionTenantHeaderView):
                             data = RegionApp(
                                 app_id=app["app_id"], region_app_id=app["region_app_id"], region_name=region.region_name)
                             app_list.append(data)
+                            region_app_ids.append(app["region_app_id"])
                     RegionApp.objects.bulk_create(app_list)
                 except Exception as e:
                     logger.exception(e)
 
+            running_app_num = 0
+            try:
+                resp = region_api.list_app_statuses_by_app_ids(self.tenant_name, self.response_region,
+                                                               {"app_ids": region_app_ids})
+                app_statuses = resp.get("list", [])
+                for app_status in app_statuses:
+                    if app_status.get("status") == "RUNNING":
+                        running_app_num += 1
+            except Exception as e:
+                logger.exception(e)
             team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
             overview_detail["share_app_num"] = share_app_num
             overview_detail["team_app_num"] = team_app_num
@@ -143,6 +156,8 @@ class TeamOverView(RegionTenantHeaderView):
             overview_detail["team_service_use_cpu"] = 0
             overview_detail["cpu_usage"] = 0
             overview_detail["memory_usage"] = 0
+            overview_detail["running_app_num"] = running_app_num
+            overview_detail["running_component_num"] = 0
             if source:
                 try:
                     overview_detail["region_health"] = True
@@ -151,6 +166,7 @@ class TeamOverView(RegionTenantHeaderView):
                     overview_detail["team_service_total_cpu"] = int(source["limit_cpu"])
                     overview_detail["team_service_total_memory"] = int(source["limit_memory"])
                     overview_detail["team_service_use_cpu"] = int(source["cpu"])
+                    overview_detail["running_component_num"] = int(source.get("service_running_num", 0))
                     cpu_usage = 0
                     memory_usage = 0
                     if int(source["limit_cpu"]) != 0:
@@ -490,7 +506,7 @@ class TeamAppSortViewView(RegionTenantHeaderView):
             group_ids = [group.ID for group in groups]
             group_ids = group_ids[start:end]
             apps = group_service.get_multi_apps_all_info(group_ids, self.response_region, self.team_name,
-                                                         self.team.enterprise_id)
+                                                         self.team.enterprise_id, self.team)
         return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
 
 

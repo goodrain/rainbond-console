@@ -61,6 +61,7 @@ class TenantGroupView(RegionTenantHeaderView):
         """
         app_name = request.data.get("app_name", None)
         note = request.data.get("note", "")
+        logo = request.data.get("logo", "")
         if len(note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
         app_store_name = request.data.get("app_store_name", None)
@@ -79,6 +80,7 @@ class TenantGroupView(RegionTenantHeaderView):
             app_template_name,
             version,
             self.user.enterprise_id,
+            logo,
         )
         result = general_message(200, "success", "创建成功", bean=data)
         return Response(result, status=result["code"])
@@ -109,6 +111,7 @@ class TenantGroupOperationView(ApplicationView):
         """
         app_name = request.data.get("app_name", None)
         note = request.data.get("note", "")
+        logo = request.data.get("logo", "")
         if note and len(note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
         username = request.data.get("username", None)
@@ -125,7 +128,8 @@ class TenantGroupOperationView(ApplicationView):
             username,
             overrides=overrides,
             version=version,
-            revision=revision)
+            revision=revision,
+            logo=logo)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 

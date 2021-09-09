@@ -64,3 +64,27 @@ class EnterpriseAppStoreImageHubView(EnterpriseAdminView):
                 "hub_password": hub_password,
             })
         return Response(status=status.HTTP_200_OK)
+
+
+class EnterpriseVisualMonitorView(EnterpriseAdminView):
+    @never_cache
+    def put(self, request, enterprise_id, *args, **kwargs):
+        enable = bool_argument(parse_item(request, "enable", required=True))
+        home_url = parse_item(request, "home_url", required=True)
+        cluster_monitor_suffix = request.data.get("cluster_monitor_suffix", "/d/cluster/ji-qun-jian-kong-ke-shi-hua")
+        node_monitor_suffix = request.data.get("node_monitor_suffix", "/d/node/jie-dian-jian-kong-ke-shi-hua")
+        component_monitor_suffix = request.data.get("component_monitor_suffix", "/d/component/zu-jian-jian-kong-ke-shi-hua")
+        slo_monitor_suffix = request.data.get("slo_monitor_suffix", "/d/service/fu-wu-jian-kong-ke-shi-hua")
+
+        ent_cfg_svc = EnterpriseConfigService(enterprise_id)
+        ent_cfg_svc.update_config_enable_status(key="VISUAL_MONITOR", enable=enable)
+        ent_cfg_svc.update_config_value(
+            key="VISUAL_MONITOR",
+            value={
+                "home_url": home_url.strip('/'),
+                "cluster_monitor_suffix": cluster_monitor_suffix,
+                "node_monitor_suffix": node_monitor_suffix,
+                "component_monitor_suffix": component_monitor_suffix,
+                "slo_monitor_suffix": slo_monitor_suffix,
+            })
+        return Response(status=status.HTTP_200_OK)

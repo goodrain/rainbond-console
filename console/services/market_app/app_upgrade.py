@@ -452,7 +452,7 @@ class AppUpgrade(MarketApp):
                 dep_component = components.get(dep_component_key) if components.get(
                     dep_component_key) else original_components.get(dep_component_key)
                 if not dep_component:
-                    logger.info("dependent component({}) not found".format(dep_component.service_id))
+                    logger.info("dependent component({}) not found".format(dep_component_key))
                     continue
 
                 # check if the dependent volume exists
