@@ -46,7 +46,7 @@ class OriginalApp(object):
         # dependency
         component_deps = dep_relation_repo.list_by_component_ids(self.tenant_id,
                                                                  [cpt.component.component_id for cpt in self._components])
-        self.component_deps = list(component_deps)
+        self.component_deps = list(component_deps) if component_deps else []
         self.volume_deps = self._volume_deps()
 
         # plugins
