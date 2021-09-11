@@ -72,7 +72,7 @@ class MarketApp(object):
 
         return res
 
-    def ensure_component_deps(self, new_deps, tmpl_component_ids=None, is_upgrade_one=False):
+    def ensure_component_deps(self, new_deps, tmpl_component_ids=[], is_upgrade_one=False):
         """
         确保组件依赖关系的正确性.
         根据已有的依赖关系, 新的依赖关系计算出最终的依赖关系, 计算规则如下:
@@ -94,7 +94,16 @@ class MarketApp(object):
             dep for dep in self.original_app.component_deps
             if dep.dep_service_id not in component_ids or dep.service_id not in tmpl_component_ids
         ]
-        deps.extend(new_deps)
+        # 去除重复依赖信息
+        dep_keys = {}
+        for dep in deps:
+            key = "{}/{}/{}".format(dep.ID, dep.service_id, dep.dep_service_id)
+            dep_keys[key] = dep
+        for ndep in new_deps:
+            key = "{}/{}/{}".format(ndep.ID, ndep.service_id, ndep.dep_service_id)
+            if dep_keys.get(key):
+                continue
+            deps.append(ndep)
         return deps
 
     def ensure_volume_deps(self, new_deps, tmpl_component_ids=None, is_upgrade_one=False):
