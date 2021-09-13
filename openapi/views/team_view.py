@@ -472,7 +472,7 @@ class TeamEventLogView(TeamAPIView):
         manual_parameters=[
             openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
             openapi.Parameter("region_name", openapi.IN_PATH, description="数据中心名称", type=openapi.TYPE_STRING),
-            openapi.Parameter("event_id", openapi.IN_PATH, description="事件ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("event_id", openapi.IN_PATH, description="事件ID", type=openapi.TYPE_STRING),
         ],
         responses={
             status.HTTP_200_OK: TeamEventLogSerializer(),

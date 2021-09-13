@@ -12,7 +12,7 @@ from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
 from console.services.app import app_service as console_app_service
 from console.services.app_actions import app_manage_service, event_service
-from console.services.app_config import port_service
+from console.services.app_config import domain_service, port_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.group_service import group_service
 from console.services.plugin import app_plugin_service
@@ -280,8 +280,10 @@ class AppServicesView(TeamAppServiceAPIView):
             tenant_name=self.team.tenant_name,
             service_ids=[self.service.service_id],
             enterprise_id=self.team.enterprise_id)
-        self.service.status = status_list[0]["status"]
-        serializer = ServiceBaseInfoSerializer(data=self.service.to_dict())
+        data = self.service.to_dict()
+        data["status"] = status_list[0]["status"]
+        data["access_infos"] = domain_service.get_component_access_infos(self.region_name, self.service.service_id)
+        serializer = ServiceBaseInfoSerializer(data=data)
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)
 

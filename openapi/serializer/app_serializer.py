@@ -5,7 +5,6 @@ import re
 from openapi.serializer.utils import DateCharField
 from rest_framework import serializers, validators
 from www.models.main import ServiceGroup, TenantServiceInfo
-from openapi.serializer.gateway_serializer import GatewayRuleSerializer
 
 ACTION_CHOICE = (
     ("stop", ("stop")),
@@ -54,8 +53,6 @@ class AppPostInfoSerializer(serializers.Serializer):
 
 
 class ServiceBaseInfoSerializer(serializers.ModelSerializer):
-    gateway_rules = GatewayRuleSerializer(required=False)
-
     class Meta:
         model = TenantServiceInfo
         exclude = [
@@ -66,6 +63,7 @@ class ServiceBaseInfoSerializer(serializers.ModelSerializer):
 
     # component status
     status = serializers.CharField(max_length=32, allow_blank=True, default="", help_text="组件状态")
+    access_infos = serializers.ListField(required=False, allow_empty=True, default=[], help_text="组件访问地址")
 
 
 class AppInfoSerializer(AppBaseInfoSerializer):

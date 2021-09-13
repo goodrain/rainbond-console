@@ -937,5 +937,23 @@ class DomainService(object):
             domain.end_point = tcpdomain + ":" + arr[1]
         return tcpdomains
 
+    def get_http_ruls_by_service_ids(self, service_ids):
+        return domain_repo.get_domains_by_service_ids(service_ids)
+
+    def get_component_access_infos(self, region_name, service_id):
+        http_domian = self.get_http_ruls_by_service_ids([service_id])
+        stream_domian = self.get_tcp_rules_by_service_ids(region_name, [service_id])
+        access_infos = []
+        if http_domian:
+            for domain in http_domian:
+                access = "{0}://{1}".format("http" if domain.certificate_id == 0 else "https", domain.domain_name)
+                if domain.domain_path:
+                    access = access + domain.domain_path
+                access_infos.append(access)
+        if stream_domian:
+            for sd in stream_domian:
+                access_infos.append(sd.end_point)
+        return access_infos
+
 
 domain_service = DomainService()
