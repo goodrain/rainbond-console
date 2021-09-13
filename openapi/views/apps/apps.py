@@ -23,11 +23,13 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from openapi.serializer.app_serializer import (
     AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer, AppServiceEventsSerializer,
-    AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentEnvsSerializers,
-    ComponentMonitorSerializers, CreateThirdComponentResponseSerializer, CreateThirdComponentSerializer,
-    ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer, TeamAppsCloseSerializers)
+    AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentBuildReqSerializers,
+    ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers, CreateThirdComponentResponseSerializer,
+    CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
+    TeamAppsCloseSerializers)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
+from openapi.services.component_action import component_action_service
 from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView)
 from openapi.views.exceptions import ErrAppNotFound
 from rest_framework import status
@@ -560,5 +562,27 @@ class ComponentEnvsUView(TeamAppServiceAPIView):
         envs = serializers.data.get("envs")
         rst = env_var_service.update_or_create_envs(self.team, self.service, envs)
         serializers = ComponentEnvsSerializers(data=rst)
+        serializers.is_valid(raise_exception=True)
+        return Response(serializers.data, status=200)
+
+
+class ComponentBuildView(TeamAppServiceAPIView):
+    @swagger_auto_schema(
+        operation_description="构建组件，用于CI/CD工作流调用",
+        manual_parameters=[
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="数据中心名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("service_id", openapi.IN_PATH, description="组件ID", type=openapi.TYPE_STRING)
+        ],
+        request_body=ComponentBuildReqSerializers,
+        responses={200: ComponentEventSerializers()},
+        tags=['openapi-apps'],
+    )
+    def post(self, request, team_id, region_name, app_id, service_id, *args, **kwargs):
+        build_info = ComponentBuildReqSerializers(data=request.data)
+        build_info.is_valid(raise_exception=True)
+        event_id = component_action_service.component_build(self.team, self.service, self.user, build_info.data)
+        serializers = ComponentEventSerializers(data={"event_id": event_id})
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)

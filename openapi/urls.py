@@ -10,11 +10,12 @@ from drf_yasg.views import get_schema_view
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
+from openapi.views.apps.apps import ListAppsView
 from openapi.views.enterprise_view import EnterpriseConfigView
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo
 from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
-                                     TeamCertificatesRUDView, TeamInfo, TeamOverviewView, TeamsResourceView)
+                                     TeamCertificatesRUDView, TeamEventLogView, TeamInfo, TeamOverviewView, TeamsResourceView)
 from openapi.views.user_view import (ChangePassword, ChangeUserPassword, ListUsersView, UserInfoView)
 from openapi.views.apps.apps import ListAppsView
 
@@ -56,6 +57,8 @@ urlpatterns = [
     url(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/resource', TeamAppsResourceView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/overview', TeamOverviewView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/events/(?P<event_id>[\w\-]+)/logs',
+        TeamEventLogView.as_view()),
     # apps
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps$', ListAppsView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/', include('openapi.sub_urls.app_url')),

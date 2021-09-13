@@ -205,7 +205,7 @@ class AppManageService(AppManageBase):
                 return 409, "操作过于频繁，请稍后再试"
         return 200, "操作成功"
 
-    def deploy(self, tenant, service, user, group_version, committer_name=None, oauth_instance=None):
+    def deploy(self, tenant, service, user, oauth_instance=None):
         status_info_map = app_service.get_service_status(tenant, service)
         if status_info_map.get("status", "Unknown") in [
                 "undeploy", "closed "
@@ -287,6 +287,7 @@ class AppManageService(AppManageBase):
         try:
             re = region_api.build_service(service.service_region, tenant.tenant_name, service.service_alias, body)
             if re and re.get("bean") and re.get("bean").get("status") != "success":
+                logger.error("deploy component failure {}".format(re))
                 return 507, "构建异常", ""
             event_id = re["bean"].get("event_id", "")
         except region_api.CallApiError as e:
@@ -513,7 +514,7 @@ class AppManageService(AppManageBase):
                     group_service.sync_app_services(tenant, region_name, move_group_id)
                     self.move(service, move_group_id)
                 elif action == "deploy" and service.service_source != "third_party":
-                    self.deploy(tenant, service, user, group_version=None, oauth_instance=oauth_instance)
+                    self.deploy(tenant, service, user, oauth_instance=oauth_instance)
                 elif action == "upgrade" and service.service_source != "third_party":
                     self.upgrade(tenant, service, user, oauth_instance=oauth_instance)
                 code = 200

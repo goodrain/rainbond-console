@@ -5,7 +5,9 @@ import logging
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
+from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from console.services.app_actions import event_service
 from console.services.app_config import domain_service
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrTenantRegionNotFound
@@ -18,9 +20,9 @@ from drf_yasg.utils import swagger_auto_schema
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.team_serializer import (
     CreateTeamReqSerializer, CreateTeamUserReqSerializer, ListRegionTeamServicesSerializer, ListTeamRegionsRespSerializer,
-    TeamOverviewSerializer, ListTeamRespSerializer, TeamAppsResourceSerializer, TeamBaseInfoSerializer,
-    TeamCertificatesCSerializer, TeamCertificatesLSerializer, TeamCertificatesRSerializer, TeamInfoSerializer,
-    TeamRegionReqSerializer, TenantRegionListSerializer, UpdateTeamInfoReqSerializer)
+    ListTeamRespSerializer, TeamAppsResourceSerializer, TeamBaseInfoSerializer, TeamCertificatesCSerializer,
+    TeamCertificatesLSerializer, TeamCertificatesRSerializer, TeamEventLogSerializer, TeamInfoSerializer,
+    TeamOverviewSerializer, TeamRegionReqSerializer, TenantRegionListSerializer, UpdateTeamInfoReqSerializer)
 from openapi.serializer.utils import pagination
 from openapi.views.base import (BaseOpenAPIView, TeamAPIView, TeamNoRegionAPIView)
 from openapi.views.exceptions import ErrRegionNotFound, ErrTeamNotFound
@@ -57,8 +59,7 @@ class ListTeamInfo(BaseOpenAPIView):
             eid=self.enterprise.enterprise_id, user_id=req.user.user_id, query=query, page=page, page_size=page_size)
         result = {"tenants": tenants, "total": total, "page": page, "page_size": page_size}
         serializer = ListTeamRespSerializer(data=result)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.data, status.HTTP_200_OK)
+        return Response(serializer.initial_data, status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="add team",
@@ -463,3 +464,23 @@ class TeamsResourceView(BaseOpenAPIView):
         serializer = TeamAppsResourceSerializer(data=resources, many=True)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=200)
+
+
+class TeamEventLogView(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="获取事件日志",
+        manual_parameters=[
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="数据中心名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("event_id", openapi.IN_PATH, description="事件ID", type=openapi.TYPE_INTEGER),
+        ],
+        responses={
+            status.HTTP_200_OK: TeamEventLogSerializer(),
+        },
+        tags=['openapi-team'],
+    )
+    def get(self, request, team_id, region_name, event_id, *args, **kwargs):
+        log_content = event_service.get_event_log(self.team, region_name, event_id)
+        re = TeamEventLogSerializer(data={"logs": log_content})
+        re.is_valid(raise_exception=True)
+        return Response(re.data, status=200)
