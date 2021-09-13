@@ -83,8 +83,7 @@ class AppDeployService(object):
         async_action = self.get_async_action()
         logger.info("service id: {}; async action is '{}'".format(service.service_id, async_action))
         if async_action == AsyncAction.BUILD.value:
-            code, msg, event_id = app_manage_service.deploy(
-                tenant, service, user, oauth_instance=oauth_instance)
+            code, msg, event_id = app_manage_service.deploy(tenant, service, user, oauth_instance=oauth_instance)
         elif async_action == AsyncAction.UPDATE.value:
             code, msg, event_id = app_manage_service.upgrade(
                 tenant, service, user, committer_name, oauth_instance=oauth_instance)

@@ -17,7 +17,6 @@ from openapi.views.region_view import ListRegionInfo, RegionInfo
 from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
                                      TeamCertificatesRUDView, TeamEventLogView, TeamInfo, TeamOverviewView, TeamsResourceView)
 from openapi.views.user_view import (ChangePassword, ChangeUserPassword, ListUsersView, UserInfoView)
-from openapi.views.apps.apps import ListAppsView
 
 schema_view = get_schema_view(
     openapi.Info(

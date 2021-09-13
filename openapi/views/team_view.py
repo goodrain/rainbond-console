@@ -5,7 +5,6 @@ import logging
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
-from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.app_actions import event_service
 from console.services.app_config import domain_service

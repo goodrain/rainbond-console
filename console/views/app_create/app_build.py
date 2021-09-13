@@ -60,8 +60,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
             self.service = new_service
             if is_deploy:
                 try:
-                    app_manage_service.deploy(
-                        self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
+                    app_manage_service.deploy(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
                 except ErrInsufficientResource as e:
                     result = general_message(e.error_code, e.msg, e.msg_show)
                     return Response(result, status=e.status_code)
