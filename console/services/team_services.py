@@ -346,6 +346,8 @@ class TeamService(object):
         total = team_repo.count_by_user_id(eid, user_id, query)
         user = user_repo.get_by_user_id(user_id)
         for tenant in tenants:
+            if isinstance(tenant["is_active"], int):
+                tenant["is_active"] = True if tenant["is_active"] == 1 else False
             roles = user_kind_role_service.get_user_roles(kind="team", kind_id=tenant["tenant_id"], user=user)
             tenant["role_infos"] = roles["roles"]
         return tenants, total
