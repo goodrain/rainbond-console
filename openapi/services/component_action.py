@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+from console.constants import AppConstants
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_source_repo
 from console.services.app_actions import app_manage_service
@@ -15,10 +16,15 @@ class ComponnetActionService(object):
         # change component server type
 
         if build_info.get("repo_url"):
-            # change component repo_url
-            component.git_url = build_info.get("repo_url")
-            # code_version must set default value
-            component.code_version = build_info.get("branch", "master")
+            if component.service_source == AppConstants.SOURCE_CODE:
+                # change component repo_url
+                component.git_url = build_info.get("repo_url")
+                # code_version must set default value
+                component.code_version = build_info.get("branch", "master")
+            if component.service_source == AppConstants.DOCKER_RUN \
+                    or component.service_source == AppConstants.DOCKER_COMPOSE \
+                    or component.service_source == AppConstants.DOCKER_IMAGE:
+                component.image = build_info.get("repo_url")
             service_source = service_source_repo.get_service_source(component.tenant_id, component.service_id)
             if service_source:
                 service_source.user_name = build_info.get("username")

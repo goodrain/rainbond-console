@@ -172,5 +172,11 @@ class TenantRegionListSerializer(serializers.Serializer):
     region_name = serializers.CharField(help_text="数据中心名称")
 
 
+class EventLogMessage(serializers.Serializer):
+    message = serializers.CharField(help_text="日志信息", required=False, allow_null=True)
+    time = serializers.CharField(help_text="日志时间", required=False, allow_null=True)
+    utime = serializers.IntegerField(help_text="时间戳", required=False, allow_null=True)
+
+
 class TeamEventLogSerializer(serializers.Serializer):
-    logs = serializers.ListField(help_text="日志信息", required=False, allow_null=True, allow_empty=True, default=[])
+    logs = EventLogMessage(help_text="日志信息", many=True, required=False, allow_null=True, allow_empty=True)
