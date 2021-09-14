@@ -4,6 +4,8 @@
 """
 import logging
 import re
+import os
+import json
 from datetime import datetime
 
 from deprecated import deprecated
@@ -29,6 +31,7 @@ from console.utils.shortcuts import get_object_or_404
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp, ServiceGroup, ServiceGroupRelation
+from console.utils.cache import cache
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -374,6 +377,10 @@ class GroupService(object):
         return services
 
     def get_multi_apps_all_info(self, app_ids, region, tenant_name, enterprise_id, tenant):
+        cache_key = "{}+multi_apps_all_info".format([str(app_id) for app_id in app_ids])
+        cache_data = cache.get(cache_key)
+        if cache_data:
+            return json.loads(cache_data)
         app_list = group_repo.get_multi_app_info(app_ids)
         service_list = service_repo.get_services_in_multi_apps_with_app_info(app_ids)
         # memory info
@@ -458,7 +465,10 @@ class GroupService(object):
             if app["used_mem"] > app["allocate_mem"]:
                 app["allocate_mem"] = app["used_mem"]
             app.pop("service_list")
+            app["create_time"] = app["create_time"].isoformat()
+            app["update_time"] = app["update_time"].isoformat()
             re_app_list.append(app)
+        cache.set(cache_key, json.dumps(re_app_list), os.getenv("CACHE_TIME", 60))
         return re_app_list
 
     @staticmethod

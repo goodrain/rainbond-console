@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+import json
 import logging
 from functools import cmp_to_key
 
@@ -24,6 +26,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
+from console.utils.cache import cache
 
 event_service = AppEventService()
 
@@ -75,6 +78,10 @@ class TeamOverView(RegionTenantHeaderView):
               paramType: path
         """
         overview_detail = dict()
+        cache_key = "{}+overview_detail".format(self.team.tenant_id)
+        cache_data = cache.get(cache_key)
+        if cache_data:
+            return Response(general_message(200, "success", "查询成功", bean=json.loads(cache_data)))
         users = team_services.get_team_users(self.team)
         if users:
             user_nums = len(users)
@@ -158,6 +165,7 @@ class TeamOverView(RegionTenantHeaderView):
             overview_detail["memory_usage"] = 0
             overview_detail["running_app_num"] = running_app_num
             overview_detail["running_component_num"] = 0
+            overview_detail["team_alias"] = self.tenant.tenant_alias
             if source:
                 try:
                     overview_detail["region_health"] = True
@@ -180,6 +188,7 @@ class TeamOverView(RegionTenantHeaderView):
                     logger.exception(e)
             else:
                 overview_detail["region_health"] = False
+            cache.set(cache_key, json.dumps(overview_detail), os.getenv("CACHE_TIME", 60))
             return Response(general_message(200, "success", "查询成功", bean=overview_detail))
         else:
             data = {"user_nums": 1, "team_service_num": 0, "total_memory": 0, "eid": self.team.enterprise_id}
