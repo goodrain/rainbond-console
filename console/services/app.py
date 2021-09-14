@@ -134,7 +134,7 @@ class AppService(object):
                                            service_code_version, check_uuid, event_id, oauth_service_id, git_full_name)
         if code != 200:
             return code, msg, new_service
-        logger.debug("service.create", "user:{0} create service from source code".format(user.nick_name))
+        logger.debug("service.create, user:{0} create service from source code".format(user.nick_name))
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, "创建成功", ts
 

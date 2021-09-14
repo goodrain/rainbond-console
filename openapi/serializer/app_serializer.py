@@ -5,7 +5,6 @@ import re
 from openapi.serializer.utils import DateCharField
 from rest_framework import serializers, validators
 from www.models.main import ServiceGroup, TenantServiceInfo
-from openapi.serializer.gateway_serializer import GatewayRuleSerializer
 
 ACTION_CHOICE = (
     ("stop", ("stop")),
@@ -25,6 +24,18 @@ THIRD_COMPONENT_SOURCE_CHOICE = (
     ("api", ("api")),
 )
 
+COMPONENT_BUILD_TYPE = (
+    ("source_code", ("source_code")),
+    ("docker_image", ("docker_image")),
+    ("market", ("market")),
+)
+
+COMPONENT_SOURCE_TYPE = (
+    ("svn", ("svn")),
+    ("git", ("git")),
+    ("oss", ("oss")),
+)
+
 NAME_FORMAT = re.compile("^[a-zA-Z]")
 NAME_LETTER = re.compile("^(?!\d+$)[\da-zA-Z_]+$")
 FIRST_LETTER = re.compile("^[a-zA-Z]")
@@ -42,8 +53,6 @@ class AppPostInfoSerializer(serializers.Serializer):
 
 
 class ServiceBaseInfoSerializer(serializers.ModelSerializer):
-    gateway_rules = GatewayRuleSerializer(required=False)
-
     class Meta:
         model = TenantServiceInfo
         exclude = [
@@ -54,6 +63,7 @@ class ServiceBaseInfoSerializer(serializers.ModelSerializer):
 
     # component status
     status = serializers.CharField(max_length=32, allow_blank=True, default="", help_text="组件状态")
+    access_infos = serializers.ListField(required=False, allow_empty=True, default=[], help_text="组件访问地址")
 
 
 class AppInfoSerializer(AppBaseInfoSerializer):
@@ -231,3 +241,16 @@ class CreateThirdComponentSerializer(serializers.Serializer):
 class CreateThirdComponentResponseSerializer(ServiceBaseInfoSerializer):
     api_service_key = serializers.CharField(help_text="API 授权Key, 类型为api时有效")
     url = serializers.CharField(help_text="API地址, 类型为api时有效")
+
+
+class ComponentEventSerializers(serializers.Serializer):
+    event_id = serializers.CharField(max_length=64, help_text="事件ID")
+
+
+class ComponentBuildReqSerializers(serializers.Serializer):
+    build_type = serializers.ChoiceField(choices=COMPONENT_BUILD_TYPE, required=False, allow_null=True, help_text="组件构建源类型")
+    server_type = serializers.ChoiceField(choices=COMPONENT_SOURCE_TYPE, required=False, allow_null=True, help_text="源码来源类型")
+    branch = serializers.CharField(max_length=255, required=False, allow_null=True, default="master", help_text="代码分支，tag信息")
+    repo_url = serializers.CharField(max_length=1024, required=False, allow_null=True, help_text="来源仓库服务地址，包括代码仓库、镜像仓库、OSS地址")
+    username = serializers.CharField(max_length=255, required=False, allow_null=True, help_text="来源仓库服务账号")
+    password = serializers.CharField(max_length=255, required=False, allow_null=True, help_text="来源仓库服务密码")
