@@ -753,6 +753,60 @@ class AppPortService(object):
             "operator": user_name
         })
 
+    def list_access_infos(self, tenant, services):
+        accesses = dict()
+        svc_ports = dict()
+        service_ids = [service.service_id for service in services]
+        service_ports = port_repo.list_by_service_ids(tenant.tenant_id, service_ids)
+        for svc_port in service_ports:
+            if not svc_ports.get(svc_port.service_id):
+                svc_ports[svc_port.service_id] = {
+                    "unopened_port": [],
+                    "http_outer_port": [],
+                    "stream_outer_port": [],
+                }
+            if svc_port.protocol == ServicePortConstants.HTTP:
+                if svc_port.is_outer_service:
+                    svc_ports[svc_port.service_id]["http_outer_port"].append(svc_port)
+            else:
+                if svc_port.is_outer_service:
+                    svc_ports[svc_port.service_id]["stream_outer_port"].append(svc_port)
+            svc_ports[svc_port.service_id]["unopened_port"].append(svc_port)
+
+        for svc in services:
+            if not svc_ports.get(svc.service_id):
+                accesses[svc.service_id] = {"access_type": ServicePortConstants.NO_PORT, "access_info": []}
+                continue
+            if svc_ports[svc.service_id]["http_outer_port"]:
+                access_urls = self.__list_component_access_urls(svc)
+                port_and_urls = self.__list_stream_outer_urls(svc)
+                accesses[svc.service_id] = {"access_type": ServicePortConstants.HTTP_PORT, "access_info": []}
+                for p in svc_ports[svc.service_id]["http_outer_port"]:
+                    port_dict = p.to_dict()
+                    port_dict["service_cname"] = svc.service_cname
+                    if access_urls.get(p.container_port):
+                        port_dict["access_urls"] = access_urls[p.container_port]
+                        accesses[svc.service_id]["access_info"].append(port_dict)
+                        continue
+                    if port_and_urls.get(p.container_port):
+                        port_dict["access_urls"] = port_and_urls[p.container_port]
+                        accesses[svc.service_id]["access_type"] = ServicePortConstants.NOT_HTTP_OUTER
+                        accesses[svc.service_id]["access_info"].append(port_dict)
+                continue
+
+            if svc_ports[svc.service_id]["stream_outer_port"]:
+                port_and_urls = self.__list_stream_outer_urls(svc)
+                accesses[svc.service_id] = {"access_type": ServicePortConstants.NOT_HTTP_OUTER, "access_info": []}
+                for p in svc_ports[svc.service_id]["stream_outer_port"]:
+                    port_dict = p.to_dict()
+                    port_dict["access_urls"] = port_and_urls[p.container_port] if port_and_urls.get(p.container_port) else []
+                    port_dict["service_cname"] = svc.service_cname
+                    accesses[svc.service_id]["access_info"].append(port_dict)
+                continue
+
+            accesses[svc.service_id] = {"access_type": ServicePortConstants.NO_PORT, "access_info": []}
+        return accesses
+
     def get_access_info(self, tenant, service):
         access_type = ""
         data = []
@@ -860,6 +914,19 @@ class AppPortService(object):
             else:
                 return None
 
+    def __list_stream_outer_urls(self, component):
+        region = region_repo.get_region_by_region_name(component.service_region)
+        if not region:
+            return None
+        port_domain = {}
+        service_tcp_domains = tcp_domain.get_service_tcpdomains(component.service_id)
+        for domain in service_tcp_domains:
+            if "0.0.0.0" in domain.end_point:
+                port_domain[domain.container_port] = [domain.end_point.replace("0.0.0.0", region.tcpdomain)]
+                continue
+            port_domain[domain.container_port] = [domain.end_point]
+        return port_domain
+
     def get_port_associated_env(self, tenant, service, port):
 
         env_var = env_var_service.get_env_by_container_port(tenant, service, port)
@@ -885,6 +952,19 @@ class AppPortService(object):
                     urls.insert(0, "http://{0}{1}".format(d.domain_name, domain_path))
 
         return urls
+
+    def __list_component_access_urls(self, component):
+        port_domains = {}
+        domains = domain_repo.get_service_domains(component.service_id)
+        for d in domains:
+            if not port_domains.get(d.container_port):
+                port_domains[d.container_port] = []
+            domain_path = d.domain_path if d.domain_path else "/"
+            if d.protocol != "http":
+                port_domains[d.container_port].insert(0, "https://{0}{1}".format(d.domain_name, domain_path))
+            else:
+                port_domains[d.container_port].insert(0, "http://{0}{1}".format(d.domain_name, domain_path))
+        return port_domains
 
     def get_team_region_usable_tcp_ports(self, tenant, service):
         services = service_repo.get_service_by_region_and_tenant(service.service_region, tenant.tenant_id)

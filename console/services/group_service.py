@@ -422,14 +422,12 @@ class GroupService(object):
                 "logo": app.logo,
                 "accesses": [],
             }
+        # 获取应用下组件的访问地址
         from console.services.app_config import port_service
+        accesses = port_service.list_access_infos(tenant, service_list)
         for service in service_list:
             apps[service.group_id]["service_list"].append(service)
-            access_type, data = port_service.get_access_info(tenant, service)
-            apps[service.group_id]["accesses"].append({
-                "access_type": access_type,
-                "access_info": data,
-            })
+            apps[service.group_id]["accesses"].append(accesses[service.service_id])
 
         share_list = share_repo.get_multi_app_share_records(app_ids)
         share_records = dict()
