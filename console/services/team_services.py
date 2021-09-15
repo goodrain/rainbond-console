@@ -21,7 +21,7 @@ from console.services.exception import ErrTenantRegionNotFound
 from console.services.perm_services import (role_kind_services, user_kind_role_service)
 from console.services.region_services import region_services
 from django.conf import settings
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage
 from django.db import transaction
 from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
@@ -317,8 +317,11 @@ class TeamService(object):
         tall = team_repo.get_teams_by_enterprise_id(enterprise_id, query=query)
         total = tall.count()
         if page is not None and page_size is not None:
-            paginator = Paginator(tall, page_size)
-            raw_tenants = paginator.page(page)
+            try:
+                paginator = Paginator(tall, page_size)
+                raw_tenants = paginator.page(page)
+            except EmptyPage:
+                raw_tenants = []
         else:
             raw_tenants = tall
         tenants = []
