@@ -411,11 +411,9 @@ class RegionService(object):
             from console.services.team_services import team_services
             team = team_services.create_team(user, ent, None, None)
 
-
             region_services.create_tenant_on_region(ent.enterprise_id, team.tenant_name, region.region_name)
 
             # 创建默认应用
-            group_name = "默认应用"
             tenant = team_repo.get_team_by_team_name_and_eid(ent.enterprise_id, team.tenant_name)
             group = group_service.create_default_app(tenant, region.region_name)
 

@@ -10,7 +10,6 @@ from rest_framework.response import Response
 from console.exception.exceptions import RegionUnreachableError
 from console.models.main import RegionConfig
 from console.services.region_services import (RegionExistException, region_services)
-from console.services.team_services import team_services
 from openapi.serializer.base_serializer import FailSerializer
 from openapi.v2.serializer.region_serializer import (ListRegionsRespSerializer, RegionInfoSerializer, UpdateRegionReqSerializer,
                                                      UpdateRegionStatusReqSerializer)
