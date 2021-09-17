@@ -177,6 +177,7 @@ class RainbondCenterAppTag(BaseModel):
     enterprise_id = models.CharField(max_length=32, help_text="企业id")
     is_deleted = models.BooleanField(default=False, help_text="是否删除")
 
+
 class RainbondInitTeamApp(BaseModel):
     """初使化默认团队应用信息"""
 

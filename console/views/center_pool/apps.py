@@ -206,7 +206,7 @@ class CenterAppCLView(JWTAuthApiView):
             "source": source,
             "create_team": create_team,
         }
-        market_app_service.create_rainbond_app(enterprise_id, app_info,make_uuid())
+        market_app_service.create_rainbond_app(enterprise_id, app_info, make_uuid())
 
         result = general_message(200, "success", None)
         return Response(result, status=200)
