@@ -1420,8 +1420,7 @@ class MarketAppService(object):
         app.save()
 
     @transaction.atomic
-    def create_rainbond_app(self, enterprise_id, app_info):
-        app_id = make_uuid()
+    def create_rainbond_app(self, enterprise_id, app_info,app_id):
         app = RainbondCenterApp(
             app_id=app_id,
             app_name=app_info.get("app_name"),

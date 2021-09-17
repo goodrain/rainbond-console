@@ -1,23 +1,28 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import os
 
 import yaml
 from console.enum.region_enum import RegionStatusEnum
 from console.exception.exceptions import RegionUnreachableError
 from console.exception.main import ServiceHandleException
-from console.models.main import ConsoleSysConfig, RegionConfig
+from console.models.main import ConsoleSysConfig, RegionConfig, RainbondCenterAppVersion
 from console.repositories.app import service_repo
 from console.repositories.group import group_repo
 from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.market_app_repo import rainbond_app_repo
+
 from console.services.config_service import platform_config_service
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
 from console.services.service_services import base_service
+
 from django.core.paginator import Paginator
 from django.db import transaction
+
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
@@ -161,7 +166,8 @@ class RegionService(object):
 
     def get_public_key(self, tenant, region):
         try:
-            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id, tenant.tenant_id)
+            res, body = region_api.get_region_publickey(tenant.tenant_name, region, tenant.enterprise_id,
+                                                        tenant.tenant_id)
             if body and "bean" in body:
                 return body["bean"]
             return {}
@@ -250,7 +256,8 @@ class RegionService(object):
             tenant_region_info = {"tenant_id": tenant.tenant_id, "region_name": region_name, "is_active": False}
             tenant_region = region_repo.create_tenant_region(**tenant_region_info)
         if not tenant_region.is_init:
-            res, body = region_api.create_tenant(region_name, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id)
+            res, body = region_api.create_tenant(region_name, tenant.tenant_name, tenant.tenant_id,
+                                                 tenant.enterprise_id)
             if res["status"] != 200 and body['msg'] != 'tenant name {} is exist'.format(tenant.tenant_name):
                 logger.error(res)
                 raise ServiceHandleException(msg="cluster init failure ", msg_show="集群初始化租户失败")
@@ -295,7 +302,8 @@ class RegionService(object):
             # check component status
             service_ids = [service.service_id for service in services]
             status_list = base_service.status_multi_service(
-                region=region_name, tenant_name=tenant.tenant_name, service_ids=service_ids, enterprise_id=tenant.enterprise_id)
+                region=region_name, tenant_name=tenant.tenant_name, service_ids=service_ids,
+                enterprise_id=tenant.enterprise_id)
             status_list = [x for x in [x["status"] for x in status_list] if x not in ["closed", "undeploy"]]
             if len(status_list) > 0:
                 raise ServiceHandleException(
@@ -307,12 +315,14 @@ class RegionService(object):
         from console.services.plugin import plugin_service
         not_delete_from_cluster = False
         for service in services:
-            not_delete_from_cluster = app_manage_service.really_delete_service(tenant, service, user, ignore_cluster_resource,
+            not_delete_from_cluster = app_manage_service.really_delete_service(tenant, service, user,
+                                                                               ignore_cluster_resource,
                                                                                not_delete_from_cluster)
         plugins = plugin_repo.get_tenant_plugins(tenant.tenant_id, region_name)
         if plugins:
             for plugin in plugins:
-                plugin_service.delete_plugin(region_name, tenant, plugin.plugin_id, ignore_cluster_resource, is_force=True)
+                plugin_service.delete_plugin(region_name, tenant, plugin.plugin_id, ignore_cluster_resource,
+                                             is_force=True)
 
         group_repo.list_tenant_group_on_region(tenant, region_name).delete()
         # delete tenant
@@ -333,8 +343,9 @@ class RegionService(object):
             res, data = market_api.get_enterprise_free_resource(tenant_id, enterprise_id, region_name, user_name)
             return True
         except Exception as e:
-            logger.error("get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id, region_name,
-                                                                                   user_name)))
+            logger.error(
+                "get_new_user_free_res_pkg error with params: {}".format((tenant_id, enterprise_id, region_name,
+                                                                          user_name)))
             logger.exception(e)
             return False
 
@@ -373,20 +384,94 @@ class RegionService(object):
     def get_regions_by_enterprise_id(self, enterprise_id):
         return RegionConfig.objects.filter(enterprise_id=enterprise_id)
 
-    def add_region(self, region_data):
+    def add_region(self, region_data, user):
         ent = enterprise_services.get_enterprise_by_enterprise_id(region_data.get("enterprise_id"))
         if not ent:
             raise ServiceHandleException(status_code=404, msg="enterprise not found", msg_show="企业不存在")
 
         region = region_repo.get_region_by_region_name(region_data["region_name"])
         if region:
-            raise ServiceHandleException(status_code=400, msg="", msg_show="集群ID{0}已存在".format(region_data["region_name"]))
+            raise ServiceHandleException(status_code=400, msg="",
+                                         msg_show="集群ID{0}已存在".format(region_data["region_name"]))
         try:
+
             region_api.test_region_api(region_data)
         except ServiceHandleException:
             raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
+
+        # 根据当前企业查询是否有region
+        exist_region = region_repo.get_region_by_enterprise_id(ent.enterprise_id)
         region = region_repo.create_region(region_data)
-        return region
+
+        if exist_region:
+            return region
+
+        try:
+            # 创建默认团队
+            from console.services.team_services import team_services
+            team = team_services.create_team(user, ent, None, None)
+
+
+            region_services.create_tenant_on_region(ent.enterprise_id, team.tenant_name, region.region_name)
+
+            # 创建默认应用
+            group_name = "默认应用"
+            tenant = team_repo.get_team_by_team_name_and_eid(ent.enterprise_id, team.tenant_name)
+            group = group_service.create_default_app(tenant, region.region_name)
+
+            # group = group_service.get_group_by_unique_key(tenant.tenant_id,region.region_name,group_name)
+
+            # group = group_service.create_default_app(tenant, region.region_name)
+
+            init_app_info = {
+                "app_name": "默认应用",
+                "scope": "team",
+                "pic": "/data/media/uploads/d444ca6e0bc0444ab8d1c250c446f84a.png",
+                "describe": "This is a default description.",
+            }
+
+            app_uuid = make_uuid()
+            from console.services.market_app_service import market_app_service
+            market_app_service.create_rainbond_app(ent.enterprise_id, init_app_info, app_uuid)
+
+            default_app_config = None
+            module_dir = os.path.dirname(__file__)
+            file_path = os.path.join(module_dir, 'init_app_default.json')
+            with open(file_path) as f:
+                default_app_config = json.load(f)
+
+            # rainbond_center_app_version
+            app_version = json.dumps(default_app_config)
+            rainbond_app_version = RainbondCenterAppVersion(
+                app_template=app_version,
+                enterprise_id=ent.enterprise_id,
+                app_id=app_uuid,
+                version="1.0",
+                template_version="v1",
+                record_id=0,
+                share_team=team.tenant_name,
+                share_user=1,
+                scope="team"
+            )
+
+            rainbond_app_repo.create_rainbond_app_version(rainbond_app_version)
+
+            # 创建默认组件
+            app_model_key = app_uuid
+            version = "1.0"
+            app_id = group["ID"]
+            install_from_cloud = False
+            is_deploy = True
+            market_name = ""
+            market_app_service.install_app(tenant, region, user, app_id, app_model_key, version,
+                                           market_name,
+                                           install_from_cloud, is_deploy)
+
+            return region
+
+        except Exception as e:
+            logger.warning(e)
+            return region
 
     def update_region(self, region_data):
         region_id = region_data.get("region_id")

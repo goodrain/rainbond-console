@@ -6,7 +6,7 @@ import logging
 import time
 
 from console.models.main import (AppExportRecord, AppImportRecord, RainbondCenterApp, RainbondCenterAppTagsRelation,
-                                 RainbondCenterAppVersion)
+                                 RainbondCenterAppVersion,RainbondInitTeamApp)
 from django.db.models import Q
 from www.db.base import BaseConnection
 
@@ -455,6 +455,10 @@ class RainbondCenterAppRepository(object):
         logger.warning("Enterprise ID: {0}; Group Key: {1}; Version: {2}".format(enterprise_id, group_key, group_version))
         return None
 
+    def create_rainbond_app_version(self,rainbond_app_version):
+        rainbond_app_version.save()
+
+
     def get_enterpirse_app_by_key(self, enterprise_id, group_key):
         rcapps = RainbondCenterApp.objects.filter(app_id=group_key, enterprise_id__in=["public", enterprise_id])
         if rcapps:
@@ -511,7 +515,6 @@ class RainbondCenterAppRepository(object):
 
     def delete_app_version_by_version(self, enterprise_id, app_id, version):
         RainbondCenterAppVersion.objects.filter(enterprise_id=enterprise_id, app_id=app_id, version=version).delete()
-
 
 class AppExportRepository(object):
     def get_export_record_by_unique_key(self, group_key, version, export_format):
@@ -573,7 +576,12 @@ class AppImportRepository(object):
     def get_user_not_finished_import_record_in_enterprise(self, eid, user_name):
         return AppImportRecord.objects.filter(user_name=user_name, enterprise_id=eid).exclude(status__in=["success", "failed"])
 
+class RainbondInitTeamAppRepository(object):
+    def get_init_team_app(self):
+        record = RainbondInitTeamApp.objects.first()
+        return record
 
 rainbond_app_repo = RainbondCenterAppRepository()
 app_export_record_repo = AppExportRepository()
 app_import_record_repo = AppImportRepository()
+init_team_app_repo = RainbondInitTeamAppRepository()

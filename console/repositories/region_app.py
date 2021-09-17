@@ -13,7 +13,7 @@ class RegionAppRepository(object):
 
     @staticmethod
     def get_region_app_id(region_name, app_id):
-        region_app = RegionApp.objects.get(region_name=region_name, app_id=app_id)
+        region_app = RegionApp.objects.filter(region_name=region_name, app_id=app_id).first()
         return region_app.region_app_id
 
     @staticmethod

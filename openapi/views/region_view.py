@@ -68,7 +68,7 @@ class ListRegionInfo(BaseOpenAPIView):
             serializer.is_valid(raise_exception=True)
             region_data = serializer.data
             region_data["region_id"] = make_uuid()
-            region = region_services.add_region(region_data)
+            region = region_services.add_region(region_data,request.user)
             serializer = RegionInfoSerializer(region)
             if region:
                 return Response(serializer.data, status=status.HTTP_201_CREATED)

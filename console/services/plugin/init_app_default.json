@@ -1,0 +1,69 @@
+{
+
+"app_version":
+ {
+	"template_version": "v1",
+	"group_key": "8ee2761529f245a9aa67f10e8c79e2bb",
+	"group_name": "\u5c0f\u6e38\u620f",
+	"group_version": "1.0",
+	"group_dev_status": "",
+	"app_config_groups": [],
+	"apps": [{
+		"service_id": "cfed14af6582d7be4080fc3d3279f47f",
+		"tenant_id": "94412b2bcea44b91b42ffa411eb4282e",
+		"service_cname": "2048",
+		"service_key": "edf4f1816a3c495bb73ee47f8886b1b2",
+		"service_share_uuid": "edf4f1816a3c495bb73ee47f8886b1b2+cfed14af6582d7be4080fc3d3279f47f",
+		"need_share": true,
+		"category": "application",
+		"language": "static",
+		"extend_method": "stateless_multiple",
+		"version": "latest",
+		"memory": 512,
+		"service_type": "application",
+		"service_source": "source_code",
+		"deploy_version": "20201229222022",
+		"image": "goodrain.me/runner:latest",
+		"service_alias": "gr79f47f",
+		"service_name": "",
+		"service_region": "local-test",
+		"creater": 1,
+		"cmd": "start web",
+		"probes": [],
+		"extend_method_map": {
+			"step_node": 1,
+			"min_memory": 512,
+			"max_memory": 65536,
+			"step_memory": 128,
+			"is_restart": 0,
+			"min_node": 1,
+			"max_node": 20
+		},
+		"port_map_list": [{
+			"protocol": "http",
+			"tenant_id": "94412b2bcea44b91b42ffa411eb4282e",
+			"port_alias": "GR79F47F5000",
+			"container_port": 5000,
+			"is_inner_service": false,
+			"is_outer_service": true,
+			"k8s_service_name": "gr79f47f-5000"
+		}],
+		"service_volume_map_list": [],
+		"service_env_map_list": [],
+		"service_connect_info_map_list": [],
+		"service_related_plugin_config": [],
+		"component_monitors": null,
+		"component_graphs": null,
+		"dep_service_map_list": [],
+		"mnt_relation_list": [],
+		"service_image": {
+			"hub_url": null,
+			"hub_user": null,
+			"hub_password": null,
+			"namespace": "e91083c77545748179ca2c1fef3b4b2f"
+		},
+		"share_type": "image",
+		"share_image": "goodrain.me/e91083c77545748179ca2c1fef3b4b2f/cfed14af6582d7be4080fc3d3279f47f:20201229222022"
+	}]
+ }
+}
