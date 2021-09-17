@@ -10,7 +10,7 @@ ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
 
 
-FROM rainbond/rainbond-ui:${VERSION}
+FROM ljh4260/rainbond-ui:${VERSION}
 
 ARG RELEASE_DESC=
 
