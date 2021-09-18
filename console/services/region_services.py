@@ -406,7 +406,7 @@ class RegionService(object):
 
             # 创建默认应用
             tenant = team_repo.get_team_by_team_name_and_eid(ent.enterprise_id, team.tenant_name)
-            group = group_service.create_default_app(tenant, region.region_name)
+            group = group_repo.get_group_by_unique_key(tenant.tenant_id, region.region_name, "默认应用")
 
             module_dir = os.path.dirname(__file__) + '/plugin/'
             file_path = os.path.join(module_dir, 'init_app_default.json')
@@ -418,7 +418,7 @@ class RegionService(object):
             # 创建应用模型安装的组件从属关系
             scope = default_app_config["scope"]
             init_app_info = {
-                "app_name": group["group_name"],
+                "app_name": default_app_config["app_name"],
                 "scope": scope,
                 "pic": default_app_config["pic"],
                 "describe": default_app_config["describe"],
@@ -442,7 +442,7 @@ class RegionService(object):
             # 创建默认组件
             app_model_key = app_uuid
             version = "1.0"
-            app_id = group["ID"]
+            app_id = group.ID
             install_from_cloud = False
             is_deploy = True
             market_name = ""
