@@ -406,7 +406,7 @@ class RegionService(object):
 
             # 创建默认应用
             tenant = team_repo.get_team_by_team_name_and_eid(ent.enterprise_id, team.tenant_name)
-            group = group_repo.get_group_by_unique_key(tenant.tenant_id,region.region_name,"默认应用")
+            group = group_repo.get_group_by_unique_key(tenant.tenant_id, region.region_name, "默认应用")
 
             module_dir = os.path.dirname(__file__) + '/plugin/'
             file_path = os.path.join(module_dir, 'init_app_default.json')
