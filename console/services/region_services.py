@@ -417,29 +417,25 @@ class RegionService(object):
             tenant = team_repo.get_team_by_team_name_and_eid(ent.enterprise_id, team.tenant_name)
             group = group_service.create_default_app(tenant, region.region_name)
 
-            # group = group_service.get_group_by_unique_key(tenant.tenant_id,region.region_name,group_name)
-
-            # group = group_service.create_default_app(tenant, region.region_name)
-
-            init_app_info = {
-                "app_name": "默认应用",
-                "scope": "team",
-                "pic": "/data/media/uploads/d444ca6e0bc0444ab8d1c250c446f84a.png",
-                "describe": "This is a default description.",
-            }
-
-            app_uuid = make_uuid()
-            from console.services.market_app_service import market_app_service
-            market_app_service.create_rainbond_app(ent.enterprise_id, init_app_info, app_uuid)
-
-            default_app_config = None
             module_dir = os.path.dirname(__file__)
             file_path = os.path.join(module_dir, 'init_app_default.json')
             with open(file_path) as f:
                 default_app_config = json.load(f)
+                version_template = default_app_config["version_template"]
+                app_version = json.dumps(version_template)
 
-            # rainbond_center_app_version
-            app_version = json.dumps(default_app_config)
+            # 创建应用模型安装的组件从属关系
+            scope = default_app_config["scope"]
+            init_app_info = {
+                "app_name": group["group_name"],
+                "scope": scope,
+                "pic": default_app_config["pic"],
+                "describe": default_app_config["describe"],
+            }
+            app_uuid = make_uuid()
+            from console.services.market_app_service import market_app_service
+            market_app_service.create_rainbond_app(ent.enterprise_id, init_app_info, app_uuid)
+
             rainbond_app_version = RainbondCenterAppVersion(
                 app_template=app_version,
                 enterprise_id=ent.enterprise_id,
@@ -449,7 +445,7 @@ class RegionService(object):
                 record_id=0,
                 share_team=team.tenant_name,
                 share_user=1,
-                scope="team"
+                scope=scope
             )
 
             rainbond_app_repo.create_rainbond_app_version(rainbond_app_version)
