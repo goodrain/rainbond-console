@@ -410,14 +410,13 @@ class RegionService(object):
             # 创建默认团队
             from console.services.team_services import team_services
             team = team_services.create_team(user, ent, None, None)
-
             region_services.create_tenant_on_region(ent.enterprise_id, team.tenant_name, region.region_name)
 
             # 创建默认应用
             tenant = team_repo.get_team_by_team_name_and_eid(ent.enterprise_id, team.tenant_name)
             group = group_service.create_default_app(tenant, region.region_name)
 
-            module_dir = os.path.dirname(__file__)
+            module_dir = os.path.dirname(__file__) + '/plugin/'
             file_path = os.path.join(module_dir, 'init_app_default.json')
             with open(file_path) as f:
                 default_app_config = json.load(f)
@@ -447,8 +446,7 @@ class RegionService(object):
                 share_user=1,
                 scope=scope
             )
-
-            rainbond_app_repo.create_rainbond_app_version(rainbond_app_version)
+            rainbond_app_version.save()
 
             # 创建默认组件
             app_model_key = app_uuid
@@ -464,7 +462,7 @@ class RegionService(object):
             return region
 
         except Exception as e:
-            logger.warning(e)
+            logger.exception(e)
             return region
 
     def update_region(self, region_data):
