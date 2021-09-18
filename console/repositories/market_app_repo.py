@@ -465,7 +465,6 @@ class RainbondCenterAppRepository(object):
             "Enterprise ID: {0}; Group Key: {1}; Version: {2}".format(enterprise_id, group_key, group_version))
         return None
 
-
     def get_enterpirse_app_by_key(self, enterprise_id, group_key):
         rcapps = RainbondCenterApp.objects.filter(app_id=group_key, enterprise_id__in=["public", enterprise_id])
         if rcapps:

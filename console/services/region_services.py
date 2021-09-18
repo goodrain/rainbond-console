@@ -13,7 +13,6 @@ from console.repositories.group import group_repo
 from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
-from console.repositories.market_app_repo import rainbond_app_repo
 
 from console.services.config_service import platform_config_service
 from console.services.enterprise_services import enterprise_services
