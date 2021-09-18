@@ -47,16 +47,15 @@ class PluginBaseView(RegionTenantHeaderView):
 
         build_version = kwargs.get("build_version", None)
         if build_version:
-            plugin_build_version = PluginBuildVersion.objects.filter(
-                tenant_id=self.tenant.tenant_id, plugin_id=plugin_id, build_version=build_version)
+            plugin_build_version = PluginBuildVersion.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                                     plugin_id=plugin_id,
+                                                                     build_version=build_version)
             if plugin_build_version:
                 self.plugin_version = plugin_build_version[0]
             else:
-                raise BusinessException(
-                    response=Response(
-                        general_message(10403, "plugin id {0}, build version {1} is not exist".format(plugin_id, build_version),
-                                        "当前版本插件不存在"),
-                        status=404))
+                raise BusinessException(response=Response(general_message(
+                    10403, "plugin id {0}, build version {1} is not exist".format(plugin_id, build_version), "当前版本插件不存在"),
+                                                          status=404))
 
     def initial_header_info(self, request):
         pass

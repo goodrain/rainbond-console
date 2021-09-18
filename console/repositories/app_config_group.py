@@ -8,8 +8,9 @@ class ApplicationConfigGroupRepository(object):
         return ApplicationConfigGroup.objects.create(**data)
 
     def update(self, region_name, app_id, config_group_name, **data):
-        return ApplicationConfigGroup.objects.filter(
-            region_name=region_name, app_id=app_id, config_group_name=config_group_name).update(**data)
+        return ApplicationConfigGroup.objects.filter(region_name=region_name,
+                                                     app_id=app_id,
+                                                     config_group_name=config_group_name).update(**data)
 
     def get(self, region_name, app_id, config_group_name):
         return ApplicationConfigGroup.objects.get(region_name=region_name, app_id=app_id, config_group_name=config_group_name)
@@ -21,13 +22,13 @@ class ApplicationConfigGroupRepository(object):
         return ApplicationConfigGroup.objects.filter(region_name=region_name, app_id=app_id).count()
 
     def delete(self, region_name, app_id, config_group_name):
-        return ApplicationConfigGroup.objects.filter(
-            region_name=region_name, app_id=app_id, config_group_name=config_group_name).delete()
+        return ApplicationConfigGroup.objects.filter(region_name=region_name,
+                                                     app_id=app_id,
+                                                     config_group_name=config_group_name).delete()
 
     def list_by_service_ids(self, region_name, service_ids):
-        config_group_ids = ConfigGroupService.objects.filter(
-            service_id__in=service_ids, ).values_list(
-                "config_group_id", flat=True)
+        config_group_ids = ConfigGroupService.objects.filter(service_id__in=service_ids, ).values_list("config_group_id",
+                                                                                                       flat=True)
         return ApplicationConfigGroup.objects.filter(region_name=region_name, config_group_id__in=config_group_ids)
 
     def get_config_group_in_use(self, region_name, app_id):
@@ -42,8 +43,9 @@ class ApplicationConfigGroupRepository(object):
         return cgroup_infos
 
     def is_exists(self, region_name, app_id, config_group_name):
-        return ApplicationConfigGroup.objects.filter(
-            region_name=region_name, app_id=app_id, config_group_name=config_group_name).exists()
+        return ApplicationConfigGroup.objects.filter(region_name=region_name,
+                                                     app_id=app_id,
+                                                     config_group_name=config_group_name).exists()
 
     @staticmethod
     def bulk_create_or_update(config_groups):

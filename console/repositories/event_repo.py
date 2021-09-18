@@ -29,8 +29,8 @@ class ServiceEventRepository(object):
 
     def get_events_before_specify_time(self, tenant_id, service_id, start_time):
         if start_time:
-            return ServiceEvent.objects.filter(
-                tenant_id=tenant_id, service_id=service_id, start_time__lte=start_time).order_by("-start_time")
+            return ServiceEvent.objects.filter(tenant_id=tenant_id, service_id=service_id,
+                                               start_time__lte=start_time).order_by("-start_time")
         else:
             return ServiceEvent.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by("-start_time")
 

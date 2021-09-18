@@ -30,8 +30,8 @@ def test_rbd_app_not_found(mocker):
         app_template = json.load(json_file)
         rain_app = RainbondCenterApp()
         rain_app.app_template = json.dumps(app_template)
-    mocker.patch(
-        "console.repositories.market_app_repo.rainbond_app_repo.get_enterpirse_app_by_key_and_version", return_value=rain_app)
+    mocker.patch("console.repositories.market_app_repo.rainbond_app_repo.get_enterpirse_app_by_key_and_version",
+                 return_value=rain_app)
 
     service_source = ServiceSourceInfo()
     service_source.group_key = "dummy group_key"

@@ -27,8 +27,8 @@ class ProxyView(JWTAuthApiView):
         self.headers = self.default_response_headers
         try:
             self.initial(request, *args, **kwargs)
-            remoteurl = "http://{0}:{1}/{2}".format(
-                os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8080"), path)
+            remoteurl = "http://{0}:{1}/{2}".format(os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8080"),
+                                                    path)
             response = self.proxy_view(request, remoteurl)
         except Exception as exc:
             response = self.handle_exception(exc)

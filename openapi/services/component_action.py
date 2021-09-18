@@ -10,8 +10,9 @@ from www.models.main import Tenants, TenantServiceInfo, Users
 class ComponnetActionService(object):
     def component_build(self, tenant: Tenants, component: TenantServiceInfo, user: Users, build_info):
         if component.create_status != "complete":
-            raise ServiceHandleException(
-                msg="component create status is " + component.create_status, msg_show="组件未完成创建，禁止构建", status_code=400)
+            raise ServiceHandleException(msg="component create status is " + component.create_status,
+                                         msg_show="组件未完成创建，禁止构建",
+                                         status_code=400)
         # if build_info.server_type:
         # change component server type
 

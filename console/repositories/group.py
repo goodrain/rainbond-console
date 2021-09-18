@@ -23,19 +23,18 @@ class GroupRepository(object):
         ServiceGroup.objects.filter(pk=app_id).update(**data)
 
     def list_tenant_group_on_region(self, tenant, region_name):
-        return ServiceGroup.objects.filter(
-            tenant_id=tenant.tenant_id, region_name=region_name).order_by("-update_time", "-order_index")
+        return ServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name).order_by(
+            "-update_time", "-order_index")
 
     def add_group(self, tenant_id, region_name, group_name, group_note="", is_default=False, username=""):
-        group = ServiceGroup.objects.create(
-            tenant_id=tenant_id,
-            region_name=region_name,
-            group_name=group_name,
-            note=group_note,
-            is_default=is_default,
-            username=username,
-            update_time=datetime.now(),
-            create_time=datetime.now())
+        group = ServiceGroup.objects.create(tenant_id=tenant_id,
+                                            region_name=region_name,
+                                            group_name=group_name,
+                                            note=group_note,
+                                            is_default=is_default,
+                                            username=username,
+                                            update_time=datetime.now(),
+                                            create_time=datetime.now())
         return group
 
     def update_group_time(self, group_id):
@@ -58,8 +57,10 @@ class GroupRepository(object):
         ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name, note=group_note, update_time=datetime.now())
 
     def update_governance_mode(self, tenant_id, region_name, app_id, governance_mode):
-        ServiceGroup.objects.filter(pk=app_id).update(
-            tenant_id=tenant_id, region_name=region_name, governance_mode=governance_mode, update_time=datetime.now())
+        ServiceGroup.objects.filter(pk=app_id).update(tenant_id=tenant_id,
+                                                      region_name=region_name,
+                                                      governance_mode=governance_mode,
+                                                      update_time=datetime.now())
 
     def delete_group_by_pk(self, group_id):
         logger.debug("delete group id {0}".format(group_id))
@@ -85,8 +86,8 @@ class GroupRepository(object):
         return ServiceGroup.objects.filter(pk=group_id).first()
 
     def get_default_by_service(self, service):
-        return ServiceGroup.objects.filter(
-            tenant_id=service.tenant_id, region_name=service.service_region, is_default=True).first()
+        return ServiceGroup.objects.filter(tenant_id=service.tenant_id, region_name=service.service_region,
+                                           is_default=True).first()
 
     def get_or_create_default_group(self, tenant_id, region_name):
         # 查询是否有团队在当前数据中心是否有默认应用，没有创建
@@ -105,8 +106,8 @@ class GroupRepository(object):
         return ServiceGroup.objects.filter(ID__in=app_ids).order_by("-update_time", "-order_index")
 
     def get_apps_in_multi_team(self, team_ids, region_names):
-        return ServiceGroup.objects.filter(
-            tenant_id__in=team_ids, region_name__in=region_names).order_by("-update_time", "-order_index")
+        return ServiceGroup.objects.filter(tenant_id__in=team_ids, region_name__in=region_names).order_by(
+            "-update_time", "-order_index")
 
     def get_by_service_id(self, tenant_id, service_id):
         try:
@@ -124,8 +125,10 @@ class GroupServiceRelationRepository(object):
         ServiceGroupRelation.objects.filter(service_id=service_id).delete()
 
     def add_service_group_relation(self, group_id, service_id, tenant_id, region_name):
-        sgr = ServiceGroupRelation.objects.create(
-            service_id=service_id, group_id=group_id, tenant_id=tenant_id, region_name=region_name)
+        sgr = ServiceGroupRelation.objects.create(service_id=service_id,
+                                                  group_id=group_id,
+                                                  tenant_id=tenant_id,
+                                                  region_name=region_name)
         return sgr
 
     def get_group_by_service_id(self, service_id):
