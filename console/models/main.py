@@ -178,18 +178,6 @@ class RainbondCenterAppTag(BaseModel):
     is_deleted = models.BooleanField(default=False, help_text="是否删除")
 
 
-class RainbondInitTeamApp(BaseModel):
-    """初使化默认团队应用信息"""
-
-    class Meta:
-        db_table = "rainbond_init_team_app"
-
-    app_info = models.TextField(help_text="默认应用配置信息")
-    app_version_info = models.TextField(help_text="默认应用版本配置信息")
-    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
-    is_deleted = models.BooleanField(default=False, help_text="是否删除")
-
-
 class RainbondCenterPlugin(BaseModel):
     """云市插件"""
 
