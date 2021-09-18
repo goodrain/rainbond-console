@@ -31,7 +31,6 @@ class EnterpriseServices(object):
     """
     企业组件接口，提供以企业为中心的操作集合，企业在云帮体系中为最大业务隔离单元，企业下有团队（也就是tenant）
     """
-
     def list_all(self, query="", page=None, page_size=None):
         ents = enterprise_repo.list_all(query)
         total = ents.count()

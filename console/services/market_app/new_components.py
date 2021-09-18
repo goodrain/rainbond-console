@@ -124,22 +124,21 @@ class NewComponents(object):
             http_rules, http_rule_configs = self._template_to_service_domain(cpt, ports)
             # labels
             labels = self._template_to_labels(cpt, component_tmpl.get("labels"))
-            component = Component(
-                cpt,
-                component_source,
-                envs,
-                ports,
-                volumes,
-                config_files,
-                probes,
-                extend_info,
-                monitors,
-                graphs, [],
-                http_rules=http_rules,
-                http_rule_configs=http_rule_configs,
-                service_group_rel=service_group_rel,
-                labels=labels,
-                support_labels=self.support_labels)
+            component = Component(cpt,
+                                  component_source,
+                                  envs,
+                                  ports,
+                                  volumes,
+                                  config_files,
+                                  probes,
+                                  extend_info,
+                                  monitors,
+                                  graphs, [],
+                                  http_rules=http_rules,
+                                  http_rule_configs=http_rule_configs,
+                                  service_group_rel=service_group_rel,
+                                  labels=labels,
+                                  support_labels=self.support_labels)
             component.ensure_port_envs(self.original_app.governance_mode)
             component.action_type = ActionType.BUILD.value
             result.append(component)
@@ -243,15 +242,14 @@ class NewComponents(object):
             if not env.get("attr_name"):
                 continue
             envs.append(
-                TenantServiceEnvVar(
-                    tenant_id=component.tenant_id,
-                    service_id=component.service_id,
-                    container_port=0,
-                    name=env.get("name"),
-                    attr_name=env.get("attr_name"),
-                    attr_value=env.get("attr_value"),
-                    is_change=env.get("is_change", True),
-                    scope="inner"))
+                TenantServiceEnvVar(tenant_id=component.tenant_id,
+                                    service_id=component.service_id,
+                                    container_port=0,
+                                    name=env.get("name"),
+                                    attr_name=env.get("attr_name"),
+                                    attr_value=env.get("attr_value"),
+                                    is_change=env.get("is_change", True),
+                                    scope="inner"))
         for env in outer_envs:
             if not env.get("attr_name"):
                 continue
@@ -259,15 +257,14 @@ class NewComponents(object):
             if env.get("attr_value") == "**None**":
                 env["attr_value"] = make_uuid()[:8]
             envs.append(
-                TenantServiceEnvVar(
-                    tenant_id=component.tenant_id,
-                    service_id=component.service_id,
-                    container_port=container_port,
-                    name=env.get("name"),
-                    attr_name=env.get("attr_name"),
-                    attr_value=env.get("attr_value"),
-                    is_change=env.get("is_change", True),
-                    scope="outer"))
+                TenantServiceEnvVar(tenant_id=component.tenant_id,
+                                    service_id=component.service_id,
+                                    container_port=container_port,
+                                    name=env.get("name"),
+                                    attr_name=env.get("attr_name"),
+                                    attr_value=env.get("attr_value"),
+                                    is_change=env.get("is_change", True),
+                                    scope="outer"))
         # port envs
         return envs
 
@@ -316,17 +313,16 @@ class NewComponents(object):
 
     def _create_default_gateway_rule(self, component: TenantServiceInfo, port: TenantServicesPort):
         domain_name = self._create_default_domain(component.service_alias, port.container_port)
-        return ServiceDomain(
-            service_id=component.service_id,
-            service_name=component.service_name,
-            domain_name=domain_name,
-            create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            container_port=port.container_port,
-            protocol="http",
-            http_rule_id=make_uuid(domain_name),
-            tenant_id=self.tenant.tenant_id,
-            service_alias=component.service_alias,
-            region_id=self.region.region_id)
+        return ServiceDomain(service_id=component.service_id,
+                             service_name=component.service_name,
+                             domain_name=domain_name,
+                             create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                             container_port=port.container_port,
+                             protocol="http",
+                             http_rule_id=make_uuid(domain_name),
+                             tenant_id=self.tenant.tenant_id,
+                             service_alias=component.service_alias,
+                             region_id=self.region.region_id)
 
     def _template_to_volumes(self, component, volumes):
         if not volumes:
@@ -337,10 +333,9 @@ class NewComponents(object):
             try:
                 if volume["volume_type"] == "config-file" and volume["file_content"] != "":
                     settings = None
-                    config_file = TenantServiceConfigurationFile(
-                        service_id=component.component_id,
-                        volume_name=volume["volume_name"],
-                        file_content=volume["file_content"])
+                    config_file = TenantServiceConfigurationFile(service_id=component.component_id,
+                                                                 volume_name=volume["volume_name"],
+                                                                 file_content=volume["file_content"])
                     config_files.append(config_file)
                 else:
                     settings = volume_service.get_best_suitable_volume_settings(self.tenant, component, volume["volume_type"],
@@ -358,14 +353,13 @@ class NewComponents(object):
                         settings["volume_capacity"] = volume.get("volume_capacity", 0)
 
                 volumes2.append(
-                    volume_service.create_service_volume(
-                        self.tenant,
-                        component,
-                        volume["volume_path"],
-                        volume["volume_type"],
-                        volume["volume_name"],
-                        settings=settings,
-                        mode=volume.get("mode")))
+                    volume_service.create_service_volume(self.tenant,
+                                                         component,
+                                                         volume["volume_path"],
+                                                         volume["volume_type"],
+                                                         volume["volume_name"],
+                                                         settings=settings,
+                                                         mode=volume.get("mode")))
             except ErrVolumePath:
                 logger.warning("Volume {0} Path {1} error".format(volume["volume_name"], volume["volume_path"]))
         return volumes2, config_files
@@ -387,17 +381,16 @@ class NewComponents(object):
         container_cpu = extend_info.get("container_cpu")
         if container_cpu is None:
             container_cpu = baseService.calculate_service_cpu(component.service_region, component.min_memory)
-        return ServiceExtendMethod(
-            service_key=component.service_key,
-            app_version=version,
-            min_node=extend_info["min_node"],
-            max_node=extend_info["max_node"],
-            step_node=extend_info["step_node"],
-            min_memory=extend_info["min_memory"],
-            max_memory=extend_info["max_memory"],
-            step_memory=extend_info["step_memory"],
-            is_restart=extend_info["is_restart"],
-            container_cpu=container_cpu)
+        return ServiceExtendMethod(service_key=component.service_key,
+                                   app_version=version,
+                                   min_node=extend_info["min_node"],
+                                   max_node=extend_info["max_node"],
+                                   step_node=extend_info["step_node"],
+                                   min_memory=extend_info["min_memory"],
+                                   max_memory=extend_info["max_memory"],
+                                   step_memory=extend_info["step_memory"],
+                                   is_restart=extend_info["is_restart"],
+                                   container_cpu=container_cpu)
 
     def _template_to_service_monitors(self, component, service_monitors):
         if not service_monitors:
@@ -407,14 +400,13 @@ class NewComponents(object):
             # Optimization: check all monitor names at once
             if ServiceMonitor.objects.filter(tenant_id=component.tenant_id, name=monitor["name"]).count() > 0:
                 monitor["name"] = "-".join([monitor["name"], make_uuid()[-4:]])
-            data = ServiceMonitor(
-                name=monitor["name"],
-                tenant_id=component.tenant_id,
-                service_id=component.service_id,
-                path=monitor["path"],
-                port=monitor["port"],
-                service_show_name=monitor["service_show_name"],
-                interval=monitor["interval"])
+            data = ServiceMonitor(name=monitor["name"],
+                                  tenant_id=component.tenant_id,
+                                  service_id=component.service_id,
+                                  path=monitor["path"],
+                                  port=monitor["port"],
+                                  service_show_name=monitor["service_show_name"],
+                                  interval=monitor["interval"])
             monitors.append(data)
         return monitors
 
@@ -531,19 +523,27 @@ class NewComponents(object):
 
     @staticmethod
     def _ingress_config(rule_id, ingress):
-        return GatewayCustomConfiguration(
-            rule_id=rule_id,
-            value=json.dumps({
-                "proxy_buffer_numbers": ingress["proxy_buffer_numbers"] if ingress["proxy_buffer_numbers"] else 4,
-                "proxy_buffer_size": ingress["proxy_buffer_size"] if ingress["proxy_buffer_size"] else 4,
-                "proxy_body_size": ingress["request_body_size_limit"] if ingress["request_body_size_limit"] else 0,
-                "proxy_connect_timeout": ingress["connection_timeout"] if ingress["connection_timeout"] else 5,
-                "proxy_read_timeout": ingress["response_timeout"] if ingress["response_timeout"] else 60,
-                "proxy_send_timeout": ingress["request_timeout"] if ingress["request_timeout"] else 60,
-                "proxy_buffering": "off",
-                "WebSocket": ingress["websocket"] if ingress["websocket"] else False,
-                "set_headers": ingress["proxy_header"],
-            }))
+        return GatewayCustomConfiguration(rule_id=rule_id,
+                                          value=json.dumps({
+                                              "proxy_buffer_numbers":
+                                              ingress["proxy_buffer_numbers"] if ingress["proxy_buffer_numbers"] else 4,
+                                              "proxy_buffer_size":
+                                              ingress["proxy_buffer_size"] if ingress["proxy_buffer_size"] else 4,
+                                              "proxy_body_size":
+                                              ingress["request_body_size_limit"] if ingress["request_body_size_limit"] else 0,
+                                              "proxy_connect_timeout":
+                                              ingress["connection_timeout"] if ingress["connection_timeout"] else 5,
+                                              "proxy_read_timeout":
+                                              ingress["response_timeout"] if ingress["response_timeout"] else 60,
+                                              "proxy_send_timeout":
+                                              ingress["request_timeout"] if ingress["request_timeout"] else 60,
+                                              "proxy_buffering":
+                                              "off",
+                                              "WebSocket":
+                                              ingress["websocket"] if ingress["websocket"] else False,
+                                              "set_headers":
+                                              ingress["proxy_header"],
+                                          }))
 
     @staticmethod
     def _ingress_load_balancing(lb):
@@ -562,10 +562,9 @@ class NewComponents(object):
             if not lab:
                 continue
             new_labels.append(
-                ServiceLabels(
-                    tenant_id=component.tenant_id,
-                    service_id=component.service_id,
-                    label_id=lab.label_id,
-                    region=self.region_name,
-                    create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+                ServiceLabels(tenant_id=component.tenant_id,
+                              service_id=component.service_id,
+                              label_id=lab.label_id,
+                              region=self.region_name,
+                              create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         return new_labels

@@ -227,8 +227,8 @@ class AppManageService(AppManageBase):
             if service.oauth_service_id:
                 try:
                     oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service.oauth_service_id)
-                    oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
-                        service_id=service.oauth_service_id, user_id=user.user_id)
+                    oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service.oauth_service_id,
+                                                                           user_id=user.user_id)
                 except Exception as e:
                     logger.exception(e)
                     return 400, "该组件构建源基于Oauth对接的代码仓库，Oauth服务可能已被删除，请在构建源中重新配置", ""
@@ -345,21 +345,22 @@ class AppManageService(AppManageBase):
                 file_content = volume.get("file_content", None)
                 settings = {}
                 settings["volume_capacity"] = volume["volume_capacity"]
-                volume_service.add_service_volume(
-                    tenant,
-                    service,
-                    volume["volume_path"],
-                    volume_type=volume["volume_type"],
-                    volume_name=volume["volume_name"],
-                    file_content=file_content,
-                    settings=settings)
+                volume_service.add_service_volume(tenant,
+                                                  service,
+                                                  volume["volume_path"],
+                                                  volume_type=volume["volume_type"],
+                                                  volume_name=volume["volume_name"],
+                                                  file_content=file_content,
+                                                  settings=settings)
 
     def __save_env(self, tenant, service, inner_envs, outer_envs):
         if not inner_envs and not outer_envs:
             return 200, "success"
         for env in inner_envs:
-            exist = env_var_repo.get_by_attr_name_and_scope(
-                tenant_id=tenant.tenant_id, service_id=service.service_id, attr_name=env["attr_name"], scope="inner")
+            exist = env_var_repo.get_by_attr_name_and_scope(tenant_id=tenant.tenant_id,
+                                                            service_id=service.service_id,
+                                                            attr_name=env["attr_name"],
+                                                            scope="inner")
             if exist:
                 continue
             code, msg, env_data = env_var_service. \
@@ -369,8 +370,10 @@ class AppManageService(AppManageBase):
                 logger.error("save market app env error {0}".format(msg))
                 return code, msg
         for env in outer_envs:
-            exist = env_var_repo.get_by_attr_name_and_scope(
-                tenant_id=tenant.tenant_id, service_id=service.service_id, attr_name=env["attr_name"], scope="outer")
+            exist = env_var_repo.get_by_attr_name_and_scope(tenant_id=tenant.tenant_id,
+                                                            service_id=service.service_id,
+                                                            attr_name=env["attr_name"],
+                                                            scope="outer")
             if exist:
                 continue
             container_port = env.get("container_port", 0)
@@ -395,26 +398,24 @@ class AppManageService(AppManageBase):
             service_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, int(port["container_port"]))
             if service_port:
                 if port["is_inner_service"]:
-                    code, msg, data = env_var_service.add_service_env_var(
-                        tenant,
-                        service,
-                        int(port["container_port"]),
-                        "连接地址",
-                        env_prefix + "_HOST",
-                        "127.0.0.1",
-                        False,
-                        scope="outer")
+                    code, msg, data = env_var_service.add_service_env_var(tenant,
+                                                                          service,
+                                                                          int(port["container_port"]),
+                                                                          "连接地址",
+                                                                          env_prefix + "_HOST",
+                                                                          "127.0.0.1",
+                                                                          False,
+                                                                          scope="outer")
                     if code != 200 and code != 412:
                         return code, msg
-                    code, msg, data = env_var_service.add_service_env_var(
-                        tenant,
-                        service,
-                        int(port["container_port"]),
-                        "端口",
-                        env_prefix + "_PORT",
-                        mapping_port,
-                        False,
-                        scope="outer")
+                    code, msg, data = env_var_service.add_service_env_var(tenant,
+                                                                          service,
+                                                                          int(port["container_port"]),
+                                                                          "端口",
+                                                                          env_prefix + "_PORT",
+                                                                          mapping_port,
+                                                                          False,
+                                                                          scope="outer")
                     if code != 200 and code != 412:
                         return code, msg
                 continue
@@ -629,8 +630,8 @@ class AppManageService(AppManageBase):
                 if service.oauth_service_id:
                     try:
                         oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service.oauth_service_id)
-                        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
-                            service_id=service.oauth_service_id, user_id=user.user_id)
+                        oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service.oauth_service_id,
+                                                                               user_id=user.user_id)
                     except Exception as e:
                         logger.debug(e)
                         continue
@@ -676,8 +677,9 @@ class AppManageService(AppManageBase):
                                 if install_from_cloud:
                                     # TODO:Skip the subcontract structure to avoid loop introduction
                                     market_name = old_extent_info.get("market_name")
-                                    market = app_market_service.get_app_market_by_name(
-                                        tenant.enterprise_id, market_name, raise_exception=True)
+                                    market = app_market_service.get_app_market_by_name(tenant.enterprise_id,
+                                                                                       market_name,
+                                                                                       raise_exception=True)
                                     _, app_version = app_market_service.cloud_app_model_to_db_model(
                                         market, service_source.group_key, service_source.version)
                                 # install from local cloud
@@ -1244,15 +1246,15 @@ class AppManageService(AppManageBase):
                     continue
                 if tenant_service_volume["volume_type"] == "local":
                     if old_extend_method == ComponentType.state_singleton.value:
-                        raise ServiceHandleException(
-                            msg="local storage only support state_singleton", msg_show="本地存储仅支持有状态单实例组件")
+                        raise ServiceHandleException(msg="local storage only support state_singleton",
+                                                     msg_show="本地存储仅支持有状态单实例组件")
                 if tenant_service_volume.get("access_mode", "") == "RWO":
                     if not is_state(extend_method):
                         raise ServiceHandleException(msg="storage access mode do not support", msg_show="存储读写属性限制,不可修改为无状态组件")
         # 实例个数限制
         if is_singleton(extend_method) and service.min_node > 1:
-            raise ServiceHandleException(
-                msg="singleton service limit", msg_show="组件实例数为{0}，不可修改为单实例组件类型".format(service.min_node))
+            raise ServiceHandleException(msg="singleton service limit",
+                                         msg_show="组件实例数为{0}，不可修改为单实例组件类型".format(service.min_node))
 
         if service.create_status != "complete":
             service.extend_method = extend_method

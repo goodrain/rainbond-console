@@ -37,21 +37,19 @@ class MultiAppService(object):
         group_id = service_group_relation_repo.get_group_id_by_service(temporary_service)
 
         # save services
-        service_ids = self.save_multi_services(
-            region_name=region_name,
-            tenant=tenant,
-            group_id=group_id,
-            service=temporary_service,
-            user=user,
-            service_infos=service_infos)
+        service_ids = self.save_multi_services(region_name=region_name,
+                                               tenant=tenant,
+                                               group_id=group_id,
+                                               service=temporary_service,
+                                               user=user,
+                                               service_infos=service_infos)
 
         code, msg = app_manage_service.delete(user, tenant, temporary_service, True)
         if code != 200:
-            raise AbortRequest(
-                "Service id: " + temporary_service.service_id + "; error deleting temporary service",
-                msg,
-                status_code=400,
-                error_code=code)
+            raise AbortRequest("Service id: " + temporary_service.service_id + "; error deleting temporary service",
+                               msg,
+                               status_code=400,
+                               error_code=code)
 
         return group_id, service_ids
 

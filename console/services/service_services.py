@@ -41,8 +41,7 @@ class BaseService(object):
                 AND t.service_region = "{region_name}"
             ORDER BY
                 t.update_time DESC;
-        '''.format(
-            team_id=team_id, region_name=region_name)
+        '''.format(team_id=team_id, region_name=region_name)
         services = dsn.query(query_sql)
         return services
 
@@ -71,8 +70,7 @@ class BaseService(object):
                 AND t.service_cname like "%{service_cname}%"
             ORDER BY
                 t.update_time DESC;
-        '''.format(
-            team_id=team_id, region_name=region_name, group_id=group_id, service_cname=query)
+        '''.format(team_id=team_id, region_name=region_name, group_id=group_id, service_cname=query)
         services = dsn.query(query_sql)
         return services
 
@@ -100,8 +98,7 @@ class BaseService(object):
                 AND r.group_id IS NULL
             ORDER BY
                 t.update_time DESC;
-        '''.format(
-            team_id=team_id, region_name=region_name)
+        '''.format(team_id=team_id, region_name=region_name)
         services = dsn.query(query_sql)
         return services
 
@@ -134,8 +131,7 @@ class BaseService(object):
                 AND t.service_cname LIKE "%{query_key}%"
             ORDER BY
                 t.{fields} {order};
-        '''.format(
-            team_id=team_id, region_name=region_name, query_key=query_key, fields=fields, order=order)
+        '''.format(team_id=team_id, region_name=region_name, query_key=query_key, fields=fields, order=order)
         services = dsn.query(query_sql)
         return services
 
@@ -233,8 +229,9 @@ class BaseService(object):
                         try:
                             market = markets.get(market_name, None)
                             if not market:
-                                market = app_market_service.get_app_market_by_name(
-                                    tenant.enterprise_id, market_name, raise_exception=True)
+                                market = app_market_service.get_app_market_by_name(tenant.enterprise_id,
+                                                                                   market_name,
+                                                                                   raise_exception=True)
                                 markets[market_name] = market
 
                             app = apps.get(service_source.group_key, None)

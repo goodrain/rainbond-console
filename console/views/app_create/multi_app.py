@@ -61,21 +61,19 @@ class MultiAppCreateView(RegionTenantHeaderView):
         if resp:
             return resp
 
-        group_id, service_ids = multi_app_service.create_services(
-            region_name=self.response_region,
-            tenant=self.tenant,
-            user=self.user,
-            service_alias=service_alias,
-            service_infos=service_infos)
+        group_id, service_ids = multi_app_service.create_services(region_name=self.response_region,
+                                                                  tenant=self.tenant,
+                                                                  user=self.user,
+                                                                  service_alias=service_alias,
+                                                                  service_infos=service_infos)
 
-        result = general_message(
-            200,
-            "successfully create the multi-services",
-            "成功创建多组件应用",
-            bean={
-                "group_id": group_id,
-                "service_ids": service_ids,
-            })
+        result = general_message(200,
+                                 "successfully create the multi-services",
+                                 "成功创建多组件应用",
+                                 bean={
+                                     "group_id": group_id,
+                                     "service_ids": service_ids,
+                                 })
 
         return Response(result, status=result["code"])
 

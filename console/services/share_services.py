@@ -40,8 +40,10 @@ class ShareService(object):
         if service_list:
             # 批量查询组件状态
             service_ids = [service.service_id for service in service_list]
-            status_list = base_service.status_multi_service(
-                region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
+            status_list = base_service.status_multi_service(region=region_name,
+                                                            tenant_name=team_name,
+                                                            service_ids=service_ids,
+                                                            enterprise_id=team.enterprise_id)
             for status in status_list:
                 if status["status"] == "running":
                     data = {"code": 200, "success": True, "msg_show": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
@@ -86,8 +88,8 @@ class ShareService(object):
             relation_list_service_ids = relation_list.values_list("service_id", flat=True)
             dep_service_map = {service_id: [] for service_id in relation_list_service_ids}
             for dep_service in relation_list:
-                dep_service_info = TenantServiceInfo.objects.filter(
-                    service_id=dep_service.dep_service_id, tenant_id=dep_service.tenant_id).first()
+                dep_service_info = TenantServiceInfo.objects.filter(service_id=dep_service.dep_service_id,
+                                                                    tenant_id=dep_service.tenant_id).first()
                 if dep_service_info is None:
                     continue
                 dep_service_map[dep_service.service_id].append(dep_service_info)
@@ -482,13 +484,12 @@ class ShareService(object):
 
     def create_publish_event(self, record_event, user_name, event_type):
         import datetime
-        event = ServiceEvent(
-            event_id=make_uuid(),
-            service_id=record_event.service_id,
-            tenant_id=record_event.team_id,
-            type=event_type,
-            user_name=user_name,
-            start_time=datetime.datetime.now())
+        event = ServiceEvent(event_id=make_uuid(),
+                             service_id=record_event.service_id,
+                             tenant_id=record_event.team_id,
+                             type=event_type,
+                             user_name=user_name,
+                             start_time=datetime.datetime.now())
         event.save()
         return event
 
@@ -785,13 +786,12 @@ class ShareService(object):
                         # one account for one plugin
                         share_image_info = app_store.get_app_hub_info(market, app_model_id, share_team.enterprise_id)
                         plugin_info["plugin_image"] = share_image_info
-                        event = PluginShareRecordEvent(
-                            record_id=share_record.ID,
-                            team_name=share_team.tenant_name,
-                            team_id=share_team.tenant_id,
-                            plugin_id=plugin_info['plugin_id'],
-                            plugin_name=plugin_info['plugin_alias'],
-                            event_status='not_start')
+                        event = PluginShareRecordEvent(record_id=share_record.ID,
+                                                       team_name=share_team.tenant_name,
+                                                       team_id=share_team.tenant_id,
+                                                       plugin_id=plugin_info['plugin_id'],
+                                                       plugin_name=plugin_info['plugin_alias'],
+                                                       event_status='not_start')
                         event.save()
 
                     shared_plugin_info = self.get_plugins_group_items(plugins)
@@ -844,15 +844,14 @@ class ShareService(object):
                             service["service_related_plugin_config"], shared_plugin_info)
 
                         if service.get("need_share", None):
-                            ssre = ServiceShareRecordEvent(
-                                team_id=share_team.tenant_id,
-                                service_key=service["service_key"],
-                                service_id=service["service_id"],
-                                service_name=service["service_cname"],
-                                service_alias=service["service_alias"],
-                                record_id=share_record.ID,
-                                team_name=share_team.tenant_name,
-                                event_status="not_start")
+                            ssre = ServiceShareRecordEvent(team_id=share_team.tenant_id,
+                                                           service_key=service["service_key"],
+                                                           service_id=service["service_id"],
+                                                           service_name=service["service_cname"],
+                                                           service_alias=service["service_alias"],
+                                                           record_id=share_record.ID,
+                                                           team_name=share_team.tenant_name,
+                                                           event_status="not_start")
                             ssre.save()
                         new_services.append(service)
                     app_templete["apps"] = new_services
@@ -989,17 +988,15 @@ class ShareService(object):
     @staticmethod
     def _handle_dependencies(service, dev_service_set, use_force):
         """检查组件依赖信息，如果依赖不完整则中断请求， 如果强制执行则删除依赖"""
-
         def filter_dep(dev_service):
             """过滤依赖关系"""
             dep_service_key = dev_service['dep_service_key']
             if dep_service_key not in dev_service_set:
                 return False
             elif dep_service_key not in dev_service_set and not use_force:
-                raise AbortRequest(
-                    error_code=10501,
-                    msg="{} service is missing dependencies".format(service['service_cname']),
-                    msg_show="{}组件缺少依赖组件，请添加依赖组件，或强制执行".format(service['service_cname']))
+                raise AbortRequest(error_code=10501,
+                                   msg="{} service is missing dependencies".format(service['service_cname']),
+                                   msg_show="{}组件缺少依赖组件，请添加依赖组件，或强制执行".format(service['service_cname']))
             else:
                 return True
 
@@ -1021,8 +1018,8 @@ class ShareService(object):
             app.is_complete = True
             app.update_time = datetime.datetime.now()
             app.save()
-            RainbondCenterAppVersion.objects.filter(
-                app_id=app.app_id, source="local", scope="goodrain", is_complete=True).delete()
+            RainbondCenterAppVersion.objects.filter(app_id=app.app_id, source="local", scope="goodrain",
+                                                    is_complete=True).delete()
             share_record.is_success = True
             share_record.step = 3
             share_record.status = 1
@@ -1042,8 +1039,9 @@ class ShareService(object):
             data["version"] = app.version
             data["version_alias"] = app.version_alias
             # TODO 修改传入数据, 修改返回数据
-            market = app_market_service.get_app_market_by_name(
-                tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
+            market = app_market_service.get_app_market_by_name(tenant.enterprise_id,
+                                                               share_record.share_app_market_name,
+                                                               raise_exception=True)
             app_market_service.create_market_app_model_version(market, app.app_id, data)
             # 云市url
         except HttpClient.CallApiError as e:
@@ -1118,10 +1116,9 @@ class ShareService(object):
                     "dev_status":
                     app.dev_status,
                     "versions":
-                    sorted(
-                        app_versions,
-                        key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x["version"].split(".")],
-                        reverse=True),
+                    sorted(app_versions,
+                           key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x["version"].split(".")],
+                           reverse=True),
                     "scope":
                     app.scope,
                 })
@@ -1153,10 +1150,9 @@ class ShareService(object):
                         "app_id":
                         app.app_id,
                         "versions":
-                        sorted(
-                            versions,
-                            key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x["version"].split(".")],
-                            reverse=True),
+                        sorted(versions,
+                               key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in x["version"].split(".")],
+                               reverse=True),
                         "pic":
                         app.logo,
                         "app_describe":
@@ -1225,10 +1221,13 @@ class ShareService(object):
             return None, None
         if last_shared.scope == "goodrain":
             try:
-                market = app_market_service.get_app_market_by_name(
-                    tenant.enterprise_id, last_shared.share_app_market_name, raise_exception=True)
-                app_version = app_market_service.get_market_app_model_version(
-                    market, last_shared.app_id, last_shared.share_version, get_template=True)
+                market = app_market_service.get_app_market_by_name(tenant.enterprise_id,
+                                                                   last_shared.share_app_market_name,
+                                                                   raise_exception=True)
+                app_version = app_market_service.get_market_app_model_version(market,
+                                                                              last_shared.app_id,
+                                                                              last_shared.share_version,
+                                                                              get_template=True)
             except ServiceHandleException as e:
                 logger.debug(e)
                 return None, None

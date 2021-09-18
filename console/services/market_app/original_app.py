@@ -86,20 +86,19 @@ class OriginalApp(object):
             probes = probe_repo.list_probes(cpt.service_id)
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
-            component = Component(
-                cpt,
-                component_source,
-                envs,
-                ports,
-                volumes,
-                config_files,
-                probes,
-                None,
-                monitors,
-                graphs, [],
-                http_rules=http_rules.get(cpt.component_id),
-                tcp_rules=tcp_rules.get(cpt.component_id),
-                support_labels=self.support_labels)
+            component = Component(cpt,
+                                  component_source,
+                                  envs,
+                                  ports,
+                                  volumes,
+                                  config_files,
+                                  probes,
+                                  None,
+                                  monitors,
+                                  graphs, [],
+                                  http_rules=http_rules.get(cpt.component_id),
+                                  tcp_rules=tcp_rules.get(cpt.component_id),
+                                  support_labels=self.support_labels)
             result.append(component)
         return result
 
