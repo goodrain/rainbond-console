@@ -342,7 +342,7 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         region_data["provider"] = request.data.get("provider", "")
         region_data["provider_cluster_id"] = request.data.get("provider_cluster_id", "")
         region_data["status"] = "1"
-        region = region_services.add_region(region_data)
+        region = region_services.add_region(region_data, request.user)
         if region:
             data = region_services.get_enterprise_region(enterprise_id, region.region_id, check_status=False)
             result = general_message(200, "success", "创建成功", bean=data)

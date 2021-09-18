@@ -19,6 +19,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from www.utils.return_message import error_message, general_message
 from console.utils.validation import validate_name
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger('default')
 
@@ -205,7 +206,7 @@ class CenterAppCLView(JWTAuthApiView):
             "source": source,
             "create_team": create_team,
         }
-        market_app_service.create_rainbond_app(enterprise_id, app_info)
+        market_app_service.create_rainbond_app(enterprise_id, app_info, make_uuid())
 
         result = general_message(200, "success", None)
         return Response(result, status=200)

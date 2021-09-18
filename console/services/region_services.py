@@ -1,23 +1,27 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import os
 
 import yaml
 from console.enum.region_enum import RegionStatusEnum
 from console.exception.exceptions import RegionUnreachableError
 from console.exception.main import ServiceHandleException
-from console.models.main import ConsoleSysConfig, RegionConfig
+from console.models.main import ConsoleSysConfig, RegionConfig, RainbondCenterAppVersion
 from console.repositories.app import service_repo
 from console.repositories.group import group_repo
 from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
+
 from console.services.config_service import platform_config_service
 from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
 from console.services.service_services import base_service
+
 from django.core.paginator import Paginator
 from django.db import transaction
+
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
@@ -373,7 +377,7 @@ class RegionService(object):
     def get_regions_by_enterprise_id(self, enterprise_id):
         return RegionConfig.objects.filter(enterprise_id=enterprise_id)
 
-    def add_region(self, region_data):
+    def add_region(self, region_data, user):
         ent = enterprise_services.get_enterprise_by_enterprise_id(region_data.get("enterprise_id"))
         if not ent:
             raise ServiceHandleException(status_code=404, msg="enterprise not found", msg_show="企业不存在")
@@ -382,11 +386,74 @@ class RegionService(object):
         if region:
             raise ServiceHandleException(status_code=400, msg="", msg_show="集群ID{0}已存在".format(region_data["region_name"]))
         try:
+
             region_api.test_region_api(region_data)
         except ServiceHandleException:
             raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
+
+        # 根据当前企业查询是否有region
+        exist_region = region_repo.get_region_by_enterprise_id(ent.enterprise_id)
         region = region_repo.create_region(region_data)
-        return region
+
+        if exist_region:
+            return region
+
+        try:
+            # 创建默认团队
+            from console.services.team_services import team_services
+            team = team_services.create_team(user, ent, None, None)
+            region_services.create_tenant_on_region(ent.enterprise_id, team.tenant_name, region.region_name)
+
+            # 创建默认应用
+            tenant = team_repo.get_team_by_team_name_and_eid(ent.enterprise_id, team.tenant_name)
+            group = group_service.create_default_app(tenant, region.region_name)
+
+            module_dir = os.path.dirname(__file__) + '/plugin/'
+            file_path = os.path.join(module_dir, 'init_app_default.json')
+            with open(file_path) as f:
+                default_app_config = json.load(f)
+                version_template = default_app_config["version_template"]
+                app_version = json.dumps(version_template)
+
+            # 创建应用模型安装的组件从属关系
+            scope = default_app_config["scope"]
+            init_app_info = {
+                "app_name": group["group_name"],
+                "scope": scope,
+                "pic": default_app_config["pic"],
+                "describe": default_app_config["describe"],
+            }
+            app_uuid = make_uuid()
+            from console.services.market_app_service import market_app_service
+            market_app_service.create_rainbond_app(ent.enterprise_id, init_app_info, app_uuid)
+
+            rainbond_app_version = RainbondCenterAppVersion(
+                app_template=app_version,
+                enterprise_id=ent.enterprise_id,
+                app_id=app_uuid,
+                version="1.0",
+                template_version="v1",
+                record_id=0,
+                share_team=team.tenant_name,
+                share_user=1,
+                scope=scope)
+            rainbond_app_version.save()
+
+            # 创建默认组件
+            app_model_key = app_uuid
+            version = "1.0"
+            app_id = group["ID"]
+            install_from_cloud = False
+            is_deploy = True
+            market_name = ""
+            market_app_service.install_app(tenant, region, user, app_id, app_model_key, version, market_name,
+                                           install_from_cloud, is_deploy)
+
+            return region
+
+        except Exception as e:
+            logger.exception(e)
+            return region
 
     def update_region(self, region_data):
         region_id = region_data.get("region_id")
