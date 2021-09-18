@@ -6,7 +6,7 @@ import logging
 import time
 
 from console.models.main import (AppExportRecord, AppImportRecord, RainbondCenterApp, RainbondCenterAppTagsRelation,
-                                 RainbondCenterAppVersion, RainbondInitTeamApp)
+                                 RainbondCenterAppVersion)
 from django.db.models import Q
 from www.db.base import BaseConnection
 
@@ -591,13 +591,6 @@ class AppImportRepository(object):
             status__in=["success", "failed"])
 
 
-class RainbondInitTeamAppRepository(object):
-    def get_init_team_app(self):
-        record = RainbondInitTeamApp.objects.first()
-        return record
-
-
 rainbond_app_repo = RainbondCenterAppRepository()
 app_export_record_repo = AppExportRepository()
 app_import_record_repo = AppImportRepository()
-init_team_app_repo = RainbondInitTeamAppRepository()
