@@ -52,8 +52,8 @@ class PlatformDataBackupServices(object):
     def version_than(self, backup_path):
         with open(os.path.join(backup_path, 'version'), 'w') as f:
             if f.read() != settings.VERSION:
-                raise ServiceHandleException(msg="The data version is inconsistent with the code version.",
-                                             msg_show="数据版本不同，不能导入")
+                raise ServiceHandleException(
+                    msg="The data version is inconsistent with the code version.", msg_show="数据版本不同，不能导入")
 
     def upload_file(self, upload_file):
         try:
@@ -89,8 +89,8 @@ class PlatformDataBackupServices(object):
 
     def recover_adaptor_data(self, file_name):
         files = {'file': open(file_name, 'rb')}
-        remoteurl = "http://{0}:{1}/{2}".format(os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8080"),
-                                                "enterprise-server/api/v1/recover")
+        remoteurl = "http://{0}:{1}/{2}".format(
+            os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8080"), "enterprise-server/api/v1/recover")
         r = requests.post(remoteurl, files=files)
         if r.status_code != 200:
             raise ServiceHandleException(msg="export adaptor data failed", msg_show="恢复adaptor数据失败")
@@ -106,8 +106,8 @@ class PlatformDataBackupServices(object):
         return console_data_name
 
     def export_adaptor_data(self, data_path):
-        remoteurl = "http://{0}:{1}/{2}".format(os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8080"),
-                                                "enterprise-server/api/v1/backup")
+        remoteurl = "http://{0}:{1}/{2}".format(
+            os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8080"), "enterprise-server/api/v1/backup")
         local_filename = os.path.join(data_path, "adaptor_data.tar.gz")
         r = requests.get(remoteurl)
         f = open(local_filename, 'wb')
@@ -120,23 +120,25 @@ class PlatformDataBackupServices(object):
 
     def compressed_file_by_tar(self, backup_path, tarname):
 
-        dump_resp = subprocess.run("tar -czf {0} ./".format(tarname),
-                                   shell=True,
-                                   cwd=backup_path,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   encoding="utf-8")
+        dump_resp = subprocess.run(
+            "tar -czf {0} ./".format(tarname),
+            shell=True,
+            cwd=backup_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            encoding="utf-8")
         if dump_resp.returncode != 0:
             logger.error(msg=dump_resp.stderr)
             raise ServiceHandleException(msg="export adaptor data failed", msg_show="备份数据打包失败")
 
     def un_compressed_file_by_tar(self, recover_path, tarname):
-        dump_resp = subprocess.run("tar -xzf {0} -C {1}".format(tarname, recover_path),
-                                   shell=True,
-                                   cwd=settings.DATA_DIR + "/backups/",
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   encoding="utf-8")
+        dump_resp = subprocess.run(
+            "tar -xzf {0} -C {1}".format(tarname, recover_path),
+            shell=True,
+            cwd=settings.DATA_DIR + "/backups/",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            encoding="utf-8")
         if dump_resp.returncode != 0:
             logger.error(msg=dump_resp.stderr)
             raise ServiceHandleException(msg="export adaptor data failed", msg_show="备份数据解压失败")

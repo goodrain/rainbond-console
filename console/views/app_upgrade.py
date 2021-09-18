@@ -34,17 +34,11 @@ class GroupAppView(RegionTenantHeaderView):
 class AppUpgradeVersion(RegionTenantHeaderView):
     def get(self, request, group_id, *args, **kwargs):
         """获取安装的应用模版的可升级版本"""
-        group_key = parse_argument(request,
-                                   'group_key',
-                                   value_type=str,
-                                   required=True,
-                                   error='group_key is a required parameter')
+        group_key = parse_argument(
+            request, 'group_key', value_type=str, required=True, error='group_key is a required parameter')
 
-        upgrade_group_id = parse_argument(request,
-                                          'upgrade_group_id',
-                                          default=None,
-                                          value_type=int,
-                                          error='upgrade_group_id is a required parameter')
+        upgrade_group_id = parse_argument(
+            request, 'upgrade_group_id', default=None, value_type=int, error='upgrade_group_id is a required parameter')
 
         if upgrade_group_id == 0 or upgrade_group_id == "0":
             upgrade_group_id = None
@@ -89,11 +83,8 @@ class UpgradeType(Enum):
 
 class AppUpgradeInfoView(ApplicationView):
     def get(self, request, group_id, *args, **kwargs):
-        upgrade_group_id = parse_argument(request,
-                                          'upgrade_group_id',
-                                          default=None,
-                                          value_type=int,
-                                          error='upgrade_group_id is a required parameter')
+        upgrade_group_id = parse_argument(
+            request, 'upgrade_group_id', default=None, value_type=int, error='upgrade_group_id is a required parameter')
         version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
         changes = upgrade_service.get_property_changes(self.tenant, self.region, self.user, self.app, upgrade_group_id, version)
         return MessageResponse(msg="success", list=changes)
@@ -107,11 +98,8 @@ class AppUpgradeRollbackView(AppUpgradeRecordView):
 
 class AppUpgradeDetailView(ApplicationView):
     def get(self, request, upgrade_group_id, *args, **kwargs):
-        record_id = parse_argument(request,
-                                   'record_id',
-                                   value_type=str,
-                                   required=True,
-                                   error='record_id is a required parameter')
+        record_id = parse_argument(
+            request, 'record_id', value_type=str, required=True, error='record_id is a required parameter')
         record = upgrade_repo.get_by_record_id(record_id)
         # get app model upgrade versions
         versions = market_app_service.list_app_upgradeable_versions(self.tenant.enterprise_id, record)
@@ -121,11 +109,8 @@ class AppUpgradeDetailView(ApplicationView):
 class AppUpgradeComponentListView(ApplicationView):
     def get(self, request, upgrade_group_id, *args, **kwargs):
         # same as app_key or group_key
-        app_model_key = parse_argument(request,
-                                       'app_model_key',
-                                       value_type=str,
-                                       required=True,
-                                       error='app_model_key is a required parameter')
+        app_model_key = parse_argument(
+            request, 'app_model_key', value_type=str, required=True, error='app_model_key is a required parameter')
         components = market_app_service.list_rainbond_app_components(self.user.enterprise_id, self.tenant, self.app_id,
                                                                      app_model_key, upgrade_group_id)
         return MessageResponse(msg="success", list=components)

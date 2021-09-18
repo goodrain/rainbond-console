@@ -119,16 +119,17 @@ class TenantGroupOperationView(ApplicationView):
         version = request.data.get("version", "")
         revision = request.data.get("revision", 0)
 
-        group_service.update_group(self.tenant,
-                                   self.response_region,
-                                   app_id,
-                                   app_name,
-                                   note,
-                                   username,
-                                   overrides=overrides,
-                                   version=version,
-                                   revision=revision,
-                                   logo=logo)
+        group_service.update_group(
+            self.tenant,
+            self.response_region,
+            app_id,
+            app_name,
+            note,
+            username,
+            overrides=overrides,
+            version=version,
+            revision=revision,
+            logo=logo)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 

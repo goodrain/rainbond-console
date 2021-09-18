@@ -157,6 +157,7 @@ class JWTAuthenticationSafe(JSONWebTokenAuthentication):
     This class can obtain relevant user information when it has a token,
     and is used for apis that do not require authentication
     """
+
     def authenticate(self, request):
         try:
             return super().authenticate(request=request)
@@ -313,8 +314,8 @@ class TenantHeaderView(JWTAuthApiView):
     def initial(self, request, *args, **kwargs):
         self.user = request.user
         self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
-        enterprise_user_perms = EnterpriseUserPerm.objects.filter(enterprise_id=self.user.enterprise_id,
-                                                                  user_id=self.user.user_id).first()
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
+            enterprise_id=self.user.enterprise_id, user_id=self.user.user_id).first()
         if enterprise_user_perms:
             self.is_enterprise_admin = True
         self.tenant_name = kwargs.get("tenantName", None)
@@ -354,8 +355,8 @@ class TenantHeaderView(JWTAuthApiView):
             self.is_team_owner = True
         self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.tenant.enterprise_id).first()
         self.is_enterprise_admin = False
-        enterprise_user_perms = EnterpriseUserPerm.objects.filter(enterprise_id=self.tenant.enterprise_id,
-                                                                  user_id=self.user.user_id).first()
+        enterprise_user_perms = EnterpriseUserPerm.objects.filter(
+            enterprise_id=self.tenant.enterprise_id, user_id=self.user.user_id).first()
         if enterprise_user_perms:
             self.is_enterprise_admin = True
         self.get_perms()

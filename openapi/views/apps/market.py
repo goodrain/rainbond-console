@@ -28,11 +28,8 @@ class AppInstallView(TeamAppAPIView):
         operation_description="安装云市应用",
         manual_parameters=[
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
-            openapi.Parameter("is_deploy",
-                              openapi.IN_QUERY,
-                              description="是否构建",
-                              type=openapi.TYPE_STRING,
-                              enum=["true", "false"]),
+            openapi.Parameter(
+                "is_deploy", openapi.IN_QUERY, description="是否构建", type=openapi.TYPE_STRING, enum=["true", "false"]),
         ],
         request_body=InstallSerializer(),
         responses={200: MarketInstallSerializer()},
@@ -64,23 +61,14 @@ class AppInstallView(TeamAppAPIView):
             app_market_service.create_app_market(dt)
             dt, market = app_market_service.get_app_market(self.team.enterprise_id, market_name, raise_exception=True)
         market_name = market.name
-        app, app_version_info = app_market_service.cloud_app_model_to_db_model(market,
-                                                                               app_model_id,
-                                                                               app_model_version,
-                                                                               for_install=True)
+        app, app_version_info = app_market_service.cloud_app_model_to_db_model(
+            market, app_model_id, app_model_version, for_install=True)
         if not app:
             raise ServiceHandleException(status_code=404, msg="not found", msg_show="云端应用不存在")
         if not app_version_info:
             raise ServiceHandleException(status_code=404, msg="not found", msg_show="云端应用版本不存在")
-        market_app_service.install_service(self.team,
-                                           self.region_name,
-                                           self.user,
-                                           app_id,
-                                           app,
-                                           app_version_info,
-                                           is_deploy,
-                                           True,
-                                           market_name=market_name)
+        market_app_service.install_service(
+            self.team, self.region_name, self.user, app_id, app, app_version_info, is_deploy, True, market_name=market_name)
         services = group_service.get_group_services(app_id)
         app_info = model_to_dict(self.app)
         app_info["app_name"] = app_info["group_name"]

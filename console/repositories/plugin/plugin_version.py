@@ -28,16 +28,16 @@ class PluginVersionRepository(object):
         PluginBuildVersion.objects.filter(tenant_id=tenant_id, plugin_id=plugin_id).delete()
 
     def get_last_ok_one(self, plugin_id, tenant_id):
-        pbv = PluginBuildVersion.objects.filter(plugin_id=plugin_id, tenant_id=tenant_id,
-                                                build_status="build_success").order_by("-build_time")
+        pbv = PluginBuildVersion.objects.filter(
+            plugin_id=plugin_id, tenant_id=tenant_id, build_status="build_success").order_by("-build_time")
         if not pbv:
             return None
         return pbv[0]
 
     def create_if_not_exist(self, **plugin_build_version):
         try:
-            return PluginBuildVersion.objects.get(plugin_id=plugin_build_version["plugin_id"],
-                                                  tenant_id=plugin_build_version["tenant_id"])
+            return PluginBuildVersion.objects.get(
+                plugin_id=plugin_build_version["plugin_id"], tenant_id=plugin_build_version["tenant_id"])
         except PluginBuildVersion.DoesNotExist:
             return PluginBuildVersion.objects.create(**plugin_build_version)
 

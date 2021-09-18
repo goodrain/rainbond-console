@@ -363,8 +363,8 @@ class TopologicalPortView(AppBaseView):
                 return Response(general_message(200, "open outer success", "开启成功"), status=200)
             else:
                 # 多个端口需要用户选择后开启
-                return Response(general_message(201, "the service does not open an external port", "该组件未开启对外端口",
-                                                list=port_list),
-                                status=201)
+                return Response(
+                    general_message(201, "the service does not open an external port", "该组件未开启对外端口", list=port_list),
+                    status=201)
         else:
             return Response(general_message(202, "the service has an external port open", "该组件已开启对外端口"), status=200)

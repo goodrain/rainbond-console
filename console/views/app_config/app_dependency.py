@@ -156,10 +156,8 @@ class AppDependencyView(AppBaseView):
         if self.service.is_third_party():
             raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖组件")
         dep_service_list = dep_service_ids.split(",")
-        code, msg = dependency_service.patch_add_dependency(self.tenant,
-                                                            self.service,
-                                                            dep_service_list,
-                                                            user_name=self.user.nick_name)
+        code, msg = dependency_service.patch_add_dependency(
+            self.tenant, self.service, dep_service_list, user_name=self.user.nick_name)
         if code != 200:
             result = general_message(code, "add dependency error", msg)
             return Response(result, status=code)

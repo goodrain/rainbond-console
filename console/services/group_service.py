@@ -310,12 +310,13 @@ class GroupService(object):
         :param group_id:
         :rtype: ServiceGroup
         """
-        return get_object_or_404(ServiceGroup,
-                                 msg="Group does not exist",
-                                 msg_show="应用不存在",
-                                 tenant_id=tenant.tenant_id,
-                                 region_name=response_region,
-                                 pk=group_id)
+        return get_object_or_404(
+            ServiceGroup,
+            msg="Group does not exist",
+            msg_show="应用不存在",
+            tenant_id=tenant.tenant_id,
+            region_name=response_region,
+            pk=group_id)
 
     def get_service_group_info(self, service_id):
         return group_service_relation_repo.get_group_info_by_service_id(service_id)

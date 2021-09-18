@@ -107,9 +107,10 @@ class MarketPluginService(object):
         market_plugin = plugin_template.get('plugin')
         if not market_plugin:
             return True
-        rcps = RainbondCenterPlugin.objects.filter(plugin_key=market_plugin.get('plugin_key'),
-                                                   version=market_plugin.get('major_version'),
-                                                   enterprise_id__in=[tenant.enterprise_id, "public"])
+        rcps = RainbondCenterPlugin.objects.filter(
+            plugin_key=market_plugin.get('plugin_key'),
+            version=market_plugin.get('major_version'),
+            enterprise_id__in=[tenant.enterprise_id, "public"])
 
         rcp = None
         if rcps:
@@ -139,22 +140,23 @@ class MarketPluginService(object):
             return True
         else:
             enterprise_id = tenant.enterprise_id
-            rcp = RainbondCenterPlugin(plugin_key=market_plugin.get('plugin_key'),
-                                       plugin_name=market_plugin.get('name'),
-                                       version=market_plugin.get('major_version'),
-                                       desc=market_plugin.get('intro'),
-                                       pic=market_plugin.get('logo'),
-                                       build_version=market_plugin.get('build_version'),
-                                       record_id=0,
-                                       category=market_plugin.get('category'),
-                                       scope='goodrain',
-                                       source='market',
-                                       share_user=0,
-                                       share_team='',
-                                       enterprise_id=enterprise_id,
-                                       plugin_template=market_plugin.get("template").get('template_content'),
-                                       is_complete=True,
-                                       details=market_plugin.get("desc", ""))
+            rcp = RainbondCenterPlugin(
+                plugin_key=market_plugin.get('plugin_key'),
+                plugin_name=market_plugin.get('name'),
+                version=market_plugin.get('major_version'),
+                desc=market_plugin.get('intro'),
+                pic=market_plugin.get('logo'),
+                build_version=market_plugin.get('build_version'),
+                record_id=0,
+                category=market_plugin.get('category'),
+                scope='goodrain',
+                source='market',
+                share_user=0,
+                share_team='',
+                enterprise_id=enterprise_id,
+                plugin_template=market_plugin.get("template").get('template_content'),
+                is_complete=True,
+                details=market_plugin.get("desc", ""))
             rcp.save()
             return True
 
@@ -212,12 +214,13 @@ class MarketPluginService(object):
                     transaction.savepoint_rollback(sid)
                 return 400, "获取镜像上传地址错误", None
 
-            event = PluginShareRecordEvent(record_id=share_record.ID,
-                                           team_name=tenant_name,
-                                           team_id=tenant_id,
-                                           plugin_id=plugin_info['plugin_id'],
-                                           plugin_name=plugin_info['plugin_name'],
-                                           event_status='not_start')
+            event = PluginShareRecordEvent(
+                record_id=share_record.ID,
+                team_name=tenant_name,
+                team_id=tenant_id,
+                plugin_id=plugin_info['plugin_id'],
+                plugin_name=plugin_info['plugin_name'],
+                event_status='not_start')
             event.save()
 
             RainbondCenterPlugin.objects.filter(version=plugin_info["version"], plugin_id=share_record.group_id).delete()
@@ -227,21 +230,22 @@ class MarketPluginService(object):
 
             plugin_template['share_plugin_info'] = plugin_info
 
-            plugin = RainbondCenterPlugin(plugin_key=plugin_info.get("plugin_key"),
-                                          plugin_name=plugin_info.get("plugin_name"),
-                                          plugin_id=plugin_info.get("plugin_id"),
-                                          record_id=share_record.ID,
-                                          version=plugin_info.get("version"),
-                                          build_version=plugin_info.get('build_version'),
-                                          pic=plugin_info.get("pic", ""),
-                                          scope=plugin_info.get("scope"),
-                                          source="local",
-                                          share_user=user_id,
-                                          share_team=tenant_name,
-                                          desc=plugin_info.get("desc"),
-                                          enterprise_id=tenant.enterprise_id,
-                                          plugin_template=json.dumps(plugin_template),
-                                          category=plugin_info.get('category'))
+            plugin = RainbondCenterPlugin(
+                plugin_key=plugin_info.get("plugin_key"),
+                plugin_name=plugin_info.get("plugin_name"),
+                plugin_id=plugin_info.get("plugin_id"),
+                record_id=share_record.ID,
+                version=plugin_info.get("version"),
+                build_version=plugin_info.get('build_version'),
+                pic=plugin_info.get("pic", ""),
+                scope=plugin_info.get("scope"),
+                source="local",
+                share_user=user_id,
+                share_team=tenant_name,
+                desc=plugin_info.get("desc"),
+                enterprise_id=tenant.enterprise_id,
+                plugin_template=json.dumps(plugin_template),
+                category=plugin_info.get('category'))
 
             plugin.save()
 
@@ -394,39 +398,42 @@ class MarketPluginService(object):
             build_version = plugin_template.get('build_version')
             min_memory = build_version.get('min_memory')
 
-            plugin_build_version = plugin_version_service.create_build_version(region_name,
-                                                                               plugin_base_info.plugin_id,
-                                                                               tenant.tenant_id,
-                                                                               user.user_id,
-                                                                               "",
-                                                                               "unbuild",
-                                                                               min_memory,
-                                                                               image_tag=image_tag,
-                                                                               code_version="")
+            plugin_build_version = plugin_version_service.create_build_version(
+                region_name,
+                plugin_base_info.plugin_id,
+                tenant.tenant_id,
+                user.user_id,
+                "",
+                "unbuild",
+                min_memory,
+                image_tag=image_tag,
+                code_version="")
 
             config_groups, config_items = [], []
             share_config_groups = share_plugin_info.get('config_groups', [])
 
             for group in share_config_groups:
-                plugin_config_group = PluginConfigGroup(plugin_id=plugin_base_info.plugin_id,
-                                                        build_version=plugin_build_version.build_version,
-                                                        config_name=group.get("config_name"),
-                                                        service_meta_type=group.get("service_meta_type"),
-                                                        injection=group.get("injection"))
+                plugin_config_group = PluginConfigGroup(
+                    plugin_id=plugin_base_info.plugin_id,
+                    build_version=plugin_build_version.build_version,
+                    config_name=group.get("config_name"),
+                    service_meta_type=group.get("service_meta_type"),
+                    injection=group.get("injection"))
                 config_groups.append(plugin_config_group)
 
                 share_config_items = group.get('config_items', [])
                 for item in share_config_items:
-                    plugin_config_item = PluginConfigItems(plugin_id=plugin_base_info.plugin_id,
-                                                           build_version=plugin_build_version.build_version,
-                                                           service_meta_type=item.get("service_meta_type"),
-                                                           attr_name=item.get("attr_name"),
-                                                           attr_alt_value=item.get("attr_alt_value"),
-                                                           attr_type=item.get("attr_type", "string"),
-                                                           attr_default_value=item.get("attr_default_value", None),
-                                                           is_change=item.get("is_change", False),
-                                                           attr_info=item.get("attr_info", ""),
-                                                           protocol=item.get("protocol", ""))
+                    plugin_config_item = PluginConfigItems(
+                        plugin_id=plugin_base_info.plugin_id,
+                        build_version=plugin_build_version.build_version,
+                        service_meta_type=item.get("service_meta_type"),
+                        attr_name=item.get("attr_name"),
+                        attr_alt_value=item.get("attr_alt_value"),
+                        attr_type=item.get("attr_type", "string"),
+                        attr_default_value=item.get("attr_default_value", None),
+                        is_change=item.get("is_change", False),
+                        attr_info=item.get("attr_info", ""),
+                        protocol=item.get("protocol", ""))
                     config_items.append(plugin_config_item)
 
             PluginConfigGroup.objects.bulk_create(config_groups)

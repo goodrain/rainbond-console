@@ -56,10 +56,8 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id, new_service.service_id)
         if code != 200:
             new_service.delete()
-            raise ServiceHandleException(msg="add component to app failure",
-                                         msg_show=msg_show,
-                                         status_code=code,
-                                         error_code=code)
+            raise ServiceHandleException(
+                msg="add component to app failure", msg_show=msg_show, status_code=code, error_code=code)
         bean = new_service.to_dict()
         if endpoints_type == "api":
             # 生成秘钥
@@ -107,6 +105,7 @@ class ThirdPartyServiceApiView(AlowAnyApiView):
     """
     获取实例endpoint列表
     """
+
     def get(self, request, service_id, *args, **kwargs):
         secret_key = request.GET.get("secret_key")
         # 加密

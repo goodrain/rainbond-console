@@ -17,6 +17,7 @@ class SyncTenantServiceManager(object):
         docker_cmd命令，
         team_gitlab_info表中的数据
     """
+
     def sync_service_info(self):
         try:
             pos = 0
@@ -68,10 +69,8 @@ class SyncTenantServiceManager(object):
         return group
 
     def add_service_to_default_app(self, group_id, service):
-        sgr = ServiceGroupRelation.objects.create(service_id=service.service_id,
-                                                  group_id=group_id,
-                                                  tenant_id=service.tenant_id,
-                                                  region_name=service.service_region)
+        sgr = ServiceGroupRelation.objects.create(
+            service_id=service.service_id, group_id=group_id, tenant_id=service.tenant_id, region_name=service.service_region)
         return sgr
 
 

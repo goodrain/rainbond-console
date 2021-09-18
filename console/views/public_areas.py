@@ -56,10 +56,11 @@ class AllServiceInfo(RegionTenantHeaderView):
         service_ids = request.data["service_ids"]
         status_list = []
         if len(service_ids) > 0:
-            status_list = base_service.status_multi_service(region=self.response_region,
-                                                            tenant_name=self.team_name,
-                                                            service_ids=service_ids,
-                                                            enterprise_id=self.team.enterprise_id)
+            status_list = base_service.status_multi_service(
+                region=self.response_region,
+                tenant_name=self.team_name,
+                service_ids=service_ids,
+                enterprise_id=self.team.enterprise_id)
         result = general_message(code, "success", "批量获取状态成功", list=status_list)
         return Response(result, status=code)
 
@@ -85,8 +86,8 @@ class TeamOverView(RegionTenantHeaderView):
         if users:
             user_nums = len(users)
             overview_detail["user_nums"] = user_nums
-            team_service_num = service_repo.get_team_service_num_by_team_id(team_id=self.team.tenant_id,
-                                                                            region_name=self.response_region)
+            team_service_num = service_repo.get_team_service_num_by_team_id(
+                team_id=self.team.tenant_id, region_name=self.response_region)
             source = common_services.get_current_region_used_resource(self.team, self.response_region)
             # 获取tcp和http策略数量
             region = region_repo.get_region_by_region_name(self.response_region)
@@ -132,9 +133,8 @@ class TeamOverView(RegionTenantHeaderView):
                     app_list = []
                     if applist:
                         for app in applist:
-                            data = RegionApp(app_id=app["app_id"],
-                                             region_app_id=app["region_app_id"],
-                                             region_name=region.region_name)
+                            data = RegionApp(
+                                app_id=app["app_id"], region_app_id=app["region_app_id"], region_name=region.region_name)
                             app_list.append(data)
                             region_app_ids.append(app["region_app_id"])
                     RegionApp.objects.bulk_create(app_list)
@@ -285,12 +285,13 @@ class GroupServiceView(RegionTenantHeaderView):
                 result = general_message(202, "group is not yours!", "当前组已删除或您无权限查看！", bean={})
                 return Response(result, status=200)
 
-            group_service_list = service_repo.get_group_service_by_group_id(group_id=group_id,
-                                                                            region_name=self.response_region,
-                                                                            team_id=self.team.tenant_id,
-                                                                            team_name=self.team_name,
-                                                                            enterprise_id=self.team.enterprise_id,
-                                                                            query=query)
+            group_service_list = service_repo.get_group_service_by_group_id(
+                group_id=group_id,
+                region_name=self.response_region,
+                team_id=self.team.tenant_id,
+                team_name=self.team_name,
+                enterprise_id=self.team.enterprise_id,
+                query=query)
             if page_size == "-1" or page_size == "" or page_size == "0":
                 page_size = len(group_service_list) if len(group_service_list) > 0 else 10
             paginator = Paginator(group_service_list, page_size)
@@ -440,18 +441,16 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
         if not self.team:
             result = general_message(400, "failed", "该团队不存在")
             return Response(result, status=400)
-        services_list = base_service.get_fuzzy_services_list(team_id=self.team.tenant_id,
-                                                             region_name=self.response_region,
-                                                             query_key=query_key,
-                                                             fields=fields,
-                                                             order=order)
+        services_list = base_service.get_fuzzy_services_list(
+            team_id=self.team.tenant_id, region_name=self.response_region, query_key=query_key, fields=fields, order=order)
         if services_list:
             try:
                 service_ids = [service["service_id"] for service in services_list]
-                status_list = base_service.status_multi_service(region=self.response_region,
-                                                                tenant_name=self.team_name,
-                                                                service_ids=service_ids,
-                                                                enterprise_id=self.team.enterprise_id)
+                status_list = base_service.status_multi_service(
+                    region=self.response_region,
+                    tenant_name=self.team_name,
+                    service_ids=service_ids,
+                    enterprise_id=self.team.enterprise_id)
                 status_cache = {}
                 statuscn_cache = {}
                 for status in status_list:

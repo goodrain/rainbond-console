@@ -96,7 +96,8 @@ class TeamRepo(object):
             FROM user_info
             WHERE user_id NOT IN {where}
             AND enterprise_id="{enterprise_id}"
-        """.format(where=where, enterprise_id=enterprise.enterprise_id)
+        """.format(
+            where=where, enterprise_id=enterprise.enterprise_id)
         if query:
             sql += """
             AND nick_name like "%{query}%"
@@ -118,8 +119,9 @@ class TeamRepo(object):
         :param tenant_id: 团队id  int
         :return: 获取一个用户在一个团队中的所有身份列表
         """
-        tenant_perms_list = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant_id).values_list("identity",
-                                                                                                           flat=True)
+        tenant_perms_list = PermRelTenant.objects.filter(
+            user_id=user_id, tenant_id=tenant_id).values_list(
+                "identity", flat=True)
         if not tenant_perms_list:
             return None
         return tenant_perms_list
@@ -237,7 +239,8 @@ class TeamRepo(object):
         ORDER BY
             service_num DESC
         {limit}
-        """.format(where=where, limit=limit)
+        """.format(
+            where=where, limit=limit)
         conn = BaseConnection()
         result = conn.query(sql)
         return result
@@ -253,7 +256,8 @@ class TeamRepo(object):
                 AND a.creater = d.user_id
                 AND b.user_id = {user_id}
                 AND a.enterprise_id = '{eid}'
-                """.format(user_id=user_id, eid=eid)
+                """.format(
+            user_id=user_id, eid=eid)
         if query:
             where += """AND ( a.tenant_alias LIKE "%{query}%" OR d.nick_name LIKE "%{query}%" )""".format(query=query)
         sql = """
@@ -273,7 +277,8 @@ class TeamRepo(object):
                 user_info d
             {where}
             {limit}
-            """.format(where=where, limit=limit)
+            """.format(
+            where=where, limit=limit)
         conn = BaseConnection()
         result = conn.query(sql)
         return result
@@ -283,7 +288,8 @@ class TeamRepo(object):
                 AND c.user_id = b.user_id
                 AND b.user_id = {user_id}
                 AND a.enterprise_id = '{eid}'
-                """.format(user_id=user_id, eid=eid)
+                """.format(
+            user_id=user_id, eid=eid)
         if query:
             where += """AND a.tenant_alias LIKE "%{query}%" """.format(query=query)
         sql = """

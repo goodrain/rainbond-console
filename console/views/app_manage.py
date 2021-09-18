@@ -137,11 +137,8 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
         """
         try:
             group_version = request.data.get("group_version", None)
-            code, msg, _ = app_deploy_service.deploy(self.tenant,
-                                                     self.service,
-                                                     self.user,
-                                                     version=group_version,
-                                                     oauth_instance=self.oauth_instance)
+            code, msg, _ = app_deploy_service.deploy(
+                self.tenant, self.service, self.user, version=group_version, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
@@ -238,13 +235,14 @@ class VerticalExtendAppView(AppBaseCloudEnterpriseCenterView):
             new_memory = request.data.get("new_memory", 0)
             new_gpu = request.data.get("new_gpu", None)
             new_cpu = request.data.get("new_cpu", None)
-            code, msg = app_manage_service.vertical_upgrade(self.tenant,
-                                                            self.service,
-                                                            self.user,
-                                                            int(new_memory),
-                                                            oauth_instance=self.oauth_instance,
-                                                            new_gpu=new_gpu,
-                                                            new_cpu=new_cpu)
+            code, msg = app_manage_service.vertical_upgrade(
+                self.tenant,
+                self.service,
+                self.user,
+                int(new_memory),
+                oauth_instance=self.oauth_instance,
+                new_gpu=new_gpu,
+                new_cpu=new_cpu)
             bean = {}
             if code != 200:
                 return Response(general_message(code, "vertical upgrade error", msg, bean=bean), status=code)
@@ -286,11 +284,8 @@ class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
 
-            app_manage_service.horizontal_upgrade(self.tenant,
-                                                  self.service,
-                                                  self.user,
-                                                  int(new_node),
-                                                  oauth_instance=self.oauth_instance)
+            app_manage_service.horizontal_upgrade(
+                self.tenant, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
             result = general_message(200, "success", "操作成功", bean={})
         except ResourceNotEnoughException as re:
             raise re

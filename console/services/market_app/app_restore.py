@@ -53,6 +53,7 @@ class AppRestore(MarketApp):
     2. AppRestore will not delete new components in the upgrade.
     3. AppRestore will not restore components that were deleted after the upgrade.
     """
+
     def __init__(self, tenant, region: RegionConfig, user, app: ServiceGroup, component_group: TenantServiceGroup,
                  app_upgrade_record: AppUpgradeRecord):
         self.tenant = tenant

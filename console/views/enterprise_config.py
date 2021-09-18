@@ -32,14 +32,15 @@ class EnterpriseObjectStorageView(EnterpriseAdminView):
 
         ent_cfg_svc = EnterpriseConfigService(enterprise_id)
         ent_cfg_svc.update_config_enable_status(key="OBJECT_STORAGE", enable=enable)
-        ent_cfg_svc.update_config_value(key="OBJECT_STORAGE",
-                                        value={
-                                            "provider": provider,
-                                            "endpoint": endpoint,
-                                            "bucket_name": bucket_name,
-                                            "access_key": access_key,
-                                            "secret_key": secret_key,
-                                        })
+        ent_cfg_svc.update_config_value(
+            key="OBJECT_STORAGE",
+            value={
+                "provider": provider,
+                "endpoint": endpoint,
+                "bucket_name": bucket_name,
+                "access_key": access_key,
+                "secret_key": secret_key,
+            })
         return Response(status=status.HTTP_200_OK)
 
 
@@ -54,13 +55,14 @@ class EnterpriseAppStoreImageHubView(EnterpriseAdminView):
 
         ent_cfg_svc = EnterpriseConfigService(enterprise_id)
         ent_cfg_svc.update_config_enable_status(key="APPSTORE_IMAGE_HUB", enable=enable)
-        ent_cfg_svc.update_config_value(key="APPSTORE_IMAGE_HUB",
-                                        value={
-                                            "hub_url": hub_url,
-                                            "namespace": namespace,
-                                            "hub_user": hub_user,
-                                            "hub_password": hub_password,
-                                        })
+        ent_cfg_svc.update_config_value(
+            key="APPSTORE_IMAGE_HUB",
+            value={
+                "hub_url": hub_url,
+                "namespace": namespace,
+                "hub_user": hub_user,
+                "hub_password": hub_password,
+            })
         return Response(status=status.HTTP_200_OK)
 
 
@@ -76,12 +78,13 @@ class EnterpriseVisualMonitorView(EnterpriseAdminView):
 
         ent_cfg_svc = EnterpriseConfigService(enterprise_id)
         ent_cfg_svc.update_config_enable_status(key="VISUAL_MONITOR", enable=enable)
-        ent_cfg_svc.update_config_value(key="VISUAL_MONITOR",
-                                        value={
-                                            "home_url": home_url.strip('/'),
-                                            "cluster_monitor_suffix": cluster_monitor_suffix,
-                                            "node_monitor_suffix": node_monitor_suffix,
-                                            "component_monitor_suffix": component_monitor_suffix,
-                                            "slo_monitor_suffix": slo_monitor_suffix,
-                                        })
+        ent_cfg_svc.update_config_value(
+            key="VISUAL_MONITOR",
+            value={
+                "home_url": home_url.strip('/'),
+                "cluster_monitor_suffix": cluster_monitor_suffix,
+                "node_monitor_suffix": node_monitor_suffix,
+                "component_monitor_suffix": component_monitor_suffix,
+                "slo_monitor_suffix": slo_monitor_suffix,
+            })
         return Response(status=status.HTTP_200_OK)
