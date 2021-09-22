@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
-import os
-import json
 import logging
 from functools import cmp_to_key
 
 from console.exception.exceptions import GroupNotExistError
-from console.repositories.app_config import domain_repo, tcp_domain
 from console.repositories.group import group_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.service_repo import service_repo
-from console.repositories.share_repo import share_repo
 from console.services.app_actions.app_log import AppEventService
 from console.services.common_services import common_services
 from console.services.group_service import group_service
@@ -26,7 +22,6 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp
 from www.utils.return_message import general_message
 from www.utils.status_translate import get_status_info_map
-from console.utils.cache import cache
 
 event_service = AppEventService()
 
@@ -78,10 +73,6 @@ class TeamOverView(RegionTenantHeaderView):
               paramType: path
         """
         overview_detail = dict()
-        cache_key = "{}+overview_detail".format(self.team.tenant_id)
-        cache_data = cache.get(cache_key)
-        if cache_data:
-            return Response(general_message(200, "success", "查询成功", bean=json.loads(cache_data)))
         users = team_services.get_team_users(self.team)
         if users:
             user_nums = len(users)
@@ -89,42 +80,33 @@ class TeamOverView(RegionTenantHeaderView):
             team_service_num = service_repo.get_team_service_num_by_team_id(
                 team_id=self.team.tenant_id, region_name=self.response_region)
             source = common_services.get_current_region_used_resource(self.team, self.response_region)
-            # 获取tcp和http策略数量
+
             region = region_repo.get_region_by_region_name(self.response_region)
             if not region:
                 overview_detail["region_health"] = False
                 return Response(general_message(200, "success", "查询成功", bean=overview_detail))
-            total_tcp_domain = tcp_domain.get_all_domain_count_by_tenant_and_region(self.team.tenant_id, region.region_id)
-            overview_detail["total_tcp_domain"] = total_tcp_domain
 
-            total_http_domain = domain_repo.get_all_domain_count_by_tenant_and_region_id(self.team.tenant_id, region.region_id)
-            overview_detail["total_http_domain"] = total_http_domain
-
-            # 获取分享应用数量
+            # 同步应用到集群
             groups = group_repo.get_tenant_region_groups(self.team.tenant_id, region.region_name)
-            share_app_num = 0
-
             batch_create_app_body = []
             region_app_ids = []
             if groups:
+                app_ids = [group.ID for group in groups]
+                region_apps = region_app_repo.list_by_app_ids(region.region_name, app_ids)
+                app_id_rels = {rapp.app_id: rapp.region_app_id for rapp in region_apps}
                 for group in groups:
-                    share_record = share_repo.get_service_share_record_by_groupid(group_id=group.ID)
-                    if share_record and share_record.step == 3:
-                        share_app_num += 1
-
-                    try:
-                        region_app_id = region_app_repo.get_region_app_id(region.region_name, group.ID)
-                        region_app_ids.append(region_app_id)
-                    except RegionApp.DoesNotExist:
-                        create_app_body = dict()
-                        group_services = base_service.get_group_services_list(self.team.tenant_id, region.region_name, group.ID)
-                        service_ids = []
-                        if group_services:
-                            service_ids = [service["service_id"] for service in group_services]
-                        create_app_body["app_name"] = group.group_name
-                        create_app_body["console_app_id"] = group.ID
-                        create_app_body["service_ids"] = service_ids
-                        batch_create_app_body.append(create_app_body)
+                    if app_id_rels.get(group.ID):
+                        region_app_ids.append(app_id_rels[group.ID])
+                        continue
+                    create_app_body = dict()
+                    group_services = base_service.get_group_services_list(self.team.tenant_id, region.region_name, group.ID)
+                    service_ids = []
+                    if group_services:
+                        service_ids = [service["service_id"] for service in group_services]
+                    create_app_body["app_name"] = group.group_name
+                    create_app_body["console_app_id"] = group.ID
+                    create_app_body["service_ids"] = service_ids
+                    batch_create_app_body.append(create_app_body)
 
             if len(batch_create_app_body) > 0:
                 try:
@@ -152,7 +134,6 @@ class TeamOverView(RegionTenantHeaderView):
             except Exception as e:
                 logger.exception(e)
             team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
-            overview_detail["share_app_num"] = share_app_num
             overview_detail["team_app_num"] = team_app_num
             overview_detail["team_service_num"] = team_service_num
             overview_detail["eid"] = self.team.enterprise_id
@@ -188,7 +169,6 @@ class TeamOverView(RegionTenantHeaderView):
                     logger.exception(e)
             else:
                 overview_detail["region_health"] = False
-            cache.set(cache_key, json.dumps(overview_detail), os.getenv("CACHE_TIME", 60))
             return Response(general_message(200, "success", "查询成功", bean=overview_detail))
         else:
             data = {"user_nums": 1, "team_service_num": 0, "total_memory": 0, "eid": self.team.enterprise_id}
@@ -514,8 +494,7 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         if groups:
             group_ids = [group.ID for group in groups]
             group_ids = group_ids[start:end]
-            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region, self.team_name,
-                                                         self.team.enterprise_id, self.team)
+            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region, self.team_name, self.team)
         return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
 
 
