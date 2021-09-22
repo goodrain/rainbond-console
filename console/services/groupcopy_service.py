@@ -228,7 +228,7 @@ class GroupAppCopyService(object):
                     new_service = app_service.create_region_service(tenant, service, user.nick_name)
                 service = new_service
                 # 部署组件
-                app_manage_service.deploy(tenant, service, user, group_version=None)
+                app_manage_service.deploy(tenant, service, user)
 
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=service.service_id)

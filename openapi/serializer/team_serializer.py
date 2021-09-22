@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
-from rest_framework import serializers
-
-from openapi.serializer.utils import DateCharField
 from openapi.serializer.role_serializer import RoleInfoSerializer
+from openapi.serializer.utils import DateCharField
+from rest_framework import serializers
 
 
 class TeamInfoPostSerializer(serializers.Serializer):
@@ -33,9 +32,9 @@ class TeamInfoSerializer(serializers.Serializer):
     is_active = serializers.BooleanField(help_text="是否激活", required=False)
     create_time = DateCharField(help_text="创建时间", required=False)
     creater = serializers.CharField(help_text="团队拥有者用户", required=False)
+    role_infos = RoleInfoSerializer(many=True, help_text="用户在团队中拥有的角色", required=False)
     service_num = serializers.IntegerField(help_text="团队的组件数量", required=False)
     region_num = serializers.IntegerField(help_text="团队开通的数据中心数量", required=False)
-    role_infos = RoleInfoSerializer(many=True, help_text="用户在团队中拥有的角色", required=False)
 
 
 class ListTeamRespSerializer(serializers.Serializer):
@@ -171,3 +170,13 @@ class TeamOverviewSerializer(serializers.Serializer):
 class TenantRegionListSerializer(serializers.Serializer):
     tenant_id = serializers.CharField(help_text="租户id")
     region_name = serializers.CharField(help_text="数据中心名称")
+
+
+class EventLogMessage(serializers.Serializer):
+    message = serializers.CharField(help_text="日志信息", required=False, allow_null=True)
+    time = serializers.CharField(help_text="日志时间", required=False, allow_null=True)
+    utime = serializers.IntegerField(help_text="时间戳", required=False, allow_null=True)
+
+
+class TeamEventLogSerializer(serializers.Serializer):
+    logs = EventLogMessage(help_text="日志信息", many=True, required=False, allow_null=True, allow_empty=True)
