@@ -551,7 +551,7 @@ class NewComponents(object):
                 "WebSocket":
                 ingress["websocket"] if ingress.get("websocket") else False,
                 "set_headers":
-                ingress.get("proxy_header"),
+                ingress["proxy_header"] if ingress.get("proxy_header") else [],
             }))
 
     @staticmethod

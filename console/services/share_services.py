@@ -945,7 +945,7 @@ class ShareService(object):
                 "websocket": config.get("WebSocket"),
                 "component_key": component_keys.get(sd.service_id),
                 "port": sd.container_port,
-                "proxy_header": config.get("set_headers"),
+                "proxy_header": config["set_headers"] if config.get("set_headers") else {},
             }
             ingress_http_routes.append(ingress_http_route)
         return ingress_http_routes
