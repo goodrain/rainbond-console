@@ -204,7 +204,7 @@ class PropertyChanges(object):
                 continue
             # configuration file
             config_file = config_files.get(new_volume["volume_name"])
-            if config_file and config_file.file_content != new_volume["file_content"] or old_volume.mode != new_volume["mode"]:
+            if config_file and config_file.file_content != new_volume["file_content"] or old_volume.mode != new_volume.get("mode"):
                 update.append(new_volume)
         if not add and not update:
             return None
