@@ -262,7 +262,7 @@
 					"namespace": null
 				},
 				"share_type": "image",
-				"share_image": "ljh4260/mysql5.7:latest"
+				"share_image": "registry.cn-hangzhou.aliyuncs.com/goodrain/mysql:5.7"
 			},
 			{
 				"service_id": "e5681abe85294ab7961f58e3b7a74e5c",
@@ -419,9 +419,8 @@
 					"namespace": null
 				},
 				"share_type": "image",
-				"share_image": "ljh4260/wordpress0918:latest"
+				"share_image": "registry.cn-hangzhou.aliyuncs.com/goodrain/wordpress:latest"
 			}
 		]
 	}
-
 }

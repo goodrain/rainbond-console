@@ -724,7 +724,7 @@ class AppUpgrade(MarketApp):
 
             build_version = self._create_build_version(plugin.plugin_id, plugin_tmpl)
             config_groups, config_items = self._create_config_groups(plugin.plugin_id, build_version,
-                                                                     plugin_tmpl["config_groups"])
+                                                                     plugin_tmpl.get("config_groups", []))
             plugins.append(Plugin(plugin, build_version, config_groups, config_items, plugin_tmpl["plugin_image"]))
 
         return plugins

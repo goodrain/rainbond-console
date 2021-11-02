@@ -273,7 +273,7 @@ class NewComponents(object):
 
     def _template_to_ports(self, component, ports):
         if not ports:
-            return [], []
+            return []
         new_ports = []
         for port in ports:
             component_port = port["container_port"]
