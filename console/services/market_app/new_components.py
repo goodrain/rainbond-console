@@ -534,15 +534,24 @@ class NewComponents(object):
         return GatewayCustomConfiguration(
             rule_id=rule_id,
             value=json.dumps({
-                "proxy_buffer_numbers": ingress["proxy_buffer_numbers"] if ingress["proxy_buffer_numbers"] else 4,
-                "proxy_buffer_size": ingress["proxy_buffer_size"] if ingress["proxy_buffer_size"] else 4,
-                "proxy_body_size": ingress["request_body_size_limit"] if ingress["request_body_size_limit"] else 0,
-                "proxy_connect_timeout": ingress["connection_timeout"] if ingress["connection_timeout"] else 5,
-                "proxy_read_timeout": ingress["response_timeout"] if ingress["response_timeout"] else 60,
-                "proxy_send_timeout": ingress["request_timeout"] if ingress["request_timeout"] else 60,
-                "proxy_buffering": "off",
-                "WebSocket": ingress["websocket"] if ingress["websocket"] else False,
-                "set_headers": ingress["proxy_header"],
+                "proxy_buffer_numbers":
+                ingress["proxy_buffer_numbers"] if ingress.get("proxy_buffer_numbers") else 4,
+                "proxy_buffer_size":
+                ingress["proxy_buffer_size"] if ingress.get("proxy_buffer_size") else 4,
+                "proxy_body_size":
+                ingress["request_body_size_limit"] if ingress.get("request_body_size_limit") else 0,
+                "proxy_connect_timeout":
+                ingress["connection_timeout"] if ingress.get("connection_timeout") else 5,
+                "proxy_read_timeout":
+                ingress["response_timeout"] if ingress.get("response_timeout") else 60,
+                "proxy_send_timeout":
+                ingress["request_timeout"] if ingress.get("request_timeout") else 60,
+                "proxy_buffering":
+                "off",
+                "WebSocket":
+                ingress["websocket"] if ingress.get("websocket") else False,
+                "set_headers":
+                ingress.get("proxy_header"),
             }))
 
     @staticmethod
