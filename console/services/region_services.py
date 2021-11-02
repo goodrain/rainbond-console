@@ -397,14 +397,18 @@ class RegionService(object):
 
         if exist_region:
             return region
+        return self._create_sample_application(ent, region, user)
 
+    def _create_sample_application(self, ent, region, user):
         try:
-            # 创建默认团队
+            # create default team
             from console.services.team_services import team_services
             team = team_services.create_team(user, ent, None, None)
             region_services.create_tenant_on_region(ent.enterprise_id, team.tenant_name, region.region_name)
-
-            # 创建默认应用
+            # Do not create sample applications in offline environment
+            if os.getenv("IS_OFFLINE", False):
+                return region
+            # create sample applications
             tenant = team_repo.get_team_by_team_name_and_eid(ent.enterprise_id, team.tenant_name)
             group = group_repo.get_group_by_unique_key(tenant.tenant_id, region.region_name, "默认应用")
 
@@ -415,7 +419,7 @@ class RegionService(object):
                 version_template = default_app_config["version_template"]
                 app_version = json.dumps(version_template)
 
-            # 创建应用模型安装的组件从属关系
+            # Create component dependencies for application model installation
             scope = default_app_config["scope"]
             init_app_info = {
                 "app_name": default_app_config["app_name"],
@@ -439,7 +443,7 @@ class RegionService(object):
                 scope=scope)
             rainbond_app_version.save()
 
-            # 创建默认组件
+            # Create default components
             app_model_key = app_uuid
             version = "1.0"
             app_id = group.ID
@@ -448,9 +452,7 @@ class RegionService(object):
             market_name = ""
             market_app_service.install_app(tenant, region, user, app_id, app_model_key, version, market_name,
                                            install_from_cloud, is_deploy)
-
             return region
-
         except Exception as e:
             logger.exception(e)
             return region
