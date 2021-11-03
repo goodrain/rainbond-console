@@ -4,8 +4,6 @@
 """
 import logging
 import re
-import os
-import json
 from datetime import datetime
 
 from deprecated import deprecated
@@ -18,7 +16,6 @@ from console.repositories.app_config import (domain_repo, env_var_repo, port_rep
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.compose_repo import compose_repo
 from console.repositories.group import group_repo, group_service_relation_repo
-from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.share_repo import share_repo
@@ -31,7 +28,6 @@ from console.utils.shortcuts import get_object_or_404
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp, ServiceGroup, ServiceGroupRelation
-from console.utils.cache import cache
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -376,35 +372,9 @@ class GroupService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
         return services
 
-    def get_multi_apps_all_info(self, app_ids, region, tenant_name, enterprise_id, tenant):
-        cache_key = "{}+multi_apps_all_info".format([str(app_id) for app_id in app_ids])
-        cache_data = cache.get(cache_key)
-        if cache_data:
-            return json.loads(cache_data)
+    def get_multi_apps_all_info(self, app_ids, region, tenant_name, tenant):
         app_list = group_repo.get_multi_app_info(app_ids)
         service_list = service_repo.get_services_in_multi_apps_with_app_info(app_ids)
-        # memory info
-        service_ids = [service.service_id for service in service_list]
-        status_list = base_service.status_multi_service(region, tenant_name, service_ids, enterprise_id)
-        service_status = dict()
-        if status_list is None:
-            raise ServiceHandleException(msg="query status failure", msg_show="查询组件状态失败")
-        for status in status_list:
-            service_status[status["service_id"]] = status
-
-        for service in service_list:
-            svc_sas = service_status.get(service.service_id, {"status": "failure", "used_mem": 0})
-            service.status = svc_sas["status"]
-            service.used_mem = svc_sas["used_mem"]
-
-        plugin_list = app_plugin_relation_repo.list_by_component_ids(service_ids)
-        plugins = dict()
-        for plugin in plugin_list:
-            if not plugins.get(plugin.service_id):
-                plugins[plugin.service_id] = 0
-            if plugin.plugin_status:
-                # if plugin is turn on means component is using this plugin
-                plugins[plugin.service_id] += plugin.min_memory
 
         app_id_statuses = self.get_region_app_statuses(tenant_name, region, app_ids)
         apps = dict()
@@ -429,27 +399,9 @@ class GroupService(object):
             apps[service.group_id]["service_list"].append(service)
             apps[service.group_id]["accesses"].append(accesses[service.service_id])
 
-        share_list = share_repo.get_multi_app_share_records(app_ids)
-        share_records = dict()
-        for share_info in share_list:
-            if not share_records.get(int(share_info.group_id)):
-                share_records[int(share_info.group_id)] = {"share_app_num": 0}
-            if share_info:
-                share_records[int(share_info.group_id)]["share_app_num"] += 1
-
-        backup_list = backup_record_repo.get_multi_apps_backup_records(app_ids)
-        backup_records = dict()
-        for backup_info in backup_list:
-            if not backup_records.get(int(backup_info.group_id)):
-                backup_records[int(backup_info.group_id)] = {"backup_record_num": 0}
-            backup_records[int(backup_info.group_id)]["backup_record_num"] += 1
-
         re_app_list = []
         for a in app_list:
-            group_id = a.ID
             app = apps.get(a.ID)
-            app["share_record_num"] = share_records[group_id]["share_app_num"] if share_records.get(group_id) else 0
-            app["backup_record_num"] = backup_records[group_id]["backup_record_num"] if backup_records.get(group_id) else 0
             app["services_num"] = len(app["service_list"])
             if not app.get("run_service_num"):
                 app["run_service_num"] = 0
@@ -465,10 +417,7 @@ class GroupService(object):
             if app["used_mem"] > app["allocate_mem"]:
                 app["allocate_mem"] = app["used_mem"]
             app.pop("service_list")
-            app["create_time"] = app["create_time"].isoformat()
-            app["update_time"] = app["update_time"].isoformat()
             re_app_list.append(app)
-        cache.set(cache_key, json.dumps(re_app_list), os.getenv("CACHE_TIME", 60))
         return re_app_list
 
     @staticmethod
