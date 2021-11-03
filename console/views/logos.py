@@ -33,6 +33,7 @@ class ConfigRUDView(AlowAnyApiView):
         if data.get("enterprise_id", None) is None:
             data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
         data["is_disable_logout"] = os.getenv('IS_DISABLE_LOGOUT', False)
+        data["is_offline"] = os.getenv('IS_OFFLINE', False)
         result = general_message(code, "query success", "Logo获取成功", bean=data, initialize_info=status)
         return Response(result, status=code)
 
