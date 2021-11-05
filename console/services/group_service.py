@@ -715,5 +715,9 @@ class GroupService(object):
         service_groups = group_service_relation_repo.list_service_groups(app_id)
         return service_repo.list_by_ids([sg.service_id for sg in service_groups])
 
+    def check_governance_mode(self, tenant, region_name, app_id, governance_mode):
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        return region_api.check_app_governance_mode(region_name, tenant.tenant_name, region_app_id, governance_mode)
+
 
 group_service = GroupService()

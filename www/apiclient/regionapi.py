@@ -1877,6 +1877,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region_name)
         return res, body
 
+    def check_app_governance_mode(self, region_name, tenant_name, region_app_id, query):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/governance/check?governance_mode={}".format(query)
+
+        self._set_headers(token)
+        _, _ = self._get(url, self.default_headers, region=region_name)
+
     def get_monitor_metrics(self, region_name, tenant, target, app_id, component_id):
         url, token = self.__get_region_access_info(tenant.tenant_name, region_name)
         url = url + "/v2/monitor/metrics?target={target}&tenant={tenant_id}&app={app_id}&component={component_id}".format(

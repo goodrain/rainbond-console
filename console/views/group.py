@@ -280,6 +280,17 @@ class AppGovernanceModeView(ApplicationView):
         return Response(result)
 
 
+class AppGovernanceModeCheckView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        governance_mode = request.GET.get("governance_mode", "")
+        if governance_mode not in GovernanceModeEnum.names():
+            raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.names()))
+
+        group_service.check_governance_mode(self.tenant, self.region_name, app_id, governance_mode)
+        result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
+        return Response(result)
+
+
 class AppKubernetesServiceView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         res = group_service.list_kubernetes_services(self.tenant.tenant_id, self.region_name, app_id)
