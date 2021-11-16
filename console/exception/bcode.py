@@ -124,11 +124,14 @@ class ErrPluginIsUsed(ServiceHandleException):
             msg="plugin is used by the service", msg_show="该插件被组件使用，无法删除", status_code=409, error_code=20600)
 
 
-# 20700 ~ 20799 => tenant not found
+# 20700 ~ 20799 => tenant
 class ErrTenantNotFound(ServiceHandleException):
     def __init__(self):
         super(ErrTenantNotFound, self).__init__(msg="tenant not found", msg_show="团队不存在", status_code=404, error_code=20700)
 
+class ErrNamespaceExists(ServiceHandleException):
+    def __init__(self):
+        super(ErrNamespaceExists, self).__init__(msg="namespace exists", msg_show="命名空间已存在", status_code=400, error_code=20701)
 
 # 20800 ~ 20899 => component
 class ErrComponentBuildFailed(ServiceHandleException):
@@ -218,3 +221,9 @@ class ErrServiceAddressNotFound(ServiceHandleException):
     def __init__(self):
         super(ErrServiceAddressNotFound, self).__init__(
             msg="service address not found", msg_show="服务地址不存在", status_code=404, error_code=20802)
+
+
+# 21000 ~ 21099 => common
+class ErrQualifiedName(ServiceHandleException):
+    def __init__(self, msg="err qualified name", msg_show="名称只能由小写字母、数字或“-”组成，并且必须以字母数字开头和结尾"):
+        super(ErrQualifiedName, self).__init__(msg=msg, msg_show=msg_show, status_code=400, error_code=21000)

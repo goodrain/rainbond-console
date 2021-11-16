@@ -6,6 +6,7 @@ import logging
 
 from console.enum.app import GovernanceModeEnum
 from console.exception.main import AbortRequest, ServiceHandleException
+from console.exception.bcode import ErrQualifiedName
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
 from console.services.helm_app import helm_app_service
@@ -14,6 +15,7 @@ from console.services.group_service import group_service
 from console.services.application import application_service
 from console.services.market_app_service import market_app_service
 from console.utils.reqparse import parse_item
+from console.utils.validation import is_qualified_name
 from console.views.base import (ApplicationView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView)
 from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
@@ -62,6 +64,9 @@ class TenantGroupView(RegionTenantHeaderView):
         app_name = request.data.get("app_name", None)
         note = request.data.get("note", "")
         logo = request.data.get("logo", "")
+        k8s_app = request.data.get("k8s_app", "")
+        if not is_qualified_name(k8s_app):
+            raise ErrQualifiedName(msg_show="集群内应用名称只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
         if len(note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
         app_store_name = request.data.get("app_store_name", None)
@@ -81,6 +86,7 @@ class TenantGroupView(RegionTenantHeaderView):
             version,
             self.user.enterprise_id,
             logo,
+            k8s_app=k8s_app
         )
         result = general_message(200, "success", "创建成功", bean=data)
         return Response(result, status=result["code"])
@@ -110,8 +116,11 @@ class TenantGroupOperationView(ApplicationView):
 
         """
         app_name = request.data.get("app_name", None)
+        k8s_app = request.data.get("k8s_app", "")
         note = request.data.get("note", "")
         logo = request.data.get("logo", "")
+        if not is_qualified_name(k8s_app):
+            raise ErrQualifiedName(msg_show="集群内应用名称只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
         if note and len(note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
         username = request.data.get("username", None)
@@ -129,7 +138,8 @@ class TenantGroupOperationView(ApplicationView):
             overrides=overrides,
             version=version,
             revision=revision,
-            logo=logo)
+            logo=logo,
+            k8s_app=k8s_app)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
@@ -287,7 +297,7 @@ class AppGovernanceModeCheckView(ApplicationView):
             raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.names()))
 
         group_service.check_governance_mode(self.tenant, self.region_name, app_id, governance_mode)
-        result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
+        result = general_message(200, "success", "检查通过", bean={"governance_mode": governance_mode})
         return Response(result)
 
 

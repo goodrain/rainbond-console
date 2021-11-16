@@ -181,6 +181,7 @@ class NewComponents(object):
         component.create_status = "complete"
         component.tenant_service_group_id = self.original_app.upgrade_group_id
         component.build_upgrade = self.is_deploy
+        component.k8s_component_name = template["k8s_component_name"] if template.get("k8s_component_name") else component.service_alias
 
         # component type
         extend_method = template["extend_method"]

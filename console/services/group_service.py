@@ -64,7 +64,8 @@ class GroupService(object):
                    app_template_name="",
                    version="",
                    eid="",
-                   logo=""):
+                   logo="",
+                   k8s_app=""):
         self.check_app_name(tenant, region_name, app_name)
         # check parameter for helm app
         app_type = AppType.rainbond.name
@@ -94,6 +95,7 @@ class GroupService(object):
             app_template_name=app_template_name,
             version=version,
             logo=logo,
+            k8s_app=k8s_app,
         )
         group_repo.create(app)
 
@@ -121,6 +123,7 @@ class GroupService(object):
                 "app_store_url": app.app_store_url,
                 "app_template_name": app.app_template_name,
                 "version": app.version,
+                "k8s_app": app.k8s_app,
             })
 
         # record the dependencies between region app and console app
@@ -130,6 +133,9 @@ class GroupService(object):
             "app_id": app.ID,
         }
         region_app_repo.create(**data)
+        # 集群端创建完应用后，再更新控制台的应用名称
+        app.k8s_app = region_app["k8s_app"]
+        app.save()
 
     @staticmethod
     def _parse_overrides(overrides):
@@ -154,7 +160,8 @@ class GroupService(object):
                      overrides="",
                      version="",
                      revision=0,
-                     logo=""):
+                     logo="",
+                     k8s_app=""):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
@@ -183,14 +190,16 @@ class GroupService(object):
         if version:
             data["version"] = version
 
-        group_repo.update(app_id, **data)
-
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        region_api.update_app(region_name, tenant.tenant_name, region_app_id, {
+
+        bean = region_api.update_app(region_name, tenant.tenant_name, region_app_id, {
             "overrides": overrides,
             "version": version,
             "revision": revision,
+            "k8s_app": k8s_app,
         })
+        data["k8s_app"] = bean["k8s_app"]
+        group_repo.update(app_id, **data)
 
     def delete_group(self, group_id, default_group_id):
         if not group_id or not str.isdigit(group_id) or int(group_id) < 0:
@@ -240,9 +249,13 @@ class GroupService(object):
         except RegionApp.DoesNotExist:
             app = group_repo.get_group_by_id(app_id)
             create_body = {"app_name": app.group_name, "service_ids": service_ids}
+            if app.k8s_app:
+                create_body["k8s_app"] = app.k8s_app
             bean = region_api.create_application(region_name, tenant, create_body)
             req = {"region_name": region_name, "region_app_id": bean["app_id"], "app_id": app_id}
             region_app_repo.create(**req)
+            app.k8s_app = bean["k8s_app"]
+            app.save()
 
     def get_app_detail(self, tenant, region_name, app_id):
         # app metadata
@@ -260,6 +273,7 @@ class GroupService(object):
         res['ingress_num'] = self.count_ingress_by_app_id(tenant.tenant_id, region_name, app_id)
         res['config_group_num'] = app_config_group_service.count_by_app_id(region_name, app_id)
         res['logo'] = app.logo
+        res['k8s_app'] = app.k8s_app
 
         try:
             principal = user_repo.get_user_by_username(app.username)

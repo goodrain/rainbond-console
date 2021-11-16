@@ -348,6 +348,7 @@ class Tenants(BaseModel):
     expired_time = models.DateTimeField(null=True, help_text="过期时间")
     tenant_alias = models.CharField(max_length=64, null=True, blank=True, default='', help_text="团队别名")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text="企业id")
+    namespace = models.CharField(max_length=33, unique=True, help_text="团队的命名空间")
 
     def __unicode__(self):
         return self.tenant_name
@@ -525,6 +526,7 @@ class TenantServiceInfo(BaseModel):
     service_name = models.CharField(max_length=100, default='', help_text="组件名称（新加属性，数据中心使用）")
     oauth_service_id = models.IntegerField(default=None, null=True, blank=True, help_text="拉取源码所用的OAuth服务id")
     git_full_name = models.CharField(max_length=64, null=True, blank=True, default=None, help_text="git项目的fullname")
+    k8s_component_name = models.CharField(max_length=100, help_text="集群组件名称")
 
     def __unicode__(self):
         return self.service_alias
@@ -1060,6 +1062,7 @@ class ServiceGroup(BaseModel):
     app_template_name = models.CharField(max_length=255, null=True, blank=True, help_text="应用模板名称")
     version = models.CharField(max_length=255, null=True, blank=True, help_text="Helm 应用版本")
     logo = models.CharField(max_length=255, blank=True, null=True, default='', help_text="应用logo")
+    k8s_app = models.CharField(max_length=32, default='', help_text="集群内应用名称")
 
     @property
     def app_id(self):

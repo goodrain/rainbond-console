@@ -12,6 +12,7 @@ from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantRegionInfo, Tenants
+from console.exception.bcode import ErrNamespaceExists
 
 logger = logging.getLogger('default')
 
@@ -76,13 +77,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def create_tenant(self, region, tenant_name, tenant_id, enterprise_id):
+    def create_tenant(self, region, tenant_name, tenant_id, enterprise_id, namespace):
         """创建租户"""
         url, token = self.__get_region_access_info(tenant_name, region)
         cloud_enterprise_id = client_auth_service.get_region_access_enterprise_id_by_tenant(tenant_name, region)
         if cloud_enterprise_id:
             enterprise_id = cloud_enterprise_id
-        data = {"tenant_id": tenant_id, "tenant_name": tenant_name, "eid": enterprise_id}
+        data = {"tenant_id": tenant_id, "tenant_name": tenant_name, "eid": enterprise_id, "namespace": namespace}
         url += "/v2/tenants"
 
         self._set_headers(token)
@@ -91,6 +92,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
             return res, body
         except RegionApiBaseHttpClient.CallApiError as e:
+            if "namespace exists" in e.message['body'].get('msg', ""):
+                raise ErrNamespaceExists
             return {'status': e.message['httpcode']}, e.message['body']
 
     def delete_tenant(self, region, tenant_name):

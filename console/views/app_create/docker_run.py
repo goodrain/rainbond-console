@@ -58,7 +58,7 @@ class DockerRunCreateView(RegionTenantHeaderView):
         # 私有docker仓库地址
         docker_password = request.data.get("password", None)
         docker_user_name = request.data.get("user_name", None)
-
+        k8s_component_name = request.data.get("k8s_component_name", "")
         try:
             if not image_type:
                 return Response(general_message(400, "image_type cannot be null", "参数错误"), status=400)
@@ -66,7 +66,7 @@ class DockerRunCreateView(RegionTenantHeaderView):
                 return Response(general_message(400, "docker_cmd cannot be null", "参数错误"), status=400)
 
             code, msg_show, new_service = app_service.create_docker_run_app(self.response_region, self.tenant, self.user,
-                                                                            service_cname, docker_cmd, image_type)
+                                                                            service_cname, docker_cmd, image_type, k8s_component_name)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
 

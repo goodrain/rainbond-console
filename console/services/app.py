@@ -115,7 +115,8 @@ class AppService(object):
                                check_uuid=None,
                                event_id=None,
                                oauth_service_id=None,
-                               git_full_name=None):
+                               git_full_name=None,
+                               k8s_component_name=""):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
@@ -129,6 +130,7 @@ class AppService(object):
         new_service.service_alias = service_alias
         new_service.creater = user.pk
         new_service.server_type = server_type
+        new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         new_service.save()
         code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url, service_code_id,
                                            service_code_version, check_uuid, event_id, oauth_service_id, git_full_name)
@@ -229,7 +231,7 @@ class AppService(object):
         service_alias = self.create_service_alias(make_uuid(service_id))
         return service_alias
 
-    def create_docker_run_app(self, region, tenant, user, service_cname, docker_cmd, image_type):
+    def create_docker_run_app(self, region, tenant, user, service_cname, docker_cmd, image_type, k8s_component_name):
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
             return 412, msg, None
@@ -244,6 +246,7 @@ class AppService(object):
         new_service.creater = user.pk
         new_service.host_path = "/grdata/tenant/" + tenant.tenant_id + "/service/" + service_id
         new_service.docker_cmd = docker_cmd
+        new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         new_service.save()
         # # 创建镜像和组件的关系（兼容老的流程）
         # if not image_service_relation_repo.get_image_service_relation(tenant.tenant_id, service_id):
@@ -287,8 +290,8 @@ class AppService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def create_third_party_app(self, region, tenant, user, service_cname, static_endpoints, endpoints_type, source_config={}):
-        new_service = self._create_third_component(tenant, region, user, service_cname)
+    def create_third_party_app(self, region, tenant, user, service_cname, static_endpoints, endpoints_type, source_config={}, k8s_component_name=""):
+        new_service = self._create_third_component(tenant, region, user, service_cname, k8s_component_name)
         new_service.save()
         if endpoints_type == "kubernetes":
             service_endpoints_repo.create_kubernetes_endpoints(tenant, new_service, source_config["service_name"],
@@ -429,7 +432,7 @@ class AppService(object):
 
         return components
 
-    def _create_third_component(self, tenant, region_name, user, service_cname):
+    def _create_third_component(self, tenant, region_name, user, service_cname, k8s_component_name=""):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region_name)
         if not is_pass:
@@ -444,6 +447,7 @@ class AppService(object):
         component.creater = user.pk
         component.server_type = ''
         component.protocol = 'tcp'
+        component.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         return component
 
     @staticmethod
@@ -611,6 +615,9 @@ class AppService(object):
             for rule in stream_rule:
                 rule_data.append(self.__init_stream_rule_for_region(tenant, service, rule, user_name))
             data["tcp_rules"] = rule_data
+        if not service.k8s_component_name:
+            service.k8s_component_name = service.service_alias
+        data["k8s_component_name"] = service.k8s_component_name
         # create in region
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # conponent install complete
@@ -825,6 +832,9 @@ class AppService(object):
         app_id = service_group_relation_repo.get_group_id_by_service(service)
         region_app_id = region_app_repo.get_region_app_id(service.service_region, app_id)
         data["app_id"] = region_app_id
+        if not service.k8s_component_name:
+            service.k8s_component_name = service.service_alias
+        data["k8s_component_name"] = service.k8s_component_name
         logger.debug('create third component from region, data: {0}'.format(data))
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # 将组件创建状态变更为创建完成

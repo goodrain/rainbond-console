@@ -2,7 +2,7 @@
 import logging
 import re
 
-from console.exception.bcode import ErrK8sServiceNameExists
+from console.exception.bcode import ErrK8sServiceNameExists, ErrQualifiedName
 from console.exception.exceptions import (NoEnableRegionError, TenantExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
 from console.models.main import UserMessage
@@ -24,6 +24,7 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.utils.reqparse import parse_item
 from console.utils.timeutil import time_to_str
+from console.utils.validation import is_qualified_name
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
 from django.conf import settings
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
@@ -137,6 +138,9 @@ class AddTeamView(JWTAuthApiView):
             user = request.user
             team_alias = request.data.get("team_alias", None)
             useable_regions = request.data.get("useable_regions", "")
+            namespace = request.data.get("namespace", "")
+            if not is_qualified_name(namespace):
+                raise ErrQualifiedName(msg="invalid namespace name", msg_show="命名空间只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
             regions = []
             if not team_alias:
                 result = general_message(400, "failed", "团队名不能为空")
@@ -150,10 +154,10 @@ class AddTeamView(JWTAuthApiView):
                 enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
                 if not enterprise:
                     return Response(general_message(500, "user's enterprise is not found", "无企业信息"), status=500)
-                team = team_services.create_team(self.user, enterprise, regions, team_alias)
+                team = team_services.create_team(self.user, enterprise, regions, team_alias, namespace)
                 for r in regions:
                     try:
-                        region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, r)
+                        region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, r, team.namespace)
                     except ServiceHandleException as e:
                         logger.exception(e)
                     except Exception as e:
@@ -402,7 +406,7 @@ class TeamRegionInitView(JWTAuthApiView):
 
             team = team_services.create_team(self.user, enterprise, [region_name], team_alias)
             # 为团队开通默认数据中心并在数据中心创建租户
-            tenant_region = region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, team.region)
+            tenant_region = region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, team.region, team.namespace)
             # 公有云，如果没有领过资源包，为开通的数据中心领取免费资源包
             if settings.MODULES.get('SSO_LOGIN'):
                 result = region_services.get_enterprise_free_resource(tenant_region.tenant_id, enterprise.enterprise_id,

@@ -106,6 +106,8 @@ class TeamOverView(RegionTenantHeaderView):
                     create_app_body["app_name"] = group.group_name
                     create_app_body["console_app_id"] = group.ID
                     create_app_body["service_ids"] = service_ids
+                    if group.k8s_app:
+                        create_app_body["k8s_app"] = group.k8s_app
                     batch_create_app_body.append(create_app_body)
 
             if len(batch_create_app_body) > 0:
