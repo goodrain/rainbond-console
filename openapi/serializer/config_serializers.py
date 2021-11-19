@@ -110,6 +110,28 @@ class EnterpriseConfigSeralizer(serializers.Serializer):
     newbie_guide = NewBieGuideBaseRespSerializer(required=False)
 
 
+class VisualMonitorURLSeralizer(serializers.Serializer):
+    home_url = serializers.CharField(help_text="监控主页地址")
+    cluster_monitor_suffix = serializers.CharField(help_text="集群监控拼接后缀")
+    node_monitor_suffix = serializers.CharField(help_text="节点监控拼接后缀")
+    component_monitor_suffix = serializers.CharField(help_text="组件监控拼接后缀")
+    slo_monitor_suffix = serializers.CharField(help_text="服务监控拼接后缀")
+
+
+class VisualMonitorSeralizer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = VisualMonitorURLSeralizer()
+
+
+class EnterpriseOverviewSeralizer(serializers.Serializer):
+    teams = serializers.IntegerField(help_text="团队数", default=0)
+    apps = serializers.IntegerField(help_text="应用数", default=0)
+    components = serializers.IntegerField(help_text="组件数", default=0)
+    instances = serializers.IntegerField(help_text="实例数", default=0)
+    nodes = serializers.IntegerField(help_text="节点数", default=0)
+    visual_monitor = VisualMonitorSeralizer()
+
+
 
 class ResourceOverviewSeralizer(serializers.Serializer):
     nodes = serializers.ListField(help_text="资源级别")

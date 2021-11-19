@@ -225,6 +225,17 @@ class TenantServiceInfoRepository(object):
     def bulk_create(components: [TenantServiceInfo]):
         TenantServiceInfo.objects.bulk_create(components)
 
+    def get_service_by_region(self, enterprise_id, region):
+        teams = team_repo.get_teams_by_enterprise_id(enterprise_id)
+        team_ids = []
+        if teams:
+            team_ids = [team.tenant_id for team in teams]
+        return TenantServiceInfo.objects.filter(tenant_id__in=team_ids, service_region=region)
+
+    @staticmethod
+    def count_components():
+        return TenantServiceInfo.objects.count()
+
 
 class ServiceSourceRepository(object):
     def get_service_source(self, team_id, service_id):
@@ -474,7 +485,7 @@ class AppMarketRepository(object):
         # For compatibility, so if there is an application market with the same name, no longer create
         if markets_all.filter(name=name):
             return
-        
+
         # 创建默认应用市场时根据USE_SAAS环境变量和user_id决定是否设置用户关系
         create_data = {
             "name": name,
@@ -484,19 +495,19 @@ class AppMarketRepository(object):
             "access_key": access_key,
             "enterprise_id": eid,
         }
-        
+
         if os.getenv("USE_SAAS") and user_id:
             create_data["user_id"] = user_id
             create_data["is_personal"] = True
         else:
             create_data["is_personal"] = False
-            
+
         AppMarket.objects.create(**create_data)
 
     def get_app_markets(self, enterprise_id, user_id=None, for_publish=False):
         """获取应用市场列表，支持用户过滤"""
         queryset = AppMarket.objects.filter(enterprise_id=enterprise_id)
-        
+
         if for_publish:
             # 用于发布的查询
             if os.getenv("USE_SAAS") and user_id:
@@ -505,7 +516,7 @@ class AppMarketRepository(object):
         else:
             # 非发布用途，查询is_personal为false的第一条
             queryset = queryset.filter(is_personal=False)
-            
+
         return queryset
 
     def get_app_market(self, enterprise_id, market_id, raise_exception=False):
@@ -518,7 +529,7 @@ class AppMarketRepository(object):
     def get_app_market_by_name(self, enterprise_id, name, user_id=None, raise_exception=False):
         """根据名称获取应用市场，支持用户过滤"""
         queryset = AppMarket.objects.filter(enterprise_id=enterprise_id, name=name)
-        
+
         if os.getenv("USE_SAAS") and user_id:
             queryset = queryset.filter(user_id=user_id)
         else:

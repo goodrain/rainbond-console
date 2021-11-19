@@ -167,6 +167,18 @@ class TeamOverviewSerializer(serializers.Serializer):
     component_nums = serializers.IntegerField(help_text="组件总数", default=0)
 
 
+class TeamsOverviewSerializer(serializers.Serializer):
+    team_alias = serializers.CharField(max_length=64, help_text="团队名称")
+    region_alias = serializers.CharField(max_length=64, help_text="集群名称")
+    request_memory = serializers.IntegerField(help_text="使用内存", default=0)
+    limit_memory = serializers.IntegerField(help_text="内存限额", default=0)
+    users = serializers.IntegerField(help_text="用户数", default=0)
+    running_components = serializers.IntegerField(help_text="运行组件数", default=0)
+    components = serializers.IntegerField(help_text="组件数", default=0)
+    running_apps = serializers.IntegerField(help_text="运行应用数", default=0)
+    apps = serializers.IntegerField(help_text="应用数", default=0)
+
+
 class TenantRegionListSerializer(serializers.Serializer):
     tenant_id = serializers.CharField(help_text="租户id")
     region_name = serializers.CharField(help_text="数据中心名称")

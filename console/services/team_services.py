@@ -1371,5 +1371,9 @@ class TeamService(object):
             
         return region_list
 
+    @staticmethod
+    def count_teams(enterprise_id):
+        return Tenants.objects.filter(enterprise_id=enterprise_id).count()
+
 
 team_services = TeamService()

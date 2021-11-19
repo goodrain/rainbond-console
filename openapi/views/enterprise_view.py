@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
+import os
 
 from console.exception.main import ServiceHandleException
 from console.models.main import EnterpriseUserPerm
@@ -12,12 +13,15 @@ from console.services.region_services import region_services
 from console.utils.timeutil import time_to_str
 from django.db import connection
 from drf_yasg.utils import swagger_auto_schema
-from openapi.serializer.config_serializers import EnterpriseConfigSeralizer, ResourceOverviewSeralizer
+from openapi.serializer.config_serializers import EnterpriseConfigSeralizer, EnterpriseOverviewSeralizer, VisualMonitorSeralizer, EnterpriseOverviewSeralizer, ResourceOverviewSeralizer
 from openapi.serializer.ent_serializers import (EnterpriseInfoSerializer, EnterpriseSourceSerializer, UpdEntReqSerializer)
 from openapi.views.base import BaseOpenAPIView
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
+from console.services.team_services import team_services
+from console.services.group_service import group_repo
+from console.repositories.app import service_repo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -155,4 +159,44 @@ class ResourceOverview(BaseOpenAPIView):
         result = [{"nodes": nodes, "links": links}]
         serializer = ResourceOverviewSeralizer(data=result, many=True)
         serializer.is_valid()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class EnterpriseOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="获取企业总览信息",
+        responses={200: EnterpriseOverviewSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="")
+        nodes = 0
+        instances = 0
+        for region in regions:
+            nodes += region.get("all_nodes", 0)
+            instances += region.get("pods", 0)
+        teams = team_services.count_teams(self.user.enterprise_id)
+        apps = group_repo.count_apps()
+        components = service_repo.count_components()
+        visual_monitor = {
+            "value": {
+                "home_url": os.getenv("home_url", "https://visualmonitor.goodrain.com"),
+                "cluster_monitor_suffix": os.getenv("cluster_monitor_suffix", "/d/cluster/ji-qun-jian-kong-ke-shi-hua"),
+                "node_monitor_suffix": os.getenv("node_monitor_suffix", "/d/node/jie-dian-jian-kong-ke-shi-hua"),
+                "component_monitor_suffix": os.getenv("component_monitor_suffix", "/d/component/zu-jian-jian-kong-ke-shi-hua"),
+                "slo_monitor_suffix": os.getenv("slo_monitor_suffix", "/d/service/fu-wu-jian-kong-ke-shi-hua"),
+            },
+            "enable": True
+        }
+        visual_monitor_serializer = VisualMonitorSeralizer(data=visual_monitor)
+        visual_monitor_serializer.is_valid()
+        data = {
+            "teams": teams,
+            "apps": apps,
+            "components": components,
+            "instances": instances,
+            "nodes": nodes,
+            "visual_monitor": visual_monitor_serializer.data,
+        }
+        serializer = EnterpriseOverviewSeralizer(data=data)
+        serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
