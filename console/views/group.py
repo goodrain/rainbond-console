@@ -65,8 +65,6 @@ class TenantGroupView(RegionTenantHeaderView):
         note = request.data.get("note", "")
         logo = request.data.get("logo", "")
         k8s_app = request.data.get("k8s_app", "")
-        if not is_qualified_name(k8s_app):
-            raise ErrQualifiedName(msg_show="集群内应用名称只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
         if len(note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
         app_store_name = request.data.get("app_store_name", None)
@@ -74,6 +72,10 @@ class TenantGroupView(RegionTenantHeaderView):
         app_template_name = request.data.get("app_template_name", None)
         version = request.data.get("version", None)
         region_name = request.data.get("region_name", self.response_region)
+        if app_template_name:
+            k8s_app = app_template_name
+        if not is_qualified_name(k8s_app):
+            raise ErrQualifiedName(msg_show="应用英文名称只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
         data = group_service.create_app(
             self.tenant,
             region_name,
@@ -119,7 +121,7 @@ class TenantGroupOperationView(ApplicationView):
         k8s_app = request.data.get("k8s_app", "")
         note = request.data.get("note", "")
         logo = request.data.get("logo", "")
-        if not is_qualified_name(k8s_app):
+        if k8s_app and not is_qualified_name(k8s_app):
             raise ErrQualifiedName(msg_show="集群内应用名称只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
         if note and len(note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
