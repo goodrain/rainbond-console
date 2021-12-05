@@ -1976,3 +1976,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         resp, _ = self._get(url, self._set_headers(token), region=region_name, preload_content=False)
         return resp
+
+    def change_application_volumes(self, tenant_name, region_name, region_app_id):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/apps/{}/volumes".format(tenant_name, region_app_id)
+        self._set_headers(token)
+        resp, _ = self._put(url, self._set_headers(token), region=region_name)
+        return resp

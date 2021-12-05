@@ -9,6 +9,7 @@ from console.exception.main import AbortRequest, ServiceHandleException
 from console.exception.bcode import ErrQualifiedName
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
+from console.repositories.region_app import region_app_repo
 from console.services.helm_app import helm_app_service
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
@@ -379,3 +380,11 @@ class ApplicationIngressesView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         result = application_service.list_access_info(self.tenant, app_id)
         return Response(general_message(200, "success", "查询成功", list=result))
+
+
+class ApplicationVolumesView(ApplicationView):
+    def put(self, request, app_id, *args, **kwargs):
+        region_app_id = region_app_repo.get_region_app_id(self.region_name, app_id)
+        region_api.change_application_volumes(self.tenant.tenant_name, self.region_name, region_app_id)
+        result = general_message(200, "success", "存储路径修改成功")
+        return Response(result)
