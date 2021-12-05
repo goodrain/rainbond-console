@@ -767,7 +767,8 @@ class DomainQueryView(RegionTenantHeaderView):
         domain_list = list()
         for tenant_tuple in tenant_tuples:
             service = service_repo.get_service_by_service_id(tenant_tuple[9])
-            service_alias = service.service_cname if service else ''
+            service_cname = service.service_cname if service else ''
+            service_alias = service.service_alias if service else tenant_tuple[6]
             group_name = ''
             group_id = 0
             if service:
@@ -786,8 +787,8 @@ class DomainQueryView(RegionTenantHeaderView):
             domain_dict["type"] = tenant_tuple[1]
             domain_dict["is_senior"] = tenant_tuple[2]
             domain_dict["group_name"] = group_name
-            domain_dict["service_cname"] = service_alias
-            domain_dict["service_alias"] = tenant_tuple[6]
+            domain_dict["service_cname"] = service_cname
+            domain_dict["service_alias"] = service_alias
             domain_dict["container_port"] = tenant_tuple[7]
             domain_dict["http_rule_id"] = tenant_tuple[8]
             domain_dict["service_id"] = tenant_tuple[9]

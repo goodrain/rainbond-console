@@ -62,6 +62,16 @@ probe_service = ProbeService()
 
 
 class AppService(object):
+    def is_k8s_component_name_duplicate(self, app_id, k8s_component_name, component_id=""):
+        components = []
+        component_ids = service_group_relation_repo.get_components_by_app_id(app_id).values_list("service_id")
+        if len(component_ids) > 0:
+            components = service_repo.list_by_ids(component_ids)
+        for component in components:
+            if component.k8s_component_name == k8s_component_name and component.service_id != component_id:
+                return True
+        return False
+
     def check_service_cname(self, tenant, service_cname, region):
         if not service_cname:
             return False, "组件名称不能为空"

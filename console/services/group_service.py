@@ -9,7 +9,7 @@ from datetime import datetime
 from deprecated import deprecated
 
 from console.enum.app import GovernanceModeEnum, AppType
-from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound
+from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound, ErrK8sAppExists
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain)
@@ -38,7 +38,7 @@ class GroupService(object):
         return group_repo.list_tenant_group_on_region(tenant, region_name)
 
     @staticmethod
-    def check_app_name(tenant, region_name, group_name, app: ServiceGroup = None):
+    def check_app_name(tenant, region_name, group_name, app: ServiceGroup = None, k8s_app=""):
         if not group_name:
             raise ServiceHandleException(msg="app name required", msg_show="应用名不能为空")
         if len(group_name) > 128:
@@ -47,6 +47,9 @@ class GroupService(object):
         if not r.match(group_name):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
         exist_app = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
+        app_id = app.app_id if app else 0
+        if group_repo.is_k8s_app_duplicate(tenant.tenant_id, region_name, k8s_app, app_id):
+            raise ErrK8sAppExists
         if not exist_app:
             return
         if not app or exist_app.app_id != app.app_id:
@@ -66,7 +69,7 @@ class GroupService(object):
                    eid="",
                    logo="",
                    k8s_app=""):
-        self.check_app_name(tenant, region_name, app_name)
+        self.check_app_name(tenant, region_name, app_name, k8s_app=k8s_app)
         # check parameter for helm app
         app_type = AppType.rainbond.name
         if app_store_name or app_template_name or version:
@@ -181,7 +184,7 @@ class GroupService(object):
 
         # check app name
         if app_name:
-            self.check_app_name(tenant, region_name, app_name, app)
+            self.check_app_name(tenant, region_name, app_name, app, k8s_app)
         if overrides:
             overrides = self._parse_overrides(overrides)
 
@@ -386,9 +389,17 @@ class GroupService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
         return services
 
-    def get_multi_apps_all_info(self, app_ids, region, tenant_name, tenant):
+    def get_multi_apps_all_info(self, app_ids, region, tenant_name, enterprise_id, tenant):
         app_list = group_repo.get_multi_app_info(app_ids)
         service_list = service_repo.get_services_in_multi_apps_with_app_info(app_ids)
+        # memory info
+        service_ids = [service.service_id for service in service_list]
+        status_list = base_service.status_multi_service(region, tenant_name, service_ids, enterprise_id)
+        service_status = dict()
+        if status_list is None:
+            raise ServiceHandleException(msg="query status failure", msg_show="查询组件状态失败")
+        for status in status_list:
+            service_status[status["service_id"]] = status
 
         app_id_statuses = self.get_region_app_statuses(tenant_name, region, app_ids)
         apps = dict()
@@ -410,6 +421,9 @@ class GroupService(object):
         from console.services.app_config import port_service
         accesses = port_service.list_access_infos(tenant, service_list)
         for service in service_list:
+            svc_sas = service_status.get(service.service_id, {"status": "failure", "used_mem": 0})
+            service.status = svc_sas["status"]
+            service.used_mem = svc_sas["used_mem"]
             apps[service.group_id]["service_list"].append(service)
             apps[service.group_id]["accesses"].append(accesses[service.service_id])
 
@@ -524,7 +538,7 @@ class GroupService(object):
         if service:
             raise AbortRequest(msg="the app still has components", msg_show="当前应用内存在组件，无法删除")
 
-        self._delete_app(region_name, tenant.tenant_name, app.app_id)
+        self._delete_app(tenant.tenant_name, region_name, app.app_id)
 
     @staticmethod
     def _delete_app(tenant_name, region_name, app_id):

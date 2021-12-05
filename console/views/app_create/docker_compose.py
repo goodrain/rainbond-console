@@ -99,6 +99,7 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         """
 
         group_name = request.data.get("group_name", None)
+        k8s_app = request.data.get("k8s_app", None)
         hub_user = request.data.get("user_name", "")
         hub_pass = request.data.get("password", "")
         yaml_content = request.data.get("yaml_content", "")
@@ -115,7 +116,7 @@ class DockerComposeCreateView(RegionTenantHeaderView):
             return Response(general_message(code, "parse yaml error", msg), status=code)
         # 创建组
         group_info = group_service.create_app(self.tenant, self.response_region, group_name, group_note,
-                                              self.user.get_username())
+                                              self.user.get_username(), k8s_app=k8s_app)
         code, msg, group_compose = compose_service.create_group_compose(
             self.tenant, self.response_region, group_info["group_id"], yaml_content, hub_user, hub_pass)
         if code != 200:

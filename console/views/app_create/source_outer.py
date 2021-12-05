@@ -7,6 +7,7 @@ import logging
 import os
 import pickle
 
+from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import ServiceHandleException
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
@@ -41,7 +42,8 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         endpoints_type = request.data.get("endpoints_type", None)
         service_name = request.data.get("serviceName", "")
         k8s_component_name = request.data.get("k8s_component_name", "")
-
+        if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
+            raise ErrK8sComponentNameExists
         if not service_cname:
             return Response(general_message(400, "service_cname is null", "组件名未指明"), status=400)
         if endpoints_type == "static":

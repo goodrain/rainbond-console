@@ -10,6 +10,7 @@ import os
 import pickle
 
 from console.constants import AppConstants, PluginCategoryConstants
+from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
 from console.repositories.app_config import service_endpoints_repo
@@ -197,6 +198,10 @@ class AppBriefView(AppBaseView):
         """
         service_cname = request.data.get("service_cname", None)
         k8s_component_name = request.data.get("k8s_component_name", "")
+        app = group_service.get_service_group_info(self.service.service_id)
+        if app:
+            if app_service.is_k8s_component_name_duplicate(app.ID, k8s_component_name, self.service.service_id):
+                raise ErrK8sComponentNameExists
         is_pass, msg = app_service.check_service_cname(self.tenant, service_cname, self.service.service_region)
         if not is_pass:
             return Response(general_message(400, "param error", msg), status=400)

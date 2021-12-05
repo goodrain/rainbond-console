@@ -7,6 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.services.app import app_service
 from console.views.base import RegionTenantHeaderView
@@ -59,6 +60,8 @@ class DockerRunCreateView(RegionTenantHeaderView):
         docker_password = request.data.get("password", None)
         docker_user_name = request.data.get("user_name", None)
         k8s_component_name = request.data.get("k8s_component_name", "")
+        if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
+            raise ErrK8sComponentNameExists
         try:
             if not image_type:
                 return Response(general_message(400, "image_type cannot be null", "参数错误"), status=400)

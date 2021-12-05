@@ -6,6 +6,7 @@ import json
 import logging
 import os
 
+from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import (AccountOverdueException, ResourceNotEnoughException)
 from console.repositories.app import service_webhooks_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
@@ -101,7 +102,8 @@ class SourceCodeCreateView(RegionTenantHeaderView):
         open_webhook = False
         k8s_component_name = request.data.get("k8s_component_name", "")
         host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
-
+        if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
+            raise ErrK8sComponentNameExists
         result = {}
         if is_oauth:
             open_webhook = request.data.get("open_webhook", False)

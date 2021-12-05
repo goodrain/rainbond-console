@@ -68,6 +68,8 @@ class AppPortService(object):
 
         # make a map of k8s services
         new_k8s_services = {k8s_service.get("k8s_service_name"): k8s_service for k8s_service in k8s_services}
+        if len(new_k8s_services) != len(k8s_services):
+            raise ErrK8sServiceNameExists
         ports = port_repo.list_by_k8s_service_names(tenant_id, k8s_service_names)
         for port in ports:
             k8s_service = new_k8s_services.get(port.k8s_service_name)
