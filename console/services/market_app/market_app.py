@@ -97,10 +97,10 @@ class MarketApp(object):
         # 去除重复依赖信息
         dep_keys = {}
         for dep in deps:
-            key = "{}/{}/{}".format(dep.ID, dep.service_id, dep.dep_service_id)
+            key = "{}/{}".format(dep.service_id, dep.dep_service_id)
             dep_keys[key] = dep
         for ndep in new_deps:
-            key = "{}/{}/{}".format(ndep.ID, ndep.service_id, ndep.dep_service_id)
+            key = "{}/{}".format(ndep.service_id, ndep.dep_service_id)
             if dep_keys.get(key):
                 continue
             deps.append(ndep)

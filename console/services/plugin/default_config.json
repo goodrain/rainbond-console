@@ -5,7 +5,7 @@
     "category": "net-plugin:down",
     "code_repo": "",
     "build_source": "image",
-    "image": "goodrain.me/rbd-mesh-data-panel",
+    "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-mesh-data-panel:latest",
     "config_group": [
       {
         "service_meta_type": "downstream_port",
@@ -166,7 +166,7 @@
     "category": "analyst-plugin:perf",
     "code_repo": "",
     "build_source": "image",
-    "image": "goodrain.me/tcm",
+    "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/plugins-tcm:latest",
     "config_group": [
       {
         "service_meta_type": "upstream_port",
@@ -192,7 +192,7 @@
     "category": "net-plugin:in-and-out",
     "code_repo": "",
     "build_source": "image",
-    "image": "goodrain.me/rbd-mesh-data-panel",
+    "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-mesh-data-panel:latest",
     "config_group": [
       {
         "service_meta_type": "upstream_port",

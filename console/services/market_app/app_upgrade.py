@@ -500,7 +500,7 @@ class AppUpgrade(MarketApp):
         if self.is_upgrade_one:
             return
         self.record.status = status
-        self.record.snapshot_id = snapshot.snapshot_id
+        self.record.snapshot_id = snapshot.snapshot_id if snapshot else None
         self.record.version = self.version
         self.record.save()
 
