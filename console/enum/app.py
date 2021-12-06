@@ -15,6 +15,10 @@ class GovernanceModeEnum(AutoNumber):
     def names(cls):
         return [key.name for key in cls]
 
+    @classmethod
+    def use_k8s_service_name_governance_modes(cls):
+        return [cls.KUBERNETES_NATIVE_SERVICE.name, cls.ISTIO_SERVICE_MESH.name]
+
 
 class AppType(AutoNumber):
     rainbond = ()

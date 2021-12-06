@@ -620,7 +620,7 @@ class GroupService(object):
             port = ports.get(env.service_id + str(env.container_port))
             if not port:
                 continue
-            if governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+            if governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
                 env.attr_value = port.k8s_service_name if port.k8s_service_name else cpt.service_alias + "-" + str(
                     port.container_port)
             else:
