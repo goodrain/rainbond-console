@@ -888,7 +888,8 @@ class AppManageService(AppManageBase):
             data.pop("server_type")
             data.pop("git_full_name")
         try:
-            delete_service_repo.create_delete_service(**data)
+            with transaction.atomic():
+                delete_service_repo.create_delete_service(**data)
         except Exception as e:
             logger.exception(e)
             pass
@@ -1198,7 +1199,8 @@ class AppManageService(AppManageBase):
             data.pop("server_type")
             data.pop("git_full_name")
         try:
-            delete_service_repo.create_delete_service(**data)
+            with transaction.atomic():
+                delete_service_repo.create_delete_service(**data)
         except Exception as e:
             logger.exception(e)
             pass
