@@ -132,8 +132,6 @@ class AppRestore(MarketApp):
         records = []
         for cpt in self.new_app.components():
             event_id = event_ids.get(cpt.component.component_id)
-            if not event_id:
-                continue
             record = ServiceUpgradeRecord(
                 create_time=datetime.now(),
                 app_upgrade_record=self.rollback_record,
@@ -143,6 +141,12 @@ class AppRestore(MarketApp):
                 event_id=event_id,
                 status=UpgradeStatus.ROLLING.value,
             )
+            if cpt.action_type == ActionType.NOTHING.value:
+                record.status = UpgradeStatus.ROLLBACK.value
+                records.append(record)
+                continue
+            if not event_id:
+                continue
             records.append(record)
         component_upgrade_record_repo.bulk_create(records)
 

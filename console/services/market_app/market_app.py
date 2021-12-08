@@ -90,23 +90,17 @@ class MarketApp(object):
         component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
         if tmpl_component_ids:
             component_ids = [component_id for component_id in component_ids if component_id in tmpl_component_ids]
-        deps = [
-            dep for dep in self.original_app.component_deps
-            if dep.dep_service_id not in component_ids or dep.service_id not in tmpl_component_ids
-        ]
-        # 去除重复依赖信息
-        dep_keys = {}
-        for dep in deps:
-            key = "{}/{}".format(dep.service_id, dep.dep_service_id)
-            dep_keys[key] = dep
-        for ndep in new_deps:
-            key = "{}/{}".format(ndep.service_id, ndep.dep_service_id)
-            if dep_keys.get(key):
+        deps = []
+        for dep in self.original_app.component_deps:
+            if dep.dep_service_id not in component_ids:
+                deps.append(dep)
                 continue
-            deps.append(ndep)
-        return deps
+            if tmpl_component_ids and dep.service_id not in tmpl_component_ids:
+                deps.append(dep)
+        deps.extend(new_deps)
+        return self._dedup_deps(deps)
 
-    def ensure_volume_deps(self, new_deps, tmpl_component_ids=None, is_upgrade_one=False):
+    def ensure_volume_deps(self, new_deps, tmpl_component_ids=[], is_upgrade_one=False):
         """
         确保存储依赖关系的正确性.
         根据已有的依赖关系, 新的依赖关系计算出最终的依赖关系, 计算规则如下:
@@ -124,12 +118,15 @@ class MarketApp(object):
         component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
         if tmpl_component_ids:
             component_ids = [component_id for component_id in component_ids if component_id in tmpl_component_ids]
-        deps = [
-            dep for dep in self.original_app.volume_deps
-            if dep.dep_service_id not in component_ids or dep.service_id not in tmpl_component_ids
-        ]
+        deps = []
+        for dep in self.original_app.volume_deps:
+            if dep.dep_service_id not in component_ids:
+                deps.append(dep)
+                continue
+            if tmpl_component_ids and dep.service_id not in tmpl_component_ids:
+                deps.append(dep)
         deps.extend(new_deps)
-        return deps
+        return self._dedup_deps(deps)
 
     def _sync_new_components(self):
         """
@@ -185,14 +182,14 @@ class MarketApp(object):
                 labels.append({"label_key": "node-selector", "label_value": label.label_name})
             component["labels"] = labels
             # volume dependency
+            deps = []
             if cpt.volume_deps:
-                deps = []
                 for dep in cpt.volume_deps:
                     new_dep = dep.to_dict()
                     new_dep["dep_volume_name"] = dep.mnt_name
                     new_dep["mount_path"] = dep.mnt_dir
                     deps.append(new_dep)
-                component["volume_relations"] = deps
+            component["volume_relations"] = deps
             # component dependency
             if cpt.component_deps:
                 component["relations"] = [dep.to_dict() for dep in cpt.component_deps]

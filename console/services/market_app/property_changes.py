@@ -34,21 +34,33 @@ class PropertyChanges(object):
 
     def ensure_dep_changes(self, new_app: NewApp, original_app: OriginalApp):
         update_components = {component.component.component_id: component for component in new_app.list_update_components()}
-        original_components = {component.component.component_id: component for component in original_app.components()}
+        # get origin component dependency
+        original_components_deps = {}
+        for dep in original_app.component_deps:
+            if not original_components_deps.get(dep.service_id):
+                original_components_deps[dep.service_id] = [dep]
+                continue
+            original_components_deps[dep.service_id].append(dep)
+        original_components_volume_deps = {}
+        for vol_dep in original_app.volume_deps:
+            if not original_components_volume_deps.get(vol_dep.service_id):
+                original_components_volume_deps[vol_dep.service_id] = [vol_dep]
+                continue
+            original_components_volume_deps[vol_dep.service_id].append(vol_dep)
 
         for change in self.changes:
             component_id = change["component_id"]
             update_component = update_components.get(component_id)
             if not update_component:
                 continue
-            original_component = original_components.get(component_id)
             # update component if component dependencies changed
-            original_component.component_deps = original_component.component_deps if original_component.component_deps else []
-            original_component.component_deps = original_component.component_deps if original_component.component_deps else []
-            if self._is_dep_equal(original_component.component_deps, update_component.component_deps):
+            original_component_deps = original_components_deps[component_id] if original_components_deps.get(component_id) else []
+            original_component_volume_deps = original_components_volume_deps[component_id] if original_components_volume_deps.get(component_id) else []
+
+            if not self._is_dep_equal(original_component_deps, update_component.component_deps):
                 update_component.update_action_type(ActionType.UPDATE.value)
             # update component if volume dependencies changed
-            if self._is_dep_equal(original_component.volume_deps, update_component.volume_deps):
+            if not self._is_dep_equal(original_component_volume_deps, update_component.volume_deps):
                 update_component.update_action_type(ActionType.UPDATE.value)
 
     @staticmethod
@@ -253,11 +265,14 @@ class PropertyChanges(object):
             probe = old_probes[mode]
             delete.append(probe.to_dict())
 
-        return {
-            "add": add,
-            "upd": upd,
-            "delete": delete,
-        }
+        result = {}
+        if add:
+            result["add"] = add
+        if upd:
+            result["upd"] = upd
+        if delete:
+            result["delete"] = delete
+        return result
 
     @staticmethod
     def _graphs(component_id, old_graphs, graphs):
@@ -330,6 +345,8 @@ class PropertyChanges(object):
                 continue
             plugin_dep["plugin"] = plugin.to_dict()
             add.append(plugin_dep)
+        if not add:
+           return {}
         return {"add": add}
 
     def _labels(self, old_labels, new_labels):
