@@ -10,6 +10,7 @@ import os
 import pickle
 
 from console.constants import AppConstants, PluginCategoryConstants
+from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
 from console.repositories.app_config import service_endpoints_repo
@@ -56,12 +57,14 @@ class AppDetailView(AppBaseView):
               paramType: path
         """
         bean = dict()
+        namespace = self.tenant.namespace
         service_model = self.service.to_dict()
         group_map = group_service.get_services_group_name([self.service.service_id])
         group_name = group_map.get(self.service.service_id)["group_name"]
         group_id = group_map.get(self.service.service_id)["group_id"]
         service_model["group_name"] = group_name
         service_model["group_id"] = group_id
+        service_model["namespace"] = namespace
         bean.update({"service": service_model})
         event_websocket_url = ws_service.get_event_log_ws(self.request, self.service.service_region)
         bean.update({"event_websocket_url": event_websocket_url})
@@ -194,10 +197,18 @@ class AppBriefView(AppBaseView):
               paramType: form
         """
         service_cname = request.data.get("service_cname", None)
+        k8s_component_name = request.data.get("k8s_component_name", "")
+        app = group_service.get_service_group_info(self.service.service_id)
+        if app:
+            if app_service.is_k8s_component_name_duplicate(app.ID, k8s_component_name, self.service.service_id):
+                raise ErrK8sComponentNameExists
         is_pass, msg = app_service.check_service_cname(self.tenant, service_cname, self.service.service_region)
         if not is_pass:
             return Response(general_message(400, "param error", msg), status=400)
+        self.service.k8s_component_name = k8s_component_name
         self.service.service_cname = service_cname
+        region_api.update_service(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
+                                  {"k8s_component_name": k8s_component_name})
         self.service.save()
         result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
         return Response(result, status=result["code"])

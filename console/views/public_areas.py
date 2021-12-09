@@ -106,6 +106,8 @@ class TeamOverView(RegionTenantHeaderView):
                     create_app_body["app_name"] = group.group_name
                     create_app_body["console_app_id"] = group.ID
                     create_app_body["service_ids"] = service_ids
+                    if group.k8s_app:
+                        create_app_body["k8s_app"] = group.k8s_app
                     batch_create_app_body.append(create_app_body)
 
             if len(batch_create_app_body) > 0:
@@ -494,7 +496,8 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         if groups:
             group_ids = [group.ID for group in groups]
             group_ids = group_ids[start:end]
-            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region, self.team_name, self.team)
+            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region, self.team_name,
+                                                         self.team.enterprise_id, self.team)
         return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
 
 

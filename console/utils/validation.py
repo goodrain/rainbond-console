@@ -70,3 +70,12 @@ def validate_name(name):
     if re.match(r'^[a-z0-9A-Z\u4e00-\u9fa5]([a-zA-Z0-9_\-\u4e00-\u9fa5]*[a-z0-9A-Z\u4e00-\u9fa5])?$', name):
         return True
     return False
+
+
+# Verification k8s resource name, refer to:
+# https://github.com/kubernetes/kubernetes/blob/b0bc8adbc2178e15872f9ef040355c51c45d04bb/staging/src/k8s.io/apimachinery/pkg/util/validation/validation.go#L43
+def is_qualified_name(name):
+    # 只支持字母、数字和-组合,并且必须以字母开始、以数字或字母结尾
+    if re.match(r'^[a-z]([-a-z0-9]*[a-z0-9])?$', name):
+        return True
+    return False

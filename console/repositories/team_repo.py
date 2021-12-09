@@ -7,6 +7,7 @@ from console.models.main import RegionConfig, TeamGitlabInfo
 from console.repositories.base import BaseConnection
 from django.db.models import Q
 from www.models.main import (PermRelTenant, TenantEnterprise, TenantRegionInfo, Tenants, Users)
+from www.utils.crypt import make_tenant_id
 
 logger = logging.getLogger("default")
 
@@ -186,6 +187,12 @@ class TeamRepo(object):
         return Tenants.objects.filter(enterprise_id=enterprise_id, tenant_alias__contains=tenant_alias)
 
     def create_tenant(self, **params):
+        if not params.get("tenant_id"):
+            params["tenant_id"] = make_tenant_id()
+        if not params.get("namespace"):
+            params["namespace"] = params["tenant_id"]
+        if Tenants.objects.filter(namespace=params["namespace"]).count() > 0:
+            raise ServiceHandleException(msg="namespace exists", msg_show="命名空间已存在")
         return Tenants.objects.create(**params)
 
     def get_team_by_team_alias(self, team_alias):

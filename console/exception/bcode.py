@@ -54,7 +54,7 @@ class ErrServiceMonitorExists(ServiceHandleException):
 
 class ErrRepeatMonitoringTarget(ServiceHandleException):
     def __init__(self):
-        super(ErrRepeatMonitoringTarget, self).__init__("repeat monitoring target", "配置名称已存在", 409, 20204)
+        super(ErrRepeatMonitoringTarget, self).__init__("repeat monitoring target", "监测指标已存在", 409, 20204)
 
 
 # 20300 ~ 20399 => oauth
@@ -124,10 +124,16 @@ class ErrPluginIsUsed(ServiceHandleException):
             msg="plugin is used by the service", msg_show="该插件被组件使用，无法删除", status_code=409, error_code=20600)
 
 
-# 20700 ~ 20799 => tenant not found
+# 20700 ~ 20799 => tenant
 class ErrTenantNotFound(ServiceHandleException):
     def __init__(self):
         super(ErrTenantNotFound, self).__init__(msg="tenant not found", msg_show="团队不存在", status_code=404, error_code=20700)
+
+
+class ErrNamespaceExists(ServiceHandleException):
+    def __init__(self):
+        super(ErrNamespaceExists, self).__init__(
+            msg="namespace exists", msg_show="团队英文名(命名空间)已存在", status_code=400, error_code=20701)
 
 
 # 20800 ~ 20899 => component
@@ -141,6 +147,12 @@ class ErrThirdComponentStartFailed(ServiceHandleException):
     def __init__(self):
         super(ErrThirdComponentStartFailed, self).__init__(
             msg="failed to start third component", msg_show="启动第三方组件失败, 请稍后重试", status_code=400, error_code=20801)
+
+
+class ErrK8sComponentNameExists(ServiceHandleException):
+    def __init__(self):
+        super(ErrK8sComponentNameExists, self).__init__(
+            msg="k8s component name exists", msg_show="组件英文名已存在", status_code=400, error_code=20802)
 
 
 # 20900 ~ 20999 => app upgrade
@@ -201,20 +213,31 @@ class ErrAppUpgradeWrongStatus(ServiceHandleException):
             "the status of the upgrade record is not not_upgraded", msg_show="只能升级未升级的升级记录", status_code=400, error_code=20908)
 
 
-# 20800 ~ 20899 => application
+# 21000 ~ 21099 => application
 class ErrApplicationNotFound(ServiceHandleException):
     def __init__(self):
         super(ErrApplicationNotFound, self).__init__(
-            msg="application not found", msg_show="应用不存在", status_code=404, error_code=20800)
+            msg="application not found", msg_show="应用不存在", status_code=404, error_code=21000)
 
 
 class ErrApplicationServiceNotFound(ServiceHandleException):
     def __init__(self):
         super(ErrApplicationServiceNotFound, self).__init__(
-            msg="application service not found", msg_show="应用服务不存在", status_code=404, error_code=20801)
+            msg="application service not found", msg_show="应用服务不存在", status_code=404, error_code=21001)
 
 
 class ErrServiceAddressNotFound(ServiceHandleException):
     def __init__(self):
         super(ErrServiceAddressNotFound, self).__init__(
-            msg="service address not found", msg_show="服务地址不存在", status_code=404, error_code=20802)
+            msg="service address not found", msg_show="服务地址不存在", status_code=404, error_code=21002)
+
+
+class ErrK8sAppExists(ServiceHandleException):
+    def __init__(self):
+        super(ErrK8sAppExists, self).__init__(msg="k8s app exists", msg_show="应用英文名已存在", status_code=400, error_code=21003)
+
+
+# 21100 ~ 21199 => common
+class ErrQualifiedName(ServiceHandleException):
+    def __init__(self, msg="err qualified name", msg_show="名称只能由小写字母、数字或“-”组成，并且必须以字母数字开头和结尾"):
+        super(ErrQualifiedName, self).__init__(msg=msg, msg_show=msg_show, status_code=400, error_code=21100)

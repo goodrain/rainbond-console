@@ -84,7 +84,7 @@ class OpenRegionView(TenantHeaderView):
         team = team_services.get_tenant_by_tenant_name(team_name)
         if not team:
             return Response(general_message(404, "team is not found", "团队{0}不存在".format(team_name)), status=403)
-        region_services.create_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name)
+        region_services.create_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name, team.namespace)
         result = general_message(200, "success", "数据中心{0}开通成功".format(region_name))
         return Response(result, result["code"])
 
@@ -114,7 +114,7 @@ class OpenRegionView(TenantHeaderView):
             return Response(general_message(404, "team is not found", "团队{0}不存在".format(team_name)), status=403)
         region_list = region_names.split(",")
         for region_name in region_list:
-            region_services.create_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name)
+            region_services.create_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name, team.namespace)
         result = general_message(200, "success", "批量开通数据中心成功")
         return Response(result, result["code"])
 

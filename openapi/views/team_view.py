@@ -89,7 +89,8 @@ class ListTeamInfo(BaseOpenAPIView):
             user = request.user
         team = team_services.create_team(user, en, team_alias=team_data["tenant_name"])
         if region:
-            region_services.create_tenant_on_region(self.enterprise.enterprise_id, team.tenant_name, region.region_name)
+            region_services.create_tenant_on_region(self.enterprise.enterprise_id, team.tenant_name, region.region_name,
+                                                    team.namespace)
         re = TeamBaseInfoSerializer(team)
         return Response(re.data, status=status.HTTP_201_CREATED)
 
@@ -262,7 +263,8 @@ class ListRegionsView(TeamNoRegionAPIView):
             if not region:
                 raise ErrRegionNotFound
         team = team_services.get_team_by_team_id(team_id)
-        region_services.create_tenant_on_region(self.enterprise.enterprise_id, team.tenant_name, region.region_name)
+        region_services.create_tenant_on_region(self.enterprise.enterprise_id, team.tenant_name, region.region_name,
+                                                team.namespace)
         re = TeamBaseInfoSerializer(team)
         return Response(re.data, status=status.HTTP_201_CREATED)
 

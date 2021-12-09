@@ -80,7 +80,7 @@ class PluginCreateView(RegionTenantHeaderView):
         # 必要参数
         plugin_alias = request.data.get("plugin_alias", None)
         build_source = request.data.get("build_source", None)
-        min_memory = request.data.get("min_memory", None)
+        min_memory = request.data.get("min_memory", 0)
         category = request.data.get("category", None)
         desc = request.data.get("desc", None)
         # 非必要参数
@@ -99,8 +99,6 @@ class PluginCreateView(RegionTenantHeaderView):
                 return Response(general_message(400, "plugin alias is null", "插件名称未指明"), status=400)
             if not build_source:
                 return Response(general_message(400, "build source is null", "构建来源未指明"), status=400)
-            if not min_memory:
-                return Response(general_message(400, "plugin min_memroy is null", "插件内存大小未指明"), status=400)
             if not category:
                 return Response(general_message(400, "plugin category is null", "插件类别未指明"), status=400)
             else:

@@ -15,5 +15,9 @@ class ServiceGroupRelationRepositry(object):
     def bulk_create(service_group_rels):
         ServiceGroupRelation.objects.bulk_create(service_group_rels)
 
+    @staticmethod
+    def get_components_by_app_id(app_id):
+        return ServiceGroupRelation.objects.filter(group_id=app_id)
+
 
 service_group_relation_repo = ServiceGroupRelationRepositry()

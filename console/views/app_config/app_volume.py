@@ -241,6 +241,7 @@ class AppVolumeManageView(AppBaseView):
                 volume.mode = mode
             volume.save()
             if volume.volume_type == 'config-file':
+                service_config.volume_name = volume.volume_name
                 service_config.file_content = new_file_content
                 service_config.save()
             result = general_message(200, "success", "修改成功")

@@ -888,7 +888,8 @@ class AppManageService(AppManageBase):
             data.pop("server_type")
             data.pop("git_full_name")
         try:
-            delete_service_repo.create_delete_service(**data)
+            with transaction.atomic():
+                delete_service_repo.create_delete_service(**data)
         except Exception as e:
             logger.exception(e)
             pass
@@ -1165,7 +1166,7 @@ class AppManageService(AppManageBase):
                 raise e
             except Exception as e:
                 logger.exception(e)
-                raise ServiceHandleException(msg="delete component {0} failure", msg_show="组件删除失败")
+                raise ServiceHandleException(msg="delete component {} failure".format(service.service_alias), msg_show="组件删除失败")
 
     def really_delete_service(self, tenant, service, user=None, ignore_cluster_result=False, not_delete_from_cluster=False):
         """组件真实删除方法，调用端必须进行事务控制"""
@@ -1198,7 +1199,8 @@ class AppManageService(AppManageBase):
             data.pop("server_type")
             data.pop("git_full_name")
         try:
-            delete_service_repo.create_delete_service(**data)
+            with transaction.atomic():
+                delete_service_repo.create_delete_service(**data)
         except Exception as e:
             logger.exception(e)
             pass

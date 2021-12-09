@@ -257,7 +257,8 @@ class AppMntService(object):
         for mnt in mnts:
             # get volume
             vol = volume_repo.get_service_volume_by_name(service.service_id, mnt.mnt_name)
-
+            if not vol:
+                continue
             # services that depend on this volume
             services_dep_vol = id_to_services[mnt.service_id]
             for svc in services_dep_vol:

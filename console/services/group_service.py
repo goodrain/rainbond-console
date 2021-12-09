@@ -9,7 +9,7 @@ from datetime import datetime
 from deprecated import deprecated
 
 from console.enum.app import GovernanceModeEnum, AppType
-from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound
+from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound, ErrK8sAppExists
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain)
@@ -38,7 +38,7 @@ class GroupService(object):
         return group_repo.list_tenant_group_on_region(tenant, region_name)
 
     @staticmethod
-    def check_app_name(tenant, region_name, group_name, app: ServiceGroup = None):
+    def check_app_name(tenant, region_name, group_name, app: ServiceGroup = None, k8s_app=""):
         if not group_name:
             raise ServiceHandleException(msg="app name required", msg_show="应用名不能为空")
         if len(group_name) > 128:
@@ -47,6 +47,9 @@ class GroupService(object):
         if not r.match(group_name):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
         exist_app = group_repo.get_group_by_unique_key(tenant.tenant_id, region_name, group_name)
+        app_id = app.app_id if app else 0
+        if group_repo.is_k8s_app_duplicate(tenant.tenant_id, region_name, k8s_app, app_id):
+            raise ErrK8sAppExists
         if not exist_app:
             return
         if not app or exist_app.app_id != app.app_id:
@@ -64,8 +67,9 @@ class GroupService(object):
                    app_template_name="",
                    version="",
                    eid="",
-                   logo=""):
-        self.check_app_name(tenant, region_name, app_name)
+                   logo="",
+                   k8s_app=""):
+        self.check_app_name(tenant, region_name, app_name, k8s_app=k8s_app)
         # check parameter for helm app
         app_type = AppType.rainbond.name
         if app_store_name or app_template_name or version:
@@ -94,6 +98,7 @@ class GroupService(object):
             app_template_name=app_template_name,
             version=version,
             logo=logo,
+            k8s_app=k8s_app,
         )
         group_repo.create(app)
 
@@ -121,6 +126,7 @@ class GroupService(object):
                 "app_store_url": app.app_store_url,
                 "app_template_name": app.app_template_name,
                 "version": app.version,
+                "k8s_app": app.k8s_app,
             })
 
         # record the dependencies between region app and console app
@@ -130,6 +136,9 @@ class GroupService(object):
             "app_id": app.ID,
         }
         region_app_repo.create(**data)
+        # 集群端创建完应用后，再更新控制台的应用名称
+        app.k8s_app = region_app["k8s_app"]
+        app.save()
 
     @staticmethod
     def _parse_overrides(overrides):
@@ -154,7 +163,8 @@ class GroupService(object):
                      overrides="",
                      version="",
                      revision=0,
-                     logo=""):
+                     logo="",
+                     k8s_app=""):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
@@ -174,7 +184,7 @@ class GroupService(object):
 
         # check app name
         if app_name:
-            self.check_app_name(tenant, region_name, app_name, app)
+            self.check_app_name(tenant, region_name, app_name, app, k8s_app)
         if overrides:
             overrides = self._parse_overrides(overrides)
 
@@ -183,14 +193,16 @@ class GroupService(object):
         if version:
             data["version"] = version
 
-        group_repo.update(app_id, **data)
-
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        region_api.update_app(region_name, tenant.tenant_name, region_app_id, {
+
+        bean = region_api.update_app(region_name, tenant.tenant_name, region_app_id, {
             "overrides": overrides,
             "version": version,
             "revision": revision,
+            "k8s_app": k8s_app,
         })
+        data["k8s_app"] = bean["k8s_app"]
+        group_repo.update(app_id, **data)
 
     def delete_group(self, group_id, default_group_id):
         if not group_id or not str.isdigit(group_id) or int(group_id) < 0:
@@ -233,16 +245,25 @@ class GroupService(object):
             for service in group_services:
                 service_ids.append(service["service_id"])
 
+        app = group_repo.get_group_by_id(app_id)
         try:
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
             body = {"service_ids": service_ids}
             region_api.batch_update_service_app_id(region_name, tenant.tenant_name, region_app_id, body)
         except RegionApp.DoesNotExist:
-            app = group_repo.get_group_by_id(app_id)
             create_body = {"app_name": app.group_name, "service_ids": service_ids}
+            if app.k8s_app:
+                create_body["k8s_app"] = app.k8s_app
             bean = region_api.create_application(region_name, tenant, create_body)
-            req = {"region_name": region_name, "region_app_id": bean["app_id"], "app_id": app_id}
+            region_app_id = bean["app_id"]
+            req = {"region_name": region_name, "region_app_id": region_app_id, "app_id": app_id}
             region_app_repo.create(**req)
+            app.k8s_app = bean["k8s_app"]
+            app.save()
+        if not app.k8s_app:
+            status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
+            app.k8s_app = status["k8s_app"] if status.get("k8s_app") else ""
+            app.save()
 
     def get_app_detail(self, tenant, region_name, app_id):
         # app metadata
@@ -260,6 +281,13 @@ class GroupService(object):
         res['ingress_num'] = self.count_ingress_by_app_id(tenant.tenant_id, region_name, app_id)
         res['config_group_num'] = app_config_group_service.count_by_app_id(region_name, app_id)
         res['logo'] = app.logo
+        res['k8s_app'] = app.k8s_app
+        res['can_edit'] = True
+        components = group_service_relation_repo.get_services_by_group(app_id)
+        running_components = region_api.get_dynamic_services_pods(region_name, tenant.tenant_name,
+                                                                  [component.service_id for component in components])
+        if running_components.get("list") and len(running_components["list"]) > 0:
+            res['can_edit'] = False
 
         try:
             principal = user_repo.get_user_by_username(app.username)
@@ -372,9 +400,17 @@ class GroupService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
         return services
 
-    def get_multi_apps_all_info(self, app_ids, region, tenant_name, tenant):
+    def get_multi_apps_all_info(self, app_ids, region, tenant_name, enterprise_id, tenant):
         app_list = group_repo.get_multi_app_info(app_ids)
         service_list = service_repo.get_services_in_multi_apps_with_app_info(app_ids)
+        # memory info
+        service_ids = [service.service_id for service in service_list]
+        status_list = base_service.status_multi_service(region, tenant_name, service_ids, enterprise_id)
+        service_status = dict()
+        if status_list is None:
+            raise ServiceHandleException(msg="query status failure", msg_show="查询组件状态失败")
+        for status in status_list:
+            service_status[status["service_id"]] = status
 
         app_id_statuses = self.get_region_app_statuses(tenant_name, region, app_ids)
         apps = dict()
@@ -396,6 +432,9 @@ class GroupService(object):
         from console.services.app_config import port_service
         accesses = port_service.list_access_infos(tenant, service_list)
         for service in service_list:
+            svc_sas = service_status.get(service.service_id, {"status": "failure", "used_mem": 0})
+            service.status = svc_sas["status"]
+            service.used_mem = svc_sas["used_mem"]
             apps[service.group_id]["service_list"].append(service)
             apps[service.group_id]["accesses"].append(accesses[service.service_id])
 
@@ -510,7 +549,7 @@ class GroupService(object):
         if service:
             raise AbortRequest(msg="the app still has components", msg_show="当前应用内存在组件，无法删除")
 
-        self._delete_app(region_name, tenant.tenant_name, app.app_id)
+        self._delete_app(tenant.tenant_name, region_name, app.app_id)
 
     @staticmethod
     def _delete_app(tenant_name, region_name, app_id):
@@ -592,7 +631,7 @@ class GroupService(object):
             port = ports.get(env.service_id + str(env.container_port))
             if not port:
                 continue
-            if governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+            if governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
                 env.attr_value = port.k8s_service_name if port.k8s_service_name else cpt.service_alias + "-" + str(
                     port.container_port)
             else:
@@ -714,6 +753,10 @@ class GroupService(object):
     def list_components(app_id):
         service_groups = group_service_relation_repo.list_service_groups(app_id)
         return service_repo.list_by_ids([sg.service_id for sg in service_groups])
+
+    def check_governance_mode(self, tenant, region_name, app_id, governance_mode):
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        return region_api.check_app_governance_mode(region_name, tenant.tenant_name, region_app_id, governance_mode)
 
 
 group_service = GroupService()

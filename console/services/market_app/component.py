@@ -121,7 +121,13 @@ class Component(object):
             "labels": self._update_labels,
             "component_graphs": self._update_component_graphs,
             "component_monitors": self._update_component_monitors,
+            "plugin_deps": self._update_plugin_deps,
         }
+
+    def _update_plugin_deps(self, plugin_deps):
+        if not plugin_deps.get("add"):
+            return
+        self.update_action_type(ActionType.UPDATE.value)
 
     def _update_deploy_version(self, dv):
         if not dv["is_change"]:
@@ -305,7 +311,8 @@ class Component(object):
         # There can only be one probe of the same mode
         # Dedup new probes based on mode
         new_probes = {probe["mode"]: probe for probe in new_probes}
-
+        if not new_probes:
+            return
         probes = []
         for key in new_probes:
             probe = new_probes[key]

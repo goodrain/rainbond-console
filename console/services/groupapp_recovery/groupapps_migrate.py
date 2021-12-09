@@ -331,6 +331,9 @@ class GroupappsMigrateService(object):
         ts.tenant_id = tenant.tenant_id
         ts.create_status = "creating"
         ts.service_cname = ts.service_cname + "-copy"
+        ts.k8s_component_name = "{}-{}".format(
+            service_base_info["k8s_component_name"],
+            new_servie_alias) if service_base_info.get("k8s_component_name") else new_servie_alias
         # compatible component type
         if ts.extend_method == "state":
             ts.extend_method = "state_multiple"

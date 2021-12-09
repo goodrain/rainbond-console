@@ -57,7 +57,6 @@ function release_allinone() {
 case $1 in
 allinone)
   release_allinone
-  release
   ;;
 *)
   release

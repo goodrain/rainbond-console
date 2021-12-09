@@ -68,6 +68,8 @@ class AppPortService(object):
 
         # make a map of k8s services
         new_k8s_services = {k8s_service.get("k8s_service_name"): k8s_service for k8s_service in k8s_services}
+        if len(new_k8s_services) != len(k8s_services):
+            raise ErrK8sServiceNameExists
         ports = port_repo.list_by_k8s_service_names(tenant_id, k8s_service_names)
         for port in ports:
             k8s_service = new_k8s_services.get(port.k8s_service_name)
@@ -114,7 +116,7 @@ class AppPortService(object):
                 port.k8s_service_name = k8s_service.get("k8s_service_name")
                 port.port_alias = k8s_service.get("port_alias")
             # create new port envs
-            if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+            if app.governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
                 attr_value = port.k8s_service_name
             else:
                 attr_value = "127.0.0.1"
@@ -212,7 +214,7 @@ class AppPortService(object):
         if is_inner_service:
             if not port_alias:
                 return 400, "端口别名不能为空", None
-            if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+            if app.governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
                 host_value = k8s_service_name
             else:
                 host_value = "127.0.0.1"
@@ -635,7 +637,7 @@ class AppPortService(object):
 
         # 添加环境变量
         app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
-        if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+        if app.governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
             host_value = deal_port.k8s_service_name if deal_port.k8s_service_name else service.service_alias + "-" + str(
                 deal_port.container_port)
         else:
@@ -709,7 +711,7 @@ class AppPortService(object):
             new_attr_name = new_port_alias + env.attr_name.replace(old_port_alias, '')
             env.attr_name = new_attr_name
             if env.attr_name.endswith("HOST"):
-                if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
+                if app.governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
                     env.attr_value = k8s_service_name
                 else:
                     env.attr_value = "127.0.0.1"

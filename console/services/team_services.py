@@ -260,7 +260,7 @@ class TeamService(object):
         return team
 
     @transaction.atomic
-    def create_team(self, user, enterprise, region_list=None, team_alias=None):
+    def create_team(self, user, enterprise, region_list=None, team_alias=None, namespace=""):
         team_name = self.random_tenant_name(enterprise=user.enterprise_id, length=8)
         is_public = settings.MODULES.get('SSO_LOGIN')
         if not is_public:
@@ -284,6 +284,7 @@ class TeamService(object):
             "tenant_alias": team_alias,
             "enterprise_id": enterprise.enterprise_id,
             "limit_memory": 0,
+            "namespace": namespace
         }
         team = team_repo.create_tenant(**params)
         create_perm_param = {
