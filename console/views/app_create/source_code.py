@@ -136,8 +136,20 @@ class SourceCodeCreateView(RegionTenantHeaderView):
             if service_code_clone_url:
                 service_code_clone_url = service_code_clone_url.strip()
             code, msg_show, new_service = app_service.create_source_code_app(
-                self.response_region, self.tenant, self.user, service_code_from, service_cname, service_code_clone_url,
-                service_code_id, service_code_version, server_type, check_uuid, event_id, oauth_service_id, git_full_name, k8s_component_name=k8s_component_name)
+                self.response_region,
+                self.tenant,
+                self.user,
+                service_code_from,
+                service_cname,
+                service_code_clone_url,
+                service_code_id,
+                service_code_version,
+                server_type,
+                check_uuid,
+                event_id,
+                oauth_service_id,
+                git_full_name,
+                k8s_component_name=k8s_component_name)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
             # 添加username,password信息

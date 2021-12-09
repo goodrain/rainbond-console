@@ -211,7 +211,8 @@ class TenantService(object):
                                                                                      region))
             logger.info("start invoking api to init region tenant !")
             try:
-                res, body = api.create_tenant(region, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id, tenant.namespace)
+                res, body = api.create_tenant(region, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id,
+                                              tenant.namespace)
                 logger.debug(res, body)
                 tenant_region.is_active = True
                 tenant_region.is_init = True

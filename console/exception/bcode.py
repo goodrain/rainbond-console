@@ -129,9 +129,12 @@ class ErrTenantNotFound(ServiceHandleException):
     def __init__(self):
         super(ErrTenantNotFound, self).__init__(msg="tenant not found", msg_show="团队不存在", status_code=404, error_code=20700)
 
+
 class ErrNamespaceExists(ServiceHandleException):
     def __init__(self):
-        super(ErrNamespaceExists, self).__init__(msg="namespace exists", msg_show="团队英文名(命名空间)已存在", status_code=400, error_code=20701)
+        super(ErrNamespaceExists, self).__init__(
+            msg="namespace exists", msg_show="团队英文名(命名空间)已存在", status_code=400, error_code=20701)
+
 
 # 20800 ~ 20899 => component
 class ErrComponentBuildFailed(ServiceHandleException):
@@ -231,8 +234,7 @@ class ErrServiceAddressNotFound(ServiceHandleException):
 
 class ErrK8sAppExists(ServiceHandleException):
     def __init__(self):
-        super(ErrK8sAppExists, self).__init__(
-            msg="k8s app exists", msg_show="应用英文名已存在", status_code=400, error_code=21003)
+        super(ErrK8sAppExists, self).__init__(msg="k8s app exists", msg_show="应用英文名已存在", status_code=400, error_code=21003)
 
 
 # 21100 ~ 21199 => common

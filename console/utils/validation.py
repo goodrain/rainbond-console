@@ -71,6 +71,7 @@ def validate_name(name):
         return True
     return False
 
+
 # Verification k8s resource name, refer to:
 # https://github.com/kubernetes/kubernetes/blob/b0bc8adbc2178e15872f9ef040355c51c45d04bb/staging/src/k8s.io/apimachinery/pkg/util/validation/validation.go#L43
 def is_qualified_name(name):

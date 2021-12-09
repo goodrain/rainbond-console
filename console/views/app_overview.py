@@ -207,7 +207,8 @@ class AppBriefView(AppBaseView):
             return Response(general_message(400, "param error", msg), status=400)
         self.service.k8s_component_name = k8s_component_name
         self.service.service_cname = service_cname
-        region_api.update_service(self.service.service_region, self.tenant.tenant_name, self.service.service_alias, {"k8s_component_name": k8s_component_name})
+        region_api.update_service(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
+                                  {"k8s_component_name": k8s_component_name})
         self.service.save()
         result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
         return Response(result, status=result["code"])

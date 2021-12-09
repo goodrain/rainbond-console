@@ -357,7 +357,12 @@ class AppVolumeService(object):
 
         volume.save()
         if volume_type == "config-file":
-            file_data = {"service_id": service.service_id, "volume_id": volume.ID, "file_content": file_content, "volume_name": volume.volume_name}
+            file_data = {
+                "service_id": service.service_id,
+                "volume_id": volume.ID,
+                "file_content": file_content,
+                "volume_name": volume.volume_name
+            }
             volume_repo.add_service_config_file(**file_data)
         return volume
 

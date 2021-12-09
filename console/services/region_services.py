@@ -254,7 +254,8 @@ class RegionService(object):
             tenant_region_info = {"tenant_id": tenant.tenant_id, "region_name": region_name, "is_active": False}
             tenant_region = region_repo.create_tenant_region(**tenant_region_info)
         if not tenant_region.is_init:
-            res, body = region_api.create_tenant(region_name, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id, namespace)
+            res, body = region_api.create_tenant(region_name, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id,
+                                                 namespace)
             if res["status"] != 200 and body['msg'] != 'tenant name {} is exist'.format(tenant.tenant_name):
                 logger.error(res)
                 raise ServiceHandleException(msg="cluster init failure ", msg_show="集群初始化租户失败")

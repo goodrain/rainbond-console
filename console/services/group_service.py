@@ -245,19 +245,24 @@ class GroupService(object):
             for service in group_services:
                 service_ids.append(service["service_id"])
 
+        app = group_repo.get_group_by_id(app_id)
         try:
             region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
             body = {"service_ids": service_ids}
             region_api.batch_update_service_app_id(region_name, tenant.tenant_name, region_app_id, body)
         except RegionApp.DoesNotExist:
-            app = group_repo.get_group_by_id(app_id)
             create_body = {"app_name": app.group_name, "service_ids": service_ids}
             if app.k8s_app:
                 create_body["k8s_app"] = app.k8s_app
             bean = region_api.create_application(region_name, tenant, create_body)
-            req = {"region_name": region_name, "region_app_id": bean["app_id"], "app_id": app_id}
+            region_app_id = bean["app_id"]
+            req = {"region_name": region_name, "region_app_id": region_app_id, "app_id": app_id}
             region_app_repo.create(**req)
             app.k8s_app = bean["k8s_app"]
+            app.save()
+        if not app.k8s_app:
+            status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
+            app.k8s_app = status["k8s_app"] if status.get("k8s_app") else ""
             app.save()
 
     def get_app_detail(self, tenant, region_name, app_id):
@@ -277,6 +282,12 @@ class GroupService(object):
         res['config_group_num'] = app_config_group_service.count_by_app_id(region_name, app_id)
         res['logo'] = app.logo
         res['k8s_app'] = app.k8s_app
+        res['can_edit'] = True
+        components = group_service_relation_repo.get_services_by_group(app_id)
+        running_components = region_api.get_dynamic_services_pods(region_name, tenant.tenant_name,
+                                                                  [component.service_id for component in components])
+        if running_components.get("list") and len(running_components["list"]) > 0:
+            res['can_edit'] = False
 
         try:
             principal = user_repo.get_user_by_username(app.username)

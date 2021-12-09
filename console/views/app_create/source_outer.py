@@ -53,8 +53,15 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
             if not service_name:
                 return Response(general_message(400, "kubernetes service name is null", "Kubernetes Service名称必须指定"), status=400)
             source_config = {"service_name": service_name, "namespace": request.data.get("namespace", "")}
-        new_service = app_service.create_third_party_app(self.response_region, self.tenant, self.user, service_cname, static,
-                                                         endpoints_type, source_config, k8s_component_name=k8s_component_name)
+        new_service = app_service.create_third_party_app(
+            self.response_region,
+            self.tenant,
+            self.user,
+            service_cname,
+            static,
+            endpoints_type,
+            source_config,
+            k8s_component_name=k8s_component_name)
         # 添加组件所在组
         code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id, new_service.service_id)
         if code != 200:

@@ -170,7 +170,12 @@ class AddTeamView(JWTAuthApiView):
                     for region_name in exist_namespace_region_names:
                         region = region_repo.get_region_by_region_name(region_name)
                         exist_namespace_region += " {}".format(region.region_alias)
-                    return Response(general_message(400, "success", "团队在集群【{} 】中已存在命名空间 {}".format(exist_namespace_region, team.namespace), bean=team.to_dict()))
+                    return Response(
+                        general_message(
+                            400,
+                            "success",
+                            "团队在集群【{} 】中已存在命名空间 {}".format(exist_namespace_region, team.namespace),
+                            bean=team.to_dict()))
                 return Response(general_message(200, "success", "团队添加成功", bean=team.to_dict()))
         except TenantExistError as e:
             logger.exception(e)
@@ -415,7 +420,8 @@ class TeamRegionInitView(JWTAuthApiView):
 
             team = team_services.create_team(self.user, enterprise, [region_name], team_alias)
             # 为团队开通默认数据中心并在数据中心创建租户
-            tenant_region = region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, team.region, team.namespace)
+            tenant_region = region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, team.region,
+                                                                    team.namespace)
             # 公有云，如果没有领过资源包，为开通的数据中心领取免费资源包
             if settings.MODULES.get('SSO_LOGIN'):
                 result = region_services.get_enterprise_free_resource(tenant_region.tenant_id, enterprise.enterprise_id,

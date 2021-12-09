@@ -300,7 +300,15 @@ class AppService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def create_third_party_app(self, region, tenant, user, service_cname, static_endpoints, endpoints_type, source_config={}, k8s_component_name=""):
+    def create_third_party_app(self,
+                               region,
+                               tenant,
+                               user,
+                               service_cname,
+                               static_endpoints,
+                               endpoints_type,
+                               source_config={},
+                               k8s_component_name=""):
         new_service = self._create_third_component(tenant, region, user, service_cname, k8s_component_name)
         new_service.save()
         if endpoints_type == "kubernetes":

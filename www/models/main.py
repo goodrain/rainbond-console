@@ -1063,7 +1063,7 @@ class ServiceGroup(BaseModel):
     app_template_name = models.CharField(max_length=255, null=True, blank=True, help_text="应用模板名称")
     version = models.CharField(max_length=255, null=True, blank=True, help_text="Helm 应用版本")
     logo = models.CharField(max_length=255, blank=True, null=True, default='', help_text="应用logo")
-    k8s_app = models.CharField(max_length=32, default='', help_text="集群内应用名称")
+    k8s_app = models.CharField(max_length=64, default='', help_text="集群内应用名称")
 
     @property
     def app_id(self):

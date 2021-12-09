@@ -68,8 +68,8 @@ class DockerRunCreateView(RegionTenantHeaderView):
             if not docker_cmd:
                 return Response(general_message(400, "docker_cmd cannot be null", "参数错误"), status=400)
 
-            code, msg_show, new_service = app_service.create_docker_run_app(self.response_region, self.tenant, self.user,
-                                                                            service_cname, docker_cmd, image_type, k8s_component_name)
+            code, msg_show, new_service = app_service.create_docker_run_app(
+                self.response_region, self.tenant, self.user, service_cname, docker_cmd, image_type, k8s_component_name)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
 

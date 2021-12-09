@@ -54,8 +54,10 @@ class PropertyChanges(object):
             if not update_component:
                 continue
             # update component if component dependencies changed
-            original_component_deps = original_components_deps[component_id] if original_components_deps.get(component_id) else []
-            original_component_volume_deps = original_components_volume_deps[component_id] if original_components_volume_deps.get(component_id) else []
+            original_component_deps = original_components_deps[component_id] if original_components_deps.get(
+                component_id) else []
+            original_component_volume_deps = original_components_volume_deps[
+                component_id] if original_components_volume_deps.get(component_id) else []
 
             if not self._is_dep_equal(original_component_deps, update_component.component_deps):
                 update_component.update_action_type(ActionType.UPDATE.value)
@@ -346,7 +348,7 @@ class PropertyChanges(object):
             plugin_dep["plugin"] = plugin.to_dict()
             add.append(plugin_dep)
         if not add:
-           return {}
+            return {}
         return {"add": add}
 
     def _labels(self, old_labels, new_labels):

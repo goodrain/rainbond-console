@@ -89,8 +89,7 @@ class TenantGroupView(RegionTenantHeaderView):
             version,
             self.user.enterprise_id,
             logo,
-            k8s_app=k8s_app
-        )
+            k8s_app=k8s_app)
         result = general_message(200, "success", "创建成功", bean=data)
         return Response(result, status=result["code"])
 

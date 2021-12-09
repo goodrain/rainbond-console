@@ -51,7 +51,8 @@ class GroupRepository(object):
         if not k8s_app:
             return False
         if app_id:
-            return ServiceGroup.objects.filter(tenant_id=tenant_id, region_name=region_name, k8s_app=k8s_app).exclude(ID=app_id).count() > 0
+            return ServiceGroup.objects.filter(
+                tenant_id=tenant_id, region_name=region_name, k8s_app=k8s_app).exclude(ID=app_id).count() > 0
         return ServiceGroup.objects.filter(tenant_id=tenant_id, region_name=region_name, k8s_app=k8s_app).count() > 0
 
     # get_group_by_pk get group by group id and tenantid and region name

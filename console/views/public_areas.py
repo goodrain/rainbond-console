@@ -496,7 +496,8 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         if groups:
             group_ids = [group.ID for group in groups]
             group_ids = group_ids[start:end]
-            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region, self.team_name, self.team.enterprise_id, self.team)
+            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region, self.team_name,
+                                                         self.team.enterprise_id, self.team)
         return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
 
 
