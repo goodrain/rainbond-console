@@ -2,7 +2,7 @@
 import logging
 import re
 
-from console.exception.bcode import ErrK8sServiceNameExists, ErrQualifiedName
+from console.exception.bcode import ErrK8sServiceNameExists, ErrQualifiedName, ErrNamespaceExists
 from console.exception.exceptions import (NoEnableRegionError, TenantExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
 from console.models.main import UserMessage
@@ -155,13 +155,22 @@ class AddTeamView(JWTAuthApiView):
                 if not enterprise:
                     return Response(general_message(500, "user's enterprise is not found", "无企业信息"), status=500)
                 team = team_services.create_team(self.user, enterprise, regions, team_alias, namespace)
+                exist_namespace_region_names = []
                 for r in regions:
                     try:
                         region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, r, team.namespace)
+                    except ErrNamespaceExists:
+                        exist_namespace_region_names.append(r)
                     except ServiceHandleException as e:
                         logger.exception(e)
                     except Exception as e:
                         logger.exception(e)
+                if len(exist_namespace_region_names) > 0:
+                    exist_namespace_region = ""
+                    for region_name in exist_namespace_region_names:
+                        region = region_repo.get_region_by_region_name(region_name)
+                        exist_namespace_region += " {}".format(region.region_alias)
+                    return Response(general_message(400, "success", "团队在集群【{} 】中已存在命名空间 {}".format(exist_namespace_region, team.namespace), bean=team.to_dict()))
                 return Response(general_message(200, "success", "团队添加成功", bean=team.to_dict()))
         except TenantExistError as e:
             logger.exception(e)
