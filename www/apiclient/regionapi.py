@@ -1883,8 +1883,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def check_app_governance_mode(self, region_name, tenant_name, region_app_id, query):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/governance/check?governance_mode={}".format(
-            query)
+        url = url + "/v2/tenants/{}/apps/{}/governance/check?governance_mode={}".format(tenant_region.region_tenant_name,
+                                                                                        region_app_id, query)
 
         self._set_headers(token)
         _, _ = self._get(url, self.default_headers, region=region_name)
