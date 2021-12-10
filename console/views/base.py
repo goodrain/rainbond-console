@@ -289,7 +289,6 @@ class TenantHeaderView(JWTAuthApiView):
         self.report = Dict({"ok": True})
         self.user = None
         self.is_team_owner = False
-        self.response_region = None
 
     def get_perms(self):
         self.user_perms = []
@@ -332,17 +331,6 @@ class TenantHeaderView(JWTAuthApiView):
             self.tenant_name = self.request.GET.get('team_name', None)
         self.team_name = self.tenant_name
 
-        if not self.response_region:
-            self.response_region = request.GET.get("region_name", None)
-        if not self.response_region:
-            self.response_region = request.GET.get("region", None)
-        if not self.response_region:
-            self.response_region = request.META.get('HTTP_X_REGION_NAME', None)
-        if not self.response_region:
-            self.response_region = self.request.COOKIES.get('region_name', None)
-        self.region_name = self.response_region
-        if not self.response_region:
-            raise AbortRequest("region_name not found !")
         if not self.tenant_name:
             raise AbortRequest("team_name not found !")
         try:
