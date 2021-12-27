@@ -1,0 +1,34 @@
+name: release-dind-build
+
+on:
+  release:
+    branches: [550-dind, V5.4]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 yapf==0.26.0
+      - name: check-code
+        run: ./check_code.sh
+
+      - name: Build the Docker image
+        env:
+          TRAVIS_PULL_REQUEST: false
+          BUILD_IMAGE_NAMESPACE: ${{ secrets.BUILD_IMAGE_NAMESPACE }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOMESTIC_NAMESPACE: ${{ secrets.DOMESTIC_NAMESPACE }}
+          DOMESTIC_DOCKER_PASSWORD: ${{ secrets.DOMESTIC_DOCKER_PASSWORD }}
+          DOMESTIC_DOCKER_USERNAME: ${{ secrets.DOMESTIC_DOCKER_USERNAME }}
+        run: VERSION=v5.5.0-dind ./release.sh allinone

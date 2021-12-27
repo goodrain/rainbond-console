@@ -2,6 +2,8 @@
 import json
 import logging
 import os
+import base64
+import subprocess
 
 import yaml
 from console.enum.region_enum import RegionStatusEnum
@@ -457,6 +459,32 @@ class RegionService(object):
         except Exception as e:
             logger.exception(e)
             return region
+
+    def create_default_region(self, enterprise_id, user):
+        try:
+            cmd = subprocess.Popen(
+                'kubectl get cm region-config -n rbd-system -ojson',
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT)
+            region_config = json.JSONDecoder().decode(cmd.stdout.read().decode("UTF-8"))
+            region_info = {
+                "region_alias": "默认集群",
+                "region_name": "default",
+                "ssl_ca_cert": base64.b64decode(region_config["binaryData"]["ca.pem"]).decode("UTF-8"),
+                "key_file": base64.b64decode(region_config["binaryData"]["client.key.pem"]).decode("UTF-8"),
+                "cert_file": base64.b64decode(region_config["binaryData"]["client.pem"]).decode("UTF-8"),
+                "url": region_config["data"]["apiAddress"],
+                "wsurl": region_config["data"]["websocketAddress"],
+                "httpdomain": region_config["data"]["defaultDomainSuffix"],
+                "tcpdomain": region_config["data"]["defaultTCPHost"],
+                "region_id": make_uuid(),
+                "enterprise_id": enterprise_id,
+                "status": "1"
+            }
+            region_services.add_region(region_info, user)
+        except Exception as e:
+            logger.exception(e)
 
     def update_region(self, region_data):
         region_id = region_data.get("region_id")

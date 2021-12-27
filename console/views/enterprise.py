@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+import os
 
 from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
@@ -62,6 +63,8 @@ class EnterpriseRUDView(JWTAuthApiView):
         ent["disable_install_cluster_log"] = False
         if regions:
             ent["disable_install_cluster_log"] = True
+        if not regions and os.getenv("ENABLE_CLUSTER") == "true":
+            region_services.create_default_region(enterprise_id, request.user)
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 

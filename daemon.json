@@ -1,0 +1,16 @@
+{
+    "registry-mirrors": [
+      "https://dockerhub.azk8s.cn",
+      "https://docker.mirrors.ustc.edu.cn",
+      "http://hub-mirror.c.163.com"
+    ],
+    "max-concurrent-downloads": 10,
+    "max-concurrent-uploads": 10,
+    "log-driver": "json-file",
+    "log-level": "warn",
+    "log-opts": {
+      "max-size": "10m",
+      "max-file": "3"
+      },
+    "data-root": "/app/data/dockerd"
+}
