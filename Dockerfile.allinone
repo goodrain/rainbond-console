@@ -88,8 +88,6 @@ ENV MYSQL_DB=console
 VOLUME /app/data
 VOLUME /app/logs
 VOLUME /root/.ssh
-VOLUME /app/data/dockerd
-VOLUME /app/data/k3s
 VOLUME /opt/rainbond
 
 ENTRYPOINT [ "/app/ui/start.sh" ]
