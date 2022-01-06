@@ -292,6 +292,8 @@ class DomainService(object):
         domain_type = httpdomain["domain_type"]
         auto_ssl = httpdomain["auto_ssl"]
         auto_ssl_config = httpdomain["auto_ssl_config"]
+        path_rewrite = httpdomain["path_rewrite"]
+        rewrites = httpdomain["rewrites"]
         region = region_repo.get_region_by_region_name(service.service_region)
         # 校验域名格式
         self.__check_domain_name(tenant.tenant_id, region.region_id, domain_name, certificate_id)
@@ -327,6 +329,8 @@ class DomainService(object):
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
+        data["path_rewrite"] = path_rewrite
+        data["rewrites"] = rewrites
         try:
             region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
@@ -369,6 +373,8 @@ class DomainService(object):
 
         domain_info["rule_extensions"] = rule_extensions_str
         domain_info["region_id"] = region.region_id
+        domain_info["path_rewrite"] = path_rewrite
+        domain_info["rewrites"] = rewrites
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
         if domain_name != "{0}.{1}.{2}.{3}".format(httpdomain["container_port"], service.service_alias, tenant.tenant_name,
@@ -434,6 +440,8 @@ class DomainService(object):
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
+        data["path_rewrite"] = domain_info["path_rewrite"]
+        data["rewrites"] = domain_info["rewrites"]
         try:
             # 给数据中心传送数据更新域名
             region_api.update_http_domain(service.service_region, tenant.tenant_name, data)
@@ -650,7 +658,7 @@ class DomainService(object):
             cursor.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
                     sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
                     sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
-                    sd.is_outer_service \
+                    sd.is_outer_service, sd.path_rewrite, sd.rewrites \
                 from service_domain sd \
                     left join service_group_relation sgr on sd.service_id = sgr.service_id \
                     left join service_group sg on sgr.group_id = sg.id \
@@ -681,7 +689,7 @@ class DomainService(object):
             cursor.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
                     sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
                     sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
-                    sd.is_outer_service \
+                    sd.is_outer_service, sd.path_rewrite, sd.rewrites \
                 from service_domain sd \
                     left join service_group_relation sgr on sd.service_id = sgr.service_id \
                     left join service_group sg on sgr.group_id = sg.id \

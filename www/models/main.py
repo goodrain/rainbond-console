@@ -730,6 +730,8 @@ class ServiceDomain(BaseModel):
     is_outer_service = models.BooleanField(default=True, help_text="是否已开启对外端口")
     auto_ssl = models.BooleanField(default=False, help_text="是否自动匹配证书，升级为https，如果开启，由外部服务完成升级")
     auto_ssl_config = models.CharField(max_length=32, null=True, default=None, blank=True, help_text="自动分发证书配置")
+    path_rewrite = models.BooleanField(default=False, help_text="是否开启简单路由重写")
+    rewrites = models.TextField(blank=True, help_text="复杂路由重写配置")
 
     def __unicode__(self):
         return self.domain_name
