@@ -291,6 +291,10 @@ class MarketApp(object):
                     "value": kvs[1],
                 })
             rule["rule_extensions"] = rule_extensions
+            rule["path"]=gateway_rule.domain_path
+            rule["header"]=gateway_rule.domain_heander
+            rule["cookie"]=gateway_rule.domain_cookie
+            rule["weight"]=gateway_rule.the_weight
             rules.append(rule)
         return rules
 
