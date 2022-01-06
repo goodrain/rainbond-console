@@ -17,7 +17,6 @@ test/
 goodrain_web/conf/local_test.py
 Dockerfile.build
 temp
-start.sh
 local_tool.sh
 data/
 

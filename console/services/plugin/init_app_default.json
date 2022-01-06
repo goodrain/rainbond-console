@@ -1,426 +1,417 @@
 {
-	"app_name": "默认应用",
-	"scope": "team",
-	"pic": "/data/media/uploads/d444ca6e0bc0444ab8d1c250c446f84a.png",
-	"describe": "This is a default description.",
-	"version_template": {
-		"template_version": "v1",
-		"group_key": "0b7cbb56729c4c739a06151318f695fc",
-		"group_name": "wordpress",
-		"group_version": "1.0",
-		"group_dev_status": "",
-		"app_config_groups": [],
-		"ingress_http_routes": [{
-			"default_domain": true,
-			"location": "",
-			"cookies": {},
-			"headers": {},
-			"ssl": false,
-			"load_balancing": "round-robin",
-			"connection_timeout": null,
-			"request_timeout": null,
-			"response_timeout": null,
-			"request_body_size_limit": null,
-			"proxy_buffer_numbers": null,
-			"proxy_buffer_size": null,
-			"websocket": null,
-			"component_key": "e5681abe85294ab7961f58e3b7a74e5c",
-			"port": 80,
-			"proxy_header": null
-		}],
-		"plugins": [{
-			"ID": 3,
-			"plugin_id": "aa9be70adcf844fdb9233945f791cf05",
-			"tenant_id": "94cbb52cce944aaf9b1b7d098d6c7141",
-			"region": "test",
-			"create_user": 1,
-			"desc": "\u5b9e\u65f6\u5206\u6790\u5e94\u7528\u7684\u541e\u5410\u7387\u3001\u54cd\u5e94\u65f6\u95f4\u3001\u5728\u7ebf\u4eba\u6570\u7b49\u6307\u6807",
-			"plugin_name": "",
-			"plugin_alias": "\u670d\u52a1\u5b9e\u65f6\u6027\u80fd\u5206\u6790",
-			"category": "analyst-plugin:perf",
-			"build_source": "image",
-			"image": "image.goodrain.com/655c233e59714d9191c0b9e856d84b44/plugin_tcm_2f929983fc1349ad8569b7750122bc5a",
-			"code_repo": "",
-			"create_time": "2021-09-14 14:49:43",
-			"origin": "local_market",
-			"origin_share_id": "perf_analyze_plugin",
-			"username": "25d60bc281b94c648d33ec56cf4ab57e",
-			"password": "d39271f26b954960bbafb875f62ee400",
-			"build_version": "20190617190729",
-			"plugin_image": {
-				"hub_url": null,
-				"hub_user": null,
-				"hub_password": null,
-				"namespace": null
-			},
-			"config_groups": [{
-				"ID": 3,
-				"plugin_id": "aa9be70adcf844fdb9233945f791cf05",
-				"build_version": "20190617190729",
-				"config_name": "\u7aef\u53e3\u662f\u5426\u5f00\u542f\u5206\u6790",
-				"service_meta_type": "upstream_port",
-				"injection": "auto",
-				"options": [{
-					"ID": 3,
-					"plugin_id": "aa9be70adcf844fdb9233945f791cf05",
-					"build_version": "20190617190729",
-					"service_meta_type": "upstream_port",
-					"attr_name": "OPEN",
-					"attr_type": "radio",
-					"attr_alt_value": "YES,NO",
-					"attr_default_value": "YES",
-					"is_change": true,
-					"attr_info": "\u662f\u5426\u5f00\u542f\u5f53\u524d\u7aef\u53e3\u5206\u6790\uff0c\u7528\u6237\u81ea\u52a9\u9009\u62e9\u670d\u52a1\u7aef\u53e3",
-					"protocol": "http,mysql"
-				}]
-			}],
-			"plugin_key": "perf_analyze_plugin",
-			"share_image": "goodrain.me/plugin_tcm_2f929983fc1349ad8569b7750122bc5a:aa9be70adcf844fdb9233945f791cf05_20210914144943_20190617190729"
-		}],
-		"apps": [{
-				"service_id": "bed56542c8fe48dd948e2f85fd428be3",
-				"tenant_id": "94cbb52cce944aaf9b1b7d098d6c7141",
-				"service_cname": "Mysql5.7(\u5355\u673a\u7248)",
-				"service_key": "bed56542c8fe48dd948e2f85fd428be3",
-				"service_share_uuid": "bed56542c8fe48dd948e2f85fd428be3+bed56542c8fe48dd948e2f85fd428be3",
-				"need_share": true,
-				"category": "app_publish",
-				"language": null,
-				"extend_method": "state_multiple",
-				"version": "latest",
-				"memory": 512,
-				"service_type": "application",
-				"service_source": "market",
-				"deploy_version": "20210918100847",
-				"image": "image.goodrain.com/655c233e59714d9191c0b9e856d84b44/d7ed68efe69c4cf1b71d609c62772eeb:20200313140758",
-				"service_alias": "gr428be3",
-				"service_name": "",
-				"service_region": "test",
-				"creater": 1,
-				"cmd": "",
-				"probes": [{
-					"ID": 29,
-					"service_id": "bed56542c8fe48dd948e2f85fd428be3",
-					"probe_id": "adb6c121340247e7aa3e8bc2207d1e42",
-					"mode": "readiness",
-					"scheme": "tcp",
-					"path": "",
-					"port": 3306,
-					"cmd": "",
-					"http_header": "",
-					"initial_delay_second": 2,
-					"period_second": 3,
-					"timeout_second": 30,
-					"failure_threshold": 3,
-					"success_threshold": 1,
-					"is_used": true
-				}],
-				"extend_method_map": {
-					"step_node": 1,
-					"min_memory": 64,
-					"init_memory": 512,
-					"max_memory": 65536,
-					"step_memory": 64,
-					"is_restart": 0,
-					"min_node": 1,
-					"container_cpu": 0,
-					"max_node": 64
-				},
-				"port_map_list": [{
-					"protocol": "mysql",
-					"tenant_id": "94cbb52cce944aaf9b1b7d098d6c7141",
-					"port_alias": "MYSQL",
-					"container_port": 3306,
-					"is_inner_service": true,
-					"is_outer_service": false,
-					"k8s_service_name": "gr428be3-3306"
-				}],
-				"service_volume_map_list": [{
-						"file_content": "",
-						"category": "app_publish",
-						"volume_capacity": 0,
-						"volume_provider_name": "",
-						"volume_type": "share-file",
-						"volume_path": "/var/lib/mysql",
-						"volume_name": "GRD79ADB_1",
-						"access_mode": "RWO",
-						"share_policy": "exclusive",
-						"backup_policy": "exclusive",
-						"mode": null
-					},
-					{
-						"file_content": "",
-						"category": "app_publish",
-						"volume_capacity": 0,
-						"volume_provider_name": "",
-						"volume_type": "share-file",
-						"volume_path": "/var/log/mysql",
-						"volume_name": "GRD79ADB_2",
-						"access_mode": "RWO",
-						"share_policy": "exclusive",
-						"backup_policy": "exclusive",
-						"mode": null
-					}
-				],
-				"service_env_map_list": [{
-						"name": "MYSQL_VERSION",
-						"attr_name": "MYSQL_VERSION",
-						"attr_value": "5.7.23",
-						"is_change": true
-					},
-					{
-						"name": "TZ",
-						"attr_name": "TZ",
-						"attr_value": "Asia/Shanghai",
-						"is_change": true
-					},
-					{
-						"name": "",
-						"attr_name": "MYSQLC_MYSQLD_PORT",
-						"attr_value": "${PORT}",
-						"is_change": true
-					}
-				],
-				"service_connect_info_map_list": [{
-						"name": "MYSQL_USER",
-						"attr_name": "MYSQL_USER",
-						"attr_value": "admin",
-						"is_change": true,
-						"container_port": 0
-					},
-					{
-						"name": "MYSQL_DATABASE",
-						"attr_name": "MYSQL_DATABASE",
-						"attr_value": "Initialize",
-						"is_change": true,
-						"container_port": 0
-					},
-					{
-						"name": "MYSQL_PASSWORD",
-						"attr_name": "MYSQL_PASSWORD",
-						"attr_value": "d7ed68ef",
-						"is_change": true,
-						"container_port": 0
-					},
-					{
-						"name": "root\u5bc6\u7801",
-						"attr_name": "MYSQL_ROOT_PASSWORD",
-						"attr_value": "d7ed68ef",
-						"is_change": true,
-						"container_port": 0
-					},
-					{
-						"name": "\u8fde\u63a5\u5730\u5740",
-						"attr_name": "MYSQL_HOST",
-						"attr_value": "127.0.0.1",
-						"is_change": true,
-						"container_port": 3306
-					},
-					{
-						"name": "\u7aef\u53e3",
-						"attr_name": "MYSQL_PORT",
-						"attr_value": "3306",
-						"is_change": true,
-						"container_port": 3306
-					}
-				],
-				"service_related_plugin_config": [{
-					"ID": 12,
-					"service_id": "bed56542c8fe48dd948e2f85fd428be3",
-					"plugin_id": "aa9be70adcf844fdb9233945f791cf05",
-					"build_version": "20190617190729",
-					"service_meta_type": "",
-					"plugin_status": true,
-					"create_time": "2021-09-18 10:08:47",
-					"min_memory": 128,
-					"min_cpu": null,
-					"attr": [{
-						"ID": 12,
-						"service_id": "bed56542c8fe48dd948e2f85fd428be3",
-						"plugin_id": "aa9be70adcf844fdb9233945f791cf05",
-						"build_version": "20190617190729",
-						"service_meta_type": "upstream_port",
-						"injection": "auto",
-						"dest_service_id": "",
-						"dest_service_alias": "",
-						"container_port": 3306,
-						"attrs": "{\"OPEN\": \"YES\"}",
-						"protocol": "mysql",
-						"create_time": "2021-09-18 10:08:47"
-					}],
-					"plugin_key": "perf_analyze_plugin"
-				}],
-				"component_monitors": null,
-				"component_graphs": null,
-				"labels": {},
-				"dep_service_map_list": [],
-				"mnt_relation_list": [],
-				"service_image": {
-					"hub_url": null,
-					"hub_user": null,
-					"hub_password": null,
-					"namespace": null
-				},
-				"share_type": "image",
-				"share_image": "registry.cn-hangzhou.aliyuncs.com/goodrain/mysql:5.7"
-			},
-			{
-				"service_id": "e5681abe85294ab7961f58e3b7a74e5c",
-				"tenant_id": "94cbb52cce944aaf9b1b7d098d6c7141",
-				"service_cname": "Wordpress",
-				"service_key": "e5681abe85294ab7961f58e3b7a74e5c",
-				"service_share_uuid": "e5681abe85294ab7961f58e3b7a74e5c+e5681abe85294ab7961f58e3b7a74e5c",
-				"need_share": true,
-				"category": "app_publish",
-				"language": null,
-				"extend_method": "stateless_multiple",
-				"version": "latest",
-				"memory": 512,
-				"service_type": "application",
-				"service_source": "market",
-				"deploy_version": "20210918100847",
-				"image": "image.goodrain.com/655c233e59714d9191c0b9e856d84b44/391d0f4b300c98a3c9495b124360bf33:20200313140908",
-				"service_alias": "gra74e5c",
-				"service_name": "",
-				"service_region": "test",
-				"creater": 1,
-				"cmd": "",
-				"probes": [{
-					"ID": 28,
-					"service_id": "e5681abe85294ab7961f58e3b7a74e5c",
-					"probe_id": "5a5d5ce9c7f6417dad299ae727dffc3a",
-					"mode": "readiness",
-					"scheme": "tcp",
-					"path": "",
-					"port": 80,
-					"cmd": "",
-					"http_header": "",
-					"initial_delay_second": 4,
-					"period_second": 3,
-					"timeout_second": 5,
-					"failure_threshold": 3,
-					"success_threshold": 1,
-					"is_used": true
-				}],
-				"extend_method_map": {
-					"step_node": 1,
-					"min_memory": 64,
-					"init_memory": 512,
-					"max_memory": 65536,
-					"step_memory": 64,
-					"is_restart": 0,
-					"min_node": 1,
-					"container_cpu": 0,
-					"max_node": 64
-				},
-				"port_map_list": [{
-					"protocol": "http",
-					"tenant_id": "94cbb52cce944aaf9b1b7d098d6c7141",
-					"port_alias": "GR60BF3380",
-					"container_port": 80,
-					"is_inner_service": false,
-					"is_outer_service": true,
-					"k8s_service_name": "gra74e5c-80"
-				}],
-				"service_volume_map_list": [{
-					"file_content": "",
-					"category": "app_publish",
-					"volume_capacity": 0,
-					"volume_provider_name": "",
-					"volume_type": "share-file",
-					"volume_path": "/var/www/html",
-					"volume_name": "GR60BF33_1",
-					"access_mode": "RWX",
-					"share_policy": "exclusive",
-					"backup_policy": "exclusive",
-					"mode": null
-				}],
-				"service_env_map_list": [],
-				"service_connect_info_map_list": [{
-						"name": "WORDPRESS_DB_HOST",
-						"attr_name": "WORDPRESS_DB_HOST",
-						"attr_value": "127.0.0.1",
-						"is_change": true,
-						"container_port": 0
-					},
-					{
-						"name": "WORDPRESS_DB_USER",
-						"attr_name": "WORDPRESS_DB_USER",
-						"attr_value": "admin",
-						"is_change": true,
-						"container_port": 0
-					},
-					{
-						"name": "WORDPRESS_DB_PASSWORD",
-						"attr_name": "WORDPRESS_DB_PASSWORD",
-						"attr_value": "d7ed68ef",
-						"is_change": true,
-						"container_port": 0
-					},
-					{
-						"name": "WORDPRESS_DB_NAME",
-						"attr_name": "WORDPRESS_DB_NAME",
-						"attr_value": "Initialize",
-						"is_change": true,
-						"container_port": 0
-					},
-					{
-						"name": "\u8fde\u63a5\u5730\u5740",
-						"attr_name": "GR60BF3380_HOST",
-						"attr_value": "127.0.0.1",
-						"is_change": false,
-						"container_port": 80
-					},
-					{
-						"name": "\u7aef\u53e3",
-						"attr_name": "GR60BF3380_PORT",
-						"attr_value": "80",
-						"is_change": false,
-						"container_port": 80
-					}
-				],
-				"service_related_plugin_config": [{
-					"ID": 11,
-					"service_id": "e5681abe85294ab7961f58e3b7a74e5c",
-					"plugin_id": "aa9be70adcf844fdb9233945f791cf05",
-					"build_version": "20190617190729",
-					"service_meta_type": "",
-					"plugin_status": true,
-					"create_time": "2021-09-18 10:08:47",
-					"min_memory": 128,
-					"min_cpu": null,
-					"attr": [{
-						"ID": 11,
-						"service_id": "e5681abe85294ab7961f58e3b7a74e5c",
-						"plugin_id": "aa9be70adcf844fdb9233945f791cf05",
-						"build_version": "20190617190729",
-						"service_meta_type": "upstream_port",
-						"injection": "auto",
-						"dest_service_id": "",
-						"dest_service_alias": "",
-						"container_port": 80,
-						"attrs": "{\"OPEN\": \"YES\"}",
-						"protocol": "http",
-						"create_time": "2021-09-18 10:08:47"
-					}],
-					"plugin_key": "perf_analyze_plugin"
-				}],
-				"component_monitors": null,
-				"component_graphs": null,
-				"labels": {},
-				"dep_service_map_list": [{
-					"dep_service_key": "bed56542c8fe48dd948e2f85fd428be3+bed56542c8fe48dd948e2f85fd428be3"
-				}],
-				"mnt_relation_list": [],
-				"service_image": {
-					"hub_url": null,
-					"hub_user": null,
-					"hub_password": null,
-					"namespace": null
-				},
-				"share_type": "image",
-				"share_image": "registry.cn-hangzhou.aliyuncs.com/goodrain/wordpress:latest"
-			}
-		]
-	}
+  "app_name": "默认应用",
+  "scope": "team",
+  "pic": "/data/media/uploads/d444ca6e0bc0444ab8d1c250c446f84a.png",
+  "describe": "This is a default description.",
+  "version_template": {
+    "template_version": "v2",
+    "group_key": "094e06094b9e48d6a3b14e06890e37b2",
+    "group_name": "ghost",
+    "group_version": "1.0",
+    "group_dev_status": "",
+    "app_config_groups": [],
+    "ingress_http_routes": [
+      {
+        "default_domain": true,
+        "location": "/",
+        "cookies": {},
+        "headers": {},
+        "ssl": false,
+        "load_balancing": "round-robin",
+        "connection_timeout": null,
+        "request_timeout": null,
+        "response_timeout": null,
+        "request_body_size_limit": null,
+        "proxy_buffer_numbers": null,
+        "proxy_buffer_size": null,
+        "websocket": null,
+        "component_key": "79096d1bc3ff6f80b3cef85c5fc240e1",
+        "port": 2368,
+        "proxy_header": null
+      }
+    ],
+    "apps": [
+      {
+        "service_id": "24f7ea90cf26bf72eca060c4984c76b7",
+        "tenant_id": "2e1e3a1129e44ad68f2b10da6f0f21d0",
+        "service_cname": "mariadb:latest",
+        "service_key": "24f7ea90cf26bf72eca060c4984c76b7",
+        "service_share_uuid": "24f7ea90cf26bf72eca060c4984c76b7+24f7ea90cf26bf72eca060c4984c76b7",
+        "need_share": true,
+        "category": "app_publish",
+        "language": "",
+        "extend_method": "state_singleton",
+        "version": "latest",
+        "memory": 512,
+        "service_type": "application",
+        "service_source": "docker_run",
+        "deploy_version": "20211224104640",
+        "image": "bitnami/mariadb:latest",
+        "service_alias": "gr4c76b7",
+        "service_name": "",
+        "service_region": "33",
+        "creater": 1,
+        "cmd": "",
+        "probes": [],
+        "extend_method_map": {
+          "step_node": 1,
+          "min_memory": 64,
+          "init_memory": 512,
+          "max_memory": 65536,
+          "step_memory": 64,
+          "is_restart": 0,
+          "min_node": 1,
+          "container_cpu": 0,
+          "max_node": 1
+        },
+        "port_map_list": [
+          {
+            "protocol": "mysql",
+            "tenant_id": "2e1e3a1129e44ad68f2b10da6f0f21d0",
+            "port_alias": "GHOST_DATABASE",
+            "container_port": 3306,
+            "is_inner_service": true,
+            "is_outer_service": false,
+            "k8s_service_name": "gr4c76b7-3306"
+          }
+        ],
+        "service_volume_map_list": [],
+        "service_env_map_list": [
+          {
+            "name": "MARIADB_USER",
+            "attr_name": "MARIADB_USER",
+            "attr_value": "bn_ghost",
+            "is_change": true
+          },
+          {
+            "name": "MARIADB_PASSWORD",
+            "attr_name": "MARIADB_PASSWORD",
+            "attr_value": "bitnami",
+            "is_change": true
+          },
+          {
+            "name": "OS_FLAVOUR",
+            "attr_name": "OS_FLAVOUR",
+            "attr_value": "debian-10",
+            "is_change": true
+          },
+          {
+            "name": "ALLOW_EMPTY_PASSWORD",
+            "attr_name": "ALLOW_EMPTY_PASSWORD",
+            "attr_value": "yes",
+            "is_change": true
+          },
+          {
+            "name": "MARIADB_DATABASE",
+            "attr_name": "MARIADB_DATABASE",
+            "attr_value": "bitnami_ghost",
+            "is_change": true
+          },
+          {
+            "name": "HOME",
+            "attr_name": "HOME",
+            "attr_value": "/",
+            "is_change": true
+          },
+          {
+            "name": "OS_ARCH",
+            "attr_name": "OS_ARCH",
+            "attr_value": "amd64",
+            "is_change": true
+          },
+          {
+            "name": "OS_NAME",
+            "attr_name": "OS_NAME",
+            "attr_value": "linux",
+            "is_change": true
+          },
+          {
+            "name": "BITNAMI_APP_NAME",
+            "attr_name": "BITNAMI_APP_NAME",
+            "attr_value": "mariadb",
+            "is_change": true
+          },
+          {
+            "name": "BITNAMI_IMAGE_VERSION",
+            "attr_name": "BITNAMI_IMAGE_VERSION",
+            "attr_value": "10.6.5-debian-10-r35",
+            "is_change": true
+          }
+        ],
+        "service_connect_info_map_list": [
+          {
+            "name": "\u8fde\u63a5\u5730\u5740",
+            "attr_name": "GHOST_DATABASE_HOST",
+            "attr_value": "127.0.0.1",
+            "is_change": true,
+            "container_port": 3306
+          },
+          {
+            "name": "\u7aef\u53e3",
+            "attr_name": "GHOST_DATABASE_PORT",
+            "attr_value": "3306",
+            "is_change": true,
+            "container_port": 3306
+          },
+          {
+            "name": "",
+            "attr_name": "GHOST_DATABASE_USER",
+            "attr_value": "bn_ghost",
+            "is_change": true,
+            "container_port": 0
+          },
+          {
+            "name": "",
+            "attr_name": "GHOST_DATABASE_PASSWORD",
+            "attr_value": "bitnami",
+            "is_change": true,
+            "container_port": 0
+          },
+          {
+            "name": "",
+            "attr_name": "GHOST_DATABASE_PORT_NUMBER",
+            "attr_value": "3306",
+            "is_change": true,
+            "container_port": 0
+          },
+          {
+            "name": "",
+            "attr_name": "GHOST_DATABASE_NAME",
+            "attr_value": "bitnami_ghost",
+            "is_change": true,
+            "container_port": 0
+          }
+        ],
+        "service_related_plugin_config": [],
+        "component_monitors": null,
+        "component_graphs": null,
+        "labels": {},
+        "dep_service_map_list": [],
+        "mnt_relation_list": [],
+        "service_image": {
+          "hub_url": null,
+          "hub_user": null,
+          "hub_password": null,
+          "namespace": null
+        },
+        "share_type": "image",
+        "share_image": "registry.cn-hangzhou.aliyuncs.com/goodrain/mariadb:10.6"
+      },
+      {
+        "service_id": "79096d1bc3ff6f80b3cef85c5fc240e1",
+        "tenant_id": "2e1e3a1129e44ad68f2b10da6f0f21d0",
+        "service_cname": "ghost",
+        "service_key": "79096d1bc3ff6f80b3cef85c5fc240e1",
+        "service_share_uuid": "79096d1bc3ff6f80b3cef85c5fc240e1+79096d1bc3ff6f80b3cef85c5fc240e1",
+        "need_share": true,
+        "category": "app_publish",
+        "language": "",
+        "extend_method": "stateless_multiple",
+        "version": "latest",
+        "memory": 512,
+        "service_type": "application",
+        "service_source": "docker_image",
+        "deploy_version": "20211224095951",
+        "image": "bitnami/ghost:latest",
+        "service_alias": "grc240e1",
+        "service_name": "",
+        "service_region": "33",
+        "creater": 1,
+        "cmd": "",
+        "probes": [],
+        "extend_method_map": {
+          "step_node": 1,
+          "min_memory": 64,
+          "init_memory": 512,
+          "max_memory": 65536,
+          "step_memory": 64,
+          "is_restart": 0,
+          "min_node": 1,
+          "container_cpu": 0,
+          "max_node": 64
+        },
+        "port_map_list": [
+          {
+            "protocol": "http",
+            "tenant_id": "2e1e3a1129e44ad68f2b10da6f0f21d0",
+            "port_alias": "GRC240E12368",
+            "container_port": 2368,
+            "is_inner_service": false,
+            "is_outer_service": true,
+            "k8s_service_name": "grc240e1-2368"
+          },
+          {
+            "protocol": "tcp",
+            "tenant_id": "2e1e3a1129e44ad68f2b10da6f0f21d0",
+            "port_alias": "GRC240E13000",
+            "container_port": 3000,
+            "is_inner_service": false,
+            "is_outer_service": false,
+            "k8s_service_name": "grc240e1-3000"
+          }
+        ],
+        "service_volume_map_list": [
+          {
+            "file_content": "",
+            "category": "app_publish",
+            "volume_capacity": 0,
+            "volume_provider_name": "",
+            "volume_type": "share-file",
+            "volume_path": "/bitnami/ghost",
+            "volume_name": "ghost_data",
+            "access_mode": "RWX",
+            "share_policy": "exclusive",
+            "backup_policy": "exclusive",
+            "mode": null
+          }
+        ],
+        "service_env_map_list": [
+          {
+            "name": "MARIADB_PORT_NUMBER",
+            "attr_name": "MARIADB_PORT_NUMBER",
+            "attr_value": "3306",
+            "is_change": true
+          },
+          {
+            "name": "MYSQL_CLIENT_CREATE_DATABASE_NAME",
+            "attr_name": "MYSQL_CLIENT_CREATE_DATABASE_NAME",
+            "attr_value": "",
+            "is_change": true
+          },
+          {
+            "name": "HOME",
+            "attr_name": "HOME",
+            "attr_value": "/",
+            "is_change": true
+          },
+          {
+            "name": "MYSQL_CLIENT_CREATE_DATABASE_USER",
+            "attr_name": "MYSQL_CLIENT_CREATE_DATABASE_USER",
+            "attr_value": "",
+            "is_change": true
+          },
+          {
+            "name": "MARIADB_ROOT_PASSWORD",
+            "attr_name": "MARIADB_ROOT_PASSWORD",
+            "attr_value": "",
+            "is_change": true
+          },
+          {
+            "name": "OS_FLAVOUR",
+            "attr_name": "OS_FLAVOUR",
+            "attr_value": "debian-10",
+            "is_change": true
+          },
+          {
+            "name": "OS_NAME",
+            "attr_name": "OS_NAME",
+            "attr_value": "linux",
+            "is_change": true
+          },
+          {
+            "name": "BITNAMI_IMAGE_VERSION",
+            "attr_name": "BITNAMI_IMAGE_VERSION",
+            "attr_value": "4.32.0-debian-10-r6",
+            "is_change": true
+          },
+          {
+            "name": "MARIADB_HOST",
+            "attr_name": "MARIADB_HOST",
+            "attr_value": "mariadb",
+            "is_change": true
+          },
+          {
+            "name": "MYSQL_CLIENT_CREATE_DATABASE_PASSWORD",
+            "attr_name": "MYSQL_CLIENT_CREATE_DATABASE_PASSWORD",
+            "attr_value": "",
+            "is_change": true
+          },
+          {
+            "name": "OS_ARCH",
+            "attr_name": "OS_ARCH",
+            "attr_value": "amd64",
+            "is_change": true
+          },
+          {
+            "name": "ALLOW_EMPTY_PASSWORD",
+            "attr_name": "ALLOW_EMPTY_PASSWORD",
+            "attr_value": "no",
+            "is_change": true
+          },
+          {
+            "name": "BITNAMI_APP_NAME",
+            "attr_name": "BITNAMI_APP_NAME",
+            "attr_value": "ghost",
+            "is_change": true
+          },
+          {
+            "name": "MARIADB_ROOT_USER",
+            "attr_name": "MARIADB_ROOT_USER",
+            "attr_value": "root",
+            "is_change": true
+          },
+          {
+            "name": "MYSQL_CLIENT_CREATE_DATABASE_PRIVILEGES",
+            "attr_name": "MYSQL_CLIENT_CREATE_DATABASE_PRIVILEGES",
+            "attr_value": "ALL",
+            "is_change": true
+          },
+          {
+            "name": "MYSQL_CLIENT_SSL_CA_FILE",
+            "attr_name": "MYSQL_CLIENT_SSL_CA_FILE",
+            "attr_value": "",
+            "is_change": true
+          }
+        ],
+        "service_connect_info_map_list": [
+          {
+            "name": "MYSQL_CLIENT_ENABLE_SSL",
+            "attr_name": "MYSQL_CLIENT_ENABLE_SSL",
+            "attr_value": "yes",
+            "is_change": true,
+            "container_port": 0
+          },
+          {
+            "name": "",
+            "attr_name": "GHOST_DATABASE_USER",
+            "attr_value": "bn_ghost",
+            "is_change": true,
+            "container_port": 0
+          },
+          {
+            "name": "",
+            "attr_name": "GHOST_DATABASE_PASSWORD",
+            "attr_value": "bitnami",
+            "is_change": true,
+            "container_port": 0
+          },
+          {
+            "name": "",
+            "attr_name": "GHOST_DATABASE_NAME",
+            "attr_value": "bitnami_ghost",
+            "is_change": true,
+            "container_port": 0
+          }
+        ],
+        "service_related_plugin_config": [],
+        "component_monitors": null,
+        "component_graphs": null,
+        "labels": {},
+        "dep_service_map_list": [
+          {
+            "dep_service_key": "24f7ea90cf26bf72eca060c4984c76b7+24f7ea90cf26bf72eca060c4984c76b7"
+          }
+        ],
+        "mnt_relation_list": [],
+        "service_image": {
+          "hub_url": null,
+          "hub_user": null,
+          "hub_password": null,
+          "namespace": null
+        },
+        "share_type": "image",
+        "share_image": "registry.cn-hangzhou.aliyuncs.com/goodrain/ghost:latest"
+      }
+    ]
+  }
 }
