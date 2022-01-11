@@ -411,7 +411,9 @@ class HttpStrategyView(RegionTenantHeaderView):
         auto_ssl_config = request.data.get("auto_ssl_config", None)
         # path-rewrite
         path_rewrite = request.data.get("path_rewrite", False)
-        rewrites = request.data.get("rewrites",None)
+        p_rewrites = request.data.get("rewrites", "")
+        rewrites = p_rewrites if p_rewrites else "[]"
+
 
         # 判断参数
         if len(do_path) > 1024:
@@ -500,7 +502,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             "auto_ssl": auto_ssl,
             "auto_ssl_config": auto_ssl_config,
             "path_rewrite": path_rewrite,
-            "rewrites":rewrites
+            "rewrites": rewrites
         }
         data = domain_service.bind_httpdomain(self.tenant, self.user, service, httpdomain)
         result = general_message(201, "success", "策略添加成功", bean=data)
@@ -531,7 +533,8 @@ class HttpStrategyView(RegionTenantHeaderView):
         auto_ssl_config = request.data.get("auto_ssl_config", None)
         # path-rewrite
         path_rewrite = request.data.get("path_rewrite", False)
-        rewrites = request.data.get("rewrites",None)
+        p_rewrites = request.data.get("rewrites", "")
+        rewrites = p_rewrites if p_rewrites else "[]"
 
         # 判断参数
         if len(do_path) > 1024:
@@ -574,7 +577,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             "auto_ssl": auto_ssl,
             "auto_ssl_config": auto_ssl_config,
             "path_rewrite": path_rewrite,
-            "rewrites":rewrites
+            "rewrites": rewrites
         }
         domain_service.update_httpdomain(self.tenant, service, http_rule_id, update_data)
         result = general_message(200, "success", "策略编辑成功")
@@ -769,7 +772,7 @@ class DomainQueryView(RegionTenantHeaderView):
 
                 cursor.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
                     service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
-                    domain_heander, the_weight, is_outer_service, sd.path_rewrite, sd.rewrites from service_domain where tenant_id='{0}'
+                    domain_heander, the_weight, is_outer_service, path_rewrite, rewrites from service_domain where tenant_id='{0}'
                     and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id, region.region_id, start,
                                                                                     end))
                 tenant_tuples = cursor.fetchall()
