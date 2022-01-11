@@ -11,9 +11,9 @@ trap stop_container SIGTERM
 # unzip the image
  while true; do
         docker load -i /app/ui/rainbond.tar
- if [ $? -eq 0 ]; then
- break
- fi
+        if [ $? -eq 0 ]; then
+                break
+        fi
  done
 
 #Start K3s 

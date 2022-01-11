@@ -20,7 +20,16 @@ IIP=${IIP:-$NODE_IP}
 # 创建命名空间
 (kubectl create ns rbd-system) &>> /app/logs/init_rainbond.log
 # helm安装
-(helm install rainbond-operator /app/chart -n rbd-system --kubeconfig /root/.kube/config --set operator.image.name=registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator --set operator.image.tag=v2.2.0) &>> /app/logs/init_rainbond.log
+ARCH=$(uname -m)
+if [ "$ARCH" = "aarch64" ]; then
+    arch_image_tag="v2.2.0-arm64"
+    sed -i "s/v5.5.0-release/v5.5.0-release-arm64/g" $(grep -rl v5.5.0-release /app/ui/rainbond-operator/config/single_node_cr/*)
+elif [ "$ARCH" = "x86_64" ]; then
+    arch_image_tag="v2.2.0"
+fi
+(helm install rainbond-operator /app/chart -n rbd-system --kubeconfig /root/.kube/config \
+    --set operator.image.name=registry.cn-hangzhou.aliyuncs.com/goodrain/rainbond-operator \
+    --set operator.image.tag=$arch_image_tag) &>> /app/logs/init_rainbond.log
 # 修改yaml
 sed -i "s/single_node_name/$NODE_NAME/" /app/ui/rainbond-operator/config/single_node_cr/rbdcluster.yml
 sed -i "s/single_node_external_ip/$EIP/" /app/ui/rainbond-operator/config/single_node_cr/rbdcluster.yml
