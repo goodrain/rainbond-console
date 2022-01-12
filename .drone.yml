@@ -1,0 +1,82 @@
+kind: pipeline
+name: build arm64
+
+platform:
+  os: linux
+  arch: arm64
+
+trigger:
+  event:
+    include:
+    - custom
+
+node:
+  city: sydney
+
+steps:
+- name: clone rainbond-ui
+  image: alpine/git
+  commands:
+  - git clone https://github.com/goodrain/rainbond-ui.git
+
+- name: build rainbond-ui dist
+  image: node:12
+  commands:
+  - cd rainbond-ui
+  - yarn install
+  - yarn run build
+
+- name: build rainbond-ui
+  image: rainbond/docker:dind
+  privileged: true
+  volumes:
+  - name: dockersock
+    path: /var/run
+  environment:
+    BUILD_VERSION:
+      from_secret: build_version
+    BASE_BUILD_VERSION:
+      from_secret: base_build_version
+  commands:
+  - sleep 10 # give docker enough time to start
+  - cd rainbond-ui
+  - docker build --build-arg VERSION=$BASE_BUILD_VERSION -t rainbond/rainbond-ui:$BUILD_VERSION .
+
+- name: build rainbond-console
+  image: rainbond/docker:dind
+  privileged: true
+  volumes:
+  - name: dockersock
+    path: /var/run
+  environment:
+    TRAVIS_PULL_REQUEST:
+      from_secret: travis_pull_request
+    DOMESTIC_DOCKER_USERNAME:
+      from_secret: domestic_docker_username
+    DOMESTIC_DOCKER_PASSWORD:
+      from_secret: domestic_docker_password
+    DOMESTIC_BASE_NAME:
+      from_secret: domestic_base_name
+    BUILD_VERSION:
+      from_secret: build_version
+    GOOS: linux
+    GOARCH: arm64
+  commands:
+  - rm -rf rainbond-ui
+  - VERSION=$BUILD_VERSION BUILD_ARCH=$GOARCH ./release.sh allinone
+  when:
+    event:
+      include:
+      - custom
+
+services:
+- name: docker
+  image: docker:dind
+  privileged: true
+  volumes:
+  - name: dockersock
+    path: /var/run
+
+volumes:
+- name: dockersock
+  temp: {}

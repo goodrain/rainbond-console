@@ -3,6 +3,7 @@ IMAGE_DOMAIN=${BUILD_IMAGE_DOMAIN:-docker.io}
 IMAGE_NAMESPACE=${BUILD_IMAGE_NAMESPACE:-rainbond}
 DOMESTIC_BASE_NAME=${DOMESTIC_BASE_NAME:-'registry.cn-hangzhou.aliyuncs.com'}
 DOMESTIC_NAMESPACE=${DOMESTIC_NAMESPACE:-'goodrain'}
+ARCH=${BUILD_ARCH:-'amd64'}
 
 if [ -z "$VERSION" ]; then
   if [ -z "$TRAVIS_TAG" ]; then
@@ -38,14 +39,16 @@ function release_allinone() {
   release_desc=${VERSION}-${git_commit}-${buildTime}-allinone
   image_name="rainbond"
   imageName=${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION}-allinone
-  docker build --network=host --build-arg VERSION="${VERSION}" --build-arg RELEASE_DESC="${release_desc}" -t "${imageName}" -f Dockerfile.allinone .
+  docker build --network=host --build-arg VERSION="${VERSION}" --build-arg RELEASE_DESC="${release_desc}" --build-arg ARCH="${ARCH}" -t "${imageName}" -f Dockerfile.allinone .
   if [ $? -ne 0 ]; then
     exit 1
   fi
   if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-    docker login "${IMAGE_DOMAIN}" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
-    docker push "${imageName}"
-    if [ ${DOMESTIC_BASE_NAME} ]; then
+    if [ "$DOCKER_USERNAME" ]; then
+      docker login "${IMAGE_DOMAIN}" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+      docker push "${imageName}"
+    fi
+    if [ "${DOMESTIC_BASE_NAME}" ]; then
       domestcName=${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rainbond:${VERSION}-allinone
       docker tag "${imageName}" "${domestcName}"
       docker login -u "$DOMESTIC_DOCKER_USERNAME" -p "$DOMESTIC_DOCKER_PASSWORD" "${DOMESTIC_BASE_NAME}"
