@@ -84,8 +84,8 @@
             "is_change": true
           },
           {
-            "name": "MARIADB_PASSWORD",
-            "attr_name": "MARIADB_PASSWORD",
+            "name": "MARIADB_ROOT_PASSWORD",
+            "attr_name": "MARIADB_ROOT_PASSWORD",
             "attr_value": "bitnami",
             "is_change": true
           },
@@ -93,6 +93,12 @@
             "name": "OS_FLAVOUR",
             "attr_name": "OS_FLAVOUR",
             "attr_value": "debian-10",
+            "is_change": true
+          },
+          {
+            "name": "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD",
+            "attr_name": "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD",
+            "attr_value": "yes",
             "is_change": true
           },
           {
