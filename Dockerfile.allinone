@@ -62,8 +62,10 @@ WORKDIR /app/ui
 RUN set -eux; \
     if [ "${ARCH}" = "arm64" ]; then \
         wget "https://pkg.rainbond.com/images-pkg/arm64/rainbond.tar"; \
+        wget "https://pkg.rainbond.com/images-pkg/arm64/log"; \
     else \
-        wget "https://pkg.rainbond.com/images-pkg/rainbond.tar";\
+        wget "https://pkg.rainbond.com/images-pkg/rainbond.tar"; \
+        wget "https://pkg.rainbond.com/images-pkg/log"; \
     fi && \
     git clone -b v2.2.0-dind --depth=1 https://github.com/goodrain/rainbond-operator.git /app/ui/rainbond-operator && \ 
     chmod +x /app/ui/entrypoint.sh /app/ui/start.sh /app/ui/k3s.sh  /app/ui/init_rainbond.sh && \
@@ -73,6 +75,7 @@ RUN set -eux; \
 	mv /app/ui/daemon.json /etc/docker/daemon.json && \
 	chmod +x /app/cloudadaptor && \
     mv /dist/index.html /app/ui/www/templates/index.html && \
+    chmod +x /app/ui/log && mv /app/ui/log /usr/bin/log && \
     mkdir /app/ui/www/static/dists && \
     cp -a /dist/* /app/ui/www/static/dists/ && \
     rm -rf /dist \
