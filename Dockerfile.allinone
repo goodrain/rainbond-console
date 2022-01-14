@@ -13,6 +13,7 @@ RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
 FROM rainbond/rainbond-ui:${VERSION}
 
 ARG RELEASE_DESC=
+ARG ARCH=amd64
 
 LABEL author="zengqg@goodrain.com"
 RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ && \
@@ -23,17 +24,22 @@ RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ && \
     touch /app/logs/init_rainbond_node.log && \
     touch /app/logs/init_rainbond_api.log && \
 	apt-get update && apt-get install -y supervisor nfs-common iptables && rm -rf /var/lib/apt/lists/* && \
-    wget https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/helm && chmod +x helm && mv helm /usr/local/bin/ && \
+    set -eux; \
+    if [ "${ARCH}" = "arm64" ]; then \
+        wget "https://pkg.goodrain.com/pkg/helm-arm64" && chmod +x helm-arm64 && mv helm-arm64 /usr/local/bin/helm; \
+    else \
+        wget "https://pkg.goodrain.com/pkg/helm" && chmod +x helm && mv helm /usr/local/bin/; \
+    fi && \
     mkdir -p /var/log/supervisor
-# 根据构建环境的 CPU 架构区分下载地址
-RUN  Arch="$(arch)"; \
-	case "$Arch" in \
-		'x86_64') \
+# Distinguish download addresses according to the CPU architecture of the build environment
+RUN set -eux; \
+	case "${ARCH}" in \
+		'amd64') \
 			docker_url='https://download.docker.com/linux/static/stable/x86_64/docker-20.10.11.tgz'; \
             k3s_url="https://github.com/rancher/k3s/releases/download/v1.22.3+k3s1/k3s" \
             kubectl_url="https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/linux/amd64/kubectl" \
 			;; \
-		'aarch64') \
+		'arm64') \
 			docker_url='https://download.docker.com/linux/static/stable/aarch64/docker-20.10.11.tgz'; \
             k3s_url="https://github.com/rancher/k3s/releases/download/v1.22.3+k3s1/k3s-arm64" \
             kubectl_url="https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/linux/arm64/kubectl" \
@@ -53,8 +59,15 @@ COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
 COPY --from=builder /cloud-adaptor /app/cloudadaptor
 ADD . /app/ui
 WORKDIR /app/ui
-RUN git clone -b v2.2.0-dind --depth=1 https://github.com/goodrain/rainbond-operator.git /app/ui/rainbond-operator && \ 
-    wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/images-pkg/rainbond.tar && \
+RUN set -eux; \
+    if [ "${ARCH}" = "arm64" ]; then \
+        wget "https://pkg.rainbond.com/images-pkg/arm64/rainbond.tar"; \
+        wget "https://pkg.rainbond.com/images-pkg/arm64/log"; \
+    else \
+        wget "https://pkg.rainbond.com/images-pkg/rainbond.tar"; \
+        wget "https://pkg.rainbond.com/images-pkg/log"; \
+    fi && \
+    git clone -b v2.2.0-dind --depth=1 https://github.com/goodrain/rainbond-operator.git /app/ui/rainbond-operator && \ 
     chmod +x /app/ui/entrypoint.sh /app/ui/start.sh /app/ui/k3s.sh  /app/ui/init_rainbond.sh && \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
     mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
@@ -62,6 +75,7 @@ RUN git clone -b v2.2.0-dind --depth=1 https://github.com/goodrain/rainbond-oper
 	mv /app/ui/daemon.json /etc/docker/daemon.json && \
 	chmod +x /app/cloudadaptor && \
     mv /dist/index.html /app/ui/www/templates/index.html && \
+    chmod +x /app/ui/log && mv /app/ui/log /usr/bin/log && \
     mkdir /app/ui/www/static/dists && \
     cp -a /dist/* /app/ui/www/static/dists/ && \
     rm -rf /dist \
@@ -89,6 +103,7 @@ VOLUME /app/data
 VOLUME /app/logs
 VOLUME /root/.ssh
 VOLUME /opt/rainbond
+VOLUME /var/lib/docker
 
 ENTRYPOINT [ "/app/ui/start.sh" ]
 CMD ["/usr/bin/supervisord","-c","/etc/supervisor/supervisord.conf"]
