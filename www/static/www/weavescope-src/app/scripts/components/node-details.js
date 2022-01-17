@@ -234,9 +234,7 @@ class NodeDetails extends React.Component {
     const { shows } = this.state
     const showControls = details.controls && details.controls.length > 0;
     const instanceDetail = bean && bean.bean.containers || [];
-    console.log(instanceDetail, '233------instanceDetail')
-    const visit = visitinfo && visitinfo.access_urls || [];
-    console.log(visitinfo, 'visit')
+    const visit = visitinfo && visitinfo.data.access_urls || [];
     const nodeColor = getNodeColorDark(details.rank, details.label, details.pseudo);
     const { error, pending } = nodeControlStatus ? nodeControlStatus.toJS() : {};
     const tools = this.renderTools();
@@ -314,7 +312,7 @@ class NodeDetails extends React.Component {
                         <td style={{ width: '33%', textAlign: 'right' }}>实例数 {getPodNum(nodeDetails)}</td> */}
                         {
                           // nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' &&  nodeDetails.cur_status != 'closed' &&  nodeDetails.cur_status != 'creating' &&
-                          (Object.keys(portList).length > 0) && nodeDetails.cur_status == 'running' &&
+                          (visit.length > 0 && Object.keys(portList).length > 0) && nodeDetails.cur_status == 'running' &&
                           (<td style={{ cursor: 'pointer', position: 'relative', marginRight: '40px' }}>
                             <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px' }} className="iconfont icon-icon_web"></div>
                             {shows && (

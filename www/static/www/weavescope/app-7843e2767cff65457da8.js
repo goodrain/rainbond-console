@@ -30247,9 +30247,7 @@ var NodeDetails = function (_React$Component) {
 
       var showControls = details.controls && details.controls.length > 0;
       var instanceDetail = bean && bean.bean.containers || [];
-      console.log(instanceDetail, '233------instanceDetail');
-      var visit = visitinfo && visitinfo.access_urls || [];
-      console.log(visitinfo, 'visit');
+      var visit = visitinfo && visitinfo.data.access_urls || [];
       var nodeColor = (0, _colorUtils.getNodeColorDark)(details.rank, details.label, details.pseudo);
 
       var _ref = nodeControlStatus ? nodeControlStatus.toJS() : {},
@@ -30351,7 +30349,7 @@ var NodeDetails = function (_React$Component) {
                   { style: { display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' } },
 
                   // nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' &&  nodeDetails.cur_status != 'closed' &&  nodeDetails.cur_status != 'creating' &&
-                  Object.keys(portList).length > 0 && nodeDetails.cur_status == 'running' && _react2.default.createElement(
+                  visit.length > 0 && Object.keys(portList).length > 0 && nodeDetails.cur_status == 'running' && _react2.default.createElement(
                     'td',
                     { style: { cursor: 'pointer', position: 'relative', marginRight: '40px' } },
                     _react2.default.createElement('div', { onMouseOver: function onMouseOver() {
