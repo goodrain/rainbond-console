@@ -939,6 +939,7 @@ function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
     (0, _webApiUtils.Podname)(serviceAlias);
     (0, _webApiUtils.Disklist)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
     (0, _webApiUtils.Visitinfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
+    (0, _webApiUtils.GetPods)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
   };
 }
 function clickPauseDatele() {
@@ -14956,6 +14957,7 @@ exports.getNodesDelta = getNodesDelta;
 exports.getNodeMonitorData = getNodeMonitorData;
 exports.getNodeDetails = getNodeDetails;
 exports.Disklist = Disklist;
+exports.GetPods = GetPods;
 exports.Visitinfo = Visitinfo;
 exports.Podname = Podname;
 exports.Dateils = Dateils;
@@ -15485,6 +15487,39 @@ function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, dispatc
         var data = res.data.bean || {};
         dispatch({
           type: "DISK_DETAIL",
+          data: data
+        });
+      },
+      error: function error(err) {
+        log('Error in node details request: ' + err.responseText);
+      }
+    });
+  }
+}
+function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
+  var windowParent = window.parent;
+  var obj = nodeMap.last();
+  var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var url = '';
+  if (serviceAlias && tenantName) {
+    var topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = '/console/teams/' + tenantName + '/apps/' + serviceAlias + '/pods?region=' + region + '&_=' + new Date().getTime();
+
+    doRequest({
+      url: url,
+      success: function success(res) {
+        res = res || {};
+
+        res.rank = res.cur_status;
+        if (obj.id === 'The Internet') {
+          res.cur_status = 'running';
+        }
+        res = res || {};
+        var data = res.data.list.new_pods || [];
+        dispatch({
+          type: "GET_PODS",
           data: data
         });
       },
@@ -30242,12 +30277,15 @@ var NodeDetails = function (_React$Component) {
           selectedNodeId = _props.selectedNodeId,
           bean = _props.bean,
           disk = _props.disk,
-          visitinfo = _props.visitinfo;
+          visitinfo = _props.visitinfo,
+          pods = _props.pods;
       var shows = this.state.shows;
 
       var showControls = details.controls && details.controls.length > 0;
       var instanceDetail = bean && bean.bean.containers || [];
+      var instancePods = pods && pods.data || [];
       var visit = visitinfo && visitinfo.data.access_urls || [];
+      var disks = Math.round(disk.data.disk);
       var nodeColor = (0, _colorUtils.getNodeColorDark)(details.rank, details.label, details.pseudo);
 
       var _ref = nodeControlStatus ? nodeControlStatus.toJS() : {},
@@ -30264,8 +30302,8 @@ var NodeDetails = function (_React$Component) {
         }
       };
       var instance_count = 0;
-      instanceDetail.map(function (item, index) {
-        if (item.state == 'Running') {
+      instancePods.map(function (item, index) {
+        if (item.pod_status == 'RUNNING') {
           instance_count++;
         }
         return instance_count;
@@ -30387,12 +30425,7 @@ var NodeDetails = function (_React$Component) {
                                 { style: { color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline' }, href: domain, target: '_blank' },
                                 domain
                               );
-                            }),
-                            portItem.is_inner_service && _react2.default.createElement(
-                              'a',
-                              { style: { color: 'rgba(0,0,0,.65)', lineHeight: '30px' } },
-                              node.service_cname
-                            )
+                            })
                           )
                         );
                       })
@@ -30507,7 +30540,7 @@ var NodeDetails = function (_React$Component) {
                   _react2.default.createElement(
                     'div',
                     { style: { textAlign: 'left', width: '60%' } },
-                    disk.data.disk + 'MB'
+                    disks + 'MB'
                   )
                 ),
                 _react2.default.createElement(
@@ -30996,7 +31029,8 @@ function mapStateToProps(state, ownProps) {
     selectedNodeId: state.get('selectedNodeId'),
     bean: state.get('nodedetailes'),
     disk: state.get('diskdetail'),
-    visitinfo: state.get('visitinfo')
+    visitinfo: state.get('visitinfo'),
+    pods: state.get('getpods')
   };
 }
 
@@ -33903,7 +33937,8 @@ var initialState = exports.initialState = (0, _immutable.Map)({
   serviceImages: (0, _immutable.Map)(),
   nodedetailes: null,
   diskdetail: null,
-  visitinfo: null
+  visitinfo: null,
+  getpods: null
 });
 
 function calcSelectType(topology) {
@@ -34022,6 +34057,10 @@ function rootReducer() {
     case "VISIT_INFO":
       {
         return state.set('visitinfo', action);
+      }
+    case "GET_PODS":
+      {
+        return state.set('getpods', action);
       }
     case _actionTypes2.default.CHANGE_TOPOLOGY_OPTION:
       {
