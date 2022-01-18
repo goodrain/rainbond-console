@@ -34,7 +34,7 @@ import {
 
   getNodeDetails, getNodesDelta, getResourceViewNodesSnapshot,
 
-  Podname,Dateils,Disklist,Visitinfo,
+  Podname,Dateils,Disklist,Visitinfo,GetPods,
   getTopologies,
 
   stopPolling,
@@ -413,7 +413,14 @@ export function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
       dispatch,
       serviceAlias
     )
-    
+    GetPods(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch,
+      serviceAlias
+    )
   };
 }
 export function clickPauseDatele(){

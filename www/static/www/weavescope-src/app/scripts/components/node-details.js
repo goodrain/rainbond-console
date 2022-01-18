@@ -230,11 +230,13 @@ class NodeDetails extends React.Component {
     })
   }
   renderDetails() {
-    const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo } = this.props;
+    const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo, pods } = this.props;
     const { shows } = this.state
     const showControls = details.controls && details.controls.length > 0;
     const instanceDetail = bean && bean.bean.containers || [];
+    const instancePods = pods && pods.data || []
     const visit = visitinfo && visitinfo.data.access_urls || [];
+    const disks = Math.round(disk.data.disk)
     const nodeColor = getNodeColorDark(details.rank, details.label, details.pseudo);
     const { error, pending } = nodeControlStatus ? nodeControlStatus.toJS() : {};
     const tools = this.renderTools();
@@ -247,8 +249,8 @@ class NodeDetails extends React.Component {
       }
     };
     let instance_count = 0;
-    instanceDetail.map((item, index) => {
-      if (item.state == 'Running') {
+    instancePods.map((item, index) => {
+      if (item.pod_status == 'RUNNING') {
         instance_count++
       }
       return instance_count
@@ -340,11 +342,6 @@ class NodeDetails extends React.Component {
                                             );
                                           })
                                         }
-                                        {
-                                          (portItem.is_inner_service) && (
-                                              <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px' }}>{node.service_cname}</a>
-                                          )
-                                        }
                                       </div>
                                     </div>
                                   )
@@ -412,7 +409,7 @@ class NodeDetails extends React.Component {
                     </div>
                     <div style={{ display: 'flex' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>磁盘：</div>
-                      <div style={{ textAlign: 'left', width: '60%' }}>{disk.data.disk + 'MB'}</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>{disks + 'MB'}</div>
                     </div>
                     <div style={{ display: 'flex' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>运行时间：</div>
@@ -698,6 +695,7 @@ function mapStateToProps(state, ownProps) {
     bean: state.get('nodedetailes'),
     disk: state.get('diskdetail'),
     visitinfo: state.get('visitinfo'),
+    pods: state.get('getpods'),
   };
 }
 

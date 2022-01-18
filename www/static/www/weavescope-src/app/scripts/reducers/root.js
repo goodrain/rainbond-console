@@ -90,7 +90,8 @@ export const initialState = makeMap({
   serviceImages: makeMap(),
   nodedetailes: null,
   diskdetail: null,
-  visitinfo: null
+  visitinfo: null,
+  getpods:null,
 });
 
 function calcSelectType(topology) {
@@ -204,6 +205,9 @@ export function rootReducer(state = initialState, action) {
     }
     case "VISIT_INFO": {
       return state.set('visitinfo', action);
+    }
+    case "GET_PODS": {
+      return state.set('getpods', action);
     }
     case ActionTypes.CHANGE_TOPOLOGY_OPTION: {
       state = resumeUpdate(state);

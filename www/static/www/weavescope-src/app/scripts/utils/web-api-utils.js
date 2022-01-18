@@ -512,6 +512,39 @@ export function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, 
     });
   }
 }
+export function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  if (serviceAlias && tenantName) {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/apps/${serviceAlias}/pods?region=${region}&_=${new Date().getTime()}`;
+
+    doRequest({
+      url,
+      success: (res) => {
+        res = res || {};
+
+        res.rank = res.cur_status;
+        if (obj.id === 'The Internet') {
+          res.cur_status = 'running';
+        }
+        res = res || {};
+        const data = res.data.list.new_pods || [];
+        dispatch({
+          type:"GET_PODS",
+          data
+        });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
 export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
   const windowParent = window.parent;
   const obj = nodeMap.last();
