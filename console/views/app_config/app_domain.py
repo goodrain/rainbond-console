@@ -381,6 +381,8 @@ class HttpStrategyView(RegionTenantHeaderView):
             bean.update({"service_alias": service_alias})
             bean.update({"group_name": group_name})
             bean.update({"g_id": g_id})
+            rewrites = domain.rewrites if domain.rewrites else '[]'
+            bean.update({"rewrites": json.loads(rewrites)})
         else:
             bean = dict()
         result = general_message(200, "success", "查询成功", bean=bean)
