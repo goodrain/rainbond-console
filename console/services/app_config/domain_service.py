@@ -330,7 +330,7 @@ class DomainService(object):
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
         data["path_rewrite"] = path_rewrite
-        data["rewrites"] = json.loads(rewrites)
+        data["rewrites"] = rewrites
         try:
             region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
         except region_api.CallApiError as e:
@@ -374,7 +374,7 @@ class DomainService(object):
         domain_info["rule_extensions"] = rule_extensions_str
         domain_info["region_id"] = region.region_id
         domain_info["path_rewrite"] = path_rewrite
-        domain_info["rewrites"] = rewrites
+        domain_info["rewrites"] = json.dumps(rewrites)
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
         if domain_name != "{0}.{1}.{2}.{3}".format(httpdomain["container_port"], service.service_alias, tenant.tenant_name,
@@ -441,7 +441,7 @@ class DomainService(object):
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
         data["path_rewrite"] = domain_info["path_rewrite"]
-        data["rewrites"] = json.loads(domain_info["rewrites"])
+        data["rewrites"] = domain_info["rewrites"]
         try:
             # 给数据中心传送数据更新域名
             region_api.update_http_domain(service.service_region, tenant.tenant_name, data)
@@ -473,6 +473,7 @@ class DomainService(object):
         domain_info["container_port"] = int(domain_info["container_port"])
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
+        domain_info["rewrites"]=json.dumps(update_data["rewrites"])
         model_data = ServiceDomain(**domain_info)
         model_data.save()
         if re_model:

@@ -411,8 +411,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         auto_ssl_config = request.data.get("auto_ssl_config", None)
         # path-rewrite
         path_rewrite = request.data.get("path_rewrite", False)
-        p_rewrites = request.data.get("rewrites", "")
-        rewrites = p_rewrites if p_rewrites else "[]"
+        rewrites = request.data.get("rewrites", [])
 
 
         # 判断参数
@@ -533,8 +532,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         auto_ssl_config = request.data.get("auto_ssl_config", None)
         # path-rewrite
         path_rewrite = request.data.get("path_rewrite", False)
-        p_rewrites = request.data.get("rewrites", "")
-        rewrites = p_rewrites if p_rewrites else "[]"
+        rewrites = request.data.get("rewrites", [])
 
         # 判断参数
         if len(do_path) > 1024:
@@ -811,7 +809,7 @@ class DomainQueryView(RegionTenantHeaderView):
             domain_dict["the_weight"] = tenant_tuple[13]
             domain_dict["is_outer_service"] = tenant_tuple[14]
             domain_dict["path_rewrite"] = tenant_tuple[15]
-            domain_dict["rewrites"] = tenant_tuple[16]
+            domain_dict["rewrites"] = json.loads(tenant_tuple[16] if tenant_tuple[16] else '[]')
             domain_dict["group_id"] = group_id
             domain_list.append(domain_dict)
         bean = dict()
@@ -972,7 +970,7 @@ class AppServiceDomainQueryView(RegionTenantHeaderView):
             domain_dict["the_weight"] = tenant_tuple[13]
             domain_dict["is_outer_service"] = tenant_tuple[14]
             domain_dict["path_rewrite"] = tenant_tuple[15]
-            domain_dict["rewrites"] = tenant_tuple[16]
+            domain_dict["rewrites"] = json.loads(tenant_tuple[16] if tenant_tuple[16] else '[]')
             domain_dict["group_id"] = group_id
             domain_list.append(domain_dict)
         bean = dict()

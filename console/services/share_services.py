@@ -935,7 +935,7 @@ class ShareService(object):
                 "cookies": self._parse_cookie_or_header(sd.domain_cookie),
                 "headers": self._parse_cookie_or_header(sd.domain_heander),
                 "path_rewrite": sd.path_rewrite,
-                "rewrites": sd.rewrites,
+                "rewrites": json.loads(sd.rewrites if sd.rewrites else '[]'),
                 "ssl": sd.auto_ssl,
                 "load_balancing": sd.load_balancing,
                 "connection_timeout": config.get("proxy_connect_timeout"),
