@@ -316,7 +316,7 @@ class NodeDetails extends React.Component {
                           // nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' &&  nodeDetails.cur_status != 'closed' &&  nodeDetails.cur_status != 'creating' &&
                           (visit.length > 0 && Object.keys(portList).length > 0) && nodeDetails.cur_status == 'running' &&
                           (<td style={{ cursor: 'pointer', position: 'relative', marginRight: '40px' }}>
-                            <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px' }} className="iconfont icon-icon_web"></div>
+                            <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px', maxHeight:'300px', overflow:'auto' }} className="iconfont icon-icon_web"></div>
                             {shows && (
                               <div>
                                 {Object.keys(portList).map((key, index) => {
@@ -350,9 +350,14 @@ class NodeDetails extends React.Component {
                             )}
                           </td>)
                         }
-                        <td style={{ cursor: 'pointer', marginRight: '40px' }}>
-                          <a onClick={this.handleClickTerminal.bind(this, nodeDetails)} target="_blank" title="终端" style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-terminalzhongduan"></a>
-                        </td>
+                        {nodeDetails.cur_status == 'undeploy' ? (
+                          null
+                        ):(
+                          <td style={{ cursor: 'pointer', marginRight: '40px' }}>
+                            <a onClick={this.handleClickTerminal.bind(this, nodeDetails)} target="_blank" title="终端" style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-terminalzhongduan"></a>
+                          </td>
+                        )}
+                        
                         {nodeDetails.cur_status == 'undeploy' || nodeDetails.cur_status == 'closed' ? (
                           <td style={{ cursor: 'pointer', marginRight: '40px' }} title="构建">
                             <a onClick={this.handleClickBuild.bind(this, 'build', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-dabaoxiazai"></a>
@@ -439,16 +444,17 @@ class NodeDetails extends React.Component {
             nodeDetails.cur_status == "third_party" ? null :
               <div>
                 {instanceDetail.length > 0 && instanceDetail == null ? null :
-                  nodeDetails.cur_status == "closed" ? null : (
+                  nodeDetails.cur_status == "closed" ? null :
+                  nodeDetails.cur_status == "undeploy" ? null : (
                     <div className="node-details-content-section">
                       <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>实例中的容器</div>
                       <div style={{ width: '100%' }}>
                         <table style={{ tableLayout: 'fixed', width: '100%' }}>
                           <thead>
                             <tr>
-                              <th style={{ textAlign: 'left', width: '50%' }}>镜像名称</th>
+                              <th style={{ textAlign: 'left', width: '40%' }}>镜像名称</th>
                               <th style={{ width: '25%', textAlign: 'center' }}>状态</th>
-                              <th style={{ width: '25%', textAlign: 'center' }}>说明</th>
+                              <th style={{ width: '35%', textAlign: 'center' }}>说明</th>
                             </tr>
                           </thead>
                           {instanceDetail.length > 0 && instanceDetail.map((item, index) => {
