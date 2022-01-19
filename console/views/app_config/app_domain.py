@@ -415,7 +415,6 @@ class HttpStrategyView(RegionTenantHeaderView):
         path_rewrite = request.data.get("path_rewrite", False)
         rewrites = request.data.get("rewrites", [])
 
-
         # 判断参数
         if len(do_path) > 1024:
             raise AbortRequest(msg="Maximum length of location 1024", msg_show="Location最大长度1024")
@@ -772,7 +771,8 @@ class DomainQueryView(RegionTenantHeaderView):
 
                 cursor.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
                     service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
-                    domain_heander, the_weight, is_outer_service, path_rewrite, rewrites from service_domain where tenant_id='{0}'
+                    domain_heander, the_weight, is_outer_service, path_rewrite,
+                    rewrites from service_domain where tenant_id='{0}'
                     and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id, region.region_id, start,
                                                                                     end))
                 tenant_tuples = cursor.fetchall()

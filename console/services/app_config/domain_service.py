@@ -473,7 +473,7 @@ class DomainService(object):
         domain_info["container_port"] = int(domain_info["container_port"])
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
-        domain_info["rewrites"]=json.dumps(update_data["rewrites"])
+        domain_info["rewrites"] = json.dumps(update_data["rewrites"])
         model_data = ServiceDomain(**domain_info)
         model_data.save()
         if re_model:
