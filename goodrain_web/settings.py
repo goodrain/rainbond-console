@@ -18,6 +18,7 @@ from corsheaders.defaults import default_headers
 
 # rainbond version
 VERSION = "5.3.0"
+DEFAULT_ENTERPRISE_ID_PATH = "/app/data/ENTERPRISE_ID"
 
 APPEND_SLASH = True
 SETTING_DIR = os.path.dirname(__file__)

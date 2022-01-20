@@ -7,7 +7,7 @@
     "max-concurrent-downloads": 10,
     "max-concurrent-uploads": 10,
     "log-driver": "json-file",
-    "log-level": "warn",
+    "log-level": "info",
     "log-opts": {
       "max-size": "10m",
       "max-file": "3"

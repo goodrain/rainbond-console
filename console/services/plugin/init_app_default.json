@@ -96,6 +96,12 @@
             "is_change": true
           },
           {
+            "name": "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD",
+            "attr_name": "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD",
+            "attr_value": "yes",
+            "is_change": true
+          },
+          {
             "name": "ALLOW_EMPTY_PASSWORD",
             "attr_name": "ALLOW_EMPTY_PASSWORD",
             "attr_value": "yes",

@@ -6,6 +6,7 @@ import re
 import string
 import json
 
+from goodrain_web.settings import DEFAULT_ENTERPRISE_ID_PATH
 from console.exception.main import ServiceHandleException
 from console.exception.bcode import ErrUserNotFound, ErrTenantNotFound
 from console.services.perm_services import user_kind_role_service
@@ -122,8 +123,14 @@ class EnterpriseServices(object):
         # 根据企业英文名确认UUID
         is_first_ent = TenantEnterprise.objects.count() == 0
         eid = os.environ.get('ENTERPRISE_ID')
-        if not eid or not is_first_ent:
+        if not eid or is_first_ent:
             eid = make_uuid(enter_name)
+            try:
+                f = open(DEFAULT_ENTERPRISE_ID_PATH)
+                eid = f.read()
+                f.close()
+            except Exception:
+                pass
         region = region_repo.get_all_regions().first()
         if region:
             region.enterprise_id = eid
