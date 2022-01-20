@@ -309,9 +309,6 @@ class NodeDetails extends React.Component {
                   <div className="node-details-header-relatives" style={{ width: '121%', paddingTop: '24px', marginLeft: '-36px' }}>
                     <table style={{ width: '100%', padding: '5px 0px', background: 'rgba(255,255,255,0.2)' }}>
                       <tr style={{ display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' }}>
-                        {/* <td style={{ width: '33%', textAlign: 'left' }}>{nodeDetails.status_cn || '未知'}</td>
-                        <td style={{ width: '33%', textAlign: 'center' }}>内存 {nodeDetails.total_memory}</td>
-                        <td style={{ width: '33%', textAlign: 'right' }}>实例数 {getPodNum(nodeDetails)}</td> */}
                         {
                           // nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' &&  nodeDetails.cur_status != 'closed' &&  nodeDetails.cur_status != 'creating' &&
                           (visit.length > 0 && Object.keys(portList).length > 0) && nodeDetails.cur_status == 'running' &&
