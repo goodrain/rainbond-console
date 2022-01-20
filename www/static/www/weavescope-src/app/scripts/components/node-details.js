@@ -316,21 +316,21 @@ class NodeDetails extends React.Component {
                           // nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' &&  nodeDetails.cur_status != 'closed' &&  nodeDetails.cur_status != 'creating' &&
                           (visit.length > 0 && Object.keys(portList).length > 0) && nodeDetails.cur_status == 'running' &&
                           (<td style={{ cursor: 'pointer', position: 'relative', marginRight: '40px' }}>
-                            <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px', maxHeight:'300px', overflow:'auto' }} className="iconfont icon-icon_web"></div>
+                            <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px' }} className="iconfont icon-icon_web"></div>
                             {shows && (
                               <div>
                                 {Object.keys(portList).map((key, index) => {
                                   let portItem = portList[key];
                                   return (
                                     <div onMouseLeave={() => { this.visitout() }} style={{ position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' }}>
-                                      <div style={{ width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px' }}>
+                                      <div style={{ width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight:'200px', overflow:'auto' }}>
                                         {
                                           portItem.outer_url && (
                                             <div>
                                               {
                                                 portItem.protocol === 'stream' ?
-                                                  <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline' }} href="javascript:;" target="_blank">{portItem.outer_url.split(':')[0]}</a>
-                                                  : <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline' }} href={portItem.protocol + '://' + portItem.outer_url} target="_blank">{portItem.outer_url.split(':')[0]}</a>
+                                                  <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline', display:'block' }} href="javascript:;" target="_blank">{portItem.outer_url.split(':')[0]}</a>
+                                                  : <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline', display:'block' }} href={portItem.protocol + '://' + portItem.outer_url} target="_blank">{portItem.outer_url.split(':')[0]}</a>
                                               }
                                             </div>
                                           )
@@ -338,7 +338,7 @@ class NodeDetails extends React.Component {
                                         {
                                           (portItem.domain_list || []).map((domain, index) => {
                                             return (
-                                              <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline' }} href={domain} target="_blank">{domain}</a>
+                                              <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline', display:'block' }} href={domain} target="_blank">{domain}</a>
                                             );
                                           })
                                         }
