@@ -1,0 +1,72 @@
+{
+  "id": "3119529",
+  "name": "weaveScoped",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "12269006",
+      "name": "打包下载",
+      "font_class": "dabaoxiazai",
+      "unicode": "e7c5",
+      "unicode_decimal": 59333
+    },
+    {
+      "icon_id": "7926868",
+      "name": "网址",
+      "font_class": "icon_web",
+      "unicode": "e684",
+      "unicode_decimal": 59012
+    },
+    {
+      "icon_id": "4406895",
+      "name": "删除",
+      "font_class": "shanchu2",
+      "unicode": "e652",
+      "unicode_decimal": 58962
+    },
+    {
+      "icon_id": "20009319",
+      "name": "terminal终端",
+      "font_class": "terminalzhongduan",
+      "unicode": "e6ea",
+      "unicode_decimal": 59114
+    },
+    {
+      "icon_id": "560231",
+      "name": "关闭",
+      "font_class": "guanbi",
+      "unicode": "e612",
+      "unicode_decimal": 58898
+    },
+    {
+      "icon_id": "1288620",
+      "name": "公司网址",
+      "font_class": "gongsiwangzhi",
+      "unicode": "e60b",
+      "unicode_decimal": 58891
+    },
+    {
+      "icon_id": "7339836",
+      "name": "刷新",
+      "font_class": "shuaxin",
+      "unicode": "e6a7",
+      "unicode_decimal": 59047
+    },
+    {
+      "icon_id": "16731271",
+      "name": "启动",
+      "font_class": "qidong1",
+      "unicode": "e607",
+      "unicode_decimal": 58887
+    },
+    {
+      "icon_id": "18882999",
+      "name": "网址",
+      "font_class": "wangzhi",
+      "unicode": "e68d",
+      "unicode_decimal": 59021
+    }
+  ]
+}

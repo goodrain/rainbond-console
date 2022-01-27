@@ -1,8 +1,10 @@
 /* eslint-disable import/no-webpack-loader-syntax, import/no-unresolved */
 import debug from 'debug';
 import { size, each, includes, isEqual } from 'lodash';
-import { fromJS, is as isDeepEqual, List as makeList, Map as makeMap,
-  OrderedMap as makeOrderedMap, Set as makeSet } from 'immutable';
+import {
+  fromJS, is as isDeepEqual, List as makeList, Map as makeMap,
+  OrderedMap as makeOrderedMap, Set as makeSet
+} from 'immutable';
 
 import ActionTypes from '../constants/action-types';
 import {
@@ -85,7 +87,11 @@ export const initialState = makeMap({
   viewport: makeMap(),
   websocketClosed: false,
   zoomCache: makeMap(),
-  serviceImages: makeMap()
+  serviceImages: makeMap(),
+  nodedetailes: null,
+  diskdetail: null,
+  visitinfo: null,
+  getpods:null,
 });
 
 function calcSelectType(topology) {
@@ -191,7 +197,18 @@ export function rootReducer(state = initialState, action) {
     case ActionTypes.BLUR_SEARCH: {
       return state.set('searchFocused', false);
     }
-
+    case "INSTANCE": {
+      return state.set('nodedetailes', action);
+    }
+    case "DISK_DETAIL": {
+      return state.set('diskdetail', action);
+    }
+    case "VISIT_INFO": {
+      return state.set('visitinfo', action);
+    }
+    case "GET_PODS": {
+      return state.set('getpods', action);
+    }
     case ActionTypes.CHANGE_TOPOLOGY_OPTION: {
       state = resumeUpdate(state);
       // set option on parent topology
@@ -564,7 +581,7 @@ export function rootReducer(state = initialState, action) {
     case ActionTypes.SET_RECEIVED_NODES_DELTA: {
       // Turn on the table view if the graph is too complex, but skip
       // this block if the user has already loaded topologies once.
-//最初节点加载
+      //最初节点加载
       if (!state.get('initialNodesLoaded') && !state.get('nodesLoaded')) {
         if (state.get('topologyViewMode') === GRAPH_VIEW_MODE) {
           state = graphExceedsComplexityThreshSelector(state)
@@ -617,11 +634,11 @@ export function rootReducer(state = initialState, action) {
         }
       });
 
-       // add new nodes
+      // add new nodes
       each(action.delta.add, (node) => {
         //这样处理是因为有时候 数据转换immutable失败
-        var n={};
-        for(var k in node){
+        var n = {};
+        for (var k in node) {
           n[k] = node[k];
         }
         state = state.setIn(['nodes', node.id], fromJS(n));
