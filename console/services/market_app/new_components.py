@@ -466,6 +466,8 @@ class NewComponents(object):
                 domain_path=ingress["location"],
                 domain_cookie=self._domain_cookie_or_header(ingress["cookies"]),
                 domain_heander=self._domain_cookie_or_header(ingress["headers"]),
+                path_rewrite=ingress["path_rewrite"],
+                rewrites=ingress["rewrites"],
                 type=0 if ingress["default_domain"] else 1,
                 the_weight=100,
                 is_outer_service=port.is_outer_service,
