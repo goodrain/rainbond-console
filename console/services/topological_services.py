@@ -4,7 +4,7 @@ from functools import reduce
 
 from console.services.region_services import region_services
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import (ServiceDomain, ServiceGroupRelation, TenantServiceInfo, TenantServiceRelation, TenantServicesPort)
+from www.models.main import (ServiceDomain, ServiceGroupRelation, TenantServiceInfo, TenantServiceRelation, TenantServicesPort, ServiceGroup)
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -26,6 +26,13 @@ class TopologicalService(object):
         json_data = {}
         json_svg = {}
         service_status_map = {}
+
+        # 查询每个组件所属应用信息
+        component_rel_list = ServiceGroupRelation.objects.filter(service_id__in=all_service_id_list)
+        app_ids = [rel.group_id for rel in component_rel_list]
+        app_list = ServiceGroup.objects.filter(ID__in=app_ids)
+        apps = {app.app_id: app for app in app_list}
+        component_rels = {rel.service_id: apps.get(rel.group_id, {}) for rel in component_rel_list}
 
         # 批量查询组件状态
         if len(service_list) > 0:
@@ -58,12 +65,16 @@ class TopologicalService(object):
                         node_num += 1
             else:
                 node_num = service_info.min_node
+            app = component_rels.get(service_info.service_id)
             json_data[service_info.service_id] = {
                 "service_id": service_info.service_id,
                 "service_cname": service_info.service_cname,
                 "service_alias": service_info.service_alias,
                 "service_source": service_info.service_source,
                 "node_num": node_num,
+                "app_id": app.ID if app else 0,
+                "app_type": app.app_type if app else "rainbond",
+                "app_name": app.group_name if app else "404 not found",
             }
             json_svg[service_info.service_id] = []
             if service_status_map.get(service_info.service_id):
