@@ -311,17 +311,17 @@ class NodeDetails extends React.Component {
                       <tr style={{ display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' }}>
                         {
                           // nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' &&  nodeDetails.cur_status != 'closed' &&  nodeDetails.cur_status != 'creating' &&
-                          (visit.length > 0 && Object.keys(portList).length > 0) && nodeDetails.cur_status == 'running' &&
+                          // (visit.length > 0 && Object.keys(portList).length > 0) && nodeDetails.cur_status == 'running' &&
                           (<td style={{ cursor: 'pointer', position: 'relative', marginRight: '40px' }}>
                             <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px' }} className="iconfont icon-icon_web"></div>
                             {shows && (
                               <div>
-                                {Object.keys(portList).map((key, index) => {
+                                {/* {Object.keys(portList).map((key, index) => {
                                   let portItem = portList[key];
-                                  return (
+                                  return ( */}
                                     <div onMouseLeave={() => { this.visitout() }} style={{ position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' }}>
                                       <div style={{ width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight:'200px', overflow:'auto' }}>
-                                        {
+                                        {/* {
                                           portItem.outer_url && (
                                             <div>
                                               {
@@ -338,16 +338,18 @@ class NodeDetails extends React.Component {
                                               <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline', display:'block' }} href={domain} target="_blank">{domain}</a>
                                             );
                                           })
-                                        }
+                                        } */}
+                                         <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline', display:'block' }} target="_blank">sadfg</a>
                                       </div>
                                     </div>
-                                  )
-                                })}
+                                  {/* ) */}
+                                {/* })} */}
+                               
                               </div>
                             )}
                           </td>)
                         }
-                        {nodeDetails.cur_status == 'undeploy' ? (
+                        {/* {nodeDetails.cur_status == 'undeploy' ? (
                           null
                         ):(
                           <td style={{ cursor: 'pointer', marginRight: '40px' }}>
@@ -382,14 +384,14 @@ class NodeDetails extends React.Component {
                         )}
                         <td style={{ cursor: 'pointer' }} title="删除">
                           <a onClick={this.handleClickDelete.bind(this, 'deleteApp', nodeDetails)} style={{ fontSize: '20px' }} className="iconfont icon-shanchu2"></a>
-                        </td>
+                        </td> */}
                       </tr>
                     </table>
                   </div>
             }
           </div>
         </div>
-        <div className="node-details-content">
+        {/* <div className="node-details-content">
           {nodeDetails.id == 'The Internet' ? null :
             nodeDetails.cur_status == "third_party" ? null :
               // nodeDetails.cur_status == "closed" ? null :
@@ -583,6 +585,154 @@ class NodeDetails extends React.Component {
             }
 
 
+            {
+              Object.keys(relationList).length > 0 && (<div className="node-details-content-section">
+                <table style={{ width: '100%', tableLayout: 'fixed' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left' }}>依赖服务</th>
+                      <th style={{ width: '80px', textAlign: 'right' }}>端口</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {
+                      Object.keys(relationList).map((key, index) => {
+                        let relationListItem = relationList[key] || [];
+                        return relationListItem.map((item, index) => {
+                          return (
+                            <tr>
+                              <td onClick={(ev) => { this.handleRelativeClick(ev, item.service_alias, undefined, item.service_cname, item.service_alias) }} style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>{item.service_cname}</td>
+                              <td style={{ textAlign: 'right' }}>{item.mapping_port}</td>
+                            </tr>
+                          );
+                        });
+                      })
+                    }
+                  </tbody>
+                </table>
+              </div>)
+            }
+
+            {
+              ((nodeDetails.pod_list || []).length > 0) && (
+                <div className="node-details-content-section">
+                  <table style={{ width: '100%', tableLayout: 'fixed' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left' }}>实例</th>
+                        <th style={{ width: '80px', textAlign: 'right' }}>使用内存</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {
+                        (nodeDetails.pod_list || []).map((value, index) => {
+                          return (
+                            <tr>
+                              <td style={{ textAlign: 'left' }}>{value.pod_name}</td>
+                              <td style={{ textAlign: 'right' }}>{container_memory}M</td>
+                            </tr>
+                          );
+                        })
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              )
+            }
+
+            <div className="node-details-content-section">
+              <table style={{ width: '100%', tableLayout: 'fixed' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ textAlign: 'left' }}></td>
+
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div> */}
+        <div className="node-details-content">
+          {nodeDetails.id == 'The Internet' ? null :
+            nodeDetails.cur_status == "third_party" ? null :
+              // nodeDetails.cur_status == "closed" ? null :
+              <div>
+                <div className="node-details-content-section">
+                  <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>基本信息</div>
+                  <div style={{ width: '100%' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <div style={{ textAlign: 'right', width: '40%' }}>运行状态：</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>运行中</div>
+                    </div>
+                    <div style={{ display: 'flex' }}>
+                      <div style={{ textAlign: 'right', width: '40%' }}>内存：</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>512 MB</div>
+                    </div>
+                    <div style={{ display: 'flex' }}>
+                      <div style={{ textAlign: 'right', width: '40%' }}>CPU：</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>0 Core</div>
+                    </div>
+                    <div style={{ display: 'flex' }}>
+                      <div style={{ textAlign: 'right', width: '40%' }}>磁盘：</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>0 KB</div>
+                    </div>
+                    <div style={{ display: 'flex' }}>
+                      <div style={{ textAlign: 'right', width: '40%' }}>组件数量：</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>1</div>
+                    </div>
+                    <div style={{ display: 'flex' }}>
+                      <div style={{ textAlign: 'right', width: '40%' }}>创建时间：</div>
+                      {(nodeDetails.deploy_version == '' || nodeDetails.deploy_version == 'undefined') ? (
+                        <div style={{ textAlign: 'left', width: '60%' }}>2022-01-06 14:52:16</div>
+                      ) : (
+                        <div style={{ textAlign: 'left', width: '60%' }}>2022-01-06 14:52:16</div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex' }}>
+                      <div style={{ textAlign: 'right', width: '40%' }}>更新时间：</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>2022-01-26 15:20:57</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          }
+          {nodeDetails.id == 'The Internet' ? null :
+            nodeDetails.cur_status == "third_party" ? null :
+              <div>
+                {instanceDetail.length > 0 && instanceDetail == null ? null :
+                  nodeDetails.cur_status == "closed" ? null :
+                  nodeDetails.cur_status == "undeploy" ? null : (
+                    <div className="node-details-content-section">
+                      {/* 对应的展示 */}
+                      <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>应用的组件</div>
+                      <div style={{ width: '100%' }}>
+                        <table style={{ tableLayout: 'fixed', width: '100%' }}>
+                          <thead>
+                            <tr>
+                              <th style={{ textAlign: 'center', width: '33%' }}>组件名</th>
+                              <th style={{ width: '33%', textAlign: 'center' }}>内存</th>
+                              <th style={{ width: '33%', textAlign: 'center' }}>状态</th>
+                            </tr>
+                          </thead>
+                          {instanceDetail.length > 0 && instanceDetail.map((item, index) => {
+                            return (
+                              < tbody >
+                                <tr>
+                                  <td className="node-details-info-field-value truncate" style={{ textAlign: 'center' }} title={item.image}>sadfg</td>
+                                  <td style={{ textAlign: 'center' }}>512MB</td>
+                                  <td className="node-details-info-field-value truncate" title={item.reason} style={{ textAlign: 'center' }}>运行中</td>
+                                </tr>
+                              </tbody>
+                            )
+                          })}
+                        </table>
+                      </div>
+                    </div>
+                  )}
+              </div>
+          }
+          <div className="node-details-content-section" style={{ display: show ? 'block' : 'none' }}>
             {
               Object.keys(relationList).length > 0 && (<div className="node-details-content-section">
                 <table style={{ width: '100%', tableLayout: 'fixed' }}>

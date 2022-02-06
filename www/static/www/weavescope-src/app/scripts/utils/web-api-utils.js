@@ -46,6 +46,7 @@ let createWebsocketAt = 0;
 let firstMessageOnWebsocketAt = 0;
 let continuePolling = true;
 let newData = null;
+let appName = null;
 const tiem = 0;
 export function buildOptionsQuery(options) {
   if (options) {
@@ -234,29 +235,29 @@ export function getResourceViewNodesSnapshot(getState, dispatch) {
 export function getTopologies(options, dispatch, initialPoll) {
   dispatch(() => (dispatch, getState) => {
     const firstLoad = !getState().get('topologiesLoaded');
-      // dispatch({
-      //   type: ActionTypes.RECEIVE_TOPOLOGIES,
-      //   topologies
-      // });
+    // dispatch({
+    //   type: ActionTypes.RECEIVE_TOPOLOGIES,
+    //   topologies
+    // });
     const state = getState();
     getNodesDelta(
-        getCurrentTopologyUrl(state),
-        activeTopologyOptionsSelector(state),
-        dispatch
-      );
+      getCurrentTopologyUrl(state),
+      activeTopologyOptionsSelector(state),
+      dispatch
+    );
     getNodeMonitorData(dispatch);
     getNodeDetails(
-        state.get('topologyUrlsById'),
-        state.get('currentTopologyId'),
-        activeTopologyOptionsSelector(state),
-        state.get('nodeDetails'),
-        dispatch
-      );
-      // Populate search matches on first load
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch
+    );
+    // Populate search matches on first load
     if (firstLoad && state.get('searchQuery')) {
       dispatch(focusSearch());
     }
-      // Fetch all the relevant nodes once on first load
+    // Fetch all the relevant nodes once on first load
     if (firstLoad && isResourceViewModeSelector(state)) {
       getResourceViewNodesSnapshot(getState, dispatch);
     }
@@ -303,21 +304,30 @@ function goodrainData2scopeData(data = {}) {
 
   keys.forEach((k) => {
     if (Object.prototype.hasOwnProperty.call(data.json_data, k)) {
+      // console.log(data.json_data, 'json_data')
       node = {};
       item = data.json_data[k];
+      console.log(item, 'item')
       node.cur_status = item.cur_status;
       node.service_cname = item.service_cname;
       node.service_id = item.service_id;
       node.service_alias = item.service_alias;
-      node.id = item.service_id;
+      console.log(appName,'appName')
+      if(appName && appName == item.app_name){
+        node.label = item.service_cname;
+        node.stackNum = 1;
+      }else if(appName && appName !== item.app_name){
+        node.label = item.app_name;
+        node.stackNum = 3;
+      }
       node.label = item.service_cname;
+      node.id = item.service_id;
       node.lineTip = item.lineTip;
       node.labelMinor = '';
       // 根据状态改变颜色用
       node.rank = node.cur_status;
       node.shape = 'hexagon';
       node.stack = true;
-      node.stackNum = getStackNum(item);
       node.linkable = item.cur_status === 'running' ? 1 : 0;
       node.adjacency = data.json_svg[k] || [];
       add.push(node);
@@ -379,7 +389,7 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
     config.getNodes && dispatch(receiveNodesDelta(config.getNodes()));
     return false;
   }
-    // tiem++
+  // tiem++
   const windowParent = window.parent;
   const url = (windowParent && windowParent.iframeGetNodeUrl && windowParent.iframeGetNodeUrl()) || '';
   // const url = 'https://goodrain.goodrain.com/console/teams/64q1jlfb/regions/rainbond/topological?group_id=644';
@@ -387,7 +397,110 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
     url,
     success: (res) => {
       if (res.code === 200) {
+        const data = {
+          json_data: {
+            "6f2254d055b4b4f3a25371d302367848": {
+              service_id: '6f2254d055b4b4f3a25371d302367848',
+              service_cname: 'ewrg',
+              service_alias: 'gr367848',
+              service_source: 'third_party',
+              node_num: 0,
+              status_cn: "运行中",
+              is_internet: false,
+              cur_status: "third_party",
+              app_name: 'helm应用'
+            },
+            "9ced1cb9ea8739fd62f3f8238d401053": {
+              service_id: '9ced1cb9ea8739fd62f3f8238d401053',
+              service_cname: 'syg',
+              service_alias: 'gr401053',
+              service_source: 'docker_image',
+              node_num: 2,
+              cur_status: "running",
+              is_internet: true,
+              status_cn: "运行中",
+              app_name: '默认应用'
+            },
+            "388bd17031089b42f4ed2bfc826c5628": {
+              service_id: '388bd17031089b42f4ed2bfc826c5628',
+              service_cname: '324',
+              service_alias: 'gr6c5628',
+              service_source: 'docker_image',
+              node_num: 0,
+              cur_status: "unknow",
+              is_internet: false,
+              status_cn: "未知",
+              app_name: '默认应用'
+            },
+            "7699f594a5b3dc4f8795360e3394a177": {
+              cur_status: "undeploy",
+              is_internet: false,
+              node_num: 0,
+              service_alias: "gr94a177",
+              service_cname: "qwert",
+              service_id: "7699f594a5b3dc4f8795360e3394a177",
+              service_source: "docker_image",
+              status_cn: "未部署",
+              app_name: '默认应用'
+            },
+            "a7dd1b23335cb69e61b15ac9b6917352": {
+              cur_status: "abnormal",
+              is_internet: false,
+              node_num: 1,
+              service_alias: "gr917352",
+              service_cname: "qwes",
+              service_id: "a7dd1b23335cb69e61b15ac9b6917352",
+              service_source: "docker_image",
+              status_cn: "运行异常",
+              app_name: '默认应用'
+            },
+            "cdd442d5e8a3d53d68c01c6d3afab2f0": {
+              cur_status: "closed",
+              is_internet: false,
+              node_num: 0,
+              service_alias: "grfab2f0",
+              service_cname: "qwelkjhgv",
+              service_id: "cdd442d5e8a3d53d68c01c6d3afab2f0",
+              service_source: "docker_image",
+              status_cn: "已关闭",
+              app_name: '默认应用'
+            },
+            "dbe9eba0bc0867528d8a1f4d35cc56bd": {
+              cur_status: "starting",
+              is_internet: false,
+              node_num: 1,
+              service_alias: "grcc56bd",
+              service_cname: "ad",
+              service_id: "dbe9eba0bc0867528d8a1f4d35cc56bd",
+              service_source: "docker_image",
+              status_cn: "启动中",
+              app_name: '默认应用'
+            },
+            f67a2a37ec40ed8e6bc15128c8325190: {
+              cur_status: "running",
+              is_internet: false,
+              node_num: 1,
+              service_alias: "gr325190",
+              service_cname: "sadfg",
+              service_id: "f67a2a37ec40ed8e6bc15128c8325190",
+              service_source: "docker_image",
+              status_cn: "运行中",
+              app_name: '外部应用'
+            }
+          },
+          json_svg:{
+            "6f2254d055b4b4f3a25371d302367848": [],
+            "9ced1cb9ea8739fd62f3f8238d401053": ['6f2254d055b4b4f3a25371d302367848', 'f67a2a37ec40ed8e6bc15128c8325190'],
+            "388bd17031089b42f4ed2bfc826c5628": [],
+            "7699f594a5b3dc4f8795360e3394a177": [],
+            "a7dd1b23335cb69e61b15ac9b6917352": [],
+            "cdd442d5e8a3d53d68c01c6d3afab2f0": [],
+            "dbe9eba0bc0867528d8a1f4d35cc56bd": [],
+            "f67a2a37ec40ed8e6bc15128c8325190": []
+          }
+        }
         const scopeData = goodrainData2scopeData(res.data.bean);
+        // console.log(scopeData, 'scopeData')
         dispatch(receiveNodesDelta(scopeData));
       }
       setTimeout(() => {
@@ -449,10 +562,10 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
     } else {
       url = `/console/teams/${tenantName}/topological/services/${serviceAlias}?region=${region}&_=${new Date().getTime()}`;
     }
-
     doRequest({
       url,
       success: (res) => {
+        console.log(res,'nodedetails')
         res = res || {};
 
         res.rank = res.cur_status;
@@ -479,7 +592,8 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
     log('No details or url found for ', obj);
   }
 }
-export function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+//获取组件磁盘信息
+export function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   const windowParent = window.parent;
   const obj = nodeMap.last();
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
@@ -502,7 +616,7 @@ export function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, 
         res = res || {};
         const data = res.data.bean || {};
         dispatch({
-          type:"DISK_DETAIL",
+          type: "DISK_DETAIL",
           data
         });
       },
@@ -512,7 +626,8 @@ export function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, 
     });
   }
 }
-export function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+// 获取运行实例
+export function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   const windowParent = window.parent;
   const obj = nodeMap.last();
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
@@ -535,7 +650,7 @@ export function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, d
         res = res || {};
         const data = res.data.list.new_pods || [];
         dispatch({
-          type:"GET_PODS",
+          type: "GET_PODS",
           data
         });
       },
@@ -545,7 +660,8 @@ export function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, d
     });
   }
 }
-export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+//获取组件访问信息
+export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   const windowParent = window.parent;
   const obj = nodeMap.last();
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
@@ -568,7 +684,7 @@ export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap,
         res = res || {};
         const data = res.data.bean.access_info[0] || {};
         dispatch({
-          type:"VISIT_INFO",
+          type: "VISIT_INFO",
           data
         });
       },
@@ -578,20 +694,127 @@ export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap,
     });
   }
 }
-export function Podname(serviceAlias){
+//获取应用访问信息
+export function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  if (serviceAlias && tenantName) {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/group/service/visitservice_alias=${serviceAlias}?region=${region}&_=${new Date().getTime()}`;
 
-  return new Promise((resolve,reject)=>{
+    doRequest({
+      url,
+      success: (res) => {
+        console.log(res, '应用访问信息')
+        // res = res || {};
+
+        // res.rank = res.cur_status;
+        // if (obj.id === 'The Internet') {
+        //   res.cur_status = 'running';
+        // }
+        // res = res || {};
+        // const data = res.data.bean.access_info[0] || {};
+        // dispatch({
+        //   type:"VISIT_INFO",
+        //   data
+        // });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+//应用下面的组件数量
+export function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch) {
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  if (tenantName && groupId) {
+    // const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/groups/${groupId}?region=${region}&_=${new Date().getTime()}`;
+
+    doRequest({
+      url,
+      success: (res) => {
+        console.log(res, '应用下面的组件数量')
+        appName = res.data.bean.app_name
+        // res = res || {};
+
+        // res.rank = res.cur_status;
+        // if (obj.id === 'The Internet') {
+        //   res.cur_status = 'running';
+        // }
+        // res = res || {};
+        // const data = res.data.bean.access_info[0] || {};
+        // dispatch({
+        //   type:"VISIT_INFO",
+        //   data
+        // });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+//应用下的基本信息
+export function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  if (serviceAlias && tenantName) {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/groups/${groupId}/status?region=${region}&_=${new Date().getTime()}`;
+
+    doRequest({
+      url,
+      success: (res) => {
+        console.log(res, '应用下的基本信息')
+        // res = res || {};
+
+        // res.rank = res.cur_status;
+        // if (obj.id === 'The Internet') {
+        //   res.cur_status = 'running';
+        // }
+        // res = res || {};
+        // const data = res.data.bean.access_info[0] || {};
+        // dispatch({
+        //   type:"VISIT_INFO",
+        //   data
+        // });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+// 获取pod_name值
+export function Podname(serviceAlias) {
+
+  return new Promise((resolve, reject) => {
     const windowParent = window.parent;
     const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
     const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
     let url = '';
-    if(serviceAlias){
+    if (serviceAlias) {
       url = `/console/teams/${tenantName}/apps/${serviceAlias}/pods?region=${region}&_=${new Date().getTime()}`;
       doRequest({
         url,
         success: (res) => {
           res = res || {};
-    
+
           res.rank = res.cur_status;
           res = res || {};
           const data = res.data.list.new_pods[0].pod_name || [];
@@ -604,11 +827,10 @@ export function Podname(serviceAlias){
       });
     }
   })
-  
-  
 }
-export async function Dateils(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias){
-  const padname=await Podname(serviceAlias)
+// 获取实例中的容器信息
+export async function Dateils(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
+  const padname = await Podname(serviceAlias)
   const windowParent = window.parent;
   const obj = nodeMap.last();
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
@@ -636,7 +858,7 @@ export async function Dateils(topologyUrlsById, currentTopologyId, options, node
         const bean = data.bean || {};
         bean.id = obj.id;
         dispatch({
-          type:"INSTANCE",
+          type: "INSTANCE",
           bean
         });
       },

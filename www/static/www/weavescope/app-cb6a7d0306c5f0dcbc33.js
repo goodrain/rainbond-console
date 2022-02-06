@@ -701,12 +701,14 @@ function hoverMetric(metricType) {
 }
 
 function unhoverMetric() {
+  console.log('10');
   return {
     type: _actionTypes2.default.UNHOVER_METRIC
   };
 }
 
 function pinMetric(metricType) {
+  console.log('11');
   return function (dispatch, getState) {
     dispatch({
       type: _actionTypes2.default.PIN_METRIC,
@@ -782,31 +784,7 @@ function changeTopologyOption(option, value, topologyId, addOrRemove) {
     (0, _webApiUtils.getTopologies)((0, _topology.activeTopologyOptionsSelector)(state), dispatch);
     (0, _webApiUtils.getNodesDelta)((0, _topologyUtils.getCurrentTopologyUrl)(state), (0, _topology.activeTopologyOptionsSelector)(state), dispatch);
     (0, _webApiUtils.getNodeDetails)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
-    // Dateils(
-    //   state.get('topologyUrlsById'),
-    //   state.get('currentTopologyId'),
-    //   activeTopologyOptionsSelector(state),
-    //   state.get('nodeDetails'),
-    //   dispatch,
-    //   serviceAlias
-    // );
-    // Podname(serviceAlias)
-    // Disklist(
-    //   state.get('topologyUrlsById'),
-    //   state.get('currentTopologyId'),
-    //   activeTopologyOptionsSelector(state),
-    //   state.get('nodeDetails'),
-    //   dispatch,
-    //   serviceAlias
-    // )
-    // Visitinfo(
-    //   state.get('topologyUrlsById'),
-    //   state.get('currentTopologyId'),
-    //   activeTopologyOptionsSelector(state),
-    //   state.get('nodeDetails'),
-    //   dispatch,
-    //   serviceAlias
-    // )
+    (0, _webApiUtils.appModuleInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
   };
 }
 
@@ -940,6 +918,10 @@ function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
     (0, _webApiUtils.Disklist)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
     (0, _webApiUtils.Visitinfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
     (0, _webApiUtils.GetPods)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
+    (0, _webApiUtils.appVisitInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
+    (0, _webApiUtils.appModuleInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
+    (0, _webApiUtils.appInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
+    (0, _webApiUtils.getNodesDelta)((0, _topologyUtils.getCurrentTopologyUrl)(state), (0, _topology.activeTopologyOptionsSelector)(state), dispatch);
   };
 }
 function clickPauseDatele() {
@@ -965,31 +947,7 @@ function clickRelative(nodeId, topologyId, label, origin, serviceAlias) {
     (0, _routerUtils.updateRoute)(getState);
     var state = getState();
     (0, _webApiUtils.getNodeDetails)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
-    // Dateils(
-    //   state.get('topologyUrlsById'),
-    //   state.get('currentTopologyId'),
-    //   activeTopologyOptionsSelector(state),
-    //   state.get('nodeDetails'),
-    //   dispatch,
-    //   serviceAlias
-    // );
-    // Podname(serviceAlias)
-    // Disklist(
-    //   state.get('topologyUrlsById'),
-    //   state.get('currentTopologyId'),
-    //   activeTopologyOptionsSelector(state),
-    //   state.get('nodeDetails'),
-    //   dispatch,
-    //   serviceAlias
-    // )
-    // Visitinfo(
-    //   state.get('topologyUrlsById'),
-    //   state.get('currentTopologyId'),
-    //   activeTopologyOptionsSelector(state),
-    //   state.get('nodeDetails'),
-    //   dispatch,
-    //   serviceAlias
-    // )
+    (0, _webApiUtils.appModuleInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
   };
 }
 
@@ -1249,32 +1207,7 @@ function receiveTopologies(topologies) {
     var state = getState();
     (0, _webApiUtils.getNodesDelta)((0, _topologyUtils.getCurrentTopologyUrl)(state), (0, _topology.activeTopologyOptionsSelector)(state), dispatch);
     (0, _webApiUtils.getNodeDetails)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
-    // Dateils(
-    //   state.get('topologyUrlsById'),
-    //   state.get('currentTopologyId'),
-    //   activeTopologyOptionsSelector(state),
-    //   state.get('nodeDetails'),
-    //   dispatch,
-    //   serviceAlias
-    // );
-    // Podname(serviceAlias)
-    // Disklist(
-    //   state.get('topologyUrlsById'),
-    //   state.get('currentTopologyId'),
-    //   activeTopologyOptionsSelector(state),
-    //   state.get('nodeDetails'),
-    //   dispatch,
-    //   serviceAlias
-    // )
-    // Visitinfo(
-    //   state.get('topologyUrlsById'),
-    //   state.get('currentTopologyId'),
-    //   activeTopologyOptionsSelector(state),
-    //   state.get('nodeDetails'),
-    //   dispatch,
-    //   serviceAlias
-    // )
-
+    (0, _webApiUtils.appModuleInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
     // Populate search matches on first load
     if (firstLoad && state.get('searchQuery')) {
       dispatch(focusSearch());
@@ -1386,31 +1319,7 @@ function route(urlState) {
     (0, _webApiUtils.getNodesDelta)((0, _topologyUtils.getCurrentTopologyUrl)(state), (0, _topology.activeTopologyOptionsSelector)(state), dispatch);
 
     (0, _webApiUtils.getNodeDetails)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
-    // Dateils(
-    //   state.get('topologyUrlsById'),
-    //   state.get('currentTopologyId'),
-    //   activeTopologyOptionsSelector(state),
-    //   state.get('nodeDetails'),
-    //   dispatch,
-    //   serviceAlias
-    // );
-    // Podname(serviceAlias)
-    // Disklist(
-    //   state.get('topologyUrlsById'),
-    //   state.get('currentTopologyId'),
-    //   activeTopologyOptionsSelector(state),
-    //   state.get('nodeDetails'),
-    //   dispatch,
-    //   serviceAlias
-    // )
-    // Visitinfo(
-    //   state.get('topologyUrlsById'),
-    //   state.get('currentTopologyId'),
-    //   activeTopologyOptionsSelector(state),
-    //   state.get('nodeDetails'),
-    //   dispatch,
-    //   serviceAlias
-    // )
+    (0, _webApiUtils.appModuleInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
     // If we are landing on the resource view page, we need to fetch not only all the
     // nodes for the current topology, but also the nodes of all the topologies that make
     // the layers in the resource view.
@@ -14959,6 +14868,9 @@ exports.getNodeDetails = getNodeDetails;
 exports.Disklist = Disklist;
 exports.GetPods = GetPods;
 exports.Visitinfo = Visitinfo;
+exports.appVisitInfo = appVisitInfo;
+exports.appModuleInfo = appModuleInfo;
+exports.appInfo = appInfo;
 exports.Podname = Podname;
 exports.Dateils = Dateils;
 exports.getApiDetails = getApiDetails;
@@ -15021,6 +14933,7 @@ var createWebsocketAt = 0;
 var firstMessageOnWebsocketAt = 0;
 var continuePolling = true;
 var newData = null;
+var appName = null;
 var tiem = 0;
 function buildOptionsQuery(options) {
   if (options) {
@@ -15287,21 +15200,29 @@ function goodrainData2scopeData() {
 
   keys.forEach(function (k) {
     if (Object.prototype.hasOwnProperty.call(data.json_data, k)) {
+      // console.log(data.json_data, 'json_data')
       node = {};
       item = data.json_data[k];
+      console.log(item, 'item');
       node.cur_status = item.cur_status;
       node.service_cname = item.service_cname;
       node.service_id = item.service_id;
       node.service_alias = item.service_alias;
+      // console.log(appName,'appName')
+      if (appName && appName == item.app_name) {
+        node.label = item.service_cname;
+        node.stackNum = 1;
+      } else if (appName && appName !== item.app_name) {
+        node.label = item.app_name;
+        node.stackNum = 3;
+      }
       node.id = item.service_id;
-      node.label = item.service_cname;
       node.lineTip = item.lineTip;
       node.labelMinor = '';
       // 根据状态改变颜色用
       node.rank = node.cur_status;
       node.shape = 'hexagon';
       node.stack = true;
-      node.stackNum = getStackNum(item);
       node.linkable = item.cur_status === 'running' ? 1 : 0;
       node.adjacency = data.json_svg[k] || [];
       add.push(node);
@@ -15373,7 +15294,110 @@ function getNodesDelta(topologyUrl, options, dispatch) {
     url: url,
     success: function success(res) {
       if (res.code === 200) {
-        var scopeData = goodrainData2scopeData(res.data.bean);
+        var data = {
+          json_data: {
+            "6f2254d055b4b4f3a25371d302367848": {
+              service_id: '6f2254d055b4b4f3a25371d302367848',
+              service_cname: 'ewrg',
+              service_alias: 'gr367848',
+              service_source: 'third_party',
+              node_num: 0,
+              status_cn: "运行中",
+              is_internet: false,
+              cur_status: "third_party",
+              app_name: 'helm应用'
+            },
+            "9ced1cb9ea8739fd62f3f8238d401053": {
+              service_id: '9ced1cb9ea8739fd62f3f8238d401053',
+              service_cname: 'syg',
+              service_alias: 'gr401053',
+              service_source: 'docker_image',
+              node_num: 2,
+              cur_status: "running",
+              is_internet: true,
+              status_cn: "运行中",
+              app_name: '默认应用'
+            },
+            "388bd17031089b42f4ed2bfc826c5628": {
+              service_id: '388bd17031089b42f4ed2bfc826c5628',
+              service_cname: '324',
+              service_alias: 'gr6c5628',
+              service_source: 'docker_image',
+              node_num: 0,
+              cur_status: "unknow",
+              is_internet: false,
+              status_cn: "未知",
+              app_name: '默认应用'
+            },
+            "7699f594a5b3dc4f8795360e3394a177": {
+              cur_status: "undeploy",
+              is_internet: false,
+              node_num: 0,
+              service_alias: "gr94a177",
+              service_cname: "qwert",
+              service_id: "7699f594a5b3dc4f8795360e3394a177",
+              service_source: "docker_image",
+              status_cn: "未部署",
+              app_name: '默认应用'
+            },
+            "a7dd1b23335cb69e61b15ac9b6917352": {
+              cur_status: "abnormal",
+              is_internet: false,
+              node_num: 1,
+              service_alias: "gr917352",
+              service_cname: "qwes",
+              service_id: "a7dd1b23335cb69e61b15ac9b6917352",
+              service_source: "docker_image",
+              status_cn: "运行异常",
+              app_name: '默认应用'
+            },
+            "cdd442d5e8a3d53d68c01c6d3afab2f0": {
+              cur_status: "closed",
+              is_internet: false,
+              node_num: 0,
+              service_alias: "grfab2f0",
+              service_cname: "qwelkjhgv",
+              service_id: "cdd442d5e8a3d53d68c01c6d3afab2f0",
+              service_source: "docker_image",
+              status_cn: "已关闭",
+              app_name: '默认应用'
+            },
+            "dbe9eba0bc0867528d8a1f4d35cc56bd": {
+              cur_status: "starting",
+              is_internet: false,
+              node_num: 1,
+              service_alias: "grcc56bd",
+              service_cname: "ad",
+              service_id: "dbe9eba0bc0867528d8a1f4d35cc56bd",
+              service_source: "docker_image",
+              status_cn: "启动中",
+              app_name: '默认应用'
+            },
+            f67a2a37ec40ed8e6bc15128c8325190: {
+              cur_status: "running",
+              is_internet: false,
+              node_num: 1,
+              service_alias: "gr325190",
+              service_cname: "sadfg",
+              service_id: "f67a2a37ec40ed8e6bc15128c8325190",
+              service_source: "docker_image",
+              status_cn: "运行中",
+              app_name: '外部应用'
+            }
+          },
+          json_svg: {
+            "6f2254d055b4b4f3a25371d302367848": [],
+            "9ced1cb9ea8739fd62f3f8238d401053": ['6f2254d055b4b4f3a25371d302367848', 'f67a2a37ec40ed8e6bc15128c8325190'],
+            "388bd17031089b42f4ed2bfc826c5628": [],
+            "7699f594a5b3dc4f8795360e3394a177": [],
+            "a7dd1b23335cb69e61b15ac9b6917352": [],
+            "cdd442d5e8a3d53d68c01c6d3afab2f0": [],
+            "dbe9eba0bc0867528d8a1f4d35cc56bd": [],
+            "f67a2a37ec40ed8e6bc15128c8325190": []
+          }
+        };
+        var scopeData = goodrainData2scopeData(data);
+        // console.log(scopeData, 'scopeData')
         dispatch((0, _appActions.receiveNodesDelta)(scopeData));
       }
       setTimeout(function () {
@@ -15433,10 +15457,10 @@ function getNodeDetails(topologyUrlsById, currentTopologyId, options, nodeMap, d
     } else {
       url = '/console/teams/' + tenantName + '/topological/services/' + serviceAlias + '?region=' + region + '&_=' + new Date().getTime();
     }
-
     doRequest({
       url: url,
       success: function success(res) {
+        console.log(res, 'nodedetails');
         res = res || {};
 
         res.rank = res.cur_status;
@@ -15463,6 +15487,7 @@ function getNodeDetails(topologyUrlsById, currentTopologyId, options, nodeMap, d
     log('No details or url found for ', obj);
   }
 }
+//获取组件磁盘信息
 function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   var windowParent = window.parent;
   var obj = nodeMap.last();
@@ -15496,6 +15521,7 @@ function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, dispatc
     });
   }
 }
+// 获取运行实例
 function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   var windowParent = window.parent;
   var obj = nodeMap.last();
@@ -15529,6 +15555,7 @@ function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch
     });
   }
 }
+//获取组件访问信息
 function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   var windowParent = window.parent;
   var obj = nodeMap.last();
@@ -15562,6 +15589,113 @@ function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispat
     });
   }
 }
+//获取应用访问信息
+function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
+  var windowParent = window.parent;
+  var obj = nodeMap.last();
+  var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var url = '';
+  if (serviceAlias && tenantName) {
+    var topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = '/console/teams/' + tenantName + '/group/service/visitservice_alias=' + serviceAlias + '?region=' + region + '&_=' + new Date().getTime();
+
+    doRequest({
+      url: url,
+      success: function success(res) {
+        console.log(res, '应用访问信息');
+        // res = res || {};
+
+        // res.rank = res.cur_status;
+        // if (obj.id === 'The Internet') {
+        //   res.cur_status = 'running';
+        // }
+        // res = res || {};
+        // const data = res.data.bean.access_info[0] || {};
+        // dispatch({
+        //   type:"VISIT_INFO",
+        //   data
+        // });
+      },
+      error: function error(err) {
+        log('Error in node details request: ' + err.responseText);
+      }
+    });
+  }
+}
+//应用下面的组件数量
+function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch) {
+  var windowParent = window.parent;
+  var obj = nodeMap.last();
+  var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var url = '';
+  if (tenantName && groupId) {
+    // const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = '/console/teams/' + tenantName + '/groups/' + groupId + '?region=' + region + '&_=' + new Date().getTime();
+
+    doRequest({
+      url: url,
+      success: function success(res) {
+        console.log(res, '应用下面的组件数量');
+        appName = res.data.bean.app_name;
+        // res = res || {};
+
+        // res.rank = res.cur_status;
+        // if (obj.id === 'The Internet') {
+        //   res.cur_status = 'running';
+        // }
+        // res = res || {};
+        // const data = res.data.bean.access_info[0] || {};
+        // dispatch({
+        //   type:"VISIT_INFO",
+        //   data
+        // });
+      },
+      error: function error(err) {
+        log('Error in node details request: ' + err.responseText);
+      }
+    });
+  }
+}
+//应用下的基本信息
+function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
+  var windowParent = window.parent;
+  var obj = nodeMap.last();
+  var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var url = '';
+  if (serviceAlias && tenantName) {
+    var topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = '/console/teams/' + tenantName + '/groups/' + groupId + '/status?region=' + region + '&_=' + new Date().getTime();
+
+    doRequest({
+      url: url,
+      success: function success(res) {
+        console.log(res, '应用下的基本信息');
+        // res = res || {};
+
+        // res.rank = res.cur_status;
+        // if (obj.id === 'The Internet') {
+        //   res.cur_status = 'running';
+        // }
+        // res = res || {};
+        // const data = res.data.bean.access_info[0] || {};
+        // dispatch({
+        //   type:"VISIT_INFO",
+        //   data
+        // });
+      },
+      error: function error(err) {
+        log('Error in node details request: ' + err.responseText);
+      }
+    });
+  }
+}
+// 获取pod_name值
 function Podname(serviceAlias) {
 
   return new Promise(function (resolve, reject) {
@@ -15589,6 +15723,7 @@ function Podname(serviceAlias) {
     }
   });
 }
+// 获取实例中的容器信息
 async function Dateils(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   var padname = await Podname(serviceAlias);
   var windowParent = window.parent;
@@ -30387,7 +30522,8 @@ var NodeDetails = function (_React$Component) {
                   { style: { display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' } },
 
                   // nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' &&  nodeDetails.cur_status != 'closed' &&  nodeDetails.cur_status != 'creating' &&
-                  visit.length > 0 && Object.keys(portList).length > 0 && nodeDetails.cur_status == 'running' && _react2.default.createElement(
+                  // (visit.length > 0 && Object.keys(portList).length > 0) && nodeDetails.cur_status == 'running' &&
+                  _react2.default.createElement(
                     'td',
                     { style: { cursor: 'pointer', position: 'relative', marginRight: '40px' } },
                     _react2.default.createElement('div', { onMouseOver: function onMouseOver() {
@@ -30396,72 +30532,22 @@ var NodeDetails = function (_React$Component) {
                     shows && _react2.default.createElement(
                       'div',
                       null,
-                      Object.keys(portList).map(function (key, index) {
-                        var portItem = portList[key];
-                        return _react2.default.createElement(
+                      _react2.default.createElement(
+                        'div',
+                        { onMouseLeave: function onMouseLeave() {
+                            _this2.visitout();
+                          }, style: { position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' } },
+                        _react2.default.createElement(
                           'div',
-                          { onMouseLeave: function onMouseLeave() {
-                              _this2.visitout();
-                            }, style: { position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' } },
+                          { style: { width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight: '200px', overflow: 'auto' } },
                           _react2.default.createElement(
-                            'div',
-                            { style: { width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight: '200px', overflow: 'auto' } },
-                            portItem.outer_url && _react2.default.createElement(
-                              'div',
-                              null,
-                              portItem.protocol === 'stream' ? _react2.default.createElement(
-                                'a',
-                                { style: { color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }, href: 'javascript:;', target: '_blank' },
-                                portItem.outer_url.split(':')[0]
-                              ) : _react2.default.createElement(
-                                'a',
-                                { style: { color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }, href: portItem.protocol + '://' + portItem.outer_url, target: '_blank' },
-                                portItem.outer_url.split(':')[0]
-                              )
-                            ),
-                            (portItem.domain_list || []).map(function (domain, index) {
-                              return _react2.default.createElement(
-                                'a',
-                                { style: { color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }, href: domain, target: '_blank' },
-                                domain
-                              );
-                            })
+                            'a',
+                            { style: { color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }, href: domain, target: '_blank' },
+                            'sadfg'
                           )
-                        );
-                      })
+                        )
+                      )
                     )
-                  ),
-                  nodeDetails.cur_status == 'undeploy' ? null : _react2.default.createElement(
-                    'td',
-                    { style: { cursor: 'pointer', marginRight: '40px' } },
-                    _react2.default.createElement('a', { onClick: this.handleClickTerminal.bind(this, nodeDetails), target: '_blank', title: '\u7EC8\u7AEF', style: { fontSize: '20px', fontWeight: '600' }, className: 'iconfont icon-terminalzhongduan' })
-                  ),
-                  nodeDetails.cur_status == 'undeploy' || nodeDetails.cur_status == 'closed' ? _react2.default.createElement(
-                    'td',
-                    { style: { cursor: 'pointer', marginRight: '40px' }, title: '\u6784\u5EFA' },
-                    _react2.default.createElement('a', { onClick: this.handleClickBuild.bind(this, 'build', nodeDetails), style: { fontSize: '20px', fontWeight: '600' }, className: 'iconfont icon-dabaoxiazai' })
-                  ) : _react2.default.createElement(
-                    'td',
-                    { style: { cursor: 'pointer', marginRight: '40px' }, title: '\u66F4\u65B0' },
-                    _react2.default.createElement('a', { onClick: this.handleClickUpdate.bind(this, 'update', nodeDetails), style: { fontSize: '20px', fontWeight: '600' }, className: 'iconfont icon-shuaxin' })
-                  ),
-                  nodeDetails.cur_status == 'undeploy' ? _react2.default.createElement('div', null) : _react2.default.createElement(
-                    'div',
-                    { style: { marginRight: '40px', cursor: 'pointer' } },
-                    nodeDetails.cur_status == 'closed' ? _react2.default.createElement(
-                      'td',
-                      { style: { cursor: 'pointer' }, title: '\u542F\u52A8' },
-                      _react2.default.createElement('a', { onClick: this.handleClickStart.bind(this, 'start', nodeDetails), style: { fontSize: '20px', fontWeight: '600' }, className: 'iconfont icon-qidong1' })
-                    ) : _react2.default.createElement(
-                      'td',
-                      { style: { cursor: 'pointer' }, title: '\u5173\u95ED' },
-                      _react2.default.createElement('a', { onClick: this.handleClickCloses.bind(this, 'closes', nodeDetails), style: { fontSize: '20px', fontWeight: '600' }, className: 'iconfont icon-guanbi' })
-                    )
-                  ),
-                  _react2.default.createElement(
-                    'td',
-                    { style: { cursor: 'pointer' }, title: '\u5220\u9664' },
-                    _react2.default.createElement('a', { onClick: this.handleClickDelete.bind(this, 'deleteApp', nodeDetails), style: { fontSize: '20px' }, className: 'iconfont icon-shanchu2' })
                   )
                 )
               )
@@ -30498,7 +30584,7 @@ var NodeDetails = function (_React$Component) {
                   _react2.default.createElement(
                     'div',
                     { style: { textAlign: 'left', width: '60%' } },
-                    nodeDetails.status_cn || '未知'
+                    '\u8FD0\u884C\u4E2D'
                   )
                 ),
                 _react2.default.createElement(
@@ -30512,7 +30598,7 @@ var NodeDetails = function (_React$Component) {
                   _react2.default.createElement(
                     'div',
                     { style: { textAlign: 'left', width: '60%' } },
-                    nodeDetails.total_memory + 'MB' || ''
+                    '512 MB'
                   )
                 ),
                 _react2.default.createElement(
@@ -30526,7 +30612,7 @@ var NodeDetails = function (_React$Component) {
                   _react2.default.createElement(
                     'div',
                     { style: { textAlign: 'left', width: '60%' } },
-                    nodeDetails.container_cpu ? nodeDetails.container_cpu + 'm' : '不限制'
+                    '0 Core'
                   )
                 ),
                 _react2.default.createElement(
@@ -30540,7 +30626,7 @@ var NodeDetails = function (_React$Component) {
                   _react2.default.createElement(
                     'div',
                     { style: { textAlign: 'left', width: '60%' } },
-                    disks + 'MB'
+                    '0 KB'
                   )
                 ),
                 _react2.default.createElement(
@@ -30549,16 +30635,12 @@ var NodeDetails = function (_React$Component) {
                   _react2.default.createElement(
                     'div',
                     { style: { textAlign: 'right', width: '40%' } },
-                    '\u8FD0\u884C\u65F6\u95F4\uFF1A'
+                    '\u7EC4\u4EF6\u6570\u91CF\uFF1A'
                   ),
-                  nodeDetails.start_time == "" || !nodeDetails.start_time ? _react2.default.createElement(
+                  _react2.default.createElement(
                     'div',
                     { style: { textAlign: 'left', width: '60%' } },
-                    '当前状态无运行时间'
-                  ) : _react2.default.createElement(
-                    'div',
-                    { style: { textAlign: 'left', width: '60%' } },
-                    day2 + '\u5929' + day5 + '\u5C0F\u65F6' + day7 + '\u5206\u949F' + day8 + '\u79D2'
+                    '1'
                   )
                 ),
                 _react2.default.createElement(
@@ -30567,16 +30649,16 @@ var NodeDetails = function (_React$Component) {
                   _react2.default.createElement(
                     'div',
                     { style: { textAlign: 'right', width: '40%' } },
-                    '\u7248\u672C\u53F7\uFF1A'
+                    '\u521B\u5EFA\u65F6\u95F4\uFF1A'
                   ),
                   nodeDetails.deploy_version == '' || nodeDetails.deploy_version == 'undefined' ? _react2.default.createElement(
                     'div',
                     { style: { textAlign: 'left', width: '60%' } },
-                    '当前状态无版本号'
+                    '2022-01-06 14:52:16'
                   ) : _react2.default.createElement(
                     'div',
                     { style: { textAlign: 'left', width: '60%' } },
-                    nodeDetails.deploy_version
+                    '2022-01-06 14:52:16'
                   )
                 ),
                 _react2.default.createElement(
@@ -30585,12 +30667,12 @@ var NodeDetails = function (_React$Component) {
                   _react2.default.createElement(
                     'div',
                     { style: { textAlign: 'right', width: '40%' } },
-                    '\u8FD0\u884C\u5B9E\u4F8B\u6570\u91CF\uFF1A'
+                    '\u66F4\u65B0\u65F6\u95F4\uFF1A'
                   ),
                   _react2.default.createElement(
                     'div',
                     { style: { textAlign: 'left', width: '60%' } },
-                    instance_count
+                    '2022-01-26 15:20:57'
                   )
                 )
               )
@@ -30605,7 +30687,7 @@ var NodeDetails = function (_React$Component) {
               _react2.default.createElement(
                 'div',
                 { className: 'node-details-content-section-header', style: { fontSize: '15px' } },
-                '\u5B9E\u4F8B\u4E2D\u7684\u5BB9\u5668'
+                '\u5BF9\u5E94\u7684\u5C55\u793A'
               ),
               _react2.default.createElement(
                 'div',
@@ -30621,18 +30703,18 @@ var NodeDetails = function (_React$Component) {
                       null,
                       _react2.default.createElement(
                         'th',
-                        { style: { textAlign: 'left', width: '40%' } },
-                        '\u955C\u50CF\u540D\u79F0'
+                        { style: { textAlign: 'center', width: '33%' } },
+                        '\u7EC4\u4EF6\u540D'
                       ),
                       _react2.default.createElement(
                         'th',
-                        { style: { width: '25%', textAlign: 'center' } },
+                        { style: { width: '33%', textAlign: 'center' } },
+                        '\u5185\u5B58'
+                      ),
+                      _react2.default.createElement(
+                        'th',
+                        { style: { width: '33%', textAlign: 'center' } },
                         '\u72B6\u6001'
-                      ),
-                      _react2.default.createElement(
-                        'th',
-                        { style: { width: '35%', textAlign: 'center' } },
-                        '\u8BF4\u660E'
                       )
                     )
                   ),
@@ -30645,18 +30727,18 @@ var NodeDetails = function (_React$Component) {
                         null,
                         _react2.default.createElement(
                           'td',
-                          { className: 'node-details-info-field-value truncate', style: { textAlign: 'left' }, title: item.image },
-                          item.image
+                          { className: 'node-details-info-field-value truncate', style: { textAlign: 'center' }, title: item.image },
+                          'sadfg'
                         ),
                         _react2.default.createElement(
                           'td',
                           { style: { textAlign: 'center' } },
-                          item.state == 'Running' ? '运行中' : item.state == 'Waiting' ? '等待中' : '---'
+                          '512MB'
                         ),
                         _react2.default.createElement(
                           'td',
                           { className: 'node-details-info-field-value truncate', title: item.reason, style: { textAlign: 'center' } },
-                          item.reason ? item.reason : '---'
+                          '\u8FD0\u884C\u4E2D'
                         )
                       )
                     );
@@ -30668,201 +30750,6 @@ var NodeDetails = function (_React$Component) {
           _react2.default.createElement(
             'div',
             { className: 'node-details-content-section', style: { display: show ? 'block' : 'none' } },
-            nodeList.length > 0 && _react2.default.createElement(
-              'div',
-              { className: 'node-details-content-section' },
-              _react2.default.createElement(
-                'table',
-                { style: { width: '100%', tableLayout: 'fixed' } },
-                _react2.default.createElement(
-                  'thead',
-                  null,
-                  _react2.default.createElement(
-                    'tr',
-                    null,
-                    _react2.default.createElement(
-                      'th',
-                      { style: { textAlign: 'left' } },
-                      '\u670D\u52A1'
-                    ),
-                    _react2.default.createElement(
-                      'th',
-                      { style: { width: '80px', textAlign: 'right' } },
-                      '\u7AEF\u53E3'
-                    )
-                  )
-                ),
-                nodeList.map(function (node, index) {
-                  var portMap = node.port_map || {};
-                  return Object.keys(portMap).map(function (key, index) {
-                    var portItem = portMap[key];
-                    return _react2.default.createElement(
-                      'tbody',
-                      null,
-                      portItem.outer_url && _react2.default.createElement(
-                        'tr',
-                        null,
-                        _react2.default.createElement(
-                          'td',
-                          { style: { textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' } },
-                          _react2.default.createElement(
-                            'a',
-                            { style: { color: '#3c3c5a' }, href: portItem.protocol + '://' + portItem.outer_url, target: '_blank' },
-                            portItem.outer_url.split(':')[0]
-                          )
-                        ),
-                        _react2.default.createElement(
-                          'td',
-                          { style: { textAlign: 'right' } },
-                          portItem.outer_url.split(':')[1]
-                        )
-                      ),
-                      (portItem.domain_list || []).map(function (domain, index) {
-                        return _react2.default.createElement(
-                          'tr',
-                          null,
-                          _react2.default.createElement(
-                            'td',
-                            { style: { textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' } },
-                            _react2.default.createElement(
-                              'a',
-                              { style: { color: '#3c3c5a' }, href: domain, target: '_blank' },
-                              domain
-                            )
-                          ),
-                          _react2.default.createElement(
-                            'td',
-                            { style: { textAlign: 'right' } },
-                            '80'
-                          )
-                        );
-                      }),
-                      portItem.is_inner_service && _react2.default.createElement(
-                        'tr',
-                        null,
-                        _react2.default.createElement(
-                          'td',
-                          { style: { textAlign: 'left' } },
-                          node.service_cname
-                        ),
-                        _react2.default.createElement(
-                          'td',
-                          { style: { textAlign: 'right' } },
-                          portItem.mapping_port
-                        )
-                      ),
-                      _react2.default.createElement(
-                        'tr',
-                        null,
-                        _react2.default.createElement(
-                          'td',
-                          null,
-                          '\xA0'
-                        ),
-                        _react2.default.createElement(
-                          'td',
-                          null,
-                          '\xA0'
-                        )
-                      )
-                    );
-                  });
-                })
-              )
-            ),
-            Object.keys(portList).length > 0 && _react2.default.createElement(
-              'div',
-              { className: 'node-details-content-section' },
-              _react2.default.createElement(
-                'table',
-                { style: { width: '100%', tableLayout: 'fixed' } },
-                _react2.default.createElement(
-                  'thead',
-                  null,
-                  _react2.default.createElement(
-                    'tr',
-                    null,
-                    _react2.default.createElement(
-                      'th',
-                      { style: { textAlign: 'left' } },
-                      '\u670D\u52A1'
-                    ),
-                    _react2.default.createElement(
-                      'th',
-                      { style: { width: '80px', textAlign: 'right' } },
-                      '\u7AEF\u53E3'
-                    )
-                  )
-                ),
-                Object.keys(portList).map(function (key, index) {
-                  var portItem = portList[key];
-                  return _react2.default.createElement(
-                    'tbody',
-                    null,
-                    portItem.outer_url && _react2.default.createElement(
-                      'tr',
-                      null,
-                      portItem.protocol === 'stream' ? _react2.default.createElement(
-                        'td',
-                        { style: { textAlign: 'left' } },
-                        _react2.default.createElement(
-                          'a',
-                          { style: { color: '#3c3c5a' }, href: 'javascript:;', target: '_blank' },
-                          portItem.outer_url.split(':')[0]
-                        )
-                      ) : _react2.default.createElement(
-                        'td',
-                        { style: { textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' } },
-                        _react2.default.createElement(
-                          'a',
-                          { style: { color: '#3c3c5a' }, href: portItem.protocol + '://' + portItem.outer_url, target: '_blank' },
-                          portItem.outer_url.split(':')[0]
-                        )
-                      ),
-                      _react2.default.createElement(
-                        'td',
-                        { style: { textAlign: 'right' } },
-                        portItem.outer_url.split(':')[1]
-                      )
-                    ),
-                    (portItem.domain_list || []).map(function (domain, index) {
-                      return _react2.default.createElement(
-                        'tr',
-                        null,
-                        _react2.default.createElement(
-                          'td',
-                          { style: { textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' } },
-                          _react2.default.createElement(
-                            'a',
-                            { style: { color: '#3c3c5a' }, href: domain, target: '_blank' },
-                            domain
-                          )
-                        ),
-                        _react2.default.createElement(
-                          'td',
-                          { style: { textAlign: 'right' } },
-                          '80'
-                        )
-                      );
-                    }),
-                    portItem.is_inner_service && _react2.default.createElement(
-                      'tr',
-                      null,
-                      _react2.default.createElement(
-                        'td',
-                        { style: { textAlign: 'left' } },
-                        nodeDetails.service_cname
-                      ),
-                      _react2.default.createElement(
-                        'td',
-                        { style: { textAlign: 'right' } },
-                        portItem.mapping_port
-                      )
-                    )
-                  );
-                })
-              )
-            ),
             Object.keys(relationList).length > 0 && _react2.default.createElement(
               'div',
               { className: 'node-details-content-section' },
