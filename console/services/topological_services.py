@@ -140,6 +140,9 @@ class TopologicalService(object):
         result['deploy_version'] = service.deploy_version
         result['total_memory'] = service.min_memory * service.min_node
         result['cur_status'] = 'Unknown'
+        rel = ServiceGroupRelation.objects.filter(service_id=service.service_id)
+        result['app_id'] = rel[0].group_id if rel else 0
+
         # 组件端口信息
         port_list = TenantServicesPort.objects.filter(service_id=service.service_id)
         # 域名信息
