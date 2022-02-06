@@ -131,14 +131,12 @@ export function hoverMetric(metricType) {
 }
 
 export function unhoverMetric() {
-  console.log('10')
   return {
     type: ActionTypes.UNHOVER_METRIC,
   };
 }
 
 export function pinMetric(metricType) {
-  console.log('11')
   return (dispatch, getState) => {
     dispatch({
       type: ActionTypes.PIN_METRIC,

@@ -47,6 +47,7 @@ let firstMessageOnWebsocketAt = 0;
 let continuePolling = true;
 let newData = null;
 let appName = null;
+let appId = null;
 const tiem = 0;
 export function buildOptionsQuery(options) {
   if (options) {
@@ -308,20 +309,26 @@ function goodrainData2scopeData(data = {}) {
       node = {};
       item = data.json_data[k];
       console.log(item, 'item')
-      node.cur_status = item.cur_status;
+      if(item.app_type === 'helm'){
+        node.cur_status = 'helm';
+      }else{
+        node.cur_status = item.cur_status;
+      }
       node.service_cname = item.service_cname;
       node.service_id = item.service_id;
       node.service_alias = item.service_alias;
-      console.log(appName,'appName')
+      // console.log(appName,'appName')
       if(appName && appName == item.app_name){
         node.label = item.service_cname;
         node.stackNum = 1;
       }else if(appName && appName !== item.app_name){
         node.label = item.app_name;
         node.stackNum = 3;
+        appId = item.app_id;
       }
-      node.label = item.service_cname;
+      // node.label = item.service_cname;
       node.id = item.service_id;
+      node.app_id = item.app_id;
       node.lineTip = item.lineTip;
       node.labelMinor = '';
       // 根据状态改变颜色用
@@ -397,110 +404,7 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
     url,
     success: (res) => {
       if (res.code === 200) {
-        const data = {
-          json_data: {
-            "6f2254d055b4b4f3a25371d302367848": {
-              service_id: '6f2254d055b4b4f3a25371d302367848',
-              service_cname: 'ewrg',
-              service_alias: 'gr367848',
-              service_source: 'third_party',
-              node_num: 0,
-              status_cn: "运行中",
-              is_internet: false,
-              cur_status: "third_party",
-              app_name: 'helm应用'
-            },
-            "9ced1cb9ea8739fd62f3f8238d401053": {
-              service_id: '9ced1cb9ea8739fd62f3f8238d401053',
-              service_cname: 'syg',
-              service_alias: 'gr401053',
-              service_source: 'docker_image',
-              node_num: 2,
-              cur_status: "running",
-              is_internet: true,
-              status_cn: "运行中",
-              app_name: '默认应用'
-            },
-            "388bd17031089b42f4ed2bfc826c5628": {
-              service_id: '388bd17031089b42f4ed2bfc826c5628',
-              service_cname: '324',
-              service_alias: 'gr6c5628',
-              service_source: 'docker_image',
-              node_num: 0,
-              cur_status: "unknow",
-              is_internet: false,
-              status_cn: "未知",
-              app_name: '默认应用'
-            },
-            "7699f594a5b3dc4f8795360e3394a177": {
-              cur_status: "undeploy",
-              is_internet: false,
-              node_num: 0,
-              service_alias: "gr94a177",
-              service_cname: "qwert",
-              service_id: "7699f594a5b3dc4f8795360e3394a177",
-              service_source: "docker_image",
-              status_cn: "未部署",
-              app_name: '默认应用'
-            },
-            "a7dd1b23335cb69e61b15ac9b6917352": {
-              cur_status: "abnormal",
-              is_internet: false,
-              node_num: 1,
-              service_alias: "gr917352",
-              service_cname: "qwes",
-              service_id: "a7dd1b23335cb69e61b15ac9b6917352",
-              service_source: "docker_image",
-              status_cn: "运行异常",
-              app_name: '默认应用'
-            },
-            "cdd442d5e8a3d53d68c01c6d3afab2f0": {
-              cur_status: "closed",
-              is_internet: false,
-              node_num: 0,
-              service_alias: "grfab2f0",
-              service_cname: "qwelkjhgv",
-              service_id: "cdd442d5e8a3d53d68c01c6d3afab2f0",
-              service_source: "docker_image",
-              status_cn: "已关闭",
-              app_name: '默认应用'
-            },
-            "dbe9eba0bc0867528d8a1f4d35cc56bd": {
-              cur_status: "starting",
-              is_internet: false,
-              node_num: 1,
-              service_alias: "grcc56bd",
-              service_cname: "ad",
-              service_id: "dbe9eba0bc0867528d8a1f4d35cc56bd",
-              service_source: "docker_image",
-              status_cn: "启动中",
-              app_name: '默认应用'
-            },
-            f67a2a37ec40ed8e6bc15128c8325190: {
-              cur_status: "running",
-              is_internet: false,
-              node_num: 1,
-              service_alias: "gr325190",
-              service_cname: "sadfg",
-              service_id: "f67a2a37ec40ed8e6bc15128c8325190",
-              service_source: "docker_image",
-              status_cn: "运行中",
-              app_name: '外部应用'
-            }
-          },
-          json_svg:{
-            "6f2254d055b4b4f3a25371d302367848": [],
-            "9ced1cb9ea8739fd62f3f8238d401053": ['6f2254d055b4b4f3a25371d302367848', 'f67a2a37ec40ed8e6bc15128c8325190'],
-            "388bd17031089b42f4ed2bfc826c5628": [],
-            "7699f594a5b3dc4f8795360e3394a177": [],
-            "a7dd1b23335cb69e61b15ac9b6917352": [],
-            "cdd442d5e8a3d53d68c01c6d3afab2f0": [],
-            "dbe9eba0bc0867528d8a1f4d35cc56bd": [],
-            "f67a2a37ec40ed8e6bc15128c8325190": []
-          }
-        }
         const scopeData = goodrainData2scopeData(res.data.bean);
-        // console.log(scopeData, 'scopeData')
         dispatch(receiveNodesDelta(scopeData));
       }
       setTimeout(() => {
@@ -565,7 +469,6 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
     doRequest({
       url,
       success: (res) => {
-        console.log(res,'nodedetails')
         res = res || {};
 
         res.rank = res.cur_status;
@@ -576,6 +479,7 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
         const data = res.data || {};
         const bean = data.bean || {};
         bean.id = obj.id;
+        bean.app_id = appId
         dispatch(receiveNodeDetails(bean));
       },
       error: (err) => {

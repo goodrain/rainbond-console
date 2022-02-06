@@ -87,7 +87,7 @@ export function brightenColor(c) {
 const statusColorMap = {
   'running' : 'rgb(0,215,119)',//运行中 绿色
   'closed'  : 'rgb(0,0,33)',//已关闭 黑色
-
+  'helm' : 'rgb(0,215,119)',//helm 绿色
   'third_party': "rgb(91,178,250)",
 
   'undeploy' : 'rgb(112,128,144)',//未部署 石板灰
