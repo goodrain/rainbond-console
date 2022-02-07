@@ -14,11 +14,7 @@ function database_ready() {
     return 0
 }
 
-if [ "$1" = "debug" -o "$1" = "bash" ]; then
-    exec /bin/bash
-elif [ "$1" = "version" ]; then
-    echo "${RELEASE_DESC}"
-else
+function init_database() {
     for i in {1..4}; do
         if ! (database_ready); then
             echo -e "${RED}Database not ready, will waiting${NC}"
@@ -29,25 +25,42 @@ else
     done
     if ! (database_ready); then
         echo -e "${RED}Database not ready, will exit.${NC}"
-        exit 1
+        return 1
     fi
 
     echo -e "${GREEN}Start initializing database${NC}"
     if ! (python manage.py makemigrations www 2>/dev/null); then
         echo -e "${RED}failed to makemigrations www${NC}"
-        exit 1
+        return 1
     fi
     if ! (python manage.py makemigrations console 2>/dev/null); then
         echo -e "${RED}failed to makemigrations console${NC}"
-        exit 1
+        return 1
     fi
     if ! (python manage.py migrate >/dev/null); then
         echo -e "${RED}failed to migrate${NC}"
+        return 1
+    fi
+    echo -e "${GREEN}Database initialization completed${NC}"
+    return 0
+}
+
+if [ "$1" = "debug" -o "$1" = "bash" ]; then
+    exec /bin/bash
+elif [ "$1" = "version" ]; then
+    echo "${RELEASE_DESC}"
+elif [ "$1" = "init" ]; then
+    if ! (init_database); then
+      exit 1
+    fi
+    if !(python default_region.py 2> /dev/null); then
+        echo -e "${RED}failed to default_region${NC}"
         exit 1
     fi
-
-    echo -e "${GREEN}Database initialization completed${NC}"
-
+else
+    if ! (init_database); then
+      exit 1
+    fi
     # python upgrade.py
     exec gunicorn goodrain_web.wsgi -b 0.0.0.0:${PORT:-7070} --max-requests=5000 -k gevent --reload --workers=4 --timeout=75 --log-file - --access-logfile - --error-logfile -
 fi
