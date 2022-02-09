@@ -37,6 +37,7 @@ class NodeDetails extends React.Component {
     this.handleRelativeClick = this.handleRelativeClick.bind(this);
     this.state = {
       shows: false,
+      // isFlag: false,
       count: 0
     }
   }
@@ -176,9 +177,9 @@ class NodeDetails extends React.Component {
     return this.renderLoading();
   }
 
-  handleClickService(nodeDetails) {
+  handleClickService(nodeDetails, isFlag) {
     //调用父页面预留的接口
-    window.parent && parent.handleClickService && parent.handleClickService(nodeDetails);
+    window.parent && parent.handleClickService && parent.handleClickService(nodeDetails, isFlag);
   }
 
   handleClickRelation(relation) {
@@ -230,8 +231,9 @@ class NodeDetails extends React.Component {
     })
   }
   renderDetails() {
-    const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo, pods } = this.props;
+    const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo, pods, appinfo, appmoduleinfo, appvisitinfo, appNodes } = this.props;
     const { shows } = this.state
+    // console.log(this.props,'props------------------');
     const showControls = details.controls && details.controls.length > 0;
     const instanceDetail = bean && bean.bean.containers || [];
     const instancePods = pods && pods.data || []
@@ -240,6 +242,17 @@ class NodeDetails extends React.Component {
     const nodeColor = getNodeColorDark(details.rank, details.label, details.pseudo);
     const { error, pending } = nodeControlStatus ? nodeControlStatus.toJS() : {};
     const tools = this.renderTools();
+    const appInfo = appinfo && appinfo.data || {}
+    const appModuleInfo = appmoduleinfo && appmoduleinfo.data || {}
+    const appVisitInfo = appvisitinfo && appvisitinfo.data || {}
+    const appCpu = (appInfo.cpu / 1000).toFixed(2)
+    const appMemory = (appInfo.memory / 1024).toFixed(2)
+    const appDisk = appInfo.disk > 1024 ? 'MB' : 'KB'
+    const appState = appInfo && appInfo.status == 'RUNNING' ? '运行中' : '异常'
+    // console.log(appInfo,'appinfo')
+    // console.log(appModuleInfo,'appModuleInfo')
+    // console.log(appVisitInfo, 'appVisitInfo')
+
     const styles = {
       controls: {
         backgroundColor: brightenColor(nodeColor)
@@ -258,6 +271,18 @@ class NodeDetails extends React.Component {
     // const nodeInfo = this.props.nodes.get(this.props.label).toJS();
     const nodeInfo = this.props.nodes.get(this.props.id).toJS();
     const nodeDetails = details;
+    const appnodes = appNodes._list._tail.array
+    var isFlag = false;
+    // console.log(appnodes, 'appnodes');
+    for (let i = 0; i < appnodes.length; i++) {
+      if (nodeDetails.id === appnodes[i][0].id && appnodes[i][0].is_flag) {
+        // this.setState({
+          isFlag = true
+        // })
+        // break;
+      }
+    }
+    // console.log(nodeDetails, 'nodeDetails------');
     //服务列表
     const portList = nodeDetails.port_list || {};
     //此属性只有云节点有
@@ -280,7 +305,7 @@ class NodeDetails extends React.Component {
     return (
       <div className={'node-details'}>
         {tools}
-        <div className="node-details-header" style={{ backgroundColor: getStatusColor(nodeDetails.cur_status) }}>
+        <div className="node-details-header" style={{ backgroundColor:(appModuleInfo.app_type && appModuleInfo.app_type != 'helm') ? getStatusColor(nodeDetails.cur_status) :  getStatusColor('helm')}}>
           <div className="node-details-header-wrapper" style={{ padding: '16px 36px 0px 36px' }}>
 
             <h2 className="node-details-header-label" title={nodeInfo.label}>
@@ -288,7 +313,7 @@ class NodeDetails extends React.Component {
                 nodeDetails.id == 'The Internet' ?
                   <span className="node-details-text truncate"><MatchedText text={nodeInfo.label} match={nodeMatches.get('label')} /> </span>
                   :
-                  <a href="javascript:;" onClick={this.handleClickService.bind(this, nodeDetails)}>
+                  <a href="javascript:;" onClick={this.handleClickService.bind(this, nodeDetails, isFlag)}>
                     <span className="node-details-text truncate"><MatchedText text={nodeInfo.label} match={nodeMatches.get('label')} /> </span>
                     <span style={{ verticalAlign: 'middle' }} className="icon-angle-right"></span>
                   </a>
@@ -298,100 +323,141 @@ class NodeDetails extends React.Component {
 
             {
               nodeDetails.id == 'The Internet' ? null :
-                nodeDetails.cur_status == "third_party" ?
-                  <div className="node-details-header-relatives">
-                    <table style={{ width: '100%' }}>
-                      <tr>
-                        <td style={{ width: '100%', textAlign: 'center' }}>第三方服务</td>
-                      </tr>
-                    </table>
-                  </div> :
-                  <div className="node-details-header-relatives" style={{ width: '121%', paddingTop: '24px', marginLeft: '-36px' }}>
-                    <table style={{ width: '100%', padding: '5px 0px', background: 'rgba(255,255,255,0.2)' }}>
-                      <tr style={{ display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' }}>
-                        {
-                          // nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' &&  nodeDetails.cur_status != 'closed' &&  nodeDetails.cur_status != 'creating' &&
-                          // (visit.length > 0 && Object.keys(portList).length > 0) && nodeDetails.cur_status == 'running' &&
-                          (<td style={{ cursor: 'pointer', position: 'relative', marginRight: '40px' }}>
-                            <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px' }} className="iconfont icon-icon_web"></div>
-                            {shows && (
-                              <div>
-                                {/* {Object.keys(portList).map((key, index) => {
-                                  let portItem = portList[key];
-                                  return ( */}
-                                    <div onMouseLeave={() => { this.visitout() }} style={{ position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' }}>
-                                      <div style={{ width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight:'200px', overflow:'auto' }}>
-                                        {/* {
-                                          portItem.outer_url && (
-                                            <div>
-                                              {
-                                                portItem.protocol === 'stream' ?
-                                                  <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline', display:'block' }} href="javascript:;" target="_blank">{portItem.outer_url.split(':')[0]}</a>
-                                                  : <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline', display:'block' }} href={portItem.protocol + '://' + portItem.outer_url} target="_blank">{portItem.outer_url.split(':')[0]}</a>
-                                              }
-                                            </div>
-                                          )
-                                        }
-                                        {
-                                          (portItem.domain_list || []).map((domain, index) => {
-                                            return (
-                                              <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline', display:'block' }} href={domain} target="_blank">{domain}</a>
-                                            );
-                                          })
-                                        } */}
-                                         <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline', display:'block' }} target="_blank">sadfg</a>
-                                      </div>
-                                    </div>
-                                  {/* ) */}
-                                {/* })} */}
-                               
+              nodeDetails.cur_status == "third_party" && appModuleInfo.app_type && appModuleInfo.app_type != 'helm' ?
+              <div className="node-details-header-relatives">
+                {/* 第三方 */}
+                <table style = {{ width: '100%' }}>
+                  <tr>
+                    <td style={{ width: '100%', textAlign: 'center' }}>第三方服务</td>
+                  </tr>
+                </table>
+              </div>
+              : nodeDetails.cur_status != "third_party" ?
+              // 访问层
+              <div className="node-details-header-relatives" style={{ width: '121%', paddingTop: '24px', marginLeft: '-36px' }}>
+                {isFlag ? (
+                  // 聚合的访问层
+                  <table style={{ width: '100%', padding: '5px 0px', background: 'rgba(255,255,255,0.2)' }}>
+                    <tr style={{ display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' }}>
+                      {
+                        (<td style={{ cursor: 'pointer', position: 'relative', marginRight: '40px' }}>
+                          <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px' }} className="iconfont icon-icon_web"></div>
+                          {shows && (
+                            <div>
+                              <div onMouseLeave={() => { this.visitout() }} style={{ position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' }}>
+                                <div style={{ width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight: '200px', overflow: 'auto' }}>
+                                  {
+                                    (appVisitInfo.map((item, index) => {
+                                      return (
+                                        <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href={item.access_info[0].access_urls[0]} target="_blank">{item.access_info[0].service_cname}</a>
+                                      )
+                                    }))
+                                  }
+
+                                </div>
                               </div>
-                            )}
-                          </td>)
-                        }
-                        {/* {nodeDetails.cur_status == 'undeploy' ? (
-                          null
-                        ):(
-                          <td style={{ cursor: 'pointer', marginRight: '40px' }}>
-                            <a onClick={this.handleClickTerminal.bind(this, nodeDetails)} target="_blank" title="终端" style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-terminalzhongduan"></a>
-                          </td>
-                        )}
-                        
-                        {nodeDetails.cur_status == 'undeploy' || nodeDetails.cur_status == 'closed' ? (
-                          <td style={{ cursor: 'pointer', marginRight: '40px' }} title="构建">
-                            <a onClick={this.handleClickBuild.bind(this, 'build', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-dabaoxiazai"></a>
-                          </td>
-                        ) : (
-                          <td style={{ cursor: 'pointer', marginRight: '40px' }} title="更新">
-                            <a onClick={this.handleClickUpdate.bind(this, 'update', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-shuaxin"></a>
-                          </td>
-                        )}
-                        {nodeDetails.cur_status == 'undeploy' ? (
-                          <div>
-                          </div>
-                        ) : (
-                          <div style={{ marginRight: '40px', cursor: 'pointer' }}>
-                            {(nodeDetails.cur_status == 'closed') ? (
-                              <td style={{ cursor: 'pointer' }} title="启动">
-                                <a onClick={this.handleClickStart.bind(this, 'start', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-qidong1"></a>
-                              </td>
-                            ) : (
-                              <td style={{ cursor: 'pointer' }} title="关闭">
-                                <a onClick={this.handleClickCloses.bind(this, 'closes', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-guanbi"></a>
-                              </td>
-                            )}
-                          </div>
-                        )}
-                        <td style={{ cursor: 'pointer' }} title="删除">
-                          <a onClick={this.handleClickDelete.bind(this, 'deleteApp', nodeDetails)} style={{ fontSize: '20px' }} className="iconfont icon-shanchu2"></a>
-                        </td> */}
-                      </tr>
-                    </table>
-                  </div>
+                            </div>
+                          )}
+                        </td>)
+                      }
+                    </tr>
+                  </table>
+                ) : (
+                  // 普通模式
+                  <table style={{ width: '100%', padding: '5px 0px', background: 'rgba(255,255,255,0.2)' }}>
+                    <tr style={{ display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' }}>
+                      {
+                        nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' && nodeDetails.cur_status != 'closed' && nodeDetails.cur_status != 'creating' &&
+                        (visit.length > 0 && Object.keys(portList).length > 0) && nodeDetails.cur_status == 'running' &&
+                        (<td style={{ cursor: 'pointer', position: 'relative', marginRight: '40px' }}>
+                          <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px' }} className="iconfont icon-icon_web"></div>
+                          {shows && (
+                            <div>
+                              {Object.keys(portList).map((key, index) => {
+                                let portItem = portList[key];
+                                return (
+                                  <div onMouseLeave={() => { this.visitout() }} style={{ position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' }}>
+                                    <div style={{ width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight: '200px', overflow: 'auto' }}>
+                                      {
+                                        portItem.outer_url && (
+                                          <div>
+                                            {
+                                              portItem.protocol === 'stream' ?
+                                                <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href="javascript:;" target="_blank">{portItem.outer_url.split(':')[0]}</a>
+                                                : <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href={portItem.protocol + '://' + portItem.outer_url} target="_blank">{portItem.outer_url.split(':')[0]}</a>
+                                            }
+                                          </div>
+                                        )
+                                      }
+                                      {
+                                        (portItem.domain_list || []).map((domain, index) => {
+                                          return (
+                                            <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href={domain} target="_blank">{domain}</a>
+                                          );
+                                        })
+                                      }
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </td>)
+                      }
+                      {nodeDetails.cur_status == 'undeploy' ? (
+                        null
+                      ) : (
+                        <td style={{ cursor: 'pointer', marginRight: '40px' }}>
+                          <a onClick={this.handleClickTerminal.bind(this, nodeDetails)} target="_blank" title="终端" style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-terminalzhongduan"></a>
+                        </td>
+                      )}
+
+                      {nodeDetails.cur_status == 'undeploy' || nodeDetails.cur_status == 'closed' ? (
+                        <td style={{ cursor: 'pointer', marginRight: '40px' }} title="构建">
+                          <a onClick={this.handleClickBuild.bind(this, 'build', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-dabaoxiazai"></a>
+                        </td>
+                      ) : (
+                        <td style={{ cursor: 'pointer', marginRight: '40px' }} title="更新">
+                          <a onClick={this.handleClickUpdate.bind(this, 'update', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-shuaxin"></a>
+                        </td>
+                      )}
+                      {nodeDetails.cur_status == 'undeploy' ? (
+                        <div>
+                        </div>
+                      ) : (
+                        <div style={{ marginRight: '40px', cursor: 'pointer' }}>
+                          {(nodeDetails.cur_status == 'closed') ? (
+                            <td style={{ cursor: 'pointer' }} title="启动">
+                              <a onClick={this.handleClickStart.bind(this, 'start', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-qidong1"></a>
+                            </td>
+                          ) : (
+                            <td style={{ cursor: 'pointer' }} title="关闭">
+                              <a onClick={this.handleClickCloses.bind(this, 'closes', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-guanbi"></a>
+                            </td>
+                          )}
+                        </div>
+                      )}
+                      <td style={{ cursor: 'pointer' }} title="删除">
+                        <a onClick={this.handleClickDelete.bind(this, 'deleteApp', nodeDetails)} style={{ fontSize: '20px' }} className="iconfont icon-shanchu2"></a>
+                      </td>
+                    </tr>
+                  </table>
+                )}
+              </div>
+              : nodeDetails.cur_status == "third_party" && appModuleInfo.app_type && appModuleInfo.app_type == 'helm' ?
+              // helm层头部
+              <table style = {{ width: '100%' }}>
+              <tr>
+                <td style={{ width: '100%', textAlign: 'center' }}>Helm应用</td>
+              </tr>
+            </table> : null
             }
           </div>
         </div>
-        {/* <div className="node-details-content">
+      {
+      !isFlag ? (
+        // 普通模式
+        <div className="node-details-content">
           {nodeDetails.id == 'The Internet' ? null :
             nodeDetails.cur_status == "third_party" ? null :
               // nodeDetails.cur_status == "closed" ? null :
@@ -444,33 +510,33 @@ class NodeDetails extends React.Component {
               <div>
                 {instanceDetail.length > 0 && instanceDetail == null ? null :
                   nodeDetails.cur_status == "closed" ? null :
-                  nodeDetails.cur_status == "undeploy" ? null : (
-                    <div className="node-details-content-section">
-                      <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>实例中的容器</div>
-                      <div style={{ width: '100%' }}>
-                        <table style={{ tableLayout: 'fixed', width: '100%' }}>
-                          <thead>
-                            <tr>
-                              <th style={{ textAlign: 'left', width: '40%' }}>镜像名称</th>
-                              <th style={{ width: '25%', textAlign: 'center' }}>状态</th>
-                              <th style={{ width: '35%', textAlign: 'center' }}>说明</th>
-                            </tr>
-                          </thead>
-                          {instanceDetail.length > 0 && instanceDetail.map((item, index) => {
-                            return (
-                              < tbody >
-                                <tr>
-                                  <td className="node-details-info-field-value truncate" style={{ textAlign: 'left' }} title={item.image}>{item.image}</td>
-                                  <td style={{ textAlign: 'center' }}>{item.state == 'Running' ? '运行中' : item.state == 'Waiting' ? '等待中' : '---'}</td>
-                                  <td className="node-details-info-field-value truncate" title={item.reason} style={{ textAlign: 'center' }}>{item.reason ? item.reason : '---'}</td>
-                                </tr>
-                              </tbody>
-                            )
-                          })}
-                        </table>
+                    nodeDetails.cur_status == "undeploy" ? null : (
+                      <div className="node-details-content-section">
+                        <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>实例中的容器</div>
+                        <div style={{ width: '100%' }}>
+                          <table style={{ tableLayout: 'fixed', width: '100%' }}>
+                            <thead>
+                              <tr>
+                                <th style={{ textAlign: 'left', width: '40%' }}>镜像名称</th>
+                                <th style={{ width: '25%', textAlign: 'center' }}>状态</th>
+                                <th style={{ width: '35%', textAlign: 'center' }}>说明</th>
+                              </tr>
+                            </thead>
+                            {instanceDetail.length > 0 && instanceDetail.map((item, index) => {
+                              return (
+                                < tbody >
+                                  <tr>
+                                    <td className="node-details-info-field-value truncate" style={{ textAlign: 'left' }} title={item.image}>{item.image}</td>
+                                    <td style={{ textAlign: 'center' }}>{item.state == 'Running' ? '运行中' : item.state == 'Waiting' ? '等待中' : '---'}</td>
+                                    <td className="node-details-info-field-value truncate" title={item.reason} style={{ textAlign: 'center' }}>{item.reason ? item.reason : '---'}</td>
+                                  </tr>
+                                </tbody>
+                              )
+                            })}
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
               </div>
           }
           <div className="node-details-content-section" style={{ display: show ? 'block' : 'none' }}>
@@ -652,85 +718,122 @@ class NodeDetails extends React.Component {
             </div>
 
           </div>
-        </div> */}
+        </div>
+      ) : (
+        // 聚合模式
         <div className="node-details-content">
           {nodeDetails.id == 'The Internet' ? null :
             nodeDetails.cur_status == "third_party" ? null :
-              // nodeDetails.cur_status == "closed" ? null :
-              <div>
-                <div className="node-details-content-section">
+              <div className="node-details-content-section">
+                {/* 聚合模式普通展示层 */}
+                <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>基本信息</div>
+                <div style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>运行状态：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{appState}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>内存：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{appInfo.memory + 'MB'}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>CPU：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{appCpu + 'Core'}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>磁盘：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{appInfo.disk}{appDisk}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>组件数量：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{appModuleInfo.service_num}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>创建时间：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{appModuleInfo.create_time}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>更新时间：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{appModuleInfo.update_time}</div>
+                  </div>
+                </div>
+              </div>
+          }
+          {/* 聚合模式helm层 */}
+          {
+            nodeDetails.id == 'The Internet' ? null :
+            nodeDetails.cur_status == "third_party" &&
+            appModuleInfo.app_type === 'helm' ? 
+              <div className="node-details-content-section">
                   <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>基本信息</div>
                   <div style={{ width: '100%' }}>
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>运行状态：</div>
-                      <div style={{ textAlign: 'left', width: '60%' }}>运行中</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>{appModuleInfo.status === "deployed" ? '已部署' : '运行中'}</div>
                     </div>
                     <div style={{ display: 'flex' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>内存：</div>
-                      <div style={{ textAlign: 'left', width: '60%' }}>512 MB</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>{appMemory + 'GB'}</div>
                     </div>
                     <div style={{ display: 'flex' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>CPU：</div>
-                      <div style={{ textAlign: 'left', width: '60%' }}>0 Core</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>{appModuleInfo.cpu ? appCpu + 'Core' : '不限制' }</div>
                     </div>
                     <div style={{ display: 'flex' }}>
-                      <div style={{ textAlign: 'right', width: '40%' }}>磁盘：</div>
-                      <div style={{ textAlign: 'left', width: '60%' }}>0 KB</div>
+                      <div style={{ textAlign: 'right', width: '40%' }}>服务数量：</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>{appModuleInfo.service_num}</div>
                     </div>
                     <div style={{ display: 'flex' }}>
-                      <div style={{ textAlign: 'right', width: '40%' }}>组件数量：</div>
-                      <div style={{ textAlign: 'left', width: '60%' }}>1</div>
+                      <div style={{ textAlign: 'right', width: '40%' }}>版本号：</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>{appModuleInfo.version}</div>
                     </div>
                     <div style={{ display: 'flex' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>创建时间：</div>
-                      {(nodeDetails.deploy_version == '' || nodeDetails.deploy_version == 'undefined') ? (
-                        <div style={{ textAlign: 'left', width: '60%' }}>2022-01-06 14:52:16</div>
-                      ) : (
-                        <div style={{ textAlign: 'left', width: '60%' }}>2022-01-06 14:52:16</div>
-                      )}
+                      <div style={{ textAlign: 'left', width: '60%' }}>{appModuleInfo.create_time}</div>
                     </div>
                     <div style={{ display: 'flex' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>更新时间：</div>
-                      <div style={{ textAlign: 'left', width: '60%' }}>2022-01-26 15:20:57</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>{appModuleInfo.update_time}</div>
                     </div>
                   </div>
-                </div>
               </div>
+            : null
           }
           {nodeDetails.id == 'The Internet' ? null :
             nodeDetails.cur_status == "third_party" ? null :
               <div>
                 {instanceDetail.length > 0 && instanceDetail == null ? null :
                   nodeDetails.cur_status == "closed" ? null :
-                  nodeDetails.cur_status == "undeploy" ? null : (
-                    <div className="node-details-content-section">
-                      {/* 对应的展示 */}
-                      <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>应用的组件</div>
-                      <div style={{ width: '100%' }}>
-                        <table style={{ tableLayout: 'fixed', width: '100%' }}>
-                          <thead>
-                            <tr>
-                              <th style={{ textAlign: 'center', width: '33%' }}>组件名</th>
-                              <th style={{ width: '33%', textAlign: 'center' }}>内存</th>
-                              <th style={{ width: '33%', textAlign: 'center' }}>状态</th>
-                            </tr>
-                          </thead>
-                          {instanceDetail.length > 0 && instanceDetail.map((item, index) => {
-                            return (
-                              < tbody >
-                                <tr>
-                                  <td className="node-details-info-field-value truncate" style={{ textAlign: 'center' }} title={item.image}>sadfg</td>
-                                  <td style={{ textAlign: 'center' }}>512MB</td>
-                                  <td className="node-details-info-field-value truncate" title={item.reason} style={{ textAlign: 'center' }}>运行中</td>
-                                </tr>
-                              </tbody>
-                            )
-                          })}
-                        </table>
+                    nodeDetails.cur_status == "undeploy" ? null : (
+                      <div className="node-details-content-section">
+                        {/* 聚合模式对应的展示 */}
+                        <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>应用的组件</div>
+                        <div style={{ width: '100%' }}>
+                          <table style={{ tableLayout: 'fixed', width: '100%' }}>
+                            <thead>
+                              <tr>
+                                <th style={{ textAlign: 'center', width: '33%' }}>组件名</th>
+                                <th style={{ width: '33%', textAlign: 'center' }}>内存</th>
+                                <th style={{ width: '33%', textAlign: 'center' }}>状态</th>
+                              </tr>
+                            </thead>
+                            {instanceDetail.length > 0 && instanceDetail.map((item, index) => {
+                              return (
+                                < tbody >
+                                  <tr>
+                                    <td className="node-details-info-field-value truncate" style={{ textAlign: 'center' }} title={item.image}>sadfg</td>
+                                    <td style={{ textAlign: 'center' }}>512MB</td>
+                                    <td className="node-details-info-field-value truncate" title={item.reason} style={{ textAlign: 'center' }}>运行中</td>
+                                  </tr>
+                                </tbody>
+                              )
+                            })}
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
               </div>
+
           }
           <div className="node-details-content-section" style={{ display: show ? 'block' : 'none' }}>
             {
@@ -801,6 +904,10 @@ class NodeDetails extends React.Component {
 
           </div>
         </div>
+      )
+    }
+
+
       </div >
     );
   }
@@ -839,6 +946,7 @@ class NodeDetails extends React.Component {
 
 function mapStateToProps(state, ownProps) {
   const currentTopologyId = state.get('currentTopologyId');
+  const nodesForCurrentTopologyKey = ['nodesByTopology', state.get('currentTopologyId')];
   return {
     tenantName: localStorage.getItem('tenantName'),
     groupId: localStorage.getItem('groupId'),
@@ -849,6 +957,10 @@ function mapStateToProps(state, ownProps) {
     disk: state.get('diskdetail'),
     visitinfo: state.get('visitinfo'),
     pods: state.get('getpods'),
+    appinfo: state.get('appinfo'),
+    appmoduleinfo: state.get('appmoduleinfo'),
+    appvisitinfo: state.get('appvisitinfo'),
+    appNodes: state.get('appNodes')
   };
 }
 

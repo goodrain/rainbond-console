@@ -47,7 +47,7 @@ let firstMessageOnWebsocketAt = 0;
 let continuePolling = true;
 let newData = null;
 let appName = null;
-let appId = null;
+let appServiceAlias = [];
 const tiem = 0;
 export function buildOptionsQuery(options) {
   if (options) {
@@ -268,6 +268,8 @@ export function getTopologies(options, dispatch, initialPoll) {
 
 // 转换好雨云的数据到weaveScope的数据
 function goodrainData2scopeData(data = {}) {
+  const windowParent = window.parent;
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   const scopeData = {
     add: [],
     update: null,
@@ -279,9 +281,10 @@ function goodrainData2scopeData(data = {}) {
   let item = {};
   const cloud = {
     id: 'The Internet',
+    app_id:groupId,
     service_alias: 'internet',
-    service_cname: 'The Internet',
-    label: 'The Internet',
+    service_cname: '网关',
+    label: '网关',
     shape: 'cloud',
     stack: true,
     stackNum: 1,
@@ -305,10 +308,8 @@ function goodrainData2scopeData(data = {}) {
 
   keys.forEach((k) => {
     if (Object.prototype.hasOwnProperty.call(data.json_data, k)) {
-      // console.log(data.json_data, 'json_data')
       node = {};
       item = data.json_data[k];
-      console.log(item, 'item')
       if(item.app_type === 'helm'){
         node.cur_status = 'helm';
       }else{
@@ -317,16 +318,15 @@ function goodrainData2scopeData(data = {}) {
       node.service_cname = item.service_cname;
       node.service_id = item.service_id;
       node.service_alias = item.service_alias;
-      // console.log(appName,'appName')
       if(appName && appName == item.app_name){
         node.label = item.service_cname;
         node.stackNum = 1;
+        node.is_flag = false;
       }else if(appName && appName !== item.app_name){
         node.label = item.app_name;
         node.stackNum = 3;
-        appId = item.app_id;
+        node.is_flag = true;
       }
-      // node.label = item.service_cname;
       node.id = item.service_id;
       node.app_id = item.app_id;
       node.lineTip = item.lineTip;
@@ -384,6 +384,7 @@ function goodrainData2scopeData(data = {}) {
   newData = scopeData.add == null ? newData : scopeData.add;
   scopeData.remove = scopeData.remove !== null && scopeData.remove.length > 0 ? scopeData.remove : null;
   scopeData.update = scopeData.update !== null && scopeData.update.length > 0 ? scopeData.update : null;
+
   return scopeData;
 }
 
@@ -406,6 +407,7 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
       if (res.code === 200) {
         const scopeData = goodrainData2scopeData(res.data.bean);
         dispatch(receiveNodesDelta(scopeData));
+        
       }
       setTimeout(() => {
         getNodesDelta(topologyUrl, options, dispatch);
@@ -479,7 +481,6 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
         const data = res.data || {};
         const bean = data.bean || {};
         bean.id = obj.id;
-        bean.app_id = appId
         dispatch(receiveNodeDetails(bean));
       },
       error: (err) => {
@@ -579,6 +580,7 @@ export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap,
     doRequest({
       url,
       success: (res) => {
+        console.log(res,'组件访问信息')
         res = res || {};
 
         res.rank = res.cur_status;
@@ -598,34 +600,76 @@ export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap,
     });
   }
 }
+export function visitInfoParams( appNodes, nodeId ){
+  return new Promise((resolve, reject)=>{
+    const windowParent = window.parent;
+    const VisitParams = windowParent.iframeGetNodeVistitUrl && windowParent.iframeGetNodeVistitUrl()
+    const appnodes = appNodes._list._tail.array
+    for(let i=0; i<appnodes.length; i++){
+      if(nodeId === appnodes[i][0].id ){
+        var app_ID = appnodes[i][0].app_id
+      }
+    }
+    let url = ''
+    if(app_ID){
+      url = `${VisitParams}?group_id=${app_ID}`;
+  
+      doRequest({
+        url,
+        success: (res) => {
+          if (res && res.code === 200) {
+            const data = res.data.bean;
+            if (JSON.stringify(data) === '{}') {
+              return;
+            }
+            const serviceIds = [];
+            const service_alias = [];
+            const { json_data } = data;
+            Object.keys(json_data).map(key => {
+              serviceIds.push(key);
+              if (
+                json_data[key].cur_status == 'running' &&
+                json_data[key].is_internet == true
+              ) {
+                service_alias.push(json_data[key].service_alias);
+              }
+            });
+            resolve(service_alias)
+          }
+        },
+        error: (err) => {
+          log(`Error in node details request: ${err.responseText}`);
+        }
+      });
+    }
+  })
+}
 //获取应用访问信息
-export function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
+export async function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias, appNodes, nodeId) {
+  const visitinfoParams = await visitInfoParams(appNodes,nodeId)
   const windowParent = window.parent;
   const obj = nodeMap.last();
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   let url = '';
-  if (serviceAlias && tenantName) {
-    const topologyUrl = topologyUrlsById.get(obj.topologyId);
-    url = `/console/teams/${tenantName}/group/service/visitservice_alias=${serviceAlias}?region=${region}&_=${new Date().getTime()}`;
+  const service_alias = [...new Set(visitinfoParams)].join('-');
+  console.log(service_alias,'appServiceAlias');
+  if (tenantName) {
+    url = `/console/teams/${tenantName}/group/service/visit?service_alias=${service_alias}`;
 
     doRequest({
       url,
       success: (res) => {
-        console.log(res, '应用访问信息')
-        // res = res || {};
+        res = res || {};
 
-        // res.rank = res.cur_status;
-        // if (obj.id === 'The Internet') {
-        //   res.cur_status = 'running';
-        // }
-        // res = res || {};
-        // const data = res.data.bean.access_info[0] || {};
-        // dispatch({
-        //   type:"VISIT_INFO",
-        //   data
-        // });
+        res.rank = res.cur_status;
+        res = res || {};
+        const data = res.data.list || [];
+        dispatch({
+          type:"APP_VISIT_INFO",
+          data
+        });
       },
       error: (err) => {
         log(`Error in node details request: ${err.responseText}`);
@@ -634,7 +678,43 @@ export function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeM
   }
 }
 //应用下面的组件数量
-export function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch) {
+export function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias,appNodes,nodeId) {
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  const appnodes = appNodes._list._tail.array
+    for(let i=0; i<appnodes.length; i++){
+      if(nodeId === appnodes[i][0].id ){
+        var app_Id = appnodes[i][0].app_id
+      }
+    }
+  let url = '';
+  if (tenantName && groupId) {
+    url = `/console/teams/${tenantName}/groups/${app_Id}?region=${region}&_=${new Date().getTime()}`;
+
+    doRequest({
+      url,
+      success: (res) => {
+        res = res || {};
+
+        res.rank = res.cur_status;
+        res = res || {};
+        const data = res.data.bean || {};
+        dispatch({
+          type:"APP_MODULE_INFO",
+          data
+        });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+//应用名称信息
+export function appNameInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias) {
   const windowParent = window.parent;
   const obj = nodeMap.last();
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
@@ -642,26 +722,12 @@ export function appModuleInfo(topologyUrlsById, currentTopologyId, options, node
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   let url = '';
   if (tenantName && groupId) {
-    // const topologyUrl = topologyUrlsById.get(obj.topologyId);
     url = `/console/teams/${tenantName}/groups/${groupId}?region=${region}&_=${new Date().getTime()}`;
 
     doRequest({
       url,
       success: (res) => {
-        console.log(res, '应用下面的组件数量')
         appName = res.data.bean.app_name
-        // res = res || {};
-
-        // res.rank = res.cur_status;
-        // if (obj.id === 'The Internet') {
-        //   res.cur_status = 'running';
-        // }
-        // res = res || {};
-        // const data = res.data.bean.access_info[0] || {};
-        // dispatch({
-        //   type:"VISIT_INFO",
-        //   data
-        // });
       },
       error: (err) => {
         log(`Error in node details request: ${err.responseText}`);
@@ -670,33 +736,34 @@ export function appModuleInfo(topologyUrlsById, currentTopologyId, options, node
   }
 }
 //应用下的基本信息
-export function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
+export function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias,appNodes,nodeId) {
   const windowParent = window.parent;
   const obj = nodeMap.last();
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
-  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  const appnodes = appNodes._list._tail.array
+    for(let i=0; i<appnodes.length; i++){
+      if(nodeId === appnodes[i][0].id ){
+        var appId = appnodes[i][0].app_id
+      }
+    }
   let url = '';
-  if (serviceAlias && tenantName) {
+  if (tenantName) {
     const topologyUrl = topologyUrlsById.get(obj.topologyId);
-    url = `/console/teams/${tenantName}/groups/${groupId}/status?region=${region}&_=${new Date().getTime()}`;
+    url = `/console/teams/${tenantName}/groups/${appId}/status?region=${region}&_=${new Date().getTime()}`;
 
     doRequest({
       url,
       success: (res) => {
-        console.log(res, '应用下的基本信息')
-        // res = res || {};
+        res = res || {};
 
-        // res.rank = res.cur_status;
-        // if (obj.id === 'The Internet') {
-        //   res.cur_status = 'running';
-        // }
-        // res = res || {};
-        // const data = res.data.bean.access_info[0] || {};
-        // dispatch({
-        //   type:"VISIT_INFO",
-        //   data
-        // });
+        res.rank = res.cur_status;
+        res = res || {};
+        const data = res.data.list || {};
+        dispatch({
+          type:"APP_INFO",
+          data
+        });
       },
       error: (err) => {
         log(`Error in node details request: ${err.responseText}`);

@@ -58,6 +58,7 @@ export const initialState = makeMap({
   mouseOverNodeId: null,
   nodeDetails: makeOrderedMap(), // nodeId -> details
   nodes: makeOrderedMap(), // nodeId -> node
+  appNodes: makeOrderedMap(),
   nodeMonitorData: makeList(), // serviceId -> monitorData
   nodesLoaded: false,
   // nodes cache, infrequently updated, used for search & resource view
@@ -91,7 +92,10 @@ export const initialState = makeMap({
   nodedetailes: null,
   diskdetail: null,
   visitinfo: null,
-  getpods:null,
+  getpods: null,
+  appinfo: null,
+  appmoduleinfo: null,
+  appvisitinfo: null,
 });
 
 function calcSelectType(topology) {
@@ -208,6 +212,15 @@ export function rootReducer(state = initialState, action) {
     }
     case "GET_PODS": {
       return state.set('getpods', action);
+    }
+    case "APP_INFO": {
+      return state.set('appinfo', action);
+    }
+    case "APP_MODULE_INFO": {
+      return state.set('appmoduleinfo', action);
+    }
+    case "APP_VISIT_INFO": {
+      return state.set('appvisitinfo', action);
     }
     case ActionTypes.CHANGE_TOPOLOGY_OPTION: {
       state = resumeUpdate(state);
@@ -631,6 +644,7 @@ export function rootReducer(state = initialState, action) {
           // to our nodes selectors (e.g. layout engine would be completely bypassed if the
           // adjacencies would stay the same but the metrics would get updated).
           state = state.setIn(['nodes', node.id], fromJS(node));
+          state = state.setIn(['appNodes', node], fromJS(node));
         }
       });
 
@@ -642,6 +656,7 @@ export function rootReducer(state = initialState, action) {
           n[k] = node[k];
         }
         state = state.setIn(['nodes', node.id], fromJS(n));
+        state = state.setIn(['appNodes', node], fromJS(n));
       });
 
       // apply pinned searches, filters nodes that dont match
