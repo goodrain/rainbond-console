@@ -36,7 +36,7 @@ module.exports = {
   },
 
   output: {
-    path: path.join(__dirname, '../weavescope/'),
+    path: path.join(__dirname, '../weavescopes/'),
     filename: '[name]-[chunkhash].js',
     publicPath: PUBLIC_PATH
   },

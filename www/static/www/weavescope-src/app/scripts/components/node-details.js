@@ -233,7 +233,7 @@ class NodeDetails extends React.Component {
   renderDetails() {
     const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo, pods, appinfo, appmoduleinfo, appvisitinfo, appNodes } = this.props;
     const { shows } = this.state
-    // console.log(this.props,'props------------------');
+    console.log(this.props,'props------------------');
     const showControls = details.controls && details.controls.length > 0;
     const instanceDetail = bean && bean.bean.containers || [];
     const instancePods = pods && pods.data || []
@@ -273,16 +273,20 @@ class NodeDetails extends React.Component {
     const nodeDetails = details;
     const appnodes = appNodes._list._tail.array
     var isFlag = false;
+    var is_Helm = false;
     // console.log(appnodes, 'appnodes');
     for (let i = 0; i < appnodes.length; i++) {
       if (nodeDetails.id === appnodes[i][0].id && appnodes[i][0].is_flag) {
-        // this.setState({
-          isFlag = true
-        // })
-        // break;
+        isFlag = true
       }
     }
-    // console.log(nodeDetails, 'nodeDetails------');
+    for (let i = 0; i < appnodes.length; i++) {
+      if (nodeDetails.id === appnodes[i][0].id && appnodes[i][0].cur_status == 'helm') {
+        is_Helm = true
+
+      }
+    }
+    console.log(nodeDetails, 'nodeDetails------');
     //服务列表
     const portList = nodeDetails.port_list || {};
     //此属性只有云节点有
@@ -305,7 +309,7 @@ class NodeDetails extends React.Component {
     return (
       <div className={'node-details'}>
         {tools}
-        <div className="node-details-header" style={{ backgroundColor:(appModuleInfo.app_type && appModuleInfo.app_type != 'helm') ? getStatusColor(nodeDetails.cur_status) :  getStatusColor('helm')}}>
+        <div className="node-details-header" style={{ backgroundColor: is_Helm ? getStatusColor('helm') : getStatusColor(nodeDetails.cur_status)}}>
           <div className="node-details-header-wrapper" style={{ padding: '16px 36px 0px 36px' }}>
 
             <h2 className="node-details-header-label" title={nodeInfo.label}>
@@ -323,7 +327,7 @@ class NodeDetails extends React.Component {
 
             {
               nodeDetails.id == 'The Internet' ? null :
-              nodeDetails.cur_status == "third_party" && appModuleInfo.app_type && appModuleInfo.app_type != 'helm' ?
+              nodeDetails.cur_status == "third_party" && !is_Helm ?
               <div className="node-details-header-relatives">
                 {/* 第三方 */}
                 <table style = {{ width: '100%' }}>
@@ -332,9 +336,17 @@ class NodeDetails extends React.Component {
                   </tr>
                 </table>
               </div>
-              : nodeDetails.cur_status != "third_party" ?
-              // 访问层
-              <div className="node-details-header-relatives" style={{ width: '121%', paddingTop: '24px', marginLeft: '-36px' }}>
+              : nodeDetails.cur_status == "third_party" && is_Helm ?
+              <div className="node-details-header-relatives">
+                {/* helm层头部 */}
+                <table style = {{ width: '100%' }}>
+                  <tr>
+                    <td style={{ width: '100%', textAlign: 'center' }}>Helm应用</td>
+                  </tr>
+                </table>
+              </div> 
+            : <div className="node-details-header-relatives" style={{ width: '121%', paddingTop: '24px', marginLeft: '-36px' }}>
+                {/* 访问层 */}
                 {isFlag ? (
                   // 聚合的访问层
                   <table style={{ width: '100%', padding: '5px 0px', background: 'rgba(255,255,255,0.2)' }}>
@@ -444,13 +456,6 @@ class NodeDetails extends React.Component {
                   </table>
                 )}
               </div>
-              : nodeDetails.cur_status == "third_party" && appModuleInfo.app_type && appModuleInfo.app_type == 'helm' ?
-              // helm层头部
-              <table style = {{ width: '100%' }}>
-              <tr>
-                <td style={{ width: '100%', textAlign: 'center' }}>Helm应用</td>
-              </tr>
-            </table> : null
             }
           </div>
         </div>
@@ -762,8 +767,8 @@ class NodeDetails extends React.Component {
           {/* 聚合模式helm层 */}
           {
             nodeDetails.id == 'The Internet' ? null :
-            nodeDetails.cur_status == "third_party" &&
-            appModuleInfo.app_type === 'helm' ? 
+            // nodeDetails.cur_status == "helm"  ? 
+            is_Helm ?
               <div className="node-details-content-section">
                   <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>基本信息</div>
                   <div style={{ width: '100%' }}>
