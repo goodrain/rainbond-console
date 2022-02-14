@@ -479,7 +479,175 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
     log('No details or url found for ', obj);
   }
 }
+export function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  if (serviceAlias && tenantName) {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/apps/${serviceAlias}/resource?region=${region}&_=${new Date().getTime()}`;
 
+    doRequest({
+      url,
+      success: (res) => {
+        res = res || {};
+
+        res.rank = res.cur_status;
+        if (obj.id === 'The Internet') {
+          res.cur_status = 'running';
+        }
+        res = res || {};
+        const data = res.data.bean || {};
+        dispatch({
+          type:"DISK_DETAIL",
+          data
+        });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+export function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  if (serviceAlias && tenantName) {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/apps/${serviceAlias}/pods?region=${region}&_=${new Date().getTime()}`;
+
+    doRequest({
+      url,
+      success: (res) => {
+        res = res || {};
+
+        res.rank = res.cur_status;
+        if (obj.id === 'The Internet') {
+          res.cur_status = 'running';
+        }
+        res = res || {};
+        const data = res.data.list.new_pods || [];
+        dispatch({
+          type:"GET_PODS",
+          data
+        });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  if (serviceAlias && tenantName) {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/apps/${serviceAlias}/visit?region=${region}&_=${new Date().getTime()}`;
+
+    doRequest({
+      url,
+      success: (res) => {
+        res = res || {};
+
+        res.rank = res.cur_status;
+        if (obj.id === 'The Internet') {
+          res.cur_status = 'running';
+        }
+        res = res || {};
+        const data = res.data.bean.access_info[0] || {};
+        dispatch({
+          type:"VISIT_INFO",
+          data
+        });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+export function Podname(serviceAlias){
+
+  return new Promise((resolve,reject)=>{
+    const windowParent = window.parent;
+    const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+    const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+    let url = '';
+    if(serviceAlias){
+      url = `/console/teams/${tenantName}/apps/${serviceAlias}/pods?region=${region}&_=${new Date().getTime()}`;
+      doRequest({
+        url,
+        success: (res) => {
+          res = res || {};
+    
+          res.rank = res.cur_status;
+          res = res || {};
+          const data = res.data.list.new_pods[0].pod_name || [];
+          resolve(data)
+        },
+        error: (err) => {
+          log(`Error in node details request: ${err.responseText}`);
+          // dont treat missing node as error
+        }
+      });
+    }
+  })
+  
+  
+}
+export async function Dateils(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias){
+  const padname=await Podname(serviceAlias)
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  if (obj && serviceAlias && tenantName && groupId && padname) {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    let url = '';
+    if (obj.id === 'The Internet') {
+      url = `/console/teams/${tenantName}/${groupId}/outer-service?region=${region}&_=${new Date().getTime()}`;
+    } else {
+      url = `/console/teams/${tenantName}/apps/${serviceAlias}/pods/${padname}/detail?region=${region}&_=${new Date().getTime()}`;
+    }
+
+    doRequest({
+      url,
+      success: (res) => {
+        res = res || {};
+        res.rank = res.cur_status;
+        if (obj.id === 'The Internet') {
+          res.cur_status = 'running';
+        }
+        res = res || {};
+        const data = res.data || {};
+        const bean = data.bean || {};
+        bean.id = obj.id;
+        dispatch({
+          type:"INSTANCE",
+          bean
+        });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  } else if (obj) {
+    log('No details or url found for ', obj);
+  }
+}
 export function getApiDetails(dispatch) {
   clearTimeout(apiDetailsTimer);
   const url = `${getApiPath()}/api`;

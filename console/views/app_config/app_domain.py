@@ -381,6 +381,8 @@ class HttpStrategyView(RegionTenantHeaderView):
             bean.update({"service_alias": service_alias})
             bean.update({"group_name": group_name})
             bean.update({"g_id": g_id})
+            rewrites = domain.rewrites if domain.rewrites else '[]'
+            bean.update({"rewrites": json.loads(rewrites)})
         else:
             bean = dict()
         result = general_message(200, "success", "查询成功", bean=bean)
@@ -409,6 +411,9 @@ class HttpStrategyView(RegionTenantHeaderView):
         domain_path = do_path if do_path else "/"
         auto_ssl = request.data.get("auto_ssl", False)
         auto_ssl_config = request.data.get("auto_ssl_config", None)
+        # path-rewrite
+        path_rewrite = request.data.get("path_rewrite", False)
+        rewrites = request.data.get("rewrites", [])
 
         # 判断参数
         if len(do_path) > 1024:
@@ -496,6 +501,8 @@ class HttpStrategyView(RegionTenantHeaderView):
             "rule_extensions": rule_extensions,
             "auto_ssl": auto_ssl,
             "auto_ssl_config": auto_ssl_config,
+            "path_rewrite": path_rewrite,
+            "rewrites": rewrites
         }
         data = domain_service.bind_httpdomain(self.tenant, self.user, service, httpdomain)
         result = general_message(201, "success", "策略添加成功", bean=data)
@@ -524,6 +531,9 @@ class HttpStrategyView(RegionTenantHeaderView):
         domain_path = do_path if do_path else "/"
         auto_ssl = request.data.get("auto_ssl", False)
         auto_ssl_config = request.data.get("auto_ssl_config", None)
+        # path-rewrite
+        path_rewrite = request.data.get("path_rewrite", False)
+        rewrites = request.data.get("rewrites", [])
 
         # 判断参数
         if len(do_path) > 1024:
@@ -565,6 +575,8 @@ class HttpStrategyView(RegionTenantHeaderView):
             "rule_extensions": rule_extensions,
             "auto_ssl": auto_ssl,
             "auto_ssl_config": auto_ssl_config,
+            "path_rewrite": path_rewrite,
+            "rewrites": rewrites
         }
         domain_service.update_httpdomain(self.tenant, service, http_rule_id, update_data)
         result = general_message(200, "success", "策略编辑成功")
@@ -727,7 +739,7 @@ class DomainQueryView(RegionTenantHeaderView):
                 cursor.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
                         sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
                         sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
-                        sd.is_outer_service \
+                        sd.is_outer_service, sd.path_rewrite, sd.rewrites \
                     from service_domain sd \
                         left join service_group_relation sgr on sd.service_id = sgr.service_id \
                         left join service_group sg on sgr.group_id = sg.id \
@@ -759,7 +771,8 @@ class DomainQueryView(RegionTenantHeaderView):
 
                 cursor.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
                     service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
-                    domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}'
+                    domain_heander, the_weight, is_outer_service, path_rewrite,
+                    rewrites from service_domain where tenant_id='{0}'
                     and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id, region.region_id, start,
                                                                                     end))
                 tenant_tuples = cursor.fetchall()
@@ -797,6 +810,8 @@ class DomainQueryView(RegionTenantHeaderView):
             domain_dict["domain_heander"] = tenant_tuple[12]
             domain_dict["the_weight"] = tenant_tuple[13]
             domain_dict["is_outer_service"] = tenant_tuple[14]
+            domain_dict["path_rewrite"] = tenant_tuple[15]
+            domain_dict["rewrites"] = json.loads(tenant_tuple[16] if tenant_tuple[16] else '[]')
             domain_dict["group_id"] = group_id
             domain_list.append(domain_dict)
         bean = dict()
@@ -956,6 +971,8 @@ class AppServiceDomainQueryView(RegionTenantHeaderView):
             domain_dict["domain_heander"] = tenant_tuple[12]
             domain_dict["the_weight"] = tenant_tuple[13]
             domain_dict["is_outer_service"] = tenant_tuple[14]
+            domain_dict["path_rewrite"] = tenant_tuple[15]
+            domain_dict["rewrites"] = json.loads(tenant_tuple[16] if tenant_tuple[16] else '[]')
             domain_dict["group_id"] = group_id
             domain_list.append(domain_dict)
         bean = dict()

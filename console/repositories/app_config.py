@@ -708,6 +708,8 @@ class ServiceDomainRepository(object):
                     OR a.domain_cookie <> ""
                     OR a.domain_heander <> ""
                     OR a.the_weight <> 100
+                    OR a.path_rewrite <> 0
+                    OR a.rewrites <> ""
                     OR a.domain_name NOT LIKE {team_name}
                 )
                 LIMIT 1""".format(
