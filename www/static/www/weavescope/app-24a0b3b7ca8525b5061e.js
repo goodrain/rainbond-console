@@ -30506,11 +30506,12 @@ var NodeDetails = function (_React$Component) {
       var appModuleInfo = appmoduleinfo && appmoduleinfo.data || {};
       var appVisitInfo = appvisitinfo && appvisitinfo.data || {};
       var appCpu = (appInfo.cpu / 1000).toFixed(2);
-      var appMemory = (appInfo.memory / 1024).toFixed(2);
-      var appDisk = appInfo.disk > 1024 ? 'MB' : 'KB';
+      var appMemoryUnit = appInfo.memory > 1024 ? 'GB' : 'MB';
+      var appMemory = appInfo.memory > 1024 ? (appInfo.memory / 1024).toFixed(2) : appInfo.memory;
+      var appDiskUnit = appInfo.disk > 1024 ? 'MB' : appInfo.disk >= 1048576 ? 'GB' : 'KB';
+      var appDiskValue = appInfo.disk > 1024 ? (appInfo.disk / 1024).toFixed(2) : appInfo.disk >= 1048576 ? (appInfo.disk / 1024 / 1024).toFixed(2) : appInfo.disk;
       var appState = appInfo && (0, _nodeDetailsUtils.appStatusCN)(appInfo.status);
       var appModule = newAppInfo && newAppInfo.data || [];
-
       var styles = {
         controls: {
           backgroundColor: (0, _colorUtils.brightenColor)(nodeColor)
@@ -31315,7 +31316,8 @@ var NodeDetails = function (_React$Component) {
                 _react2.default.createElement(
                   'div',
                   { style: { textAlign: 'left', width: '60%' } },
-                  appInfo.memory + 'MB'
+                  appMemory,
+                  appMemoryUnit
                 )
               ),
               _react2.default.createElement(
@@ -31343,8 +31345,8 @@ var NodeDetails = function (_React$Component) {
                 _react2.default.createElement(
                   'div',
                   { style: { textAlign: 'left', width: '60%' } },
-                  appInfo.disk,
-                  appDisk
+                  appDiskValue,
+                  appDiskUnit
                 )
               ),
               _react2.default.createElement(
@@ -31429,7 +31431,7 @@ var NodeDetails = function (_React$Component) {
                 _react2.default.createElement(
                   'div',
                   { style: { textAlign: 'left', width: '60%' } },
-                  appMemory + 'GB'
+                  appInfo.memory + 'MB'
                 )
               ),
               _react2.default.createElement(

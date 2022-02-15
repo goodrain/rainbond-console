@@ -245,11 +245,12 @@ class NodeDetails extends React.Component {
     const appModuleInfo = appmoduleinfo && appmoduleinfo.data || {}
     const appVisitInfo = appvisitinfo && appvisitinfo.data || {}
     const appCpu = (appInfo.cpu / 1000).toFixed(2)
-    const appMemory = (appInfo.memory / 1024).toFixed(2)
-    const appDisk = appInfo.disk > 1024 ? 'MB' : 'KB'
+    const appMemoryUnit = appInfo.memory > 1024 ? 'GB' : 'MB' 
+    const appMemory = appInfo.memory > 1024 ? (appInfo.memory / 1024).toFixed(2) : appInfo.memory
+    const appDiskUnit = appInfo.disk > 1024 ? 'MB' : appInfo.disk >= 1048576 ? 'GB' : 'KB'
+    const appDiskValue = appInfo.disk > 1024 ? (appInfo.disk / 1024).toFixed(2) : appInfo.disk >= 1048576 ? (appInfo.disk / 1024 /1024 ).toFixed(2) : appInfo.disk
     const appState = appInfo && appStatusCN(appInfo.status)
     const appModule = newAppInfo && newAppInfo.data || []
-
     const styles = {
       controls: {
         backgroundColor: brightenColor(nodeColor)
@@ -743,7 +744,7 @@ class NodeDetails extends React.Component {
                   </div>
                   <div style={{ display: 'flex' }}>
                     <div style={{ textAlign: 'right', width: '40%' }}>内存：</div>
-                    <div style={{ textAlign: 'left', width: '60%' }}>{appInfo.memory + 'MB'}</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{appMemory}{appMemoryUnit}</div>
                   </div>
                   <div style={{ display: 'flex' }}>
                     <div style={{ textAlign: 'right', width: '40%' }}>CPU：</div>
@@ -751,7 +752,7 @@ class NodeDetails extends React.Component {
                   </div>
                   <div style={{ display: 'flex' }}>
                     <div style={{ textAlign: 'right', width: '40%' }}>磁盘：</div>
-                    <div style={{ textAlign: 'left', width: '60%' }}>{appInfo.disk}{appDisk}</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{appDiskValue}{appDiskUnit}</div>
                   </div>
                   <div style={{ display: 'flex' }}>
                     <div style={{ textAlign: 'right', width: '40%' }}>组件数量：</div>
@@ -782,7 +783,7 @@ class NodeDetails extends React.Component {
                     </div>
                     <div style={{ display: 'flex' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>内存：</div>
-                      <div style={{ textAlign: 'left', width: '60%' }}>{appMemory + 'GB'}</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>{appInfo.memory + 'MB'}</div>
                     </div>
                     <div style={{ display: 'flex' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>CPU：</div>
