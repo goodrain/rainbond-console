@@ -9,8 +9,63 @@ from www.models.main import (ServiceDomain, ServiceGroupRelation, TenantServiceI
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
+AppStatus_NIL = "NIL"
+AppStatus_RUNNING = "RUNNING"
+AppStatus_CLOSED = "CLOSED"
+AppStatus_ABNORMAL = "ABNORMAL"
+AppStatus_STARTING = "STARTING"
+AppStatus_STOPPING = "STOPPING"
 
 class TopologicalService(object):
+    def app_nil(self, statuses: list):
+        for status in statuses:
+            if status != "undeploy":
+                return False
+        return True
+
+    def app_closed(self, statuses: list):
+        for status in statuses:
+            if status != "closed":
+                return False
+        return True
+
+    def app_abnormal(self, statuses: list):
+        for status in statuses:
+            if status == "abnormal" or status == "some_abnormal":
+                return True
+        return False
+
+    def app_starting(self, statuses: list):
+        for status in statuses:
+            if status == "starting":
+                return True
+        return False
+
+    def app_stopping(self, statuses: list):
+        stopping = False
+        for status in statuses:
+            if status == "stopping":
+                stopping = True
+                continue
+            if status == "closed":
+                continue
+            return False
+        return stopping
+
+    def get_app_status(self, component_statuses: list):
+        app_status = AppStatus_RUNNING
+        if len(component_statuses) == 0 or self.app_nil(component_statuses):
+            app_status = AppStatus_NIL
+        elif self.app_closed(component_statuses):
+            app_status = AppStatus_CLOSED
+        elif self.app_abnormal(component_statuses):
+            app_status = AppStatus_ABNORMAL
+        elif self.app_starting(component_statuses):
+            app_status = AppStatus_STARTING
+        elif self.app_stopping(component_statuses):
+            app_status = AppStatus_STOPPING
+        return app_status
+
     def get_group_topological_graph(self, group_id, region, team_name, enterprise_id):
         topological_info = dict()
         service_group_relation_list = ServiceGroupRelation.objects.filter(group_id=group_id)
@@ -29,7 +84,18 @@ class TopologicalService(object):
 
         # 查询每个组件所属应用信息
         component_rel_list = ServiceGroupRelation.objects.filter(service_id__in=all_service_id_list)
-        app_ids = [rel.group_id for rel in component_rel_list]
+        app_ids = []
+        # component_id_with_app_id_rels = {}
+        component_ids_under_app = {}
+        app_statuses = {}
+        for rel in component_rel_list:
+            app_ids.append(rel.group_id)
+            # component_id_with_app_id_rels[rel.service_id] = rel.group_id
+            app_statuses[rel.group_id] = AppStatus_NIL
+            if not component_ids_under_app.get(rel.group_id):
+                component_ids_under_app[rel.group_id] = []
+            component_ids_under_app[rel.group_id].append(rel.service_id)
+
         app_list = ServiceGroup.objects.filter(ID__in=app_ids)
         apps = {app.app_id: app for app in app_list}
         component_rels = {rel.service_id: apps.get(rel.group_id, {}) for rel in component_rel_list}
@@ -47,6 +113,9 @@ class TopologicalService(object):
             except Exception as e:
                 logger.error('batch query service status failed!')
                 logger.exception(e)
+        for app_id in component_ids_under_app:
+            component_statuses = [service_status_map.get(component_id).get("status", "unknown") for component_id in component_ids_under_app[app_id]]
+            app_statuses[app_id] = self.get_app_status(component_statuses)
 
         # 拼接组件状态
         try:
@@ -66,15 +135,18 @@ class TopologicalService(object):
             else:
                 node_num = service_info.min_node
             app = component_rels.get(service_info.service_id)
+            app_id = app.ID if app else 0
             json_data[service_info.service_id] = {
                 "service_id": service_info.service_id,
                 "service_cname": service_info.service_cname,
                 "service_alias": service_info.service_alias,
                 "service_source": service_info.service_source,
+                "component_memory": service_info.min_memory * node_num,
                 "node_num": node_num,
-                "app_id": app.ID if app else 0,
+                "app_id": app_id,
                 "app_type": app.app_type if app else "rainbond",
                 "app_name": app.group_name if app else "404 not found",
+                "app_status": app_statuses.get(app_id, "NIL"),
             }
             json_svg[service_info.service_id] = []
             if service_status_map.get(service_info.service_id):
