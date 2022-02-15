@@ -47,6 +47,7 @@ let firstMessageOnWebsocketAt = 0;
 let continuePolling = true;
 let newData = null;
 let appName = null;
+let newAppInfo = [];
 let appServiceAlias = [];
 const tiem = 0;
 export function buildOptionsQuery(options) {
@@ -318,12 +319,16 @@ function goodrainData2scopeData(data = {}) {
       node.service_cname = item.service_cname;
       node.service_id = item.service_id;
       node.service_alias = item.service_alias;
-      if(appName && appName == item.app_name){
+      if(item.app_id == groupId && item.cur_status != 'third_party'){
         node.label = item.service_cname;
         node.stackNum = 1;
         node.is_flag = false;
-      }else if(appName && appName !== item.app_name){
+      }else if(item.app_id != groupId && item.cur_status != 'third_party'){
         node.label = item.app_name;
+        node.stackNum = 3;
+        node.is_flag = true;
+      }else if(item.cur_status == 'third_party'){
+        node.label = item.service_cname;
         node.stackNum = 3;
         node.is_flag = true;
       }
@@ -346,7 +351,46 @@ function goodrainData2scopeData(data = {}) {
   if (add.length && cloud.adjacency.length) {
     add.unshift(cloud);
   }
-  const scopeDataAdd = add;
+  // let adds = {}
+  // for(let i=0; i<add.length; i++){
+  //     if(add[i].app_id != groupId){
+  //       if(!adds[add[i].app_id]){
+  //         adds[add[i].app_id]=[add[i]]
+  //       }else{
+  //         adds[add[i].app_id].push(add[i])
+  //       }
+  //     }
+  // }
+  let adds = []
+  let newAdds = []
+  for(let i = 0; i<add.length; i++){
+      if(add[i].app_id != groupId && add[i].cur_status != 'third_party' && add[i].cur_status != 'helm'){
+        newAdds.push(add[i])
+      }else{
+        adds.push(add[i])
+      }
+  }
+  var map = newAdds.reduce((all, m) => {
+    let list = all.get(m.app_id);
+    if (!list) {
+        list = [];
+        all.set(m.app_id, list);
+    }
+    list.push(m);
+    return all;
+  }, new Map());;
+  Array.from(map.entries())
+    // 这里过滤掉 list 只有一个元素的，剩下的就是有重复的
+    .forEach(([app_id, list]) => {
+      if(list.length > 0){
+        const values = list.map(m => m);
+        adds.push(values[0])
+        newAppInfo = list
+      }else{
+        adds.push(list[0])
+      }
+    });
+  const scopeDataAdd = adds;
   scopeData.add = null;
   scopeData.remove = null;
   scopeData.update = null;
@@ -357,6 +401,7 @@ function goodrainData2scopeData(data = {}) {
 
   if (newData !== null && newData !== scopeDataAdd) {
     const newAdjacency = newData[0] && newData[0].adjacency;
+
     const scopeAdjacency = scopeDataAdd[0] && scopeDataAdd[0].adjacency;
     scopeData.remove = [];
     scopeData.update = [];
@@ -580,7 +625,6 @@ export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap,
     doRequest({
       url,
       success: (res) => {
-        console.log(res,'组件访问信息')
         res = res || {};
 
         res.rank = res.cur_status;
@@ -654,7 +698,6 @@ export async function appVisitInfo(topologyUrlsById, currentTopologyId, options,
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   let url = '';
   const service_alias = [...new Set(visitinfoParams)].join('-');
-  console.log(service_alias,'appServiceAlias');
   if (tenantName) {
     url = `/console/teams/${tenantName}/group/service/visit?service_alias=${service_alias}`;
 
@@ -715,25 +758,33 @@ export function appModuleInfo(topologyUrlsById, currentTopologyId, options, node
 }
 //应用名称信息
 export function appNameInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias) {
-  const windowParent = window.parent;
-  const obj = nodeMap.last();
-  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
-  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
-  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
-  let url = '';
-  if (tenantName && groupId) {
-    url = `/console/teams/${tenantName}/groups/${groupId}?region=${region}&_=${new Date().getTime()}`;
-
-    doRequest({
-      url,
-      success: (res) => {
-        appName = res.data.bean.app_name
-      },
-      error: (err) => {
-        log(`Error in node details request: ${err.responseText}`);
-      }
+  if(newAppInfo.length > 0){
+    const data = newAppInfo
+    dispatch({
+      type: "NEW_APP_INFO",
+      data
     });
   }
+  
+//   const windowParent = window.parent;
+//   const obj = nodeMap.last();
+//   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+//   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+//   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+//   let url = '';
+//   if (tenantName && groupId) {
+//     url = `/console/teams/${tenantName}/groups/${groupId}?region=${region}&_=${new Date().getTime()}`;
+
+//     doRequest({
+//       url,
+//       success: (res) => {
+//         appName = res.data.bean.app_name
+//       },
+//       error: (err) => {
+//         log(`Error in node details request: ${err.responseText}`);
+//       }
+//     });
+//   }
 }
 //应用下的基本信息
 export function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias,appNodes,nodeId) {

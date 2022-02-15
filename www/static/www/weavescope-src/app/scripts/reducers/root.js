@@ -89,13 +89,14 @@ export const initialState = makeMap({
   websocketClosed: false,
   zoomCache: makeMap(),
   serviceImages: makeMap(),
-  nodedetailes: null,
-  diskdetail: null,
-  visitinfo: null,
-  getpods: null,
-  appinfo: null,
-  appmoduleinfo: null,
-  appvisitinfo: null,
+  nodeDetailes: null,
+  diskDetail: null,
+  visitInfo: null,
+  getPods: null,
+  appInfo: null,
+  appModuleInfo: null,
+  appVisitInfo: null,
+  newAppInfo:null,
 });
 
 function calcSelectType(topology) {
@@ -202,25 +203,28 @@ export function rootReducer(state = initialState, action) {
       return state.set('searchFocused', false);
     }
     case "INSTANCE": {
-      return state.set('nodedetailes', action);
+      return state.set('nodeDetailes', action);
     }
     case "DISK_DETAIL": {
-      return state.set('diskdetail', action);
+      return state.set('diskDetail', action);
     }
     case "VISIT_INFO": {
-      return state.set('visitinfo', action);
+      return state.set('visitInfo', action);
     }
     case "GET_PODS": {
-      return state.set('getpods', action);
+      return state.set('getPods', action);
     }
     case "APP_INFO": {
-      return state.set('appinfo', action);
+      return state.set('appInfo', action);
     }
     case "APP_MODULE_INFO": {
-      return state.set('appmoduleinfo', action);
+      return state.set('appModuleInfo', action);
     }
     case "APP_VISIT_INFO": {
-      return state.set('appvisitinfo', action);
+      return state.set('appVisitInfo', action);
+    }
+    case "NEW_APP_INFO":{
+      return state.set('newAppInfo',action)
     }
     case ActionTypes.CHANGE_TOPOLOGY_OPTION: {
       state = resumeUpdate(state);

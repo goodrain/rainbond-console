@@ -437,6 +437,13 @@ export function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
     visitInfoParams(
       state.get('appNodes'),
       nodeId,
+    );
+    appNameInfo(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch,
     )
   };
 }
@@ -879,13 +886,6 @@ export function route(urlState) {
       state.get('nodeDetails'),
       dispatch
     );
-    appNameInfo(
-      state.get('topologyUrlsById'),
-      state.get('currentTopologyId'),
-      activeTopologyOptionsSelector(state),
-      state.get('nodeDetails'),
-      dispatch,
-    )
     // If we are landing on the resource view page, we need to fetch not only all the
     // nodes for the current topology, but also the nodes of all the topologies that make
     // the layers in the resource view.

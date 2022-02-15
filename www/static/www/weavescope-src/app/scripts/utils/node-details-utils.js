@@ -55,12 +55,35 @@ export function statusCN(nodeDetails) {
      'startting' : '开启中',
      'checking' : '检测中',
      'stoping' : '关闭中',
-     'stopping' : '关闭中'
-
+     'stopping' : '关闭中',
+     'abnormal' : '运行异常',
+     'third_party' : '第三方组件',
+     'helm' : 'helm',
   }
   return map[nodeDetails.cur_status]  || '未知状态';
 }
-
+//应用对应的状态中文描述
+export function appStatusCN(nodeDetails) {
+  var map = {
+    RUNNING: '运行中',
+    STARTING: '启动中',
+    CLOSED: '已关闭',
+    STOPPING: '关闭中',
+    ABNORMAL: '异常',
+    PARTIAL_ABNORMAL: '部分异常',
+    'not-configured': '未配置',
+    unknown: '未知',
+    deployed: '已部署',
+    superseded: '可升级',
+    failed: '失败',
+    uninstalled: '已卸载',
+    uninstalling: '卸载中',
+    'pending-install': '安装中',
+    'pending-upgrade': '升级中',
+    'pending-rollback': '回滚中'
+  }
+  return map[nodeDetails]  || '未知状态';
+}
 // 获取节点的内存占用
 export function getContainerMemory(nodeDetails) {
   //不是运行中的状态内存强制显示为0

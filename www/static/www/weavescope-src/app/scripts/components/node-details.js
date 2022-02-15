@@ -6,7 +6,7 @@ import { Map as makeMap } from 'immutable';
 
 import { clickCloseDetails, clickShowTopologyForNode, clickRelative } from '../actions/app-actions';
 import { brightenColor, getNeutralColor, getNodeColorDark, getStatusColor } from '../utils/color-utils';
-import { isGenericTable, isPropertyList, statusCN, getContainerMemory, getPodNum, getPodMemory, showDetailContent, getNodeList } from '../utils/node-details-utils';
+import { isGenericTable, isPropertyList, statusCN, appStatusCN, getContainerMemory, getPodNum, getPodMemory, showDetailContent, getNodeList } from '../utils/node-details-utils';
 import { resetDocumentTitle, setDocumentTitle } from '../utils/title-utils';
 
 import MatchedText from './matched-text';
@@ -231,9 +231,8 @@ class NodeDetails extends React.Component {
     })
   }
   renderDetails() {
-    const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo, pods, appinfo, appmoduleinfo, appvisitinfo, appNodes } = this.props;
+    const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo, pods, appinfo, appmoduleinfo, appvisitinfo, appNodes, newAppInfo } = this.props;
     const { shows } = this.state
-    console.log(this.props,'props------------------');
     const showControls = details.controls && details.controls.length > 0;
     const instanceDetail = bean && bean.bean.containers || [];
     const instancePods = pods && pods.data || []
@@ -248,10 +247,8 @@ class NodeDetails extends React.Component {
     const appCpu = (appInfo.cpu / 1000).toFixed(2)
     const appMemory = (appInfo.memory / 1024).toFixed(2)
     const appDisk = appInfo.disk > 1024 ? 'MB' : 'KB'
-    const appState = appInfo && appInfo.status == 'RUNNING' ? '运行中' : '异常'
-    // console.log(appInfo,'appinfo')
-    // console.log(appModuleInfo,'appModuleInfo')
-    // console.log(appVisitInfo, 'appVisitInfo')
+    const appState = appInfo && appStatusCN(appInfo.status)
+    const appModule = newAppInfo && newAppInfo.data || []
 
     const styles = {
       controls: {
@@ -272,21 +269,28 @@ class NodeDetails extends React.Component {
     const nodeInfo = this.props.nodes.get(this.props.id).toJS();
     const nodeDetails = details;
     const appnodes = appNodes._list._tail.array
-    var isFlag = false;
-    var is_Helm = false;
-    // console.log(appnodes, 'appnodes');
+    var isFlag = null;
+    var is_Helm = null;
+    const newRes = []
+    // 节点依据
     for (let i = 0; i < appnodes.length; i++) {
       if (nodeDetails.id === appnodes[i][0].id && appnodes[i][0].is_flag) {
         isFlag = true
       }
     }
+    // helm依据
     for (let i = 0; i < appnodes.length; i++) {
       if (nodeDetails.id === appnodes[i][0].id && appnodes[i][0].cur_status == 'helm') {
         is_Helm = true
 
       }
+    };
+    //应用下的组件
+    for(let i=0; i<appModule.length; i++){
+      if(nodeDetails.app_id === appModule[i].app_id){
+        newRes.push(appModule[i])
+      }
     }
-    console.log(nodeDetails, 'nodeDetails------');
     //服务列表
     const portList = nodeDetails.port_list || {};
     //此属性只有云节点有
@@ -822,13 +826,15 @@ class NodeDetails extends React.Component {
                                 <th style={{ width: '33%', textAlign: 'center' }}>状态</th>
                               </tr>
                             </thead>
-                            {instanceDetail.length > 0 && instanceDetail.map((item, index) => {
+                            {newRes.length > 0 && newRes.map((item, index) => {
                               return (
                                 < tbody >
                                   <tr>
-                                    <td className="node-details-info-field-value truncate" style={{ textAlign: 'center' }} title={item.image}>sadfg</td>
-                                    <td style={{ textAlign: 'center' }}>512MB</td>
-                                    <td className="node-details-info-field-value truncate" title={item.reason} style={{ textAlign: 'center' }}>运行中</td>
+                                    <td className="node-details-info-field-value truncate" style={{ textAlign: 'center' }} title={item.service_cname}>{item.service_cname}</td>
+                                    <td style={{ textAlign: 'center' }}>{nodeDetails.total_memory + 'MB'}</td>
+                                    <td className="node-details-info-field-value truncate" title={item.cur_status} style={{ textAlign: 'center' }}>
+                                      {statusCN(item)}
+                                    </td>
                                   </tr>
                                 </tbody>
                               )
@@ -958,14 +964,15 @@ function mapStateToProps(state, ownProps) {
     nodeMatches: state.getIn(['searchNodeMatches', currentTopologyId, ownProps.id]),
     nodes: state.get('nodes'),
     selectedNodeId: state.get('selectedNodeId'),
-    bean: state.get('nodedetailes'),
-    disk: state.get('diskdetail'),
-    visitinfo: state.get('visitinfo'),
-    pods: state.get('getpods'),
-    appinfo: state.get('appinfo'),
-    appmoduleinfo: state.get('appmoduleinfo'),
-    appvisitinfo: state.get('appvisitinfo'),
-    appNodes: state.get('appNodes')
+    bean: state.get('nodeDetailes'),
+    disk: state.get('diskDetail'),
+    visitinfo: state.get('visitInfo'),
+    pods: state.get('getPods'),
+    appinfo: state.get('appInfo'),
+    appmoduleinfo: state.get('appModuleInfo'),
+    appvisitinfo: state.get('appVisitInfo'),
+    appNodes: state.get('appNodes'),
+    newAppInfo : state.get('newAppInfo')
   };
 }
 

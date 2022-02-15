@@ -1,0 +1,5 @@
+node_modules
+build/
+coverage/
+test/*png
+weave-scope.tgz
