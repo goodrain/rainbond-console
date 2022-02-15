@@ -366,7 +366,6 @@ function goodrainData2scopeData(data = {}) {
   //       }
   //     }
   // }
-
   let adds = []
   let newAdds = []
   for(let i = 0; i<add.length; i++){

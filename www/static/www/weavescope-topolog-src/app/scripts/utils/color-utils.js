@@ -114,7 +114,7 @@ const statusColorMap = {
   'Unknow' : 'rgb(205,2,0)', //深粉色 
   'unknow' : 'rgb(205,2,0)',//深粉色 
   'abnormal':'rgb(205,2,0)',//不正常,纯红 
-  'some_abnormal':'rgb(255,0,0)',//一些不正常 纯红 
+  'some_abnormal':'rgb(205,2,0)',//一些不正常 纯红 
 
   'building':'rgb(0,119,16)',//构建  纯蓝 
   'build_failure':'rgb(205,2,0)'//构建失败 纯红 

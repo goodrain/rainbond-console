@@ -309,6 +309,7 @@ class NodeDetails extends React.Component {
       day6 = day4 - day5 * 3600,
       day7 = Math.floor(day6 / 60),
       day8 = day6 - day7 * 60;
+    console.log(nodeDetails.cur_status,'cur_status');
     // 实例平均占用内存
     const podMemory = getPodMemory(nodeDetails);
     return (
@@ -477,7 +478,7 @@ class NodeDetails extends React.Component {
                   <div style={{ width: '100%' }}>
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>运行状态：</div>
-                      <div style={{ textAlign: 'left', width: '60%' }}>{nodeDetails.status_cn || '未知'}</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>{nodeDetails.status_cn || '部分异常'}</div>
                     </div>
                     <div style={{ display: 'flex' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>内存：</div>

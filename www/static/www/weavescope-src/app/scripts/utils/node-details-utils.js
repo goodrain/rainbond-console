@@ -57,6 +57,7 @@ export function statusCN(nodeDetails) {
      'stoping' : '关闭中',
      'stopping' : '关闭中',
      'abnormal' : '运行异常',
+     'some_abnormal' : '部分异常',
      'third_party' : '第三方组件',
      'helm' : 'helm',
   }
@@ -76,6 +77,7 @@ export function componentStatusCN(nodeDetails) {
      'abnormal' : '运行异常',
      'third_party' : '第三方组件',
      'helm' : 'helm',
+     'some_abnormal' : '部分异常',
   }
   return map[nodeDetails.component_status]  || '未知状态';
 }
