@@ -6,7 +6,7 @@ import { Map as makeMap } from 'immutable';
 
 import { clickCloseDetails, clickShowTopologyForNode, clickRelative } from '../actions/app-actions';
 import { brightenColor, getNeutralColor, getNodeColorDark, getStatusColor } from '../utils/color-utils';
-import { isGenericTable, isPropertyList, statusCN, appStatusCN, getContainerMemory, getPodNum, getPodMemory, showDetailContent, getNodeList } from '../utils/node-details-utils';
+import { isGenericTable, isPropertyList, statusCN, appStatusCN, componentStatusCN, getContainerMemory, getPodNum, getPodMemory, showDetailContent, getNodeList } from '../utils/node-details-utils';
 import { resetDocumentTitle, setDocumentTitle } from '../utils/title-utils';
 
 import MatchedText from './matched-text';
@@ -832,9 +832,9 @@ class NodeDetails extends React.Component {
                                 < tbody >
                                   <tr>
                                     <td className="node-details-info-field-value truncate" style={{ textAlign: 'center' }} title={item.service_cname}>{item.service_cname}</td>
-                                    <td style={{ textAlign: 'center' }}>{nodeDetails.total_memory + 'MB'}</td>
-                                    <td className="node-details-info-field-value truncate" title={item.cur_status} style={{ textAlign: 'center' }}>
-                                      {statusCN(item)}
+                                    <td style={{ textAlign: 'center' }}>{item.component_memory + 'MB'}</td>
+                                    <td className="node-details-info-field-value truncate" style={{ textAlign: 'center' }}>
+                                      {componentStatusCN(item)}
                                     </td>
                                   </tr>
                                 </tbody>

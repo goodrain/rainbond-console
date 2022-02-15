@@ -62,6 +62,23 @@ export function statusCN(nodeDetails) {
   }
   return map[nodeDetails.cur_status]  || '未知状态';
 }
+// 聚合应用下的节点状态对应的中文描述
+export function componentStatusCN(nodeDetails) {
+  var map = {
+     'running' : '运行中',
+     'closed'  : '已关闭',
+     'undeploy' : '未部署',
+     'starting' : '开启中',
+     'startting' : '开启中',
+     'checking' : '检测中',
+     'stoping' : '关闭中',
+     'stopping' : '关闭中',
+     'abnormal' : '运行异常',
+     'third_party' : '第三方组件',
+     'helm' : 'helm',
+  }
+  return map[nodeDetails.component_status]  || '未知状态';
+}
 //应用对应的状态中文描述
 export function appStatusCN(nodeDetails) {
   var map = {

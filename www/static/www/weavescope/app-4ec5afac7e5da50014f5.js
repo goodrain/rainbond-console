@@ -5179,6 +5179,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.getNodeList = getNodeList;
 exports.showDetailContent = showDetailContent;
 exports.statusCN = statusCN;
+exports.componentStatusCN = componentStatusCN;
 exports.appStatusCN = appStatusCN;
 exports.getContainerMemory = getContainerMemory;
 exports.getPodNum = getPodNum;
@@ -5255,6 +5256,23 @@ function statusCN(nodeDetails) {
     'helm': 'helm'
   };
   return map[nodeDetails.cur_status] || '未知状态';
+}
+// 聚合应用下的节点状态对应的中文描述
+function componentStatusCN(nodeDetails) {
+  var map = {
+    'running': '运行中',
+    'closed': '已关闭',
+    'undeploy': '未部署',
+    'starting': '开启中',
+    'startting': '开启中',
+    'checking': '检测中',
+    'stoping': '关闭中',
+    'stopping': '关闭中',
+    'abnormal': '运行异常',
+    'third_party': '第三方组件',
+    'helm': 'helm'
+  };
+  return map[nodeDetails.component_status] || '未知状态';
 }
 //应用对应的状态中文描述
 function appStatusCN(nodeDetails) {
@@ -15249,27 +15267,32 @@ function goodrainData2scopeData() {
     if (Object.prototype.hasOwnProperty.call(data.json_data, k)) {
       node = {};
       item = data.json_data[k];
-      if (item.app_type === 'helm') {
-        node.cur_status = 'helm';
-      } else {
-        node.cur_status = item.cur_status;
-      }
       node.service_cname = item.service_cname;
       node.service_id = item.service_id;
       node.service_alias = item.service_alias;
-      if (item.app_id == groupId && item.cur_status != 'third_party') {
+      if (item.app_id == groupId && item.cur_status != 'third_party' && item.app_type !== 'helm') {
         node.label = item.service_cname;
         node.stackNum = 1;
         node.is_flag = false;
-      } else if (item.app_id != groupId && item.cur_status != 'third_party') {
+        node.cur_status = item.cur_status;
+      } else if (item.app_id != groupId && item.cur_status != 'third_party' && item.app_type !== 'helm') {
         node.label = item.app_name;
         node.stackNum = 3;
         node.is_flag = true;
-      } else if (item.cur_status == 'third_party') {
+        node.cur_status = item.app_status;
+        node.component_status = item.cur_status;
+      } else if (item.app_type !== 'helm' && item.cur_status == 'third_party') {
         node.label = item.service_cname;
         node.stackNum = 3;
         node.is_flag = true;
+        node.cur_status = item.cur_status;
+      } else if (item.app_type === 'helm') {
+        node.cur_status = 'helm';
+        node.label = item.app_name;
+        node.stackNum = 3;
+        node.is_flag = true;
       }
+      node.component_memory = item.component_memory;
       node.id = item.service_id;
       node.app_id = item.app_id;
       node.lineTip = item.lineTip;
@@ -15299,6 +15322,7 @@ function goodrainData2scopeData() {
   //       }
   //     }
   // }
+
   var adds = [];
   var newAdds = [];
   for (var i = 0; i < add.length; i++) {
@@ -31561,12 +31585,12 @@ var NodeDetails = function (_React$Component) {
                         _react2.default.createElement(
                           'td',
                           { style: { textAlign: 'center' } },
-                          nodeDetails.total_memory + 'MB'
+                          item.component_memory + 'MB'
                         ),
                         _react2.default.createElement(
                           'td',
-                          { className: 'node-details-info-field-value truncate', title: item.cur_status, style: { textAlign: 'center' } },
-                          (0, _nodeDetailsUtils.statusCN)(item)
+                          { className: 'node-details-info-field-value truncate', style: { textAlign: 'center' } },
+                          (0, _nodeDetailsUtils.componentStatusCN)(item)
                         )
                       )
                     );

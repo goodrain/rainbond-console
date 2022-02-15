@@ -311,27 +311,32 @@ function goodrainData2scopeData(data = {}) {
     if (Object.prototype.hasOwnProperty.call(data.json_data, k)) {
       node = {};
       item = data.json_data[k];
-      if(item.app_type === 'helm'){
-        node.cur_status = 'helm';
-      }else{
-        node.cur_status = item.cur_status;
-      }
       node.service_cname = item.service_cname;
       node.service_id = item.service_id;
       node.service_alias = item.service_alias;
-      if(item.app_id == groupId && item.cur_status != 'third_party'){
+      if(item.app_id == groupId && item.cur_status != 'third_party' && item.app_type !== 'helm'){
         node.label = item.service_cname;
         node.stackNum = 1;
         node.is_flag = false;
-      }else if(item.app_id != groupId && item.cur_status != 'third_party'){
+        node.cur_status = item.cur_status;
+      }else if(item.app_id != groupId && item.cur_status != 'third_party' && item.app_type !== 'helm'){
         node.label = item.app_name;
         node.stackNum = 3;
         node.is_flag = true;
-      }else if(item.cur_status == 'third_party'){
+        node.cur_status = item.app_status
+        node.component_status = item.cur_status
+      }else if(item.app_type !== 'helm' && item.cur_status == 'third_party'){
         node.label = item.service_cname;
         node.stackNum = 3;
         node.is_flag = true;
+        node.cur_status = item.cur_status;
+      }else if(item.app_type === 'helm'){
+        node.cur_status = 'helm';
+        node.label = item.app_name;
+        node.stackNum = 3;
+        node.is_flag = true;
       }
+      node.component_memory = item.component_memory
       node.id = item.service_id;
       node.app_id = item.app_id;
       node.lineTip = item.lineTip;
@@ -361,6 +366,7 @@ function goodrainData2scopeData(data = {}) {
   //       }
   //     }
   // }
+
   let adds = []
   let newAdds = []
   for(let i = 0; i<add.length; i++){
