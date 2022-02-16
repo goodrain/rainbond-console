@@ -478,7 +478,7 @@ class NodeDetails extends React.Component {
                   <div style={{ width: '100%' }}>
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>运行状态：</div>
-                      <div style={{ textAlign: 'left', width: '60%' }}>{nodeDetails.status_cn || '部分异常'}</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>{nodeDetails.status_cn || '部分实例异常'}</div>
                     </div>
                     <div style={{ display: 'flex' }}>
                       <div style={{ textAlign: 'right', width: '40%' }}>内存：</div>
