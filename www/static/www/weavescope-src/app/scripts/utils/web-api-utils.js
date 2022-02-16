@@ -284,7 +284,7 @@ function goodrainData2scopeData(data = {}) {
     id: 'The Internet',
     app_id:groupId,
     service_alias: 'internet',
-    service_cname: '网关',
+    service_cname: 'The Internet',
     label: '网关',
     shape: 'cloud',
     stack: true,

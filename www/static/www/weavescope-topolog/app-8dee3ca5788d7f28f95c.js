@@ -15172,7 +15172,7 @@ function goodrainData2scopeData() {
   var cloud = {
     id: 'The Internet',
     service_alias: 'internet',
-    service_cname: '网关',
+    service_cname: 'The Internet',
     label: '网关',
     shape: 'cloud',
     stack: true,
@@ -30297,11 +30297,12 @@ var NodeDetails = function (_React$Component) {
           pods = _props.pods;
       var shows = this.state.shows;
 
+      var nodeDetails = details;
       var showControls = details.controls && details.controls.length > 0;
       var instanceDetail = bean && bean.bean.containers || [];
       var instancePods = pods && pods.data || [];
       var visit = visitinfo && visitinfo.data.access_urls || [];
-      var disks = Math.round(disk.data.disk);
+      var disks = disk && disk.data.disk && Math.round(disk.data.disk) || 0;
       var nodeColor = (0, _colorUtils.getNodeColorDark)(details.rank, details.label, details.pseudo);
 
       var _ref = nodeControlStatus ? nodeControlStatus.toJS() : {},
@@ -30309,6 +30310,17 @@ var NodeDetails = function (_React$Component) {
           pending = _ref.pending;
 
       var tools = this.renderTools();
+      var nodeInfo = this.props.nodes.get(this.props.id).toJS();
+      //服务列表
+      var portList = nodeDetails.port_list || {};
+      //此属性只有云节点有
+      var nodeList = (0, _nodeDetailsUtils.getNodeList)(nodeDetails);
+      //依赖列表
+      var relationList = nodeDetails.relation_list || {};
+      var show = (0, _nodeDetailsUtils.showDetailContent)(nodeDetails);
+      var container_memory = nodeDetails.container_memory;
+      // 实例平均占用内存
+      var podMemory = (0, _nodeDetailsUtils.getPodMemory)(nodeDetails);
       var styles = {
         controls: {
           backgroundColor: (0, _colorUtils.brightenColor)(nodeColor)
@@ -30325,16 +30337,6 @@ var NodeDetails = function (_React$Component) {
         return instance_count;
       });
       // const nodeInfo = this.props.nodes.get(this.props.label).toJS();
-      var nodeInfo = this.props.nodes.get(this.props.id).toJS();
-      var nodeDetails = details;
-      //服务列表
-      var portList = nodeDetails.port_list || {};
-      //此属性只有云节点有
-      var nodeList = (0, _nodeDetailsUtils.getNodeList)(nodeDetails);
-      //依赖列表
-      var relationList = nodeDetails.relation_list || {};
-      var show = (0, _nodeDetailsUtils.showDetailContent)(nodeDetails);
-      var container_memory = nodeDetails.container_memory;
       //计算运行时间
       var day = Math.floor(new Date().getTime() / 1000) - new Date(nodeDetails.start_time).getTime() / 1000,
           day2 = Math.floor(day / (24 * 3600)),
@@ -30344,8 +30346,6 @@ var NodeDetails = function (_React$Component) {
           day6 = day4 - day5 * 3600,
           day7 = Math.floor(day6 / 60),
           day8 = day6 - day7 * 60;
-      // 实例平均占用内存
-      var podMemory = (0, _nodeDetailsUtils.getPodMemory)(nodeDetails);
       return _react2.default.createElement(
         'div',
         { className: 'node-details' },

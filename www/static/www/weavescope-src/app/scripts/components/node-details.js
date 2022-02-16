@@ -233,11 +233,12 @@ class NodeDetails extends React.Component {
   renderDetails() {
     const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo, pods, appinfo, appmoduleinfo, appvisitinfo, appNodes, newAppInfo } = this.props;
     const { shows } = this.state
+    const nodeDetails = details;
     const showControls = details.controls && details.controls.length > 0;
     const instanceDetail = bean && bean.bean.containers || [];
     const instancePods = pods && pods.data || []
     const visit = visitinfo && visitinfo.data.access_urls || [];
-    const disks = Math.round(disk.data.disk)
+    const disks = disk && disk.data.disk && Math.round(disk.data.disk) || 0
     const nodeColor = getNodeColorDark(details.rank, details.label, details.pseudo);
     const { error, pending } = nodeControlStatus ? nodeControlStatus.toJS() : {};
     const tools = this.renderTools();
@@ -251,6 +252,21 @@ class NodeDetails extends React.Component {
     const appDiskValue = appInfo.disk > 1024 ? (appInfo.disk / 1024).toFixed(2) : appInfo.disk >= 1048576 ? (appInfo.disk / 1024 /1024 ).toFixed(2) : appInfo.disk
     const appState = appInfo && appStatusCN(appInfo.status)
     const appModule = newAppInfo && newAppInfo.data || []
+    const nodeInfo = this.props.nodes.get(this.props.id).toJS();
+    //服务列表
+    const portList = nodeDetails.port_list || {};
+    //此属性只有云节点有
+    const nodeList = getNodeList(nodeDetails);
+    //依赖列表
+    const relationList = nodeDetails.relation_list || {};
+    const show = showDetailContent(nodeDetails);
+    const container_memory = nodeDetails.container_memory;
+    const appnodes = appNodes._list._tail.array
+    // 实例平均占用内存
+    const podMemory = getPodMemory(nodeDetails);
+    var isFlag = null;
+    var is_Helm = null;
+    const newRes = []
     const styles = {
       controls: {
         backgroundColor: brightenColor(nodeColor)
@@ -267,12 +283,6 @@ class NodeDetails extends React.Component {
       return instance_count
     })
     // const nodeInfo = this.props.nodes.get(this.props.label).toJS();
-    const nodeInfo = this.props.nodes.get(this.props.id).toJS();
-    const nodeDetails = details;
-    const appnodes = appNodes._list._tail.array
-    var isFlag = null;
-    var is_Helm = null;
-    const newRes = []
     // 节点依据
     for (let i = 0; i < appnodes.length; i++) {
       if (nodeDetails.id === appnodes[i][0].id && appnodes[i][0].is_flag) {
@@ -292,14 +302,6 @@ class NodeDetails extends React.Component {
         newRes.push(appModule[i])
       }
     }
-    //服务列表
-    const portList = nodeDetails.port_list || {};
-    //此属性只有云节点有
-    const nodeList = getNodeList(nodeDetails);
-    //依赖列表
-    const relationList = nodeDetails.relation_list || {};
-    const show = showDetailContent(nodeDetails);
-    const container_memory = nodeDetails.container_memory;
     //计算运行时间
     var day = Math.floor(new Date().getTime() / 1000) - (new Date(nodeDetails.start_time).getTime() / 1000),
       day2 = Math.floor(day / (24 * 3600)),
@@ -309,8 +311,6 @@ class NodeDetails extends React.Component {
       day6 = day4 - day5 * 3600,
       day7 = Math.floor(day6 / 60),
       day8 = day6 - day7 * 60;
-    // 实例平均占用内存
-    const podMemory = getPodMemory(nodeDetails);
     return (
       <div className={'node-details'}>
         {tools}

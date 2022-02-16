@@ -232,14 +232,26 @@ class NodeDetails extends React.Component {
   renderDetails() {
     const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo, pods } = this.props;
     const { shows } = this.state
+    const nodeDetails = details;
     const showControls = details.controls && details.controls.length > 0;
     const instanceDetail = bean && bean.bean.containers || [];
     const instancePods = pods && pods.data || []
     const visit = visitinfo && visitinfo.data.access_urls || [];
-    const disks = Math.round(disk.data.disk)
+    const disks = disk && disk.data.disk && Math.round(disk.data.disk) || 0
     const nodeColor = getNodeColorDark(details.rank, details.label, details.pseudo);
     const { error, pending } = nodeControlStatus ? nodeControlStatus.toJS() : {};
     const tools = this.renderTools();
+    const nodeInfo = this.props.nodes.get(this.props.id).toJS();
+    //服务列表
+    const portList = nodeDetails.port_list || {};
+    //此属性只有云节点有
+    const nodeList = getNodeList(nodeDetails);
+    //依赖列表
+    const relationList = nodeDetails.relation_list || {};
+    const show = showDetailContent(nodeDetails);
+    const container_memory = nodeDetails.container_memory;
+    // 实例平均占用内存
+    const podMemory = getPodMemory(nodeDetails);
     const styles = {
       controls: {
         backgroundColor: brightenColor(nodeColor)
@@ -256,16 +268,6 @@ class NodeDetails extends React.Component {
       return instance_count
     })
     // const nodeInfo = this.props.nodes.get(this.props.label).toJS();
-    const nodeInfo = this.props.nodes.get(this.props.id).toJS();
-    const nodeDetails = details;
-    //服务列表
-    const portList = nodeDetails.port_list || {};
-    //此属性只有云节点有
-    const nodeList = getNodeList(nodeDetails);
-    //依赖列表
-    const relationList = nodeDetails.relation_list || {};
-    const show = showDetailContent(nodeDetails);
-    const container_memory = nodeDetails.container_memory;
     //计算运行时间
     var day = Math.floor(new Date().getTime() / 1000) - (new Date(nodeDetails.start_time).getTime() / 1000),
       day2 = Math.floor(day / (24 * 3600)),
@@ -275,8 +277,6 @@ class NodeDetails extends React.Component {
       day6 = day4 - day5 * 3600,
       day7 = Math.floor(day6 / 60),
       day8 = day6 - day7 * 60;
-    // 实例平均占用内存
-    const podMemory = getPodMemory(nodeDetails);
     return (
       <div className={'node-details'}>
         {tools}

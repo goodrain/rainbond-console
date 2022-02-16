@@ -15242,7 +15242,7 @@ function goodrainData2scopeData() {
     id: 'The Internet',
     app_id: groupId,
     service_alias: 'internet',
-    service_cname: '网关',
+    service_cname: 'The Internet',
     label: '网关',
     shape: 'cloud',
     stack: true,
@@ -30515,11 +30515,12 @@ var NodeDetails = function (_React$Component) {
           newAppInfo = _props.newAppInfo;
       var shows = this.state.shows;
 
+      var nodeDetails = details;
       var showControls = details.controls && details.controls.length > 0;
       var instanceDetail = bean && bean.bean.containers || [];
       var instancePods = pods && pods.data || [];
       var visit = visitinfo && visitinfo.data.access_urls || [];
-      var disks = Math.round(disk.data.disk);
+      var disks = disk && disk.data.disk && Math.round(disk.data.disk) || 0;
       var nodeColor = (0, _colorUtils.getNodeColorDark)(details.rank, details.label, details.pseudo);
 
       var _ref = nodeControlStatus ? nodeControlStatus.toJS() : {},
@@ -30537,6 +30538,21 @@ var NodeDetails = function (_React$Component) {
       var appDiskValue = appInfo.disk > 1024 ? (appInfo.disk / 1024).toFixed(2) : appInfo.disk >= 1048576 ? (appInfo.disk / 1024 / 1024).toFixed(2) : appInfo.disk;
       var appState = appInfo && (0, _nodeDetailsUtils.appStatusCN)(appInfo.status);
       var appModule = newAppInfo && newAppInfo.data || [];
+      var nodeInfo = this.props.nodes.get(this.props.id).toJS();
+      //服务列表
+      var portList = nodeDetails.port_list || {};
+      //此属性只有云节点有
+      var nodeList = (0, _nodeDetailsUtils.getNodeList)(nodeDetails);
+      //依赖列表
+      var relationList = nodeDetails.relation_list || {};
+      var show = (0, _nodeDetailsUtils.showDetailContent)(nodeDetails);
+      var container_memory = nodeDetails.container_memory;
+      var appnodes = appNodes._list._tail.array;
+      // 实例平均占用内存
+      var podMemory = (0, _nodeDetailsUtils.getPodMemory)(nodeDetails);
+      var isFlag = null;
+      var is_Helm = null;
+      var newRes = [];
       var styles = {
         controls: {
           backgroundColor: (0, _colorUtils.brightenColor)(nodeColor)
@@ -30553,12 +30569,6 @@ var NodeDetails = function (_React$Component) {
         return instance_count;
       });
       // const nodeInfo = this.props.nodes.get(this.props.label).toJS();
-      var nodeInfo = this.props.nodes.get(this.props.id).toJS();
-      var nodeDetails = details;
-      var appnodes = appNodes._list._tail.array;
-      var isFlag = null;
-      var is_Helm = null;
-      var newRes = [];
       // 节点依据
       for (var i = 0; i < appnodes.length; i++) {
         if (nodeDetails.id === appnodes[i][0].id && appnodes[i][0].is_flag) {
@@ -30577,14 +30587,6 @@ var NodeDetails = function (_React$Component) {
           newRes.push(appModule[_i2]);
         }
       }
-      //服务列表
-      var portList = nodeDetails.port_list || {};
-      //此属性只有云节点有
-      var nodeList = (0, _nodeDetailsUtils.getNodeList)(nodeDetails);
-      //依赖列表
-      var relationList = nodeDetails.relation_list || {};
-      var show = (0, _nodeDetailsUtils.showDetailContent)(nodeDetails);
-      var container_memory = nodeDetails.container_memory;
       //计算运行时间
       var day = Math.floor(new Date().getTime() / 1000) - new Date(nodeDetails.start_time).getTime() / 1000,
           day2 = Math.floor(day / (24 * 3600)),
@@ -30594,8 +30596,6 @@ var NodeDetails = function (_React$Component) {
           day6 = day4 - day5 * 3600,
           day7 = Math.floor(day6 / 60),
           day8 = day6 - day7 * 60;
-      // 实例平均占用内存
-      var podMemory = (0, _nodeDetailsUtils.getPodMemory)(nodeDetails);
       return _react2.default.createElement(
         'div',
         { className: 'node-details' },
