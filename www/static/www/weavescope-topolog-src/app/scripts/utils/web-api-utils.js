@@ -278,8 +278,8 @@ function goodrainData2scopeData(data = {}) {
   const cloud = {
     id: 'The Internet',
     service_alias: 'internet',
-    service_cname: 'The Internet',
-    label: 'The Internet',
+    service_cname: '网关',
+    label: '网关',
     shape: 'cloud',
     stack: true,
     stackNum: 1,

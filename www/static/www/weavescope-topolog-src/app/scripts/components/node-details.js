@@ -599,7 +599,7 @@ class NodeDetails extends React.Component {
                         return relationListItem.map((item, index) => {
                           return (
                             <tr>
-                              <td onClick={(ev) => { this.handleRelativeClick(ev, item.service_alias, undefined, item.service_cname, item.service_alias) }} style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>{item.service_cname}</td>
+                              <td onClick = {this.handleClickRelation.bind(this, item)} style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>{item.service_cname}</td>
                               <td style={{ textAlign: 'right' }}>{item.mapping_port}</td>
                             </tr>
                           );

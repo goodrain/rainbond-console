@@ -309,7 +309,6 @@ class NodeDetails extends React.Component {
       day6 = day4 - day5 * 3600,
       day7 = Math.floor(day6 / 60),
       day8 = day6 - day7 * 60;
-    console.log(nodeDetails.cur_status,'cur_status');
     // 实例平均占用内存
     const podMemory = getPodMemory(nodeDetails);
     return (
@@ -678,7 +677,8 @@ class NodeDetails extends React.Component {
                         return relationListItem.map((item, index) => {
                           return (
                             <tr>
-                              <td onClick={(ev) => { this.handleRelativeClick(ev, item.service_alias, undefined, item.service_cname, item.service_alias) }} style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>{item.service_cname}</td>
+                              {/* <td onClick={(ev) => { this.handleRelativeClick(ev, item.service_alias, undefined, item.service_cname, item.service_alias) }} style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>{item.service_cname}</td> */}
+                              <td onClick={this.handleClickRelation.bind(this, item)} style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>{item.service_cname}</td>
                               <td style={{ textAlign: 'right' }}>{item.mapping_port}</td>
                             </tr>
                           );
@@ -832,7 +832,7 @@ class NodeDetails extends React.Component {
                               return (
                                 < tbody >
                                   <tr>
-                                    <td className="node-details-info-field-value truncate" style={{ textAlign: 'center' }} title={item.service_cname}>{item.service_cname}</td>
+                                    <td onClick={this.handleClickRelation.bind(this, item)} className="node-details-info-field-value truncate" style={{ textAlign: 'center', textDecoration: 'underline', cursor: 'pointer' }} title={item.service_cname}>{item.service_cname}</td>
                                     <td style={{ textAlign: 'center' }}>{item.component_memory + 'MB'}</td>
                                     <td className="node-details-info-field-value truncate" style={{ textAlign: 'center' }}>
                                       {componentStatusCN(item)}
@@ -865,7 +865,7 @@ class NodeDetails extends React.Component {
                         return relationListItem.map((item, index) => {
                           return (
                             <tr>
-                              <td onClick={(ev) => { this.handleRelativeClick(ev, item.service_alias, undefined, item.service_cname, item.service_alias) }} style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>{item.service_cname}</td>
+                              <td onClick={this.handleClickRelation.bind(this, item)} style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>{item.service_cname}</td>
                               <td style={{ textAlign: 'right' }}>{item.mapping_port}</td>
                             </tr>
                           );

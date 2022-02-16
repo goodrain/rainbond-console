@@ -327,8 +327,8 @@ function goodrainData2scopeData(data = {}) {
         node.component_status = item.cur_status
       }else if(item.app_type !== 'helm' && item.cur_status == 'third_party'){
         node.label = item.service_cname;
-        node.stackNum = 3;
-        node.is_flag = true;
+        node.stackNum = 1;
+        node.is_flag = false;
         node.cur_status = item.cur_status;
       }else if(item.app_type === 'helm'){
         node.cur_status = 'helm';
