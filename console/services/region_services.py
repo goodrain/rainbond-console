@@ -400,9 +400,9 @@ class RegionService(object):
 
         if exist_region:
             return region
-        return self._create_sample_application(ent, region, user)
+        return self.create_sample_application(ent, region, user)
 
-    def _create_sample_application(self, ent, region, user):
+    def create_sample_application(self, ent, region, user):
         try:
             # create default team
             from console.services.team_services import team_services
