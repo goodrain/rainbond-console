@@ -114,7 +114,7 @@ class TopologicalService(object):
                 logger.error('batch query service status failed!')
                 logger.exception(e)
         for app_id in component_ids_under_app:
-            component_statuses = [service_status_map.get(component_id).get("status", "unknown") for component_id in component_ids_under_app[app_id]]
+            component_statuses = [service_status_map.get(component_id, {}).get("status", "unknown") for component_id in component_ids_under_app[app_id]]
             app_statuses[app_id] = self.get_app_status(component_statuses)
 
         # 拼接组件状态
