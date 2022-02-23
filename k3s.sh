@@ -19,6 +19,12 @@ if [[ $image != "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-api" ]];then
  done
 fi
 
+# Fix the problem that cgroup version is too high to start
+if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
+  mkdir -p /sys/fs/cgroup/init
+  xargs -rn1 < /sys/fs/cgroup/cgroup.procs > /sys/fs/cgroup/init/cgroup.procs || :
+  sed -e 's/ / +/g' -e 's/^/+/' <"/sys/fs/cgroup/cgroup.controllers" >"/sys/fs/cgroup/cgroup.subtree_control"
+fi
 
 #Start K3s 
 

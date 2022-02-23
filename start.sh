@@ -25,6 +25,8 @@ if [ -n "${K3S_ARGS}" ];then
 fi
 
 if [ "${ENABLE_CLUSTER}" == 'true' ];then
+    # explicitly remove Docker's default PID file to ensure that it can start properly if it was stopped uncleanly (and thus didn't clean up the PID file)
+    find /run /var/run -iname 'docker*.pid' -delete || :
     k3s_start
 fi
 
