@@ -11,6 +11,7 @@ import {
 
 
 class NodesResources extends React.Component {
+  console.log(this.props.layersTopologyIds);
   renderLayers(transform) {
     return this.props.layersTopologyIds.map((topologyId, index) => (
       <NodesResourcesLayer

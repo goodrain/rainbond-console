@@ -58,6 +58,7 @@ export const initialState = makeMap({
   mouseOverNodeId: null,
   nodeDetails: makeOrderedMap(), // nodeId -> details
   nodes: makeOrderedMap(), // nodeId -> node
+  appNodes: makeOrderedMap(),
   nodeMonitorData: makeList(), // serviceId -> monitorData
   nodesLoaded: false,
   // nodes cache, infrequently updated, used for search & resource view
@@ -88,10 +89,14 @@ export const initialState = makeMap({
   websocketClosed: false,
   zoomCache: makeMap(),
   serviceImages: makeMap(),
-  nodedetailes: null,
-  diskdetail: null,
-  visitinfo: null,
-  getpods:null,
+  nodeDetailes: null,
+  diskDetail: null,
+  visitInfo: null,
+  getPods: null,
+  appInfo: null,
+  appModuleInfo: null,
+  appVisitInfo: null,
+  newAppInfo:null,
 });
 
 function calcSelectType(topology) {
@@ -198,16 +203,28 @@ export function rootReducer(state = initialState, action) {
       return state.set('searchFocused', false);
     }
     case "INSTANCE": {
-      return state.set('nodedetailes', action);
+      return state.set('nodeDetailes', action);
     }
     case "DISK_DETAIL": {
-      return state.set('diskdetail', action);
+      return state.set('diskDetail', action);
     }
     case "VISIT_INFO": {
-      return state.set('visitinfo', action);
+      return state.set('visitInfo', action);
     }
     case "GET_PODS": {
-      return state.set('getpods', action);
+      return state.set('getPods', action);
+    }
+    case "APP_INFO": {
+      return state.set('appInfo', action);
+    }
+    case "APP_MODULE_INFO": {
+      return state.set('appModuleInfo', action);
+    }
+    case "APP_VISIT_INFO": {
+      return state.set('appVisitInfo', action);
+    }
+    case "NEW_APP_INFO":{
+      return state.set('newAppInfo',action)
     }
     case ActionTypes.CHANGE_TOPOLOGY_OPTION: {
       state = resumeUpdate(state);
@@ -631,6 +648,7 @@ export function rootReducer(state = initialState, action) {
           // to our nodes selectors (e.g. layout engine would be completely bypassed if the
           // adjacencies would stay the same but the metrics would get updated).
           state = state.setIn(['nodes', node.id], fromJS(node));
+          state = state.setIn(['appNodes', node], fromJS(node));
         }
       });
 
@@ -642,6 +660,7 @@ export function rootReducer(state = initialState, action) {
           n[k] = node[k];
         }
         state = state.setIn(['nodes', node.id], fromJS(n));
+        state = state.setIn(['appNodes', node], fromJS(n));
       });
 
       // apply pinned searches, filters nodes that dont match

@@ -121,6 +121,7 @@ class Node extends React.Component {
       stack,
       id,
       metric,
+      appNodes,
     } = this.props;
     const { hovered } = this.state;
 
@@ -138,7 +139,6 @@ class Node extends React.Component {
       onMouseEnter: this.handleMouseEnter,
       onMouseLeave: this.handleMouseLeave,
     };
-
     return (
       <g className={nodeClassName} transform={transform}>
         {exportingGraph
@@ -179,7 +179,7 @@ class Node extends React.Component {
     this.shapeRef = ref;
   }
 
-  handleMouseClick(ev) {
+  handleMouseClick(ev) { 
     console.log(ev);
     ev.stopPropagation();
     this.props.clickNode(
@@ -207,6 +207,7 @@ function mapStateToProps(state) {
     showingNetworks: state.get("showingNetworks"),
     currentTopology: state.get("currentTopology"),
     contrastMode: state.get("contrastMode"),
+    appNodes:state.get('appNodes')
   };
 }
 

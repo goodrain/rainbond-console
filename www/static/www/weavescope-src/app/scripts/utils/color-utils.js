@@ -87,7 +87,7 @@ export function brightenColor(c) {
 const statusColorMap = {
   'running' : 'rgb(0,215,119)',//运行中 绿色
   'closed'  : 'rgb(0,0,33)',//已关闭 黑色
-
+  'helm' : 'rgb(0,215,119)',//helm 绿色
   'third_party': "rgb(91,178,250)",
 
   'undeploy' : 'rgb(112,128,144)',//未部署 石板灰
@@ -114,10 +114,20 @@ const statusColorMap = {
   'Unknow' : 'rgb(205,2,0)', //深粉色 
   'unknow' : 'rgb(205,2,0)',//深粉色 
   'abnormal':'rgb(205,2,0)',//不正常,纯红 
-  'some_abnormal':'rgb(255,0,0)',//一些不正常 纯红 
+  'some_abnormal':'rgb(205,2,0)',//一些不正常 纯红 
 
   'building':'rgb(0,119,16)',//构建  纯蓝 
-  'build_failure':'rgb(205,2,0)'//构建失败 纯红 
+  'build_failure':'rgb(205,2,0)',//构建失败 纯红
+
+  'RUNNING': 'rgb(0,215,119)',//运行中 绿色  往下应用状态颜色
+  'STARTING': 'rgb(246,157,74)',//开启中 道奇蓝
+  'CLOSED': 'rgb(0,0,33)',//已关闭 黑色
+  'STOPPING': 'rgb(32,18,74)',//关闭中 紫色
+  'ABNORMAL': 'rgb(205,2,0)',//异常 纯红
+  'PARTIAL_ABNORMAL': 'rgb(205,2,0)',//部分异常 纯红 
+  'not-configured': 'rgb(112,128,144)',//未配置 石板灰
+  'unknown': 'rgb(205,2,0)',//未知 纯红 
+  'deployed': 'rgb(0,215,119)',//已部署 绿色
 }
 
 export function getStatusColor(status) {
