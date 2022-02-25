@@ -311,7 +311,7 @@ class AppKubernetesServiceView(ApplicationView):
 
     def put(self, request, app_id, *args, **kwargs):
         k8s_services = request.data
-
+        port_aliases = {}
         # data validation
         for k8s_service in k8s_services:
             if not k8s_service.get("service_id"):
@@ -320,7 +320,9 @@ class AppKubernetesServiceView(ApplicationView):
                 raise AbortRequest("the field 'port' is required")
             if not k8s_service.get("port_alias"):
                 raise AbortRequest("the field 'port_alias' is required")
-
+            port_aliases[k8s_service["port_alias"]] = k8s_service["port"]
+        if len(port_aliases) != len(k8s_services):
+            raise AbortRequest(msg="the 'port_alias' exists", msg_show="端口别名已存在")
         group_service.update_kubernetes_services(self.tenant, self.region_name, self.app, k8s_services)
 
         result = general_message(200, "success", "更新成功", list=k8s_services)

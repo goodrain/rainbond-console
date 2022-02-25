@@ -646,6 +646,9 @@ class ServiceDomainRepository(object):
         except ServiceDomainCertificate.DoesNotExist:
             return None
 
+    def list_all_certificate(self):
+        return ServiceDomainCertificate.objects.all()
+
     def add_certificate(self, tenant_id, alias, certificate_id, certificate, private_key, certificate_type):
         service_domain_certificate = dict()
         service_domain_certificate["tenant_id"] = tenant_id

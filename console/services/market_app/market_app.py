@@ -14,6 +14,7 @@ from console.repositories.plugin import config_item_repo
 from console.repositories.plugin.plugin import plugin_version_repo
 from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.plugin.plugin_version import build_version_repo
+from console.repositories.app_config import domain_repo
 # constant
 from console.constants import PluginMetaType
 from console.constants import PluginInjection
@@ -148,6 +149,10 @@ class MarketApp(object):
         components = app.components()
         plugin_bodies = self._create_plugin_body(components)
         new_components = []
+        certs = domain_repo.list_all_certificate()
+        cert_id_rels = dict()
+        if certs:
+            cert_id_rels = {cert.ID: cert.certificate_id for cert in certs}
         for cpt in components:
             component_base = cpt.component.to_dict()
             component_base["component_id"] = component_base["service_id"]
@@ -166,7 +171,7 @@ class MarketApp(object):
                 "config_files": [cf.to_dict() for cf in cpt.config_files],
                 "probes": probes,
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
-                "http_rules": self._create_http_rules(cpt.http_rules),
+                "http_rules": self._create_http_rules(cpt.http_rules, cert_id_rels),
                 "http_rule_configs": [json.loads(config.value) for config in cpt.http_rule_configs],
             }
             volumes = [volume.to_dict() for volume in cpt.volumes]
@@ -274,12 +279,12 @@ class MarketApp(object):
         return new_plugin_deps
 
     @staticmethod
-    def _create_http_rules(gateway_rules: [ServiceDomain]):
+    def _create_http_rules(gateway_rules: [ServiceDomain], cert_id_rels: dict):
         rules = []
         for gateway_rule in gateway_rules:
             rule = gateway_rule.to_dict()
             rule["domain"] = gateway_rule.domain_name
-            rule.pop("certificate_id")
+            rule["certificate_id"] = cert_id_rels.get(rule["certificate_id"], "")
 
             rule_extensions = []
             for ext in gateway_rule.rule_extensions.split(";"):

@@ -31,7 +31,7 @@ class HelmAppService(object):
         # create third components for services
         orphan_services = [service for service in services if service["service_name"] not in relations.values()]
         for service in orphan_services:
-            service["namespace"] = tenant.tenant_id
+            service["namespace"] = tenant.namespace
         error = {}
         try:
             app_service.create_third_components(tenant, region_name, user, app, "kubernetes", orphan_services)
