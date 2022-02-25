@@ -306,7 +306,7 @@ class NodeDetails extends React.Component {
                       </tr>
                     </table>
                   </div> :
-                  <div className="node-details-header-relatives" style={{ width: '121%', paddingTop: '24px', marginLeft: '-36px' }}>
+                  <div className="node-details-header-relatives" style={{ width: '121%', paddingTop: '6px', marginLeft: '-36px' }}>
                     <table style={{ width: '100%', padding: '5px 0px', background: 'rgba(255,255,255,0.2)' }}>
                       <tr style={{ display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' }}>
                         {

@@ -350,7 +350,7 @@ class NodeDetails extends React.Component {
                   </tr>
                 </table>
               </div> 
-            : <div className="node-details-header-relatives" style={{ width: '121%', paddingTop: '24px', marginLeft: '-36px' }}>
+            : <div className="node-details-header-relatives" style={{ width: '121%', paddingTop: '6px', marginLeft: '-36px' }}>
                 {/* 访问层 */}
                 {isFlag ? (
                   // 聚合的访问层
