@@ -15314,16 +15314,6 @@ function goodrainData2scopeData() {
   if (add.length && cloud.adjacency.length) {
     add.unshift(cloud);
   }
-  // let adds = {}
-  // for(let i=0; i<add.length; i++){
-  //     if(add[i].app_id != groupId){
-  //       if(!adds[add[i].app_id]){
-  //         adds[add[i].app_id]=[add[i]]
-  //       }else{
-  //         adds[add[i].app_id].push(add[i])
-  //       }
-  //     }
-  // }
   var adds = [];
   var newAdds = [];
   for (var i = 0; i < add.length; i++) {
@@ -15354,7 +15344,7 @@ function goodrainData2scopeData() {
         return m;
       });
       adds.push(values[0]);
-      newAppInfo = list;
+      newAppInfo.push.apply(newAppInfo, _toConsumableArray(list));
     } else {
       adds.push(list[0]);
     }
@@ -15724,33 +15714,45 @@ function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, di
 }
 //应用名称信息
 function appNameInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
-  if (newAppInfo.length > 0) {
-    var data = newAppInfo;
+  var formatArr = function formatArr() {
+    var map = new Map();
+    var _iteratorNormalCompletion = true;
+    var _didIteratorError = false;
+    var _iteratorError = undefined;
+
+    try {
+      for (var _iterator = newAppInfo[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+        var item = _step.value;
+
+        if (!map.has(item.service_cname)) {
+          map.set(item.service_cname, item);
+        }
+      }
+    } catch (err) {
+      _didIteratorError = true;
+      _iteratorError = err;
+    } finally {
+      try {
+        if (!_iteratorNormalCompletion && _iterator.return) {
+          _iterator.return();
+        }
+      } finally {
+        if (_didIteratorError) {
+          throw _iteratorError;
+        }
+      }
+    }
+
+    return [].concat(_toConsumableArray(map.values()));
+  };
+  var newArr = formatArr();
+  if (newArr.length > 0) {
+    var data = newArr;
     dispatch({
       type: "NEW_APP_INFO",
       data: data
     });
   }
-
-  //   const windowParent = window.parent;
-  //   const obj = nodeMap.last();
-  //   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
-  //   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
-  //   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
-  //   let url = '';
-  //   if (tenantName && groupId) {
-  //     url = `/console/teams/${tenantName}/groups/${groupId}?region=${region}&_=${new Date().getTime()}`;
-
-  //     doRequest({
-  //       url,
-  //       success: (res) => {
-  //         appName = res.data.bean.app_name
-  //       },
-  //       error: (err) => {
-  //         log(`Error in node details request: ${err.responseText}`);
-  //       }
-  //     });
-  //   }
 }
 //应用下的基本信息
 function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias, appNodes, nodeId) {

@@ -356,16 +356,6 @@ function goodrainData2scopeData(data = {}) {
   if (add.length && cloud.adjacency.length) {
     add.unshift(cloud);
   }
-  // let adds = {}
-  // for(let i=0; i<add.length; i++){
-  //     if(add[i].app_id != groupId){
-  //       if(!adds[add[i].app_id]){
-  //         adds[add[i].app_id]=[add[i]]
-  //       }else{
-  //         adds[add[i].app_id].push(add[i])
-  //       }
-  //     }
-  // }
   let adds = []
   let newAdds = []
   for(let i = 0; i<add.length; i++){
@@ -390,7 +380,7 @@ function goodrainData2scopeData(data = {}) {
       if(list.length > 0){
         const values = list.map(m => m);
         adds.push(values[0])
-        newAppInfo = list
+        newAppInfo.push(...list)   
       }else{
         adds.push(list[0])
       }
@@ -763,33 +753,23 @@ export function appModuleInfo(topologyUrlsById, currentTopologyId, options, node
 }
 //应用名称信息
 export function appNameInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias) {
-  if(newAppInfo.length > 0){
-    const data = newAppInfo
+  let formatArr = () => {
+    let map = new Map();
+    for (let item of newAppInfo) {
+      if (!map.has(item.service_cname)) {
+        map.set(item.service_cname, item);
+      }
+    }
+    return [...map.values()];
+  }
+  let newArr = formatArr();
+  if(newArr.length > 0){
+    const data = newArr
     dispatch({
       type: "NEW_APP_INFO",
       data
     });
   }
-  
-//   const windowParent = window.parent;
-//   const obj = nodeMap.last();
-//   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
-//   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
-//   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
-//   let url = '';
-//   if (tenantName && groupId) {
-//     url = `/console/teams/${tenantName}/groups/${groupId}?region=${region}&_=${new Date().getTime()}`;
-
-//     doRequest({
-//       url,
-//       success: (res) => {
-//         appName = res.data.bean.app_name
-//       },
-//       error: (err) => {
-//         log(`Error in node details request: ${err.responseText}`);
-//       }
-//     });
-//   }
 }
 //应用下的基本信息
 export function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias,appNodes,nodeId) {
