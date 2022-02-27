@@ -1,10 +1,11 @@
 ARG VERSION=V5.4-dev
 
 FROM golang:1.14-stretch as builder
+ARG VERSION=v5.6.0-release
 # ENV GOPROXY=https://goproxy.io
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
-RUN git clone -b v5.5.0-release --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
+RUN git clone -b ${VERSION} --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
 ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
@@ -14,6 +15,7 @@ FROM rainbond/rainbond-ui:${VERSION}
 
 ARG RELEASE_DESC=
 ARG ARCH=amd64
+ARG OPERATOR_VERSION=v2.3.0
 
 LABEL author="zengqg@goodrain.com"
 RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ && \
@@ -61,13 +63,13 @@ ADD . /app/ui
 WORKDIR /app/ui
 RUN set -eux; \
     if [ "${ARCH}" = "arm64" ]; then \
-        wget "https://pkg.rainbond.com/images-pkg/arm64/rainbond.tar"; \
+        wget "https://pkg.rainbond.com/images-pkg/arm64/rainbond-v5.6.0.tar"; \
         wget "https://pkg.rainbond.com/images-pkg/arm64/log"; \
     else \
-        wget "https://pkg.rainbond.com/images-pkg/rainbond.tar"; \
+        wget "https://pkg.rainbond.com/images-pkg/rainbond-v5.6.0.tar"; \
         wget "https://pkg.rainbond.com/images-pkg/log"; \
     fi && \
-    git clone -b v2.2.0-dind --depth=1 https://github.com/goodrain/rainbond-operator.git /app/ui/rainbond-operator && \ 
+    git clone -b ${OPERATOR_VERSION} --depth=1 https://github.com/goodrain/rainbond-operator.git /app/ui/rainbond-operator && \
     chmod +x /app/ui/entrypoint.sh /app/ui/start.sh /app/ui/k3s.sh  /app/ui/init_rainbond.sh && \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
     mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
