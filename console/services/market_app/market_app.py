@@ -300,6 +300,8 @@ class MarketApp(object):
             rule["header"] = gateway_rule.domain_heander
             rule["cookie"] = gateway_rule.domain_cookie
             rule["weight"] = gateway_rule.the_weight
+            rule["path_rewrite"] = gateway_rule.path_rewrite
+            rule["rewrites"] = gateway_rule.rewrites if gateway_rule.rewrites else []
             rules.append(rule)
         return rules
 

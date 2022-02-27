@@ -12,7 +12,7 @@ trap stop_container SIGTERM
 image=$(docker images | grep api | awk '{print $1}')
 if [[ $image != "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-api" ]];then
  while true; do
-        docker load -i /app/ui/rainbond.tar
+        docker load -i /app/ui/rainbond-v5.6.0.tar
         if [ $? -eq 0 ]; then
                 break
         fi
