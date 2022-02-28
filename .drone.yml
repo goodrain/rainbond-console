@@ -64,11 +64,15 @@ steps:
       from_secret: build_version
     DOMESTIC_NAMESPACE:
       from_secret: domestic_namespace
+    DOCKER_USERNAME:
+      from_secret: docker_username
+    DOCKER_PASSWORD:
+      from_secret: docker_password
     GOOS: linux
     GOARCH: arm64
   commands:
   - rm -rf rainbond-ui
-  - VERSION=$BUILD_VERSION BUILD_ARCH=$GOARCH ./release.sh allinone
+  - VERSION=$BUILD_VERSION BUILD_ARCH=$GOARCH ./release.sh dind
   when:
     event:
       include:

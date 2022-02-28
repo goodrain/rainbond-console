@@ -1,11 +1,11 @@
 ARG VERSION=V5.4-dev
 
 FROM golang:1.14-stretch as builder
-ARG VERSION=v5.6.0-release
+ARG ADAPTOR_VERSION=v5.6.0-release
 # ENV GOPROXY=https://goproxy.io
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
-RUN git clone -b ${VERSION} --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
+RUN git clone -b ${ADAPTOR_VERSION} --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
 ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
@@ -78,6 +78,7 @@ RUN set -eux; \
 	chmod +x /app/cloudadaptor && \
     mv /dist/index.html /app/ui/www/templates/index.html && \
     chmod +x /app/ui/log && mv /app/ui/log /usr/bin/log && \
+    rm -rf /app/ui/www/static/dists && \
     mkdir /app/ui/www/static/dists && \
     cp -a /dist/* /app/ui/www/static/dists/ && \
     rm -rf /dist \

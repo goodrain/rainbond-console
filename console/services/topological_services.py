@@ -4,7 +4,8 @@ from functools import reduce
 
 from console.services.region_services import region_services
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import (ServiceDomain, ServiceGroupRelation, TenantServiceInfo, TenantServiceRelation, TenantServicesPort, ServiceGroup)
+from www.models.main import (ServiceDomain, ServiceGroupRelation, TenantServiceInfo, TenantServiceRelation, TenantServicesPort,
+                             ServiceGroup)
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -15,6 +16,7 @@ AppStatus_CLOSED = "CLOSED"
 AppStatus_ABNORMAL = "ABNORMAL"
 AppStatus_STARTING = "STARTING"
 AppStatus_STOPPING = "STOPPING"
+
 
 class TopologicalService(object):
     def app_nil(self, statuses: list):
@@ -114,7 +116,10 @@ class TopologicalService(object):
                 logger.error('batch query service status failed!')
                 logger.exception(e)
         for app_id in component_ids_under_app:
-            component_statuses = [service_status_map.get(component_id, {}).get("status", "unknown") for component_id in component_ids_under_app[app_id]]
+            component_statuses = [
+                service_status_map.get(component_id, {}).get("status", "unknown")
+                for component_id in component_ids_under_app[app_id]
+            ]
             app_statuses[app_id] = self.get_app_status(component_statuses)
 
         # 拼接组件状态
