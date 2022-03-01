@@ -78,6 +78,7 @@ RUN set -eux; \
 	chmod +x /app/cloudadaptor && \
     mv /dist/index.html /app/ui/www/templates/index.html && \
     chmod +x /app/ui/log && mv /app/ui/log /usr/bin/log && \
+    rm -rf /app/ui/www/static/dists && \
     mkdir /app/ui/www/static/dists && \
     cp -a /dist/* /app/ui/www/static/dists/ && \
     rm -rf /dist \
