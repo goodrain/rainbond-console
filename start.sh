@@ -36,19 +36,19 @@ fi
 
 # memory detection（4G）
 if [ $FREE -lt 4096 ]; then
-     echo "Problem: free=$FREE,Insufficient memory, at least 4G memory is required"
+     echo "Problem: free=$FREE,Insufficient memory, at least 4G memory is required."
      exit 1
 fi
 
 # cpu core detection
 if [ $CPUS  -lt 2 ];then
-    echo "Problem: cpus=$CPUS,Insufficient number of cores, at least 2 cores required"
+    echo "Problem: cpus=$CPUS,Insufficient number of cores, at least 2 cores required."
     exit 2
 fi
 
 # disk detection
 if [ $DISK -lt 51200 ];then
-    echo "Problem: disk=$DISK,Insufficient disk space, at least 50G required"
+    echo "Problem: disk=$DISK,Insufficient disk space, at least 50G required."
     exit 3
 fi
 
