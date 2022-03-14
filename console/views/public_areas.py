@@ -88,6 +88,7 @@ class TeamOverView(RegionTenantHeaderView):
 
             # 同步应用到集群
             groups = group_repo.get_tenant_region_groups(self.team.tenant_id, region.region_name)
+            print(groups)
             batch_create_app_body = []
             region_app_ids = []
             if groups:
@@ -135,7 +136,8 @@ class TeamOverView(RegionTenantHeaderView):
                         running_app_num += 1
             except Exception as e:
                 logger.exception(e)
-            team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
+            # team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
+            team_app_num = len([app for app in groups if app.region_name == self.response_region])
             overview_detail["team_app_num"] = team_app_num
             overview_detail["team_service_num"] = team_service_num
             overview_detail["eid"] = self.team.enterprise_id
