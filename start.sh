@@ -3,7 +3,7 @@
 
 FREE=`free -m |awk '/Mem/{print $4}'`
 CPUS=`cat /proc/cpuinfo | grep "processor" | wc -l`
-DISK=`df -m / |awk '/sda1/{print $4}'`
+DISK=`df -m / |sed -n '2p'|awk '{print $4}'`
 
 # Move the dockerd k3s configuration to let the supervisor manage the process
 # Unzip the image package and delete the compressed package
@@ -33,17 +33,17 @@ if [ "${ENABLE_CLUSTER}" == 'true' ];then
     find /run /var/run -iname 'docker*.pid' -delete || :
     # memory detection（4G）
     if [ $FREE -lt 4096 ]; then
-        echo -e "\033[31m \!\!\!Problem: free=$FREE,Insufficient memory, at least 4G memory is required. \033[0m"
+        echo -e "\033[31m [WARRING] 您的内存小于4G，运行可能会出问题 \033[0m"
     fi
 
     # cpu core detection (2)
     if [ $CPUS  -lt 2 ];then
-        echo -e "\033[31m \!\!\!Problem: cpus=$CPUS,Insufficient number of cores, at least 2 cores required. \033[0m"
+        echo -e "\033[31m [WARRING] 您的CPU核数小于2核，运行可能会出现问题 \033[0m"
     fi
 
     # disk detection (50G)
     if [ $DISK -lt 51200 ];then
-        echo -e "\033[31m \!\!\!Problem: disk=$DISK,Insufficient disk space, at least 50G required. \033[0m"
+        echo -e "\033[31m [WARRING] 您的磁盘空间小于50G，运行可能会出现问题 \033[0m"
     fi
     
     k3s_start
