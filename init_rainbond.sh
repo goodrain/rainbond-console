@@ -1,5 +1,6 @@
 #!/bin/bash
 sleep 3s
+echo -e "\033[34m 安装过程中出现问题可以参考排查文档（https://www.rainbond.com/docs/user-operations/deploy/install-troubleshoot/dind-install-troubleshoot） \033[0m"
 echo -e "\033[34m 正在加载数据，预计3分钟，时间取决于磁盘性能... \033[0m"
 while :
 do
