@@ -466,8 +466,8 @@ class NewComponents(object):
                 domain_path=ingress["location"],
                 domain_cookie=self._domain_cookie_or_header(ingress["cookies"]),
                 domain_heander=self._domain_cookie_or_header(ingress["headers"]),
-                path_rewrite=ingress.get("path_rewrite", False),
-                rewrites=ingress.get("rewrites", []),
+                path_rewrite=ingress["path_rewrite"] if ingress.get("path_rewrite") else False,
+                rewrites=ingress["rewrites"] if ingress.get("rewrites") else [],
                 type=0 if ingress["default_domain"] else 1,
                 the_weight=100,
                 is_outer_service=port.is_outer_service,
@@ -535,6 +535,12 @@ class NewComponents(object):
 
     @staticmethod
     def _ingress_config(rule_id, ingress):
+        set_headers = []
+        proxy_header = ingress.get("proxy_header")
+        if proxy_header and isinstance(proxy_header, dict):
+            for item_key in proxy_header:
+                header = {"item_key": item_key, "item_value": proxy_header[item_key]}
+                set_headers.append(header)
         return GatewayCustomConfiguration(
             rule_id=rule_id,
             value=json.dumps({
@@ -555,7 +561,7 @@ class NewComponents(object):
                 "WebSocket":
                 ingress["websocket"] if ingress.get("websocket") else False,
                 "set_headers":
-                ingress.get("proxy_header"),
+                set_headers,
             }))
 
     @staticmethod
