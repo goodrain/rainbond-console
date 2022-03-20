@@ -801,7 +801,7 @@ class AppPortService(object):
                 continue
 
             if svc_ports[svc.service_id]["stream_outer_port"]:
-                port_and_urls = self.__list_stream_outer_urls(svc)
+                port_and_urls = self.__list_stream_outer_urls(region_all,tcp_domain_all,svc)
                 accesses[svc.service_id] = {"access_type": ServicePortConstants.NOT_HTTP_OUTER, "access_info": []}
                 for p in svc_ports[svc.service_id]["stream_outer_port"]:
                     port_dict = p.to_dict()
