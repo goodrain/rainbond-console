@@ -484,6 +484,7 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         """
         总览 团队应用信息
         """
+        sort = int(request.GET.get("sort", 1))
         query = request.GET.get("query", "")
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
@@ -496,7 +497,7 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         if groups:
             group_ids = [group.ID for group in groups]
             group_ids = group_ids[start:end]
-            apps = group_service.get_multi_apps_all_info(groups, group_ids, self.response_region, self.team_name,
+            apps = group_service.get_multi_apps_all_info(sort, groups, group_ids, self.response_region, self.team_name,
                                                          self.team.enterprise_id, self.team)
         return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
 
