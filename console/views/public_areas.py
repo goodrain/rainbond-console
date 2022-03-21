@@ -232,6 +232,8 @@ class GroupServiceView(RegionTenantHeaderView):
         """
         try:
             code = 200
+            sort = int(request.GET.get("sort", 1))
+            order = request.GET.get("order", "descend")
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 10)
             group_id = request.GET.get("group_id", None)
@@ -284,6 +286,31 @@ class GroupServiceView(RegionTenantHeaderView):
             except EmptyPage:
                 group_service_list = paginator.page(paginator.num_pages).object_list
             result = general_message(code, "query success", "应用查询成功", list=group_service_list, total=paginator.count)
+            if sort == 3:
+                if order == "ascend":
+                    group_service_list = sorted(group_service_list, key=lambda i: i["update_time"])
+            elif sort == 2:
+                if order == "ascend":
+                    group_service_list = sorted(
+                        group_service_list,
+                        key=lambda i: (i["min_memory"], -1 if i["status"] == "running" else -2 if i["status"] == "abonrmal" else
+                                       -3 if i["status"] == "starting" else -5 if i["status"] == "closed" else -4))
+                else:
+                    group_service_list = sorted(
+                        group_service_list,
+                        key=lambda i: (-i["min_memory"], 1 if i["status"] == "running" else 2 if i["status"] == "abonrmal" else
+                                       3 if i["status"] == "starting" else 5 if i["status"] == "closed" else 4))
+            else:
+                if order == "ascend":
+                    group_service_list = sorted(
+                        group_service_list,
+                        key=lambda i: (-1 if i["status"] == "running" else -2 if i["status"] == "abnormal" else -3 if i[
+                            "status"] == "starting" else -5 if i["status"] == "closed" else -4, i["min_memory"]))
+                else:
+                    group_service_list = sorted(
+                        group_service_list,
+                        key=lambda i: (1 if i["status"] == "running" else 2 if i["status"] == "abnormal" else 3
+                                       if i["status"] == "starting" else 5 if i["status"] == "closed" else 4, -i["min_memory"]))
             return Response(result, status=code)
         except GroupNotExistError as e:
             logger.exception(e)
