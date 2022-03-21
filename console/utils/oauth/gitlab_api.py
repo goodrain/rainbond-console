@@ -78,6 +78,8 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
                         return self.oauth_user.access_token, self.oauth_user.refresh_token
                 except Exception:
                     if self.oauth_user.refresh_token:
+                        self.refresh_token = self.oauth_user.refresh_token
+                        self.oauth_service.access_token_url = self.get_access_token_url(self.oauth_service.home_url)
                         try:
                             self.refresh_access_token()
                             return self.access_token, self.refresh_token
@@ -91,8 +93,14 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
 
     def refresh_access_token(self):
         headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
-
-        params = {"refresh_token": self.refresh_token, "grant_type": "refresh_token", "scope": "api"}
+        params = {
+            "refresh_token": self.refresh_token,
+            "grant_type": "refresh_token",
+            "client_id": self.oauth_service.client_id,
+            "client_secret": self.oauth_service.client_secret,
+            "redirect_uri": self.oauth_service.redirect_uri,
+            "scope": "api"
+        }
         rst = self._session.request(method='POST', url=self.oauth_service.access_token_url, headers=headers, params=params)
         data = rst.json()
         if rst.status_code == 200:
