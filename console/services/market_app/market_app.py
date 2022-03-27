@@ -301,7 +301,7 @@ class MarketApp(object):
             rule["cookie"] = gateway_rule.domain_cookie
             rule["weight"] = gateway_rule.the_weight
             rule["path_rewrite"] = gateway_rule.path_rewrite
-            rule["rewrites"] = gateway_rule.rewrites if gateway_rule.rewrites else []
+            rule["rewrites"] = json.loads(gateway_rule.rewrites) if gateway_rule.rewrites else []
             rules.append(rule)
         return rules
 
