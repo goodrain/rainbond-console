@@ -872,7 +872,7 @@ class ServiceTcpDomainRepository(object):
         return ServiceTcpDomain.objects.filter(service_id=service_id).all()
 
     def get_service_tcpdomain_all(self):
-        return ServiceTcpDomain.objects.all()    
+        return ServiceTcpDomain.objects.all()
 
     def get_services_tcpdomains(self, service_ids):
         return ServiceTcpDomain.objects.filter(service_id__in=service_ids)
