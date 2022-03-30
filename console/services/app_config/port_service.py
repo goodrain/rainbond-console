@@ -778,14 +778,14 @@ class AppPortService(object):
         domain_all = domain_repo.get_service_domain_all()
         region_all = region_repo.get_region_info_all()
         tcp_domain_all = tcp_domain.get_service_tcpdomain_all()
-        
+
         for svc in services:
             if not svc_ports.get(svc.service_id):
                 accesses[svc.service_id] = {"access_type": ServicePortConstants.NO_PORT, "access_info": []}
                 continue
             if svc_ports[svc.service_id]["http_outer_port"]:
-                access_urls = self.__list_component_access_urls(domain_all,svc)
-                port_and_urls = self.__list_stream_outer_urls(region_all,tcp_domain_all,svc)
+                access_urls = self.__list_component_access_urls(domain_all, svc)
+                port_and_urls = self.__list_stream_outer_urls(region_all, tcp_domain_all, svc)
                 accesses[svc.service_id] = {"access_type": ServicePortConstants.HTTP_PORT, "access_info": []}
                 for p in svc_ports[svc.service_id]["http_outer_port"]:
                     port_dict = p.to_dict()
@@ -801,7 +801,7 @@ class AppPortService(object):
                 continue
 
             if svc_ports[svc.service_id]["stream_outer_port"]:
-                port_and_urls = self.__list_stream_outer_urls(region_all,tcp_domain_all,svc)
+                port_and_urls = self.__list_stream_outer_urls(region_all, tcp_domain_all, svc)
                 accesses[svc.service_id] = {"access_type": ServicePortConstants.NOT_HTTP_OUTER, "access_info": []}
                 for p in svc_ports[svc.service_id]["stream_outer_port"]:
                     port_dict = p.to_dict()
@@ -920,7 +920,7 @@ class AppPortService(object):
             else:
                 return None
 
-    def __list_stream_outer_urls(self, region_all,tcp_domain_all, component):
+    def __list_stream_outer_urls(self, region_all, tcp_domain_all, component):
         region = region_all.filter(region_name=component.service_region)
         if not region:
             return None
@@ -961,7 +961,7 @@ class AppPortService(object):
         return urls
 
     def __list_component_access_urls(self, domain_all, component):
-        domains=domain_all.filter(service_id=component.service_id)
+        domains = domain_all.filter(service_id=component.service_id)
         port_domains = {}
         for d in domains:
             if not port_domains.get(d.container_port):
