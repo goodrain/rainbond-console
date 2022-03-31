@@ -192,7 +192,9 @@ class AppRestore(MarketApp):
             plugins=plugins,
             plugin_deps=self._create_plugins_deps(),
             plugin_configs=self._create_plugins_configs(),
-        )
+            config_groups=self.original_app.config_groups,
+            config_group_components=self.original_app.config_group_components,
+            config_group_items=self.original_app.config_group_items)
 
     def _create_component(self, snap, now_volumes):
         # component
