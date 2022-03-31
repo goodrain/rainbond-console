@@ -833,8 +833,7 @@ class PluginService(object):
             plugin_build_version.event_id = event_id
             plugin_build_version.plugin_version_status = "fixed"
 
-            self.create_region_plugin(region, tenant, plugin_base_info)
-
+            self.create_region_plugin(region, tenant, plugin_base_info, image_tag)
             self.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant, event_id)
             plugin_build_version.build_status = "build_success"
             plugin_build_version.save()
