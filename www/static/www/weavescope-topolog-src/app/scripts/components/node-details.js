@@ -21,6 +21,7 @@ import Warning from './warning';
 import CloudFeature from './cloud-feature';
 import NodeDetailsImageStatus from './node-details/node-details-image-status';
 import '../../font/iconfont.css'
+import { func } from 'prop-types';
 
 const log = debug('scope:node-details');
 
@@ -277,6 +278,8 @@ class NodeDetails extends React.Component {
       day6 = day4 - day5 * 3600,
       day7 = Math.floor(day6 / 60),
       day8 = day6 - day7 * 60;
+    
+
     return (
       <div className={'node-details'}>
         {tools}
@@ -315,12 +318,12 @@ class NodeDetails extends React.Component {
                           (<td style={{ cursor: 'pointer', position: 'relative', marginRight: '40px' }}>
                             <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px' }} className="iconfont icon-icon_web"></div>
                             {shows && (
-                              <div>
+                              <div onMouseLeave={() => { this.visitout() }} style={{ position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' }}>
+                              <div style={{ width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight:'200px', overflow:'auto' }}>
                                 {Object.keys(portList).map((key, index) => {
                                   let portItem = portList[key];
                                   return (
-                                    <div onMouseLeave={() => { this.visitout() }} style={{ position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' }}>
-                                      <div style={{ width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight:'200px', overflow:'auto' }}>
+                                    <tbody>
                                         {
                                           portItem.outer_url && (
                                             <div>
@@ -339,11 +342,11 @@ class NodeDetails extends React.Component {
                                             );
                                           })
                                         }
-                                      </div>
-                                    </div>
+                                    </tbody>
                                   )
                                 })}
                               </div>
+                                    </div>
                             )}
                           </td>)
                         }
