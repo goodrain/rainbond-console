@@ -6,6 +6,7 @@ class GovernanceModeEnum(AutoNumber):
     BUILD_IN_SERVICE_MESH = ()
     KUBERNETES_NATIVE_SERVICE = ()
     ISTIO_SERVICE_MESH = ()
+    LINKERD_SERVICE_MESH = ()
 
     @classmethod
     def choices(cls):
