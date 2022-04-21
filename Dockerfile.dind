@@ -1,21 +1,24 @@
+ARG IMAGE_NAMESPACE=rainbond
 ARG VERSION=V5.4-dev
-
 FROM golang:1.14-stretch as builder
 ARG ADAPTOR_VERSION=v5.6.0-release
 # ENV GOPROXY=https://goproxy.io
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
+ENV VERSION=${VERSION}
+ARG DOMESTIC_NAMESPACE=goodrain
+ENV DOMESTIC_NAMESPACE=${DOMESTIC_NAMESPACE}
 RUN git clone -b ${ADAPTOR_VERSION} --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
 ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
-
-
-FROM rainbond/rainbond-ui:${VERSION}
+ARG IMAGE_NAMESPACE=rainbond
+ARG VERSION=V5.4-dev
+FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION}
 
 ARG RELEASE_DESC=
 ARG ARCH=amd64
-ARG OPERATOR_VERSION=v2.3.0
+ARG BRANCH=v2.3.0
 
 LABEL author="zengqg@goodrain.com"
 RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ && \
@@ -61,15 +64,17 @@ COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
 COPY --from=builder /cloud-adaptor /app/cloudadaptor
 ADD . /app/ui
 WORKDIR /app/ui
+ARG VERSION=V5.4-dev
+ARG CLONE_URL=https://github.com/goodrain
 RUN set -eux; \
     if [ "${ARCH}" = "arm64" ]; then \
         wget "https://pkg.rainbond.com/images-pkg/arm64/rainbond-v5.6.0.tar"; \
         wget "https://pkg.rainbond.com/images-pkg/arm64/log"; \
     else \
-        wget "https://pkg.rainbond.com/images-pkg/rainbond-v5.6.0.tar"; \
+        wget "https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/images-pkg/rainbond-${VERSION}.tar"; \
         wget "https://pkg.rainbond.com/images-pkg/log"; \
     fi && \
-    git clone -b ${OPERATOR_VERSION} --depth=1 https://github.com/goodrain/rainbond-operator.git /app/ui/rainbond-operator && \
+    git clone -b ${BRANCH} --depth=1 ${CLONE_URL}/rainbond-operator.git /app/ui/rainbond-operator && \
     chmod +x /app/ui/entrypoint.sh /app/ui/start.sh /app/ui/k3s.sh  /app/ui/init_rainbond.sh && \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
     mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \

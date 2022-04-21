@@ -1,4 +1,5 @@
 ARG VERSION=V5.4-dev
+ARG IMAGE_NAMESPACE=rainbond
 
 FROM golang:1.14-stretch as builder
 ARG ADAPTOR_VERSION=v5.6.0-release
@@ -10,8 +11,7 @@ WORKDIR /go/src/goodrain.com/cloud-adaptor/
 ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
 
-
-FROM rainbond/rainbond-ui:${VERSION}
+FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION}
 
 ARG RELEASE_DESC=
 
@@ -30,12 +30,12 @@ RUN chmod +x /app/ui/entrypoint.sh &&  \
     mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
     chmod +x /app/cloudadaptor && \
     mv /dist/index.html /app/ui/www/templates/index.html && \
-    mkdir /app/ui/www/static/dists && \
+    mkdir -p /app/ui/www/static/dists && \
     cp -a /dist/* /app/ui/www/static/dists/ && \
     rm -rf /dist \
-    && mkdir /app/logs \
-    && mkdir /app/data \
-    && mkdir /root/.ssh \
+    && mkdir -p /app/logs \
+    && mkdir -p /app/data \
+    && mkdir -p /root/.ssh \
     && python -m pip install --upgrade pip \
     && pip install -r requirements.txt \
     && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
