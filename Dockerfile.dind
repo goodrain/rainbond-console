@@ -106,6 +106,7 @@ ENV CHART_PATH=/app/chart
 ENV CONFIG_DIR=/app/data/cloudadaptor
 ENV HELM_PATH=/usr/local/bin/helm
 ENV MYSQL_DB=console
+ENV VERSION=${VERSION}
 
 VOLUME /app/data
 VOLUME /app/logs

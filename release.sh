@@ -60,9 +60,9 @@ function release_allinone() {
 function release_dind() {
   git_commit=$(git log -n 1 --pretty --format=%h)
   buildTime=$(date +%F-%H)
-  release_desc=${VERSION}-${git_commit}-${buildTime}-allinone
+  release_desc=${VERSION/-release}-${git_commit}-${buildTime}-allinone
   image_name="rainbond"
-  imageName=${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION}-dind-allinone
+  imageName=${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION/-release}-dind-allinone
   docker build --network=host --build-arg VERSION="${VERSION}" --build-arg DOMESTIC_NAMESPACE="${DOMESTIC_NAMESPACE}" --build-arg CLONE_URL="${CLONE_URL}" --build-arg IMAGE_NAMESPACE="${IMAGE_NAMESPACE}" --build-arg RELEASE_DESC="${release_desc}" --build-arg ARCH="${ARCH}" -t "${imageName}" -f Dockerfile.dind .
   if [ $? -ne 0 ]; then
     exit 1
@@ -73,7 +73,7 @@ function release_dind() {
       docker push "${imageName}"
     fi
     if [ "${DOMESTIC_BASE_NAME}" ]; then
-      domestcName=${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rainbond:${VERSION}-dind-allinone
+      domestcName=${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rainbond:${VERSION/-release}-dind-allinone
       docker tag ${imageName} ${domestcName}
       docker login -u "$DOMESTIC_DOCKER_USERNAME" -p "$DOMESTIC_DOCKER_PASSWORD" "${DOMESTIC_BASE_NAME}"
       docker push "${domestcName}"
