@@ -2,7 +2,7 @@
 sleep 3s
 if [ ! $EIP ];then
 echo -e "\033[31m EIP is required, please execute the following command and restart Rainbond \033[0m "
-echo -e "\033[31m  export EIP= IP ddress \033[0m "
+echo -e "\033[31m  export EIP= IP address \033[0m "
         supervisorctl shutdown
         exit 0
 fi
