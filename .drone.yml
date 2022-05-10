@@ -20,7 +20,7 @@ steps:
     UI_BRANCH:
       from_secret: ui_branch
   commands:
-  - git clone -b $UI_BRANCH --depth=1 https://github.com/goodrain/rainbond-ui.git
+  - git clone -b $UI_BRANCH --depth=1 https://ghproxy.com/https://github.com/goodrain/rainbond-ui.git
 
 - name: build rainbond-ui dist
   image: node:12
