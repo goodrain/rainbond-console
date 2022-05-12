@@ -14,6 +14,11 @@ from openapi.views.apps.apps import ListAppsView, AppModelImportEvent, AppTarbal
 from openapi.views.enterprise_view import ResourceOverview
 
 from openapi.views.apps.apps import ListAppsView
+from openapi.views.enterprise_view import (EnterpriseConfigView, EnterpriseOverview, AppRankOverview,
+                                           MonitorMessageOverview,
+                                           MonitorQueryOverview, MonitorQueryRangeOverview, MonitorSeriesOverview,
+                                           RegionsMonitorOverview, InstancesMonitorOverview, ResourceOverview,
+                                           ServiceOverview, Performance_overview)
 from openapi.views.enterprise_view import EnterpriseConfigView, EnterpriseOverview
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
@@ -96,6 +101,12 @@ urlpatterns = [
         HelmChart.as_view()),
     # 资源监控
     url(r'^v1/monitor/resource_over_view$', ResourceOverview.as_view()),
+    url(r'^v1/monitor/service_overview$', ServiceOverview.as_view()),
+    url(r'^v1/monitor/performance_overview', Performance_overview.as_view()),
+    url(r'^v1/monitor/query$', MonitorQueryOverview.as_view()),
+    url(r'^v1/monitor/query_range$', MonitorQueryRangeOverview.as_view()),
+    url(r'^v1/monitor/series$', MonitorSeriesOverview.as_view()),
+    url(r'^v1/instances/monitor$', InstancesMonitorOverview.as_view()),
 
     # MCP 相关接口
     url(r'^v1/mcp/', include('openapi.mcp.urls')),
