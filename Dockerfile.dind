@@ -65,6 +65,7 @@ COPY --from=builder /cloud-adaptor /app/cloudadaptor
 ADD . /app/ui
 WORKDIR /app/ui
 ARG VERSION=V5.4-dev
+ARG DOMESTIC_NAMESPACE=goodrain
 ARG CLONE_URL=https://github.com/goodrain
 RUN set -eux; \
     if [ "${ARCH}" = "arm64" ]; then \
