@@ -14,6 +14,10 @@ function Pass_dockerd_parameters() {
 function Pass_k3s_parameters() {
     sed -i "/traefik/ s/$/ "${K3S_ARGS}"/" /app/ui/k3s.sh
 }
+## Do domain name resolution
+
+echo "127.0.0.1  rbd-api-api" >> /etc/hosts
+
 
 ## Judge whether to start k3s through environment variables
 if [ -n "${DOCKER_ARGS}" ];then
