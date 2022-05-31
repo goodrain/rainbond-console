@@ -71,9 +71,9 @@ class PropertyChanges(object):
             # update component if volume dependencies changed
             if not self._is_dep_equal(original_component_volume_deps, update_component.volume_deps):
                 update_component.update_action_type(ActionType.UPDATE.value)
-            if update_component.app_config_groups and len(original_component_config_groups) != len(update_component.app_config_groups):
+            if update_component.app_config_groups and len(original_component_config_groups) != len(
+                    update_component.app_config_groups):
                 update_component.update_action_type(ActionType.UPDATE.value)
-
 
     @staticmethod
     def _is_dep_equal(old_deps, new_deps):

@@ -156,9 +156,8 @@ class EnterpriseTeams(JWTAuthApiView):
         for user_id in user_id_list:
             user_id_dict[tenant_ids.get(user_id["tenant_id"])] = user_id_dict.get(user_id["tenant_id"], 0) + 1
         for usable_region in usable_regions:
-            region_tenants, total = team_services.get_tenant_list_by_region(enterprise_id, usable_region.region_id,
-                                                                            page=1,
-                                                                            page_size=9999)
+            region_tenants, total = team_services.get_tenant_list_by_region(
+                enterprise_id, usable_region.region_id, page=1, page_size=9999)
             for region_tenant in region_tenants:
                 tenant = tenant_names.get(region_tenant["tenant_name"])
                 if tenant:
@@ -344,8 +343,7 @@ class EnterpriseAppsLView(JWTAuthApiView):
                     "tenant_name": tenant_name,
                     "region_name": app.region_name
                 })
-        result = general_message(200, "success", "获取成功", list=data, total_count=apps_count, page=page,
-                                 page_size=page_size)
+        result = general_message(200, "success", "获取成功", list=data, total_count=apps_count, page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)
 
 
