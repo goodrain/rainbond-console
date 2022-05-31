@@ -510,6 +510,7 @@ class TeamService(object):
                         "running_app_internal_num": tenant["running_app_internal_num"],
                         "running_app_third_num": tenant["running_app_third_num"],
                         "set_limit_memory": tenant["LimitMemory"],
+                        "running_applications": tenant["running_applications"]
                     })
         else:
             logger.error(body)
