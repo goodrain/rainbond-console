@@ -289,6 +289,10 @@ class ListAppPodsView(AppBaseView):
                         container_dict["memory_usage"] = round(memory_usage, 2)
                         container_dict["usage_rate"] = round(usage_rate, 2)
                         container_list.append(container_dict)
+                        if self.service.k8s_component_name in key and 'default-tcpmesh' not in key:
+                            if len(container_list) > 1:
+                                container_list[0], container_list[len(container_list) - 1] = container_list[
+                                    len(container_list) - 1], container_list[0]
                     bean["container"] = container_list
                     res.append(bean)
                 return res

@@ -1044,6 +1044,15 @@ class ShareService(object):
             data["version"] = app.version
             data["version_alias"] = app.version_alias
             # TODO 修改传入数据, 修改返回数据
+            ingress_http_routes = data["template"]["ingress_http_routes"] if data["template"].get("ingress_http_routes") else []
+            for http_rule in ingress_http_routes:
+                new_proxy_headers = dict()
+                proxy_headers = http_rule["proxy_header"] if http_rule.get("proxy_header") else []
+                for headers in proxy_headers:
+                    if not headers.get("item_key") and not headers.get("item_value"):
+                        continue
+                    new_proxy_headers[headers["item_key"]] = headers["item_value"]
+                http_rule["proxy_header"] = new_proxy_headers
             market = app_market_service.get_app_market_by_name(
                 tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
             app_market_service.create_market_app_model_version(market, app.app_id, data)

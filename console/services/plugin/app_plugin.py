@@ -796,7 +796,7 @@ class PluginService(object):
             plugin_base_info.save()
 
             plugin_build_version = plugin_version_service.create_build_version(
-                region, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 64, image_tag=image_tag)
+                region, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 256, image_tag=image_tag)
 
             plugin_config_meta_list = []
             config_items_list = []
@@ -833,8 +833,7 @@ class PluginService(object):
             plugin_build_version.event_id = event_id
             plugin_build_version.plugin_version_status = "fixed"
 
-            self.create_region_plugin(region, tenant, plugin_base_info)
-
+            self.create_region_plugin(region, tenant, plugin_base_info, image_tag)
             self.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant, event_id)
             plugin_build_version.build_status = "build_success"
             plugin_build_version.save()
