@@ -256,7 +256,9 @@ class TeamService(object):
         team = team_repo.get_team_by_team_id(team_id=team_id)
         if team:
             user = user_repo.get_by_user_id(team.creater)
-            team.creater_name = user.get_name()
+            team.creater_name = "admin"
+            if user:
+                team.creater_name = user.get_name()
         return team
 
     @transaction.atomic

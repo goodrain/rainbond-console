@@ -21,14 +21,16 @@ def validate_endpoint_address(address):
         except ipaddress.AddressValueError:
             if validators.domain(address):
                 domain_ip = True
+            else:
+                return None, False
         return format_address, domain_ip
 
     errs = []
     ip, domain_ip = parse_ip()
     if not domain_ip:
-        if ip is None:
+        if not ip:
             errs.append("{} must be a valid IP address".format(address))
-            return errs
+            return errs, None
         if ip.is_unspecified:
             errs.append("{} may not be unspecified (0.0.0.0)".format(address))
         if ip.is_loopback:

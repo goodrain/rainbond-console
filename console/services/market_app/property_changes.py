@@ -47,7 +47,12 @@ class PropertyChanges(object):
                 original_components_volume_deps[vol_dep.service_id] = [vol_dep]
                 continue
             original_components_volume_deps[vol_dep.service_id].append(vol_dep)
-
+        original_components_config_groups = {}
+        for config_group in original_app.config_group_components:
+            if not original_components_config_groups.get(config_group.service_id):
+                original_components_config_groups[config_group.service_id] = [config_group]
+                continue
+            original_components_config_groups[config_group.service_id].append(config_group)
         for change in self.changes:
             component_id = change["component_id"]
             update_component = update_components.get(component_id)
@@ -58,11 +63,16 @@ class PropertyChanges(object):
                 component_id) else []
             original_component_volume_deps = original_components_volume_deps[
                 component_id] if original_components_volume_deps.get(component_id) else []
+            original_component_config_groups = original_components_config_groups[
+                component_id] if original_components_config_groups.get(component_id) else []
 
             if not self._is_dep_equal(original_component_deps, update_component.component_deps):
                 update_component.update_action_type(ActionType.UPDATE.value)
             # update component if volume dependencies changed
             if not self._is_dep_equal(original_component_volume_deps, update_component.volume_deps):
+                update_component.update_action_type(ActionType.UPDATE.value)
+            if update_component.app_config_groups and len(original_component_config_groups) != len(
+                    update_component.app_config_groups):
                 update_component.update_action_type(ActionType.UPDATE.value)
 
     @staticmethod
