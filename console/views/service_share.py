@@ -325,6 +325,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
               paramType: path
         """
         use_force = parse_argument(request, 'use_force', default=False, value_type=bool)
+        is_plugin = parse_argument(request, 'is_plugin', default=False, value_type=bool)
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -363,6 +364,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             share_user=request.user,
             share_info=request.data,
             use_force=use_force)
+        bean['is_plugin'] = is_plugin
         result = general_message(code, "create share info", msg, bean=bean)
         return Response(result, status=code)
 
@@ -505,6 +507,7 @@ class ServicePluginShareEventPost(RegionTenantHeaderView):
 
 class ServiceShareCompleteView(RegionTenantHeaderView):
     def post(self, request, team_name, share_id, *args, **kwargs):
+        is_plugin = parse_argument(request, 'is_plugin', default=False, value_type=bool)
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -518,7 +521,7 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
         if count > 0 or plugin_count > 0:
             result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
             return Response(result, status=415)
-        app_market_url = share_service.complete(self.tenant, self.user, share_record)
+        app_market_url = share_service.complete(self.tenant, self.user, share_record, is_plugin)
         result = general_message(200, "share complete", "应用分享完成", bean=share_record.to_dict(), app_market_url=app_market_url)
         return Response(result, status=200)
 
@@ -716,4 +719,21 @@ class AppMarketOrgModelLView(JWTAuthApiView):
         market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
         orgs = app_market_service.get_market_orgs(market_model)
         result = general_message(200, msg="success", msg_show=None, list=orgs)
+        return Response(result, status=200)
+
+class AppMarketAppPluginLView(JWTAuthApiView):
+    def get(self, request, enterprise_id, market_name, *args, **kwargs):
+        # 获取应用市场插件应用
+        query = request.GET.get("query", None)
+        query_all = request.GET.get("query_all", False)
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
+        data, page, page_size, total = app_market_service.get_market_plugins_apps(
+            market_model, page, page_size, query=query, query_all=query_all, extend=True)
+
+        # 获取本地组件库插件应用
+
+
+        result = general_message(200, msg="success", msg_show=None, list=data, page=page, page_size=page_size, total=total)
         return Response(result, status=200)

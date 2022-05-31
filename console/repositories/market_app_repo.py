@@ -71,6 +71,7 @@ class RainbondCenterAppRepository(object):
             extend_where += team_sql
         if scope == "enterprise":
             extend_where += " and app.scope='" + scope + "'"
+
         sql = """
             select
                 distinct app.*
@@ -92,6 +93,86 @@ class RainbondCenterAppRepository(object):
             eid=eid, extend_where=extend_where, offset=(page - 1) * page_size, rows=page_size, join_version=join_version)
         return sql
 
+    def _prepare_get_rainbond_plugin_app_by_query_sql(self,
+                                               eid,
+                                               scope,
+                                               app_name,
+                                               teams=None,
+                                               tag_names=None,
+                                               page=1,
+                                               page_size=10,
+                                               need_install="false"):
+        extend_where = ""
+        join_version = ""
+        if tag_names:
+            extend_where += " and tag.name in ({0})".format(",".join("'{0}'".format(tag_name) for tag_name in tag_names))
+        if app_name:
+            extend_where += " and app.app_name like '%{0}%'".format(app_name)
+        # When installing components from the component library, you need to display the versioned application template
+        if need_install == "true":
+            join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id" \
+                            " and app.enterprise_id = apv.enterprise_id"
+            extend_where += " and apv.`version` <> '' and apv.is_complete and apv.`is_plugin` = True"
+        # if teams is None, create_team scope is ('')
+        if scope == "team":
+            team_sql = ""
+            if teams:
+                team_sql = " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
+            team_sql += " and app.scope='" + scope + "'"
+            extend_where += team_sql
+        if scope == "enterprise":
+            extend_where += " and app.scope='" + scope + "'"
+
+        sql = """
+            select
+                distinct app.*
+            from
+                rainbond_center_app app
+            left join rainbond_center_app_tag_relation apr on
+                app.app_id = apr.app_id
+                and app.enterprise_id = apr.enterprise_id
+            left join rainbond_center_app_tag tag on
+                apr.tag_id = tag.ID
+                and tag.enterprise_id = app.enterprise_id
+            {join_version}
+            where
+                app.enterprise_id = '{eid}'
+                {extend_where}
+            order by app.update_time desc
+            limit {offset}, {rows}
+            """.format(
+            eid=eid, extend_where=extend_where, offset=(page - 1) * page_size, rows=page_size, join_version=join_version)
+        return sql
+
+    def get_rainbond_plugin_app_in_teams_by_querey(self,
+                                            eid,
+                                            scope,
+                                            teams,
+                                            app_name,
+                                            tag_names=None,
+                                            page=1,
+                                            page_size=10,
+                                            need_install="false"):
+        sql = self._prepare_get_rainbond_plugin_app_by_query_sql(eid, scope, app_name, teams, tag_names, page, page_size,
+                                                          need_install)
+        conn = BaseConnection()
+        apps = conn.query(sql)
+        return apps
+
+    def get_rainbond_plugin_app_in_enterprise_by_querey(self,
+                                                        eid,
+                                                        scope,
+                                                        app_name,
+                                                        tag_names=None,
+                                                        page=1,
+                                                        page_size=10,
+                                                        need_install="false"):
+        sql = self._prepare_get_rainbond_plugin_app_by_query_sql(eid, scope, app_name, None, tag_names, page, page_size,
+                                                          need_install)
+        conn = BaseConnection()
+        apps = conn.query(sql)
+        return apps
+
     def get_rainbond_app_in_teams_by_querey(self,
                                             eid,
                                             scope,
@@ -105,6 +186,49 @@ class RainbondCenterAppRepository(object):
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps
+
+    def get_rainbond_plugin_app_total_count(self, eid, scope, teams, app_name, tag_names, need_install="false"):
+        extend_where = ""
+        join_version = ""
+        if tag_names:
+            extend_where += " and tag.name in ({0})".format(",".join("'{0}'".format(tag_name) for tag_name in tag_names))
+        if app_name:
+            extend_where += " and app.app_name like '%{0}%'".format(app_name)
+        if need_install == "true":
+            join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id" \
+                            " and app.enterprise_id = apv.enterprise_id"
+            extend_where += " and apv.`version` <> '' and apv.is_complete and apv.is_plugin = True"
+        # if teams is None, create_team scope is ('')
+        if scope == "team":
+            team_sql = ""
+            if teams:
+                team_sql = " and app.create_team in({0})".format(",".join("'{0}'".format(team) for team in teams))
+            team_sql += " and app.scope='" + scope + "'"
+            extend_where += team_sql
+        if scope == "enterprise":
+            extend_where += " and app.scope='" + scope + "'"
+        sql = """
+            select
+                count(distinct app.app_id) as total
+            from
+                rainbond_center_app app
+            left join (
+                select
+                    app_id,
+                    tag.name
+                from
+                    rainbond_center_app_tag_relation rcatr
+                join rainbond_center_app_tag tag on
+                    rcatr.tag_id = tag.iD) tag on app.app_id = tag.app_id
+            {join_version}
+            where
+                app.enterprise_id = '{eid}'
+                {extend_where}
+            """.format(
+            eid=eid, extend_where=extend_where, join_version=join_version)
+        conn = BaseConnection()
+        count = conn.query(sql)
+        return count
 
     def get_rainbond_app_total_count(self, eid, scope, teams, app_name, tag_names, need_install="false"):
         extend_where = ""

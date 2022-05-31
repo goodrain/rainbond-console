@@ -49,8 +49,10 @@ from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppD
 from console.views.backup_data import (BackupDataCView, BackupDateDownload, BackupRecoverCView, BackupUploadCView)
 from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportView, CenterAppTarballDirView, EnterpriseAppImportInitView)
-from console.views.center_pool.apps import (AppTagCDView, AppVersionUDView, CenterAppCLView, CenterAppUDView, CenterAppView,
-                                            LocalComponentLibraryConfigCheck, TagCLView, TagUDView)
+from console.views.center_pool.apps import (AppTagCDView, AppVersionUDView, CenterAppCLView, CenterAppUDView,
+                                            CenterAppView,
+                                            LocalComponentLibraryConfigCheck, TagCLView, TagUDView, CenterPluginAppView,
+                                            CenterAppPluginLView, CenterPluginAppLView)
 from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupView, GroupAppsBackupExportView,
                                                        GroupAppsBackupImportView, GroupAppsBackupStatusView,
                                                        GroupAppsBackupView, TeamGroupAppsBackupView)
@@ -104,8 +106,9 @@ from console.views.service_docker import DockerContainerView
 from console.views.service_share import (
     AppMarketAppModelLView, AppMarketAppModelVersionsLView, AppMarketAppModelVersionsRView, AppMarketBatchCView,
     AppMarketCLView, AppMarketOrgModelLView, AppMarketRUDView, ServiceGroupSharedApps, ServicePluginShareEventPost,
-    ServiceShareCompleteView, ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost, ServiceShareInfoView,
-    ServiceShareRecordInfoView, ServiceShareRecordView, ShareRecordView)
+    ServiceShareCompleteView, ServiceShareDeleteView, ServiceShareEventList, ServiceShareEventPost,
+    ServiceShareInfoView,
+    ServiceShareRecordInfoView, ServiceShareRecordView, ShareRecordView, AppMarketAppPluginLView)
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance
@@ -642,6 +645,7 @@ urlpatterns = [
     url(r'^plugins$', InternalMarketPluginsView.as_view(), perms.InternalMarketPluginsView),
     url(r'^plugins/installable$', InstallableInteralPluginsView.as_view(), perms.InstallableInteralPluginsView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view(), perms.CenterAppView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/plugins$', CenterPluginAppView.as_view()),
 
     # 文件上传
     url(r'^files/upload$', ConsoleUploadFileView.as_view()),
@@ -761,6 +765,7 @@ urlpatterns = [
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/storehub-check$', LocalComponentLibraryConfigCheck.as_view(),
         perms.CenterAppCLView),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/plugins$', CenterPluginAppLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models$', CenterAppCLView.as_view(), perms.CenterAppCLView),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-model/(?P<app_id>[\w\-]+)$', CenterAppUDView.as_view(),
         perms.CenterAppUDView),
@@ -784,6 +789,11 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/bindable-markets$', BindableMarketsView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/organizations$',
         AppMarketOrgModelLView.as_view()),
+    # 应用商店插件应用列表
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/cloud/markets/(?P<market_name>[\w\-]+)/plugin-apps$',
+        AppMarketAppPluginLView.as_view()),
+    # 本地插件应用列表
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-plugins$', CenterPluginAppLView.as_view()),
 
     # 应用导出
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view(), perms.CenterAppExportView),
