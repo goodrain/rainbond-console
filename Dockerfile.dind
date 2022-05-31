@@ -45,9 +45,9 @@ RUN set -eux; \
             kubectl_url="https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/linux/amd64/kubectl" \
 			;; \
 		'arm64') \
-			docker_url='https://download.docker.com/linux/static/stable/aarch64/docker-20.10.11.tgz'; \
-            k3s_url="https://github.com/rancher/k3s/releases/download/v1.22.3+k3s1/k3s-arm64" \
-            kubectl_url="https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/linux/arm64/kubectl" \
+			docker_url='https://pkg.goodrain.com/pkg/docker-20.10.11.tgz'; \
+            k3s_url="https://pkg.goodrain.com/pkg/k3s-arm64" \
+            kubectl_url="https://pkg.goodrain.com/pkg/kubectl" \
 			;; \
 	esac \
     && wget -O docker.tgz "$docker_url" \

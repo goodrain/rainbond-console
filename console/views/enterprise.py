@@ -20,6 +20,7 @@ from console.views.base import EnterpriseAdminView, JWTAuthApiView, EnterpriseHe
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import PermRelTenant, Tenants
 from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
@@ -146,6 +147,25 @@ class EnterpriseTeams(JWTAuthApiView):
         name = request.GET.get("name", None)
         teams, total = team_services.get_enterprise_teams(
             enterprise_id, query=name, page=page, page_size=page_size, user=self.user)
+        tenant_names = {tenant["team_name"]: tenant for tenant in teams}
+        usable_regions = region_repo.get_usable_regions(enterprise_id)
+        user_id_list = PermRelTenant.objects.filter().values("tenant_id", "user_id")
+        user_id_dict = dict()
+        tenants = Tenants.objects.filter()
+        tenant_ids = {tenant_id.ID: tenant_id.tenant_id for tenant_id in tenants}
+        for user_id in user_id_list:
+            user_id_dict[tenant_ids.get(user_id["tenant_id"])] = user_id_dict.get(user_id["tenant_id"], 0) + 1
+        for usable_region in usable_regions:
+            region_tenants, total = team_services.get_tenant_list_by_region(
+                enterprise_id, usable_region.region_id, page=1, page_size=9999)
+            for region_tenant in region_tenants:
+                tenant = tenant_names.get(region_tenant["tenant_name"])
+                if tenant:
+                    tenant["user_number"] = user_id_dict.get(region_tenant["tenant_id"])
+                    tenant["running_apps"] = tenant.get("running_apps", 0) + region_tenant["running_applications"]
+                    tenant["memory_request"] = tenant.get("memory_request", 0) + region_tenant["memory_request"]
+                    tenant["cpu_request"] = tenant.get("cpu_request", 0) + region_tenant["cpu_request"]
+                    tenant["set_limit_memory"] = tenant.get("set_limit_memory", 0) + region_tenant["set_limit_memory"]
         data = {"total_count": total, "page": page, "page_size": page_size, "list": teams}
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)
