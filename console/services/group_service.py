@@ -400,8 +400,8 @@ class GroupService(object):
         services = service_repo.get_services_by_service_ids(service_ids)
         return services
 
-    def get_multi_apps_all_info(self, app_ids, region, tenant_name, enterprise_id, tenant):
-        app_list = group_repo.get_multi_app_info(app_ids)
+    def get_multi_apps_all_info(self, sort, groups, app_ids, region, tenant_name, enterprise_id, tenant):
+        app_list = groups.filter(ID__in=app_ids)
         service_list = service_repo.get_services_in_multi_apps_with_app_info(app_ids)
         # memory info
         service_ids = [service.service_id for service in service_list]
@@ -457,6 +457,11 @@ class GroupService(object):
                 app["allocate_mem"] = app["used_mem"]
             app.pop("service_list")
             re_app_list.append(app)
+        if sort != 2:
+            re_app_list = sorted(
+                re_app_list,
+                key=lambda i: (1 if i["status"] == "RUNNING" else 2 if i["status"] == "ABNORMAL" else 3
+                               if i["status"] == "STARTING" else 5 if i["status"] == "CLOSED" else 4, -i["used_mem"]))
         return re_app_list
 
     @staticmethod

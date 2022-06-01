@@ -163,8 +163,10 @@ class AppRestore(MarketApp):
         create new app from the snapshot
         """
         components = []
+        now_components = self.original_app.components()
+        now_volumes = {now.component.service_id: now.volumes for now in now_components}
         for snap in self.snapshot["components"]:
-            components.append(self._create_component(snap))
+            components.append(self._create_component(snap, now_volumes))
         component_ids = [cpt.component.component_id for cpt in components]
 
         # component dependencies
@@ -190,9 +192,11 @@ class AppRestore(MarketApp):
             plugins=plugins,
             plugin_deps=self._create_plugins_deps(),
             plugin_configs=self._create_plugins_configs(),
-        )
+            config_groups=self.original_app.config_groups,
+            config_group_components=self.original_app.config_group_components,
+            config_group_items=self.original_app.config_group_items)
 
-    def _create_component(self, snap):
+    def _create_component(self, snap, now_volumes):
         # component
         component = TenantServiceInfo(**snap["service_base"])
         # component source
@@ -207,6 +211,9 @@ class AppRestore(MarketApp):
             extend_info = ServiceExtendMethod(**snap.get("service_extend_method"))
         # volumes
         volumes = [TenantServiceVolume(**volume) for volume in snap["service_volumes"]]
+        if now_volumes.get(component.service_id):
+            volumes = now_volumes[component.service_id]
+
         # configuration files
         config_files = [TenantServiceConfigurationFile(**config_file) for config_file in snap["service_config_file"]]
         # probe

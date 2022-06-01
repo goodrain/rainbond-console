@@ -891,10 +891,9 @@ class AppService(object):
 
 class AppMarketService(object):
     def get_app_markets(self, enterprise_id, extend):
-        app_market_repo.create_default_app_market_if_not_exists(enterprise_id)
-
-        market_list = []
         markets = app_market_repo.get_app_markets(enterprise_id)
+        app_market_repo.create_default_app_market_if_not_exists(markets, enterprise_id)
+        market_list = []
         for market in markets:
             dt = {
                 "access_key": market.access_key,

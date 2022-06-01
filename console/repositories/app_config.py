@@ -671,6 +671,9 @@ class ServiceDomainRepository(object):
     def get_service_domains(self, service_id):
         return ServiceDomain.objects.filter(service_id=service_id).all()
 
+    def get_service_domain_all(self):
+        return ServiceDomain.objects.all()
+
     def create_service_domains(self, service_id, service_name, domain_name, create_time, container_port, protocol, http_rule_id,
                                tenant_id, service_alias, region_id):
         ServiceDomain.objects.create(
@@ -867,6 +870,9 @@ class ServiceTcpDomainRepository(object):
 
     def get_service_tcpdomains(self, service_id):
         return ServiceTcpDomain.objects.filter(service_id=service_id).all()
+
+    def get_service_tcpdomain_all(self):
+        return ServiceTcpDomain.objects.all()
 
     def get_services_tcpdomains(self, service_ids):
         return ServiceTcpDomain.objects.filter(service_id__in=service_ids)

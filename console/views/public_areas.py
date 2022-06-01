@@ -135,7 +135,7 @@ class TeamOverView(RegionTenantHeaderView):
                         running_app_num += 1
             except Exception as e:
                 logger.exception(e)
-            team_app_num = group_repo.get_tenant_region_groups_count(self.team.tenant_id, self.response_region)
+            team_app_num = len(groups)
             overview_detail["team_app_num"] = team_app_num
             overview_detail["team_service_num"] = team_service_num
             overview_detail["eid"] = self.team.enterprise_id
@@ -232,6 +232,8 @@ class GroupServiceView(RegionTenantHeaderView):
         """
         try:
             code = 200
+            sort = int(request.GET.get("sort", 1))
+            order = request.GET.get("order", "descend")
             page = request.GET.get("page", 1)
             page_size = request.GET.get("page_size", 10)
             group_id = request.GET.get("group_id", None)
@@ -284,6 +286,31 @@ class GroupServiceView(RegionTenantHeaderView):
             except EmptyPage:
                 group_service_list = paginator.page(paginator.num_pages).object_list
             result = general_message(code, "query success", "应用查询成功", list=group_service_list, total=paginator.count)
+            if sort == 3:
+                if order == "ascend":
+                    group_service_list = sorted(group_service_list, key=lambda i: i["update_time"])
+            elif sort == 2:
+                if order == "ascend":
+                    group_service_list = sorted(
+                        group_service_list,
+                        key=lambda i: (i["min_memory"], -1 if i["status"] == "running" else -2 if i["status"] == "abonrmal" else
+                                       -3 if i["status"] == "starting" else -5 if i["status"] == "closed" else -4))
+                else:
+                    group_service_list = sorted(
+                        group_service_list,
+                        key=lambda i: (-i["min_memory"], 1 if i["status"] == "running" else 2 if i["status"] == "abonrmal" else
+                                       3 if i["status"] == "starting" else 5 if i["status"] == "closed" else 4))
+            else:
+                if order == "ascend":
+                    group_service_list = sorted(
+                        group_service_list,
+                        key=lambda i: (-1 if i["status"] == "running" else -2 if i["status"] == "abnormal" else -3 if i[
+                            "status"] == "starting" else -5 if i["status"] == "closed" else -4, i["min_memory"]))
+                else:
+                    group_service_list = sorted(
+                        group_service_list,
+                        key=lambda i: (1 if i["status"] == "running" else 2 if i["status"] == "abnormal" else 3
+                                       if i["status"] == "starting" else 5 if i["status"] == "closed" else 4, -i["min_memory"]))
             return Response(result, status=code)
         except GroupNotExistError as e:
             logger.exception(e)
@@ -484,6 +511,7 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         """
         总览 团队应用信息
         """
+        sort = int(request.GET.get("sort", 1))
         query = request.GET.get("query", "")
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
@@ -496,7 +524,7 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         if groups:
             group_ids = [group.ID for group in groups]
             group_ids = group_ids[start:end]
-            apps = group_service.get_multi_apps_all_info(group_ids, self.response_region, self.team_name,
+            apps = group_service.get_multi_apps_all_info(sort, groups, group_ids, self.response_region, self.team_name,
                                                          self.team.enterprise_id, self.team)
         return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
 

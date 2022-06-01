@@ -433,13 +433,13 @@ class AppTagRepository(object):
 
 
 class AppMarketRepository(object):
-    def create_default_app_market_if_not_exists(self, eid):
+    def create_default_app_market_if_not_exists(self, markets_all, eid):
         access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY", "")
         domain = os.getenv("DEFAULT_APP_MARKET_DOMAIN", "rainbond")
         url = os.getenv("DEFAULT_APP_MARKET_URL", "https://store.goodrain.com")
         name = os.getenv("DEFAULT_APP_MARKET_NAME", "RainbondMarket")
+        markets = markets_all.filter(domain=domain, url=url)
 
-        markets = AppMarket.objects.filter(domain=domain, url=url, enterprise_id=eid)
         if markets or os.getenv("DISABLE_DEFAULT_APP_MARKET", False):
             return
         AppMarket.objects.create(
