@@ -12,7 +12,7 @@ ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
 
 FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION}
-
+ARG VERSION=v5.7.0-release
 ARG RELEASE_DESC=
 
 LABEL author="zengqg@goodrain.com"
