@@ -12,3 +12,6 @@ ALTER TABLE tenant_service_delete ADD COLUMN `k8s_component_name` VARCHAR(100);
 -- 5.5.0 - 5.5.1 sql
 ALTER TABLE `service_domain` ADD COLUMN `path_rewrite` bool DEFAULT false NOT NULL;
 ALTER TABLE `service_domain` ADD COLUMN `rewrites` longtext NOT NULL;
+
+-- 5.5.1 - 5.5.2 sql
+ALTER TABLE `rainbond_center_app_version` ADD COLUMN `is_plugin` bool DEFAULT false NOT NULL;

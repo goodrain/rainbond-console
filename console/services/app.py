@@ -26,7 +26,8 @@ from console.models.main import (AppMarket, RainbondCenterApp, RainbondCenterApp
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
 from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import domain_repo as http_rule_repo
-from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo)
+from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain,
+                                             volume_repo)
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
@@ -142,7 +143,8 @@ class AppService(object):
         new_service.server_type = server_type
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         new_service.save()
-        code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url, service_code_id,
+        code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url,
+                                           service_code_id,
                                            service_code_version, check_uuid, event_id, oauth_service_id, git_full_name)
         if code != 200:
             return code, msg, new_service
@@ -150,7 +152,8 @@ class AppService(object):
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, "创建成功", ts
 
-    def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id, service_code_version,
+    def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id,
+                          service_code_version,
                           check_uuid, event_id, oauth_service_id, git_full_name):
         if service_code_from == SourceCodeType.GITLAB_MANUAL or service_code_from == SourceCodeType.GITLAB_DEMO:
             service_code_id = "0"
@@ -1014,6 +1017,7 @@ class AppMarketService(object):
                 versions = []
                 for version in dt.versions:
                     versions.append({
+                        "is_plugin": version.is_plugin,
                         "app_key_id": version.app_key_id,
                         "app_version": version.app_version,
                         "app_version_alias": version.app_version_alias,
@@ -1109,6 +1113,7 @@ class AppMarketService(object):
         version = {}
         if data:
             version = {
+                "is_plugin": data.is_plugin,
                 "template_type": data.template_type,
                 "template": data.template,
                 "delivery_mode": data.delivery_mode,
@@ -1126,8 +1131,13 @@ class AppMarketService(object):
             }
         return Dict(version)
 
+    def get_market_plugins_apps(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
+        results = app_store.get_plugins_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
+        data = self.app_models_serializers(market, results.apps, extend=extend)
+        return data, results.page, results.page_size, results.total
+
     def get_market_app_models(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
-        results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
+        results = app_store.get_apps_templates(market, page=page, page_size=page_size, query=query, query_all=query_all)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
@@ -1142,7 +1152,8 @@ class AppMarketService(object):
         data = self.app_model_versions_serializers(market, results.versions, extend=extend)
         return data
 
-    def get_market_app_model_version(self, market, app_id, version, for_install=False, extend=False, get_template=False):
+    def get_market_app_model_version(self, market, app_id, version, for_install=False, extend=False,
+                                     get_template=False):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
         results = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=get_template)
@@ -1155,7 +1166,8 @@ class AppMarketService(object):
         app_template = None
         try:
             if version:
-                app_template = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=True)
+                app_template = app_store.get_app_version(market, app_id, version, for_install=for_install,
+                                                         get_template=True)
         except ServiceHandleException as e:
             if e.status_code != 404:
                 logger.exception(e)

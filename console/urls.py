@@ -49,8 +49,9 @@ from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppD
 from console.views.backup_data import (BackupDataCView, BackupDateDownload, BackupRecoverCView, BackupUploadCView)
 from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportView, CenterAppTarballDirView, EnterpriseAppImportInitView)
-from console.views.center_pool.apps import (AppTagCDView, AppVersionUDView, CenterAppCLView, CenterAppUDView, CenterAppView,
-                                            LocalComponentLibraryConfigCheck, TagCLView, TagUDView)
+from console.views.center_pool.apps import (AppTagCDView, AppVersionUDView, CenterAppCLView, CenterAppUDView,
+                                            CenterAppView,
+                                            LocalComponentLibraryConfigCheck, TagCLView, TagUDView, CenterPluginAppView)
 from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupView, GroupAppsBackupExportView,
                                                        GroupAppsBackupImportView, GroupAppsBackupStatusView,
                                                        GroupAppsBackupView, TeamGroupAppsBackupView)
@@ -642,6 +643,7 @@ urlpatterns = [
     url(r'^plugins$', InternalMarketPluginsView.as_view(), perms.InternalMarketPluginsView),
     url(r'^plugins/installable$', InstallableInteralPluginsView.as_view(), perms.InstallableInteralPluginsView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view(), perms.CenterAppView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/plugins$', CenterPluginAppView.as_view()),
 
     # 文件上传
     url(r'^files/upload$', ConsoleUploadFileView.as_view()),

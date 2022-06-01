@@ -140,6 +140,7 @@ class RainbondCenterAppVersion(BaseModel):
     release_user_id = models.IntegerField(null=True, default=None, help_text="版本release操作人id")
     # region_name is not null,This means that the version can only be installed on that cluster.
     region_name = models.CharField(max_length=64, null=True, default=None, help_text="数据中心名称")
+    is_plugin = models.BooleanField(default=False, help_text='应用版本是否作为插件')
 
 
 class RainbondCenterAppInherit(BaseModel):
