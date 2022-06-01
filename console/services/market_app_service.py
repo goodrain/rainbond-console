@@ -95,7 +95,8 @@ class MarketAppService(object):
         app_template = json.loads(app_version.app_template)
         app_template["update_time"] = app_version.update_time
 
-        component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
+        component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id,
+                                                            market_app.app_id,
                                                             version, market_app.app_name)
 
         app_upgrade = AppUpgrade(
@@ -134,7 +135,8 @@ class MarketAppService(object):
             region = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, region_name)
             app_templates = json.loads(market_app_version.app_template)
             apps = app_templates["apps"]
-            tenant_service_group = self._create_tenant_service_group(region_name, tenant.tenant_id, group_id, market_app.app_id,
+            tenant_service_group = self._create_tenant_service_group(region_name, tenant.tenant_id, group_id,
+                                                                     market_app.app_id,
                                                                      market_app_version.version, market_app.app_name)
             # install plugin for tenant
             plugins = app_templates.get("plugins", [])
@@ -188,7 +190,8 @@ class MarketAppService(object):
                                                                  config_group["injection_type"], True, component_ids,
                                                                  region.region_name, tenant.tenant_name)
                 except ErrAppConfigGroupExists:
-                    app_config_group_service.create_config_group(group_id, config_group["name"] + "-" + make_uuid()[:4], items,
+                    app_config_group_service.create_config_group(group_id, config_group["name"] + "-" + make_uuid()[:4],
+                                                                 items,
                                                                  config_group["injection_type"], True, component_ids,
                                                                  region.region_name, tenant.tenant_name)
 
@@ -272,7 +275,8 @@ class MarketAppService(object):
             new_service_list = self.__create_region_services(tenant, region_name, user, service_list)
 
             # config groups
-            config_groups = market_app_template["app_config_groups"] if market_app_template.get("app_config_groups") else []
+            config_groups = market_app_template["app_config_groups"] if market_app_template.get(
+                "app_config_groups") else []
             for config_group in config_groups:
                 component_ids = []
                 for service_key in config_group.get("component_keys", []):
@@ -299,7 +303,8 @@ class MarketAppService(object):
                     component_ids.extend(old_cgroup_service_ids)
                     items.extend(old_cgroup_items)
 
-                    app_config_group_service.update_config_group(region_name, group_id, config_group["name"], items, True,
+                    app_config_group_service.update_config_group(region_name, group_id, config_group["name"], items,
+                                                                 True,
                                                                  component_ids, tenant.tenant_name)
 
             # open plugin for component
@@ -435,7 +440,8 @@ class MarketAppService(object):
                 for item in dep_mnts:
                     dep_service = key_service_map.get(item["service_share_uuid"])
                     if not dep_service:
-                        logger.info("Service share uuid: {}; dependent service not found".format(item["service_share_uuid"]))
+                        logger.info(
+                            "Service share uuid: {}; dependent service not found".format(item["service_share_uuid"]))
                         continue
                     dep_app = app_map.get(item["service_share_uuid"])
                     if not dep_app:
@@ -475,10 +481,12 @@ class MarketAppService(object):
                         data["switch"] = True
                         data["version_id"] = build_version
                         data.update(region_config)
-                        app_plugin_service.create_service_plugin_relation(tenant.tenant_id, service.service_id, plugin_id,
+                        app_plugin_service.create_service_plugin_relation(tenant.tenant_id, service.service_id,
+                                                                          plugin_id,
                                                                           build_version)
 
-                        region_api.install_service_plugin(service.service_region, tenant.tenant_name, service.service_alias,
+                        region_api.install_service_plugin(service.service_region, tenant.tenant_name,
+                                                          service.service_alias,
                                                           data)
 
         except Exception as e:
@@ -490,7 +498,8 @@ class MarketAppService(object):
         except ServiceHandleException as e:
             logger.warning("plugin data: {0}; failed to create plugin: {1}".format(plugins, e.msg))
 
-    def __save_service_config_values(self, service, plugin_id, build_version, service_plugin_config_vars, old_new_id_map):
+    def __save_service_config_values(self, service, plugin_id, build_version, service_plugin_config_vars,
+                                     old_new_id_map):
         config_list = []
 
         for config in service_plugin_config_vars:
@@ -648,7 +657,8 @@ class MarketAppService(object):
                 for dep_key in dep_keys:
                     if dep_key["dep_service_key"] in key_service_map:
                         dep_service = key_service_map[dep_key["dep_service_key"]]
-                        code, msg, d = app_relation_service.add_service_dependency(tenant, ts, dep_service.service_id, True)
+                        code, msg, d = app_relation_service.add_service_dependency(tenant, ts, dep_service.service_id,
+                                                                                   True)
                         if code != 200:
                             logger.error("save component dependency relation error {0}".format(msg))
 
@@ -908,21 +918,22 @@ class MarketAppService(object):
             extend_info["market_name"] = market_name
         service_source_params = {
             "team_id":
-            ts.tenant_id,
+                ts.tenant_id,
             "service_id":
-            ts.service_id,
+                ts.service_id,
             "user_name":
-            "",
+                "",
             "password":
-            "",
+                "",
             "extend_info":
-            json.dumps(extend_info),
+                json.dumps(extend_info),
             "group_key":
-            app_id,
+                app_id,
             "version":
-            version,
+                version,
             "service_share_uuid":
-            component.get("service_share_uuid") if component.get("service_share_uuid", None) else component.get("service_key")
+                component.get("service_share_uuid") if component.get("service_share_uuid", None) else component.get(
+                    "service_key")
         }
         service_source_repo.create_service_source(**service_source_params)
 
@@ -935,7 +946,8 @@ class MarketAppService(object):
                           is_complete=True,
                           page=1,
                           page_size=10,
-                          need_install="false"):
+                          need_install="false",
+                          is_plugin="false"):
         if scope == "team":
             # prepare teams
             is_admin = user_services.is_user_admin_in_current_enterprise(user, eid)
@@ -946,13 +958,16 @@ class MarketAppService(object):
             if teams:
                 teams = [team.tenant_name for team in teams]
             apps = rainbond_app_repo.get_rainbond_app_in_teams_by_querey(eid, scope, teams, app_name, tag_names, page,
-                                                                         page_size, need_install)
-            count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, teams, app_name, tag_names, need_install)
+                                                                         page_size, need_install, is_plugin)
+            count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, teams, app_name, tag_names, need_install,
+                                                                   is_plugin)
         else:
             # default scope is enterprise
-            apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, scope, app_name, tag_names, page, page_size,
-                                                                             need_install)
-            count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, None, app_name, tag_names, need_install)
+            apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, scope, app_name, tag_names, page,
+                                                                             page_size,
+                                                                             need_install, is_plugin)
+            count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, None, app_name, tag_names, need_install,
+                                                                   is_plugin)
         if not apps:
             return [], count[0].total
 
@@ -1000,7 +1015,8 @@ class MarketAppService(object):
     # patch rainbond app versions
     def _patch_rainbond_app_versions(self, eid, apps, is_complete):
         app_ids = [app.app_id for app in apps]
-        versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(eid, app_ids, is_complete, rm_template_field=True)
+        versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(eid, app_ids, is_complete,
+                                                                         rm_template_field=True)
         if not versions:
             return
 
@@ -1106,7 +1122,8 @@ class MarketAppService(object):
         tenants = team_repo.get_teams_by_enterprise_id(enterprise_id)
         tenant_names = [t.tenant_name for t in tenants]
         # 获取企业分享的应用，并且排除返回在团队内的
-        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(share_team__in=tenant_names).exclude(
+        return rainbond_app_repo.get_current_enter_visable_apps(enterprise_id).filter(
+            share_team__in=tenant_names).exclude(
             scope="team")
 
     def get_public_market_shared_apps(self, enterprise_id):
@@ -1147,7 +1164,8 @@ class MarketAppService(object):
             try:
                 market = app_market_service.get_app_market_by_name(
                     tenant.enterprise_id, extend_info.get("market_name"), raise_exception=True)
-                resp = app_market_service.get_market_app_model_version(market, service_source.group_key, service_source.version)
+                resp = app_market_service.get_market_app_model_version(market, service_source.group_key,
+                                                                       service_source.version)
                 if not resp:
                     raise app_not_found
             except region_api.CallApiError as e:
@@ -1214,9 +1232,11 @@ class MarketAppService(object):
                 scope="goodrain", source="market", group_name__icontains=app_name)
         if is_complete:
             if is_complete == "true":
-                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market", is_complete=True)
+                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market",
+                                                                        is_complete=True)
             else:
-                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market", is_complete=False)
+                return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market",
+                                                                        is_complete=False)
         return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market")
 
     def list_upgradeable_versions(self, tenant, service):
@@ -1227,8 +1247,10 @@ class MarketAppService(object):
             install_from_cloud = component_source.is_install_from_cloud()
             if install_from_cloud and market_name:
                 market = app_market_repo.get_app_market_by_name(tenant.enterprise_id, market_name, raise_exception=True)
-            return self.__get_upgradeable_versions(tenant.enterprise_id, component_source.group_key, component_source.version,
-                                                   component_source.get_template_update_time(), install_from_cloud, market)
+            return self.__get_upgradeable_versions(tenant.enterprise_id, component_source.group_key,
+                                                   component_source.version,
+                                                   component_source.get_template_update_time(), install_from_cloud,
+                                                   market)
         return []
 
     def get_enterprise_access_token(self, enterprise_id, access_target):
@@ -1262,7 +1284,8 @@ class MarketAppService(object):
                 if (upgrade_app_key not in upgrade_app_models) or compare_version(
                         upgrade_app_models[upgrade_app_key]['version'], ss.version) == -1:
                     # The version of the component group is the version of the application
-                    upgrade_app_models[upgrade_app_key] = {'version': component_group.group_version, 'component_source': ss}
+                    upgrade_app_models[upgrade_app_key] = {'version': component_group.group_version,
+                                                           'component_source': ss}
         iterator = self.yield_app_info(upgrade_app_models, tenant, application.ID)
         app_info_list = [app_info for app_info in iterator]
 
@@ -1283,7 +1306,8 @@ class MarketAppService(object):
                 if market:
                     app_model, _ = app_market_service.cloud_app_model_to_db_model(market, app_model_key, version=None)
             else:
-                app_model, _ = rainbond_app_repo.get_rainbond_app_and_version(tenant.enterprise_id, app_model_key, version)
+                app_model, _ = rainbond_app_repo.get_rainbond_app_and_version(tenant.enterprise_id, app_model_key,
+                                                                              version)
             if not app_model:
                 continue
             dat = {
@@ -1305,7 +1329,8 @@ class MarketAppService(object):
             }
             not_upgrade_record = upgrade_service.get_app_not_upgrade_record(tenant.tenant_id, app_id, app_model_key)
             versions = self.__get_upgradeable_versions(tenant.enterprise_id, app_model_key, version,
-                                                       component_source.get_template_update_time(), install_from_cloud, market)
+                                                       component_source.get_template_update_time(), install_from_cloud,
+                                                       market)
             dat.update({
                 'current_version': version,
                 'can_upgrade': bool(versions),
@@ -1374,7 +1399,8 @@ class MarketAppService(object):
     def get_models_upgradeable_version(self, enterprise_id, app_model_key, app_id, upgrade_group_id):
         current_version, current_version_update_time, install_from_cloud, market = self.get_current_version(
             enterprise_id, app_model_key, app_id, upgrade_group_id)
-        return self.__get_upgradeable_versions(enterprise_id, app_model_key, current_version, current_version_update_time,
+        return self.__get_upgradeable_versions(enterprise_id, app_model_key, current_version,
+                                               current_version_update_time,
                                                install_from_cloud, market)
 
     def list_app_upgradeable_versions(self, enterprise_id, record: AppUpgradeRecord):
@@ -1534,6 +1560,63 @@ class MarketAppService(object):
             result.append(cpt)
 
         return result
+
+    def install_plugin_app(self,
+                           tenant,
+                           region,
+                           user,
+                           app_model_key,
+                           version,
+                           market_name,
+                           install_from_cloud,
+                           tenant_id,
+                           region_name,
+                           is_deploy=False):
+        new_group = group_repo.get_or_create_default_group(tenant_id, region_name)
+        app = group_repo.get_group_by_id(new_group.ID)
+
+        if not app:
+            raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
+
+        if install_from_cloud:
+            _, market = app_market_service.get_app_market(tenant.enterprise_id, market_name, raise_exception=True)
+
+            market_app, app_version = app_market_service.cloud_app_model_to_db_model(
+                market, app_model_key, version, for_install=True)
+        else:
+            market_app, app_version = market_app_service.get_rainbond_app_and_version(user.enterprise_id, app_model_key,
+                                                                                      version)
+
+            if app_version and app_version.region_name and app_version.region_name != region.region_name:
+                raise AbortRequest(
+                    msg="app version can not install to this region",
+                    msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
+
+        if not market_app:
+            raise AbortRequest("plugin app not found", "插件应用不存在", status_code=404, error_code=404)
+        if not app_version:
+            raise AbortRequest("app version not found", "插件应用版本不存在", status_code=404, error_code=404)
+        app_template = json.loads(app_version.app_template)
+        app_template["update_time"] = app_version.update_time
+
+        component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id,
+                                                            market_app.app_id,
+                                                            version, market_app.app_name)
+
+        app_upgrade = AppUpgrade(
+            user.enterprise_id,
+            tenant,
+            region,
+            user,
+            app,
+            version,
+            component_group,
+            app_template,
+            install_from_cloud,
+            market_name,
+            is_deploy=is_deploy)
+        app_upgrade.install_plugins()
+        return market_app.app_name
 
     @staticmethod
     def __upgradable_versions(component_source, versions):
