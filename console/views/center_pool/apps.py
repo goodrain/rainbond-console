@@ -7,6 +7,7 @@ import json
 import logging
 
 from console.repositories.app import app_tag_repo
+from console.repositories.group import tenant_service_group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.market_app_service import market_app_service
@@ -157,6 +158,7 @@ class CenterAppCLView(JWTAuthApiView):
               type: string
               paramType: query
         """
+        is_plugin = request.GET.get("is_plugin", False)
         scope = request.GET.get("scope", None)
         app_name = request.GET.get("app_name", None)
         tags = request.GET.get("tags", [])
@@ -167,7 +169,7 @@ class CenterAppCLView(JWTAuthApiView):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         apps, count = market_app_service.get_visiable_apps(self.user, enterprise_id, scope, app_name, tags, is_complete, page,
-                                                           page_size, need_install)
+                                                           page_size, need_install, is_plugin)
         return MessageResponse("success", msg_show="查询成功", list=apps, total=count, next_page=int(page) + 1)
 
     @never_cache
@@ -428,3 +430,41 @@ class LocalComponentLibraryConfigCheck(JWTAuthApiView):
                 remind = True
         result = general_message(200, "success", "检测成功", bean={"remind": remind})
         return Response(result, status=result.get("code", 200))
+
+class CenterPluginAppView(RegionTenantHeaderView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        """
+        创建应用市场插件型应用
+        ---
+        parameters:
+            - name: tenantName
+              description: 团队名称
+              required: true
+              type: string
+              paramType: path
+            - name: group_id
+              description: 组id
+              required: true
+              type: string
+              paramType: form
+            - name: app_id
+              description: rainbond app id
+              required: true
+              type: string
+              paramType: form
+            - name: install_from_cloud
+              description: install app from cloud
+              required: false
+              type: bool
+              paramType: form
+        """
+        app_model_key = request.data.get("app_id", None)
+        version = request.data.get("app_version", None)
+        is_deploy = request.data.get("is_deploy", True)
+        install_from_cloud = request.data.get("install_from_cloud", False)
+        market_name = request.data.get("market_name", None)
+
+        market_app_service.install_plugin_app(self.tenant, self.region, self.user, app_model_key, version, market_name,
+                                       install_from_cloud, self.tenant.tenant_id,self.region_name,is_deploy)
+        return Response(general_message(200, "success", "安装成功"), status=200)

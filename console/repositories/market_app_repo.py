@@ -36,8 +36,9 @@ class RainbondCenterAppRepository(object):
                                                 tag_names=None,
                                                 page=1,
                                                 page_size=10,
-                                                need_install="false"):
-        sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, app_name, None, tag_names, page, page_size, need_install)
+                                                need_install="false",
+                                                is_plugin="false"):
+        sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, app_name, None, tag_names, page, page_size, need_install, is_plugin)
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps
@@ -50,7 +51,8 @@ class RainbondCenterAppRepository(object):
                                                tag_names=None,
                                                page=1,
                                                page_size=10,
-                                               need_install="false"):
+                                               need_install="false",
+                                               is_plugin="false"):
         extend_where = ""
         join_version = ""
         if tag_names:
@@ -62,6 +64,8 @@ class RainbondCenterAppRepository(object):
             join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id" \
                             " and app.enterprise_id = apv.enterprise_id"
             extend_where += " and apv.`version` <> '' and apv.is_complete"
+        if is_plugin == "true":
+            extend_where += " and apv.`is_plugin`=true"
         # if teams is None, create_team scope is ('')
         if scope == "team":
             team_sql = ""
@@ -100,13 +104,14 @@ class RainbondCenterAppRepository(object):
                                             tag_names=None,
                                             page=1,
                                             page_size=10,
-                                            need_install="false"):
-        sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, app_name, teams, tag_names, page, page_size, need_install)
+                                            need_install="false",
+                                            is_plugin="false"):
+        sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, app_name, teams, tag_names, page, page_size, need_install, is_plugin,)
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps
 
-    def get_rainbond_app_total_count(self, eid, scope, teams, app_name, tag_names, need_install="false"):
+    def get_rainbond_app_total_count(self, eid, scope, teams, app_name, tag_names, need_install="false", is_plugin="false"):
         extend_where = ""
         join_version = ""
         if tag_names:
@@ -117,6 +122,8 @@ class RainbondCenterAppRepository(object):
             join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id" \
                             " and app.enterprise_id = apv.enterprise_id"
             extend_where += " and apv.`version` <> '' and apv.is_complete"
+        if is_plugin == "true":
+            extend_where += " and apv.`is_plugin`=true"
         # if teams is None, create_team scope is ('')
         if scope == "team":
             team_sql = ""

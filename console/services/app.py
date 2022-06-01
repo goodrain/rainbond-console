@@ -1014,6 +1014,7 @@ class AppMarketService(object):
                 versions = []
                 for version in dt.versions:
                     versions.append({
+                        "is_plugin":version.is_plugin,
                         "app_key_id": version.app_key_id,
                         "app_version": version.app_version,
                         "app_version_alias": version.app_version_alias,
@@ -1109,6 +1110,7 @@ class AppMarketService(object):
         version = {}
         if data:
             version = {
+                "is_plugin":data.is_plugin,
                 "template_type": data.template_type,
                 "template": data.template,
                 "delivery_mode": data.delivery_mode,
@@ -1125,9 +1127,13 @@ class AppMarketService(object):
                 "local_market_id": market.ID,
             }
         return Dict(version)
+    def get_market_plugins_apps(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
+        results = app_store.get_plugins_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
+        data = self.app_models_serializers(market, results.apps, extend=extend)
+        return data, results.page, results.page_size, results.total
 
     def get_market_app_models(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
-        results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
+        results = app_store.get_apps_templates(market, page=page, page_size=page_size, query=query, query_all=query_all)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 

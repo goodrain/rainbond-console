@@ -935,7 +935,8 @@ class MarketAppService(object):
                           is_complete=True,
                           page=1,
                           page_size=10,
-                          need_install="false"):
+                          need_install="false",
+                          is_plugin="false"):
         if scope == "team":
             # prepare teams
             is_admin = user_services.is_user_admin_in_current_enterprise(user, eid)
@@ -946,13 +947,13 @@ class MarketAppService(object):
             if teams:
                 teams = [team.tenant_name for team in teams]
             apps = rainbond_app_repo.get_rainbond_app_in_teams_by_querey(eid, scope, teams, app_name, tag_names, page,
-                                                                         page_size, need_install)
-            count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, teams, app_name, tag_names, need_install)
+                                                                         page_size, need_install, is_plugin)
+            count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, teams, app_name, tag_names, need_install, is_plugin)
         else:
             # default scope is enterprise
             apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, scope, app_name, tag_names, page, page_size,
-                                                                             need_install)
-            count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, None, app_name, tag_names, need_install)
+                                                                             need_install, is_plugin)
+            count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, None, app_name, tag_names, need_install, is_plugin)
         if not apps:
             return [], count[0].total
 
@@ -1534,6 +1535,63 @@ class MarketAppService(object):
             result.append(cpt)
 
         return result
+
+    def install_plugin_app(self,
+                    tenant,
+                    region,
+                    user,
+                    app_model_key,
+                    version,
+                    market_name,
+                    install_from_cloud,
+                    tenant_id,
+                    region_name,
+                    is_deploy=False):
+        new_group = group_repo.get_or_create_default_group(tenant_id, region_name)
+        app = group_repo.get_group_by_id(new_group.ID)
+
+        if not app:
+            raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
+
+        if install_from_cloud:
+            _, market = app_market_service.get_app_market(tenant.enterprise_id, market_name, raise_exception=True)
+
+            market_app, app_version = app_market_service.cloud_app_model_to_db_model(
+                market, app_model_key, version, for_install=True)
+        else:
+            market_app, app_version = market_app_service.get_rainbond_app_and_version(user.enterprise_id, app_model_key,
+                                                                                      version)
+
+            if app_version and app_version.region_name and app_version.region_name != region.region_name:
+                raise AbortRequest(
+                    msg="app version can not install to this region",
+                    msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
+
+        if not market_app:
+            raise AbortRequest("plugin app not found", "插件应用不存在", status_code=404, error_code=404)
+        if not app_version:
+            raise AbortRequest("app version not found", "插件应用版本不存在", status_code=404, error_code=404)
+        app_template = json.loads(app_version.app_template)
+        app_template["update_time"] = app_version.update_time
+
+        component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id,
+                                                            market_app.app_id,
+                                                            version, market_app.app_name)
+
+        app_upgrade = AppUpgrade(
+            user.enterprise_id,
+            tenant,
+            region,
+            user,
+            app,
+            version,
+            component_group,
+            app_template,
+            install_from_cloud,
+            market_name,
+            is_deploy=is_deploy)
+        app_upgrade.install_plugins()
+        return market_app.app_name
 
     @staticmethod
     def __upgradable_versions(component_source, versions):
