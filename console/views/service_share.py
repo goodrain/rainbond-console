@@ -666,7 +666,7 @@ class AppMarketAppModelLView(JWTAuthApiView):
             data, page, page_size, total = app_market_service.get_market_plugins_apps(
                 market_model, page, page_size, query=query, query_all=query_all, extend=True)
         else:
-            data, page, page_size, total = app_market_service.get_market_app_models(
+            data, page, page_size, total = app_market_service.get_market_app_list(
                 market_model, page, page_size, query=query, query_all=query_all, extend=True)
         result = general_message(200, msg="success", msg_show=None, list=data, page=page, page_size=page_size, total=total)
         return Response(result, status=200)
