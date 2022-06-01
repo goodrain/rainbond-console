@@ -707,7 +707,7 @@ class ShareService(object):
             if p["origin_share_id"] == "new_create":
                 p["plugin_key"] = make_uuid()
             else:
-                p["plugin_key"] = p["origin_share_id"]
+                p["plugin_key"] = p["plugin_id"]
             rt_list.append(p)
         return rt_list
 
