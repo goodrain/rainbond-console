@@ -1134,7 +1134,7 @@ class AppMarketService(object):
         return data, results.page, results.page_size, results.total
 
     def get_market_app_models(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
-        results = app_store.get_apps_templates(market, page=page, page_size=page_size, query=query, query_all=query_all)
+        results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
