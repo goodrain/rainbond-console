@@ -1008,7 +1008,7 @@ class ShareService(object):
         if service.get('dep_service_map_list'):
             service['dep_service_map_list'] = list(filter(filter_dep, service['dep_service_map_list']))
 
-    def complete(self, tenant, user, share_record):
+    def complete(self, tenant, user, share_record, is_plugin):
         # app = rainbond_app_repo.get_app_version_by_record_id(share_record.ID)
         app = share_repo.get_app_version_by_record_id(share_record.ID)
         app_market_url = None
@@ -1019,9 +1019,11 @@ class ShareService(object):
                 info = app.scope.split(":")
                 if len(info) > 1:
                     share_type = info[1]
-                app_market_url = self.publish_app_to_public_market(tenant, share_record, user.nick_name, app, share_type)
+                app_market_url = self.publish_app_to_public_market(tenant, share_record, user.nick_name, app, is_plugin,
+                                                                   share_type)
             app.is_complete = True
             app.update_time = datetime.datetime.now()
+            app.is_plugin = is_plugin
             app.save()
             RainbondCenterAppVersion.objects.filter(
                 app_id=app.app_id, source="local", scope="goodrain", is_complete=True).delete()
@@ -1034,7 +1036,7 @@ class ShareService(object):
         app_export_record_repo.delete_by_key_and_version(app.app_id, app.version)
         return app_market_url
 
-    def publish_app_to_public_market(self, tenant, share_record, user_name, app, share_type="private"):
+    def publish_app_to_public_market(self, tenant, share_record, user_name, app, is_plugin, share_type="private"):
         try:
             data = dict()
             data["description"] = app.app_version_info
@@ -1043,6 +1045,7 @@ class ShareService(object):
             data["template_type"] = app.template_type
             data["version"] = app.version
             data["version_alias"] = app.version_alias
+            data['is_plugin'] = is_plugin
             # TODO 修改传入数据, 修改返回数据
             ingress_http_routes = data["template"]["ingress_http_routes"] if data["template"].get("ingress_http_routes") else []
             for http_rule in ingress_http_routes:

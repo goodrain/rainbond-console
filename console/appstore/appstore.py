@@ -74,6 +74,13 @@ class AppStore(object):
         return data
 
     @apiException
+    def get_plugins_apps(self, store, query, query_all, page=1, page_size=10):
+        store_client = get_market_client(store.access_key, store.url)
+        data = store_client.get_app_plugin_list(
+            page=page, page_size=page_size, market_domain=store.domain, query=query, query_all=query_all)
+        return data
+
+    @apiException
     def get_apps(self, store, query, query_all, page=1, page_size=10):
         store_client = get_market_client(store.access_key, store.url)
         data = store_client.get_user_app_list(
@@ -84,6 +91,13 @@ class AppStore(object):
     def get_app(self, store, app_id):
         store_client = get_market_client(store.access_key, store.url)
         data = store_client.get_user_app_detail(app_id=app_id, market_domain=store.domain, _return_http_data_only=True)
+        return data
+
+    @apiException
+    def get_apps_templates(self, store, query, query_all, page=1, page_size=10):
+        store_client = get_market_client(store.access_key, store.url)
+        data = store_client.get_app_temp_list(
+            page=page, page_size=page_size, market_domain=store.domain, query=query, query_all=query_all)
         return data
 
     @apiException
