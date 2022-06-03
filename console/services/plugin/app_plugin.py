@@ -884,7 +884,7 @@ class PluginService(object):
 
     def get_default_plugin_from_cache(self, region, tenant):
         if not self.all_default_config:
-            raise Exception("no config was found")
+            return []
 
         default_plugin_list = []
         for plugin in self.all_default_config:
