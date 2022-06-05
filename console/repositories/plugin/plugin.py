@@ -99,6 +99,10 @@ class TenantPluginRepository(object):
     def bulk_create(plugins):
         TenantPlugin.objects.bulk_create(plugins)
 
+    @staticmethod
+    def delete_by_plugin_ids(plugin_ids):
+        TenantPlugin.objects.filter(plugin_id__in=plugin_ids).delete()
+
 
 class PluginBuildVersionRepository(object):
     @staticmethod

@@ -35,6 +35,9 @@ class PluginConfigGroupRepository(object):
     def delete_config_group_by_plugin_id(self, plugin_id):
         PluginConfigGroup.objects.filter(plugin_id=plugin_id).delete()
 
+    def delete_config_group_by_plugin_ids(self, plugin_ids):
+        PluginConfigGroup.objects.filter(plugin_id__in=plugin_ids).delete()
+
     def list_by_plugin_id(self, plugin_id):
         return PluginConfigGroup.objects.filter(plugin_id=plugin_id)
 
@@ -73,6 +76,9 @@ class PluginConfigItemsRepository(object):
 
     def delete_config_items_by_plugin_id(self, plugin_id):
         PluginConfigItems.objects.filter(plugin_id=plugin_id).delete()
+
+    def delete_config_items_by_plugin_ids(self, plugin_ids):
+        PluginConfigItems.objects.filter(plugin_id__in=plugin_ids).delete()
 
     def list_by_plugin_id(self, plugin_id):
         return PluginConfigItems.objects.filter(plugin_id=plugin_id)
