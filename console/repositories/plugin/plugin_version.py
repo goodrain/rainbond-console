@@ -27,6 +27,9 @@ class PluginVersionRepository(object):
     def delete_build_version_by_plugin_id(self, tenant_id, plugin_id):
         PluginBuildVersion.objects.filter(tenant_id=tenant_id, plugin_id=plugin_id).delete()
 
+    def delete_build_version_by_plugin_ids(self, plugin_ids):
+        PluginBuildVersion.objects.filter(plugin_id__in=plugin_ids).delete()
+
     def get_last_ok_one(self, plugin_id, tenant_id):
         pbv = PluginBuildVersion.objects.filter(
             plugin_id=plugin_id, tenant_id=tenant_id, build_status="build_success").order_by("-build_time")

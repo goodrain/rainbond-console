@@ -346,6 +346,13 @@ class MarketApp(object):
         plugin_versions = plugin_version_repo.list_by_plugin_ids(plugin_ids)
         return {plugin_version.plugin_id: plugin_version for plugin_version in plugin_versions}
 
+    @staticmethod
+    def delete_original_plugins(plugin_ids):
+        plugin_repo.delete_by_plugin_ids(plugin_ids)
+        build_version_repo.delete_build_version_by_plugin_ids(plugin_ids)
+        config_group_repo.delete_config_group_by_plugin_ids(plugin_ids)
+        config_item_repo.delete_config_items_by_plugin_ids(plugin_ids)
+
     def save_new_plugins(self):
         plugins = []
         build_versions = []

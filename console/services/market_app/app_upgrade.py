@@ -104,6 +104,7 @@ class AppUpgrade(MarketApp):
 
         # plugins
         self.original_plugins = self.list_original_plugins()
+        self.delete_plugin_ids = self.list_delete_plugin_ids()
         self.new_plugins = self._create_new_plugins()
         plugins = [plugin.plugin for plugin in self._plugins()]
 
@@ -215,6 +216,8 @@ class AppUpgrade(MarketApp):
 
     @transaction.atomic
     def install_plugins(self):
+        # delete old plugins
+        self.delete_original_plugins(self.list_delete_plugin_ids())
         # save plugins
         self.save_new_plugins()
         # sync plugins
@@ -694,26 +697,58 @@ class AppUpgrade(MarketApp):
 
         return new_plugin_configs, False
 
+    def list_delete_plugin_ids(self):
+        plugin_templates = self.app_template.get("plugins")
+        if not plugin_templates:
+            return []
+
+        original_plugins = {plugin.plugin.origin_share_id: plugin.plugin for plugin in self.original_plugins}
+        original_plugins_version = {plugin.plugin.origin_share_id: plugin.build_version for plugin in self.original_plugins}
+        plugin_ids = []
+        for plugin_tmpl in plugin_templates:
+            original_plugin = original_plugins.get(plugin_tmpl.get("plugin_key"))
+            original_plugin_version = original_plugins_version.get(plugin_tmpl.get("plugin_key"))
+
+            if plugin_tmpl["share_image"]:
+                image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
+                if len(image_and_tag) > 1:
+                    tags = image_and_tag[1].rsplit("_")
+                    new_version = tags[len(tags) - 2] if len(tags) > 2 else ""
+            if original_plugin and new_version > original_plugin_version.build_version:
+                plugin_ids.append(original_plugin.plugin_id)
+        return plugin_ids
+
     def _create_new_plugins(self):
         plugin_templates = self.app_template.get("plugins")
         if not plugin_templates:
             return []
 
         original_plugins = {plugin.plugin.origin_share_id: plugin.plugin for plugin in self.original_plugins}
+        original_plugins_version = {plugin.plugin.origin_share_id: plugin.build_version for plugin in self.original_plugins}
         plugins = []
         for plugin_tmpl in plugin_templates:
             original_plugin = original_plugins.get(plugin_tmpl.get("plugin_key"))
-            if original_plugin:
-                continue
+            original_plugin_version = original_plugins_version.get(plugin_tmpl.get("plugin_key"))
 
             image = None
             if plugin_tmpl["share_image"]:
                 image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
                 image = image_and_tag[0]
+                if len(image_and_tag) > 1:
+                    tags = image_and_tag[1].rsplit("_")
+                    new_version = tags[len(tags) - 2] if len(tags) > 2 else ""
+
+            plugin_id = make_uuid()
+            if original_plugin:
+                if new_version > original_plugin_version.build_version:
+                    plugin_id = original_plugin.plugin_id
+                else:
+                    continue
+
             plugin = TenantPlugin(
                 tenant_id=self.tenant.tenant_id,
                 region=self.region_name,
-                plugin_id=make_uuid(),
+                plugin_id=plugin_id,
                 create_user=self.user.user_id,
                 desc=plugin_tmpl["desc"],
                 plugin_alias=plugin_tmpl["plugin_alias"],

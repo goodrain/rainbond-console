@@ -705,7 +705,7 @@ class ShareService(object):
             config_group_list = plugin_config_service.get_config_details(p["plugin_id"], p["build_version"])
             p["config_groups"] = config_group_list
             if p["origin_share_id"] == "new_create":
-                p["plugin_key"] = make_uuid()
+                p["plugin_key"] = p["plugin_id"]
             else:
                 p["plugin_key"] = p["origin_share_id"]
             rt_list.append(p)
