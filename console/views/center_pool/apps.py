@@ -468,3 +468,14 @@ class CenterPluginAppView(RegionTenantHeaderView):
         market_app_service.install_plugin_app(self.tenant, self.region, self.user, app_model_key, version, market_name,
                                               install_from_cloud, self.tenant.tenant_id, self.region_name, is_deploy)
         return Response(general_message(200, "success", "安装成功"), status=200)
+
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        app_model_key = request.GET.get("app_id", None)
+        version = request.GET.get("app_version", None)
+        install_from_cloud = request.GET.get("install_from_cloud", False)
+        market_name = request.GET.get("market_name", None)
+
+        status = market_app_service.get_plugin_install_status(self.tenant, self.region, self.user, app_model_key, version,
+                                                              market_name, install_from_cloud)
+        return Response(general_message(200, "success", "查询成功", bean={"version": version, "status": status}), status=200)
