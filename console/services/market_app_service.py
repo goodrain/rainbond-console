@@ -21,6 +21,7 @@ from console.repositories.base import BaseConnection
 from console.repositories.group import group_repo, tenant_service_group_repo
 from console.repositories.market_app_repo import (app_import_record_repo, rainbond_app_repo)
 from console.repositories.plugin import plugin_repo
+from console.repositories.plugin.plugin import plugin_version_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
@@ -75,25 +76,8 @@ class MarketAppService(object):
         if not app:
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
 
-        if install_from_cloud:
-            _, market = app_market_service.get_app_market(tenant.enterprise_id, market_name, raise_exception=True)
-            market_app, app_version = app_market_service.cloud_app_model_to_db_model(
-                market, app_model_key, version, for_install=True)
-        else:
-            market_app, app_version = market_app_service.get_rainbond_app_and_version(user.enterprise_id, app_model_key,
-                                                                                      version)
-            if app_version and app_version.region_name and app_version.region_name != region.region_name:
-                raise AbortRequest(
-                    msg="app version can not install to this region",
-                    msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
-
-        if not market_app:
-            raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
-        if not app_version:
-            raise AbortRequest("app version not found", "应用市场应用版本不存在", status_code=404, error_code=404)
-
-        app_template = json.loads(app_version.app_template)
-        app_template["update_time"] = app_version.update_time
+        app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
+                                                         version)
 
         component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
                                                             version, market_app.app_name)
@@ -112,6 +96,26 @@ class MarketAppService(object):
             is_deploy=is_deploy)
         app_upgrade.install()
         return market_app.app_name
+
+    def get_app_template(self, app_model_key, install_from_cloud, market_name, region, tenant, user, version):
+        if install_from_cloud:
+            _, market = app_market_service.get_app_market(tenant.enterprise_id, market_name, raise_exception=True)
+            market_app, app_version = app_market_service.cloud_app_model_to_db_model(
+                market, app_model_key, version, for_install=True)
+        else:
+            market_app, app_version = market_app_service.get_rainbond_app_and_version(user.enterprise_id, app_model_key,
+                                                                                      version)
+            if app_version and app_version.region_name and app_version.region_name != region.region_name:
+                raise AbortRequest(
+                    msg="app version can not install to this region",
+                    msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
+        if not market_app:
+            raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
+        if not app_version:
+            raise AbortRequest("app version not found", "应用市场应用版本不存在", status_code=404, error_code=404)
+        app_template = json.loads(app_version.app_template)
+        app_template["update_time"] = app_version.update_time
+        return app_template, market_app
 
     def install_service(self,
                         tenant,
@@ -1555,26 +1559,8 @@ class MarketAppService(object):
         if not app:
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
 
-        if install_from_cloud:
-            _, market = app_market_service.get_app_market(tenant.enterprise_id, market_name, raise_exception=True)
-
-            market_app, app_version = app_market_service.cloud_app_model_to_db_model(
-                market, app_model_key, version, for_install=True)
-        else:
-            market_app, app_version = market_app_service.get_rainbond_app_and_version(user.enterprise_id, app_model_key,
-                                                                                      version)
-
-            if app_version and app_version.region_name and app_version.region_name != region.region_name:
-                raise AbortRequest(
-                    msg="app version can not install to this region",
-                    msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
-
-        if not market_app:
-            raise AbortRequest("plugin app not found", "插件应用不存在", status_code=404, error_code=404)
-        if not app_version:
-            raise AbortRequest("app version not found", "插件应用版本不存在", status_code=404, error_code=404)
-        app_template = json.loads(app_version.app_template)
-        app_template["update_time"] = app_version.update_time
+        app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
+                                                         version)
 
         component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
                                                             version, market_app.app_name)
@@ -1593,6 +1579,50 @@ class MarketAppService(object):
             is_deploy=is_deploy)
         app_upgrade.install_plugins()
         return market_app.app_name
+
+    def get_plugin_install_status(self, tenant, region, user, app_model_key, version, market_name, install_from_cloud):
+        install_from_cloud = True if install_from_cloud == "true" else False
+        app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
+                                                         version)
+        if not app_template.get("plugins"):
+            raise ServiceHandleException(msg_show="当前应用无可安装的插件", msg="The current app has no plugins to install")
+
+        plugin_templates = app_template.get("plugins")
+        plugin_keys = {pt["plugin_key"]: pt for pt in plugin_templates}
+        team_plugins = plugin_repo.list_by_tenant_id(tenant.tenant_id, region.region_name)
+        plugin_original_share_ids = {plugin.origin_share_id: plugin for plugin in team_plugins}
+
+        plugin_ids = [plugin.plugin_id for plugin in team_plugins]
+        build_versions = plugin_version_repo.list_by_plugin_ids(plugin_ids)
+        plugin_build_versions = {ver.plugin_id: ver for ver in build_versions}
+
+        for plugin_key in plugin_keys:
+            plugin_tmpl = plugin_keys[plugin_key]
+            if not plugin_original_share_ids.get(plugin_key):
+                return "Installable"
+
+            original_plugin = plugin_original_share_ids[plugin_key]
+            original_plugin_image = plugin_original_share_ids[plugin_key].image
+            original_plugin_build_version = plugin_build_versions.get(original_plugin.plugin_id)
+            if original_plugin_build_version:
+                original_plugin_image = plugin_original_share_ids[
+                    plugin_key].image + ":" + original_plugin_build_version.image_tag
+
+            if plugin_tmpl["share_image"] != original_plugin_image:
+                new_build_time = self.get_build_time_by_image(plugin_tmpl["share_image"])
+                old_build_time = self.get_build_time_by_image(original_plugin_image)
+
+                if new_build_time and new_build_time > old_build_time:
+                    return "Upgradeable"
+        return "AlreadyInstalled"
+
+    def get_build_time_by_image(self, image):
+        build_time = ""
+        image_and_tag = image.rsplit(":", 1)
+        if len(image_and_tag) > 1:
+            tags = image_and_tag[1].rsplit("_")
+            build_time = tags[len(tags) - 2] if len(tags) > 2 else ""
+        return build_time
 
     @staticmethod
     def __upgradable_versions(component_source, versions):
