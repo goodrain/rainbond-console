@@ -382,7 +382,9 @@ class HttpStrategyView(RegionTenantHeaderView):
             bean.update({"group_name": group_name})
             bean.update({"g_id": g_id})
             rewrites = domain.rewrites if domain.rewrites else '[]'
-            bean.update({"rewrites": json.loads(rewrites)})
+            if isinstance(rewrites, str):
+                rewrites = eval(rewrites)
+            bean.update({"rewrites": rewrites})
         else:
             bean = dict()
         result = general_message(200, "success", "查询成功", bean=bean)
@@ -811,7 +813,10 @@ class DomainQueryView(RegionTenantHeaderView):
             domain_dict["the_weight"] = tenant_tuple[13]
             domain_dict["is_outer_service"] = tenant_tuple[14]
             domain_dict["path_rewrite"] = tenant_tuple[15]
-            domain_dict["rewrites"] = json.loads(tenant_tuple[16] if tenant_tuple[16] else '[]')
+            rewrites = tenant_tuple[16] if tenant_tuple[16] else '[]'
+            if isinstance(rewrites, str):
+                rewrites = eval(rewrites)
+            domain_dict["rewrites"] = rewrites
             domain_dict["group_id"] = group_id
             domain_list.append(domain_dict)
         bean = dict()
@@ -972,7 +977,10 @@ class AppServiceDomainQueryView(RegionTenantHeaderView):
             domain_dict["the_weight"] = tenant_tuple[13]
             domain_dict["is_outer_service"] = tenant_tuple[14]
             domain_dict["path_rewrite"] = tenant_tuple[15]
-            domain_dict["rewrites"] = json.loads(tenant_tuple[16] if tenant_tuple[16] else '[]')
+            rewrites = tenant_tuple[16] if tenant_tuple[16] else '[]'
+            if isinstance(rewrites, str):
+                rewrites = eval(rewrites)
+            domain_dict["rewrites"] = rewrites
             domain_dict["group_id"] = group_id
             domain_list.append(domain_dict)
         bean = dict()
