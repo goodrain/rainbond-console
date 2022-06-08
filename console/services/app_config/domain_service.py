@@ -293,7 +293,9 @@ class DomainService(object):
         auto_ssl = httpdomain["auto_ssl"]
         auto_ssl_config = httpdomain["auto_ssl_config"]
         path_rewrite = httpdomain.get("path_rewrite", False)
-        rewrites = json.loads(httpdomain["rewrites"]) if httpdomain.get("rewrites") else []
+        rewrites = httpdomain["rewrites"] if httpdomain.get("rewrites") else []
+        if isinstance(rewrites, str):
+            rewrites = eval(rewrites)
         region = region_repo.get_region_by_region_name(service.service_region)
         # 校验域名格式
         self.__check_domain_name(tenant.tenant_id, region.region_id, domain_name, certificate_id)
@@ -441,7 +443,7 @@ class DomainService(object):
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
         data["path_rewrite"] = domain_info.get("path_rewrite", False)
-        data["rewrites"] = json.loads(domain_info["rewrites"]) if domain_info.get("rewrites") else []
+        data["rewrites"] = eval(service_domain.rewrites) if service_domain.rewrites else []
         try:
             # 给数据中心传送数据更新域名
             region_api.update_http_domain(service.service_region, tenant.tenant_name, data)

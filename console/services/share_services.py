@@ -929,13 +929,16 @@ class ShareService(object):
                 continue
 
             config = configs.get(sd.http_rule_id, {})
+            rewrites = sd.rewrites if sd.rewrites else '[]'
+            if isinstance(rewrites, str):
+                rewrites = eval(rewrites)
             ingress_http_route = {
                 "default_domain": sd.type == 0,
                 "location": sd.domain_path,
                 "cookies": self._parse_cookie_or_header(sd.domain_cookie),
                 "headers": self._parse_cookie_or_header(sd.domain_heander),
                 "path_rewrite": sd.path_rewrite,
-                "rewrites": json.loads(sd.rewrites if sd.rewrites else '[]'),
+                "rewrites": rewrites,
                 "ssl": sd.auto_ssl,
                 "load_balancing": sd.load_balancing,
                 "connection_timeout": config.get("proxy_connect_timeout"),
