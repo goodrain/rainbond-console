@@ -81,7 +81,7 @@ class ConfigPluginManageView(PluginBaseView):
         service_meta_type = config.get("service_meta_type")
         config_name = config.get("config_name")
         config_group_pk = config.get("ID")
-
+        modify_type = config.get("modify_type", False)
         config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id,
                                                                self.plugin_version.build_version).exclude(pk=config_group_pk)
         is_pass, msg = plugin_config_service.check_group_config(service_meta_type, injection, config_groups)
@@ -96,9 +96,12 @@ class ConfigPluginManageView(PluginBaseView):
         plugin_config_service.delet_config_items(self.plugin_version.plugin_id, self.plugin_version.build_version,
                                                  old_meta_type)
         options = config.get("options")
-        plugin_config_service.create_config_items(self.plugin_version.plugin_id, self.plugin_version.build_version,
-                                                  service_meta_type, *options)
-
+        if modify_type and injection == "plugin_storage":
+            plugin_config_service.delete_config_group_by_meta_type(config_group.plugin_id, config_group.build_version,
+                                                                   config_group.service_meta_type)
+        else:
+            plugin_config_service.create_config_items(self.plugin_version.plugin_id, self.plugin_version.build_version,
+                                                      service_meta_type, *options)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
@@ -130,7 +133,7 @@ class ConfigPluginManageView(PluginBaseView):
               paramType: body
         """
         config = request.data
-
+        modify_type = config.get("modify_type", "")
         injection = config.get("injection")
         service_meta_type = config.get("service_meta_type")
         config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id, self.plugin_version.build_version)
@@ -139,9 +142,12 @@ class ConfigPluginManageView(PluginBaseView):
         if not is_pass:
             return Response(general_message(400, "param error", msg), status=400)
         create_data = [config]
-        plugin_config_service.create_config_groups(self.plugin_version.plugin_id, self.plugin_version.build_version,
-                                                   create_data)
-
+        if modify_type and injection == "plugin_storage":
+            plugin_config_service.create_config_items(self.plugin_version.plugin_id, self.plugin_version.build_version,
+                                                      service_meta_type, config["options"][0])
+        else:
+            plugin_config_service.create_config_groups(self.plugin_version.plugin_id, self.plugin_version.build_version,
+                                                       create_data)
         result = general_message(200, "success", "添加成功")
 
         return Response(result, status=result["code"])

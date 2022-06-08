@@ -98,6 +98,7 @@ class PluginMetaType(object):
     UPSTREAM_PORT = "upstream_port"
     DOWNSTREAM_PORT = "downstream_port"
     UNDEFINE = "un_define"
+    PLUGINSTORAGE = "plugin_storage"
 
 
 class PluginInjection(object):

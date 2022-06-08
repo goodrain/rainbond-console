@@ -278,6 +278,22 @@ class AppPluginService(object):
                                 container_port=port.container_port,
                                 attrs=json.dumps(attrs_map),
                                 protocol=port.protocol))
+
+            if config_group.service_meta_type == PluginMetaType.PLUGINSTORAGE:
+                attrs_map = {item.attr_name: item.attr_default_value for item in items}
+                service_plugin_var.append(
+                    ServicePluginConfigVar(
+                        service_id=service.service_id,
+                        plugin_id=plugin_id,
+                        build_version=build_version,
+                        service_meta_type=config_group.service_meta_type,
+                        injection=config_group.injection,
+                        dest_service_id="",
+                        dest_service_alias="",
+                        container_port=0,
+                        attrs=json.dumps(attrs_map),
+                        protocol=""))
+
         # 保存数据
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
 
@@ -308,7 +324,8 @@ class AppPluginService(object):
                     for k, v in list(attr_map.items()):
                         normal_envs.append({"env_name": k, "env_value": v})
                 else:
-                    base_normal["options"] = json.loads(attr.attrs)
+                    option_json = json.loads(attr.attrs)
+                    base_normal["options"] = {**base_normal.get("options", {}), **option_json}
             if attr.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 base_ports.append({
                     "service_id": service.service_id,
@@ -327,7 +344,9 @@ class AppPluginService(object):
                     "depend_service_id": attr.dest_service_id,
                     "port": attr.container_port,
                 })
-
+            if attr.service_meta_type == PluginMetaType.PLUGINSTORAGE:
+                option_json = json.loads(attr.attrs)
+                base_normal["options"] = {**base_normal.get("options", {}), **option_json}
         config_envs = dict()
         complex_envs = dict()
         config_envs["normal_envs"] = normal_envs
@@ -339,7 +358,6 @@ class AppPluginService(object):
         region_env_config["config_envs"] = config_envs
         region_env_config["service_id"] = service.service_id
         region_env_config["operator"] = user.nick_name if user else None
-
         return region_env_config
 
     def create_monitor_resources(self, tenant, service, plugin_name, user=None):
@@ -390,6 +408,7 @@ class AppPluginService(object):
         result_bean = dict()
 
         undefine_env = dict()
+        storage_env = dict()
         upstream_env_list = []
         downstream_env_list = []
 
@@ -498,10 +517,38 @@ class AppPluginService(object):
                             "dest_service_cname": dep_service.service_cname,
                             "dest_service_alias": dep_service.service_alias
                         })
-
+            if config_group.service_meta_type == PluginMetaType.PLUGINSTORAGE:
+                options = []
+                normal_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.PLUGINSTORAGE)
+                undefine_options = None
+                if normal_envs:
+                    normal_env = normal_envs[0]
+                    undefine_options = json.loads(normal_env.attrs)
+                for item in items:
+                    item_option = {
+                        "attr_info": item.attr_info,
+                        "attr_name": item.attr_name,
+                        "attr_value": item.attr_default_value,
+                        "attr_alt_value": item.attr_alt_value,
+                        "attr_type": item.attr_type,
+                        "attr_default_value": item.attr_default_value,
+                        "is_change": item.is_change
+                    }
+                    if undefine_options:
+                        item_option["attr_value"] = undefine_options.get(item.attr_name, item.attr_default_value)
+                    options.append(item_option)
+                storage_env.update({
+                    "service_id": service.service_id,
+                    "service_meta_type": config_group.service_meta_type,
+                    "injection": config_group.injection,
+                    "service_alias": service.service_alias,
+                    "config": copy.deepcopy(options),
+                    "config_group_name": config_group.config_name,
+                })
         result_bean["undefine_env"] = undefine_env
         result_bean["upstream_env"] = upstream_env_list
         result_bean["downstream_env"] = downstream_env_list
+        result_bean["storage_env"] = storage_env
         return result_bean
 
     @transaction.atomic
@@ -563,7 +610,22 @@ class AppPluginService(object):
                     container_port=dowstream_config.port,
                     attrs=json.dumps(attrs_map),
                     protocol=dowstream_config.protocol))
-
+        storage_dict = [config_bean.storage_env]
+        for storage in storage_dict:
+            if storage:
+                attrs_map = {c.attr_name: c.attr_value for c in storage.config}
+                service_plugin_var.append(
+                    ServicePluginConfigVar(
+                        service_id=service.service_id,
+                        plugin_id=plugin_id,
+                        build_version=build_version,
+                        service_meta_type=storage.service_meta_type,
+                        injection=storage.injection,
+                        dest_service_id="",
+                        dest_service_alias="",
+                        container_port=0,
+                        attrs=json.dumps(attrs_map),
+                        protocol=""))
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
 
     def create_plugin_4marketsvc(self, region_name, tenant, service, version, components, plugins):
