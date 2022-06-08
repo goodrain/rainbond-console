@@ -66,7 +66,7 @@ class RainbondCenterAppRepository(object):
                             " and app.enterprise_id = apv.enterprise_id"
             extend_where += " and apv.`version` <> '' and apv.is_complete"
         if is_plugin == "true":
-            extend_where += " and apv.`is_plugin`=true"
+            extend_where += " and apv.is_plugin = true"
         # if teams is None, create_team scope is ('')
         if scope == "team":
             team_sql = ""
@@ -134,7 +134,7 @@ class RainbondCenterAppRepository(object):
                             " and app.enterprise_id = apv.enterprise_id"
             extend_where += " and apv.`version` <> '' and apv.is_complete"
         if is_plugin == "true":
-            extend_where += " and apv.`is_plugin`=true"
+            extend_where += " and apv.is_plugin = true"
         # if teams is None, create_team scope is ('')
         if scope == "team":
             team_sql = ""
