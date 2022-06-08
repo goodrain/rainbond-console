@@ -451,7 +451,9 @@ class NewComponents(object):
             if not port:
                 logger.warning("component id: {}; port not found for ingress".format(component.component_id))
                 continue
-
+            rewrites = ingress["rewrites"] if ingress.get("rewrites") else []
+            if isinstance(rewrites, str):
+                rewrites = eval(rewrites)
             service_domain = ServiceDomain(
                 http_rule_id=make_uuid(),
                 region_id=self.region.region_id,
@@ -467,7 +469,7 @@ class NewComponents(object):
                 domain_cookie=self._domain_cookie_or_header(ingress["cookies"]),
                 domain_heander=self._domain_cookie_or_header(ingress["headers"]),
                 path_rewrite=ingress["path_rewrite"] if ingress.get("path_rewrite") else False,
-                rewrites=ingress["rewrites"] if ingress.get("rewrites") else [],
+                rewrites=rewrites,
                 type=0 if ingress["default_domain"] else 1,
                 the_weight=100,
                 is_outer_service=port.is_outer_service,

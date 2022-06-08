@@ -699,7 +699,10 @@ class AppService(object):
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
         data["path_rewrite"] = rule.path_rewrite
-        data["rewrites"] = json.loads(rule.rewrites) if rule.rewrites else []
+        rewrites = rule.rewrites if rule.rewrites else []
+        if isinstance(rewrites, str):
+            rewrites = eval(rewrites)
+        data["rewrites"] = rewrites
         return data
 
     def __init_create_data(self, tenant, service, user_name, do_deploy, dep_sids):
