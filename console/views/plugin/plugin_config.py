@@ -133,7 +133,7 @@ class ConfigPluginManageView(PluginBaseView):
               paramType: body
         """
         config = request.data
-        modify_type = config.get("modify_type", "")
+        modify_type = config.get("modify_type", False)
         injection = config.get("injection")
         service_meta_type = config.get("service_meta_type")
         config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id, self.plugin_version.build_version)
