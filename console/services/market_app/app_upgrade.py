@@ -776,8 +776,7 @@ class AppUpgrade(MarketApp):
                 image_tag = image_and_tag[1]
             else:
                 image_tag = "latest"
-
-        min_memory = plugin_tmpl.get('min_memory', 128)
+        min_memory = plugin_tmpl.get('min_memory', 0)
         min_cpu = int(min_memory) / 128 * 20
 
         return PluginBuildVersion(
