@@ -96,7 +96,7 @@ class OauthServicesBaseRespSerializer(ConfigBaseSerializer):
 
 
 class EnterpriseConfigSeralizer(serializers.Serializer):
-    export_app = ExportAppBaseRespSerializer(required=False)
+    export_app = ExportAppBaseRespSerializer(required=False, help_text="新密码")
     auto_ssl = AutoSSLSerializer(required=False, allow_null=True)
     oauth_services = OauthServicesBaseRespSerializer(required=False)
     cloud_market = CloudMarketBaseRespSerializer(required=False)
