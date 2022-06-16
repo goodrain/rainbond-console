@@ -41,8 +41,8 @@ class ListRegionInfo(BaseOpenAPIView):
             type=openapi.TYPE_OBJECT,
             required=['region_name', 'region_alias', 'url', 'wsurl', 'httpdomain', 'tcpdomain'],
             properties={
-                'region_name': openapi.Schema(type=openapi.TYPE_STRING),
-                'region_alias': openapi.Schema(type=openapi.TYPE_STRING),
+                'region_name': openapi.Schema(type=openapi.TYPE_STRING, description="集群ID"),
+                'region_alias': openapi.Schema(type=openapi.TYPE_STRING, description="集群别名"),
                 'url': openapi.Schema(type=openapi.TYPE_STRING),
                 'wsurl': openapi.Schema(type=openapi.TYPE_STRING),
                 'httpdomain': openapi.Schema(type=openapi.TYPE_STRING),
@@ -52,7 +52,7 @@ class ListRegionInfo(BaseOpenAPIView):
                 'cert_file': openapi.Schema(type=openapi.TYPE_STRING),
                 'key_file': openapi.Schema(type=openapi.TYPE_STRING),
                 'status': openapi.Schema(type=openapi.TYPE_INTEGER),
-                'desc': openapi.Schema(type=openapi.TYPE_STRING),
+                'desc': openapi.Schema(type=openapi.TYPE_STRING, description="备注"),
             },
         ),
         responses={

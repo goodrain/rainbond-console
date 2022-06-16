@@ -41,6 +41,7 @@ class RegionInfoSerializer(serializers.ModelSerializer, RegionReqValidate):
             "region_id", "region_name", "region_alias", "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope",
             "ssl_ca_cert", "cert_file", "key_file", "status", "desc"
         ]
+        ref_name = "v2_RegionInfoSerializer"
 
 
 class UpdateRegionReqSerializer(serializers.ModelSerializer, RegionReqValidate):
