@@ -42,5 +42,24 @@ class ConfigRepository(object):
     def get_by_key(self, key):
         return ConsoleSysConfig.objects.get(key=key, enable=True)
 
+    def get_by_key_eid(self, key, eid):
+        return ConsoleSysConfig.objects.get(key=key, enable=True, enterprise_id=eid)
+
+    def token_update_or_create(self, key, value, eid):
+        try:
+            obj = ConsoleSysConfig.objects.get(key=key, enterprise_id=eid)
+            setattr(obj, "value", value)
+            setattr(obj, "enterprise_id", eid)
+            setattr(obj, "enable", True)
+            obj.save()
+        except ConsoleSysConfig.DoesNotExist:
+            ConsoleSysConfig.objects.create(
+                key=key,
+                value=value,
+                type="string",
+                desc="helm对接集群唯一标识",
+                enable=True,
+                enterprise_id=eid,
+                create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 cfg_repo = ConfigRepository()
