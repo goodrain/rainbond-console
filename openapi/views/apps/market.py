@@ -83,7 +83,7 @@ class AppInstallView(TeamAppAPIView):
 # 应用升级
 class AppUpgradeView(TeamAppAPIView, EnterpriseServiceOauthView):
     @swagger_auto_schema(
-        operation_description="升级应用",
+        operation_description="获取应用可升级信息",
         manual_parameters=[
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
         ],
