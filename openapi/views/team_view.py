@@ -113,10 +113,6 @@ class TeamInfo(TeamNoRegionAPIView):
 
     @swagger_auto_schema(
         operation_description="删除团队",
-        manual_parameters=[
-            openapi.Parameter(
-                "force", openapi.IN_QUERY, description="团队名称搜索", type=openapi.TYPE_STRING, enum=["true", "false"]),
-        ],
         responses={},
         tags=['openapi-team'],
     )

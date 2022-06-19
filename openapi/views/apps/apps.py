@@ -545,7 +545,7 @@ class TeamAppsMonitorQueryRangeView(TeamAppAPIView):
 
 class ComponentEnvsUView(TeamAppServiceAPIView):
     @swagger_auto_schema(
-        operation_description="批量关闭应用",
+        operation_description="更新组件环境变量",
         manual_parameters=[
             openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
             openapi.Parameter("service_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_STRING),
