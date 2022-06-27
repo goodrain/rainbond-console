@@ -22,7 +22,7 @@ from console.exception.main import ServiceHandleException
 from console.exception.bcode import ErrThirdComponentStartFailed
 from console.constants import AppConstants, PluginImage, SourceCodeType
 from console.appstore.appstore import app_store
-from console.models.main import (AppMarket, RainbondCenterApp, RainbondCenterAppVersion)
+from console.models.main import (AppMarket, RainbondCenterApp, RainbondCenterAppVersion, PackageUploadRecord)
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
 from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import domain_repo as http_rule_repo
@@ -1244,5 +1244,19 @@ class AppMarketService(object):
         return
 
 
+class PackageUploadService(object):
+    def get_upload_record(self, team_name, region, event_id):
+        return PackageUploadRecord.objects.filter(team_name=team_name, region=region, event_id=event_id)
+
+    def create_upload_record(self, **params):
+        return PackageUploadRecord.objects.create(**params)
+
+    def get_last_upload_record(self, team_name, region, component_id):
+        if component_id:
+            return PackageUploadRecord.objects.filter(team_name=team_name, region=region, component_id=component_id, status="unfinished").order_by("-create_time").first()
+        return PackageUploadRecord.objects.filter(team_name=team_name, region=region, status="unfinished").order_by("-create_time").first()
+
+
 app_service = AppService()
 app_market_service = AppMarketService()
+package_upload_service = PackageUploadService()

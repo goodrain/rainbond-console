@@ -31,7 +31,8 @@ from console.views.app_create.docker_compose import (ComposeCheckUpdate, Compose
                                                      GetComposeCheckUUID)
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.multi_app import (MultiAppCheckView, MultiAppCreateView)
-from console.views.app_create.source_code import (AppCompileEnvView, SourceCodeCreateView)
+from console.views.app_create.source_code import (AppCompileEnvView, SourceCodeCreateView, PackageCreateView,
+                                                  PackageUploadRecordView)
 from console.views.app_create.source_outer import (ThirdPartyAppPodsView, ThirdPartyHealthzView, ThirdPartyServiceApiView,
                                                    ThirdPartyServiceCreateView, ThirdPartyUpdateSecretKeyView)
 from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEventsView, AppEventView, AppHistoryLogView,
@@ -319,6 +320,10 @@ urlpatterns = [
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view(),
         perms.ServiceCodeBranch),
+    # 本地文件上传记录
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/record$', PackageUploadRecordView.as_view()),
+    # 本地文件创建组件
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build$', PackageCreateView.as_view()),
     # 源码创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/source_code$', SourceCodeCreateView.as_view(), perms.SourceCodeCreateView),
     # 第三方组件创建
