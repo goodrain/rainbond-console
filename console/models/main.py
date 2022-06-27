@@ -626,6 +626,20 @@ class AppImportRecord(BaseModel):
     enterprise_id = models.CharField(max_length=64, null=True, blank=True, help_text="企业id")
 
 
+class PackageUploadRecord(BaseModel):
+    class Meta:
+        db_table = 'package_upload_record'
+
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text="事件id")
+    status = models.CharField(max_length=15, null=True, blank=True, help_text="导入状态")
+    format = models.CharField(max_length=15, null=True, blank=True, default="", help_text="类型")
+    source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text="目录地址")
+    team_name = models.CharField(max_length=64, null=True, blank=True, help_text="正在导入的团队名称")
+    region = models.CharField(max_length=64, null=True, blank=True, help_text="数据中心")
+    enterprise_id = models.CharField(max_length=64, null=True, blank=True, help_text="企业id")
+    component_id = models.CharField(max_length=64, null=True, blank=True, help_text="组件id")
+
+
 class GroupAppBackupRecord(BaseModel):
     class Meta:
         db_table = 'groupapp_backup'
