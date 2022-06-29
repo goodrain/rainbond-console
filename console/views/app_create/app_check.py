@@ -91,7 +91,8 @@ class AppCheck(AppBaseView):
         """
         user = request.user
         is_again = request.data.get("is_again", False)
-        code, msg, service_info = app_check_service.check_service(self.tenant, self.service, is_again, user)
+        event_id = request.data.get("event_id", "")
+        code, msg, service_info = app_check_service.check_service(self.tenant, self.service, is_again, event_id, user)
         if code != 200:
             result = general_message(code, "check service error", msg)
         else:

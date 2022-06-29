@@ -287,9 +287,9 @@ class AppCompileEnvView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-class PackageCreateView(JWTAuthApiView):
+class PackageCreateView(RegionTenantHeaderView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request, tenantName, *args, **kwargs):
         """
         本地文件创建组件
         ---
@@ -315,19 +315,37 @@ class PackageCreateView(JWTAuthApiView):
               type: string
               paramType: form
         """
-        check_uuid = request.data.get("check_uuid")
+        group_id = request.data.get("group_id", -1)
+        region = request.data.get("region")
         event_id = request.data.get("event_id")
-        server_type = request.data.get("server_type", "package")
-        user_id = request.user.user_id
-        # 修改状态为完成
-        return Response()
+        service_cname = request.data.get("service_cname", None)
+        k8s_component_name = request.data.get("k8s_component_name", "")
+        if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
+            raise ErrK8sComponentNameExists
+        try:
+            # 创建信息
+            ts = app_service.create_package_upload_info(region, self.tenant, self.user, service_cname, k8s_component_name, event_id)
+            # 更新状态
+            update_record = {
+                "status": "finished",
+                "component_id": ts.service_id,
+                # "source_dir": "/grdata/package_build/components/" + ts.service_id + "/events/" + event_id + package_name
+            }
+            package_upload_service.update_upload_record(tenantName, event_id, **update_record)
+            bean = ts.to_dict()
+            result = general_message(200, "success", "操作成功", bean=bean)
+            return Response(result, status=result["code"])
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(200, "failed", "操作失败", bean={})
+            return Response(result, status=result["code"])
 
 
 class PackageUploadRecordView(JWTAuthApiView):
     @never_cache
     def get(self, request, tenantName, *args, **kwargs):
         """
-        查询上传记录
+        查询上传结果
         ---
         parameters:
             - name: tenantName
@@ -342,19 +360,18 @@ class PackageUploadRecordView(JWTAuthApiView):
               paramType: form
         """
         region = request.GET.get("region", None)
-        event_id = request.GET.get("region", None)
+        event_id = request.GET.get("event_id", None)
         try:
-            record = package_upload_service.get_upload_record(event_id)
-            print(record.event_id)
             res, body = region_api.get_upload_file_dir(region, tenantName, event_id)
-            print(body)
             packages = body["bean"]["packages"]
             bean = dict()
-            bean["source_dir"] = packages[0]
-            result = general_message(200, "success", "操作成功", bean=bean)
+            package_name = packages[0]
+            bean["package_name"] = package_name
+            result = general_message(200, "success", "上传成功", bean=bean)
             return Response(result, status=result["code"])
-        except:
-            result = general_message(500, "failed", "操作失败")
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(200, "", "")
             return Response(result, status=result["code"])
 
 
@@ -384,9 +401,9 @@ class PackageUploadRecordView(JWTAuthApiView):
             "source_dir": "",
             "team_name": tenantName,
             "region": region,
+            "component_id": component_id
         }
-        res, body = region_api.create_upload_file_dir(region, tenantName, event_id)
-        path = body["bean"]["path"]
+        region_api.create_upload_file_dir(region, tenantName, event_id)
         try:
             upload_record = package_upload_service.create_upload_record(**record_info)
             bean = dict()
@@ -394,16 +411,45 @@ class PackageUploadRecordView(JWTAuthApiView):
             bean["status"] = upload_record.status
             bean["team_name"] = upload_record.team_name
             bean["region"] = upload_record.region
-            bean["source_dir"] = path
-            # bean["source_dir"] = path
             result = general_message(200, "success", "操作成功", bean=bean)
             return Response(result, status=result["code"])
-        except:
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(500, "failed", "操作失败")
+            return Response(result, status=result["code"])
+
+    @never_cache
+    def put(self, request, tenantName, *args, **kwargs):
+        """
+        修改上传记录
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: region
+              description: 集群
+              required: true
+              type: string
+              paramType: form
+        """
+        event_id = request.data.get("event_id")
+        update_record = {
+            "status": "finished"
+        }
+        try:
+            package_upload_service.update_upload_record(tenantName, event_id, **update_record)
+            result = general_message(200, "success", "操作成功")
+            return Response(result, status=result["code"])
+        except Exception as e:
+            logger.exception(e)
             result = general_message(500, "failed", "操作失败")
             return Response(result, status=result["code"])
 
 
-class UploadRecordView(JWTAuthApiView):
+class UploadRecordLastView(JWTAuthApiView):
     @never_cache
     def get(self, request, tenantName, *args, **kwargs):
         """
@@ -427,8 +473,10 @@ class UploadRecordView(JWTAuthApiView):
             record = package_upload_service.get_last_upload_record(tenantName, region, component_id)
             bean = dict()
             bean["source_dir"] = record.source_dir
+            bean["event_id"] = record.event_id
             result = general_message(200, "success", "操作成功", bean=bean)
             return Response(result, status=result["code"])
-        except:
+        except Exception as e:
+            logger.exception(e)
             result = general_message(500, "failed", "操作失败")
             return Response(result, status=result["code"])

@@ -32,7 +32,7 @@ from console.views.app_create.docker_compose import (ComposeCheckUpdate, Compose
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.multi_app import (MultiAppCheckView, MultiAppCreateView)
 from console.views.app_create.source_code import (AppCompileEnvView, SourceCodeCreateView, PackageCreateView,
-                                                  PackageUploadRecordView)
+                                                  PackageUploadRecordView, UploadRecordLastView)
 from console.views.app_create.source_outer import (ThirdPartyAppPodsView, ThirdPartyHealthzView, ThirdPartyServiceApiView,
                                                    ThirdPartyServiceCreateView, ThirdPartyUpdateSecretKeyView)
 from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEventsView, AppEventView, AppHistoryLogView,
@@ -320,6 +320,8 @@ urlpatterns = [
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view(),
         perms.ServiceCodeBranch),
+    # 文件上传最近一次记录
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/last-record$', UploadRecordLastView.as_view()),
     # 本地文件上传记录
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/record$', PackageUploadRecordView.as_view()),
     # 本地文件创建组件
