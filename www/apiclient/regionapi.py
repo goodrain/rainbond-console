@@ -1984,3 +1984,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         resp, _ = self._put(url, self._set_headers(token), region=region_name)
         return resp
+
+    def get_region_alerts(self, region_name, **kwargs):
+        url, token = self.__get_region_access_info(None, region_name)
+        url = url + "/api/v1/alerts"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10, retries=1)
+        return res, body
