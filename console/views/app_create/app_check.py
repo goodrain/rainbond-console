@@ -45,6 +45,7 @@ class AppCheck(AppBaseView):
         if not check_uuid:
             return Response(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status=400)
         code, msg, data = app_check_service.get_service_check_info(self.tenant, self.service.service_region, check_uuid)
+        print("check data:", data)
         logger.debug("check resp! {0}".format(data))
         # 如果已创建完成
         if self.service.create_status == "complete":

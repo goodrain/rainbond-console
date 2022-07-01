@@ -426,6 +426,13 @@ class AppCheckService(object):
             service_code_from = {"type": "source_from", "key": "镜像名称", "value": service.image}
             if service.cmd:
                 service_attr_list.append({"type": "source_from", "key": "镜像启动命令", "value": service.cmd})
+        elif service.service_source == AppConstants.PACKAGE_BUILD:
+            service_code_from = {
+                "type": "source_from",
+                "key": "源码信息",
+                "value": "本地文件"
+            }
+            service_language = {"type": "language", "key": "代码语言", "value": service_info["language"]}
         if service_language:
             service_attr_list.append(service_language)
         if service_code_from:

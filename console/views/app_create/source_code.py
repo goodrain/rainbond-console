@@ -337,8 +337,8 @@ class PackageCreateView(RegionTenantHeaderView):
             return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
-            result = general_message(200, "failed", "操作失败", bean={})
-            return Response(result, status=result["code"])
+        result = general_message(200, "failed", "操作失败", bean={})
+        return Response(result, status=result["code"])
 
 
 class PackageUploadRecordView(JWTAuthApiView):
@@ -365,14 +365,16 @@ class PackageUploadRecordView(JWTAuthApiView):
             res, body = region_api.get_upload_file_dir(region, tenantName, event_id)
             packages = body["bean"]["packages"]
             bean = dict()
-            package_name = packages[0]
-            bean["package_name"] = package_name
+            packages_name = []
+            for package in packages:
+                packages_name.append(package)
+            bean["package_name"] = packages_name
             result = general_message(200, "success", "上传成功", bean=bean)
             return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
-            result = general_message(200, "", "")
-            return Response(result, status=result["code"])
+        result = general_message(200, "", "")
+        return Response(result, status=result["code"])
 
 
     @never_cache
@@ -415,8 +417,8 @@ class PackageUploadRecordView(JWTAuthApiView):
             return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
-            result = general_message(500, "failed", "操作失败")
-            return Response(result, status=result["code"])
+        result = general_message(500, "failed", "操作失败")
+        return Response(result, status=result["code"])
 
     @never_cache
     def put(self, request, tenantName, *args, **kwargs):
@@ -445,8 +447,8 @@ class PackageUploadRecordView(JWTAuthApiView):
             return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
-            result = general_message(500, "failed", "操作失败")
-            return Response(result, status=result["code"])
+        result = general_message(500, "failed", "操作失败")
+        return Response(result, status=result["code"])
 
 
 class UploadRecordLastView(JWTAuthApiView):
@@ -478,5 +480,5 @@ class UploadRecordLastView(JWTAuthApiView):
             return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
-            result = general_message(500, "failed", "操作失败")
-            return Response(result, status=result["code"])
+        result = general_message(500, "failed", "操作失败")
+        return Response(result, status=result["code"])
