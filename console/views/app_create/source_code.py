@@ -12,6 +12,7 @@ from console.repositories.app import service_webhooks_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.app import app_service, package_upload_service
 from console.services.app_config import compile_env_service
+from console.services.app_import_and_export_service import import_service
 from console.services.group_service import group_service
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
@@ -408,11 +409,13 @@ class PackageUploadRecordView(JWTAuthApiView):
         region_api.create_upload_file_dir(region, tenantName, event_id)
         try:
             upload_record = package_upload_service.create_upload_record(**record_info)
+            upload_url = import_service.get_upload_url(region, event_id)
             bean = dict()
             bean["event_id"] = upload_record.event_id
             bean["status"] = upload_record.status
             bean["team_name"] = upload_record.team_name
             bean["region"] = upload_record.region
+            bean["upload_url"] = upload_url
             result = general_message(200, "success", "操作成功", bean=bean)
             return Response(result, status=result["code"])
         except Exception as e:
