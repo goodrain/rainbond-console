@@ -330,9 +330,12 @@ class PackageCreateView(RegionTenantHeaderView):
             update_record = {
                 "status": "finished",
                 "component_id": ts.service_id,
-                # "source_dir": "/grdata/package_build/components/" + ts.service_id + "/events/" + event_id + package_name
             }
             package_upload_service.update_upload_record(tenantName, event_id, **update_record)
+            code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
+                                                                ts.service_id)
+            if code != 200:
+                logger.debug("service.create", msg_show)
             bean = ts.to_dict()
             result = general_message(200, "success", "操作成功", bean=bean)
             return Response(result, status=result["code"])
