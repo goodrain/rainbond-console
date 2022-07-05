@@ -573,6 +573,18 @@ class AppImportService(object):
                 upload_url = "http://" + splits_texts[1] + raw_url
         return upload_url + "/" + event_id
 
+    def get_upload_package_url(self, region, event_id):
+        region = region_repo.get_region_by_region_name(region)
+        raw_url = "/package_build/component"
+        get_upload_package_url = ""
+        if region:
+            splits_texts = region.wsurl.split("://")
+            if splits_texts[0] == "wss":
+                get_upload_package_url = "https://" + splits_texts[1] + raw_url
+            else:
+                get_upload_package_url = "http://" + splits_texts[1] + raw_url
+        return get_upload_package_url + "/" + event_id
+
 
 class MyEncoder(json.JSONEncoder):
     def default(self, obj):

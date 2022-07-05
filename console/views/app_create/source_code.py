@@ -413,7 +413,7 @@ class PackageUploadRecordView(JWTAuthApiView):
         region_api.create_upload_file_dir(region, tenantName, event_id)
         try:
             upload_record = package_upload_service.create_upload_record(**record_info)
-            upload_url = import_service.get_upload_url(region, event_id)
+            upload_url = import_service.get_upload_package_url(region, event_id)
             bean = dict()
             bean["event_id"] = upload_record.event_id
             bean["status"] = upload_record.status
