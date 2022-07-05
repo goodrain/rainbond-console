@@ -370,6 +370,10 @@ class PackageUploadRecordView(JWTAuthApiView):
             for package in packages:
                 packages_name.append(package)
             bean["package_name"] = packages_name
+            data = {
+                "source_dir":packages_name
+            }
+            package_upload_service.update_upload_record(tenantName, event_id, **data)
             result = general_message(200, "success", "上传成功", bean=bean)
             return Response(result, status=result["code"])
         except Exception as e:
@@ -475,6 +479,7 @@ class UploadRecordLastView(JWTAuthApiView):
         region = request.GET.get("region", None)
         component_id = request.GET.get("component_id", None)
         try:
+            print(tenantName,region,component_id)
             record = package_upload_service.get_last_upload_record(tenantName, region, component_id)
             bean = dict()
             bean["source_dir"] = record.source_dir
