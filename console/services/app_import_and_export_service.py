@@ -575,7 +575,7 @@ class AppImportService(object):
 
     def get_upload_package_url(self, region, event_id):
         region = region_repo.get_region_by_region_name(region)
-        raw_url = "/package_build/component"
+        raw_url = "/package_build/component/events"
         get_upload_package_url = ""
         if region:
             splits_texts = region.wsurl.split("://")
