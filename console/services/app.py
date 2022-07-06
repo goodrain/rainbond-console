@@ -249,6 +249,8 @@ class AppService(object):
         new_service.creater = user.pk
         new_service.server_type = "pkg"
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
+        new_service.git_url = "/grdata/package_build/components/" + service_id + "/events/" + event_id
+        new_service.code_version = "main"
         new_service.save()
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return ts
