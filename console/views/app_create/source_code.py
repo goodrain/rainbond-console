@@ -485,7 +485,7 @@ class UploadRecordLastView(JWTAuthApiView):
             print(tenantName,region,component_id)
             record = package_upload_service.get_last_upload_record(tenantName, region, component_id)
             bean = dict()
-            bean["source_dir"] = record.source_dir
+            bean["source_dir"] = eval(record.source_dir)
             bean["event_id"] = record.event_id
             result = general_message(200, "success", "操作成功", bean=bean)
             return Response(result, status=result["code"])
