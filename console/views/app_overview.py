@@ -550,7 +550,7 @@ class BuildSourceinfo(AppBaseView):
         build_infos = base_service.get_build_infos(self.tenant, service_ids)
         bean = build_infos.get(self.service.service_id, None)
         package_names = package_upload_service.get_name_by_component_id(service_ids)
-        bean["package_name"] = package_names
+        bean["package_name"] = package_names[0]
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
