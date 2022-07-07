@@ -17,7 +17,7 @@ from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
-from console.services.app import app_service
+from console.services.app import app_service, package_upload_service
 from console.services.app_actions import ws_service
 from console.services.app_config import port_service
 from console.services.compose_service import compose_service
@@ -549,6 +549,8 @@ class BuildSourceinfo(AppBaseView):
         service_ids = [self.service.service_id]
         build_infos = base_service.get_build_infos(self.tenant, service_ids)
         bean = build_infos.get(self.service.service_id, None)
+        package_names = package_upload_service.get_name_by_component_id(service_ids)
+        bean["package_name"] = package_names
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
