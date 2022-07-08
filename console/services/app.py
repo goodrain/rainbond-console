@@ -258,6 +258,12 @@ class AppService(object):
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return ts
 
+    def change_package_upload_info(self, service_id, event_id):
+        data = {
+            "new_git_url": "/grdata/package_build/components/" + service_id + "/events/" + event_id
+        }
+        return TenantServiceInfo.objects.filter(service_id=service_id).update(**data)
+
     def __init_docker_image_app(self, region):
         """
         初始化docker image创建的组件默认数据,未存入数据库
@@ -1325,9 +1331,11 @@ class PackageUploadService(object):
         for component_id in component_ids:
             res = PackageUploadRecord.objects.filter(component_id=component_id, status="finished").order_by(
                 "-create_time").first()
-            package_name = eval(res.source_dir)
-            package_names += package_name
+            if res:
+                package_name = eval(res.source_dir)
+                package_names += package_name
         return package_names
+
 
 
 app_service = AppService()

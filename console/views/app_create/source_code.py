@@ -27,6 +27,7 @@ from www.utils.return_message import general_message
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
+
 class SourceCodeCreateView(RegionTenantHeaderView):
     @never_cache
     def post(self, request, *args, **kwargs):
@@ -215,7 +216,8 @@ class AppCompileEnvView(AppBaseView):
             user_dependency = {}
             if compile_env.user_dependency:
                 user_dependency = json.loads(compile_env.user_dependency)
-                selected_dependency = [key.replace("ext-", "") for key in list(user_dependency.get("dependencies", {}).keys())]
+                selected_dependency = [key.replace("ext-", "") for key in
+                                       list(user_dependency.get("dependencies", {}).keys())]
             bean["check_dependency"] = check_dependency
             bean["user_dependency"] = user_dependency
             bean["service_id"] = compile_env.service_id
@@ -344,6 +346,21 @@ class PackageCreateView(RegionTenantHeaderView):
         result = general_message(200, "failed", "操作失败", bean={})
         return Response(result, status=result["code"])
 
+    @never_cache
+    def put(self, request, tenantName, *args, **kwargs):
+        """
+        构建源修改
+        """
+        event_id = request.data.get("event_id")
+        service_id = request.data.get("service_id", "")
+        app_service.change_package_upload_info(service_id, event_id)
+        update_record = {
+            "status": "finished",
+            "component_id": service_id,
+        }
+        package_upload_service.update_upload_record(tenantName, event_id, **update_record)
+        return
+
 
 class PackageUploadRecordView(JWTAuthApiView):
     @never_cache
@@ -374,7 +391,7 @@ class PackageUploadRecordView(JWTAuthApiView):
                 packages_name.append(package)
             bean["package_name"] = packages_name
             data = {
-                "source_dir":packages_name
+                "source_dir": packages_name
             }
             package_upload_service.update_upload_record(tenantName, event_id, **data)
             result = general_message(200, "success", "上传成功", bean=bean)
@@ -482,7 +499,6 @@ class UploadRecordLastView(JWTAuthApiView):
         region = request.GET.get("region", None)
         component_id = request.GET.get("component_id", None)
         try:
-            print(tenantName,region,component_id)
             record = package_upload_service.get_last_upload_record(tenantName, region, component_id)
             bean = dict()
             bean["source_dir"] = eval(record.source_dir)
@@ -491,5 +507,5 @@ class UploadRecordLastView(JWTAuthApiView):
             return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
-        result = general_message(500, "failed", "操作失败")
+        result = general_message(200, "success", "暂无记录", bean={})
         return Response(result, status=result["code"])
