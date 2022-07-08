@@ -260,7 +260,7 @@ class AppService(object):
 
     def change_package_upload_info(self, service_id, event_id):
         data = {
-            "new_git_url": "/grdata/package_build/components/" + service_id + "/events/" + event_id
+            "git_url": "/grdata/package_build/components/" + service_id + "/events/" + event_id
         }
         return TenantServiceInfo.objects.filter(service_id=service_id).update(**data)
 
