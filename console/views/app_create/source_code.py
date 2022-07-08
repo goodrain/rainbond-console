@@ -353,13 +353,20 @@ class PackageCreateView(RegionTenantHeaderView):
         """
         event_id = request.data.get("event_id")
         service_id = request.data.get("service_id", "")
-        app_service.change_package_upload_info(service_id, event_id)
-        update_record = {
-            "status": "finished",
-            "component_id": service_id,
-        }
-        package_upload_service.update_upload_record(tenantName, event_id, **update_record)
-        return
+        try:
+            app_service.change_package_upload_info(service_id, event_id)
+            update_record = {
+                "status": "finished",
+                "component_id": service_id,
+            }
+            package_upload_service.update_upload_record(tenantName, event_id, **update_record)
+            result = general_message(200, "success", "上传成功")
+            return Response(result, status=result["code"])
+        except Exception as e:
+            logger.exception(e)
+        result = general_message(500, "faild", "上传失败")
+        return Response(result, status=result["code"])
+
 
 
 class PackageUploadRecordView(JWTAuthApiView):
