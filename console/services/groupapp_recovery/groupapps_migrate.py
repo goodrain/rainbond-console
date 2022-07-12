@@ -21,6 +21,7 @@ from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.region_app import region_app_repo
 from console.services.app import app_service
 from console.services.app_config import port_service, volume_service
 from console.services.app_config.component_graph import component_graph_service
@@ -205,6 +206,11 @@ class GroupappsMigrateService(object):
                             backup_record_repo.get_record_by_group_id(
                                 migrate_record.original_group_id).update(group_id=migrate_record.group_id)
                             self.update_migrate_original_group_id(migrate_record.original_group_id, migrate_record.group_id)
+                        region_app_id = region_app_repo.get_region_app_id(migrate_record.migrate_region,
+                                                                          migrate_record.group_id)
+                        group_service.sync_app_services(migrate_team, migrate_record.migrate_region, migrate_record.group_id)
+                        region_api.change_application_volumes(migrate_team.tenant_name, migrate_record.migrate_region,
+                                                              region_app_id)
                 except Exception as e:
                     logger.exception(e)
                     status = "failed"
