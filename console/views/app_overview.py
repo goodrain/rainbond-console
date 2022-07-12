@@ -670,3 +670,23 @@ class AppKeywordView(AppBaseView):
         service_webhook.save()
         result = general_message(200, "success", "修改成功", bean=service_webhook.to_dict())
         return Response(result, status=result["code"])
+
+
+# 修改job、cronjob策略配置
+class JobStrategy(AppBaseView):
+    @never_cache
+    def put(self, request, *args, **kwargs):
+        job_strategy = {
+            'schedule': request.data.get("schedule", ""),
+            'backoff_limit': request.data.get("backoff_limit", ""),
+            'parallelism': request.data.get("parallelism", ""),
+            'active_deadline_seconds': request.data.get("active_deadline_seconds", ""),
+            "completions": request.data.get("completions", "")
+        }
+        params = {
+            'job_strategy': json.dumps(job_strategy)
+        }
+        service_repo.update(self.tenant.tenant_id, self.service.service_id, **params)
+        result = general_message(200, "success", "修改成功")
+        return Response(result, status=result["code"])
+

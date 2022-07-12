@@ -699,6 +699,7 @@ class AppService(object):
         if not service.k8s_component_name:
             service.k8s_component_name = service.service_alias
         data["k8s_component_name"] = service.k8s_component_name
+        data["job_strategy"] = service.job_strategy
         # create in region
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # conponent install complete
@@ -842,6 +843,7 @@ class AppService(object):
         min_memory = data.get("min_memory", service.min_memory)
         min_memory = int(min_memory)
         min_cpu = data.get("min_cpu")
+        job_strategy = data.get("job_strategy")
         if isinstance(min_cpu, str):
             min_cpu = int(min_cpu)
         if type(min_cpu) != int or min_cpu < 0:
@@ -857,6 +859,7 @@ class AppService(object):
         service.cmd = cmd
         service.git_url = git_url
         service.docker_cmd = docker_cmd
+        service.job_strategy = job_strategy
         service.save()
 
         user_name = data.get("user_name", None)

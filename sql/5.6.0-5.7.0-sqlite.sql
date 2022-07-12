@@ -54,3 +54,5 @@ CREATE TABLE package_upload_record
     create_time DATETIME,
     update_time DATETIME
 );
+
+ALTER TABLE tenant_service ADD COLUMN job_strategy varchar(2047) DEFAULT '';

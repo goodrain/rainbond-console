@@ -44,9 +44,11 @@ from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete,
 from console.views.app_market import BindableMarketsView
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView)
-from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView, AppGroupVisitView,
-                                        AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView, BuildSourceinfo,
-                                        ImageAppView, ListAppPodsView)
+from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView,
+                                        AppGroupVisitView,
+                                        AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView,
+                                        BuildSourceinfo,
+                                        ImageAppView, ListAppPodsView, JobStrategy)
 from console.views.backup_data import (BackupDataCView, BackupDateDownload, BackupRecoverCView, BackupUploadCView)
 from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportView, CenterAppTarballDirView, EnterpriseAppImportInitView)
@@ -823,6 +825,8 @@ urlpatterns = [
     # 查询构建源
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/buildsource', BuildSourceinfo.as_view(),
         perms.BuildSourceinfo),
+    # job、cronjob策略配置
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/job_strategy$', JobStrategy.as_view()),
 
     # 针对target 查看日志
     url(r'^teams/(?P<tenantName>[\w\-]+)/events$', AppEventsView.as_view(), perms.AppEventsView),
