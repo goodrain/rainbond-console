@@ -125,14 +125,12 @@ class AppCheckUpdate(AppBaseView):
             return Response(result, status=result["code"])
         params = dict(serializer.data)
         # job 任务策略
-        job_strategy = {
-            'schedule': request.data.get("schedule", ""),
-            'backoff_limit': request.data.get("backoff_limit", ""),
-            'parallelism': request.data.get("parallelism", ""),
-            'active_deadline_seconds': request.data.get("active_deadline_seconds", ""),
-            "completions": request.data.get("completions", "")
-        }
-        params['job_strategy'] = json.dumps(job_strategy)
+        schedule = request.data.get("schedule", "")
+        if schedule:
+            job_strategy = {
+                'schedule': request.data.get("schedule", ""),
+            }
+            params['job_strategy'] = json.dumps(job_strategy)
         code, msg = app_service.update_check_app(self.tenant, self.service, params)
         if code != 200:
             return Response(general_message(code, "update service info error", msg), status=code)
