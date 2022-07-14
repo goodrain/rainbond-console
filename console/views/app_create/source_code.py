@@ -359,7 +359,7 @@ class PackageCreateView(RegionTenantHeaderView):
         try:
             pkg_record = package_upload_service.get_upload_record(self.team_name, self.region, event_id)
             pkg_create_time = pkg_record.create_time
-            app_service.change_package_upload_info(service_id, event_id, pkg_create_time)
+            app_service.change_package_upload_info(service_id, event_id)
             update_record = {
                 "status": "finished",
                 "component_id": service_id,
@@ -480,7 +480,7 @@ class PackageUploadRecordView(JWTAuthApiView):
         }
         try:
             package_upload_service.update_upload_record(tenantName, event_id, **update_record)
-            result = general_message(200, "success", "操作成功", bean={"res": "ok"})
+            result = general_message(200, "success", "操作成功", bean={"res":"ok"})
             return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)

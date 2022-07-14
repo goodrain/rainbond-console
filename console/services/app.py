@@ -143,8 +143,7 @@ class AppService(object):
         new_service.server_type = server_type
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         new_service.save()
-        code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url,
-                                           service_code_id,
+        code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url, service_code_id,
                                            service_code_version, check_uuid, event_id, oauth_service_id, git_full_name)
         if code != 200:
             return code, msg, new_service
@@ -700,6 +699,7 @@ class AppService(object):
         if not service.k8s_component_name:
             service.k8s_component_name = service.service_alias
         data["k8s_component_name"] = service.k8s_component_name
+        data["job_strategy"] = service.job_strategy
         # create in region
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # conponent install complete
@@ -843,6 +843,7 @@ class AppService(object):
         min_memory = data.get("min_memory", service.min_memory)
         min_memory = int(min_memory)
         min_cpu = data.get("min_cpu")
+        job_strategy = data.get("job_strategy")
         if isinstance(min_cpu, str):
             min_cpu = int(min_cpu)
         if type(min_cpu) != int or min_cpu < 0:
@@ -858,6 +859,7 @@ class AppService(object):
         service.cmd = cmd
         service.git_url = git_url
         service.docker_cmd = docker_cmd
+        service.job_strategy = job_strategy
         service.save()
 
         user_name = data.get("user_name", None)
@@ -1220,8 +1222,7 @@ class AppMarketService(object):
         data = self.app_model_versions_serializers(market, results.versions, extend=extend)
         return data
 
-    def get_market_app_model_version(self, market, app_id, version, for_install=False, extend=False,
-                                     get_template=False):
+    def get_market_app_model_version(self, market, app_id, version, for_install=False, extend=False, get_template=False):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
         results = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=get_template)
@@ -1234,8 +1235,7 @@ class AppMarketService(object):
         app_template = None
         try:
             if version:
-                app_template = app_store.get_app_version(market, app_id, version, for_install=for_install,
-                                                         get_template=True)
+                app_template = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=True)
         except ServiceHandleException as e:
             if e.status_code != 404:
                 logger.exception(e)

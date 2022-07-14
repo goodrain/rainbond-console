@@ -2,6 +2,7 @@
 """
   Created on 18/2/1.
 """
+import json
 import logging
 from re import split as re_spilt
 
@@ -123,7 +124,13 @@ class AppCheckUpdate(AppBaseView):
             result = general_message(400, "{0}".format(serializer.errors), "参数异常")
             return Response(result, status=result["code"])
         params = dict(serializer.data)
-
+        # job 任务策略
+        schedule = request.data.get("schedule", "")
+        if schedule:
+            job_strategy = {
+                'schedule': request.data.get("schedule", ""),
+            }
+            params['job_strategy'] = json.dumps(job_strategy)
         code, msg = app_service.update_check_app(self.tenant, self.service, params)
         if code != 200:
             return Response(general_message(code, "update service info error", msg), status=code)
