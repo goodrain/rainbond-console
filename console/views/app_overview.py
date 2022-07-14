@@ -683,8 +683,11 @@ class JobStrategy(AppBaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
         res = service_repo.get_service_by_service_id(self.service.service_id)
-        bean = json.loads(res.job_strategy)
-        result = general_message(200, "success", "查询成功", bean=bean)
+        if res.job_strategy:
+            bean = json.loads(res.job_strategy)
+            result = general_message(200, "success", "查询成功", bean=bean)
+            return Response(result, status=result["code"])
+        result = general_message(200, "success", "查询成功", bean={})
         return Response(result, status=result["code"])
 
     @never_cache

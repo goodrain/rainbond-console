@@ -356,10 +356,11 @@ class PackageCreateView(RegionTenantHeaderView):
         """
         event_id = request.data.get("event_id")
         service_id = request.data.get("service_id", "")
+        region = request.data.get("region", "")
         try:
-            pkg_record = package_upload_service.get_upload_record(self.team_name, self.region, event_id)
+            pkg_record = package_upload_service.get_upload_record(self.team_name, region, event_id)
             pkg_create_time = pkg_record.create_time
-            app_service.change_package_upload_info(service_id, event_id)
+            app_service.change_package_upload_info(service_id, event_id, pkg_create_time)
             update_record = {
                 "status": "finished",
                 "component_id": service_id,

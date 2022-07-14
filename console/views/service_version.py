@@ -69,7 +69,7 @@ class AppVersionsView(AppBaseView):
 
         for info in versions_info:
             repo_url = info["repo_url"]
-            if repo_url[0] == "/":
+            if repo_url and repo_url[0] == "/":
                 kind = "本地文件"
             else:
                 kind = BUILD_KIND_MAP.get(info["kind"])

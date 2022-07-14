@@ -28,8 +28,8 @@ def is_support(component_type):
             or component_type == ComponentType.stateless_singleton.value \
             or component_type == ComponentType.stateless_multiple.value \
             or component_type == ComponentType.state_multiple.value \
-            or component_type == ComponentType.job \
-            or component_type == ComponentType.cronjob:
+            or component_type == ComponentType.job.value \
+            or component_type == ComponentType.cronjob.value:
             return True
 
     return False
