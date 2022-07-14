@@ -2008,3 +2008,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         resp, _ = self._put(url, self._set_headers(token), region=region_name)
         return resp
+
+    def get_region_alerts(self, region_name, **kwargs):
+        url, token = self.__get_region_access_info(None, region_name)
+        url = url + "/api/v1/alerts"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10, retries=1)
+        return res, body
+
+    def create_or_update_component_k8s_attributes(self, tenant_name, region_name, service_alias, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, body

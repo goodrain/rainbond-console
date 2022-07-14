@@ -10,6 +10,8 @@ from rest_framework.response import Response
 
 from console.exception.main import AbortRequest
 from console.services.config_service import EnterpriseConfigService
+from console.services.enterprise_services import enterprise_services
+from www.utils.return_message import general_message
 from console.utils.reqparse import bool_argument
 from console.utils.reqparse import parse_item
 from console.views.base import EnterpriseAdminView
@@ -88,3 +90,10 @@ class EnterpriseVisualMonitorView(EnterpriseAdminView):
                 "slo_monitor_suffix": slo_monitor_suffix,
             })
         return Response(status=status.HTTP_200_OK)
+
+
+class EnterpriseAlertsView(EnterpriseAdminView):
+    @never_cache
+    def get(self, request, enterprise_id, *args, **kwargs):
+        alerts = enterprise_services.get_enterprise_alerts(enterprise_id)
+        return Response(general_message(200, "success", "查询成功", list=alerts), status=status.HTTP_200_OK)

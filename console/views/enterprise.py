@@ -2,10 +2,12 @@
 import json
 import logging
 import os
+import time
 
 from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
+from console.repositories.config_repo import cfg_repo
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
@@ -16,9 +18,11 @@ from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.views.base import EnterpriseAdminView, JWTAuthApiView, EnterpriseHeaderView
+from console.views.base import EnterpriseAdminView, JWTAuthApiView, EnterpriseHeaderView, AlowAnyApiView
 from rest_framework import status
 from rest_framework.response import Response
+
+from default_region import make_uuid
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import PermRelTenant, Tenants
 from www.utils.return_message import general_message
@@ -155,17 +159,21 @@ class EnterpriseTeams(JWTAuthApiView):
         tenant_ids = {tenant_id.ID: tenant_id.tenant_id for tenant_id in tenants}
         for user_id in user_id_list:
             user_id_dict[tenant_ids.get(user_id["tenant_id"])] = user_id_dict.get(user_id["tenant_id"], 0) + 1
+
         for usable_region in usable_regions:
-            region_tenants, total = team_services.get_tenant_list_by_region(
-                enterprise_id, usable_region.region_id, page=1, page_size=9999)
-            for region_tenant in region_tenants:
-                tenant = tenant_names.get(region_tenant["tenant_name"])
-                if tenant:
-                    tenant["user_number"] = user_id_dict.get(region_tenant["tenant_id"])
-                    tenant["running_apps"] = tenant.get("running_apps", 0) + region_tenant["running_applications"]
-                    tenant["memory_request"] = tenant.get("memory_request", 0) + region_tenant["memory_request"]
-                    tenant["cpu_request"] = tenant.get("cpu_request", 0) + region_tenant["cpu_request"]
-                    tenant["set_limit_memory"] = tenant.get("set_limit_memory", 0) + region_tenant["set_limit_memory"]
+            try:
+                region_tenants, total = team_services.get_tenant_list_by_region(
+                    enterprise_id, usable_region.region_id, page=1, page_size=9999)
+                for region_tenant in region_tenants:
+                    tenant = tenant_names.get(region_tenant["tenant_name"])
+                    if tenant:
+                        tenant["user_number"] = user_id_dict.get(region_tenant["tenant_id"])
+                        tenant["running_apps"] = tenant.get("running_apps", 0) + region_tenant["running_applications"]
+                        tenant["memory_request"] = tenant.get("memory_request", 0) + region_tenant["memory_request"]
+                        tenant["cpu_request"] = tenant.get("cpu_request", 0) + region_tenant["cpu_request"]
+                        tenant["set_limit_memory"] = tenant.get("set_limit_memory", 0) + region_tenant["set_limit_memory"]
+            except Exception as e:
+                logger.exception(e)
         data = {"total_count": total, "page": page, "page_size": page_size, "list": teams}
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)
@@ -473,3 +481,69 @@ class EnterpriseUserTeamRoleView(EnterpriseHeaderView):
         res = enterprise_services.create_user_roles(eid, user_id, tenant_name, role_ids)
         result = general_message(200, "ok", "设置成功", bean=res)
         return Response(result, status=200)
+
+
+class HelmTokenView(JWTAuthApiView):
+    def get(self, request, *args, **kwargs):
+        eid = request.GET.get("eid")
+        timestamp = str(int(time.time()))
+        token = make_uuid()
+        cfg_repo.create_token_record("token-" + timestamp, token, eid)
+        result = general_message(200, "ok", "获取token成功", bean=token)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class HelmAddReginInfo(AlowAnyApiView):
+    def post(self, request, *args, **kwargs):
+        token = request.data.get("token")
+        enterprise_id = request.data.get("enterpriseId", "")
+        try:
+            token_item = cfg_repo.get_by_value_eid(token, enterprise_id)
+            region_alias = request.data.get("regionAlias", "")
+            region_id = make_uuid()
+            region_data = {
+                "region_alias": region_alias,
+                "region_name": request.data.get("regionName", ""),
+                "region_type": json.dumps(request.data.get("regionType", [])),
+                "ssl_ca_cert": request.data.get("sslCaCert", ""),
+                "key_file": request.data.get("keyFile", ""),
+                "cert_file": request.data.get("certFile", ""),
+                "url": request.data.get("url", ""),
+                "wsurl": request.data.get("wsUrl", ""),
+                "httpdomain": request.data.get("httpDomain", ""),
+                "tcpdomain": request.data.get("tcpDomain", ""),
+                "enterprise_id": enterprise_id,
+                "desc": request.data.get("desc", ""),
+                "provider": request.data.get("provider", ""),
+                "provider_cluster_id": request.data.get("providerClusterId", ""),
+                "region_id": region_id,
+                "token": token
+            }
+            region_data["status"] = "1"
+            region = region_repo.create_region(region_data)
+            if region:
+                data = region_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
+                result = general_message(200, "success", "创建成功", bean=data)
+                token_item.enable = False
+                token_item.save()
+                return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.exception(e)
+        result = general_message(500, "failed", "创建失败")
+        return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class HelmInstallStatus(JWTAuthApiView):
+    def get(self, request, *args, **kwargs):
+        eid = request.GET.get("eid", "")
+        token = request.GET.get("token", "")
+        try:
+            region = region_repo.get_region_by_token(eid=eid, token=token)
+            region_resource = region_services.conver_region_info(region, "yes")
+            if region_resource["health_status"] == "ok":
+                result = general_message(200, "success", "对接成功")
+                return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.exception(e)
+        result = general_message(200, "failed", "对接失败")
+        return Response(result, status=status.HTTP_200_OK)

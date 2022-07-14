@@ -42,5 +42,18 @@ class ConfigRepository(object):
     def get_by_key(self, key):
         return ConsoleSysConfig.objects.get(key=key, enable=True)
 
+    def get_by_value_eid(self, value, eid):
+        return ConsoleSysConfig.objects.get(value=value, enable=True, enterprise_id=eid)
+
+    def create_token_record(self, key, value, eid):
+        return ConsoleSysConfig.objects.create(
+            key=key,
+            value=value,
+            type="string",
+            desc="helm对接集群唯一标识",
+            enable=True,
+            enterprise_id=eid,
+            create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
 
 cfg_repo = ConfigRepository()

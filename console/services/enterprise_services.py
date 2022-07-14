@@ -123,7 +123,7 @@ class EnterpriseServices(object):
         # 根据企业英文名确认UUID
         is_first_ent = TenantEnterprise.objects.count() == 0
         eid = os.environ.get('ENTERPRISE_ID')
-        if not eid or is_first_ent:
+        if not eid and is_first_ent:
             eid = make_uuid(enter_name)
             try:
                 f = open(DEFAULT_ENTERPRISE_ID_PATH)
@@ -326,6 +326,19 @@ class EnterpriseServices(object):
         from console.services.team_services import team_services
         team_services.add_user_to_team(tenant, user.user_id, role_ids=role_ids)
         return user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
+
+    def get_enterprise_alerts(self, enterprise_id):
+        regions = region_repo.get_regions_by_enterprise_id(enterprise_id)
+        alerts = []
+        for region in regions:
+            try:
+                res, response = region_api.get_region_alerts(region.region_name)
+                alerts.extend(response["data"]["alerts"])
+            except Exception as e:
+                logger.debug(e)
+                continue
+        page_alarms = [alert for alert in alerts if alert["labels"].get("PageAlarm") == "true"]
+        return page_alarms
 
 
 enterprise_services = EnterpriseServices()
