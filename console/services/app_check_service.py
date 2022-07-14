@@ -32,8 +32,11 @@ class AppCheckService(object):
             return "docker-run"
         elif service_source == AppConstants.THIRD_PARTY:
             return "third-party-service"
+        elif service_source == AppConstants.PACKAGE_BUILD:
+            return "package_build"
 
-    def check_service(self, tenant, service, is_again, user=None):
+
+    def check_service(self, tenant, service, is_again, event_id, user=None, ):
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = self.__get_service_region_type(service.service_source)
@@ -45,6 +48,16 @@ class AppCheckService(object):
         if service_source:
             user_name = service_source.user_name
             password = service_source.password
+        if service.service_source == AppConstants.PACKAGE_BUILD:
+            sb = {
+                "server_type": service.server_type,
+                "repository_url": "/grdata/package_build/components/" + service.service_id + "/events/" + event_id,
+                "branch": "",
+                "user": "",
+                "password": "",
+                "tenant_id": tenant.tenant_id
+            }
+            source_body = json.dumps(sb)
         if service.service_source == AppConstants.SOURCE_CODE:
             if service.oauth_service_id:
                 try:
@@ -72,7 +85,6 @@ class AppCheckService(object):
                     return 400, "Access Token 已过期", None
             else:
                 service_code_clone_url = service.git_url
-
             sb = {
                 "server_type": service.server_type,
                 "repository_url": service_code_clone_url,
@@ -115,6 +127,8 @@ class AppCheckService(object):
                 return AppConstants.SOURCE_CODE
             if service.category == "app_publish":
                 return AppConstants.MARKET
+            if service.category == "package":
+                return AppConstants.PACKAGE_BUILD
             if service.language == "docker-compose":
                 return AppConstants.DOCKER_COMPOSE
             if service.language == "docker-image":
@@ -412,6 +426,13 @@ class AppCheckService(object):
             service_code_from = {"type": "source_from", "key": "镜像名称", "value": service.image}
             if service.cmd:
                 service_attr_list.append({"type": "source_from", "key": "镜像启动命令", "value": service.cmd})
+        elif service.service_source == AppConstants.PACKAGE_BUILD:
+            service_code_from = {
+                "type": "source_from",
+                "key": "源码信息",
+                "value": "本地文件"
+            }
+            service_language = {"type": "language", "key": "代码语言", "value": service_info["language"]}
         if service_language:
             service_attr_list.append(service_language)
         if service_code_from:

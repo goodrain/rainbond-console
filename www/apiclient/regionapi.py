@@ -1359,6 +1359,30 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region)
         return res, body
 
+    def create_upload_file_dir(self, region, tenant_name, event_id):
+        """创建上传文件目录"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/upload/events/" + event_id
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region)
+        return res, body
+
+    def get_upload_file_dir(self, region, tenant_name, event_id):
+        """查询上传文件目录"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/upload/events/" + event_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def update_upload_file_dir(self, region, tenant_name, event_id, component_id):
+        """更新上传文件目录"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/upload/events/" + event_id + "/component_id/" + component_id
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, region=region)
+        return res, body
+
     def backup_group_apps(self, region, tenant_name, body):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
