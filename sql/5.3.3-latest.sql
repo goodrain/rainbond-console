@@ -19,3 +19,17 @@ ALTER TABLE `plugin_config_items` MODIFY `attr_name` varchar(64) NOT NULL;
 ALTER TABLE `plugin_config_items` MODIFY `attr_alt_value` LONGTEXT NOT NULL;
 ALTER TABLE `plugin_config_items` MODIFY `attr_default_value` LONGTEXT;
 ALTER TABLE `service_plugin_config_var` MODIFY `attrs` LONGTEXT NOT NULL;
+
+-- 5.7.1 - 5.8.0 sql
+CREATE TABLE IF NOT EXISTS `component_k8s_attributes` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `create_time` datetime(6) NOT NULL,
+  `update_time` datetime(6) NOT NULL,
+  `tenant_id` varchar(32) NOT NULL,
+  `component_id` varchar(32) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `save_type` varchar(32) NOT NULL,
+  `attribute_fields` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci,
+  `attribute_value` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=67 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

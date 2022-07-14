@@ -73,6 +73,7 @@ from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView
                                  ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView,
                                  TenantAppUpgradableNumView, AppGovernanceModeCheckView, ApplicationVolumesView)
 from console.views.jwt_token_view import JWTTokenView
+from console.views.k8s_attribute import ComponentK8sAttributeView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
@@ -444,6 +445,10 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/certificates$', TenantCertificateView.as_view(), perms.TenantCertificateView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/certificates/(?P<certificate_id>[\w\-]+)$', TenantCertificateManageView.as_view(),
         perms.TenantCertificateManageView),
+
+    # Component k8s attribute
+    url(r'^teams/(?P<tenantName>[\w\-]+)/components/(?P<serviceAlias>[\w\-]+)/k8s-attributes$',
+        ComponentK8sAttributeView.as_view()),
 
     # 组件域名操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/domain$', ServiceDomainView.as_view(),
