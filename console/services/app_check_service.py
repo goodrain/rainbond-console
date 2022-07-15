@@ -344,7 +344,7 @@ class AppCheckService(object):
                 if code != 200:
                     logger.error("save service check info port error {0}".format(msg))
         else:
-            if service.service_source == AppConstants.SOURCE_CODE:
+            if service.service_source in [AppConstants.SOURCE_CODE, AppConstants.PACKAGE_BUILD]:
                 port_service.delete_service_port(tenant, service)
                 _, _, t_port = port_service.add_service_port(tenant, service, 5000, "http",
                                                              service.service_alias.upper() + str(5000), False, True)
