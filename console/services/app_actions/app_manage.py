@@ -450,7 +450,8 @@ class AppManageService(AppManageBase):
     def __get_service_kind(self, service):
         """获取组件种类，兼容老的逻辑"""
         if service.service_source:
-            if service.service_source == AppConstants.SOURCE_CODE:
+            if service.service_source == AppConstants.SOURCE_CODE \
+                    or service.service_source == AppConstants.PACKAGE_BUILD:
                 return "build_from_source_code"
             elif service.service_source == AppConstants.DOCKER_RUN \
                     or service.service_source == AppConstants.DOCKER_COMPOSE \

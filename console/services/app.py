@@ -22,11 +22,12 @@ from console.exception.main import ServiceHandleException
 from console.exception.bcode import ErrThirdComponentStartFailed
 from console.constants import AppConstants, PluginImage, SourceCodeType
 from console.appstore.appstore import app_store
-from console.models.main import (AppMarket, RainbondCenterApp, RainbondCenterAppVersion)
+from console.models.main import (AppMarket, RainbondCenterApp, RainbondCenterAppVersion, PackageUploadRecord)
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
 from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import domain_repo as http_rule_repo
-from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo)
+from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain,
+                                             volume_repo)
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
@@ -150,7 +151,8 @@ class AppService(object):
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, "创建成功", ts
 
-    def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id, service_code_version,
+    def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id,
+                          service_code_version,
                           check_uuid, event_id, oauth_service_id, git_full_name):
         if service_code_from == SourceCodeType.GITLAB_MANUAL or service_code_from == SourceCodeType.GITLAB_DEMO:
             service_code_id = "0"
@@ -200,6 +202,67 @@ class AppService(object):
             "password": password,
         }
         return service_source_repo.create_service_source(**params)
+
+    def __init_package_build_app(self, region):
+        """
+        初始化本地文件创建的组件默认数据,未存入数据库
+        """
+        tenant_service = TenantServiceInfo()
+        tenant_service.service_region = region
+        tenant_service.service_key = "application"
+        tenant_service.desc = "application info"
+        tenant_service.category = "package"
+        tenant_service.image = PluginImage.RUNNER
+        tenant_service.cmd = ""
+        tenant_service.setting = ""
+        tenant_service.extend_method = ComponentType.stateless_multiple.value
+        tenant_service.env = ""
+        tenant_service.min_node = 1
+        tenant_service.min_memory = 128
+        tenant_service.min_cpu = baseService.calculate_service_cpu(region, 128)
+        tenant_service.inner_port = 5000
+        tenant_service.version = "81701"
+        tenant_service.namespace = "goodrain"
+        tenant_service.update_version = 1
+        tenant_service.port_type = "multi_outer"
+        tenant_service.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        tenant_service.deploy_version = ""
+        tenant_service.git_project_id = 0
+        tenant_service.service_type = "pkg"
+        tenant_service.total_memory = 128
+        tenant_service.volume_mount_path = ""
+        tenant_service.host_path = ""
+        tenant_service.service_source = AppConstants.PACKAGE_BUILD
+        tenant_service.create_status = "creating"
+        return tenant_service
+
+    def create_package_upload_info(self, region, tenant, user, service_cname, k8s_component_name, event_id, pkg_create_time):
+        service_cname = service_cname.rstrip().lstrip()
+        is_pass, msg = self.check_service_cname(tenant, service_cname, region)
+        if not is_pass:
+            return 412, msg, None
+        new_service = self.__init_package_build_app(region)
+        new_service.tenant_id = tenant.tenant_id
+        new_service.service_cname = service_cname
+        service_id = make_uuid(tenant.tenant_id)
+        service_alias = self.create_service_alias(service_id)
+        new_service.service_id = service_id
+        new_service.service_alias = service_alias
+        new_service.creater = user.pk
+        new_service.server_type = "pkg"
+        new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
+        new_service.git_url = "/grdata/package_build/components/" + service_id + "/events/" + event_id
+        new_service.code_version = pkg_create_time
+        new_service.save()
+        ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
+        return ts
+
+    def change_package_upload_info(self, service_id, event_id, pkg_create_time):
+        data = {
+            "git_url": "/grdata/package_build/components/" + service_id + "/events/" + event_id,
+            "code_version": pkg_create_time
+        }
+        return TenantServiceInfo.objects.filter(service_id=service_id).update(**data)
 
     def __init_docker_image_app(self, region):
         """
@@ -636,6 +699,7 @@ class AppService(object):
         if not service.k8s_component_name:
             service.k8s_component_name = service.service_alias
         data["k8s_component_name"] = service.k8s_component_name
+        data["job_strategy"] = service.job_strategy
         # create in region
         region_api.create_service(service.service_region, tenant.tenant_name, data)
         # conponent install complete
@@ -779,6 +843,7 @@ class AppService(object):
         min_memory = data.get("min_memory", service.min_memory)
         min_memory = int(min_memory)
         min_cpu = data.get("min_cpu")
+        job_strategy = data.get("job_strategy")
         if isinstance(min_cpu, str):
             min_cpu = int(min_cpu)
         if type(min_cpu) != int or min_cpu < 0:
@@ -794,6 +859,7 @@ class AppService(object):
         service.cmd = cmd
         service.git_url = git_url
         service.docker_cmd = docker_cmd
+        service.job_strategy = job_strategy
         service.save()
 
         user_name = data.get("user_name", None)
@@ -1244,5 +1310,34 @@ class AppMarketService(object):
         return
 
 
+class PackageUploadService(object):
+    def get_upload_record(self, team_name, region, event_id):
+        return PackageUploadRecord.objects.filter(team_name=team_name, region=region, event_id=event_id).first()
+
+    def create_upload_record(self, **params):
+        return PackageUploadRecord.objects.create(**params)
+
+    def get_last_upload_record(self, team_name, region, component_id):
+        if component_id:
+            return PackageUploadRecord.objects.filter(team_name=team_name, region=region, component_id=component_id,
+                                                      status="unfinished").order_by("-create_time")
+        return PackageUploadRecord.objects.filter(team_name=team_name, region=region, status="unfinished").order_by(
+            "-create_time")
+
+    def update_upload_record(self, team_name, event_id, **data):
+        return PackageUploadRecord.objects.filter(team_name=team_name, event_id=event_id).update(**data)
+
+    def get_name_by_component_id(self, component_ids):
+        package_names = []
+        for component_id in component_ids:
+            res = PackageUploadRecord.objects.filter(component_id=component_id, status="finished").order_by(
+                "-create_time").first()
+            if res:
+                package_name = eval(res.source_dir)
+                package_names += package_name
+        return package_names
+
+
 app_service = AppService()
 app_market_service = AppMarketService()
+package_upload_service = PackageUploadService()
