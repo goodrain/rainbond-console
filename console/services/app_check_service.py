@@ -35,8 +35,7 @@ class AppCheckService(object):
         elif service_source == AppConstants.PACKAGE_BUILD:
             return "package_build"
 
-
-    def check_service(self, tenant, service, is_again, event_id, user=None, ):
+    def check_service(self, tenant, service, is_again, event_id, user=None):
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = self.__get_service_region_type(service.service_source)

@@ -481,7 +481,7 @@ class PackageUploadRecordView(JWTAuthApiView):
         }
         try:
             package_upload_service.update_upload_record(tenantName, event_id, **update_record)
-            result = general_message(200, "success", "操作成功", bean={"res":"ok"})
+            result = general_message(200, "success", "操作成功", bean={"res": "ok"})
             return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)
