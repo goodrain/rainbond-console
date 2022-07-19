@@ -21,33 +21,6 @@ class ComponentK8sAttributeService(object):
         return result
 
     @transaction.atomic
-<<<<<<< HEAD
-    def create_or_update_attributes(self, tenant, component, region_name, attributes):
-        k8s_attributes = []
-        component_k8s_attributes = []
-        for attribute in attributes:
-            attr_value = attribute.get("attribute_value")
-            if attribute.get("save_type") == "json":
-                attr_value = json.dumps(attr_value)
-            k8s_attributes.append(
-                ComponentK8sAttributes(
-                    name=attribute.get("name"),
-                    tenant_id=tenant.tenant_id,
-                    component_id=component.component_id,
-                    save_type=attribute.get("save_type"),
-                    attribute_fields=attribute.get("attribute_fields"),
-                    attribute_value=attr_value))
-            component_k8s_attributes.append({
-                "name": attribute.get("name"),
-                "save_type": attribute.get("save_type"),
-                "attribute_fields": attribute.get("attribute_fields"),
-                "attribute_value": attr_value
-            })
-        body = {"component_k8s_attributes": component_k8s_attributes}
-        k8s_attribute_repo.delete_by_component_ids([component.component_id])
-        k8s_attribute_repo.bulk_create(k8s_attributes)
-        region_api.create_or_update_component_k8s_attributes(tenant.tenant_name, region_name, component.service_alias, body)
-=======
     def create_k8s_attribute(self, tenant, component, region_name, attribute):
         k8s_attribute_repo.create(tenant_id=tenant.tenant_id, component_id=component.service_id, **attribute)
         region_api.create_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
@@ -62,7 +35,6 @@ class ComponentK8sAttributeService(object):
     def delete_k8s_attribute(self, tenant, component, region_name, name):
         k8s_attribute_repo.delete(component.service_id, name)
         region_api.delete_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, {"name": name})
->>>>>>> 5a2d228cf1d7cb5d08c91e445d88c202fdea2011
 
 
 k8s_attribute_service = ComponentK8sAttributeService()
