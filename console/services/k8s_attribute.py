@@ -21,6 +21,7 @@ class ComponentK8sAttributeService(object):
         attributes = k8s_attribute_repo.list_by_component_ids(component_ids)
         for attribute in attributes:
             if attribute.save_type == "json":
+                attribute.attribute_value = json.loads(attribute.attribute_value)
                 attribute.attribute_value = [{
                     "key": key,
                     "value": value
