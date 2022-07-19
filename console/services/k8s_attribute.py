@@ -4,7 +4,6 @@ import json
 from django.db import transaction
 
 from console.repositories.k8s_attribute import k8s_attribute_repo
-from console.models.main import ComponentK8sAttributes
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
@@ -22,7 +21,10 @@ class ComponentK8sAttributeService(object):
         attributes = k8s_attribute_repo.list_by_component_ids(component_ids)
         for attribute in attributes:
             if attribute.save_type == "json":
-                attribute.attribute_value = json.loads(attribute.attribute_value)
+                attribute.attribute_value = [{
+                    "key": key,
+                    "value": value
+                } for key, value in json.loads(attribute.attribute_value).items()]
             result.append(attribute.to_dict())
         return result
 

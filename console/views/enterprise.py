@@ -9,8 +9,7 @@ from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
 from console.repositories.config_repo import cfg_repo
 from console.repositories.enterprise_repo import enterprise_repo
-from console.repositories.group import group_repo, group_service_relation_repo
-from console.repositories.region_app import region_app_repo
+from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
@@ -26,7 +25,7 @@ from rest_framework.response import Response
 
 from default_region import make_uuid
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import PermRelTenant, Tenants, ServiceGroup, TenantServiceInfo
+from www.models.main import PermRelTenant, Tenants
 from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
@@ -163,6 +162,19 @@ class EnterpriseTeams(JWTAuthApiView):
             user_id_dict[tenant_ids.get(user_id["tenant_id"])] = user_id_dict.get(user_id["tenant_id"], 0) + 1
 
         for usable_region in usable_regions:
+            try:
+                region_tenants, total = team_services.get_tenant_list_by_region(
+                    enterprise_id, usable_region.region_id, page=1, page_size=9999)
+                for region_tenant in region_tenants:
+                    tenant = tenant_names.get(region_tenant["tenant_name"])
+                    if tenant:
+                        tenant["user_number"] = user_id_dict.get(region_tenant["tenant_id"])
+                        tenant["running_apps"] = tenant.get("running_apps", 0) + region_tenant["running_applications"]
+                        tenant["memory_request"] = tenant.get("memory_request", 0) + region_tenant["memory_request"]
+                        tenant["cpu_request"] = tenant.get("cpu_request", 0) + region_tenant["cpu_request"]
+                        tenant["set_limit_memory"] = tenant.get("set_limit_memory", 0) + region_tenant["set_limit_memory"]
+            except Exception as e:
+                logger.exception(e)
             try:
                 region_tenants, total = team_services.get_tenant_list_by_region(
                     enterprise_id, usable_region.region_id, page=1, page_size=9999)

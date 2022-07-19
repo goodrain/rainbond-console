@@ -57,13 +57,12 @@ from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupVie
 from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
+from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource)
 from console.views.enterprise import (
     EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView, EnterpriseMonitor, EnterpriseMyTeams,
     EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView,
-    EnterpriseRegionTenantLimitView, EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises,
-    EnterpriseTeamOverView,
-    EnterpriseTeams, EnterpriseUserTeamRoleView, EnterpriseUserTeams, HelmTokenView, HelmAddReginInfo,
-    HelmInstallStatus, EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource)
+    EnterpriseRegionTenantLimitView, EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView,
+    EnterpriseTeams, EnterpriseUserTeamRoleView, EnterpriseUserTeams, HelmTokenView, HelmAddReginInfo, HelmInstallStatus)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView,
                                              EnterpriseVisualMonitorView, EnterpriseAlertsView)
