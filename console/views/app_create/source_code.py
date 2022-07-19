@@ -216,8 +216,7 @@ class AppCompileEnvView(AppBaseView):
             user_dependency = {}
             if compile_env.user_dependency:
                 user_dependency = json.loads(compile_env.user_dependency)
-                selected_dependency = [key.replace("ext-", "") for key in
-                                       list(user_dependency.get("dependencies", {}).keys())]
+                selected_dependency = [key.replace("ext-", "") for key in list(user_dependency.get("dependencies", {}).keys())]
             bean["check_dependency"] = check_dependency
             bean["user_dependency"] = user_dependency
             bean["service_id"] = compile_env.service_id
@@ -329,16 +328,15 @@ class PackageCreateView(RegionTenantHeaderView):
             pkg_record = package_upload_service.get_upload_record(self.team_name, region, event_id)
             pkg_create_time = pkg_record.create_time
             # 创建信息
-            ts = app_service.create_package_upload_info(region, self.tenant, self.user, service_cname,
-                                                        k8s_component_name, event_id, pkg_create_time)
+            ts = app_service.create_package_upload_info(region, self.tenant, self.user, service_cname, k8s_component_name,
+                                                        event_id, pkg_create_time)
             # 更新状态
             update_record = {
                 "status": "finished",
                 "component_id": ts.service_id,
             }
             package_upload_service.update_upload_record(tenantName, event_id, **update_record)
-            code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
-                                                                ts.service_id)
+            code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id, ts.service_id)
             if code != 200:
                 logger.debug("service.create", msg_show)
             bean = ts.to_dict()
@@ -402,9 +400,7 @@ class PackageUploadRecordView(JWTAuthApiView):
             for package in packages:
                 packages_name.append(package)
             bean["package_name"] = packages_name
-            data = {
-                "source_dir": packages_name
-            }
+            data = {"source_dir": packages_name}
             package_upload_service.update_upload_record(tenantName, event_id, **data)
             result = general_message(200, "success", "上传成功", bean=bean)
             return Response(result, status=result["code"])
@@ -476,12 +472,10 @@ class PackageUploadRecordView(JWTAuthApiView):
               paramType: form
         """
         event_id = request.data.get("event_id")
-        update_record = {
-            "status": "finished"
-        }
+        update_record = {"status": "finished"}
         try:
             package_upload_service.update_upload_record(tenantName, event_id, **update_record)
-            result = general_message(200, "success", "操作成功", bean={"res":"ok"})
+            result = general_message(200, "success", "操作成功", bean={"res": "ok"})
             return Response(result, status=result["code"])
         except Exception as e:
             logger.exception(e)

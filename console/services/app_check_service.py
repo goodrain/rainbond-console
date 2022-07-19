@@ -35,8 +35,7 @@ class AppCheckService(object):
         elif service_source == AppConstants.PACKAGE_BUILD:
             return "package_build"
 
-
-    def check_service(self, tenant, service, is_again, event_id, user=None, ):
+    def check_service(self, tenant, service, is_again, event_id, user=None):
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = self.__get_service_region_type(service.service_source)
@@ -427,11 +426,7 @@ class AppCheckService(object):
             if service.cmd:
                 service_attr_list.append({"type": "source_from", "key": "镜像启动命令", "value": service.cmd})
         elif service.service_source == AppConstants.PACKAGE_BUILD:
-            service_code_from = {
-                "type": "source_from",
-                "key": "源码信息",
-                "value": "本地文件"
-            }
+            service_code_from = {"type": "source_from", "key": "源码信息", "value": "本地文件"}
             service_language = {"type": "language", "key": "代码语言", "value": service_info["language"]}
         if service_language:
             service_attr_list.append(service_language)

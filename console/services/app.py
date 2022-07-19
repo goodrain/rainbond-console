@@ -26,8 +26,7 @@ from console.models.main import (AppMarket, RainbondCenterApp, RainbondCenterApp
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
 from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import domain_repo as http_rule_repo
-from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain,
-                                             volume_repo)
+from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo)
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
@@ -151,8 +150,7 @@ class AppService(object):
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, "创建成功", ts
 
-    def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id,
-                          service_code_version,
+    def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id, service_code_version,
                           check_uuid, event_id, oauth_service_id, git_full_name):
         if service_code_from == SourceCodeType.GITLAB_MANUAL or service_code_from == SourceCodeType.GITLAB_DEMO:
             service_code_id = "0"
@@ -1319,10 +1317,10 @@ class PackageUploadService(object):
 
     def get_last_upload_record(self, team_name, region, component_id):
         if component_id:
-            return PackageUploadRecord.objects.filter(team_name=team_name, region=region, component_id=component_id,
-                                                      status="unfinished").order_by("-create_time")
-        return PackageUploadRecord.objects.filter(team_name=team_name, region=region, status="unfinished").order_by(
-            "-create_time")
+            return PackageUploadRecord.objects.filter(
+                team_name=team_name, region=region, component_id=component_id, status="unfinished").order_by("-create_time")
+        return PackageUploadRecord.objects.filter(
+            team_name=team_name, region=region, status="unfinished").order_by("-create_time")
 
     def update_upload_record(self, team_name, event_id, **data):
         return PackageUploadRecord.objects.filter(team_name=team_name, event_id=event_id).update(**data)
@@ -1330,8 +1328,8 @@ class PackageUploadService(object):
     def get_name_by_component_id(self, component_ids):
         package_names = []
         for component_id in component_ids:
-            res = PackageUploadRecord.objects.filter(component_id=component_id, status="finished").order_by(
-                "-create_time").first()
+            res = PackageUploadRecord.objects.filter(
+                component_id=component_id, status="finished").order_by("-create_time").first()
             if res:
                 package_name = eval(res.source_dir)
                 package_names += package_name

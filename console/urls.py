@@ -44,10 +44,8 @@ from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete,
 from console.views.app_market import BindableMarketsView
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView)
-from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView,
-                                        AppGroupVisitView,
-                                        AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView,
-                                        BuildSourceinfo,
+from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView, AppGroupVisitView,
+                                        AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView, BuildSourceinfo,
                                         ImageAppView, ListAppPodsView, JobStrategy)
 from console.views.backup_data import (BackupDataCView, BackupDateDownload, BackupRecoverCView, BackupUploadCView)
 from console.views.center_pool.app_export import CenterAppExportView
