@@ -3,7 +3,7 @@ import datetime
 from console.enum.app import GovernanceModeEnum
 from console.models.main import AutoscalerRuleMetrics, ComponentK8sAttributes
 from console.repositories.app_config import env_var_repo, volume_repo, port_repo
-from console.repositories.autoscaler_repo import autoscaler_rule_metrics_repo, autoscaler_rules_repo
+from console.repositories.autoscaler_repo import autoscaler_rules_repo
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.region_app import region_app_repo
 from console.services.perm_services import role_kind_services
@@ -135,10 +135,8 @@ class RegionResource(object):
             new_service.docker_cmd = ""
             new_service.k8s_component_name = component["ct"]["k8s_component_name"]
             new_service.save()
-            group_service_relation_repo.add_service_group_relation(application.ID,
-                                                                   component["ct"]["service_id"],
-                                                                   tenant["UUID"],
-                                                                   region_name)
+            group_service_relation_repo.add_service_group_relation(application.ID, component["ct"]["service_id"],
+                                                                   tenant["UUID"], region_name)
             self.create_component_env(component["env"], tenant["UUID"], new_service)
             self.create_component_config(component["config"], tenant["UUID"], new_service)
             self.create_component_port(component["port"], tenant["UUID"], new_service)
@@ -159,8 +157,7 @@ class RegionResource(object):
                 attr_name=env["env_key"],
                 attr_value=env["env_value"],
                 is_change=1,
-                scope="inner"
-            )
+                scope="inner")
             env_data.append(tenantServiceEnvVar)
         if len(env_data) > 0:
             env_var_repo.bulk_create_component_env(env_data)
@@ -209,8 +206,7 @@ class RegionResource(object):
                 port_alias=service.service_alias.upper().replace("-", "_") + str(port["port"]),
                 is_inner_service=False,
                 is_outer_service=False,
-                k8s_service_name=service.service_alias + "-" + str(port["port"])
-            )
+                k8s_service_name=service.service_alias + "-" + str(port["port"]))
             port_data.append(service_port)
         if len(port_data):
             port_repo.bulk_create(port_data)
@@ -230,13 +226,14 @@ class RegionResource(object):
         metrics = list()
         if telescopic["cpu_or_memory"]:
             for metric in telescopic["cpu_or_memory"]:
-                metrics.append(AutoscalerRuleMetrics(
-                    rule_id=telescopic["rule_id"],
-                    metric_type=metric["MetricsType"],
-                    metric_name=metric["MetricsName"],
-                    metric_target_type=metric["MetricTargetType"],
-                    metric_target_value=metric["MetricTargetValue"],
-                ))
+                metrics.append(
+                    AutoscalerRuleMetrics(
+                        rule_id=telescopic["rule_id"],
+                        metric_type=metric["MetricsType"],
+                        metric_name=metric["MetricsName"],
+                        metric_target_type=metric["MetricTargetType"],
+                        metric_target_value=metric["MetricTargetValue"],
+                    ))
         if len(metrics):
             AutoscalerRuleMetrics.objects.bulk_create(metrics)
 
@@ -257,19 +254,18 @@ class RegionResource(object):
             timeout_second=healthy_check["timeout_second"],
             success_threshold=healthy_check["success_threshold"],
             failure_threshold=healthy_check["failure_threshold"],
-            is_used=1
-        ).save()
+            is_used=1).save()
 
     def create_component_special(self, specials, tenant_id, service):
         componentK8sAttributes = list()
         for special in specials:
-            componentK8sAttributes.append(ComponentK8sAttributes(
-                tenant_id=tenant_id,
-                component_id=service.service_id,
-                name=special["name"],
-                save_type=special["save_type"],
-                attribute_value=special["attribute_value"]
-            ))
+            componentK8sAttributes.append(
+                ComponentK8sAttributes(
+                    tenant_id=tenant_id,
+                    component_id=service.service_id,
+                    name=special["name"],
+                    save_type=special["save_type"],
+                    attribute_value=special["attribute_value"]))
         ComponentK8sAttributes.objects.bulk_create(componentK8sAttributes)
 
     def resource_import(self, eid, region_id, namespace, content):

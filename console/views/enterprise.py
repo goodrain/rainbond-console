@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
-import datetime
 import json
 import logging
 import os
@@ -174,8 +173,33 @@ class EnterpriseTeams(JWTAuthApiView):
                         tenant["running_apps"] = tenant.get("running_apps", 0) + region_tenant["running_applications"]
                         tenant["memory_request"] = tenant.get("memory_request", 0) + region_tenant["memory_request"]
                         tenant["cpu_request"] = tenant.get("cpu_request", 0) + region_tenant["cpu_request"]
-                        tenant["set_limit_memory"] = tenant.get("set_limit_memory", 0) + region_tenant[
-                            "set_limit_memory"]
+                        tenant["set_limit_memory"] = tenant.get("set_limit_memory", 0) + region_tenant["set_limit_memory"]
+            except Exception as e:
+                logger.exception(e)
+            try:
+                region_tenants, total = team_services.get_tenant_list_by_region(
+                    enterprise_id, usable_region.region_id, page=1, page_size=9999)
+                for region_tenant in region_tenants:
+                    tenant = tenant_names.get(region_tenant["tenant_name"])
+                    if tenant:
+                        tenant["user_number"] = user_id_dict.get(region_tenant["tenant_id"])
+                        tenant["running_apps"] = tenant.get("running_apps", 0) + region_tenant["running_applications"]
+                        tenant["memory_request"] = tenant.get("memory_request", 0) + region_tenant["memory_request"]
+                        tenant["cpu_request"] = tenant.get("cpu_request", 0) + region_tenant["cpu_request"]
+                        tenant["set_limit_memory"] = tenant.get("set_limit_memory", 0) + region_tenant["set_limit_memory"]
+            except Exception as e:
+                logger.exception(e)
+            try:
+                region_tenants, total = team_services.get_tenant_list_by_region(
+                    enterprise_id, usable_region.region_id, page=1, page_size=9999)
+                for region_tenant in region_tenants:
+                    tenant = tenant_names.get(region_tenant["tenant_name"])
+                    if tenant:
+                        tenant["user_number"] = user_id_dict.get(region_tenant["tenant_id"])
+                        tenant["running_apps"] = tenant.get("running_apps", 0) + region_tenant["running_applications"]
+                        tenant["memory_request"] = tenant.get("memory_request", 0) + region_tenant["memory_request"]
+                        tenant["cpu_request"] = tenant.get("cpu_request", 0) + region_tenant["cpu_request"]
+                        tenant["set_limit_memory"] = tenant.get("set_limit_memory", 0) + region_tenant["set_limit_memory"]
             except Exception as e:
                 logger.exception(e)
         data = {"total_count": total, "page": page, "page_size": page_size, "list": teams}
@@ -355,8 +379,7 @@ class EnterpriseAppsLView(JWTAuthApiView):
                     "tenant_name": tenant_name,
                     "region_name": app.region_name
                 })
-        result = general_message(200, "success", "获取成功", list=data, total_count=apps_count, page=page,
-                                 page_size=page_size)
+        result = general_message(200, "success", "获取成功", list=data, total_count=apps_count, page=page, page_size=page_size)
         return Response(result, status=status.HTTP_200_OK)
 
 
@@ -429,8 +452,7 @@ class EnterpriseConvertResource(JWTAuthApiView):
         if rs:
             if regions:
                 tenant = rs["tenant"]
-                region_resource.create_tenant(tenant, enterprise_id, namespace, self.user.user_id,
-                                              regions[0].region_name)
+                region_resource.create_tenant(tenant, enterprise_id, namespace, self.user.user_id, regions[0].region_name)
                 apps = rs.get("app", {})
                 region_resource.create_app(tenant, apps, regions[0].region_name, self.user.user_id)
                 data["bean"]["tenant"]["region_name"] = regions[0].region_name

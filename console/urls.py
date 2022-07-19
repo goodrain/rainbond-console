@@ -63,7 +63,7 @@ from console.views.enterprise import (
     EnterpriseRegionTenantLimitView, EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises,
     EnterpriseTeamOverView,
     EnterpriseTeams, EnterpriseUserTeamRoleView, EnterpriseUserTeams, HelmTokenView, HelmAddReginInfo,
-    HelmInstallStatus, EnterpriseNamespaceResource, EnterpriseRegionNamespace, EnterpriseConvertResource)
+    HelmInstallStatus, EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView,
                                              EnterpriseVisualMonitorView, EnterpriseAlertsView)
