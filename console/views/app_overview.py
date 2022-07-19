@@ -581,6 +581,7 @@ class BuildSourceinfo(AppBaseView):
             user_id = request.user.user_id
             oauth_service_id = request.data.get("service_id")
             git_full_name = request.data.get("full_name")
+            server_type = request.data.get("server_type", "")
 
             if not service_source:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
@@ -604,6 +605,8 @@ class BuildSourceinfo(AppBaseView):
             if service_source == "source_code":
                 if code_version:
                     self.service.code_version = code_version
+                elif server_type == "oss":
+                    self.service.code_version = ""
                 else:
                     self.service.code_version = "master"
                 if git_url:
@@ -633,9 +636,14 @@ class BuildSourceinfo(AppBaseView):
                         self.service.creater = user_id
                     else:
                         self.service.git_url = git_url
+                self.service.service_source = service_source
+                self.service.code_from = ""
+                self.server_type = server_type
+                self.service.code_from = "image_manual"
                 self.service.save()
                 transaction.savepoint_commit(s_id)
             elif service_source == "docker_run":
+                self.service.service_source = "docker_run"
                 if image:
                     version = image.split(':')[-1]
                     if not version:
@@ -644,6 +652,8 @@ class BuildSourceinfo(AppBaseView):
                     self.service.image = image
                     self.service.version = version
                 self.service.cmd = cmd
+                self.server_type = server_type
+                self.service.git_url = ""
                 self.service.save()
                 transaction.savepoint_commit(s_id)
             result = general_message(200, "success", "修改成功")
