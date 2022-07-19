@@ -4,7 +4,6 @@ import json
 from django.db import transaction
 
 from console.repositories.k8s_attribute import k8s_attribute_repo
-from console.models.main import ComponentK8sAttributes
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
