@@ -191,6 +191,9 @@ class RegionRepo(object):
     def get_region_by_id(self, eid, region_id):
         return RegionConfig.objects.filter(enterprise_id=eid, region_id=region_id).first()
 
+    def get_region_by_token(self, eid, token):
+        return RegionConfig.objects.filter(enterprise_id=eid, token=token).first()
+
     def update_enterprise_region(self, eid, region_id, data):
         region = self.get_region_by_id(eid, region_id)
         if not region:

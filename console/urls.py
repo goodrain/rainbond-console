@@ -57,14 +57,16 @@ from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupVie
 from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
-from console.views.enterprise import (EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView,
-                                      EnterpriseMonitor, EnterpriseMyTeams, EnterpriseOverview, EnterpriseRegionDashboard,
-                                      EnterpriseRegionsLCView, EnterpriseRegionsRUDView, EnterpriseRegionTenantLimitView,
-                                      EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView,
-                                      EnterpriseTeams, EnterpriseUserTeamRoleView, EnterpriseUserTeams)
+from console.views.enterprise import (
+    EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView, EnterpriseMonitor, EnterpriseMyTeams,
+    EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView,
+    EnterpriseRegionTenantLimitView, EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises,
+    EnterpriseTeamOverView,
+    EnterpriseTeams, EnterpriseUserTeamRoleView, EnterpriseUserTeams, HelmTokenView, HelmAddReginInfo,
+    HelmInstallStatus, EnterpriseNamespaceResource, EnterpriseRegionNamespace, EnterpriseConvertResource)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView,
-                                             EnterpriseVisualMonitorView)
+                                             EnterpriseVisualMonitorView, EnterpriseAlertsView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
@@ -73,6 +75,7 @@ from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView
                                  ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView,
                                  TenantAppUpgradableNumView, AppGovernanceModeCheckView, ApplicationVolumesView)
 from console.views.jwt_token_view import JWTTokenView
+from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView
 from console.views.message import UserMessageView
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
@@ -445,6 +448,12 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/certificates/(?P<certificate_id>[\w\-]+)$', TenantCertificateManageView.as_view(),
         perms.TenantCertificateManageView),
 
+    # Component k8s attribute
+    url(r'^teams/(?P<tenantName>[\w\-]+)/components/(?P<serviceAlias>[\w\-]+)/k8s-attributes$',
+        ComponentK8sAttributeListView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/components/(?P<serviceAlias>[\w\-]+)/k8s-attributes/(?P<name>[\w\-]+)$',
+        ComponentK8sAttributeView.as_view()),
+
     # 组件域名操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/domain$', ServiceDomainView.as_view(),
         perms.ServiceDomainView),
@@ -715,6 +724,7 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/objectstorage$', EnterpriseObjectStorageView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/appstoreimagehub$', EnterpriseAppStoreImageHubView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/visualmonitor$', EnterpriseVisualMonitorView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/alerts$', EnterpriseAlertsView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
@@ -748,6 +758,12 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/apps$', EnterpriseAppsLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$', EnterpriseRegionsLCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)$', EnterpriseRegionsRUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/namespace',
+        EnterpriseRegionNamespace.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/resource',
+        EnterpriseNamespaceResource.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/convert-resource',
+        EnterpriseConvertResource.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/tenants$',
         EnterpriseRegionTenantRUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/tenants/(?P<tenant_name>[\w\-]+)/limit$',
@@ -803,6 +819,11 @@ urlpatterns = [
     # 查询登录用户可以加入哪些团队
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/jointeams$", TeamUserCanJoin.as_view()),
     url(r"^enterprise/(?P<enterprise_id>[\w\-]+)/create-app-teams$", TeamsPermissionCreateApp.as_view()),
+
+    # 集群通过helm对接控制台
+    url(r'^enterprise/helm/token$', HelmTokenView.as_view()),
+    url(r'^enterprise/helm/region_info$', HelmAddReginInfo.as_view()),
+    url(r'^enterprise/helm/region_status$', HelmInstallStatus.as_view()),
 
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),

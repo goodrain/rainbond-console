@@ -1076,3 +1076,21 @@ class AppUpgradeSnapshot(BaseModel):
     upgrade_group_id = models.IntegerField(default=0, help_text="升级组件组id")
     snapshot_id = models.CharField(max_length=32, help_text="the identity of the snapshot")
     snapshot = models.TextField()
+
+
+class ComponentK8sAttributes(BaseModel):
+    class Meta:
+        db_table = "component_k8s_attributes"
+
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text="更新时间")
+    tenant_id = models.CharField(max_length=32)
+    component_id = models.CharField(max_length=32, help_text="the identity of the component")
+    # Name Define the attribute name, which is currently supported
+    # [nodeSelector/labels/tolerations/volumes/serviceAccountName/privileged/affinity]
+    name = models.CharField(max_length=255, help_text="the name of the attribute")
+    # The field type defines how the attribute is stored. Currently, `json/yaml/string` are supported
+    save_type = models.CharField(max_length=32)
+    # Define the attribute value, which is stored in the database.
+    # The value is stored in the database in the form of `json/yaml/string`.
+    attribute_value = models.TextField(help_text="the attribute value")
