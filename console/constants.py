@@ -12,6 +12,7 @@ class AppConstants(object):
     MARKET = "market"
     DOCKER_COMPOSE = "docker_compose"
     DOCKER_IMAGE = "docker_image"
+    PACKAGE_BUILD = "package_build"
 
 
 class LogConstants(object):

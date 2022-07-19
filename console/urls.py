@@ -31,7 +31,8 @@ from console.views.app_create.docker_compose import (ComposeCheckUpdate, Compose
                                                      GetComposeCheckUUID)
 from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.multi_app import (MultiAppCheckView, MultiAppCreateView)
-from console.views.app_create.source_code import (AppCompileEnvView, SourceCodeCreateView)
+from console.views.app_create.source_code import (AppCompileEnvView, SourceCodeCreateView, PackageCreateView,
+                                                  PackageUploadRecordView, UploadRecordLastView)
 from console.views.app_create.source_outer import (ThirdPartyAppPodsView, ThirdPartyHealthzView, ThirdPartyServiceApiView,
                                                    ThirdPartyServiceCreateView, ThirdPartyUpdateSecretKeyView)
 from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEventsView, AppEventView, AppHistoryLogView,
@@ -45,7 +46,7 @@ from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQuery
                                        BatchAppMonitorQueryView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView, AppGroupVisitView,
                                         AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView, BuildSourceinfo,
-                                        ImageAppView, ListAppPodsView)
+                                        ImageAppView, ListAppPodsView, JobStrategy)
 from console.views.backup_data import (BackupDataCView, BackupDateDownload, BackupRecoverCView, BackupUploadCView)
 from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportView, CenterAppTarballDirView, EnterpriseAppImportInitView)
@@ -320,6 +321,12 @@ urlpatterns = [
     # 代码仓库
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view(),
         perms.ServiceCodeBranch),
+    # 文件上传最近一次记录
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/last-record$', UploadRecordLastView.as_view()),
+    # 本地文件上传记录
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/record$', PackageUploadRecordView.as_view()),
+    # 本地文件创建组件
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build$', PackageCreateView.as_view()),
     # 源码创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/source_code$', SourceCodeCreateView.as_view(), perms.SourceCodeCreateView),
     # 第三方组件创建
@@ -829,6 +836,8 @@ urlpatterns = [
     # 查询构建源
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/buildsource', BuildSourceinfo.as_view(),
         perms.BuildSourceinfo),
+    # job、cronjob策略配置
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/job_strategy$', JobStrategy.as_view()),
 
     # 针对target 查看日志
     url(r'^teams/(?P<tenantName>[\w\-]+)/events$', AppEventsView.as_view(), perms.AppEventsView),

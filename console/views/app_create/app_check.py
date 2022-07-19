@@ -2,6 +2,7 @@
 """
   Created on 18/2/1.
 """
+import json
 import logging
 from re import split as re_spilt
 
@@ -45,6 +46,7 @@ class AppCheck(AppBaseView):
         if not check_uuid:
             return Response(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status=400)
         code, msg, data = app_check_service.get_service_check_info(self.tenant, self.service.service_region, check_uuid)
+        print("check data:", data)
         logger.debug("check resp! {0}".format(data))
         # 如果已创建完成
         if self.service.create_status == "complete":
@@ -91,7 +93,8 @@ class AppCheck(AppBaseView):
         """
         user = request.user
         is_again = request.data.get("is_again", False)
-        code, msg, service_info = app_check_service.check_service(self.tenant, self.service, is_again, user)
+        event_id = request.data.get("event_id", "")
+        code, msg, service_info = app_check_service.check_service(self.tenant, self.service, is_again, event_id, user)
         if code != 200:
             result = general_message(code, "check service error", msg)
         else:
@@ -121,7 +124,13 @@ class AppCheckUpdate(AppBaseView):
             result = general_message(400, "{0}".format(serializer.errors), "参数异常")
             return Response(result, status=result["code"])
         params = dict(serializer.data)
-
+        # job 任务策略
+        schedule = request.data.get("schedule", "")
+        if schedule:
+            job_strategy = {
+                'schedule': request.data.get("schedule", ""),
+            }
+            params['job_strategy'] = json.dumps(job_strategy)
         code, msg = app_service.update_check_app(self.tenant, self.service, params)
         if code != 200:
             return Response(general_message(code, "update service info error", msg), status=code)
