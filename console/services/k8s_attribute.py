@@ -21,6 +21,7 @@ class ComponentK8sAttributeService(object):
         return result
 
     @transaction.atomic
+<<<<<<< HEAD
     def create_or_update_attributes(self, tenant, component, region_name, attributes):
         k8s_attributes = []
         component_k8s_attributes = []
@@ -46,6 +47,22 @@ class ComponentK8sAttributeService(object):
         k8s_attribute_repo.delete_by_component_ids([component.component_id])
         k8s_attribute_repo.bulk_create(k8s_attributes)
         region_api.create_or_update_component_k8s_attributes(tenant.tenant_name, region_name, component.service_alias, body)
+=======
+    def create_k8s_attribute(self, tenant, component, region_name, attribute):
+        k8s_attribute_repo.create(tenant_id=tenant.tenant_id, component_id=component.service_id, **attribute)
+        region_api.create_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
+
+    @transaction.atomic
+    def update_k8s_attribute(self, tenant, component, region_name, attribute):
+        data = {"attribute_value": attribute.get("attribute_value", "")}
+        k8s_attribute_repo.update(component.service_id, attribute["name"], **data)
+        region_api.update_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
+
+    @transaction.atomic
+    def delete_k8s_attribute(self, tenant, component, region_name, name):
+        k8s_attribute_repo.delete(component.service_id, name)
+        region_api.delete_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, {"name": name})
+>>>>>>> 5a2d228cf1d7cb5d08c91e445d88c202fdea2011
 
 
 k8s_attribute_service = ComponentK8sAttributeService()

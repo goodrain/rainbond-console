@@ -2016,9 +2016,30 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10, retries=1)
         return res, body
 
+<<<<<<< HEAD
     def create_or_update_component_k8s_attributes(self, tenant_name, region_name, service_alias, body):
+=======
+    def create_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, body
+
+    def update_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
+>>>>>>> 5a2d228cf1d7cb5d08c91e445d88c202fdea2011
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
+<<<<<<< HEAD
+=======
+
+    def delete_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, body
+>>>>>>> 5a2d228cf1d7cb5d08c91e445d88c202fdea2011
