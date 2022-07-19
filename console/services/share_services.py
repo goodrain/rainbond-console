@@ -6,6 +6,7 @@ import os
 import time
 
 from console.appstore.appstore import app_store
+from console.enum.app import GovernanceModeEnum
 from console.enum.component_enum import is_singleton
 from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
 from console.models.main import (PluginShareRecordEvent, RainbondCenterApp, RainbondCenterAppVersion, ServiceShareRecordEvent)
@@ -753,14 +754,18 @@ class ShareService(object):
             # 删除历史数据
             ServiceShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
 
-            app_templete = {}
+            app = group_service.get_app_by_id(share_team, region_name, share_record.group_id)
+            governance_mode = app.governance_mode if app.governance_mode else GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name
+
+            app_template = {}
             # 处理基本信息
             try:
-                app_templete["template_version"] = "v2"
-                app_templete["group_key"] = app_model_id
-                app_templete["group_name"] = app_model_name
-                app_templete["group_version"] = version
-                app_templete["group_dev_status"] = ""
+                app_template["template_version"] = "v2"
+                app_template["group_key"] = app_model_id
+                app_template["group_name"] = app_model_name
+                app_template["group_version"] = version
+                app_template["group_dev_status"] = ""
+                app_template["governance_mode"] = governance_mode
             except Exception as e:
                 if sid:
                     transaction.savepoint_rollback(sid)
@@ -769,11 +774,11 @@ class ShareService(object):
 
             # group config
             service_ids_keys_map = {svc["service_id"]: svc['service_key'] for svc in share_info["share_service_list"]}
-            app_templete["app_config_groups"] = self.config_groups(region_name, service_ids_keys_map)
+            app_template["app_config_groups"] = self.config_groups(region_name, service_ids_keys_map)
 
             # ingress
             ingress_http_routes = self._list_http_ingresses(tenant, service_ids_keys_map)
-            app_templete["ingress_http_routes"] = ingress_http_routes
+            app_template["ingress_http_routes"] = ingress_http_routes
 
             # plugins
             try:
@@ -795,7 +800,7 @@ class ShareService(object):
                         event.save()
 
                     shared_plugin_info = self.get_plugins_group_items(plugins)
-                    app_templete["plugins"] = shared_plugin_info
+                    app_template["plugins"] = shared_plugin_info
             except ServiceHandleException as e:
                 raise e
             except Exception as e:
@@ -855,7 +860,7 @@ class ShareService(object):
                                 event_status="not_start")
                             ssre.save()
                         new_services.append(service)
-                    app_templete["apps"] = new_services
+                    app_template["apps"] = new_services
                 else:
                     if sid:
                         transaction.savepoint_rollback(sid)
@@ -880,7 +885,7 @@ class ShareService(object):
                 group_id=share_record.group_id,
                 source="local",
                 scope=scope,
-                app_template=json.dumps(app_templete),
+                app_template=json.dumps(app_template),
                 template_version="v2",
                 enterprise_id=share_team.enterprise_id,
                 upgrade_time=time.time(),
