@@ -41,7 +41,8 @@ class Component(object):
                  tcp_rules=None,
                  service_group_rel=None,
                  labels=None,
-                 support_labels=None):
+                 support_labels=None,
+                 k8s_attributes=None):
         self.component = component
         self.component_source = component_source
         self.envs = list(envs)
@@ -62,6 +63,7 @@ class Component(object):
         self.labels = list(labels) if labels else []
         self.service_group_rel = service_group_rel
         self.support_labels = {label.label_name: label for label in support_labels}
+        self.k8s_attributes = list(k8s_attributes) if k8s_attributes else []
         self.action_type = ActionType.NOTHING.value
 
     def set_changes(self, tenant, region, changes, governance_mode):

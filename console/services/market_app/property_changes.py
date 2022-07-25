@@ -139,6 +139,10 @@ class PropertyChanges(object):
         if monitors:
             result["component_monitors"] = monitors
 
+        k8s_attrs = self._k8s_attrs(component.k8s_attributes, component_tmpl.get("component_k8s_attributes", []))
+        if k8s_attrs:
+            result["component_k8s_attributes"] = k8s_attrs
+
         return result
 
     @staticmethod
@@ -379,3 +383,28 @@ class PropertyChanges(object):
         if not add:
             return None
         return {"add": add}
+
+    @staticmethod
+    def _k8s_attrs(old_k8s_attrs, new_k8s_attrs):
+        """
+        Support adding and updating component k8s attributes
+        """
+        if not new_k8s_attrs:
+            return None
+
+        old_k8s_attrs = {attr.name: attr for attr in old_k8s_attrs if old_k8s_attrs}
+        add = []
+        update = []
+        for new_attr in new_k8s_attrs:
+            old_attr = old_k8s_attrs.get(new_attr.get("name"))
+            if not old_attr:
+                add.append(new_attr)
+                continue
+            if old_attr.attribute_value != new_attr.get("attribute_value"):
+                update.append(new_attr)
+        result = {}
+        if add:
+            result["add"] = add
+        if update:
+            result["upd"] = update
+        return result

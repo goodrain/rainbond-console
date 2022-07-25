@@ -21,6 +21,7 @@ from console.repositories.share_repo import share_repo
 from console.repositories.app_config import domain_repo, configuration_repo, port_repo
 from console.repositories.label_repo import service_label_repo
 from console.repositories.label_repo import label_repo
+from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
 from console.services.group_service import group_service
@@ -270,6 +271,9 @@ class ShareService(object):
             sid_2_monitors = self.list_service_monitors(team.tenant_id, array_ids)
             # component graphs
             sid_2_graphs = self.list_component_graphs(array_ids)
+            # component k8s attributes
+            sid_2_k8s_attrs = self.list_component_k8s_attributes(array_ids)
+
             all_data_map = dict()
 
             labels = self.list_component_labels(array_ids)
@@ -378,6 +382,7 @@ class ShareService(object):
                 data["component_monitors"] = sid_2_monitors.get(service.service_id, None)
                 data["component_graphs"] = sid_2_graphs.get(service.service_id, None)
                 data["labels"] = labels.get(service.component_id, {})
+                data["component_k8s_attributes"] = sid_2_k8s_attrs.get(service.service_id, None)
 
                 all_data_map[service.service_id] = data
 
@@ -1274,5 +1279,16 @@ class ShareService(object):
         market = app_market_service.get_app_market_by_name(tenant.enterprise_id, market_name, raise_exception=True)
         return app_market_service.create_market_app_model(market, body)
 
+    @staticmethod
+    def list_component_k8s_attributes(component_ids):
+        attrs = k8s_attribute_repo.list_by_component_ids(component_ids)
+        result = {}
+        for attr in attrs:
+            if not result.get(attr.component_id):
+                result[attr.component_id] = []
+            a = attr.to_dict()
+            del a["ID"]
+            result[attr.component_id].append(a)
+        return result
 
 share_service = ShareService()
