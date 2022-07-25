@@ -22,6 +22,7 @@ from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.plugin import service_plugin_config_repo
 from console.repositories.label_repo import label_repo
+from console.repositories.k8s_attribute import k8s_attribute_repo
 # model
 from www.models.main import ServiceGroup
 from console.models.main import RegionConfig
@@ -87,6 +88,7 @@ class OriginalApp(object):
             monitors = service_monitor_repo.list_by_service_ids(cpt.tenant_id, [cpt.service_id])
             graphs = component_graph_repo.list(cpt.service_id)
             plugin_deps = app_plugin_relation_repo.list_by_component_ids([cpt.service_id])
+            k8s_attrs = k8s_attribute_repo.get_by_component_id(cpt.service_id)
             component = Component(
                 cpt,
                 component_source,
@@ -101,7 +103,8 @@ class OriginalApp(object):
                 plugin_deps,
                 http_rules=http_rules.get(cpt.component_id),
                 tcp_rules=tcp_rules.get(cpt.component_id),
-                support_labels=self.support_labels)
+                support_labels=self.support_labels,
+                k8s_attributes=k8s_attrs)
             result.append(component)
         return result
 

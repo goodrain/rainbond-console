@@ -173,6 +173,7 @@ class MarketApp(object):
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
                 "http_rules": self._create_http_rules(cpt.http_rules, cert_id_rels),
                 "http_rule_configs": [json.loads(config.value) for config in cpt.http_rule_configs],
+                "component_k8s_attributes": [attr.to_dict() for attr in cpt.k8s_attributes],
             }
             volumes = [volume.to_dict() for volume in cpt.volumes]
             for volume in volumes:

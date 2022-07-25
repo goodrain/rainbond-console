@@ -26,6 +26,7 @@ from console.repositories.region_app import region_app_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.plugin import service_plugin_config_repo
 from console.repositories.label_repo import service_label_repo
+from console.repositories.k8s_attribute import k8s_attribute_repo
 # model
 from www.models.main import ServiceGroup
 # utils
@@ -166,6 +167,7 @@ class NewApp(object):
         graphs = []
         service_group_rels = []
         labels = []
+        k8s_attributes = []
         for cpt in self.new_components:
             component_sources.append(cpt.component_source)
             envs.extend(cpt.envs)
@@ -182,6 +184,7 @@ class NewApp(object):
             graphs.extend(cpt.graphs)
             service_group_rels.append(cpt.service_group_rel)
             labels.extend(cpt.labels)
+            k8s_attributes.extend(cpt.k8s_attributes)
         components = [cpt.component for cpt in self.new_components]
 
         service_repo.bulk_create(components)
@@ -198,6 +201,7 @@ class NewApp(object):
         component_graph_repo.bulk_create(graphs)
         service_group_relation_repo.bulk_create(service_group_rels)
         service_label_repo.bulk_create(labels)
+        k8s_attribute_repo.bulk_create(k8s_attributes)
 
     def _update_components(self):
         """
