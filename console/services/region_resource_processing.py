@@ -100,14 +100,14 @@ class RegionResource(object):
     def create_k8s_resources(self, k8s_resources, app_id):
         app_k8s_resource_list = list()
         for k8s_resource in k8s_resources:
-            app_k8s_resource_list.append(K8sResource(
-                app_id=app_id,
-                name=k8s_resource["name"],
-                kind=k8s_resource["kind"],
-                content=k8s_resource["content"],
-                status=k8s_resource["status"],
-                success=k8s_resource["success"]
-            ))
+            app_k8s_resource_list.append(
+                K8sResource(
+                    app_id=app_id,
+                    name=k8s_resource["name"],
+                    kind=k8s_resource["kind"],
+                    content=k8s_resource["content"],
+                    status=k8s_resource["status"],
+                    success=k8s_resource["success"]))
         k8s_resources_repo.bulk_create(app_k8s_resource_list)
 
     def create_components(self, application, components, tenant, region_name, user_id):

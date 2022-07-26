@@ -15,7 +15,7 @@ logger = logging.getLogger("default")
 
 app_scope = (("enterprise", "企业"), ("team", "团队"), ("goodrain", "好雨云市"))
 plugin_scope = (("enterprise", "企业"), ("team", "团队"), ("goodrain", "好雨云市"))
-user_identity = (("管理员", "admin"),)
+user_identity = (("管理员", "admin"), )
 enterprise_identity = (("admin", "管理员"), ("viewer", "观察者"))
 
 
@@ -218,8 +218,7 @@ class ServiceShareRecord(BaseModel):
     group_share_id = models.CharField(max_length=32, unique=True, help_text="发布应用组或插件的唯一Key")
     group_id = models.CharField(max_length=32, help_text="分享应用组id或者单独插件ID")
     team_name = models.CharField(max_length=64, help_text="应用所在团队唯一名称")
-    event_id = models.CharField(max_length=32, null=True, blank=True,
-                                help_text="介质同步事件ID,弃用，使用表service_share_record_event")
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text="介质同步事件ID,弃用，使用表service_share_record_event")
     share_version = models.CharField(max_length=15, null=True, blank=True, help_text="应用组发布版本")
     share_version_alias = models.CharField(max_length=64, null=True, blank=True, help_text="应用组发布版本别名")
     share_app_version_info = models.CharField(max_length=255, help_text="应用组发布版本描述")
@@ -407,8 +406,7 @@ class ServiceRecycleBin(BaseModel):
     git_project_id = models.IntegerField(help_text="gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(default=False, blank=True, help_text="是否上传代码")
     code_version = models.CharField(max_length=100, null=True, blank=True, help_text="代码版本")
-    service_type = models.CharField(max_length=50, null=True, blank=True,
-                                    help_text="服务类型:web,mysql,redis,mongodb,phpadmin")
+    service_type = models.CharField(max_length=50, null=True, blank=True, help_text="服务类型:web,mysql,redis,mongodb,phpadmin")
     creater = models.IntegerField(help_text="服务创建者", default=0)
     language = models.CharField(max_length=40, null=True, blank=True, help_text="代码语言")
     protocol = models.CharField(max_length=15, default='', help_text="服务协议：http,stream")
@@ -417,15 +415,13 @@ class ServiceRecycleBin(BaseModel):
     namespace = models.CharField(max_length=100, default='', help_text="镜像发布云帮的区间")
 
     volume_type = models.CharField(max_length=64, default='shared', help_text="共享类型shared、exclusive")
-    port_type = models.CharField(max_length=15, default='multi_outer',
-                                 help_text="端口类型，one_outer;dif_protocol;multi_outer")
+    port_type = models.CharField(max_length=15, default='multi_outer', help_text="端口类型，one_outer;dif_protocol;multi_outer")
     # 服务创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text="服务创建类型cloud云市服务,assistant云帮服务")
     expired_time = models.DateTimeField(null=True, help_text="过期时间")
     tenant_service_group_id = models.IntegerField(default=0, help_text="应用归属的服务组id")
     service_source = models.CharField(
-        max_length=15, default="", null=True, blank=True,
-        help_text="应用来源(source_code, market, docker_run, docker_compose)")
+        max_length=15, default="", null=True, blank=True, help_text="应用来源(source_code, market, docker_run, docker_compose)")
     create_status = models.CharField(max_length=15, null=True, blank=True, help_text="应用创建状态 creating|complete")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="更新时间")
     check_uuid = models.CharField(max_length=36, blank=True, null=True, default="", help_text="应用检测ID")
@@ -441,8 +437,7 @@ class ServiceRelationRecycleBin(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text="租户id")
     service_id = models.CharField(max_length=32, help_text="服务id")
     dep_service_id = models.CharField(max_length=32, help_text="依赖服务id")
-    dep_service_type = models.CharField(max_length=50, null=True, blank=True,
-                                        help_text="服务类型:web,mysql,redis,mongodb,phpadmin")
+    dep_service_type = models.CharField(max_length=50, null=True, blank=True, help_text="服务类型:web,mysql,redis,mongodb,phpadmin")
     dep_order = models.IntegerField(help_text="依赖顺序")
 
 
@@ -463,7 +458,7 @@ class UserAccessKey(BaseModel):
 
     class Meta:
         db_table = 'user_access_key'
-        unique_together = (('note', 'user_id'),)
+        unique_together = (('note', 'user_id'), )
 
     note = models.CharField(max_length=32, help_text="凭证标识")
     user_id = models.IntegerField(help_text="用户id")
@@ -476,7 +471,7 @@ class TenantUserRole(BaseModel):
 
     class Meta:
         db_table = 'tenant_user_role'
-        unique_together = (('role_name', 'tenant_id'),)
+        unique_together = (('role_name', 'tenant_id'), )
 
     role_name = models.CharField(max_length=32, help_text='角色名称')
     tenant_id = models.IntegerField(null=True, blank=True, help_text='团队id')
@@ -491,7 +486,7 @@ class TenantUserPermission(BaseModel):
 
     class Meta:
         db_table = 'tenant_user_permission'
-        unique_together = (('codename', 'per_info'),)
+        unique_together = (('codename', 'per_info'), )
 
     codename = models.CharField(max_length=32, help_text='权限名称')
     per_info = models.CharField(max_length=32, help_text='权限对应的操作信息')
@@ -811,8 +806,7 @@ class AppUpgradeRecord(BaseModel):
         if not self.is_finished():
             return False
         statuses = [
-            UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.ROLLBACK_FAILED.value,
-            UpgradeStatus.PARTIAL_UPGRADED.value,
+            UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.PARTIAL_UPGRADED.value,
             UpgradeStatus.PARTIAL_ROLLBACK.value, UpgradeStatus.DEPLOY_FAILED.value
         ]
         return True if self.status in statuses else False

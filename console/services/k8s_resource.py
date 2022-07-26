@@ -28,18 +28,21 @@ class ComponentK8sResourceService(object):
         namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
         data = {"app_id": region_app_id, "resource_yaml": resource_yaml, "namespace": namespace}
         res, body = region_api.create_app_resource(enterprise_id, region_name, data)
-        print(res, body)
         region_resource.create_k8s_resources(body["list"], app_id)
 
     @transaction.atomic
     def update_k8s_resource(self, enterprise_id, tenant_name, app_id, resource_yaml, region_name, name, resource_id):
         namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
         resources = k8s_resources_repo.get_by_id(resource_id)
-        data = {"app_id": region_app_id, "resource_yaml": resource_yaml, "namespace": namespace,
-                "name": name, "kind": resources.kind}
+        data = {
+            "app_id": region_app_id,
+            "resource_yaml": resource_yaml,
+            "namespace": namespace,
+            "name": name,
+            "kind": resources.kind
+        }
         res, body = region_api.update_app_resource(enterprise_id, region_name, data)
-        data = {"content": body["bean"]["content"], "status": body["bean"]["status"],
-                "success": body["bean"]["success"]}
+        data = {"content": body["bean"]["content"], "status": body["bean"]["status"], "success": body["bean"]["success"]}
         k8s_resources_repo.update(app_id, name, **data)
         return data["success"]
 
@@ -48,8 +51,13 @@ class ComponentK8sResourceService(object):
         namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
         resources = k8s_resources_repo.get_by_id(resource_id)
         if name != "未识别":
-            data = {"app_id": region_app_id, "resource_yaml": resources.content, "namespace": namespace,
-                    "name": name, "kind": resources.kind}
+            data = {
+                "app_id": region_app_id,
+                "resource_yaml": resources.content,
+                "namespace": namespace,
+                "name": name,
+                "kind": resources.kind
+            }
             region_api.delete_app_resource(enterprise_id, region_name, data)
         k8s_resources_repo.delete_by_id(resource_id)
 
