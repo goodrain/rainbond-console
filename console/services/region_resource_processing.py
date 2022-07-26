@@ -1,10 +1,12 @@
 import datetime
 
 from console.enum.app import GovernanceModeEnum
-from console.models.main import AutoscalerRuleMetrics, ComponentK8sAttributes
+from console.models.main import AutoscalerRuleMetrics, ComponentK8sAttributes, K8sResource
 from console.repositories.app_config import env_var_repo, volume_repo, port_repo
 from console.repositories.autoscaler_repo import autoscaler_rules_repo
 from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.repositories.k8s_resources import k8s_resources_repo
 from console.repositories.region_app import region_app_repo
 from console.services.perm_services import role_kind_services
 from console.services.team_services import team_services
@@ -90,8 +92,23 @@ class RegionResource(object):
                     "app_id": application.ID,
                 }
                 region_app_repo.create(**da)
+                if app["k8s_resources"]:
+                    self.create_k8s_resources(app["k8s_resources"], application.ID)
                 components = app["component"]
                 self.create_components(application, components, tenant, region_name, user_id)
+
+    def create_k8s_resources(self, k8s_resources, app_id):
+        app_k8s_resource_list = list()
+        for k8s_resource in k8s_resources:
+            app_k8s_resource_list.append(K8sResource(
+                app_id=app_id,
+                name=k8s_resource["name"],
+                kind=k8s_resource["kind"],
+                content=k8s_resource["content"],
+                status=k8s_resource["status"],
+                success=k8s_resource["success"]
+            ))
+        k8s_resources_repo.bulk_create(app_k8s_resource_list)
 
     def create_components(self, application, components, tenant, region_name, user_id):
         if not components:
@@ -266,7 +283,7 @@ class RegionResource(object):
                     name=special["name"],
                     save_type=special["save_type"],
                     attribute_value=special["attribute_value"]))
-        ComponentK8sAttributes.objects.bulk_create(componentK8sAttributes)
+        k8s_attribute_repo.bulk_create(componentK8sAttributes)
 
     def resource_import(self, eid, region_id, namespace, content):
         res, body = region_api.resource_import(eid, region_id, namespace, content)

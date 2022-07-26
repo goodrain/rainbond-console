@@ -21,29 +21,35 @@ class ComponentK8sAttributeService(object):
         attributes = k8s_attribute_repo.list_by_component_ids(component_ids)
         for attribute in attributes:
             if attribute.save_type == "json":
-                attribute.attribute_value = json.loads(attribute.attribute_value)
-                attribute.attribute_value = [{
-                    "key": key,
-                    "value": value
-                } for key, value in json.loads(attribute.attribute_value).items()]
+                attribute.attribute_value = [{"key": key, "value": value} for key, value in json.loads(attribute.attribute_value).items()]
             result.append(attribute.to_dict())
         return result
 
     @transaction.atomic
     def create_k8s_attribute(self, tenant, component, region_name, attribute):
+        if attribute["save_type"] == "json":
+            attribute_value = attribute.get("attribute_value", [])
+            attribute_value_json = json.dumps({value["key"]: value["value"] for value in attribute_value})
+            attribute["attribute_value"] = attribute_value_json
         k8s_attribute_repo.create(tenant_id=tenant.tenant_id, component_id=component.service_id, **attribute)
         region_api.create_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
 
     @transaction.atomic
     def update_k8s_attribute(self, tenant, component, region_name, attribute):
         data = {"attribute_value": attribute.get("attribute_value", "")}
+        if attribute.get("save_type", "") == "json":
+            attribute_value = attribute.get("attribute_value", [])
+            attribute_value_json = json.dumps({value["key"]: value["value"] for value in attribute_value})
+            attribute["attribute_value"] = attribute_value_json
+            data = {"attribute_value": attribute_value_json}
         k8s_attribute_repo.update(component.service_id, attribute["name"], **data)
         region_api.update_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
 
     @transaction.atomic
     def delete_k8s_attribute(self, tenant, component, region_name, name):
         k8s_attribute_repo.delete(component.service_id, name)
-        region_api.delete_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, {"name": name})
+        region_api.delete_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias,
+                                                  {"name": name})
 
 
 k8s_attribute_service = ComponentK8sAttributeService()

@@ -14,6 +14,7 @@ from console.services.helm_app import helm_app_service
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
 from console.services.application import application_service
+from console.services.k8s_resource import k8s_resource_service
 from console.services.market_app_service import market_app_service
 from console.utils.reqparse import parse_item
 from console.utils.validation import is_qualified_name
