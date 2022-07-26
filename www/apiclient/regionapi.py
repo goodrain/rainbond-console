@@ -1991,3 +1991,24 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10, retries=1)
         return res, body
+
+    def create_registry_auth(self, tenant_name, region_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/registry/auth".format(tenant_name)
+        self._set_headers(token)
+        resp, _ = self._post(url, self._set_headers(token), region=region_name, body=json.dumps(body))
+        return resp
+
+    def update_registry_auth(self, tenant_name, region_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/registry/auth".format(tenant_name)
+        self._set_headers(token)
+        resp, _ = self._put(url, self._set_headers(token), region=region_name, body=json.dumps(body))
+        return resp
+
+    def delete_registry_auth(self, tenant_name, region_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/registry/auth".format(tenant_name)
+        self._set_headers(token)
+        resp, _ = self._delete(url, self._set_headers(token), region=region_name, body=json.dumps(body))
+        return resp

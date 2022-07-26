@@ -3,7 +3,7 @@ import logging
 
 from console.exception.exceptions import TenantNotExistError
 from console.exception.main import ServiceHandleException
-from console.models.main import RegionConfig, TeamGitlabInfo
+from console.models.main import RegionConfig, TeamGitlabInfo, TeamRegistryAuth
 from console.repositories.base import BaseConnection
 from django.db.models import Q
 from www.models.main import (PermRelTenant, TenantEnterprise, TenantRegionInfo, Tenants, Users)
@@ -344,5 +344,27 @@ class TeamGitlabRepo(object):
         return None
 
 
+class TeamRegistryAuthRepo(object):
+    def list_by_team_id(self, tenant_id, region_name):
+        return TeamRegistryAuth.objects.filter(tenant_id=tenant_id, region_name=region_name)
+
+    def create_team_registry_auth(self, **params):
+        return TeamRegistryAuth.objects.create(**params)
+
+    def update_team_registry_auth(self, tenant_id, region_name, secret_id, **params):
+        return TeamRegistryAuth.objects.filter(
+            tenant_id=tenant_id, region_name=region_name, secret_id=secret_id).update(**params)
+
+    def delete_team_registry_auth(self, tenant_id, region_name, secret_id):
+        return TeamRegistryAuth.objects.filter(tenant_id=tenant_id, region_name=region_name, secret_id=secret_id).delete()
+
+    def get_by_secret_id(self, secret_id):
+        return TeamRegistryAuth.objects.filter(secret_id=secret_id)
+
+    def get_by_team_id_domain(self, tenant_id, region_name, domain):
+        return TeamRegistryAuth.objects.filter(tenant_id=tenant_id, region_name=region_name, domain=domain)
+
+
 team_repo = TeamRepo()
 team_gitlab_repo = TeamGitlabRepo()
+team_registry_auth_repo = TeamRegistryAuthRepo()

@@ -997,3 +997,35 @@ class TeamCheckResourceName(JWTAuthApiView):
         region_name = parse_item(request, "region_name", required=True)
         components = team_services.check_resource_name(team_name, region_name, rtype, name)
         return Response(general_message(200, "success", "查询成功", list=components))
+
+
+class TeamRegistryAuthLView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        result = team_services.list_registry_auths(self.tenant.tenant_id, self.region_name)
+        auths = [auth.to_dict() for auth in result]
+        result = general_message(200, "success", "查询成功", list=auths)
+        return Response(result, status=result["code"])
+
+    def post(self, request, *args, **kwargs):
+        domain = parse_item(request, "domain", required=True)
+        username = parse_item(request, "username", required=True)
+        password = parse_item(request, "password", required=True)
+        team_services.create_registry_auth(self.tenant, self.region_name, domain, username, password)
+        result = general_message(200, "success", "创建成功")
+        return Response(result, status=result["code"])
+
+
+class TeamRegistryAuthRUDView(RegionTenantHeaderView):
+    def put(self, request, secret_id, *args, **kwargs):
+        data = {
+            "username": parse_item(request, "username", required=True),
+            "password": parse_item(request, "password", required=True)
+        }
+        team_services.update_registry_auth(self.tenant, self.region_name, secret_id, data)
+        result = general_message(200, "success", "更新成功")
+        return Response(result, status=result["code"])
+
+    def delete(self, request, secret_id, *args, **kwargs):
+        team_services.delete_registry_auth(self.tenant, self.region_name, secret_id)
+        result = general_message(200, "success", "删除成功")
+        return Response(result, status=result["code"])
