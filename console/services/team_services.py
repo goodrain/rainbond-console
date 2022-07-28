@@ -10,7 +10,7 @@ from console.models.main import TenantUserRole
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.region_repo import region_repo
-from console.repositories.team_repo import team_repo
+from console.repositories.team_repo import team_repo, team_registry_auth_repo
 from console.repositories.tenant_region_repo import tenant_region_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.service_repo import service_repo
@@ -27,6 +27,7 @@ from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import PermRelTenant, Tenants, TenantServiceInfo
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -529,6 +530,42 @@ class TeamService(object):
     @staticmethod
     def check_resource_name(tenant_name: str, region_name: str, rtype: string, name: str):
         return region_api.check_resource_name(tenant_name, region_name, rtype, name)
+
+    def list_registry_auths(self, tenant_id, region_name):
+        return team_registry_auth_repo.list_by_team_id(tenant_id, region_name)
+
+    @transaction.atomic()
+    def create_registry_auth(self, tenant, region_name, domain, username, password):
+        auth = team_registry_auth_repo.get_by_team_id_domain(tenant.tenant_id, region_name, domain)
+        if auth:
+            raise ServiceHandleException(
+                status_code=409, msg="The image warehouse address already exists", msg_show="该镜像仓库地址已存在")
+        params = {
+            "tenant_id": tenant.tenant_id,
+            "secret_id": make_uuid(),
+            "domain": domain,
+            "username": username,
+            "password": password,
+            "region_name": region_name,
+        }
+        team_registry_auth_repo.create_team_registry_auth(**params)
+        region_api.create_registry_auth(tenant.tenant_name, region_name, params)
+
+    @transaction.atomic()
+    def update_registry_auth(self, tenant, region_name, secret_id, data):
+        auth = team_registry_auth_repo.get_by_secret_id(secret_id)
+        if not auth:
+            return
+        team_registry_auth_repo.update_team_registry_auth(tenant.tenant_id, region_name, secret_id, **data)
+        region_api.update_registry_auth(tenant.tenant_name, region_name, auth[0].to_dict())
+
+    @transaction.atomic()
+    def delete_registry_auth(self, tenant, region_name, secret_id):
+        team_registry_auth_repo.delete_team_registry_auth(tenant.tenant_id, region_name, secret_id)
+        region_api.delete_registry_auth(tenant.tenant_name, region_name, {
+            "secret_id": secret_id,
+            "tenant_id": tenant.tenant_id
+        })
 
 
 team_services = TeamService()

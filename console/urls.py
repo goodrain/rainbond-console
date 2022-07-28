@@ -109,11 +109,12 @@ from console.views.service_share import (
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance
-from console.views.team import (
-    AddTeamView, AdminAddUserView, ApplicantsView, CertificateView, EnterpriseInfoView, JoinTeamView, NotJoinTeamUserView,
-    RegisterStatusView, TeamCheckKubernetesServiceName, TeamDelView, TeamExitView, TeamNameModView, TeamRegionInitView,
-    TeamSortDomainQueryView, TeamSortServiceQueryView, TeamUserCanJoin, TeamUserDetaislView, TeamUserView, UserApplyStatusView,
-    UserDelView, UserFuzSerView, TeamsPermissionCreateApp, TeamCheckResourceName)
+from console.views.team import (AddTeamView, AdminAddUserView, ApplicantsView, CertificateView, EnterpriseInfoView,
+                                JoinTeamView, NotJoinTeamUserView, RegisterStatusView, TeamCheckKubernetesServiceName,
+                                TeamDelView, TeamExitView, TeamNameModView, TeamRegionInitView, TeamSortDomainQueryView,
+                                TeamSortServiceQueryView, TeamUserCanJoin, TeamUserDetaislView, TeamUserView,
+                                UserApplyStatusView, UserDelView, UserFuzSerView, TeamsPermissionCreateApp,
+                                TeamCheckResourceName, TeamRegistryAuthLView, TeamRegistryAuthRUDView)
 from console.views.user import (AdministratorJoinTeamView, AdminRolesView, AdminUserLCView, AdminUserView, CheckSourceView,
                                 EnterPriseUsersCLView, EnterPriseUsersUDView, UserLogoutView, UserPemTraView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
@@ -188,6 +189,10 @@ urlpatterns = [
         perms.TeamUserRolesRUDView),
     url(r'^teams/(?P<team_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)/perms', TeamUserPermsLView.as_view(),
         perms.TeamUserPermsLView),
+    # 团队镜像仓库授权管理
+    url(r'^teams/(?P<team_name>[\w\-]+)/registry/auth$', TeamRegistryAuthLView.as_view(), perms.TeamRegistryAuthLView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/registry/auth/(?P<secret_id>[\w\-]+)$', TeamRegistryAuthRUDView.as_view(),
+        perms.TeamRegistryAuthRUDView),
 
     # 移交团队管理权
     url(r'^teams/(?P<team_name>[\w\-]+)/pemtransfer$', UserPemTraView.as_view(), perms.UserPemTraView),

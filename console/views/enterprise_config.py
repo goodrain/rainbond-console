@@ -14,7 +14,7 @@ from console.services.enterprise_services import enterprise_services
 from www.utils.return_message import general_message
 from console.utils.reqparse import bool_argument
 from console.utils.reqparse import parse_item
-from console.views.base import EnterpriseAdminView
+from console.views.base import EnterpriseAdminView, JWTAuthApiView
 
 logger = logging.getLogger("default")
 
@@ -92,7 +92,7 @@ class EnterpriseVisualMonitorView(EnterpriseAdminView):
         return Response(status=status.HTTP_200_OK)
 
 
-class EnterpriseAlertsView(EnterpriseAdminView):
+class EnterpriseAlertsView(JWTAuthApiView):
     @never_cache
     def get(self, request, enterprise_id, *args, **kwargs):
         alerts = enterprise_services.get_enterprise_alerts(enterprise_id)
