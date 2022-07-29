@@ -1318,9 +1318,10 @@ class PackageUploadService(object):
     def get_last_upload_record(self, team_name, region, component_id):
         if component_id:
             return PackageUploadRecord.objects.filter(
-                team_name=team_name, region=region, component_id=component_id, status="unfinished").order_by("-create_time")
+                team_name=team_name, region=region, component_id=component_id,
+                status="unfinished").order_by("-create_time").first()
         return PackageUploadRecord.objects.filter(
-            team_name=team_name, region=region, status="unfinished").order_by("-create_time")
+            team_name=team_name, region=region, status="unfinished").order_by("-create_time").first()
 
     def update_upload_record(self, team_name, event_id, **data):
         return PackageUploadRecord.objects.filter(team_name=team_name, event_id=event_id).update(**data)

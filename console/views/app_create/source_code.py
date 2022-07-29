@@ -503,29 +503,29 @@ class UploadRecordLastView(JWTAuthApiView):
         """
         region = request.GET.get("region", None)
         component_id = request.GET.get("component_id", None)
-        file_type = request.GET.get("file_type", None)
+        file_type = request.GET.get("file_type", "")
         try:
             records = package_upload_service.get_last_upload_record(tenantName, region, component_id)
-            jwar = []
-            yaml = []
+            jwar_list = []
+            yaml_list = []
             bean = dict()
-            for record in records:
-                dir_list = eval(record.source_dir)
+            if records.source_dir != "":
+                dir_list = eval(records.source_dir)
                 for dir in dir_list:
                     if dir.split('.')[-1] in ["yaml", "yml"]:
-                        yaml.append(dir)
-                        bean["event_id"] = record.event_id
-                        print(yaml)
+                        yaml_list.append(dir)
+                        bean["event_id"] = records.event_id
                     elif dir.split('.')[-1] in ["jar", "war"]:
-                        jwar.append(dir)
-                        bean["event_id"] = record.event_id
+                        jwar_list.append(dir)
+                        bean["event_id"] = records.event_id
             if file_type == "jwar":
-                bean['source_dir'] = jwar
+                bean['source_dir'] = jwar_list
             elif file_type == "yaml":
-                bean['source_dir'] = yaml
+                bean['source_dir'] = yaml_list
             result = general_message(200, "success", "操作成功", bean=bean)
             return Response(result, status=result["code"])
         except Exception as e:
+            print(e)
             logger.exception(e)
         result = general_message(200, "success", "暂无记录", bean={})
         return Response(result, status=result["code"])
