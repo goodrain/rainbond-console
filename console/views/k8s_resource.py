@@ -21,8 +21,7 @@ class AppK8ResourceView(ApplicationView):
                                                            resource_id)
         if success == 2:
             return Response(general_message(200, "success", "修改成功"))
-        else:
-            return Response(general_message(400, "success", "修改失败"))
+        return Response(general_message(400, "success", "修改失败"))
 
     def delete(self, request, name, *args, **kwargs):
         resource_id = request.data.get("id")

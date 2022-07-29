@@ -2095,7 +2095,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
         self._set_headers(token)
-        print(json.dumps(body))
         res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
 
