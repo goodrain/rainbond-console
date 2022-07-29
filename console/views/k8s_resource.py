@@ -16,8 +16,9 @@ class AppK8ResourceView(ApplicationView):
     def put(self, request, name, *args, **kwargs):
         resource_yaml = request.data.get("resource_yaml", {})
         resource_id = request.data.get("id")
-        success = k8s_resource_service.update_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, str(self.app_id),
-                                                           resource_yaml, self.region_name, name, resource_id)
+        success = k8s_resource_service.update_k8s_resource(self.enterprise.enterprise_id, self.tenant_name,
+                                                           str(self.app_id), resource_yaml, self.region_name, name,
+                                                           resource_id)
         if success == 2:
             return Response(general_message(200, "success", "修改成功"))
         else:
@@ -38,6 +39,6 @@ class AppK8sResourceListView(ApplicationView):
 
     def post(self, request, *args, **kwargs):
         resource_yaml = request.data.get("resource_yaml", {})
-        k8s_resource_service.create_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, self.app_id, resource_yaml,
-                                                 self.region_name)
+        k8s_resource_service.create_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, self.app_id,
+                                                 resource_yaml, self.region_name)
         return Response(general_message(200, "success", "创建成功"))

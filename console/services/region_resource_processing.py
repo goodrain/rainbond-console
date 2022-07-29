@@ -121,7 +121,7 @@ class RegionResource(object):
             new_service.desc = "docker run application"
             new_service.category = "app_publish"
             new_service.setting = ""
-            new_service.extend_method = "stateless_multiple"
+            new_service.extend_method = component["ts"]["extend_method"]
             new_service.env = ""
             new_service.min_node = 1
             new_service.min_memory = 0
@@ -143,16 +143,17 @@ class RegionResource(object):
             new_service.language = ""
             new_service.create_status = "complete"
             new_service.tenant_id = tenant["UUID"]
-            new_service.service_cname = component["ct"]["k8s_component_name"]
+            new_service.service_cname = component["ts"]["k8s_component_name"]
             new_service.service_source = "docker_image"
-            new_service.service_id = component["ct"]["service_id"]
-            new_service.service_alias = component["ct"]["service_alias"]
+            new_service.service_id = component["ts"]["service_id"]
+            new_service.service_alias = component["ts"]["service_alias"]
             new_service.creater = user_id
-            new_service.host_path = "/grdata/tenant/" + tenant["UUID"] + "/service/" + component["ct"]["service_id"]
+            new_service.host_path = "/grdata/tenant/" + tenant["UUID"] + "/service/" + component["ts"]["service_id"]
             new_service.docker_cmd = ""
-            new_service.k8s_component_name = component["ct"]["k8s_component_name"]
+            new_service.k8s_component_name = component["ts"]["k8s_component_name"]
+            new_service.job_strategy = component["ts"]["job_strategy"]
             new_service.save()
-            group_service_relation_repo.add_service_group_relation(application.ID, component["ct"]["service_id"],
+            group_service_relation_repo.add_service_group_relation(application.ID, component["ts"]["service_id"],
                                                                    tenant["UUID"], region_name)
             self.create_component_env(component["env"], tenant["UUID"], new_service)
             self.create_component_config(component["config"], tenant["UUID"], new_service)
