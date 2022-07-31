@@ -16,6 +16,7 @@ from console.repositories.user_repo import user_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import user_kind_role_service
+from console.services.region_resource_processing import region_resource
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.views.base import EnterpriseAdminView, JWTAuthApiView, EnterpriseHeaderView, AlowAnyApiView
@@ -159,7 +160,6 @@ class EnterpriseTeams(JWTAuthApiView):
         tenant_ids = {tenant_id.ID: tenant_id.tenant_id for tenant_id in tenants}
         for user_id in user_id_list:
             user_id_dict[tenant_ids.get(user_id["tenant_id"])] = user_id_dict.get(user_id["tenant_id"], 0) + 1
-
         for usable_region in usable_regions:
             try:
                 region_tenants, total = team_services.get_tenant_list_by_region(
@@ -384,6 +384,52 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         else:
             result = general_message(500, "failed", "创建失败")
             return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class EnterpriseRegionNamespace(JWTAuthApiView):
+    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+        content = request.GET.get("content", "all")
+        data = region_resource.get_namespaces(enterprise_id, region_id, content)
+        result = general_message(200, "success", "获取成功", bean=data["list"])
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseNamespaceResource(JWTAuthApiView):
+    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+        content = request.GET.get("content", "all")
+        namespace = request.GET.get("namespace", "")
+        data = region_resource.get_namespaces_resource(enterprise_id, region_id, content, namespace)
+        move = data["bean"].pop('unclassified')
+        data["bean"]["unclassified"] = move
+        result = general_message(200, "success", "获取成功", bean=data["bean"])
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseConvertResource(JWTAuthApiView):
+    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+        content = request.GET.get("content", "all")
+        namespace = request.GET.get("namespace", "")
+        data = region_resource.convert_resource(enterprise_id, region_id, namespace, content)
+        move = data["bean"].pop('unclassified')
+        data["bean"]["unclassified"] = move
+        result = general_message(200, "success", "获取成功", bean=data["bean"])
+        return Response(result, status=status.HTTP_200_OK)
+
+    def post(self, request, enterprise_id, region_id, *args, **kwargs):
+        content = request.data.get("content", "all")
+        namespace = request.data.get("namespace", "")
+        data = region_resource.resource_import(enterprise_id, region_id, namespace, content)
+        rs = data.get("bean", {})
+        regions = region_repo.get_regions_by_region_ids(enterprise_id, [region_id])
+        if rs:
+            if regions:
+                tenant = rs["tenant"]
+                region_resource.create_tenant(tenant, enterprise_id, namespace, self.user.user_id, regions[0].region_name)
+                apps = rs.get("app", {})
+                region_resource.create_app(tenant, apps, regions[0].region_name, self.user.user_id)
+                data["bean"]["tenant"]["region_name"] = regions[0].region_name
+        result = general_message(200, "success", "获取成功", bean=data["bean"]["tenant"])
+        return Response(result, status=status.HTTP_200_OK)
 
 
 class EnterpriseRegionsRUDView(JWTAuthApiView):

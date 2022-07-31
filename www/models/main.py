@@ -527,6 +527,7 @@ class TenantServiceInfo(BaseModel):
     oauth_service_id = models.IntegerField(default=None, null=True, blank=True, help_text="拉取源码所用的OAuth服务id")
     git_full_name = models.CharField(max_length=64, null=True, blank=True, default=None, help_text="git项目的fullname")
     k8s_component_name = models.CharField(max_length=100, help_text="集群组件名称")
+    job_strategy = models.CharField(max_length=512, help_text="job策略")
 
     def __unicode__(self):
         return self.service_alias
