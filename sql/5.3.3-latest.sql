@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS `component_k8s_attributes` (
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE `k8s_resources` (
+CREATE TABLE IF NOT EXISTS `k8s_resources` (
   `ID` int NOT NULL AUTO_INCREMENT,
   `create_time` datetime(6) NOT NULL,
   `update_time` datetime(6) NOT NULL,
@@ -45,3 +45,18 @@ CREATE TABLE `k8s_resources` (
   `success` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `package_upload_record` (
+    `ID` INT(11) PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    `event_id` VARCHAR(32) DEFAULT '',
+    `status` VARCHAR(15) DEFAULT '',
+    `format` VARCHAR(15) DEFAULT '',
+    `source_dir` VARCHAR(256) DEFAULT '',
+    `team_name` VARCHAR(32) DEFAULT '',
+    `region` VARCHAR(32) DEFAULT '',
+    `component_id` VARCHAR(32) DEFAULT '',
+    `create_time` DATETIME,
+    `update_time` DATETIME
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE tenant_service ADD COLUMN job_strategy varchar(2047) DEFAULT '';

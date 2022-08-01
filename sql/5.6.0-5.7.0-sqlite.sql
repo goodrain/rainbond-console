@@ -39,20 +39,3 @@ SELECT `ID`, `plugin_id`, `build_version`, `service_meta_ty    pe`, `attr_name`,
 INSERT INTO service_plugin_config_var (`ID`, `service_id`, `plugin_id`, `build_version`, `service_meta_type`, `injection`, `dest_service_id`, `dest_service_alias`, `container_port`, `attrs`, `protocol`, `create_time`)
 SELECT `ID`, `service_id`, `plugin_id`, `build_versio    n`, `service_meta_type`, `injection`, `dest_service_id`, `dest_service_alias`, `conta    iner_port`, `attrs`, `protocol`, `create_time` FROM service_plugin_config_var_old;
 COMMIT;
-
-
-CREATE TABLE package_upload_record
-(
-    ID INT(11) PRIMARY KEY NOT NULL AUTO_INCREMENT,
-    event_id VARCHAR(32) DEFAULT '',
-    status VARCHAR(15) DEFAULT '',
-    format VARCHAR(15) DEFAULT '',
-    source_dir VARCHAR(256) DEFAULT '',
-    team_name VARCHAR(32) DEFAULT '',
-    region VARCHAR(32) DEFAULT '',
-    component_id VARCHAR(32) DEFAULT '',
-    create_time DATETIME,
-    update_time DATETIME
-);
-
-ALTER TABLE tenant_service ADD COLUMN job_strategy varchar(2047) DEFAULT '';
