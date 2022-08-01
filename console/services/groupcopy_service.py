@@ -1,12 +1,14 @@
 # -*- coding: utf8 -*-
 import logging
+import time
 
 from console.exception.main import ServiceHandleException
+from console.repositories.app import TenantServiceInfoRepository
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.group import group_repo
 from console.repositories.plugin import app_plugin_relation_repo, plugin_repo
 from console.repositories.service_repo import service_repo
-from console.services.app import app_service
+from console.services.app import app_service, package_upload_service
 from console.services.app_actions import app_manage_service
 from console.services.app_config import port_service
 from console.services.backup_service import groupapp_backup_service
@@ -200,6 +202,33 @@ class GroupAppCopyService(object):
                 }})
         return change_services
 
+    def new_services_and_copy_path(self, tar_team_name, region, change_services):
+        service_copy_path = {}
+        old_service_ids = [old_service_id for old_service_id in list(change_services.keys())]
+        service_repo_info = TenantServiceInfoRepository()
+        for old_service_id in old_service_ids:
+            service_info = service_repo_info.get_service_by_service_id(old_service_id)
+            old_file_path = service_info.git_url
+            new_service_id = change_services[old_service_id]["ServiceID"]
+            service_copy_path.update({new_service_id: old_file_path})
+            event_id = old_file_path.split("/")[-1]
+            pkg_copy_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            # 复制组件信息
+            app_service.change_package_upload_info(new_service_id, event_id, pkg_copy_time)
+            # 获取文件名
+            package_names = package_upload_service.get_name_by_component_id([old_service_id])
+            # 增加记录
+            copy_record_info = {
+                "event_id": event_id,
+                "status": "finished",
+                "source_dir": package_names,
+                "team_name": tar_team_name,
+                "region": region,
+                "component_id": new_service_id
+            }
+            package_upload_service.create_upload_record(**copy_record_info)
+        return service_copy_path
+
     def is_need_to_add_default_probe(self, service):
         if service.service_source != "source_code":
             return True
@@ -227,8 +256,12 @@ class GroupAppCopyService(object):
                     # 数据中心创建组件
                     new_service = app_service.create_region_service(tenant, service, user.nick_name)
                 service = new_service
+                # 上传文件复制
+                service_copy_path = None
+                if service.service_source == "package_build":
+                    service_copy_path = self.new_services_and_copy_path(tenant.tenant_name, region_name, change_services_map)
                 # 部署组件
-                app_manage_service.deploy(tenant, service, user)
+                app_manage_service.deploy(tenant, service, user, service_copy_path=service_copy_path)
 
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=service.service_id)

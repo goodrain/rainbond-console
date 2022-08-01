@@ -116,6 +116,12 @@ def status_map():
         "disabledAction": ['restart', 'stop', 'visit', 'manage_container', 'reboot'],
         "activeAction": ['deploy'],
     }
+    # console
+    status_map["succeeded"] = {
+        "status_cn": "已完成",
+        "disabledAction": [],
+        "activeAction": [],
+    }
     return status_map
 
 

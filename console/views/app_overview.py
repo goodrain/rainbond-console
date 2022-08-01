@@ -17,7 +17,7 @@ from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
-from console.services.app import app_service
+from console.services.app import app_service, package_upload_service
 from console.services.app_actions import ws_service
 from console.services.app_config import port_service
 from console.services.compose_service import compose_service
@@ -292,7 +292,9 @@ class ListAppPodsView(AppBaseView):
                         if self.service.k8s_component_name in key and 'default-tcpmesh' not in key:
                             if len(container_list) > 1:
                                 container_list[0], container_list[len(container_list) - 1] = container_list[
-                                    len(container_list) - 1], container_list[0]
+                                                                                                 len(
+                                                                                                     container_list) - 1], \
+                                                                                             container_list[0]
                     bean["container"] = container_list
                     res.append(bean)
                 return res
@@ -549,6 +551,10 @@ class BuildSourceinfo(AppBaseView):
         service_ids = [self.service.service_id]
         build_infos = base_service.get_build_infos(self.tenant, service_ids)
         bean = build_infos.get(self.service.service_id, None)
+        if bean["server_type"] == "pkg":
+            package_names = package_upload_service.get_name_by_component_id(service_ids)
+            if package_names:
+                bean["package_name"] = package_names[0]
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
@@ -572,6 +578,7 @@ class BuildSourceinfo(AppBaseView):
             user_id = request.user.user_id
             oauth_service_id = request.data.get("service_id")
             git_full_name = request.data.get("full_name")
+            server_type = request.data.get("server_type", "")
 
             if not service_source:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
@@ -595,6 +602,8 @@ class BuildSourceinfo(AppBaseView):
             if service_source == "source_code":
                 if code_version:
                     self.service.code_version = code_version
+                elif server_type == "oss":
+                    self.service.code_version = ""
                 else:
                     self.service.code_version = "master"
                 if git_url:
@@ -623,9 +632,15 @@ class BuildSourceinfo(AppBaseView):
                         self.service.creater = user_id
                     else:
                         self.service.git_url = git_url
+                self.service.service_source = service_source
+                self.service.code_from = ""
+                self.service.server_type = server_type
+                self.service.cmd = ""
+                self.service.image = ""
                 self.service.save()
                 transaction.savepoint_commit(s_id)
             elif service_source == "docker_run":
+                self.service.service_source = "docker_run"
                 if image:
                     version = image.split(':')[-1]
                     if not version:
@@ -634,6 +649,9 @@ class BuildSourceinfo(AppBaseView):
                     self.service.image = image
                     self.service.version = version
                 self.service.cmd = cmd
+                self.server_type = server_type
+                self.service.git_url = ""
+                self.service.code_from = "image_manual"
                 self.service.save()
                 transaction.savepoint_commit(s_id)
             result = general_message(200, "success", "修改成功")
@@ -665,4 +683,32 @@ class AppKeywordView(AppBaseView):
         service_webhook.deploy_keyword = keyword
         service_webhook.save()
         result = general_message(200, "success", "修改成功", bean=service_webhook.to_dict())
+        return Response(result, status=result["code"])
+
+
+# 修改job、cronjob策略配置
+class JobStrategy(AppBaseView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        res = service_repo.get_service_by_service_id(self.service.service_id)
+        if res.job_strategy:
+            bean = json.loads(res.job_strategy)
+            result = general_message(200, "success", "查询成功", bean=bean)
+            return Response(result, status=result["code"])
+        result = general_message(200, "success", "查询成功", bean={})
+        return Response(result, status=result["code"])
+
+    @never_cache
+    def put(self, request, *args, **kwargs):
+        job_strategy = {
+            'schedule': request.data.get("schedule", ""),
+            'backoff_limit': request.data.get("backoff_limit", ""),
+            'parallelism': request.data.get("parallelism", ""),
+            'active_deadline_seconds': request.data.get("active_deadline_seconds", ""),
+            "completions": request.data.get("completions", "")
+        }
+        params = {'job_strategy': json.dumps(job_strategy)}
+        service_repo.update(self.tenant.tenant_id, self.service.service_id, **params)
+        region_api.update_service(self.service.service_region, self.tenant.tenant_name, self.service.service_alias, params)
+        result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
