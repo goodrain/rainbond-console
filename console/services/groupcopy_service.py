@@ -261,7 +261,7 @@ class GroupAppCopyService(object):
                 if service.service_source == "package_build":
                     service_copy_path = self.new_services_and_copy_path(tenant.tenant_name, region_name, change_services_map)
                 # 部署组件
-                app_manage_service.deploy(tenant, service, user, oauth_instance=None, service_copy_path=service_copy_path)
+                app_manage_service.deploy(tenant, service, user, service_copy_path=service_copy_path)
 
                 # 添加组件部署关系
                 deploy_repo.create_deploy_relation_by_service_id(service_id=service.service_id)

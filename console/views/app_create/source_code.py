@@ -525,7 +525,6 @@ class UploadRecordLastView(JWTAuthApiView):
             result = general_message(200, "success", "操作成功", bean=bean)
             return Response(result, status=result["code"])
         except Exception as e:
-            print(e)
             logger.exception(e)
         result = general_message(200, "success", "暂无记录", bean={})
         return Response(result, status=result["code"])
