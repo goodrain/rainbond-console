@@ -31,4 +31,17 @@ CREATE TABLE IF NOT EXISTS `component_k8s_attributes` (
   `save_type` varchar(32) NOT NULL,
   `attribute_value` longtext CHARACTER SET utf8mb4,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=67 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `k8s_resources` (
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `create_time` datetime(6) NOT NULL,
+  `update_time` datetime(6) NOT NULL,
+  `app_id` varchar(32) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `kind` varchar(255) NOT NULL,
+  `content` longtext NOT NULL,
+  `status` longtext NOT NULL,
+  `success` tinyint(1) DEFAULT NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;

@@ -9,6 +9,10 @@ from www.utils.return_message import general_message
 
 
 class ComponentK8sAttributeView(AppBaseView):
+    def get(self, request, name, *args, **kwargs):
+        attributes = k8s_attribute_service.get_by_component_ids_and_name(self.service.service_id, name)
+        return Response(general_message(200, "success", "查询成功", list=attributes))
+
     def put(self, request, name, *args, **kwargs):
         attribute = request.data.get("attribute", {})
         if name != attribute.get("name", ""):

@@ -1093,6 +1093,20 @@ class AppUpgradeSnapshot(BaseModel):
     snapshot = models.TextField()
 
 
+class K8sResource(BaseModel):
+    class Meta:
+        db_table = "k8s_resources"
+
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text="更新时间")
+    app_id = models.CharField(max_length=32)
+    name = models.CharField(max_length=255, help_text="the name of the k8s_resources")
+    kind = models.CharField(max_length=255, help_text="the kind of the k8s_resources")
+    content = models.TextField(max_length="k8s_resource yaml")
+    status = models.TextField(help_text="k8s_resources create status")
+    success = models.IntegerField(help_text="whether it was created successfully")
+
+
 class ComponentK8sAttributes(BaseModel):
     class Meta:
         db_table = "component_k8s_attributes"
