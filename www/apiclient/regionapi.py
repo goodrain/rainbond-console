@@ -1700,8 +1700,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/cluster/convert-resource?eid={0}&content={1}&namespace={2}".format(enterprise_id, content,
-                                                                                       namespace)
+        url += "/v2/cluster/convert-resource?eid={0}&content={1}&namespace={2}".format(enterprise_id, content, namespace)
         res, body = self._get(url, self.default_headers, region=region_info.region_name, timeout=10)
         return res, body
 
@@ -1710,8 +1709,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/cluster/convert-resource?eid={0}&content={1}&namespace={2}".format(enterprise_id, content,
-                                                                                       namespace)
+        url += "/v2/cluster/convert-resource?eid={0}&content={1}&namespace={2}".format(enterprise_id, content, namespace)
         res, body = self._post(url, self.default_headers, body="", region=region_info.region_name, timeout=20)
         return res, body
 
@@ -1721,8 +1719,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/yaml_resource_name?eid={0}".format(enterprise_id)
-        res, body = self._get(url, self.default_headers, body=json.dumps(data), region=region_info.region_name,
-                              timeout=20)
+        res, body = self._get(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=20)
         return res, body
 
     def yaml_resource_detailed(self, enterprise_id, region, data):
@@ -1731,8 +1728,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/yaml_resource_detailed?eid={0}".format(enterprise_id)
-        res, body = self._get(url, self.default_headers, body=json.dumps(data), region=region_info.region_name,
-                              timeout=20)
+        res, body = self._get(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=20)
         return res, body
 
     def add_resource(self, enterprise_id, region, data):
@@ -1741,8 +1737,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/convert-resource?eid={0}".format(enterprise_id)
-        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name,
-                               timeout=10)
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
         return res, body
 
     def list_tenants(self, enterprise_id, region, page=1, page_size=10):
@@ -2089,8 +2084,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/k8s-resource?eid={0}".format(enterprise_id)
-        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name,
-                               timeout=10)
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
         return res, body
 
     def update_app_resource(self, enterprise_id, region, data):
@@ -2099,8 +2093,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/k8s-resource"
-        res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_info.region_name,
-                              timeout=10)
+        res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
         return res, body
 
     def delete_app_resource(self, enterprise_id, region, data):
@@ -2109,8 +2102,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/k8s-resource"
-        res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name,
-                                 timeout=10)
+        res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
         return res, body
 
     def create_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):

@@ -25,8 +25,7 @@ class YamlResourceDetailed(RegionTenantHeaderView):
         tenant_id = self.tenant.tenant_id
         region_id = self.region.region_id
         enterprise_id = self.enterprise.enterprise_id
-        res = yaml_k8s_resource.yaml_k8s_resource_detailed(event_id, app_id, tenant_id, namespace, region_id,
-                                                           enterprise_id)
+        res = yaml_k8s_resource.yaml_k8s_resource_detailed(event_id, app_id, tenant_id, namespace, region_id, enterprise_id)
         return Response(general_message(200, "success", "查询成功", list=res), status=200)
 
     def post(self, request, *args, **kwargs):
@@ -35,6 +34,6 @@ class YamlResourceDetailed(RegionTenantHeaderView):
         namespace = self.tenant.namespace
         tenant_id = self.tenant.tenant_id
         enterprise_id = self.enterprise.enterprise_id
-        res = yaml_k8s_resource.yaml_k8s_resource_import(event_id, app_id, tenant_id, namespace, self.region,
-                                                         enterprise_id, self.user.user_id)
+        res = yaml_k8s_resource.yaml_k8s_resource_import(event_id, app_id, tenant_id, namespace, self.region, enterprise_id,
+                                                         self.user.user_id)
         return Response(general_message(200, "success", "查询成功", list=res), status=200)
