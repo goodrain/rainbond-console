@@ -19,8 +19,8 @@ class AppK8ResourceView(ApplicationView):
         state = k8s_resource_service.update_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, str(self.app_id),
                                                          resource_yaml, self.region_name, name, resource_id)
         if state == 2:
-            return Response(general_message(200, "state", "修改成功"))
-        return Response(general_message(400, "state", "修改失败"))
+            return Response(general_message(200, "success", "修改成功"))
+        return Response(general_message(400, "failed", "修改失败"))
 
     def delete(self, request, name, *args, **kwargs):
         resource_id = request.data.get("id")
