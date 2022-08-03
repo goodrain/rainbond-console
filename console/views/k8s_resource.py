@@ -16,11 +16,11 @@ class AppK8ResourceView(ApplicationView):
     def put(self, request, name, *args, **kwargs):
         resource_yaml = request.data.get("resource_yaml", {})
         resource_id = request.data.get("id")
-        success = k8s_resource_service.update_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, str(self.app_id),
-                                                           resource_yaml, self.region_name, name, resource_id)
-        if success == 2:
+        state = k8s_resource_service.update_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, str(self.app_id),
+                                                         resource_yaml, self.region_name, name, resource_id)
+        if state == 2:
             return Response(general_message(200, "success", "修改成功"))
-        return Response(general_message(400, "success", "修改失败"))
+        return Response(general_message(400, "failed", "修改失败"))
 
     def delete(self, request, name, *args, **kwargs):
         resource_id = request.data.get("id")

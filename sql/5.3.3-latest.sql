@@ -41,8 +41,8 @@ CREATE TABLE IF NOT EXISTS `k8s_resources` (
   `name` varchar(255) NOT NULL,
   `kind` varchar(255) NOT NULL,
   `content` longtext NOT NULL,
-  `status` longtext NOT NULL,
-  `success` tinyint(1) DEFAULT NULL,
+  `error_overview` longtext NOT NULL,
+  `state` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
