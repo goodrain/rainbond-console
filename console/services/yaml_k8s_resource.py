@@ -35,10 +35,11 @@ class YamlK8SResource(object):
             app = app[0]
             data = {"event_id": event_id, "region_app_id": app.region_app_id, "tenant_id": tenant_id,
                     "namespace": namespace}
-            _, body = region_api.yaml_resource_detailed(enterprise_id, region.region_id, data)
+            _, body = region_api.yaml_resource_import(enterprise_id, region.region_id, data)
             ac = body["bean"]
             region_resource.create_k8s_resources(ac["k8s_resources"], app_id)
-            region_resource.create_components(app, ac["component"], {"UUID": tenant_id}, region.region_name, user_id)
+            region_resource.create_components(app, ac["component"], {"UUID": tenant_id}, region.region_name,
+                                              user_id)
             return body["bean"]
         return []
 
