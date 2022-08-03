@@ -42,9 +42,10 @@ class ComponentK8sResourceService(object):
             "kind": resources.kind
         }
         res, body = region_api.update_app_resource(enterprise_id, region_name, data)
-        data = {"content": body["bean"]["content"], "status": body["bean"]["status"], "success": body["bean"]["success"]}
+        data = {"content": body["bean"]["content"], "error_overview": body["bean"]["error_overview"],
+                "state": body["bean"]["state"]}
         k8s_resources_repo.update(app_id, name, **data)
-        return data["success"]
+        return data["state"]
 
     @transaction.atomic
     def delete_k8s_resource(self, enterprise_id, tenant_name, app_id, region_name, name, resource_id):

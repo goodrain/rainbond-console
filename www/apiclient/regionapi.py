@@ -1701,7 +1701,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url
         url += "/v2/cluster/yaml_resource_name?eid={0}".format(enterprise_id)
         res, body = self._get(url, self.default_headers, body=json.dumps(data), region=region_info.region_name,
-                              timeout=10)
+                              timeout=20)
+        return res, body
+
+    def yaml_resource_detailed(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/yaml_resource_detailed?eid={0}".format(enterprise_id)
+        res, body = self._get(url, self.default_headers, body=json.dumps(data), region=region_info.region_name,
+                              timeout=20)
         return res, body
 
     def add_resource(self, enterprise_id, region, data):

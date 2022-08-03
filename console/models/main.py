@@ -1088,8 +1088,8 @@ class K8sResource(BaseModel):
     name = models.CharField(max_length=255, help_text="the name of the k8s_resources")
     kind = models.CharField(max_length=255, help_text="the kind of the k8s_resources")
     content = models.TextField(max_length="k8s_resource yaml")
-    status = models.TextField(help_text="k8s_resources create status")
-    success = models.IntegerField(help_text="whether it was created successfully")
+    error_overview = models.TextField(help_text="k8s_resources create status")
+    state = models.IntegerField(help_text="whether it was created successfully")
 
 
 class ComponentK8sAttributes(BaseModel):
