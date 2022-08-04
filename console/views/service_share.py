@@ -305,6 +305,8 @@ class ServiceShareInfoView(RegionTenantHeaderView):
         data["share_service_list"] = service_info_list
         plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
         data["share_plugin_list"] = plugins
+        k8s_resources = share_service.get_k8s_resources(share_record.group_id)
+        data["share_k8s_resources"] = k8s_resources
         result = general_message(200, "query success", "获取成功", bean=data)
         return Response(result, status=200)
 

@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-
+from console.repositories.k8s_resources import k8s_resources_repo
 from console.services.market_app.component import Component
 # service
 from console.services.group_service import group_service
@@ -61,6 +61,8 @@ class OriginalApp(object):
 
         # labels
         self.labels = list(label_repo.get_all_labels())
+        # k8s resources
+        self.k8s_resources = self._k8s_resources()
 
     def components(self):
         return self._components
@@ -146,3 +148,6 @@ class OriginalApp(object):
 
     def _plugin_configs(self):
         return service_plugin_config_repo.list_by_component_ids(self._component_ids)
+
+    def _k8s_resources(self):
+        return list(k8s_resources_repo.list_by_app_id(self.app_id))

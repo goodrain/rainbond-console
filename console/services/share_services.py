@@ -22,6 +22,7 @@ from console.repositories.app_config import domain_repo, configuration_repo, por
 from console.repositories.label_repo import service_label_repo
 from console.repositories.label_repo import label_repo
 from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.repositories.k8s_resources import k8s_resources_repo
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
 from console.services.group_service import group_service
@@ -471,6 +472,9 @@ class ShareService(object):
             temp_plugin_ids.append(spr.plugin_id)
         return plugin_list
 
+    def get_k8s_resources(self, app_id):
+        return k8s_resources_repo.list_available_resources(app_id).values()
+
     def wrapper_service_plugin_config(self, service_related_plugin_config, shared_plugin_info):
         """添加plugin key信息"""
         id_key_map = {}
@@ -732,6 +736,7 @@ class ShareService(object):
             version_alias = share_version_info.get("version_alias", "")
             template_type = share_version_info.get("template_type", "")
             version_describe = share_version_info.get("describe", "this is a default describe.")
+            share_k8s_resources = share_info.get("share_k8s_resources")
             market_id = None
             market = None
             app_model_name = None
@@ -771,6 +776,7 @@ class ShareService(object):
                 app_template["group_version"] = version
                 app_template["group_dev_status"] = ""
                 app_template["governance_mode"] = governance_mode
+                app_template["k8s_resources"] = share_k8s_resources
             except Exception as e:
                 if sid:
                     transaction.savepoint_rollback(sid)
@@ -1290,5 +1296,6 @@ class ShareService(object):
             del a["ID"]
             result[attr.component_id].append(a)
         return result
+
 
 share_service = ShareService()
