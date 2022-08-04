@@ -1093,6 +1093,20 @@ class AppUpgradeSnapshot(BaseModel):
     snapshot = models.TextField()
 
 
+class TeamRegistryAuth(BaseModel):
+    class Meta:
+        db_table = "team_registry_auths"
+
+    create_time = models.DateTimeField(auto_now_add=True)
+    update_time = models.DateTimeField(auto_now=True)
+    tenant_id = models.CharField(max_length=32, help_text="tenant_id")
+    secret_id = models.CharField(max_length=32, help_text="secret_id")
+    domain = models.CharField(max_length=255, help_text="domain")
+    username = models.CharField(max_length=255, help_text="username")
+    password = models.CharField(max_length=255, help_text="password")
+    region_name = models.CharField(max_length=255, help_text="region_name")
+
+
 class K8sResource(BaseModel):
     class Meta:
         db_table = "k8s_resources"
