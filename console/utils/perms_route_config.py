@@ -157,6 +157,10 @@ TeamUserRolesRUDView = {
 
 TeamUserPermsLView = {"__message": {"get": {"perms": []}, "post": {"perms": []}, "put": {"perms": []}, "delete": {"perms": []}}}
 
+TeamRegistryAuthLView = {"__message": {"get": {"perms": [200015]}, "post": {"perms": [200016]}}}
+
+TeamRegistryAuthRUDView = {"__message": {"put": {"perms": [200017]}, "delete": {"perms": [200018]}}}
+
 UserPemTraView = {
     "__message": {
         "get": {
