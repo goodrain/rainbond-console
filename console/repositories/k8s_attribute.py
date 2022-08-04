@@ -22,5 +22,8 @@ class ComponentK8sAttributeRepo(object):
     def get_by_component_id_name(self, component_id, name):
         return ComponentK8sAttributes.objects.filter(component_id=component_id, name=name)
 
+    def get_by_component_id(self, component_id):
+        return ComponentK8sAttributes.objects.filter(component_id=component_id)
+
 
 k8s_attribute_repo = ComponentK8sAttributeRepo()

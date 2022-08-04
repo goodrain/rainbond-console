@@ -159,7 +159,8 @@ class UpgradeService(object):
 
         app_upgrade = AppUpgrade(user.enterprise_id, tenant, region, user, app, version, component_group, app_template,
                                  app_template_source.is_install_from_cloud(), app_template_source.get_market_name())
-        return app_upgrade.changes()
+
+        return app_upgrade.app_property_changes, app_upgrade.changes()
 
     @staticmethod
     def get_latest_upgrade_record(tenant: Tenants, app: ServiceGroup, upgrade_group_id=None, record_type=None):

@@ -2114,6 +2114,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
         return res, body
 
+    def sync_k8s_resources(self, tenant_name, region_name, data):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/cluster/sync-k8s-resources"
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_name, timeout=20)
+        return res, body
+
     def create_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
