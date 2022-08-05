@@ -21,6 +21,19 @@ ALTER TABLE `plugin_config_items` MODIFY `attr_default_value` LONGTEXT;
 ALTER TABLE `service_plugin_config_var` MODIFY `attrs` LONGTEXT NOT NULL;
 
 -- 5.7.1 - 5.8.0 sql
+CREATE TABLE IF NOT EXISTS `team_registry_auths` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `create_time` datetime DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  `tenant_id` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `secret_id` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `domain` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `username` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `password` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `region_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `component_k8s_attributes` (
   `ID` int NOT NULL AUTO_INCREMENT,
   `create_time` datetime(6) NOT NULL,

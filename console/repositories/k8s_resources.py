@@ -28,5 +28,9 @@ class AppK8sResourceRepo(object):
     def get_by_id(self, id):
         return K8sResource.objects.get(ID=id)
 
+    def list_available_resources(self, app_id):
+        # CreateSuccess = 1, UpdateSuccess = 2
+        return K8sResource.objects.filter(app_id=app_id, success__in=[1, 2])
+
 
 k8s_resources_repo = AppK8sResourceRepo()

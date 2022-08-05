@@ -6,6 +6,7 @@ import os
 import time
 
 from console.appstore.appstore import app_store
+from console.enum.app import GovernanceModeEnum
 from console.enum.component_enum import is_singleton
 from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
 from console.models.main import (PluginShareRecordEvent, RainbondCenterApp, RainbondCenterAppVersion, ServiceShareRecordEvent)
@@ -20,6 +21,8 @@ from console.repositories.share_repo import share_repo
 from console.repositories.app_config import domain_repo, configuration_repo, port_repo
 from console.repositories.label_repo import service_label_repo
 from console.repositories.label_repo import label_repo
+from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.repositories.k8s_resources import k8s_resources_repo
 from console.services.app import app_market_service
 from console.services.app_config import component_service_monitor
 from console.services.group_service import group_service
@@ -269,6 +272,9 @@ class ShareService(object):
             sid_2_monitors = self.list_service_monitors(team.tenant_id, array_ids)
             # component graphs
             sid_2_graphs = self.list_component_graphs(array_ids)
+            # component k8s attributes
+            sid_2_k8s_attrs = self.list_component_k8s_attributes(array_ids)
+
             all_data_map = dict()
 
             labels = self.list_component_labels(array_ids)
@@ -377,6 +383,7 @@ class ShareService(object):
                 data["component_monitors"] = sid_2_monitors.get(service.service_id, None)
                 data["component_graphs"] = sid_2_graphs.get(service.service_id, None)
                 data["labels"] = labels.get(service.component_id, {})
+                data["component_k8s_attributes"] = sid_2_k8s_attrs.get(service.service_id, None)
 
                 all_data_map[service.service_id] = data
 
@@ -464,6 +471,9 @@ class ShareService(object):
             plugin_list.append(plugin_dict)
             temp_plugin_ids.append(spr.plugin_id)
         return plugin_list
+
+    def get_k8s_resources(self, app_id):
+        return k8s_resources_repo.list_available_resources(app_id).values()
 
     def wrapper_service_plugin_config(self, service_related_plugin_config, shared_plugin_info):
         """添加plugin key信息"""
@@ -726,6 +736,7 @@ class ShareService(object):
             version_alias = share_version_info.get("version_alias", "")
             template_type = share_version_info.get("template_type", "")
             version_describe = share_version_info.get("describe", "this is a default describe.")
+            share_k8s_resources = share_info.get("share_k8s_resources")
             market_id = None
             market = None
             app_model_name = None
@@ -753,14 +764,19 @@ class ShareService(object):
             # 删除历史数据
             ServiceShareRecordEvent.objects.filter(record_id=share_record.ID).delete()
 
-            app_templete = {}
+            app = group_service.get_app_by_id(share_team, region_name, share_record.group_id)
+            governance_mode = app.governance_mode if app.governance_mode else GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name
+
+            app_template = {}
             # 处理基本信息
             try:
-                app_templete["template_version"] = "v2"
-                app_templete["group_key"] = app_model_id
-                app_templete["group_name"] = app_model_name
-                app_templete["group_version"] = version
-                app_templete["group_dev_status"] = ""
+                app_template["template_version"] = "v2"
+                app_template["group_key"] = app_model_id
+                app_template["group_name"] = app_model_name
+                app_template["group_version"] = version
+                app_template["group_dev_status"] = ""
+                app_template["governance_mode"] = governance_mode
+                app_template["k8s_resources"] = share_k8s_resources
             except Exception as e:
                 if sid:
                     transaction.savepoint_rollback(sid)
@@ -769,11 +785,11 @@ class ShareService(object):
 
             # group config
             service_ids_keys_map = {svc["service_id"]: svc['service_key'] for svc in share_info["share_service_list"]}
-            app_templete["app_config_groups"] = self.config_groups(region_name, service_ids_keys_map)
+            app_template["app_config_groups"] = self.config_groups(region_name, service_ids_keys_map)
 
             # ingress
             ingress_http_routes = self._list_http_ingresses(tenant, service_ids_keys_map)
-            app_templete["ingress_http_routes"] = ingress_http_routes
+            app_template["ingress_http_routes"] = ingress_http_routes
 
             # plugins
             try:
@@ -795,7 +811,7 @@ class ShareService(object):
                         event.save()
 
                     shared_plugin_info = self.get_plugins_group_items(plugins)
-                    app_templete["plugins"] = shared_plugin_info
+                    app_template["plugins"] = shared_plugin_info
             except ServiceHandleException as e:
                 raise e
             except Exception as e:
@@ -855,7 +871,7 @@ class ShareService(object):
                                 event_status="not_start")
                             ssre.save()
                         new_services.append(service)
-                    app_templete["apps"] = new_services
+                    app_template["apps"] = new_services
                 else:
                     if sid:
                         transaction.savepoint_rollback(sid)
@@ -880,7 +896,7 @@ class ShareService(object):
                 group_id=share_record.group_id,
                 source="local",
                 scope=scope,
-                app_template=json.dumps(app_templete),
+                app_template=json.dumps(app_template),
                 template_version="v2",
                 enterprise_id=share_team.enterprise_id,
                 upgrade_time=time.time(),
@@ -1268,6 +1284,18 @@ class ShareService(object):
         }
         market = app_market_service.get_app_market_by_name(tenant.enterprise_id, market_name, raise_exception=True)
         return app_market_service.create_market_app_model(market, body)
+
+    @staticmethod
+    def list_component_k8s_attributes(component_ids):
+        attrs = k8s_attribute_repo.list_by_component_ids(component_ids)
+        result = {}
+        for attr in attrs:
+            if not result.get(attr.component_id):
+                result[attr.component_id] = []
+            a = attr.to_dict()
+            del a["ID"]
+            result[attr.component_id].append(a)
+        return result
 
 
 share_service = ShareService()

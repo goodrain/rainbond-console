@@ -120,7 +120,7 @@ def status_map():
     status_map["succeeded"] = {
         "status_cn": "已完成",
         "disabledAction": [],
-        "activeAction": [],
+        "activeAction": ['restart', 'stop'],
     }
     return status_map
 
