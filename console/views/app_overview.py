@@ -637,6 +637,7 @@ class BuildSourceinfo(AppBaseView):
                 self.service.server_type = server_type
                 self.service.cmd = ""
                 self.service.image = ""
+                self.service.service_key = "application"
                 self.service.save()
                 transaction.savepoint_commit(s_id)
             elif service_source == "docker_run":
@@ -652,6 +653,7 @@ class BuildSourceinfo(AppBaseView):
                 self.server_type = server_type
                 self.service.git_url = ""
                 self.service.code_from = "image_manual"
+                self.service.service_key = "application"
                 self.service.save()
                 transaction.savepoint_commit(s_id)
             result = general_message(200, "success", "修改成功")
