@@ -128,7 +128,8 @@ class RegionResource(object):
             new_service.min_cpu = 0
             new_service.inner_port = 0
             new_service.image = component["image"]
-            new_service.version = component["image"].split(":")[1]
+            version = component["image"].split(":")[1] if len(component["image"].split(":")) > 1 else "latest"
+            new_service.version = version
             new_service.namespace = "goodrain"
             new_service.update_version = 1
             new_service.port_type = "multi_outer"
@@ -276,6 +277,8 @@ class RegionResource(object):
 
     def create_component_special(self, specials, tenant_id, service):
         componentK8sAttributes = list()
+        if not specials:
+            return
         for special in specials:
             componentK8sAttributes.append(
                 ComponentK8sAttributes(
