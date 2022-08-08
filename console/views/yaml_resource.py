@@ -32,8 +32,8 @@ class YamlResourceDetailed(RegionTenantHeaderView):
         event_id = request.data.get("event_id")
         app_id = request.data.get("group_id")
         namespace = self.tenant.namespace
-        tenant_id = self.tenant.tenant_id
+        tenant = self.tenant
         enterprise_id = self.enterprise.enterprise_id
-        res = yaml_k8s_resource.yaml_k8s_resource_import(event_id, app_id, tenant_id, namespace, self.region, enterprise_id,
-                                                         self.user.user_id)
+        res = yaml_k8s_resource.yaml_k8s_resource_import(event_id, app_id, tenant, namespace, self.region, enterprise_id,
+                                                         self.user)
         return Response(general_message(200, "success", "查询成功", list=res), status=200)
