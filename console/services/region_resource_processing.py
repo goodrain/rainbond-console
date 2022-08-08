@@ -99,6 +99,8 @@ class RegionResource(object):
 
     def create_k8s_resources(self, k8s_resources, app_id):
         app_k8s_resource_list = list()
+        if not k8s_resources:
+            return
         for k8s_resource in k8s_resources:
             app_k8s_resource_list.append(
                 K8sResource(
