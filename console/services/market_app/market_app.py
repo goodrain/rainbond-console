@@ -356,6 +356,8 @@ class MarketApp(object):
             "k8s_resources": k8s_resources,
         }
         res, body = region_api.sync_k8s_resources(self.tenant_name, self.region_name, data)
+        if not body.get("list"):
+            return
         resource_statuses = {resource["name"] + resource["kind"]: resource for resource in body["list"]}
         for k8s_resource in app.k8s_resources:
             resource_key = k8s_resource.name + k8s_resource.kind
