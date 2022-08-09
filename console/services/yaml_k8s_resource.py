@@ -39,7 +39,7 @@ class YamlK8SResource(object):
             _, body = region_api.yaml_resource_import(enterprise_id, region.region_id, data)
             ac = body["bean"]
             region_resource.create_k8s_resources(ac["k8s_resources"], app_id)
-            service_ids = region_resource.create_components(app, ac["component"], {"UUID": tenant.tenant_id},
+            service_ids = region_resource.create_components(app, ac["component"], tenant,
                                                             region.region_name, user.user_id)
             app_manage_service.batch_action(region.region_name, tenant, user, "deploy", service_ids,
                                             None, None)
