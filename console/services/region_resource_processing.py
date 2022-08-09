@@ -129,7 +129,7 @@ class RegionResource(object):
             new_service.setting = ""
             new_service.extend_method = component["ts"]["extend_method"]
             new_service.env = ""
-            new_service.min_node = 1
+            new_service.min_node = component["ts"]["replicas"]
             new_service.min_memory = 0
             new_service.min_cpu = 0
             new_service.inner_port = 0
