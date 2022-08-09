@@ -26,8 +26,11 @@ from console.repositories.region_app import region_app_repo
 from console.repositories.plugin import app_plugin_relation_repo
 from console.repositories.plugin import service_plugin_config_repo
 from console.repositories.label_repo import service_label_repo
+from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.repositories.k8s_resources import k8s_resources_repo
 # model
 from www.models.main import ServiceGroup
+from console.models.main import K8sResource
 # utils
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -55,7 +58,8 @@ class NewApp(object):
                  new_plugins: [Plugin] = None,
                  config_groups=None,
                  config_group_items=None,
-                 config_group_components=None):
+                 config_group_components=None,
+                 k8s_resources=None):
         self.tenant = tenant
         self.tenant_id = tenant.tenant_id
         self.region_name = region_name
@@ -84,6 +88,8 @@ class NewApp(object):
         self.config_groups = config_groups if config_groups else []
         self.config_group_items = config_group_items if config_group_items else []
         self.config_group_components = config_group_components if config_group_components else []
+        # k8s resources
+        self.k8s_resources = k8s_resources if k8s_resources else []
 
     def save(self):
         # component
@@ -101,6 +107,8 @@ class NewApp(object):
         self._save_config_groups()
         # component group
         self.component_group.save()
+        # k8s resources
+        self._save_k8s_resources()
 
     def components(self):
         return self._ensure_components(self._components())
@@ -166,6 +174,7 @@ class NewApp(object):
         graphs = []
         service_group_rels = []
         labels = []
+        k8s_attributes = []
         for cpt in self.new_components:
             component_sources.append(cpt.component_source)
             envs.extend(cpt.envs)
@@ -182,6 +191,7 @@ class NewApp(object):
             graphs.extend(cpt.graphs)
             service_group_rels.append(cpt.service_group_rel)
             labels.extend(cpt.labels)
+            k8s_attributes.extend(cpt.k8s_attributes)
         components = [cpt.component for cpt in self.new_components]
 
         service_repo.bulk_create(components)
@@ -198,6 +208,7 @@ class NewApp(object):
         component_graph_repo.bulk_create(graphs)
         service_group_relation_repo.bulk_create(service_group_rels)
         service_label_repo.bulk_create(labels)
+        k8s_attribute_repo.bulk_create(k8s_attributes)
 
     def _update_components(self):
         """
@@ -216,6 +227,7 @@ class NewApp(object):
         monitors = []
         graphs = []
         labels = []
+        k8s_attributes = []
         # TODO(huangrh): merged with _save_components
         for cpt in self.update_components:
             sources.append(cpt.component_source)
@@ -230,6 +242,7 @@ class NewApp(object):
             monitors.extend(cpt.monitors)
             graphs.extend(cpt.graphs)
             labels.extend(cpt.labels)
+            k8s_attributes.extend(cpt.k8s_attributes)
 
         components = [cpt.component for cpt in self.update_components]
         component_ids = [cpt.component_id for cpt in components]
@@ -244,6 +257,7 @@ class NewApp(object):
         service_monitor_repo.overwrite_by_component_ids(component_ids, monitors)
         component_graph_repo.overwrite_by_component_ids(component_ids, graphs)
         service_label_repo.overwrite_by_component_ids(component_ids, labels)
+        k8s_attribute_repo.overwrite_by_component_ids(component_ids, k8s_attributes)
 
     def _save_component_deps(self):
         dep_relation_repo.overwrite_by_component_id(self.component_ids, self.component_deps)
@@ -255,6 +269,24 @@ class NewApp(object):
         app_config_group_repo.bulk_create_or_update(self.config_groups)
         app_config_group_item_repo.bulk_create_or_update(self.config_group_items)
         app_config_group_service_repo.bulk_create_or_update(self.config_group_components)
+
+    def _save_k8s_resources(self):
+        resources = []
+        old_resources = k8s_resources_repo.list_by_app_id(self.app_id)
+        old_resources_map = {r.name + r.kind: r for r in old_resources}
+        for rs in self.k8s_resources:
+            if old_resources_map.get(rs.name + rs.kind):
+                continue
+            resources.append(
+                K8sResource(
+                    app_id=self.app_id,
+                    name=rs.name,
+                    kind=rs.kind,
+                    content=rs.content,
+                    state=rs.state,
+                    error_overview=rs.error_overview,
+                ))
+        k8s_resources_repo.bulk_create(resources)
 
     def _existing_volume_deps(self):
         components = self._components()

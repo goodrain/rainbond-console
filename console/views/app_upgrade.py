@@ -86,8 +86,9 @@ class AppUpgradeInfoView(ApplicationView):
         upgrade_group_id = parse_argument(
             request, 'upgrade_group_id', default=None, value_type=int, error='upgrade_group_id is a required parameter')
         version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
-        changes = upgrade_service.get_property_changes(self.tenant, self.region, self.user, self.app, upgrade_group_id, version)
-        return MessageResponse(msg="success", list=changes)
+        app_changes, changes = upgrade_service.get_property_changes(self.tenant, self.region, self.user, self.app,
+                                                                    upgrade_group_id, version)
+        return MessageResponse(msg="success", bean=app_changes, list=changes)
 
 
 class AppUpgradeRollbackView(AppUpgradeRecordView):

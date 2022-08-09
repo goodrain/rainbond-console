@@ -216,6 +216,10 @@ class BaseService(object):
             if service_source:
                 bean["user"] = service_source.user_name
                 bean["password"] = service_source.password
+            if service.service_source == "package_build":
+                from console.services.app import package_upload_service
+                package_name = package_upload_service.get_name_by_component_id([service.service_id])
+                bean["package_name"] = package_name
             if service.service_source == 'market':
                 from console.services.app import app_market_service
                 from console.services.market_app_service import market_app_service

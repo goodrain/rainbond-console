@@ -626,6 +626,21 @@ class AppImportRecord(BaseModel):
     enterprise_id = models.CharField(max_length=64, null=True, blank=True, help_text="企业id")
 
 
+class PackageUploadRecord(BaseModel):
+    class Meta:
+        db_table = 'package_upload_record'
+
+    event_id = models.CharField(max_length=32, null=True, blank=True, help_text="事件id")
+    status = models.CharField(max_length=15, null=True, blank=True, help_text="导入状态")
+    format = models.CharField(max_length=15, null=True, blank=True, default="", help_text="类型")
+    source_dir = models.CharField(max_length=256, null=True, blank=True, default="", help_text="目录地址")
+    team_name = models.CharField(max_length=32, null=True, blank=True, help_text="正在导入的团队名称")
+    region = models.CharField(max_length=32, null=True, blank=True, help_text="数据中心")
+    component_id = models.CharField(max_length=32, null=True, blank=True, help_text="组件id")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="更新时间")
+
+
 class GroupAppBackupRecord(BaseModel):
     class Meta:
         db_table = 'groupapp_backup'
@@ -1090,3 +1105,35 @@ class TeamRegistryAuth(BaseModel):
     username = models.CharField(max_length=255, help_text="username")
     password = models.CharField(max_length=255, help_text="password")
     region_name = models.CharField(max_length=255, help_text="region_name")
+
+
+class K8sResource(BaseModel):
+    class Meta:
+        db_table = "k8s_resources"
+
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text="更新时间")
+    app_id = models.CharField(max_length=32)
+    name = models.CharField(max_length=255, help_text="the name of the k8s_resources")
+    kind = models.CharField(max_length=255, help_text="the kind of the k8s_resources")
+    content = models.TextField(max_length="k8s_resource yaml")
+    error_overview = models.TextField(help_text="k8s_resources create status")
+    state = models.IntegerField(help_text="whether it was created successfully")
+
+
+class ComponentK8sAttributes(BaseModel):
+    class Meta:
+        db_table = "component_k8s_attributes"
+
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text="更新时间")
+    tenant_id = models.CharField(max_length=32)
+    component_id = models.CharField(max_length=32, help_text="the identity of the component")
+    # Name Define the attribute name, which is currently supported
+    # [nodeSelector/labels/tolerations/volumes/serviceAccountName/privileged/affinity]
+    name = models.CharField(max_length=255, help_text="the name of the attribute")
+    # The field type defines how the attribute is stored. Currently, `json/yaml/string` are supported
+    save_type = models.CharField(max_length=32)
+    # Define the attribute value, which is stored in the database.
+    # The value is stored in the database in the form of `json/yaml/string`.
+    attribute_value = models.TextField(help_text="the attribute value")

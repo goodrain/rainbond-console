@@ -205,7 +205,7 @@ class AppManageService(AppManageBase):
                 return 409, "操作过于频繁，请稍后再试"
         return 200, "操作成功"
 
-    def deploy(self, tenant, service, user, oauth_instance=None):
+    def deploy(self, tenant, service, user, oauth_instance=None, service_copy_path=None):
         status_info_map = app_service.get_service_status(tenant, service)
         if status_info_map.get("status", "Unknown") in [
                 "undeploy", "closed "
@@ -221,6 +221,8 @@ class AppManageService(AppManageBase):
         body["kind"] = kind
         body["operator"] = str(user.nick_name)
         body["configs"] = {}
+        if service_copy_path != {}:
+            body["configs"] = service_copy_path
         body["service_id"] = service.service_id
         # source type parameter
         if kind == "build_from_source_code" or kind == "source":
@@ -450,7 +452,8 @@ class AppManageService(AppManageBase):
     def __get_service_kind(self, service):
         """获取组件种类，兼容老的逻辑"""
         if service.service_source:
-            if service.service_source == AppConstants.SOURCE_CODE:
+            if service.service_source == AppConstants.SOURCE_CODE \
+                    or service.service_source == AppConstants.PACKAGE_BUILD:
                 return "build_from_source_code"
             elif service.service_source == AppConstants.DOCKER_RUN \
                     or service.service_source == AppConstants.DOCKER_COMPOSE \

@@ -68,12 +68,17 @@ class AppVersionsView(AppBaseView):
         version_list = []
 
         for info in versions_info:
+            repo_url = info["repo_url"]
+            if repo_url and repo_url[0] == "/":
+                kind = "本地文件"
+            else:
+                kind = BUILD_KIND_MAP.get(info["kind"])
             version = {
                 "event_id": info["event_id"],
                 "build_version": info["build_version"],
-                "kind": BUILD_KIND_MAP.get(info["kind"]),
+                "kind": kind,
                 "service_type": info["delivered_type"],
-                "repo_url": info["repo_url"],
+                "repo_url": repo_url,
                 "create_time": info["create_time"],
                 "status": info["final_status"],
                 "build_user": "",

@@ -22,6 +22,7 @@ from console.constants import PluginInjection
 from www.models.main import ServiceDomain
 # www
 from www.apiclient.regionapi import RegionInvokeApi
+from console.repositories.region_app import region_app_repo
 
 region_api = RegionInvokeApi()
 
@@ -43,10 +44,14 @@ class MarketApp(object):
     def sync_new_app(self):
         self._sync_new_components()
         self._sync_app_config_groups(self.new_app)
+        self._sync_app_k8s_resources(self.new_app)
 
     def rollback(self):
         self._rollback_components()
         self._sync_app_config_groups(self.original_app)
+        # Since the application of k8s resources can create PV and other resources,
+        # this kind of resources will not be rolled back for the time being
+        # self._sync_app_k8s_resources(self.original_app)
 
     def deploy(self):
         builds = self._generate_builds()
@@ -173,6 +178,7 @@ class MarketApp(object):
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
                 "http_rules": self._create_http_rules(cpt.http_rules, cert_id_rels),
                 "http_rule_configs": [json.loads(config.value) for config in cpt.http_rule_configs],
+                "component_k8s_attributes": [attr.to_dict() for attr in cpt.k8s_attributes],
             }
             volumes = [volume.to_dict() for volume in cpt.volumes]
             for volume in volumes:
@@ -332,6 +338,34 @@ class MarketApp(object):
             "app_config_groups": config_groups,
         }
         region_api.sync_config_groups(self.tenant_name, self.region_name, self.new_app.region_app_id, body)
+
+    def _sync_app_k8s_resources(self, app):
+        # only add k8s resources
+        k8s_resources = list()
+        region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app.app_id)
+        for k8s_resource in app.k8s_resources:
+            resource = {
+                "name": k8s_resource.name,
+                "app_id": region_app_id,
+                "namespace": app.tenant.namespace,
+                "kind": k8s_resource.kind,
+                "resource_yaml": k8s_resource.content,
+            }
+            k8s_resources.append(resource)
+        data = {
+            "k8s_resources": k8s_resources,
+        }
+        res, body = region_api.sync_k8s_resources(self.tenant_name, self.region_name, data)
+        if not body.get("list"):
+            return
+        resource_statuses = {resource["name"] + resource["kind"]: resource for resource in body["list"]}
+        for k8s_resource in app.k8s_resources:
+            resource_key = k8s_resource.name + k8s_resource.kind
+            if resource_statuses.get(resource_key):
+                k8s_resource.state = resource_statuses[resource_key]["state"]
+                k8s_resource.error_overview = resource_statuses[resource_key]["error_overview"]
+        if isinstance(app, NewApp):
+            self.new_app.k8s_resources = app.k8s_resources
 
     def list_original_plugins(self):
         plugins = plugin_repo.list_by_tenant_id(self.original_app.tenant_id, self.region_name)

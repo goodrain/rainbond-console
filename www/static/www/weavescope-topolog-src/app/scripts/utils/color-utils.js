@@ -91,33 +91,43 @@ const statusColorMap = {
   'third_party': "rgb(91,178,250)",
 
   'undeploy' : 'rgb(112,128,144)',//未部署 石板灰
-  'creating' : 'rgb(119,136,153)',//部署中 浅石板灰 
+  'creating' : 'rgb(119,136,153)',//部署中 浅石板灰
 
   'waitting': 'rgb(246,157,74)',
 
-  'starting' : 'rgb(246,157,74)',//开启中 道奇蓝 
-  'startting' : 'rgb(246,157,74)',//开启中 道奇蓝 
+  'starting' : 'rgb(246,157,74)',//开启中 道奇蓝
+  'startting' : 'rgb(246,157,74)',//开启中 道奇蓝
   'checking' : 'rgb(246,157,74)',//检测中 橙色
 
   'stoping' : 'rgb(32,18,74)',//关闭中 紫色
   'stopping': 'rgb(32,18,74)',//关闭中 紫色
 
-  'upgrade' : 'rgb(0,255,74)',//升级中 洋红 
+  'upgrade' : 'rgb(0,255,74)',//升级中 洋红
 
-  'unusual' : 'rgb(205,2,0)',//异常 纯红 
+  'unusual' : 'rgb(205,2,0)',//异常 纯红
   'expired' : 'rgb(205,2,0)',//过期 猩红
   'Expired' : 'rgb(205,2,0)', //猩红
 
   'internet' : 'rgb(91,178,250)',//蓝色
   'The Internet' : 'rgb(91,178,250)',//蓝色
 
-  'Unknow' : 'rgb(205,2,0)', //深粉色 
-  'unknow' : 'rgb(205,2,0)',//深粉色 
-  'abnormal':'rgb(205,2,0)',//不正常,纯红 
-  'some_abnormal':'rgb(205,2,0)',//一些不正常 纯红 
+  'Unknow' : 'rgb(205,2,0)', //深粉色
+  'unknow' : 'rgb(205,2,0)',//深粉色
+  'abnormal':'rgb(205,2,0)',//不正常,纯红
+  'some_abnormal':'rgb(205,2,0)',//一些不正常 纯红
 
-  'building':'rgb(0,119,16)',//构建  纯蓝 
-  'build_failure':'rgb(205,2,0)'//构建失败 纯红 
+  'building':'rgb(0,119,16)',//构建  纯蓝
+  'build_failure':'rgb(205,2,0)',//构建失败 纯红
+
+  'RUNNING': 'rgb(0,215,119)',//运行中 绿色  往下应用状态颜色
+  'STARTING': 'rgb(246,157,74)',//开启中 道奇蓝
+  'CLOSED': 'rgb(0,0,33)',//已关闭 黑色
+  'STOPPING': 'rgb(32,18,74)',//关闭中 紫色
+  'ABNORMAL': 'rgb(205,2,0)',//异常 纯红
+  'PARTIAL_ABNORMAL': 'rgb(205,2,0)',//部分异常 纯红
+  'not-configured': 'rgb(112,128,144)',//未配置 石板灰
+  'unknown': 'rgb(205,2,0)',//未知 纯红
+  "succeeded": 'rgb(0,215,119)' //job、cronjob 已完成  绿色
 }
 
 export function getStatusColor(status) {

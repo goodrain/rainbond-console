@@ -22,6 +22,7 @@ from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.plugin.plugin_config import (plugin_config_group_repo, plugin_config_items_repo)
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.probe_repo import probe_repo
+from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config.volume_service import AppVolumeService
 from console.services.app_config_group import app_config_group_service
@@ -277,6 +278,7 @@ class GroupAppBackupService(object):
         service_plugin_config = service_plugin_config_repo.get_service_plugin_all_config(service.service_id)
         # third_party_service
         third_party_service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id)
+        component_k8s_attributes = k8s_attribute_repo.get_by_component_id(service.service_id)
         if service.service_source == "third_party":
             if not third_party_service_endpoints:
                 raise ServiceHandleException(msg="third party service endpoints can't be null", msg_show="第三方组件实例不可为空")
@@ -302,7 +304,8 @@ class GroupAppBackupService(object):
             "service_ports": [port.to_dict() for port in service_ports],
             "third_party_service_endpoints": [endpoint.to_dict() for endpoint in third_party_service_endpoints],
             "service_monitors": [monitor.to_dict() for monitor in service_monitors],
-            "component_graphs": [graph.to_dict() for graph in component_graphs]
+            "component_graphs": [graph.to_dict() for graph in component_graphs],
+            "component_k8s_attributes": [k8s_attribute.to_dict() for k8s_attribute in component_k8s_attributes]
         }
         plugin_ids = [pr.plugin_id for pr in service_plugin_relation]
 

@@ -25,11 +25,12 @@ from console.repositories.app_snapshot import app_snapshot_repo
 from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app_config_group import app_config_group_service_repo
+from console.repositories.k8s_resources import k8s_resources_repo
 # exception
 from console.exception.main import ServiceHandleException
 from console.exception.bcode import ErrAppUpgradeDeployFailed
 # model
-from console.models.main import AppUpgradeRecord
+from console.models.main import AppUpgradeRecord, K8sResource
 from console.models.main import UpgradeStatus
 from console.models.main import ServiceUpgradeRecord
 from console.models.main import AppUpgradeSnapshot
@@ -112,6 +113,7 @@ class AppUpgrade(MarketApp):
 
         self.new_app = self._create_new_app()
         self.property_changes.ensure_dep_changes(self.new_app, self.original_app)
+        self.app_property_changes = self._get_app_property_changes()
 
         super(AppUpgrade, self).__init__(self.original_app, self.new_app)
 
@@ -367,6 +369,9 @@ class AppUpgrade(MarketApp):
         config_group_items = self._config_group_items(config_groups)
         config_group_components = self._config_group_components(components, config_groups)
 
+        # k8s resources
+        k8s_resources = list(self._k8s_resources())
+
         # plugins
         new_plugin_deps, new_plugin_configs = self._new_component_plugins(components)
         plugin_deps = self.original_app.plugin_deps + new_plugin_deps
@@ -390,7 +395,8 @@ class AppUpgrade(MarketApp):
             new_plugins=self.new_plugins,
             config_groups=config_groups,
             config_group_items=config_group_items,
-            config_group_components=config_group_components)
+            config_group_components=config_group_components,
+            k8s_resources=k8s_resources)
 
     def _create_original_plugins(self):
         return self.list_original_plugins()
@@ -825,3 +831,41 @@ class AppUpgrade(MarketApp):
     def _tmpl_components(self, components: [Component]):
         component_keys = [tmpl.get("service_key") for tmpl in self.app_template.get("apps")]
         return [cpt for cpt in components if cpt.component.service_key in component_keys]
+
+    def _k8s_resources(self):
+        # only add
+        k8s_resources = list(k8s_resources_repo.list_by_app_id(self.app_id))
+        k8s_resource_names = [r.name + r.kind for r in k8s_resources]
+        tmpl = self.app_template.get("k8s_resources") if self.app_template.get("k8s_resources") else []
+        for rs in tmpl:
+            if rs["name"] + rs["kind"] in k8s_resource_names:
+                continue
+            resource = K8sResource(
+                app_id=self.app_id,
+                name=rs["name"],
+                kind=rs["kind"],
+                content=rs["content"],
+            )
+            k8s_resources.append(resource)
+        return k8s_resources
+
+    def _get_app_property_changes(self):
+        changes = {"upgrade_info": dict()}
+        k8s_resources = self._k8s_resource_changes()
+        if k8s_resources:
+            changes["upgrade_info"]["k8s_resources"] = k8s_resources
+        return changes
+
+    def _k8s_resource_changes(self):
+        if not self.new_app.k8s_resources:
+            return None
+        add = []
+        old_k8s_resources = {rs.name + rs.kind: rs for rs in self.original_app.k8s_resources}
+        for new_k8s_resource in self.new_app.k8s_resources:
+            new_resource_key = new_k8s_resource.name + new_k8s_resource.kind
+            if not old_k8s_resources.get(new_resource_key):
+                add.append(new_k8s_resource.to_dict())
+        result = {}
+        if add:
+            result["add"] = add
+        return result

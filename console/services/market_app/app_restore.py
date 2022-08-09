@@ -31,7 +31,7 @@ from www.models.main import ServiceProbe
 from www.models.plugin import TenantServicePluginRelation
 from www.models.plugin import ServicePluginConfigVar
 from www.models.service_publish import ServiceExtendMethod
-from console.models.main import UpgradeStatus
+from console.models.main import UpgradeStatus, ComponentK8sAttributes
 from console.models.main import AppUpgradeRecordType
 from console.models.main import AppUpgradeRecord
 from console.models.main import ServiceUpgradeRecord
@@ -52,6 +52,7 @@ class AppRestore(MarketApp):
     1. AppRestore will use the snapshot to overwrite the components.
     2. AppRestore will not delete new components in the upgrade.
     3. AppRestore will not restore components that were deleted after the upgrade.
+    4. AppRestore will not be rolled back that k8s resources under the application
     """
 
     def __init__(self, tenant, region: RegionConfig, user, app: ServiceGroup, component_group: TenantServiceGroup,
@@ -223,6 +224,7 @@ class AppRestore(MarketApp):
         # graphs
         graphs = [ComponentGraph(**graph) for graph in snap["component_graphs"]]
         service_labels = [ServiceLabels(**label) for label in snap["service_labels"]]
+        k8s_attributes = [ComponentK8sAttributes(**attribute) for attribute in snap["component_k8s_attributes"]]
         cpt = Component(
             component=component,
             component_source=component_source,
@@ -237,6 +239,7 @@ class AppRestore(MarketApp):
             plugin_deps=[],
             labels=service_labels,
             support_labels=self.support_labels,
+            k8s_attributes=k8s_attributes,
         )
         cpt.action_type = snap.get("action_type", ActionType.BUILD.value)
         return cpt

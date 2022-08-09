@@ -1359,6 +1359,30 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region)
         return res, body
 
+    def create_upload_file_dir(self, region, tenant_name, event_id):
+        """创建上传文件目录"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/upload/events/" + event_id
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region)
+        return res, body
+
+    def get_upload_file_dir(self, region, tenant_name, event_id):
+        """查询上传文件目录"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/upload/events/" + event_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def update_upload_file_dir(self, region, tenant_name, event_id, component_id):
+        """更新上传文件目录"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/app/upload/events/" + event_id + "/component_id/" + component_id
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, region=region)
+        return res, body
+
     def backup_group_apps(self, region, tenant_name, body):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
@@ -1653,6 +1677,78 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         except Exception as e:
             logger.exception(e)
             return None
+
+    def list_namespaces(self, enterprise_id, region, content):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/namespace?eid={0}&content={1}".format(enterprise_id, content)
+        res, body = self._get(url, self.default_headers, region=region_info.region_name)
+        return res, body
+
+    def list_namespace_resources(self, enterprise_id, region, content, namespace):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/resource?eid={0}&content={1}&namespace={2}".format(enterprise_id, content, namespace)
+        res, body = self._get(url, self.default_headers, region=region_info.region_name)
+        return res, body
+
+    def list_convert_resource(self, enterprise_id, region, namespace, content):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/convert-resource?eid={0}&content={1}&namespace={2}".format(enterprise_id, content, namespace)
+        res, body = self._get(url, self.default_headers, region=region_info.region_name, timeout=10)
+        return res, body
+
+    def resource_import(self, enterprise_id, region, namespace, content):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/convert-resource?eid={0}&content={1}&namespace={2}".format(enterprise_id, content, namespace)
+        res, body = self._post(url, self.default_headers, body="", region=region_info.region_name, timeout=20)
+        return res, body
+
+    def yaml_resource_name(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/yaml_resource_name?eid={0}".format(enterprise_id)
+        res, body = self._get(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=20)
+        return res, body
+
+    def yaml_resource_detailed(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/yaml_resource_detailed?eid={0}".format(enterprise_id)
+        res, body = self._get(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=20)
+        return res, body
+
+    def yaml_resource_import(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/yaml_resource_import?eid={0}".format(enterprise_id)
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=300)
+        return res, body
+
+    def add_resource(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/convert-resource?eid={0}".format(enterprise_id)
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
+        return res, body
 
     def list_tenants(self, enterprise_id, region, page=1, page_size=10):
         """list tenants"""
@@ -2012,3 +2108,57 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         resp, _ = self._delete(url, self._set_headers(token), region=region_name, body=json.dumps(body))
         return resp
+
+    def create_app_resource(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/k8s-resource?eid={0}".format(enterprise_id)
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
+        return res, body
+
+    def update_app_resource(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/k8s-resource"
+        res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
+        return res, body
+
+    def delete_app_resource(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/k8s-resource"
+        res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
+        return res, body
+
+    def sync_k8s_resources(self, tenant_name, region_name, data):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/cluster/sync-k8s-resources"
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_name, timeout=20)
+        return res, body
+
+    def create_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, body
+
+    def update_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, body
+
+    def delete_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, body
