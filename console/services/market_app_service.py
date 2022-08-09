@@ -18,10 +18,11 @@ from console.models.main import (AppMarket, AppUpgradeRecord, RainbondCenterApp,
 from console.repositories.app import (app_market_repo, app_tag_repo, service_source_repo)
 from console.repositories.app_config import (env_var_repo, extend_repo, port_repo, volume_repo)
 from console.repositories.base import BaseConnection
-from console.repositories.group import group_repo, tenant_service_group_repo
+from console.repositories.group import group_repo, tenant_service_group_repo, group_service_relation_repo
 from console.repositories.market_app_repo import (app_import_record_repo, rainbond_app_repo)
 from console.repositories.plugin import plugin_repo
 from console.repositories.plugin.plugin import plugin_version_repo
+from console.repositories.region_app import region_app_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
@@ -78,6 +79,15 @@ class MarketAppService(object):
 
         app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
                                                          version)
+        if app_template.get("governance_mode") and app_template["governance_mode"] != app.governance_mode:
+            if group_service_relation_repo.count_service_by_app_id(app_id) > 0:
+                raise AbortRequest(
+                    "app governance mode not match", "当前应用治理模式与应用模版治理模式不一致，请新建应用后再安装", status_code=400, error_code=400)
+            app.governance_mode = app_template["governance_mode"]
+            region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
+            region_api.update_app(region.region_name, tenant.tenant_name, region_app_id,
+                                  {"governance_mode": app.governance_mode})
+            app.save()
 
         component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
                                                             version, market_app.app_name)

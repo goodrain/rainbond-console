@@ -16,7 +16,7 @@ from www.models.main import (ServiceProbe, TenantServiceConfigurationFile, Tenan
                              TenantServiceVolume)
 from www.models.label import ServiceLabels
 from console.models.main import ComponentGraph, ServiceMonitor
-from console.models.main import ServiceSourceInfo
+from console.models.main import ServiceSourceInfo, ComponentK8sAttributes
 # util
 from www.utils.crypt import make_uuid
 
@@ -41,7 +41,8 @@ class Component(object):
                  tcp_rules=None,
                  service_group_rel=None,
                  labels=None,
-                 support_labels=None):
+                 support_labels=None,
+                 k8s_attributes=None):
         self.component = component
         self.component_source = component_source
         self.envs = list(envs)
@@ -62,6 +63,7 @@ class Component(object):
         self.labels = list(labels) if labels else []
         self.service_group_rel = service_group_rel
         self.support_labels = {label.label_name: label for label in support_labels}
+        self.k8s_attributes = list(k8s_attributes) if k8s_attributes else []
         self.action_type = ActionType.NOTHING.value
 
     def set_changes(self, tenant, region, changes, governance_mode):
@@ -122,6 +124,7 @@ class Component(object):
             "component_graphs": self._update_component_graphs,
             "component_monitors": self._update_component_monitors,
             "plugin_deps": self._update_plugin_deps,
+            "component_k8s_attributes": self._update_component_k8s_attributes,
         }
 
     def _update_plugin_deps(self, plugin_deps):
@@ -329,6 +332,44 @@ class Component(object):
             probe.service_id = self.component.component_id
             probes.append(probe)
         self.probes = probes
+        self.update_action_type(ActionType.UPDATE.value)
+
+    def _update_component_k8s_attributes(self, component_k8s_attributes):
+        if not component_k8s_attributes:
+            return
+        old_k8s_attributes = {attr.name: attr for attr in self.k8s_attributes}
+        new_k8s_attributes = []
+        if component_k8s_attributes.get("add", []):
+            new_k8s_attributes.extend(component_k8s_attributes.get("add"))
+        if component_k8s_attributes.get("upd", []):
+            new_k8s_attributes.extend(component_k8s_attributes.get("upd"))
+
+        k8s_attributes = {}
+        for attribute in new_k8s_attributes:
+            attr_name = attribute.get("name")
+            if not attr_name:
+                continue
+            attr = old_k8s_attributes.get(attr_name)
+            if not attr:
+                self.k8s_attributes.append(
+                    ComponentK8sAttributes(
+                        tenant_id=self.component.tenant_id,
+                        component_id=self.component.component_id,
+                        name=attribute.get("name"),
+                        save_type=attribute.get("save_type"),
+                        attribute_value=attribute.get("attribute_value"),
+                    ))
+                continue
+            # update attrs
+            k8s_attr = ComponentK8sAttributes(**attribute)
+            k8s_attr.tenant_id = self.component.tenant_id
+            k8s_attr.component_id = self.component.component_id
+            k8s_attributes[attr_name] = k8s_attr
+
+        for original_attr in self.k8s_attributes:
+            if k8s_attributes.get(original_attr.name):
+                original_attr.attribute_value = k8s_attributes[original_attr.name].attribute_value
+
         self.update_action_type(ActionType.UPDATE.value)
 
     def update_action_type(self, action_type):

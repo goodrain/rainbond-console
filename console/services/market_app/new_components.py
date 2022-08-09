@@ -23,7 +23,7 @@ from www.models.main import GatewayCustomConfiguration
 from console.models.main import ServiceSourceInfo
 from console.models.main import ServiceMonitor
 from console.models.main import ComponentGraph
-from console.models.main import RegionConfig
+from console.models.main import RegionConfig, ComponentK8sAttributes
 from www.models.service_publish import ServiceExtendMethod
 from www.models.main import TenantServiceConfigurationFile
 from www.models.label import ServiceLabels
@@ -114,6 +114,8 @@ class NewComponents(object):
             monitors = self._template_to_service_monitors(cpt, component_tmpl.get("component_monitors"))
             # graphs
             graphs = self._template_to_component_graphs(cpt, component_tmpl.get("component_graphs"))
+            # component k8s attributes
+            k8s_attrs = self._template_to_k8s_attributes(cpt, component_tmpl.get("component_k8s_attributes"))
             service_group_rel = ServiceGroupRelation(
                 service_id=cpt.component_id,
                 group_id=self.original_app.app_id,
@@ -139,7 +141,8 @@ class NewComponents(object):
                 http_rule_configs=http_rule_configs,
                 service_group_rel=service_group_rel,
                 labels=labels,
-                support_labels=self.support_labels)
+                support_labels=self.support_labels,
+                k8s_attributes=k8s_attrs)
             component.ensure_port_envs(self.original_app.governance_mode)
             component.action_type = ActionType.BUILD.value
             result.append(component)
@@ -590,3 +593,17 @@ class NewComponents(object):
                     region=self.region_name,
                     create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         return new_labels
+
+    def _template_to_k8s_attributes(self, component, attributes):
+        if not attributes:
+            return []
+        new_attributes = []
+        for attribute in attributes:
+            new_attributes.append(
+                ComponentK8sAttributes(
+                    tenant_id=component.tenant_id,
+                    component_id=component.service_id,
+                    name=attribute["name"],
+                    save_type=attribute["save_type"],
+                    attribute_value=attribute["attribute_value"]))
+        return new_attributes

@@ -7,6 +7,8 @@ class ComponentType(Enum):
     stateless_multiple = "stateless_multiple"
     state_singleton = "state_singleton"
     state_multiple = "state_multiple"
+    job = "job"
+    cronjob = "cronjob"
 
 
 def is_state(component_type):
@@ -25,7 +27,9 @@ def is_support(component_type):
     if component_type == ComponentType.state_singleton.value \
             or component_type == ComponentType.stateless_singleton.value \
             or component_type == ComponentType.stateless_multiple.value \
-            or component_type == ComponentType.state_multiple.value:
+            or component_type == ComponentType.state_multiple.value \
+            or component_type == ComponentType.job.value \
+            or component_type == ComponentType.cronjob.value:
         return True
 
     return False
