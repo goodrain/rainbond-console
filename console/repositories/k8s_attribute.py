@@ -25,5 +25,10 @@ class ComponentK8sAttributeRepo(object):
     def get_by_component_id(self, component_id):
         return ComponentK8sAttributes.objects.filter(component_id=component_id)
 
+    @staticmethod
+    def overwrite_by_component_ids(component_ids, attrs):
+        ComponentK8sAttributes.objects.filter(component_id__in=component_ids).delete()
+        ComponentK8sAttributes.objects.bulk_create(attrs)
+
 
 k8s_attribute_repo = ComponentK8sAttributeRepo()
