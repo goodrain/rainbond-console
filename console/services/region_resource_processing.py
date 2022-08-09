@@ -8,6 +8,7 @@ from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.repositories.k8s_resources import k8s_resources_repo
 from console.repositories.region_app import region_app_repo
+from console.services.app_actions import app_manage_service
 from console.services.perm_services import role_kind_services
 from console.services.team_services import team_services
 from www.apiclient.regionapi import RegionInvokeApi
@@ -63,13 +64,14 @@ class RegionResource(object):
         ).save()
         role_kind_services.init_default_roles(kind="team", kind_id=t.tenant_id)
         team_services.add_user_role_to_team(tenant=t, user_ids=[user_id], role_ids=[])
+        return t
 
-    def create_app(self, tenant, apps, region_name, user_id):
+    def create_app(self, tenant, apps, region, user):
         if apps:
             for app in apps:
                 application = ServiceGroup(
-                    tenant_id=tenant["UUID"],
-                    region_name=region_name,
+                    tenant_id=tenant.tenant_id,
+                    region_name=region.region_name,
                     group_name=app["app"]["app_name"],
                     note="",
                     is_default=False,
@@ -87,7 +89,7 @@ class RegionResource(object):
                 )
                 group_repo.create(application)
                 da = {
-                    "region_name": region_name,
+                    "region_name": region.region_name,
                     "region_app_id": app["app"]["app_id"],
                     "app_id": application.ID,
                 }
@@ -95,10 +97,14 @@ class RegionResource(object):
                 if app["k8s_resources"]:
                     self.create_k8s_resources(app["k8s_resources"], application.ID)
                 components = app["component"]
-                self.create_components(application, components, tenant, region_name, user_id)
+                service_ids = self.create_components(application, components, tenant, region.region_name, user.user_id)
+                app_manage_service.batch_action(region.region_name, tenant, user, "deploy", service_ids,
+                                                None, None)
 
     def create_k8s_resources(self, k8s_resources, app_id):
         app_k8s_resource_list = list()
+        if not k8s_resources:
+            return
         for k8s_resource in k8s_resources:
             app_k8s_resource_list.append(
                 K8sResource(
@@ -112,7 +118,8 @@ class RegionResource(object):
 
     def create_components(self, application, components, tenant, region_name, user_id):
         if not components:
-            return
+            return []
+        service_ids = list()
         for component in components:
             new_service = TenantServiceInfo()
             new_service.cmd = component["cmd"]
@@ -143,25 +150,29 @@ class RegionResource(object):
             new_service.code_from = "image_manual"
             new_service.language = ""
             new_service.create_status = "complete"
-            new_service.tenant_id = tenant["UUID"]
+            new_service.tenant_id = tenant.tenant_id
             new_service.service_cname = component["ts"]["k8s_component_name"]
             new_service.service_source = "docker_image"
             new_service.service_id = component["ts"]["service_id"]
             new_service.service_alias = component["ts"]["service_alias"]
             new_service.creater = user_id
-            new_service.host_path = "/grdata/tenant/" + tenant["UUID"] + "/service/" + component["ts"]["service_id"]
+            new_service.build_upgrade = False
+            new_service.host_path = "/grdata/tenant/" + tenant.tenant_id + "/service/" + component["ts"][
+                "service_id"]
             new_service.docker_cmd = ""
             new_service.k8s_component_name = component["ts"]["k8s_component_name"]
             new_service.job_strategy = component["ts"]["job_strategy"]
             new_service.save()
             group_service_relation_repo.add_service_group_relation(application.ID, component["ts"]["service_id"],
-                                                                   tenant["UUID"], region_name)
-            self.create_component_env(component["env"], tenant["UUID"], new_service)
-            self.create_component_config(component["config"], tenant["UUID"], new_service)
-            self.create_component_port(component["port"], tenant["UUID"], new_service)
+                                                                   tenant.tenant_id, region_name)
+            self.create_component_env(component["env"], tenant.tenant_id, new_service)
+            self.create_component_config(component["config"], tenant.tenant_id, new_service)
+            self.create_component_port(component["port"], tenant.tenant_id, new_service)
             self.create_component_telescopic(component["telescopic"], new_service)
             self.create_healthy_check(component["healthy_check"], new_service)
-            self.create_component_special(component["component_k8s_attributes"], tenant["UUID"], new_service)
+            self.create_component_special(component["component_k8s_attributes"], tenant.tenant_id, new_service)
+            service_ids.append(new_service.service_id)
+        return service_ids
 
     def create_component_env(self, envs, tenant_id, service):
         if not envs:
