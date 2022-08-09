@@ -424,7 +424,8 @@ class EnterpriseConvertResource(JWTAuthApiView):
         if rs:
             if regions:
                 tenant = rs["tenant"]
-                tenant = region_resource.create_tenant(tenant, enterprise_id, namespace, self.user.user_id, regions[0].region_name)
+                tenant = region_resource.create_tenant(tenant, enterprise_id, namespace, self.user.user_id,
+                                                       regions[0].region_name)
                 apps = rs.get("app", {})
                 region_resource.create_app(tenant, apps, regions[0], self.user)
                 data["bean"]["tenant"]["region_name"] = regions[0].region_name

@@ -342,7 +342,7 @@ class MarketApp(object):
     def _sync_app_k8s_resources(self, app):
         # only add k8s resources
         k8s_resources = list()
-        region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app_id)
+        region_app_id = region_app_repo.get_region_app_id(self.region_name, self.app.app_id)
         for k8s_resource in app.k8s_resources:
             resource = {
                 "name": k8s_resource.name,

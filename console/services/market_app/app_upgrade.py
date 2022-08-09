@@ -835,10 +835,10 @@ class AppUpgrade(MarketApp):
     def _k8s_resources(self):
         # only add
         k8s_resources = list(k8s_resources_repo.list_by_app_id(self.app_id))
-        k8s_resource_names = [r.name+r.kind for r in k8s_resources]
+        k8s_resource_names = [r.name + r.kind for r in k8s_resources]
         tmpl = self.app_template.get("k8s_resources") if self.app_template.get("k8s_resources") else []
         for rs in tmpl:
-            if rs["name"]+rs["kind"] in k8s_resource_names:
+            if rs["name"] + rs["kind"] in k8s_resource_names:
                 continue
             resource = K8sResource(
                 app_id=self.app_id,

@@ -98,8 +98,7 @@ class RegionResource(object):
                     self.create_k8s_resources(app["k8s_resources"], application.ID)
                 components = app["component"]
                 service_ids = self.create_components(application, components, tenant, region.region_name, user.user_id)
-                app_manage_service.batch_action(region.region_name, tenant, user, "deploy", service_ids,
-                                                None, None)
+                app_manage_service.batch_action(region.region_name, tenant, user, "deploy", service_ids, None, None)
 
     def create_k8s_resources(self, k8s_resources, app_id):
         app_k8s_resource_list = list()
@@ -157,8 +156,7 @@ class RegionResource(object):
             new_service.service_alias = component["ts"]["service_alias"]
             new_service.creater = user_id
             new_service.build_upgrade = False
-            new_service.host_path = "/grdata/tenant/" + tenant.tenant_id + "/service/" + component["ts"][
-                "service_id"]
+            new_service.host_path = "/grdata/tenant/" + tenant.tenant_id + "/service/" + component["ts"]["service_id"]
             new_service.docker_cmd = ""
             new_service.k8s_component_name = component["ts"]["k8s_component_name"]
             new_service.job_strategy = component["ts"]["job_strategy"]

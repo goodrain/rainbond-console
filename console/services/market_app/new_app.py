@@ -227,6 +227,7 @@ class NewApp(object):
         monitors = []
         graphs = []
         labels = []
+        k8s_attributes = []
         # TODO(huangrh): merged with _save_components
         for cpt in self.update_components:
             sources.append(cpt.component_source)
@@ -241,6 +242,7 @@ class NewApp(object):
             monitors.extend(cpt.monitors)
             graphs.extend(cpt.graphs)
             labels.extend(cpt.labels)
+            k8s_attributes.extend(cpt.k8s_attributes)
 
         components = [cpt.component for cpt in self.update_components]
         component_ids = [cpt.component_id for cpt in components]
@@ -255,6 +257,7 @@ class NewApp(object):
         service_monitor_repo.overwrite_by_component_ids(component_ids, monitors)
         component_graph_repo.overwrite_by_component_ids(component_ids, graphs)
         service_label_repo.overwrite_by_component_ids(component_ids, labels)
+        k8s_attribute_repo.overwrite_by_component_ids(component_ids, k8s_attributes)
 
     def _save_component_deps(self):
         dep_relation_repo.overwrite_by_component_id(self.component_ids, self.component_deps)
