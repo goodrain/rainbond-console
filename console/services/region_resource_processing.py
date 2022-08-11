@@ -130,8 +130,8 @@ class RegionResource(object):
             new_service.extend_method = component["ts"]["extend_method"]
             new_service.env = ""
             new_service.min_node = component["ts"]["replicas"]
-            new_service.min_memory = 0
-            new_service.min_cpu = 0
+            new_service.min_memory = component["ts"]["container_memory"]
+            new_service.min_cpu = component["ts"]["container_cpu"]
             new_service.inner_port = 0
             new_service.image = component["image"]
             version = component["image"].split(":")[1] if len(component["image"].split(":")) > 1 else "latest"
