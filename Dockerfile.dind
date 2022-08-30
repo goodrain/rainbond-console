@@ -3,25 +3,23 @@ ARG VERSION=V5.4-dev
 
 FROM golang:1.14-stretch as builder
 ARG VERSION=v5.7.1-release
+ARG LDFLAGS
+ARG ADAPTOR_BRANCH=v5.7.1-release
 # ENV GOPROXY=https://goproxy.io
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
-ARG DOMESTIC_NAMESPACE=goodrain
-ENV DOMESTIC_NAMESPACE=${DOMESTIC_NAMESPACE}
-RUN git clone -b ${VERSION} --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
+RUN git clone -b ${ADAPTOR_BRANCH} --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
-ARG LDFLAGS
-RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
 
-ARG IMAGE_NAMESPACE=rainbond
-ARG VERSION=V5.4-dev
+RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
 
 FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION}
 ARG RELEASE_DESC=
 ARG ARCH=amd64
-ARG BRANCH=v2.3.0
+ARG OPERATOR_BRANCH=v2.3.0
+ARG OPERATOR_ORG=goodrain
+ARG VERSION
 
-LABEL author="zengqg@goodrain.com"
 RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ && \
     mkdir -p /opt/rainbond/ && \
     mkdir -p /var/lib/k3s/server/manifests/metrics-server/rainbond && \
@@ -46,9 +44,9 @@ RUN set -eux; \
             kubectl_url="https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/linux/amd64/kubectl" \
 			;; \
 		'arm64') \
-			docker_url='https://pkg.goodrain.com/pkg/docker-20.10.11.tgz'; \
-            k3s_url="https://pkg.goodrain.com/pkg/k3s-arm64" \
-            kubectl_url="https://pkg.goodrain.com/pkg/kubectl" \
+			docker_url='https://download.docker.com/linux/static/stable/aarch64/docker-20.10.11.tgz'; \
+            k3s_url="https://github.com/rancher/k3s/releases/download/v1.22.3+k3s1/k3s-arm64" \
+            kubectl_url="https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/linux/arm64/kubectl" \
 			;; \
 	esac \
     && wget -O docker.tgz "$docker_url" \
@@ -65,18 +63,16 @@ COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
 COPY --from=builder /cloud-adaptor /app/cloudadaptor
 ADD . /app/ui
 WORKDIR /app/ui
-ARG VERSION=V5.4-dev
-ARG DOMESTIC_NAMESPACE=goodrain
-ARG CLONE_URL=https://github.com/goodrain
+
 RUN set -eux; \
     if [ "${ARCH}" = "arm64" ]; then \
-        wget "https://pkg.rainbond.com/images-pkg/arm64/rainbond-v5.6.0.tar"; \
+        # wget "https://pkg.rainbond.com/images-pkg/arm64/rainbond-v5.6.0.tar"; \
         wget "https://pkg.rainbond.com/images-pkg/arm64/log"; \
     else \
-        wget "https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/images-pkg/rainbond-${VERSION}.tar"; \
+        # wget "https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/images-pkg/rainbond-${VERSION}.tar"; \
         wget "https://pkg.rainbond.com/images-pkg/log"; \
     fi && \
-    git clone -b ${BRANCH} --depth=1 ${CLONE_URL}/rainbond-operator.git /app/ui/rainbond-operator && \
+    git clone -b $OPERATOR_BRANCH --depth=1 https://github.com/$OPERATOR_ORG/rainbond-operator.git /app/ui/rainbond-operator && \
     chmod +x /app/ui/entrypoint.sh /app/ui/start.sh /app/ui/k3s.sh  /app/ui/init_rainbond.sh && \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
     mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \

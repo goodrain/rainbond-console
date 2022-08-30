@@ -10,7 +10,7 @@ trap stop_container SIGTERM
 
 # unzip the image
 image=$(docker images | grep api | awk '{print $1}')
-if [[ $image != "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-api" ]];then
+if [[ $image != "rainbond/rbd-api" ]];then
  while true; do
         docker load -i /app/ui/rainbond-${VERSION}.tar
         if [ $? -eq 0 ]; then
@@ -28,4 +28,4 @@ fi
 
 #Start K3s 
 
-/usr/local/bin/k3s server --docker --disable traefik --node-name node --data-dir /app/data/k3s
+/usr/local/bin/k3s server --docker --disable traefik --node-name node --data-dir /app/data/k3s --tls-san "$EIP"
