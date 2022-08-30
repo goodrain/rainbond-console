@@ -36,14 +36,12 @@ steps:
   - name: dockersock
     path: /var/run
   environment:
-    BUILD_VERSION:
-      from_secret: build_version
-    BASE_BUILD_VERSION:
-      from_secret: base_build_version
+    VERSION:
+      from_secret: version
   commands:
   - sleep 10 # give docker enough time to start
   - cd rainbond-ui
-  - docker build --build-arg VERSION=$BASE_BUILD_VERSION -t rainbond/rainbond-ui:$BUILD_VERSION .
+  - docker build --build-arg VERSION=v5.5.0-arm64 -t rainbond/rainbond-ui:$VERSION .
 
 - name: build rainbond-console
   image: rainbond/docker:dind
@@ -52,27 +50,21 @@ steps:
   - name: dockersock
     path: /var/run
   environment:
-    TRAVIS_PULL_REQUEST:
-      from_secret: travis_pull_request
-    DOMESTIC_DOCKER_USERNAME:
-      from_secret: domestic_docker_username
-    DOMESTIC_DOCKER_PASSWORD:
-      from_secret: domestic_docker_password
-    DOMESTIC_BASE_NAME:
-      from_secret: domestic_base_name
-    BUILD_VERSION:
-      from_secret: build_version
-    DOMESTIC_NAMESPACE:
-      from_secret: domestic_namespace
+    VERSION:
+      from_secret: version
     DOCKER_USERNAME:
       from_secret: docker_username
     DOCKER_PASSWORD:
       from_secret: docker_password
     GOOS: linux
     GOARCH: arm64
+    OPERATOR_BRANCH:
+      from_secret: operator_branch
+    ADAPTOR_BRANCH:
+      from_secret: adaptor_branch
   commands:
   - rm -rf rainbond-ui
-  - VERSION=$BUILD_VERSION BUILD_ARCH=$GOARCH ./release.sh dind
+  - BUILD_ARCH=$GOARCH ./release.sh dind
   when:
     event:
       include:

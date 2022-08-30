@@ -30,18 +30,13 @@ IIP=${IIP:-$NODE_IP}
 # helm安装
 HELM_INSTALL=$(/usr/local/bin/helm list -n rbd-system | sed -n 2p | awk '{print $1}')
 if [ "$HELM_INSTALL" != "rainbond-operator" ]; then
-  ARCH=$(uname -m)
-  if [ "$ARCH" = "aarch64" ]; then
-      arch_image_tag="v2.3.0-arm64"
-      sed -i "s/v5.6.0-release/v5.6.0-release-arm64/g" $(grep -rl v5.6.0-release /app/ui/rainbond-operator/config/single_node_cr/*)
-  elif [ "$ARCH" = "x86_64" ]; then
-      arch_image_tag=${VERSION}
-      sed -i "s/goodrain/${DOMESTIC_NAMESPACE}/g" $(grep -rl goodrain /app/ui/rainbond-operator/config/single_node_cr/*)
-      sed -i "s/v5.6.0-release/${arch_image_tag}/g" $(grep -rl v5.6.0-release /app/ui/rainbond-operator/config/single_node_cr/*)
-  fi
+  RBD_LIST=(rbd-api rbd-chaos rbd-eventlog rbd-gateway rbd-monitor rbd-mq rbd-node rbd-resource-proxy rbd-webcli rbd-worker rbdcluster)
+  for item in "${RBD_LIST[@]}"; do
+      sed -i "s/v5.6.0-release/${VERSION}/g" /app/ui/rainbond-operator/config/single_node_cr/"$item".yml
+  done
   (helm install rainbond-operator /app/chart -n rbd-system --kubeconfig /root/.kube/config \
-      --set operator.image.name=registry.cn-hangzhou.aliyuncs.com/${DOMESTIC_NAMESPACE}/rainbond-operator \
-      --set operator.image.tag=${VERSION}) &>> /app/logs/init_rainbond.log
+      --set operator.image.name=rainbond/rainbond-operator \
+      --set operator.image.tag="${VERSION}") &>> /app/logs/init_rainbond.log
 fi
 # 修改yaml
 sed -i "s/single_node_name/$NODE_NAME/" /app/ui/rainbond-operator/config/single_node_cr/rbdcluster.yml
