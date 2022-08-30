@@ -66,10 +66,8 @@ WORKDIR /app/ui
 
 RUN set -eux; \
     if [ "${ARCH}" = "arm64" ]; then \
-        # wget "https://pkg.rainbond.com/images-pkg/arm64/rainbond-v5.6.0.tar"; \
         wget "https://pkg.rainbond.com/images-pkg/arm64/log"; \
     else \
-        # wget "https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/images-pkg/rainbond-${VERSION}.tar"; \
         wget "https://pkg.rainbond.com/images-pkg/log"; \
     fi && \
     git clone -b $OPERATOR_BRANCH --depth=1 https://github.com/$OPERATOR_ORG/rainbond-operator.git /app/ui/rainbond-operator && \
