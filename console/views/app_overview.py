@@ -641,7 +641,7 @@ class BuildSourceinfo(AppBaseView):
                 self.service.save()
                 transaction.savepoint_commit(s_id)
             elif service_source == "docker_run":
-                self.service.service_source = "docker_run"
+                self.service.service_source = "docker_image"
                 if image:
                     version = image.split(':')[-1]
                     if not version:
