@@ -45,7 +45,7 @@ function release_allinone() {
   release_desc=${VERSION}-${git_commit}-${buildTime}-allinone
   image_name="rainbond"
   imageName=${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION}-allinone
-  docker build --network=host --build-arg VERSION="${VERSION}" --build-arg IMAGE_NAMESPACE="${IMAGE_NAMESPACE}"  --build-arg RELEASE_DESC="${release_desc}" --build-arg ARCH="${ARCH}" -t "${imageName}" -f Dockerfile.allinone .
+  docker build --network=host --build-arg VERSION="${VERSION}" --build-arg IMAGE_NAMESPACE="${IMAGE_NAMESPACE}"  --build-arg ADAPTOR_BRANCH="${ADAPTOR_BRANCH}" --build-arg RELEASE_DESC="${release_desc}" --build-arg ARCH="${ARCH}" -t "${imageName}" -f Dockerfile.allinone .
   if [ $? -ne 0 ]; then
     exit 1
   fi
