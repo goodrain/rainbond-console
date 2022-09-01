@@ -7,15 +7,15 @@ echo -e "\033[31m  export EIP= IP address \033[0m "
         exit 0
 fi
 
-echo -e "\033[34m 安装过程中出现问题可以参考排查文档（https://www.rainbond.com/docs/user-operations/deploy/install-troubleshoot/dind-install-troubleshoot） \033[0m"
-echo -e "\033[34m 正在加载数据，预计3分钟，时间取决于磁盘性能... \033[0m"
+echo -e "\033[34m If there is a problem during the installation process, please refer to the troubleshooting doc (https://www.rainbond.com/docs/user-operations/deploy/install-troubleshoot/dind-install-troubleshoot) \033[0m"
+echo -e "\033[34m Loading data, Estimated 3 min, Time depends on disk performance... \033[0m"
 while :
 do
   sleep 3s
   kubectl get node &>> /app/logs/init_rainbond_node.log
   NODE_IS_READY=$(sed -n '$p' /app/logs/init_rainbond_node.log | awk '{print $2}')
     if [ $NODE_IS_READY == "Ready" ]; then
-      echo -e "\033[34m 正在启动Rainbond，预计5分钟... \033[0m"
+      echo -e "\033[34m Starting Rainbond, Estimated 5 min... \033[0m"
       break
     fi
 done
@@ -54,7 +54,7 @@ do
       if [[ $API_RUNNING == "Running" ]]; then
         API_READY=$(sed -n '$p' /app/logs/init_rainbond_api.log | awk '{print $2}')
         if [[ $API_READY == "1/1" ]]; then
-          echo -e "\033[32m Rainbond启动成功，可以通过访问: http://$EIP:7070 进入Rainbond控制台。 \033[0m"
+          echo -e "\033[32m Rainbond is successfully started, http://$EIP:7070 access Rainbond. \033[0m"
           break
         fi
       fi
