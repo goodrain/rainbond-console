@@ -93,6 +93,15 @@ class AppExportService(object):
             image_base64_string = ""
 
         app_template = json.loads(app_version.app_template)
+        ingress_http_routes = list()
+        for ingress_http_route in app_template["ingress_http_routes"]:
+            if ingress_http_route["proxy_header"]:
+                ingress_http_route["proxy_header"] = {
+                    header["item_key"]: header["item_value"]
+                    for header in ingress_http_route["proxy_header"]
+                }
+                ingress_http_routes.append(ingress_http_route)
+        app_template["ingress_http_routes"] = ingress_http_routes
         app_template["annotations"] = {
             "suffix": suffix,
             "describe": describe,
