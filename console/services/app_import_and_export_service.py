@@ -123,6 +123,9 @@ class AppExportService(object):
         docker_compose_init_data = {
             "is_export_before": False,
         }
+        slug_init_data = {
+            "is_export_before": False,
+        }
 
         if app_export_records:
             for export_record in app_export_records:
@@ -163,8 +166,22 @@ class AppExportService(object):
                         self._wrapper_director_download_url(export_record.region_name, export_record.file_path.replace(
                             "/v2", ""))
                     })
-
+                if export_record.format == "slug":
+                    slug_init_data.update({
+                        "is_export_before":
+                        True,
+                        "status":
+                        export_record.status,
+                        "file_path":
+                        self._wrapper_director_download_url(export_record.region_name, export_record.file_path.replace(
+                            "/v2", ""))
+                    })
         result = {"rainbond_app": rainbond_app_init_data, "docker_compose": docker_compose_init_data}
+        tmpl = json.loads(app_version.app_template)
+        for component in tmpl.get("apps"):
+            if component.get("service_source") == "source_code":
+                result["slug"] = slug_init_data
+                break
         return result
 
     def __get_down_url(self, region_name, raw_url):
