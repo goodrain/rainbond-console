@@ -94,7 +94,8 @@ class AppExportService(object):
 
         app_template = json.loads(app_version.app_template)
         for ingress_http_route in app_template["ingress_http_routes"]:
-            if ingress_http_route["proxy_header"] and isinstance(ingress_http_route["proxy_header"], list):
+            ingress_http_route["proxy_header"] = ingress_http_route.get("proxy_header", {})
+            if isinstance(ingress_http_route["proxy_header"], list):
                 ingress_http_route["proxy_header"] = {
                     header["item_key"]: header["item_value"]
                     for header in ingress_http_route["proxy_header"]
