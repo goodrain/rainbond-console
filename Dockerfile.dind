@@ -5,9 +5,11 @@ FROM golang:1.14-stretch as builder
 ARG VERSION=v5.7.1-release
 ARG LDFLAGS
 ARG ADAPTOR_BRANCH=v5.7.1-release
+
 # ENV GOPROXY=https://goproxy.io
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
+
 RUN git clone -b ${ADAPTOR_BRANCH} --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
 
@@ -71,10 +73,9 @@ RUN set -eux; \
         wget "https://pkg.rainbond.com/images-pkg/log"; \
     fi && \
     git clone -b $OPERATOR_BRANCH --depth=1 https://github.com/$OPERATOR_ORG/rainbond-operator.git /app/ui/rainbond-operator && \
-    chmod +x /app/ui/entrypoint.sh /app/ui/start.sh /app/ui/k3s.sh  /app/ui/init_rainbond.sh && \
+    chmod +x /app/ui/entrypoint.sh /app/ui/entrypoint-dind.sh && \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
-    mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
-    mv /app/ui/dind.conf /etc/supervisor/conf.d/dind.conf.bak && \
+    mv /app/ui/dind.conf /etc/supervisor/conf.d/dind.conf && \
 	mv /app/ui/daemon.json /etc/docker/daemon.json && \
 	chmod +x /app/cloudadaptor && \
     mv /dist/index.html /app/ui/www/templates/index.html && \
@@ -114,5 +115,4 @@ VOLUME /root/.ssh
 VOLUME /opt/rainbond
 VOLUME /var/lib/docker
 
-ENTRYPOINT [ "/app/ui/start.sh" ]
-CMD ["/usr/bin/supervisord","-c","/etc/supervisor/supervisord.conf"]
+CMD ["/usr/bin/supervisord"]
