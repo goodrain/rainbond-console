@@ -38,7 +38,7 @@ class NodeDetails extends React.Component {
     this.state = {
       shows: false,
       // isFlag: false,
-      count: 0
+      count: 0,
     }
   }
 
@@ -231,7 +231,7 @@ class NodeDetails extends React.Component {
     })
   }
   renderDetails() {
-    const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo, pods, appinfo, appmoduleinfo, appvisitinfo, appNodes, newAppInfo } = this.props;
+    const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo, pods, appinfo, appmoduleinfo, appvisitinfo, appNodes, newAppInfo, userPermission, teamName } = this.props;
     const { shows } = this.state
     const nodeDetails = details;
     const showControls = details.controls && details.controls.length > 0;
@@ -264,6 +264,34 @@ class NodeDetails extends React.Component {
     const appnodes = appNodes._list._tail.array
     // 实例平均占用内存
     const podMemory = getPodMemory(nodeDetails);
+
+    //用户操作权限
+    const permission = userPermission && userPermission.data || []
+    //团队名称
+    const team_name = teamName && teamName.tenantName || null
+    //用户当前团队的权限
+    const filterByName = (aim, name) => {
+      if(aim.length > 0 && name){
+        return aim.filter(item => item.team_name == name)
+      }
+   }
+   const user_permission = filterByName(permission,team_name).length > 0 && filterByName(permission,team_name)[0].tenant_actions.team.sub_models
+   const component_permission = []
+   user_permission.map((item)=>{
+     if(item.component){
+      item.component.perms.map((v)=>{
+        component_permission.push(v)
+      })
+     }
+   })
+    let oldList = {...component_permission}
+    let permissionObj = {}
+    Object.keys(oldList).map(item => {
+      const key = Object.keys(oldList[item])[0]
+      const value = Object.values(oldList[item])[0]
+      Object.assign(permissionObj, { [key]: value })
+    })
+
     var isFlag = null;
     var is_Helm = null;
     const newRes = []
@@ -356,8 +384,8 @@ class NodeDetails extends React.Component {
                   // 聚合的访问层
                   <table style={{ width: '100%', padding: '5px 0px', background: 'rgba(255,255,255,0.2)' }}>
                     <tr style={{ display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' }}>
-                      {
-                        (<td style={{ cursor: 'pointer', position: 'relative', marginRight: '40px' }}>
+                      {(
+                        <td style={{ cursor: 'pointer', position: 'relative', marginRight: '40px' }}>
                           <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px' }} className="iconfont icon-icon_web"></div>
                           {shows && (
                             <div>
@@ -375,8 +403,8 @@ class NodeDetails extends React.Component {
                               </div>
                             </div>
                           )}
-                        </td>)
-                      }
+                        </td>
+                       )}
                     </tr>
                   </table>
                 ) : (
@@ -422,41 +450,39 @@ class NodeDetails extends React.Component {
                         </td>)
                       }
                       {nodeDetails.cur_status == 'undeploy' ? (
-                        null
-                      ) : (
-                        <td style={{ cursor: 'pointer', marginRight: '40px' }}>
-                          <a onClick={this.handleClickTerminal.bind(this, nodeDetails)} target="_blank" title="终端" style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-terminalzhongduan"></a>
-                        </td>
-                      )}
-
-                      {nodeDetails.cur_status == 'undeploy' || nodeDetails.cur_status == 'closed' ? (
-                        <td style={{ cursor: 'pointer', marginRight: '40px' }} title="构建">
-                          <a onClick={this.handleClickBuild.bind(this, 'build', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-dabaoxiazai"></a>
-                        </td>
-                      ) : (
-                        <td style={{ cursor: 'pointer', marginRight: '40px' }} title="更新">
-                          <a onClick={this.handleClickUpdate.bind(this, 'update', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-shuaxin"></a>
-                        </td>
-                      )}
-                      {nodeDetails.cur_status == 'undeploy' ? (
-                        <div>
-                        </div>
-                      ) : (
-                        <div style={{ marginRight: '40px', cursor: 'pointer' }}>
-                          {(nodeDetails.cur_status == 'closed') ? (
-                            <td style={{ cursor: 'pointer' }} title="启动">
-                              <a onClick={this.handleClickStart.bind(this, 'start', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-qidong1"></a>
-                            </td>
-                          ) : (
-                            <td style={{ cursor: 'pointer' }} title="关闭">
-                              <a onClick={this.handleClickCloses.bind(this, 'closes', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-guanbi"></a>
-                            </td>
-                          )}
-                        </div>
-                      )}
-                      <td style={{ cursor: 'pointer' }} title="删除">
-                        <a onClick={this.handleClickDelete.bind(this, 'deleteApp', nodeDetails)} style={{ fontSize: '20px' }} className="iconfont icon-shanchu2"></a>
-                      </td>
+                          null
+                        ) : (nodeDetails.cur_status != 'undeploy' && permissionObj.visit_web_terminal && (
+                              <td style={{ cursor: 'pointer', marginRight: '40px' }}>
+                                <a onClick={this.handleClickTerminal.bind(this, nodeDetails)} target="_blank" title="终端" style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-terminalzhongduan"></a>
+                              </td>
+                        ))}
+                        {(nodeDetails.cur_status == 'undeploy' || nodeDetails.cur_status == 'closed') && permissionObj.construct ? (
+                              <td style={{ cursor: 'pointer', marginRight: '40px'  }} title="构建">
+                                <a onClick={this.handleClickBuild.bind(this, 'build', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-dabaoxiazai"></a>
+                              </td>
+                        ) : (permissionObj.update && (
+                              <td style={{ cursor: 'pointer', marginRight: '40px' }} title="更新">
+                                <a onClick={this.handleClickUpdate.bind(this, 'update', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-shuaxin"></a>
+                              </td>
+                            )
+                        )}
+                        {nodeDetails.cur_status == 'closed' && permissionObj.start ? (
+                              <td style={{ cursor: 'pointer', marginRight: '40px' }} title="启动">
+                                <a onClick={this.handleClickStart.bind(this, 'start', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-qidong1"></a>
+                              </td>
+                        ) : (permissionObj.stop && nodeDetails.cur_status != 'undeploy' && (
+                              <td style={{ cursor: 'pointer', marginRight: '40px'  }} title="关闭">
+                                <a onClick={this.handleClickCloses.bind(this, 'closes', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-guanbi"></a>
+                              </td>
+                            )
+                        )}
+                        {permissionObj.delete ? (
+                          <td style={{ cursor: 'pointer' }} title="删除">
+                            <a onClick={this.handleClickDelete.bind(this, 'deleteApp', nodeDetails)} style={{ fontSize: '20px' }} className="iconfont icon-shanchu2"></a>
+                          </td>
+                        ) : (
+                          null
+                        )}
                     </tr>
                   </table>
                 )}
@@ -974,7 +1000,9 @@ function mapStateToProps(state, ownProps) {
     appmoduleinfo: state.get('appModuleInfo'),
     appvisitinfo: state.get('appVisitInfo'),
     appNodes: state.get('appNodes'),
-    newAppInfo : state.get('newAppInfo')
+    newAppInfo: state.get('newAppInfo'),
+    userPermission: state.get('userPermission'),
+    teamName: state.get('teamName')
   };
 }
 

@@ -92,6 +92,8 @@ export const initialState = makeMap({
   diskdetail: null,
   visitinfo: null,
   getpods:null,
+  userPermission: null,
+  teamName: null
 });
 
 function calcSelectType(topology) {
@@ -208,6 +210,12 @@ export function rootReducer(state = initialState, action) {
     }
     case "GET_PODS": {
       return state.set('getpods', action);
+    }
+    case "USER_PERMISSION":{
+      return state.set('userPermission',action)
+    }
+    case "TEAM_NAME":{
+      return state.set('teamName',action)
     }
     case ActionTypes.CHANGE_TOPOLOGY_OPTION: {
       state = resumeUpdate(state);
