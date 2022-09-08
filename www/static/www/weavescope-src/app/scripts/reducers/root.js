@@ -97,6 +97,8 @@ export const initialState = makeMap({
   appModuleInfo: null,
   appVisitInfo: null,
   newAppInfo:null,
+  userPermission: null,
+  teamName: null
 });
 
 function calcSelectType(topology) {
@@ -225,6 +227,12 @@ export function rootReducer(state = initialState, action) {
     }
     case "NEW_APP_INFO":{
       return state.set('newAppInfo',action)
+    }
+    case "USER_PERMISSION":{
+      return state.set('userPermission',action)
+    }
+    case "TEAM_NAME":{
+      return state.set('teamName',action)
     }
     case ActionTypes.CHANGE_TOPOLOGY_OPTION: {
       state = resumeUpdate(state);

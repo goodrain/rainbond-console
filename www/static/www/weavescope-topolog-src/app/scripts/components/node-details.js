@@ -230,7 +230,7 @@ class NodeDetails extends React.Component {
     })
   }
   renderDetails() {
-    const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo, pods } = this.props;
+    const { details, nodeControlStatus, nodeMatches = makeMap(), selectedNodeId, bean, disk, visitinfo, pods, userPermission, teamName } = this.props;
     const { shows } = this.state
     const nodeDetails = details;
     const showControls = details.controls && details.controls.length > 0;
@@ -250,6 +250,33 @@ class NodeDetails extends React.Component {
     const relationList = nodeDetails.relation_list || {};
     const show = showDetailContent(nodeDetails);
     const container_memory = nodeDetails.container_memory;
+
+    //用户操作权限
+    const permission = userPermission && userPermission.data || []
+    //团队名称
+    const team_name = teamName && teamName.tenantName || null
+    //用户当前团队的权限
+    const filterByName = (aim, name) => {
+      if (aim.length > 0 && name) {
+        return aim.filter(item => item.team_name == name)
+      }
+    }
+    const user_permission = filterByName(permission, team_name).length > 0 && filterByName(permission, team_name)[0].tenant_actions.team.sub_models
+    const component_permission = []
+    user_permission.map((item) => {
+      if (item.component) {
+        item.component.perms.map((v) => {
+          component_permission.push(v)
+        })
+      }
+    })
+    let oldList = { ...component_permission }
+    let permissionObj = {}
+    Object.keys(oldList).map(item => {
+      const key = Object.keys(oldList[item])[0]
+      const value = Object.values(oldList[item])[0]
+      Object.assign(permissionObj, { [key]: value })
+    })
     // 实例平均占用内存
     const podMemory = getPodMemory(nodeDetails);
     const styles = {
@@ -277,7 +304,7 @@ class NodeDetails extends React.Component {
       day6 = day4 - day5 * 3600,
       day7 = Math.floor(day6 / 60),
       day8 = day6 - day7 * 60;
-    
+
 
     return (
       <div className={'node-details'}>
@@ -318,18 +345,18 @@ class NodeDetails extends React.Component {
                             <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px' }} className="iconfont icon-icon_web"></div>
                             {shows && (
                               <div onMouseLeave={() => { this.visitout() }} style={{ position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' }}>
-                              <div style={{ width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight:'200px', overflow:'auto' }}>
-                                {Object.keys(portList).map((key, index) => {
-                                  let portItem = portList[key];
-                                  return (
-                                    <tbody>
+                                <div style={{ width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight: '200px', overflow: 'auto' }}>
+                                  {Object.keys(portList).map((key, index) => {
+                                    let portItem = portList[key];
+                                    return (
+                                      <tbody>
                                         {
                                           portItem.outer_url && (
                                             <div>
                                               {
                                                 portItem.protocol === 'stream' ?
-                                                  <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline', display:'block' }} href="javascript:;" target="_blank">{portItem.outer_url.split(':')[0]}</a>
-                                                  : <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline', display:'block' }} href={portItem.protocol + '://' + portItem.outer_url} target="_blank">{portItem.outer_url.split(':')[0]}</a>
+                                                  <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href="javascript:;" target="_blank">{portItem.outer_url.split(':')[0]}</a>
+                                                  : <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href={portItem.protocol + '://' + portItem.outer_url} target="_blank">{portItem.outer_url.split(':')[0]}</a>
                                               }
                                             </div>
                                           )
@@ -337,54 +364,52 @@ class NodeDetails extends React.Component {
                                         {
                                           (portItem.domain_list || []).map((domain, index) => {
                                             return (
-                                              <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration:'underline', display:'block' }} href={domain} target="_blank">{domain}</a>
+                                              <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href={domain} target="_blank">{domain}</a>
                                             );
                                           })
                                         }
-                                    </tbody>
-                                  )
-                                })}
+                                      </tbody>
+                                    )
+                                  })}
+                                </div>
                               </div>
-                                    </div>
                             )}
                           </td>)
                         }
                         {nodeDetails.cur_status == 'undeploy' ? (
                           null
-                        ):(
-                          <td style={{ cursor: 'pointer', marginRight: '40px' }}>
-                            <a onClick={this.handleClickTerminal.bind(this, nodeDetails)} target="_blank" title="终端" style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-terminalzhongduan"></a>
-                          </td>
+                        ) : (nodeDetails.cur_status != 'undeploy' && permissionObj.visit_web_terminal && (
+                              <td style={{ cursor: 'pointer', marginRight: '40px' }}>
+                                <a onClick={this.handleClickTerminal.bind(this, nodeDetails)} target="_blank" title="终端" style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-terminalzhongduan"></a>
+                              </td>
+                        ))}
+                        {(nodeDetails.cur_status == 'undeploy' || nodeDetails.cur_status == 'closed') && permissionObj.construct ? (
+                              <td style={{ cursor: 'pointer', marginRight: '40px'  }} title="构建">
+                                <a onClick={this.handleClickBuild.bind(this, 'build', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-dabaoxiazai"></a>
+                              </td>
+                        ) : (permissionObj.update && (
+                              <td style={{ cursor: 'pointer', marginRight: '40px' }} title="更新">
+                                <a onClick={this.handleClickUpdate.bind(this, 'update', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-shuaxin"></a>
+                              </td>
+                            )
                         )}
-                        
-                        {nodeDetails.cur_status == 'undeploy' || nodeDetails.cur_status == 'closed' ? (
-                          <td style={{ cursor: 'pointer', marginRight: '40px' }} title="构建">
-                            <a onClick={this.handleClickBuild.bind(this, 'build', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-dabaoxiazai"></a>
-                          </td>
-                        ) : (
-                          <td style={{ cursor: 'pointer', marginRight: '40px' }} title="更新">
-                            <a onClick={this.handleClickUpdate.bind(this, 'update', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-shuaxin"></a>
-                          </td>
-                        )}
-                        {nodeDetails.cur_status == 'undeploy' ? (
-                          <div>
-                          </div>
-                        ) : (
-                          <div style={{ marginRight: '40px', cursor: 'pointer' }}>
-                            {(nodeDetails.cur_status == 'closed') ? (
-                              <td style={{ cursor: 'pointer' }} title="启动">
+                        {nodeDetails.cur_status == 'closed' && permissionObj.start ? (
+                              <td style={{ cursor: 'pointer', marginRight: '40px' }} title="启动">
                                 <a onClick={this.handleClickStart.bind(this, 'start', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-qidong1"></a>
                               </td>
-                            ) : (
-                              <td style={{ cursor: 'pointer' }} title="关闭">
+                        ) : (permissionObj.stop && nodeDetails.cur_status != 'undeploy' && (
+                              <td style={{ cursor: 'pointer', marginRight: '40px'  }} title="关闭">
                                 <a onClick={this.handleClickCloses.bind(this, 'closes', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-guanbi"></a>
                               </td>
-                            )}
-                          </div>
+                            )
                         )}
-                        <td style={{ cursor: 'pointer' }} title="删除">
-                          <a onClick={this.handleClickDelete.bind(this, 'deleteApp', nodeDetails)} style={{ fontSize: '20px' }} className="iconfont icon-shanchu2"></a>
-                        </td>
+                        {permissionObj.delete ? (
+                          <td style={{ cursor: 'pointer' }} title="删除">
+                            <a onClick={this.handleClickDelete.bind(this, 'deleteApp', nodeDetails)} style={{ fontSize: '20px' }} className="iconfont icon-shanchu2"></a>
+                          </td>
+                        ) : (
+                          null
+                        )}
                       </tr>
                     </table>
                   </div>
@@ -444,33 +469,33 @@ class NodeDetails extends React.Component {
               <div>
                 {instanceDetail.length > 0 && instanceDetail == null ? null :
                   nodeDetails.cur_status == "closed" ? null :
-                  nodeDetails.cur_status == "undeploy" ? null : (
-                    <div className="node-details-content-section">
-                      <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>实例中的容器</div>
-                      <div style={{ width: '100%' }}>
-                        <table style={{ tableLayout: 'fixed', width: '100%' }}>
-                          <thead>
-                            <tr>
-                              <th style={{ textAlign: 'left', width: '40%' }}>镜像名称</th>
-                              <th style={{ width: '25%', textAlign: 'center' }}>状态</th>
-                              <th style={{ width: '35%', textAlign: 'center' }}>说明</th>
-                            </tr>
-                          </thead>
-                          {instanceDetail.length > 0 && instanceDetail.map((item, index) => {
-                            return (
-                              < tbody >
-                                <tr>
-                                  <td className="node-details-info-field-value truncate" style={{ textAlign: 'left' }} title={item.image}>{item.image}</td>
-                                  <td style={{ textAlign: 'center' }}>{item.state == 'Running' ? '运行中' : item.state == 'Waiting' ? '等待中' : '---'}</td>
-                                  <td className="node-details-info-field-value truncate" title={item.reason} style={{ textAlign: 'center' }}>{item.reason ? item.reason : '---'}</td>
-                                </tr>
-                              </tbody>
-                            )
-                          })}
-                        </table>
+                    nodeDetails.cur_status == "undeploy" ? null : (
+                      <div className="node-details-content-section">
+                        <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>实例中的容器</div>
+                        <div style={{ width: '100%' }}>
+                          <table style={{ tableLayout: 'fixed', width: '100%' }}>
+                            <thead>
+                              <tr>
+                                <th style={{ textAlign: 'left', width: '40%' }}>镜像名称</th>
+                                <th style={{ width: '25%', textAlign: 'center' }}>状态</th>
+                                <th style={{ width: '35%', textAlign: 'center' }}>说明</th>
+                              </tr>
+                            </thead>
+                            {instanceDetail.length > 0 && instanceDetail.map((item, index) => {
+                              return (
+                                < tbody >
+                                  <tr>
+                                    <td className="node-details-info-field-value truncate" style={{ textAlign: 'left' }} title={item.image}>{item.image}</td>
+                                    <td style={{ textAlign: 'center' }}>{item.state == 'Running' ? '运行中' : item.state == 'Waiting' ? '等待中' : '---'}</td>
+                                    <td className="node-details-info-field-value truncate" title={item.reason} style={{ textAlign: 'center' }}>{item.reason ? item.reason : '---'}</td>
+                                  </tr>
+                                </tbody>
+                              )
+                            })}
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
               </div>
           }
           <div className="node-details-content-section" style={{ display: show ? 'block' : 'none' }}>
@@ -601,7 +626,7 @@ class NodeDetails extends React.Component {
                         return relationListItem.map((item, index) => {
                           return (
                             <tr>
-                              <td onClick = {this.handleClickRelation.bind(this, item)} style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>{item.service_cname}</td>
+                              <td onClick={this.handleClickRelation.bind(this, item)} style={{ textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' }}>{item.service_cname}</td>
                               <td style={{ textAlign: 'right' }}>{item.mapping_port}</td>
                             </tr>
                           );
@@ -701,6 +726,8 @@ function mapStateToProps(state, ownProps) {
     disk: state.get('diskdetail'),
     visitinfo: state.get('visitinfo'),
     pods: state.get('getpods'),
+    userPermission: state.get('userPermission'),
+    teamName: state.get('teamName')
   };
 }
 

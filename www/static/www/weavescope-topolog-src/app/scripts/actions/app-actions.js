@@ -31,7 +31,7 @@ import {
   getAllNodes,
   getNodeDetails, getNodesDelta, getResourceViewNodesSnapshot,
   Podname,Dateils,Disklist,Visitinfo,GetPods,
-  getTopologies,appVisitInfo,appModuleInfo,appInfo,
+  getTopologies,appVisitInfo,appModuleInfo,appInfo,UserPermission,
   stopPolling,
   teardownWebsockets
 } from '../utils/web-api-utils';
@@ -422,6 +422,7 @@ export function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
       activeTopologyOptionsSelector(state),
       dispatch
     );
+    UserPermission(dispatch);
   };
 }
 export function clickPauseDatele(){

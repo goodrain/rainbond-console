@@ -494,12 +494,15 @@ export function getNodeMonitorData(dispatch) {
 
 export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   // get details for all opened nodes
-
   const windowParent = window.parent;
   const obj = nodeMap.last();
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  dispatch({
+    type: "TEAM_NAME",
+    tenantName
+  });
   if (obj && serviceAlias && tenantName && groupId) {
     const topologyUrl = topologyUrlsById.get(obj.topologyId);
     let url = '';
@@ -630,6 +633,29 @@ export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap,
         const data = res.data.bean.access_info[0] || {};
         dispatch({
           type: "VISIT_INFO",
+          data
+        });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+//获取用户权限
+export function UserPermission(dispatch) {
+  const windowParent = window.parent;
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  
+  let url = '';
+  if (tenantName) {
+    url = `/console/users/details`;
+    doRequest({
+      url,
+      success: (res) => {
+        const data = res.data.bean.teams || {};
+        dispatch({
+          type: "USER_PERMISSION",
           data
         });
       },
