@@ -93,6 +93,14 @@ class AppExportService(object):
             image_base64_string = ""
 
         app_template = json.loads(app_version.app_template)
+        for ingress_http_route in app_template["ingress_http_routes"]:
+            ingress_http_route["proxy_header"] = ingress_http_route.get("proxy_header", {})
+            if isinstance(ingress_http_route["proxy_header"], list):
+                ingress_http_route["proxy_header"] = {
+                    header["item_key"]: header["item_value"]
+                    for header in ingress_http_route["proxy_header"]
+                }
+
         app_template["annotations"] = {
             "suffix": suffix,
             "describe": describe,
@@ -121,6 +129,9 @@ class AppExportService(object):
             "is_export_before": False,
         }
         docker_compose_init_data = {
+            "is_export_before": False,
+        }
+        slug_init_data = {
             "is_export_before": False,
         }
 
@@ -163,8 +174,22 @@ class AppExportService(object):
                         self._wrapper_director_download_url(export_record.region_name, export_record.file_path.replace(
                             "/v2", ""))
                     })
-
+                if export_record.format == "slug":
+                    slug_init_data.update({
+                        "is_export_before":
+                        True,
+                        "status":
+                        export_record.status,
+                        "file_path":
+                        self._wrapper_director_download_url(export_record.region_name, export_record.file_path.replace(
+                            "/v2", ""))
+                    })
         result = {"rainbond_app": rainbond_app_init_data, "docker_compose": docker_compose_init_data}
+        tmpl = json.loads(app_version.app_template)
+        for component in tmpl.get("apps"):
+            if component.get("service_source") == "source_code":
+                result["slug"] = slug_init_data
+                break
         return result
 
     def __get_down_url(self, region_name, raw_url):

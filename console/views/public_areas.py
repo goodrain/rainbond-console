@@ -149,6 +149,7 @@ class TeamOverView(RegionTenantHeaderView):
             overview_detail["running_app_num"] = running_app_num
             overview_detail["running_component_num"] = 0
             overview_detail["team_alias"] = self.tenant.tenant_alias
+            overview_detail["region_id"] = self.region.region_id
             if source:
                 try:
                     overview_detail["region_health"] = True

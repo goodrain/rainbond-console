@@ -174,6 +174,7 @@ class EnterpriseTeams(JWTAuthApiView):
                         tenant["set_limit_memory"] = tenant.get("set_limit_memory", 0) + region_tenant["set_limit_memory"]
             except Exception as e:
                 logger.exception(e)
+        teams = sorted(teams, key=lambda team: team["memory_request"], reverse=True)
         data = {"total_count": total, "page": page, "page_size": page_size, "list": teams}
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)
