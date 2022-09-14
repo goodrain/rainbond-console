@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-import os
 import base64
 import subprocess
 
@@ -9,7 +8,7 @@ import yaml
 from console.enum.region_enum import RegionStatusEnum
 from console.exception.exceptions import RegionUnreachableError
 from console.exception.main import ServiceHandleException
-from console.models.main import ConsoleSysConfig, RegionConfig, RainbondCenterAppVersion
+from console.models.main import ConsoleSysConfig, RegionConfig
 from console.repositories.app import service_repo
 from console.repositories.group import group_repo
 from console.repositories.plugin.plugin import plugin_repo
@@ -408,57 +407,9 @@ class RegionService(object):
             from console.services.team_services import team_services
             team = team_services.create_team(user, ent, None, None)
             region_services.create_tenant_on_region(ent.enterprise_id, team.tenant_name, region.region_name, team.namespace)
-            # Do not create sample applications in offline environment
-            if os.getenv("IS_OFFLINE", False):
-                return region
-            # create sample applications
-            tenant = team_repo.get_team_by_team_name_and_eid(ent.enterprise_id, team.tenant_name)
-            group = group_repo.get_group_by_unique_key(tenant.tenant_id, region.region_name, "默认应用")
-
-            module_dir = os.path.dirname(__file__) + '/plugin/'
-            file_path = os.path.join(module_dir, 'init_app_default.json')
-            with open(file_path) as f:
-                default_app_config = json.load(f)
-                version_template = default_app_config["version_template"]
-                app_version = json.dumps(version_template)
-
-            # Create component dependencies for application model installation
-            scope = default_app_config["scope"]
-            init_app_info = {
-                "app_name": default_app_config["app_name"],
-                "scope": scope,
-                "pic": default_app_config["pic"],
-                "describe": default_app_config["describe"],
-            }
-            app_uuid = make_uuid()
-            from console.services.market_app_service import market_app_service
-            market_app_service.create_rainbond_app(ent.enterprise_id, init_app_info, app_uuid)
-
-            rainbond_app_version = RainbondCenterAppVersion(
-                app_template=app_version,
-                enterprise_id=ent.enterprise_id,
-                app_id=app_uuid,
-                version="1.0",
-                template_version="v1",
-                record_id=0,
-                share_team=team.tenant_name,
-                share_user=1,
-                scope=scope)
-            rainbond_app_version.save()
-
-            # Create default components
-            app_model_key = app_uuid
-            version = "1.0"
-            app_id = group.ID
-            install_from_cloud = False
-            is_deploy = True
-            market_name = ""
-            market_app_service.install_app(tenant, region, user, app_id, app_model_key, version, market_name,
-                                           install_from_cloud, is_deploy)
-            return region
         except Exception as e:
             logger.exception(e)
-            return region
+        return region
 
     def create_default_region(self, enterprise_id, user):
         try:
