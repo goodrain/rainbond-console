@@ -20,8 +20,8 @@ function basic_check {
         exit 1
     fi
 
-    if [ "$FREE" -lt 4096 ]; then
-        echo -e "${YELLOW}$(date "$TIME") WARN: Too little memory, recommended memory configuration is 4G ${NC}"
+    if [ "$FREE" -lt 2048 ]; then
+        echo -e "${YELLOW}$(date "$TIME") WARN: Too little memory, recommended memory configuration is 2G ${NC}"
     fi
     if [ "$CPUS" -lt 2 ];then
         echo -e "${YELLOW}$(date "$TIME") WARN: Too few CPUs, recommended CPU configuration is 2 cores ${NC}"
