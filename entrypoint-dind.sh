@@ -64,13 +64,13 @@ function start_docker {
 ########################################
 
 function load_images {
-    if docker images | grep -q "rbd-api"; then
-        echo -e "${GREEN}$(date "$TIME") INFO: Docker images loaded ${NC}"
+    if nerdctl images | grep -q "rbd-api"; then
+        echo -e "${GREEN}$(date "$TIME") INFO: containerd images loaded ${NC}"
     else
         echo -e "${GREEN}$(date "$TIME") INFO: Loading images ${NC}"
         while true; do
-            if docker load -i /app/ui/rainbond-"${VERSION}".tar; then
-                echo -e "${GREEN}$(date "$TIME") INFO: Docker images success ${NC}"
+            if nerdctl load -i /app/ui/rainbond-"${VERSION}".tar; then
+                echo -e "${GREEN}$(date "$TIME") INFO: containerd images success ${NC}"
                 break
             fi
         done
@@ -102,7 +102,7 @@ function start_k3s {
         sleep 5
         (( while_num++ )) || true
         if [ $(( while_num )) -gt 12 ]; then
-            echo -e "${RED}$(date "$TIME") ERROR: K3s failed to start. Please use the command to view the k3s log 'docker exec rainbond-allinone /bin/cat /app/logs/k3s.log' ${NC}"
+            echo -e "${RED}$(date "$TIME") ERROR: K3s failed to start. Please use the command to view the k3s log 'containerd exec rainbond-allinone /bin/cat /app/logs/k3s.log' ${NC}"
             exit 1
         fi
     done
@@ -178,8 +178,8 @@ function start_rainbond {
 function stop_container {
     echo -e "${GREEN}$(date "$TIME") INFO: Stopping K3s ${NC}"
     supervisorctl stop k3s
-    echo -e "${GREEN}$(date "$TIME") INFO: Stopping Docker ${NC}"
-    systemctl stop docker
+#    echo -e "${GREEN}$(date "$TIME") INFO: Stopping Docker ${NC}"
+#    systemctl stop docker
     exit 1
 }
 
@@ -189,13 +189,13 @@ trap stop_container SIGTERM
 basic_check
 
 # start docker
-start_docker
-
-# load docker images
-load_images
+#start_docker
 
 # start k3s
 start_k3s
+
+# load containerd images
+load_images
 
 # start rainbond
 start_rainbond
