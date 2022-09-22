@@ -132,7 +132,10 @@ function start_rainbond {
         for item in "${RBD_LIST[@]}"; do
             sed -i "s/v5.6.0-release/${VERSION}/g" /app/ui/rainbond-operator/config/single_node_cr/"$item".yml
         done
-
+        ping -c 3 buildpack.oss-cn-shanghai.aliyuncs.com  >/dev/null 2>&1
+        if [ $? != 0 ]; then
+            sed -i "s#rainbond/rbd-resource-proxy:v5.6.0-release#nginx:1.19#g" /app/ui/rainbond-operator/config/single_node_cr/rbd-resource-proxy.yml
+        fi
         helm install rainbond-operator /app/chart -n rbd-system --kubeconfig /root/.kube/config \
             --set operator.image.name="${IMAGE_DOMAIN}"/"${IMAGE_NAMESPACE}"/rainbond-operator \
             --set operator.image.tag="${VERSION}"
