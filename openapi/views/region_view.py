@@ -19,6 +19,7 @@ from openapi.serializer.region_serializer import RegionInfoSerializer
 from openapi.serializer.region_serializer import UpdateRegionStatusReqSerializer
 from openapi.views.base import BaseOpenAPIView
 from www.utils.crypt import make_uuid
+from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
@@ -179,3 +180,33 @@ class RegionStatusView(BaseOpenAPIView):
         except RegionUnreachableError as e:
             fs = FailSerializer({"msg": e.message})
             return Response(fs.data, status.HTTP_400_BAD_REQUEST)
+
+
+class ReplaceRegionIP(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="通过grctl修改region ip",
+        tags=['openapi-region'],
+    )
+    def post(self, request):
+        region_name = request.data.get("region_name", "")
+        region_info = region_services.get_by_region_name(region_name)
+        region_id = region_info.region_id
+        try:
+            region_data = {
+                "region_name": region_name,
+                "ssl_ca_cert": request.data.get("ssl_ca_cert", ""),
+                "key_file": request.data.get("key_file", ""),
+                "cert_file": request.data.get("cert_file", ""),
+                "url": request.data.get("url", ""),
+                "wsurl": request.data.get("ws_url", ""),
+                "httpdomain": request.data.get("http_domain", ""),
+                "tcpdomain": request.data.get("tcp_domain", ""),
+                "region_id": region_id,
+            }
+            region_services.update_region(region_data)
+            result = general_message(200, "success", "更新成功")
+            return Response(result, status.HTTP_200_OK)
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(500, "failed", "更新失败")
+            return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
