@@ -576,6 +576,7 @@ class RegionService(object):
         region_resource["rbd_version"] = "unknown"
         region_resource["health_status"] = "ok"
         region_resource["enterprise_id"] = region.enterprise_id
+        region_resource["resource_proxy_status"] = False
         enterprise_info = enterprise_services.get_enterprise_by_enterprise_id(region.enterprise_id)
         if enterprise_info:
             region_resource["enterprise_alias"] = enterprise_info.enterprise_alias
@@ -605,6 +606,7 @@ class RegionService(object):
                     region_resource["total_disk"] = body["bean"]["cap_disk"] / 1024 / 1024 / 1024
                     region_resource["used_disk"] = body["bean"]["req_disk"] / 1024 / 1024 / 1024
                     region_resource["rbd_version"] = rbd_version
+                    region_resource["resource_proxy_status"] = body["bean"]["resource_proxy_status"]
             except (region_api.CallApiError, ServiceHandleException) as e:
                 logger.exception(e)
                 region_resource["rbd_version"] = ""
