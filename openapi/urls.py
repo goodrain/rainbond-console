@@ -13,7 +13,7 @@ from openapi.views.admin_view import AdminInfoView, ListAdminsView
 from openapi.views.apps.apps import ListAppsView
 from openapi.views.enterprise_view import EnterpriseConfigView
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
-from openapi.views.region_view import ListRegionInfo, RegionInfo
+from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
 from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
                                      TeamCertificatesRUDView, TeamEventLogView, TeamInfo, TeamOverviewView, TeamsResourceView)
 from openapi.views.user_view import (ChangePassword, ChangeUserPassword, ListUsersView, UserInfoView)
@@ -61,6 +61,9 @@ urlpatterns = [
     # apps
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps$', ListAppsView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/', include('openapi.sub_urls.app_url')),
+
+    # grctl
+    url(r'^v1/grctl/ip$', ReplaceRegionIP.as_view()),
 ]
 if os.environ.get("OPENAPI_V2") == "true":
     urlpatterns += [url(r'^v2', include('openapi.v2.urls'))]
