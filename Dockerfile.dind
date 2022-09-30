@@ -13,6 +13,11 @@ ENV GOPATH=/go
 RUN git clone -b ${ADAPTOR_BRANCH} --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
 
+RUN sed -i "s/dockersock/containerdsock/g" ./chart/templates/deployment.yaml \
+    &&  sed -i "s#path: /var/run#path: /run/k3s#g" ./chart/templates/deployment.yaml \
+    && sed -i "s#mountPath: /var/run#mountPath: /run#g" ./chart/templates/deployment.yaml \
+    && sed i "s/v2.0.0/${VERSION}/g" ./chart/values.yaml
+
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
 
 FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION}
