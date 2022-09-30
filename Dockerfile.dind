@@ -33,27 +33,24 @@ RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ && \
     set -eux; \
     if [ "${ARCH}" = "arm64" ]; then \
         wget "https://pkg.goodrain.com/pkg/helm-arm64" && chmod +x helm-arm64 && mv helm-arm64 /usr/local/bin/helm; \
+        wget "https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/nerdctl-arm64" && chmod +x nerdctl-arm64 && mv nerdctl-arm64 /usr/local/bin/nerdctl; \
     else \
         wget "https://pkg.goodrain.com/pkg/helm" && chmod +x helm && mv helm /usr/local/bin/; \
+        wget "https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/nerdctl" && chmod +x nerdctl && mv nerdctl /usr/local/bin/; \
     fi && \
     mkdir -p /var/log/supervisor
 # Distinguish download addresses according to the CPU architecture of the build environment
 RUN set -eux; \
 	case "${ARCH}" in \
 		'amd64') \
-			docker_url='https://download.docker.com/linux/static/stable/x86_64/docker-20.10.11.tgz'; \
             k3s_url="https://github.com/rancher/k3s/releases/download/v1.22.3+k3s1/k3s" \
             kubectl_url="https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/linux/amd64/kubectl" \
 			;; \
 		'arm64') \
-			docker_url='https://download.docker.com/linux/static/stable/aarch64/docker-20.10.11.tgz'; \
             k3s_url="https://github.com/rancher/k3s/releases/download/v1.22.3+k3s1/k3s-arm64" \
             kubectl_url="https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/linux/arm64/kubectl" \
 			;; \
 	esac \
-    && wget -O docker.tgz "$docker_url" \
-	&& tar xzf docker.tgz --strip-components 1 --directory /usr/local/bin/ \
-	&& rm docker.tgz \
     && mkdir -p /etc/docker \
     && wget -O /usr/local/bin/k3s "$k3s_url" \
     && wget -O /usr/local/bin/kubectl "$kubectl_url" \
@@ -76,7 +73,6 @@ RUN set -eux; \
     chmod +x /app/ui/entrypoint.sh /app/ui/entrypoint-dind.sh && \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
     mv /app/ui/dind.conf /etc/supervisor/conf.d/dind.conf && \
-	mv /app/ui/daemon.json /etc/docker/daemon.json && \
 	chmod +x /app/cloudadaptor && \
     mv /dist/index.html /app/ui/www/templates/index.html && \
     chmod +x /app/ui/log && mv /app/ui/log /usr/bin/log && \
@@ -108,11 +104,12 @@ ENV RAINBOND_VERSION=${VERSION}
 ENV OPERATOR_VERSION=${VERSION}
 ENV DOMESTIC_NAMESPACE=${DOMESTIC_NAMESPACE}
 ENV ENABLE_CLUSTER=true
+ENV CONTAINERD_ADDRESS=/run/k3s/containerd/containerd.sock
 
 VOLUME /app/data
 VOLUME /app/logs
 VOLUME /root/.ssh
 VOLUME /opt/rainbond
-VOLUME /var/lib/docker
+VOLUME /app/data/k3s/agent/containerd
 
 CMD ["/usr/bin/supervisord"]
