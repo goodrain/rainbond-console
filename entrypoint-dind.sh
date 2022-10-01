@@ -138,7 +138,9 @@ function start_rainbond {
         fi
         helm install rainbond-operator /app/chart -n rbd-system --kubeconfig /root/.kube/config \
             --set operator.image.name="${IMAGE_DOMAIN}"/"${IMAGE_NAMESPACE}"/rainbond-operator \
-            --set operator.image.tag="${VERSION}"
+            --set operator.image.tag="${VERSION}" \
+            --set operator.image.env[0].name=IS_SQLLITE \
+            --set operator.image.env[0].value=TRUE
         echo -e "${GREEN}$(date "$TIME") INFO: Helm rainbond-operator installed ${NC}"
 
         # setting rainbondcluster
