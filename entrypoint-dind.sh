@@ -193,6 +193,7 @@ function start_rainbond {
             exit 1
         fi
     done
+    kubectl delete pod `kubectl get pod -nrbd-system|grep rbd-chaos|awk '{print $1}'` -nrbd-system
     supervisorctl start console > /dev/null 2>&1
     echo -e "${GREEN}$(date "$TIME") INFO: Rainbond console is starting, please wait ············································${NC}"
     while true; do
