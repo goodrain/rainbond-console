@@ -1,0 +1,13 @@
+mirrors:
+  goodrain.me:
+    endpoint:
+      - "https://goodrain.me"
+configs:
+  "goodrain.me":
+    auth:
+      username: admin
+      password: grpasswd
+    tls:
+      cert_file: "/app/containerd_certificate/tls.crt"
+      key_file: "/app/containerd_certificate/tls.key"
+      ca_file: "/app/containerd_certificate/server.crt"
