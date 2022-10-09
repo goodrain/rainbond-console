@@ -62,5 +62,5 @@ else
       exit 1
     fi
     # python upgrade.py
-    exec gunicorn goodrain_web.wsgi -b 0.0.0.0:${PORT:-7070} --max-requests=5000 -k gevent --reload --workers=4 --timeout=75 --log-file - --access-logfile - --error-logfile -
+    exec gunicorn goodrain_web.wsgi -b 0.0.0.0:${PORT:-7070} --max-requests=5000 -k gevent --reload --workers=1 --timeout=75 --log-file - --access-logfile - --error-logfile -
 fi

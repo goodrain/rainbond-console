@@ -15,9 +15,7 @@ function basic_check {
     DISK=$(df -m / |sed -n '2p'|awk '{print $4}')
 
     if [ ! "$EIP" ];then
-        echo -e "${RED}$(date "$TIME") ERROR: EIP is required, please execute the following command and restart Rainbond ${NC}"
-        echo -e "${RED}$(date "$TIME") ERROR: export EIP= IP address ${NC}"
-        exit 1
+        EIP="127.0.0.1"
     fi
 
     if [ "$FREE" -lt 2048 ]; then
@@ -168,6 +166,32 @@ function start_rainbond {
             fi
         fi
         sleep 5
+    done
+    mkdir -p /app/containerd_certificate
+    cp `find / -name server.crt|sed -n 1p` /app/containerd_certificate/
+    kubectl get secret -oyaml -nrbd-system |grep tls.crt|awk '{print $2}'|base64 -d > /app/containerd_certificate/tls.crt
+    kubectl get secret -oyaml -nrbd-system |grep tls.key|awk '{print $2}'|base64 -d > /app/containerd_certificate/tls.key
+    mv /app/ui/registries.yaml /etc/rancher/k3s/
+    grpasswd=`kubectl get rainbondcluster -oyaml -nrbd-system |grep password|awk '{print $2}'`
+    sed -i "s/grpasswd/$grpasswd/g" /etc/rancher/k3s/registries.yaml
+    sed -i "s/grpasswd/``/g" /etc/rancher/k3s/registries.yaml
+    supervisorctl restart k3s > /dev/null 2>&1
+    echo -e "${GREEN}$(date "$TIME") INFO: K3s is restarting, please wait ············································${NC}"
+    while_num=0
+    while true; do
+        K3S_STATUS=$(netstat -nltp | grep k3s | grep -c -E "6443|6444|10248|10249|10250|10251|10256|10257|10258|10259")
+        if [[ "${K3S_STATUS}" == "10" ]]; then
+            if kubectl get node | grep Ready > /dev/null 2>&1; then
+                echo -e "${GREEN}$(date "$TIME") INFO: K3s restarted successfully ${NC}"
+                break
+            fi
+        fi
+        sleep 5
+        (( while_num++ )) || true
+        if [ $(( while_num )) -gt 12 ]; then
+            echo -e "${RED}$(date "$TIME") ERROR: K3s failed to restart. Please use the command to view the k3s log 'containerd exec rainbond-allinone /bin/cat /app/logs/k3s.log' ${NC}"
+            exit 1
+        fi
     done
     supervisorctl start console > /dev/null 2>&1
     echo -e "${GREEN}$(date "$TIME") INFO: Rainbond console is starting, please wait ············································${NC}"
