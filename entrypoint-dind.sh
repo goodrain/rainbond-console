@@ -14,6 +14,10 @@ function basic_check {
     CPUS=$(grep -c "processor" < /proc/cpuinfo)
     DISK=$(df -m / |sed -n '2p'|awk '{print $4}')
 
+    if [ ! "$EIP" ];then
+        export EIP="127.0.0.1"
+    fi
+
     if [ "$FREE" -lt 2048 ]; then
         echo -e "${YELLOW}$(date "$TIME") WARN: Too little memory, recommended memory configuration is 2G ${NC}"
     fi
@@ -58,9 +62,11 @@ function start_docker {
 ########################################
 
 function load_images {
-    echo -e "${GREEN}$(date "$TIME") INFO: move images ${NC}"
-    mkdir -p /app/data/k3s/agent/images
-    mv /app/ui/rainbond-"${VERSION}".tar /app/data/k3s/agent/images/
+    if [ -f /app/ui/rainbond-"${VERSION}".tar ]; then
+        echo -e "${GREEN}$(date "$TIME") INFO: move images ${NC}"
+        mkdir -p /app/data/k3s/agent/images
+        mv /app/ui/rainbond-"${VERSION}".tar /app/data/k3s/agent/images
+    fi
 }
 
 ########################################
@@ -85,7 +91,7 @@ function start_k3s {
                 break
             fi
         fi
-        sleep 5
+        sleep 20
         (( while_num++ )) || true
         if [ $(( while_num )) -gt 12 ]; then
             echo -e "${RED}$(date "$TIME") ERROR: K3s failed to start. Please use the command to view the k3s log 'docker exec rainbond-allinone /bin/cat /app/logs/k3s.log' ${NC}"
@@ -157,13 +163,12 @@ function start_rainbond {
         sleep 5
     done
     mkdir -p /app/containerd_certificate
-    cp `find / -name server.crt|sed -n 1p` /app/containerd_certificate/
-    kubectl get secret -oyaml -nrbd-system |grep tls.crt|awk '{print $2}'|base64 -d > /app/containerd_certificate/tls.crt
-    kubectl get secret -oyaml -nrbd-system |grep tls.key|awk '{print $2}'|base64 -d > /app/containerd_certificate/tls.key
+    kubectl get secret hub-image-repository -oyaml -n rbd-system | grep cert | awk '{print $2}'| base64 -d > /app/containerd_certificate/server.crt
+    kubectl get secret hub-image-repository -oyaml -n rbd-system | grep tls.crt | awk '{print $2}'| base64 -d > /app/containerd_certificate/tls.crt
+    kubectl get secret hub-image-repository -oyaml -n rbd-system | grep tls.key | awk '{print $2}'| base64 -d > /app/containerd_certificate/tls.key
     mv /app/ui/registries.yaml /etc/rancher/k3s/
     grpasswd=`kubectl get rainbondcluster -oyaml -nrbd-system |grep password|awk '{print $2}'`
     sed -i "s/grpasswd/$grpasswd/g" /etc/rancher/k3s/registries.yaml
-    sed -i "s/grpasswd/``/g" /etc/rancher/k3s/registries.yaml
     supervisorctl restart k3s > /dev/null 2>&1
     echo -e "${GREEN}$(date "$TIME") INFO: K3s is restarting, please wait ············································${NC}"
     while_num=0
@@ -175,7 +180,7 @@ function start_rainbond {
                 break
             fi
         fi
-        sleep 5
+        sleep 20
         (( while_num++ )) || true
         if [ $(( while_num )) -gt 12 ]; then
             echo -e "${RED}$(date "$TIME") ERROR: K3s failed to restart. Please use the command to view the k3s log 'docker exec rainbond-allinone /bin/cat /app/logs/k3s.log' ${NC}"
@@ -197,8 +202,6 @@ function start_rainbond {
 function stop_container {
     echo -e "${GREEN}$(date "$TIME") INFO: Stopping K3s ${NC}"
     supervisorctl stop k3s
-#    echo -e "${GREEN}$(date "$TIME") INFO: Stopping Docker ${NC}"
-#    systemctl stop docker
     exit 1
 }
 
@@ -206,9 +209,6 @@ trap stop_container SIGTERM
 
 # basic environment check
 basic_check
-
-# start docker
-#start_docker
 
 # load containerd images
 load_images
