@@ -15,7 +15,7 @@ function basic_check {
     DISK=$(df -m / |sed -n '2p'|awk '{print $4}')
 
     if [ ! "$EIP" ];then
-        EIP="127.0.0.1"
+        export EIP="127.0.0.1"
     fi
 
     if [ "$FREE" -lt 2048 ]; then
@@ -62,17 +62,9 @@ function start_docker {
 ########################################
 
 function load_images {
-    if nerdctl images | grep -q "rbd-api"; then
-        echo -e "${GREEN}$(date "$TIME") INFO: containerd images loaded ${NC}"
-    else
-        echo -e "${GREEN}$(date "$TIME") INFO: Loading images ${NC}"
-        while true; do
-            if nerdctl load -i /app/ui/rainbond-"${VERSION}".tar; then
-                echo -e "${GREEN}$(date "$TIME") INFO: containerd images success ${NC}"
-                break
-            fi
-        done
-    fi
+    echo -e "${GREEN}$(date "$TIME") INFO: move images ${NC}"
+    mkdir -p /app/data/k3s/agent/images
+    mv /app/ui/rainbond-"${VERSION}".tar /app/data/k3s/agent/images/
 }
 
 ########################################
@@ -221,11 +213,13 @@ basic_check
 # start docker
 #start_docker
 
+# load containerd images
+load_images
+
 # start k3s
 start_k3s
 
-# load containerd images
-load_images
+
 
 # start rainbond
 start_rainbond
