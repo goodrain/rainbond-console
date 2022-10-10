@@ -88,7 +88,7 @@ function start_k3s {
         sleep 5
         (( while_num++ )) || true
         if [ $(( while_num )) -gt 12 ]; then
-            echo -e "${RED}$(date "$TIME") ERROR: K3s failed to start. Please use the command to view the k3s log 'containerd exec rainbond-allinone /bin/cat /app/logs/k3s.log' ${NC}"
+            echo -e "${RED}$(date "$TIME") ERROR: K3s failed to start. Please use the command to view the k3s log 'docker exec rainbond-allinone /bin/cat /app/logs/k3s.log' ${NC}"
             exit 1
         fi
     done
@@ -126,7 +126,8 @@ function start_rainbond {
             --set operator.image.name="${IMAGE_DOMAIN}"/"${IMAGE_NAMESPACE}"/rainbond-operator \
             --set operator.image.tag="${VERSION}" \
             --set operator.image.env[0].name=IS_SQLLITE \
-            --set operator.image.env[0].value=TRUE
+            --set operator.image.env[0].value=TRUE \
+            --set operator.isDind=true
         echo -e "${GREEN}$(date "$TIME") INFO: Helm rainbond-operator installed ${NC}"
 
         # setting rainbondcluster
@@ -177,7 +178,7 @@ function start_rainbond {
         sleep 5
         (( while_num++ )) || true
         if [ $(( while_num )) -gt 12 ]; then
-            echo -e "${RED}$(date "$TIME") ERROR: K3s failed to restart. Please use the command to view the k3s log 'containerd exec rainbond-allinone /bin/cat /app/logs/k3s.log' ${NC}"
+            echo -e "${RED}$(date "$TIME") ERROR: K3s failed to restart. Please use the command to view the k3s log 'docker exec rainbond-allinone /bin/cat /app/logs/k3s.log' ${NC}"
             exit 1
         fi
     done
@@ -214,8 +215,6 @@ load_images
 
 # start k3s
 start_k3s
-
-
 
 # start rainbond
 start_rainbond
