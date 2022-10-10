@@ -14,10 +14,6 @@ function basic_check {
     CPUS=$(grep -c "processor" < /proc/cpuinfo)
     DISK=$(df -m / |sed -n '2p'|awk '{print $4}')
 
-    if [ ! "$EIP" ];then
-        export EIP="127.0.0.1"
-    fi
-
     if [ "$FREE" -lt 2048 ]; then
         echo -e "${YELLOW}$(date "$TIME") WARN: Too little memory, recommended memory configuration is 2G ${NC}"
     fi
