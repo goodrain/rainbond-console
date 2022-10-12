@@ -2,6 +2,11 @@ mirrors:
   goodrain.me:
     endpoint:
       - "https://goodrain.me"
+  "docker.io":
+     endpoint:
+       - "https://dockerhub.azk8s.cn/"
+       - "https://docker.mirrors.ustc.edu.cn/"
+       - "http://hub-mirror.c.163.com/"
 configs:
   "goodrain.me":
     auth:
