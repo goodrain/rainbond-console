@@ -49,19 +49,15 @@ RUN set -eux; \
 	case "${ARCH}" in \
 		'amd64') \
             k3s_url="https://github.com/rancher/k3s/releases/download/v1.22.3+k3s1/k3s" \
-            kubectl_url="https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/linux/amd64/kubectl" \
 			;; \
 		'arm64') \
             k3s_url="https://github.com/rancher/k3s/releases/download/v1.22.3+k3s1/k3s-arm64" \
-            kubectl_url="https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/linux/arm64/kubectl" \
 			;; \
 	esac \
     && mkdir -p /etc/docker \
     && wget -O /usr/local/bin/k3s "$k3s_url" \
-    && wget -O /usr/local/bin/kubectl "$kubectl_url" \
-	&& chmod +x /usr/local/bin/kubectl /usr/local/bin/k3s \
+	&& chmod +x /usr/local/bin/k3s \
 	&& ln -s /etc/rancher/k3s/k3s.yaml ~/.kube/config
-    
 
 COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
 COPY --from=builder /cloud-adaptor /app/cloudadaptor

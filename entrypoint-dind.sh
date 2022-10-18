@@ -31,6 +31,9 @@ function basic_check {
   ## Do domain name resolution
   echo "127.0.0.1  rbd-api-api" >>/etc/hosts
 
+  echo "alias kubectl='k3s kubectl'" >> ~/.bashrc
+  source ~/.bashrc
+
   # explicitly remove Docker's default PID file to ensure that it can start properly if it was stopped uncleanly (and thus didn't clean up the PID file)
   find /run /var/run -iname 'docker*.pid' -delete || :
 }
@@ -107,7 +110,7 @@ function check_k3s_status() {
   while true; do
     K3S_STATUS=$(netstat -nltp | grep k3s | grep -c -E "6443|6444|10248|10249|10250|10251|10256|10257|10258|10259")
     if [[ "${K3S_STATUS}" == "10" ]]; then
-      if kubectl get node | grep Ready >/dev/null 2>&1; then
+      if k3s kubectl get node | grep Ready >/dev/null 2>&1; then
         echo -e "${GREEN}$(date "$TIME") INFO: K3s $1 successfully ${NC}"
         break
       fi
@@ -154,11 +157,11 @@ function handle_registry_config() {
     return
   fi
   mkdir -p /app/containerd_certificate
-  kubectl get secret hub-image-repository -n rbd-system -ojsonpath='{.data.cert}' | base64 -d >/app/containerd_certificate/server.crt
-  kubectl get secret hub-image-repository -n rbd-system -ojsonpath='{.data.tls\.crt}' | base64 -d >/app/containerd_certificate/tls.crt
-  kubectl get secret hub-image-repository -n rbd-system -ojsonpath='{.data.tls\.key}' | base64 -d >/app/containerd_certificate/tls.key
+  k3s kubectl get secret hub-image-repository -n rbd-system -ojsonpath='{.data.cert}' | base64 -d >/app/containerd_certificate/server.crt
+  k3s kubectl get secret hub-image-repository -n rbd-system -ojsonpath='{.data.tls\.crt}' | base64 -d >/app/containerd_certificate/tls.crt
+  k3s kubectl get secret hub-image-repository -n rbd-system -ojsonpath='{.data.tls\.key}' | base64 -d >/app/containerd_certificate/tls.key
   mv /app/ui/registries.yaml /etc/rancher/k3s/
-  grpasswd=$(kubectl get rainbondcluster -oyaml -nrbd-system | grep password | awk '{print $2}')
+  grpasswd=$(k3s kubectl get rainbondcluster -oyaml -nrbd-system | grep password | awk '{print $2}')
   sed -i "s/grpasswd/$grpasswd/g" /etc/rancher/k3s/registries.yaml
   restart_k3s
 }
@@ -171,10 +174,10 @@ IMAGE_NAMESPACE=${IMAGE_NAMESPACE:-rainbond}
 
 function start_rainbond {
   # create namespace
-  if kubectl get ns | grep rbd-system >/dev/null 2>&1; then
+  if k3s kubectl get ns | grep rbd-system >/dev/null 2>&1; then
     echo -e "${GREEN}$(date "$TIME") INFO: Namespace rbd-system already exists ${NC}"
   else
-    kubectl create ns rbd-system
+    k3s kubectl create ns rbd-system
     echo -e "${GREEN}$(date "$TIME") INFO: Create namespace rbd-system ${NC}"
   fi
 
@@ -200,15 +203,15 @@ function start_rainbond {
     echo -e "${GREEN}$(date "$TIME") INFO: Helm rainbond-operator installed ${NC}"
 
     # setting rainbondcluster
-    NODE_NAME=$(kubectl get node | sed -n '2p' | awk '{print $1}')
-    NODE_IP=$(kubectl get node -owide | sed -n '2p' | awk '{print $6}')
+    NODE_NAME=$(k3s kubectl get node | sed -n '2p' | awk '{print $1}')
+    NODE_IP=$(k3s kubectl get node -owide | sed -n '2p' | awk '{print $6}')
     EIP=${EIP:-$NODE_IP}
     IIP=${IIP:-$NODE_IP}
     sed -i "s/single_node_name/$NODE_NAME/" /app/ui/rainbond-operator/config/single_node_cr/rbdcluster.yml
     sed -i "s/single_node_external_ip/$EIP/" /app/ui/rainbond-operator/config/single_node_cr/rbdcluster.yml
     sed -i "s/single_node_internal_ip/$IIP/" /app/ui/rainbond-operator/config/single_node_cr/rbdcluster.yml
 
-    if kubectl apply -f /app/ui/rainbond-operator/config/single_node_cr/ -n rbd-system >/dev/null 2>&1; then
+    if k3s kubectl apply -f /app/ui/rainbond-operator/config/single_node_cr/ -n rbd-system >/dev/null 2>&1; then
       echo -e "${GREEN}$(date "$TIME") INFO: Rainbond Region installed ${NC}"
     else
       echo -e "${RED}$(date "$TIME") ERROR: Rainbond Region failed to install ${NC}"
@@ -219,7 +222,7 @@ function start_rainbond {
   echo -e "${GREEN}$(date "$TIME") INFO: Rainbond Region is starting, please wait ············································${NC}"
   while true; do
     if netstat -nltp | grep 8443 >/dev/null 2>&1; then
-      if curl http://"$(kubectl get svc -n rbd-system | grep rbd-api-api-inner | awk '{print $3}')":8888/v2/health 2>&1 | grep health >/dev/null 2>&1; then
+      if curl http://"$(k3s kubectl get svc -n rbd-system | grep rbd-api-api-inner | awk '{print $3}')":8888/v2/health 2>&1 | grep health >/dev/null 2>&1; then
         echo -e "${GREEN}$(date "$TIME") INFO: Rainbond Region started successfully ${NC}"
         break
       fi
@@ -229,7 +232,7 @@ function start_rainbond {
 
   handle_registry_config
 
-  kubectl delete po -l name=rbd-chaos -n rbd-system
+  k3s kubectl delete po -l name=rbd-chaos -n rbd-system
   supervisorctl start console >/dev/null 2>&1
   echo -e "${GREEN}$(date "$TIME") INFO: Rainbond console is starting, please wait ············································${NC}"
   while true; do
