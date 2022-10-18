@@ -414,7 +414,7 @@ class RegionService(object):
     def create_default_region(self, enterprise_id, user):
         try:
             cmd = subprocess.Popen(
-                'kubectl get cm region-config -n rbd-system -ojson',
+                'k3s kubectl get cm region-config -n rbd-system -ojson',
                 shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT)

@@ -8,8 +8,6 @@ ARCH=$(uname -m)
 image_list="rainbond/kubernetes-dashboard:v2.6.1
 rainbond/registry:2.6.2
 rainbond/metrics-server:v0.4.1
-rainbond/rbd-db:8.0
-rainbond/mysqld-exporter:latest
 rainbond/etcd:v3.3.18
 rainbond/metrics-scraper:v1.0.4
 ${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rbd-mesh-data-panel:${VERSION}
