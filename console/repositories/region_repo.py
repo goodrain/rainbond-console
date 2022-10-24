@@ -212,5 +212,25 @@ class RegionRepo(object):
         region.save()
         return region
 
+    def get_tenants_by_region_name(self, region_name):
+        tenant_region_info_list = TenantRegionInfo.objects.filter(region_name=region_name)
+        tenant_id_list = []
+        for tenant_region_info in tenant_region_info_list:
+            id = tenant_region_info.tenant_id
+            tenant_id_list.append(id)
+        return tenant_id_list
+
+    def get_service_status_count_by_region_name(self, region_name):
+        region_services_status = {"running": 0, "stop": 0, "close": 0}
+        tenant_region_info_list = TenantRegionInfo.objects.filter(region_name=region_name)
+        for tenant_region_info in tenant_region_info_list:
+            if tenant_region_info.service_status == 0:
+                region_services_status["stop"] += 1
+            elif tenant_region_info.service_status == 1:
+                region_services_status["running"] += 1
+            else:
+                region_services_status["close"] += 1
+        return region_services_status
+
 
 region_repo = RegionRepo()

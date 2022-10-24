@@ -577,6 +577,7 @@ class RegionService(object):
         region_resource["health_status"] = "ok"
         region_resource["enterprise_id"] = region.enterprise_id
         region_resource["resource_proxy_status"] = False
+        region_resource["create_time"] = region.create_time
         enterprise_info = enterprise_services.get_enterprise_by_enterprise_id(region.enterprise_id)
         if enterprise_info:
             region_resource["enterprise_alias"] = enterprise_info.enterprise_alias
@@ -596,6 +597,7 @@ class RegionService(object):
             try:
                 _, rbd_version = region_api.get_enterprise_api_version_v2(
                     enterprise_id=region.enterprise_id, region=region.region_name)
+                region_services_status = region_repo.get_service_status_count_by_region_name(region.region_name)
                 res, body = region_api.get_region_resources(region.enterprise_id, region=region.region_name)
                 rbd_version = rbd_version["raw"]
                 if res.get("status") == 200:
@@ -607,6 +609,10 @@ class RegionService(object):
                     region_resource["used_disk"] = body["bean"]["req_disk"] / 1024 / 1024 / 1024
                     region_resource["rbd_version"] = rbd_version
                     region_resource["resource_proxy_status"] = body["bean"]["resource_proxy_status"]
+                    region_resource["k8s_version"] = body["bean"]["k8s_version"]
+                    region_resource["all_node"] = body["bean"]["all_node"]
+                    region_resource["services_status"] = region_services_status
+                    region_resource["node_ready"] = body["bean"]["node_ready"]
             except (region_api.CallApiError, ServiceHandleException) as e:
                 logger.exception(e)
                 region_resource["rbd_version"] = ""

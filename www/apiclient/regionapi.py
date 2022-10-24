@@ -546,6 +546,18 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
+    def get_user_service_abnormal_status(self, region, enterprise_id):
+        """获取用户所有组件异常状态"""
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/enterprise/" + enterprise_id + "/abnormal_status"
+        res, body = self._get(url, self.default_headers, region=region, timeout=2)
+        if res.get("status") == 200 and isinstance(body, dict):
+            return body
+        return None
+
     def get_volume_options(self, region, tenant_name):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         url = uri_prefix + "/v2/volume-options"
@@ -741,6 +753,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(target, target_id, page, page_size)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region, timeout=20)
+        return res, body
+
+    def get_myteams_events_list(self, region, enterprise_id, tenant, tenant_id_list, page, page_size):
+        """获取所有团队日志列表"""
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/events/myteam" + "?tenant={0}&tenant_id_list={1}&page={2}&size={3}".format(
+            tenant, tenant_id_list, page, page_size)
+        res, body = self._get(url, self.default_headers, region=region, timeout=3)
         return res, body
 
     def get_events_log(self, tenant_name, region, event_id):

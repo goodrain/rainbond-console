@@ -22,6 +22,9 @@ from console.services.team_services import team_services
 from console.views.base import EnterpriseAdminView, JWTAuthApiView, EnterpriseHeaderView, AlowAnyApiView
 from rest_framework import status
 from rest_framework.response import Response
+from console.services.app_actions import event_service
+from console.services.group_service import group_service
+from console.repositories.app import service_repo
 
 from default_region import make_uuid
 from www.apiclient.regionapi import RegionInvokeApi
@@ -192,7 +195,8 @@ class EnterpriseUserTeams(EnterpriseAdminView):
 class EnterpriseMyTeams(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         name = request.GET.get("name", None)
-        tenants = team_services.get_teams_region_by_user_id(enterprise_id, self.user, name)
+        use_region = request.GET.get("use_region", False)
+        tenants = team_services.get_teams_region_by_user_id(enterprise_id, self.user, name, use_region=use_region)
         result = general_message(200, "team query success", "查询成功", list=tenants)
         return Response(result, status=200)
 
@@ -595,3 +599,64 @@ class HelmInstallStatus(JWTAuthApiView):
             logger.exception(e)
         result = general_message(200, "failed", "对接失败")
         return Response(result, status=status.HTTP_200_OK)
+
+
+class MyEventsView(JWTAuthApiView):
+    def get(self, request, *args, **kwargs):
+        eid = kwargs.get("enterprise_id", "")
+        region_names = request.GET.get("region_names", "")
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 10)
+        res_events = []
+        res_total = 0
+        res_has_next = False
+        for region_name in eval(region_names):
+            tenant_ids = []
+            region_tenant_ids = region_repo.get_tenants_by_region_name(region_name)
+            my_tenant_ids = team_repo.get_tenants_by_user_id(self.user.user_id).values_list("tenant_id", flat=True)
+            for region_tenant_id in region_tenant_ids:
+                if region_tenant_id in my_tenant_ids:
+                    tenant_ids.append(region_tenant_id)
+                    break
+            tenant_id_list = {"tenant_ids": tenant_ids}
+            events, total, has_next = event_service.get_myteams_events("tenant", json.dumps(tenant_id_list), eid, region_name,
+                                                                       int(page), int(page_size))
+            if events:
+                res_events += events
+                res_total += total
+            if has_next:
+                res_has_next = has_next
+        result = general_message(200, "success", "查询成功", list=res_events, total=res_total, has_next=res_has_next)
+        return Response(result, status=result["code"])
+
+
+class ServiceAlarm(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        # 获取企业下可用集群
+        usable_regions = region_repo.get_usable_regions(enterprise_id)
+        # 获取异常组件
+        all_abnormal_service_id = []
+        for usable_region in usable_regions:
+            abnormal_service_id = region_api.get_user_service_abnormal_status(usable_region.region_name, enterprise_id)
+            all_abnormal_service_id += abnormal_service_id["service_ids"]
+        # 根据组件id获取应用信息
+        result_map = group_service.get_services_group_name(all_abnormal_service_id)
+        # 根据组件id获取组件信息
+        serivce_infos = service_repo.get_services_by_service_ids(all_abnormal_service_id)
+        res_service = []
+        for serivce in serivce_infos:
+            s = dict()
+            s["service_cname"] = serivce.service_cname
+            s["group_id"] = result_map[serivce.service_id]["group_id"]
+            s["group_name"] = result_map[serivce.service_id]["group_name"]
+            s["service_alias"] = serivce.service_alias
+            s["service_alias"] = serivce.service_alias
+            s["tenant_id"] = serivce.tenant_id
+            s["region_name"] = serivce.service_region
+            # 获取团队信息
+            team = team_repo.get_team_by_team_id(serivce.tenant_id)
+            s["tenant_name"] = team.tenant_name
+            s["tenant_alias"] = team.tenant_alias
+            res_service.append(s)
+        result = general_message(200, "team query success", "查询成功", bean=res_service)
+        return Response(result, status=200)
