@@ -1,11 +1,14 @@
 # -*- coding: utf8 -*-
 import json
+import linecache
 import logging
 import os
 import time
 
+from django.http import StreamingHttpResponse, FileResponse
+
 from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, AbortRequest
 from console.models.main import RegionConfig
 from console.repositories.config_repo import cfg_repo
 from console.repositories.enterprise_repo import enterprise_repo
@@ -13,6 +16,8 @@ from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from console.services.app_actions import ws_service
+from console.services.app_config.component_logs import component_log_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import user_kind_role_service
@@ -24,6 +29,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from default_region import make_uuid
+from goodrain_web.settings import LOG_PATH
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import PermRelTenant, Tenants
 from www.utils.return_message import general_message
@@ -594,4 +600,100 @@ class HelmInstallStatus(JWTAuthApiView):
         except Exception as e:
             logger.exception(e)
         result = general_message(200, "failed", "对接失败")
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class Goodrainlog(JWTAuthApiView):
+    def get(self, request, *args, **kwargs):
+        filepath = LOG_PATH + '/goodrain.log'
+        lines = 1000
+        linecache.clearcache()
+        line_count = 0
+        with open(filepath, 'r') as f:
+            while True:
+                buffer = f.read(1024 * 1)
+                if not buffer:
+                    break
+                line_count += buffer.count('\n')
+        line_count = line_count - 999
+        res = []
+        for i in range(lines):
+            last_line = linecache.getline(filepath, line_count)
+            res.append(last_line)
+            line_count += 1
+        result = general_message(200, "success", "获取成功", bean=res)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class Downlodlog(JWTAuthApiView):
+    def get(self, request):
+        def file_iterator(fn, chunk_size=512):
+            while True:
+                c = fn.read(chunk_size)
+                if c:
+                    yield c
+                else:
+                    break
+
+        filepath = LOG_PATH + '/goodrain.log'
+        fn = open(filepath, 'rb')
+        response = FileResponse(file_iterator(fn))
+        response['Content-Type'] = 'application/octet-stream'
+        response['Content-Disposition'] = 'attachment;filename=goodrain.log'
+        return response
+
+
+class RbdPods(JWTAuthApiView):
+    def get(self, request, region_name, *args, **kwargs):
+        pods_info = region_api.get_rbd_pods(region_name)
+        result = general_message(200, "success", "获取成功", bean=pods_info)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class RbdPodLog(JWTAuthApiView):
+    def get(self, request, region_name, *args, **kwargs):
+        pod_name = request.GET.get("pod_name", "")
+        if not pod_name:
+            raise AbortRequest("the field 'pod_name' is required")
+        follow = True if request.GET.get("follow") == "true" else False
+        stream = component_log_service.get_rbd_log_stream(region_name, pod_name, follow)
+        response = StreamingHttpResponse(stream, content_type="text/plain")
+        # disabled the GZipMiddleware on this call by inserting a fake header into the StreamingHttpResponse
+        response['Content-Encoding'] = 'identity'
+        return response
+
+
+class RbdComponentLogs(JWTAuthApiView):
+    def get(self, request, region_name, *args, **kwargs):
+        lines = request.GET.get("lines", 100)
+        rbd_name = request.GET.get("rbd_name", "")
+        body = region_api.get_rbd_component_logs(region_name, rbd_name, lines)
+        log_list = body["list"]
+        result = general_message(200, "success", "获取成功", bean=log_list)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class RbdLogFiles(JWTAuthApiView):
+    def get(self, request, region_name, *args, **kwargs):
+        rbd_name = request.GET.get("rbd_name", "")
+        body = region_api.get_rbd_log_files(region_name, rbd_name)
+        file_list = body["list"]
+        log_domain_url = ws_service.get_log_domain(request, region_name)
+        file_urls = [{"file_name": f["filename"], "file_url": log_domain_url + "/" + f["relative_path"]} for f in file_list]
+        result = general_message(200, "success", "获取成功", bean=file_urls)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class ShellPod(JWTAuthApiView):
+    def post(self, request, *args, **kwargs):
+        region_name = request.data.get("region_name", "")
+        body = region_api.create_shell_pod(region_name)
+        result = general_message(200, "success", "创建成功", bean=body)
+        return Response(result, status=status.HTTP_200_OK)
+
+    def delete(self, request, *args, **kwargs):
+        region_name = request.data.get("region_name", "")
+        pod_name = request.data.get("pod_name", "")
+        body = region_api.delete_shell_pod(region_name, pod_name)
+        result = general_message(200, "success", "删除成功", bean=body)
         return Response(result, status=status.HTTP_200_OK)
