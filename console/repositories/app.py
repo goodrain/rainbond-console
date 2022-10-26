@@ -121,6 +121,10 @@ class TenantServiceInfoRepository(object):
         service_list = TenantServiceInfo.objects.filter(tenant_id=tenant_id).all()
         return service_list
 
+    def get_tenant_services_count(self, tenant_id):
+        service_count = TenantServiceInfo.objects.filter(tenant_id=tenant_id).count()
+        return service_count
+
     def get_service_by_key(self, tenant_id):
         ServiceSourceInfo.objects.filter()
 

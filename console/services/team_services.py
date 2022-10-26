@@ -7,6 +7,7 @@ import string
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import TenantUserRole
+from console.repositories.app import TenantServiceInfoRepository
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.region_repo import region_repo
@@ -263,7 +264,7 @@ class TeamService(object):
         return team
 
     @transaction.atomic
-    def create_team(self, user, enterprise, region_list=None, team_alias=None, namespace=""):
+    def create_team(self, user, enterprise, region_list=None, team_alias=None, namespace="", logo=""):
         team_name = self.random_tenant_name(enterprise=user.enterprise_id, length=8)
         is_public = settings.MODULES.get('SSO_LOGIN')
         if not is_public:
@@ -287,7 +288,8 @@ class TeamService(object):
             "tenant_alias": team_alias,
             "enterprise_id": enterprise.enterprise_id,
             "limit_memory": 0,
-            "namespace": namespace
+            "namespace": namespace,
+            "logo": logo,
         }
         team = team_repo.create_tenant(**params)
         create_perm_param = {
@@ -374,6 +376,7 @@ class TeamService(object):
             "enterprise_id": tenant.enterprise_id,
             "owner": tenant.creater,
             "owner_name": owner_name,
+            "logo": tenant.logo
         }
 
         if request_user:
@@ -393,17 +396,27 @@ class TeamService(object):
                         region_info_map.append({"region_name": region.region_name, "region_alias": region.region_alias})
             info["region"] = region_info_map[0]["region_name"] if len(region_info_map) > 0 else ""
             info["region_list"] = region_info_map
-
+        service_reps = TenantServiceInfoRepository()
+        service_count = service_reps.get_tenant_services_count(tenant.tenant_id)
+        app_count = group_repo.get_tenant_region_groups_count(tenant.tenant_id, info["region"])
+        info["app_count"] = app_count
+        info["service_count"] = service_count
         return info
 
-    def get_teams_region_by_user_id(self, enterprise_id, user, name=None, get_region=True):
-        teams_list = list()
+    def get_teams_region_by_user_id(self, enterprise_id, user, name=None, get_region=True, use_region=False):
+        teams_list_no_region = list()
+        teams_list_use_region = list()
         tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user.user_id, name)
         if tenants:
             for tenant in tenants:
                 team = self.team_with_region_info(tenant, user, get_region=get_region)
-                teams_list.append(team)
-        return teams_list
+                if not team.get("region_list"):
+                    teams_list_no_region.append(team)
+                else:
+                    teams_list_use_region.append(team)
+        if use_region:
+            return teams_list_use_region
+        return teams_list_no_region + teams_list_use_region
 
     def list_user_teams(self, enterprise_id, user, name):
         # User joined team

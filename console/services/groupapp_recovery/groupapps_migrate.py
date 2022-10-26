@@ -491,6 +491,22 @@ class GroupappsMigrateService(object):
                             domain_repo.create_service_domains(service_id, service_name, domain_name, create_time,
                                                                container_port, protocol, http_rule_id, tenant_id, service_alias,
                                                                region_id)
+                            if service.create_status == "complete":
+                                # 给数据中心发请求添加默认域名
+                                data = dict()
+                                data["domain"] = domain_name
+                                data["service_id"] = service.service_id
+                                data["tenant_id"] = tenant.tenant_id
+                                data["tenant_name"] = tenant.tenant_name
+                                data["protocol"] = protocol
+                                data["container_port"] = int(container_port)
+                                data["http_rule_id"] = http_rule_id
+                                try:
+                                    region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
+                                except Exception as e:
+                                    logger.exception(e)
+                                    domain_repo.delete_http_domains(http_rule_id)
+                                    return 412, "数据中心添加策略失败"
 
                     else:
                         service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
