@@ -6,7 +6,7 @@ import logging
 import time
 
 from console.models.main import (AppExportRecord, AppImportRecord, RainbondCenterApp, RainbondCenterAppTagsRelation,
-                                 RainbondCenterAppVersion)
+                                 RainbondCenterAppVersion, AppHelmOverrides)
 from django.db.models import Q
 from www.db.base import BaseConnection
 
@@ -180,6 +180,12 @@ class RainbondCenterAppRepository(object):
 
     def get_rainbond_app_by_eid(self, eid):
         return RainbondCenterApp.objects.filter(enterprise_id=eid)
+
+    def get_app_helm_overrides(self, app_id, app_model_id):
+        return AppHelmOverrides.objects.filter(app_id=app_id, app_model_id=app_model_id)
+
+    def delete_app_helm_overrides(self, app_id):
+        return AppHelmOverrides.objects.filter(app_id=app_id).delete()
 
     def get_rainbond_app_version_by_record_id(self, record_id):
         return RainbondCenterAppVersion.objects.filter(record_id=record_id).first()

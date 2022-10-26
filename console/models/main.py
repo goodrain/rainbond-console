@@ -96,7 +96,7 @@ class RainbondCenterApp(BaseModel):
     create_user = models.IntegerField(null=True, blank=True, help_text="创建人id")
     create_team = models.CharField(max_length=64, null=True, blank=True, help_text="应用所属团队,可以和创建人id不统一")
     pic = models.CharField(max_length=200, null=True, blank=True, help_text="应用头像信息")
-    source = models.CharField(max_length=15, default="", null=True, blank=True, help_text="应用来源(本地创建，好雨云市)")
+    source = models.CharField(max_length=128, default="", null=True, blank=True, help_text="应用来源(本地创建，好雨云市)")
     dev_status = models.CharField(max_length=32, default="", null=True, blank=True, help_text="开发状态")
     scope = models.CharField(max_length=50, choices=app_scope, help_text="可用范围")
     describe = models.CharField(max_length=400, null=True, blank=True, help_text="云市应用描述信息")
@@ -141,6 +141,15 @@ class RainbondCenterAppVersion(BaseModel):
     # region_name is not null,This means that the version can only be installed on that cluster.
     region_name = models.CharField(max_length=64, null=True, default=None, help_text="数据中心名称")
     is_plugin = models.BooleanField(default=False, help_text='应用版本是否作为插件')
+
+
+class AppHelmOverrides(BaseModel):
+    class Meta:
+        db_table = "app_helm_overrides"
+
+    app_id = models.IntegerField()
+    app_model_id = models.CharField(max_length=32, help_text="应用包id")
+    overrides = models.TextField(help_text="helm应用安装参数", default="")
 
 
 class RainbondCenterAppInherit(BaseModel):
