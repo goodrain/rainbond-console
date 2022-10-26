@@ -11,5 +11,11 @@ class ComponentLogService(object):
         for chunk in r.stream(1024):
             yield chunk
 
+    @staticmethod
+    def get_rbd_log_stream(region_name, pod_name, follow):
+        r = region_api.get_rbd_pod_log(region_name, pod_name, follow)
+        for chunk in r.stream(1024):
+            yield chunk
+
 
 component_log_service = ComponentLogService()

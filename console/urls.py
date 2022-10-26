@@ -58,7 +58,8 @@ from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupVie
 from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
-from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource)
+from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
+                                      RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
 from console.views.enterprise import (
     EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView, EnterpriseMonitor, EnterpriseMyTeams,
     EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView,
@@ -850,6 +851,18 @@ urlpatterns = [
     url(r'^enterprise/helm/region_info$', HelmAddReginInfo.as_view()),
     url(r'^enterprise/helm/region_status$', HelmInstallStatus.as_view()),
 
+    # 查看控制台日志
+    url(r'^enterprise/goodrain_log$', Goodrainlog.as_view()),
+    url(r'^enterprise/download/goodrain_log$', Downlodlog.as_view(), name='download'),
+
+    # 查看rbd资源日志
+    url(r'^enterprise/region_name/(?P<region_name>[\w\-]+)/rbd-pods$', RbdPods.as_view()),
+    url(r'^enterprise/region_name/(?P<region_name>[\w\-]+)/rbd-logs$', RbdPodLog.as_view()),
+    url(r'^enterprise/region_name/(?P<region_name>[\w\-]+)/rbd-component-logs$', RbdComponentLogs.as_view()),
+    url(r'^enterprise/region_name/(?P<region_name>[\w\-]+)/rbd-log-files$', RbdLogFiles.as_view()),
+
+    # shell
+    url(r'^enterprise/shell-pod$', ShellPod.as_view()),
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队

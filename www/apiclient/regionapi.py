@@ -2183,3 +2183,64 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._delete(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
+
+    def get_rbd_pods(self, region):
+        """获取rbd pod信息"""
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/rbd-resource/pods"
+        res, body = self._get(url, self.default_headers, None, region=region, timeout=15)
+        return body
+
+    def get_rbd_pod_log(self, region, pod_name, follow=False):
+        """获取rbd logs信息"""
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        follow = "true" if follow else "false"
+        url = url + "/v2/cluster/rbd-resource/log?pod_name={}&follow={}".format(pod_name, follow)
+        res, _ = self._get(url, self.default_headers, None, region=region, preload_content=False)
+        return res
+
+    def get_rbd_component_logs(self, region, rbd_name, rows):
+        """获取rbd组件日志"""
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/rbd-name/{0}/logs?rows={1}".format(rbd_name, rows)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def get_rbd_log_files(self, region, rbb_name):
+        """获取rbd日志文件列表"""
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/log-file?rbd_name={}".format(rbb_name)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def create_shell_pod(self, region):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/shell-pod"
+        data = {"region_name": region}
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        return body
+
+    def delete_shell_pod(self, region, pod_name):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/shell-pod"
+        data = {"region_name": region, "pod_name": pod_name}
+        res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(data))
+        return body
