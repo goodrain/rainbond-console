@@ -16,6 +16,7 @@ from console.repositories.app_config import (domain_repo, env_var_repo, port_rep
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.compose_repo import compose_repo
 from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.k8s_resources import k8s_resources_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.share_repo import share_repo
@@ -553,7 +554,9 @@ class GroupService(object):
         service = group_service_relation_repo.get_service_by_group(app.app_id)
         if service:
             raise AbortRequest(msg="the app still has components", msg_show="当前应用内存在组件，无法删除")
-
+        k8s_resources = k8s_resources_repo.list_by_app_id(app.app_id)
+        if k8s_resources:
+            raise AbortRequest(msg="the app still has k8s resource", msg_show="当前应用内存在k8s资源，无法删除")
         self._delete_app(tenant.tenant_name, region_name, app.app_id)
 
     @staticmethod

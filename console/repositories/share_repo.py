@@ -91,6 +91,12 @@ class ShareRepo(object):
             share_team=team_name, is_complete=True, scope__in=["team", "enterprise", "goodrain"]).values(
                 "group_key", "group_name", "version").order_by("group_key")
 
+    def delete_helm_shared_apps(self, source):
+        return RainbondCenterApp.objects.filter(source=source).delete()
+
+    def get_helm_shared_apps_by_source(self, source):
+        return RainbondCenterApp.objects.filter(source=source)
+
     def get_shared_app_by_group_key(self, group_key, version, team_name):
         if version:
             return RainbondCenterApp.objects.filter(
