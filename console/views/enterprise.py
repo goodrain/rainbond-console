@@ -603,7 +603,7 @@ class HelmInstallStatus(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class Goodrainlog(JWTAuthApiView):
+class Goodrainlog(EnterpriseAdminView):
     def get(self, request, *args, **kwargs):
         filepath = LOG_PATH + '/goodrain.log'
         lines = 1000
@@ -625,7 +625,7 @@ class Goodrainlog(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class Downlodlog(JWTAuthApiView):
+class Downlodlog(EnterpriseAdminView):
     def get(self, request):
         def file_iterator(fn, chunk_size=512):
             while True:
@@ -643,14 +643,14 @@ class Downlodlog(JWTAuthApiView):
         return response
 
 
-class RbdPods(JWTAuthApiView):
+class RbdPods(EnterpriseAdminView):
     def get(self, request, region_name, *args, **kwargs):
         pods_info = region_api.get_rbd_pods(region_name)
         result = general_message(200, "success", "获取成功", bean=pods_info)
         return Response(result, status=status.HTTP_200_OK)
 
 
-class RbdPodLog(JWTAuthApiView):
+class RbdPodLog(EnterpriseAdminView):
     def get(self, request, region_name, *args, **kwargs):
         pod_name = request.GET.get("pod_name", "")
         if not pod_name:
@@ -663,7 +663,7 @@ class RbdPodLog(JWTAuthApiView):
         return response
 
 
-class RbdComponentLogs(JWTAuthApiView):
+class RbdComponentLogs(EnterpriseAdminView):
     def get(self, request, region_name, *args, **kwargs):
         lines = request.GET.get("lines", 100)
         rbd_name = request.GET.get("rbd_name", "")
@@ -673,7 +673,7 @@ class RbdComponentLogs(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class RbdLogFiles(JWTAuthApiView):
+class RbdLogFiles(EnterpriseAdminView):
     def get(self, request, region_name, *args, **kwargs):
         rbd_name = request.GET.get("rbd_name", "")
         body = region_api.get_rbd_log_files(region_name, rbd_name)
@@ -684,7 +684,7 @@ class RbdLogFiles(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class ShellPod(JWTAuthApiView):
+class ShellPod(EnterpriseAdminView):
     def post(self, request, *args, **kwargs):
         region_name = request.data.get("region_name", "")
         body = region_api.create_shell_pod(region_name)
