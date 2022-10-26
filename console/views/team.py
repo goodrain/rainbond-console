@@ -139,6 +139,7 @@ class AddTeamView(JWTAuthApiView):
             team_alias = request.data.get("team_alias", None)
             useable_regions = request.data.get("useable_regions", "")
             namespace = request.data.get("namespace", "")
+            logo = request.data.get("logo", "")
             if not is_qualified_name(namespace):
                 raise ErrQualifiedName(msg="invalid namespace name", msg_show="命名空间只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
             regions = []
@@ -154,7 +155,7 @@ class AddTeamView(JWTAuthApiView):
                 enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
                 if not enterprise:
                     return Response(general_message(500, "user's enterprise is not found", "无企业信息"), status=500)
-                team = team_services.create_team(self.user, enterprise, regions, team_alias, namespace)
+                team = team_services.create_team(self.user, enterprise, regions, team_alias, namespace, logo)
                 exist_namespace_region_names = []
                 for r in regions:
                     try:

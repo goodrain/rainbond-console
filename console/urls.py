@@ -58,6 +58,7 @@ from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupVie
 from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
+from console.views.enterprise import (MyEventsView, ServiceAlarm)
 from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
                                       RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
 from console.views.enterprise import (
@@ -850,6 +851,10 @@ urlpatterns = [
     url(r'^enterprise/helm/token$', HelmTokenView.as_view()),
     url(r'^enterprise/helm/region_info$', HelmAddReginInfo.as_view()),
     url(r'^enterprise/helm/region_status$', HelmInstallStatus.as_view()),
+    # 查看当前用户所有团队组件日志
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/my_events$', MyEventsView.as_view()),
+    # 用户组件报警
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/service_alarm$', ServiceAlarm.as_view()),
 
     # 查看控制台日志
     url(r'^enterprise/goodrain_log$', Goodrainlog.as_view()),

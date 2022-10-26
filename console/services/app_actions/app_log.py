@@ -9,11 +9,15 @@ from django.conf import settings
 
 from console.constants import LogConstants, ServiceEventConstants
 from console.repositories.event_repo import event_repo
+from console.repositories.group import group_service_relation_repo
 from console.repositories.region_repo import region_repo
 from console.services.plugin.app_plugin import AppPluginService
 from console.utils.timeutil import str_to_time, time_to_str
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
+from console.services.group_service import group_service
+from console.repositories.app import service_repo
+from console.repositories.team_repo import team_repo
 from www.utils.crypt import make_uuid
 
 app_plugin_service = AppPluginService()
@@ -270,6 +274,49 @@ class AppEventService(object):
             if page_size * page >= total:
                 has_next = False
         return msg_list, total, has_next
+
+    def get_myteams_events(self, tenant, tenant_id_list, enterprise_id, region, page, page_size):
+        msg_list = []
+        has_next = False
+        total = 0
+        res, rt_data = region_api.get_myteams_events_list(region, enterprise_id, tenant, tenant_id_list, page, page_size)
+        if int(res.status) == 200:
+            msg_list = rt_data.get("list", [])
+            total = rt_data.get("number", 0)
+            has_next = True
+            if page_size * page >= total:
+                has_next = False
+        my_teams_all_events = []
+        if msg_list:
+            for msg in msg_list:
+                # TODO: 需要将数据库查询放在循环外
+                msg.to_dict()
+                current_build_info = msg["build_list"]["list"]
+                every_event_log = msg["service_event"]
+                group_info = group_service.get_service_group_info(every_event_log["TargetID"])
+                group = group_service_relation_repo.get_group_by_service_id(every_event_log["TargetID"])
+                service_info = service_repo.get_service_by_service_id(every_event_log["TargetID"])
+                tenant_info = team_repo.get_team_by_team_id(every_event_log["TenantID"])
+                every_event_log["build_version"] = current_build_info["build_version"]
+                every_event_log["kind"] = current_build_info["kind"]
+                every_event_log["delivered_type"] = current_build_info["image"]
+                every_event_log["delivered_path"] = current_build_info["delivered_path"]
+                every_event_log["code_commit_msg"] = current_build_info["code_commit_msg"]
+                every_event_log["code_commit_author"] = current_build_info["code_commit_author"]
+                every_event_log["create_time"] = current_build_info["create_time"]
+                every_event_log["finish_time"] = current_build_info["finish_time"]
+                every_event_log["final_status"] = current_build_info["final_status"]
+                every_event_log["group_name"] = group_info.group_name
+                every_event_log["group_id"] = group.group_id
+                every_event_log["team_alias"] = tenant_info.tenant_alias
+                every_event_log["team_name"] = tenant_info.tenant_name
+                every_event_log["team_namespace"] = tenant_info.namespace
+                every_event_log["service_name"] = service_info.service_cname
+                every_event_log["service_alias"] = service_info.service_alias
+                every_event_log["service_group_id"] = service_info.tenant_service_group_id
+                every_event_log["region_name"] = group_info.region_name
+                my_teams_all_events.append(every_event_log)
+        return my_teams_all_events, total, has_next
 
     def get_event_log(self, tenant, region_name, event_id):
         content = []

@@ -97,3 +97,5 @@ CREATE TABLE `helm_repo` (
   UNIQUE KEY `repo_id` (`repo_id`),
   UNIQUE KEY `repo_name` (`repo_name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE tenant_info ADD logo longtext NULL;
