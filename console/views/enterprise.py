@@ -714,7 +714,7 @@ class MyEventsView(JWTAuthApiView):
         res_has_next = False
         for region_name in eval(region_names):
             my_tenant_ids = team_repo.get_tenants_by_user_id(self.user.user_id).values_list("tenant_id", flat=True)
-            tenant_id_list = {"tenant_ids": my_tenant_ids}
+            tenant_id_list = {"tenant_ids": list(my_tenant_ids)}
             events, total, has_next = event_service.get_myteams_events("tenant", json.dumps(tenant_id_list), eid, region_name,
                                                                        int(page), int(page_size))
             if events:
