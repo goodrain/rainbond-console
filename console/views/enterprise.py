@@ -756,5 +756,5 @@ class ServiceAlarm(EnterpriseAdminView):
                     "tenant_alias": team.tenant_alias
                 }
             )
-        result = general_message(200, "team query success", "查询成功", bean=res_service)
+        result = general_message(200, "team query success", "查询成功", list=res_service)
         return Response(result, status=200)
