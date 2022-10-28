@@ -208,13 +208,14 @@ class HelmAppService(object):
         app_version.save()
 
     def yaml_conversion(self, name, repo_name, chart_name, version, overrides, region, tenant_name, tenant, eid, region_id):
-        check_helm_app_data = {
-            "name": name,
-            "chart": repo_name + "/" + chart_name,
-            "version": version,
-            "overrides": overrides,
-            "namespace": tenant.namespace
-        }
+        check_helm_app_data = helm_repo.get_helm_repo_by_name(repo_name)
+        if not check_helm_app_data:
+            check_helm_app_data = dict()
+        check_helm_app_data["name"] = name
+        check_helm_app_data["chart"] = repo_name + "/" + chart_name
+        check_helm_app_data["version"] = version
+        check_helm_app_data["overrides"] = overrides
+        check_helm_app_data["namespace"] = tenant.namespace
         _, check_body = region_api.check_helm_app(region, tenant_name, check_helm_app_data)
         body = self.yaml_handle(eid, region_id, tenant, check_body["bean"]["yaml"])
         return body
