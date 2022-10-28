@@ -362,6 +362,7 @@ class MarketApp(object):
         for k8s_resource in app.k8s_resources:
             resource_key = k8s_resource.name + k8s_resource.kind
             if resource_statuses.get(resource_key):
+                k8s_resource.content = resource_statuses[resource_key]["content"]
                 k8s_resource.state = resource_statuses[resource_key]["state"]
                 k8s_resource.error_overview = resource_statuses[resource_key]["error_overview"]
         if isinstance(app, NewApp):
