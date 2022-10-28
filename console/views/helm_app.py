@@ -107,7 +107,7 @@ class HelmChart(RegionTenantHeaderView):
         app = rainbond_app_repo.get_app_helm_overrides(app_id, make_helm_uuid(repo_name + "/" + chart_name)).last()
         overrides_dict = dict()
         if app:
-            overrides = json.loads(app[0].overrides)
+            overrides = json.loads(app.overrides)
             overrides_dict = [{override.split('=')[0]: override.split('=')[1]} for override in overrides]
         ret = dict()
         ret["maintainer"] = self.user.real_name
