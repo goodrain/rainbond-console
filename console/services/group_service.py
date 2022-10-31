@@ -425,7 +425,7 @@ class GroupService(object):
                 "group_note": app.note,
                 "service_list": [],
                 "used_mem": app_status.get("memory", 0) if app_status else 0,
-                "status": app_status.get("status", "UNKNOWN"),
+                "status": app_status.get("status", "UNKNOWN") if app_status else "UNKNOWN",
                 "logo": app.logo,
                 "accesses": [],
             }
