@@ -743,18 +743,16 @@ class ServiceAlarm(EnterpriseAdminView):
         for serivce in serivce_infos:
             # 获取团队信息
             team = team_repo.get_team_by_team_id(serivce.tenant_id)
-            res_service.append(
-                {
-                    "service_cname": serivce.service_cname,
-                    "group_id": result_map[serivce.service_id]["group_id"],
-                    "group_name": result_map[serivce.service_id]["group_name"],
-                    "service_alias": serivce.service_alias,
-                    "service_id": serivce.service_id,
-                    "tenant_id": serivce.tenant_id,
-                    "region_name": serivce.service_region,
-                    "tenant_name": team.tenant_name,
-                    "tenant_alias": team.tenant_alias
-                }
-            )
+            res_service.append({
+                "service_cname": serivce.service_cname,
+                "group_id": result_map[serivce.service_id]["group_id"],
+                "group_name": result_map[serivce.service_id]["group_name"],
+                "service_alias": serivce.service_alias,
+                "service_id": serivce.service_id,
+                "tenant_id": serivce.tenant_id,
+                "region_name": serivce.service_region,
+                "tenant_name": team.tenant_name,
+                "tenant_alias": team.tenant_alias
+            })
         result = general_message(200, "team query success", "查询成功", list=res_service)
         return Response(result, status=200)
