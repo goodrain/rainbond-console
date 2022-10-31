@@ -292,6 +292,9 @@ class AppEventService(object):
                 # TODO: 需要将数据库查询放在循环外
                 msg.to_dict()
                 current_build_info = msg["build_list"]["list"]
+                if type(current_build_info) == list:
+                    # 如果类型是list，说明没有组件构建信息
+                    continue
                 every_event_log = msg["service_event"]
                 group_info = group_service.get_service_group_info(every_event_log["TargetID"])
                 group = group_service_relation_repo.get_group_by_service_id(every_event_log["TargetID"])
