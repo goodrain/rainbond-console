@@ -478,6 +478,8 @@ class GroupService(object):
         # Get the status of cluster application
         resp = region_api.list_app_statuses_by_app_ids(tenant_name, region_name, {"app_ids": region_app_ids})
         app_statuses = resp.get("list", [])
+        if not app_statuses:
+            app_statuses = list()
         # The relationship between cluster application ID and state
         # is transformed into that between console application ID and state
         # Returns the relationship between console application ID and status
