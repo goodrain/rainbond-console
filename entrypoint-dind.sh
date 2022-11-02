@@ -199,6 +199,8 @@ function start_rainbond {
       --set operator.image.tag="${VERSION}" \
       --set operator.image.env[0].name=IS_SQLLITE \
       --set operator.image.env[0].value=TRUE \
+      --set operator.image.env[1].name=ENABLE_CLUSTER \
+      --set operator.image.env[1].value="true" \
       --set operator.isDind=true
     echo -e "${GREEN}$(date "$TIME") INFO: Helm rainbond-operator installed ${NC}"
 
