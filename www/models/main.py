@@ -349,9 +349,21 @@ class Tenants(BaseModel):
     tenant_alias = models.CharField(max_length=64, null=True, blank=True, default='', help_text="团队别名")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text="企业id")
     namespace = models.CharField(max_length=33, unique=True, help_text="团队的命名空间")
+    logo = models.CharField(max_length=2048, null=True, help_text="团队头像")
 
     def __unicode__(self):
         return self.tenant_name
+
+
+class HelmRepoInfo(BaseModel):
+    class Meta:
+        db_table = "helm_repo"
+
+    repo_id = models.CharField(max_length=33, unique=True, default=make_uuid(), help_text="Helm仓库id")
+    repo_name = models.CharField(max_length=64, unique=True, help_text="仓库名称")
+    repo_url = models.CharField(max_length=128, help_text="仓库地址")
+    username = models.CharField(max_length=128, default="", help_text="仓库用户名")
+    password = models.CharField(max_length=128, default="", help_text="仓库密码")
 
 
 class TenantRegionInfo(BaseModel):

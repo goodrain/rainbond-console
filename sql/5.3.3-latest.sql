@@ -73,3 +73,29 @@ CREATE TABLE IF NOT EXISTS `package_upload_record` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 ALTER TABLE tenant_service ADD COLUMN job_strategy varchar(2047) DEFAULT '';
+
+-- 5.9.0 - 5.10.0 sql
+
+CREATE TABLE `app_helm_overrides` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `app_id` int(11) NOT NULL,
+  `app_model_id` varchar(32) NOT NULL,
+  `overrides` longtext NOT NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE rainbond_center_app MODIFY COLUMN source varchar(128);
+
+CREATE TABLE `helm_repo` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `repo_id` varchar(33) NOT NULL,
+  `repo_name` varchar(64) NOT NULL,
+  `repo_url` varchar(128) NOT NULL,
+  `username` varchar(128) NOT NULL,
+  `password` varchar(128) NOT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `repo_id` (`repo_id`),
+  UNIQUE KEY `repo_name` (`repo_name`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE tenant_info ADD logo longtext NULL;

@@ -546,12 +546,45 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
+    def get_user_service_abnormal_status(self, region, enterprise_id):
+        """获取用户所有组件异常状态"""
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/enterprise/" + enterprise_id + "/abnormal_status"
+        res, body = self._get(url, self.default_headers, region=region, timeout=2)
+        if res.get("status") == 200 and isinstance(body, dict):
+            return body
+        return None
+
     def get_volume_options(self, region, tenant_name):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         url = uri_prefix + "/v2/volume-options"
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return body
+
+    def command_helm_yaml(self, region, tenant_name, data):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        url = uri_prefix + "/v2/helm/command_helm"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data), timeout=20)
+        return res, body
+
+    def get_chart_information(self, region, tenant_name, data):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        url = uri_prefix + "/v2/helm/get_chart_information"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def check_helm_app(self, region, tenant_name, data):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        url = uri_prefix + "/v2/helm/check_helm_app"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
 
     def get_service_volumes_status(self, region, tenant_name, service_alias):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
@@ -741,6 +774,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(target, target_id, page, page_size)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region, timeout=20)
+        return res, body
+
+    def get_myteams_events_list(self, region, enterprise_id, tenant, tenant_id_list, page, page_size):
+        """获取所有团队日志列表"""
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/events/myteam" + "?tenant={0}&tenant_ids={1}&page={2}&size={3}".format(
+            tenant, tenant_id_list, page, page_size)
+        res, body = self._get(url, self.default_headers, region=region, timeout=3)
         return res, body
 
     def get_events_log(self, tenant_name, region, event_id):
@@ -2162,3 +2206,64 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._delete(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
+
+    def get_rbd_pods(self, region):
+        """获取rbd pod信息"""
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/rbd-resource/pods"
+        res, body = self._get(url, self.default_headers, None, region=region, timeout=15)
+        return body
+
+    def get_rbd_pod_log(self, region, pod_name, follow=False):
+        """获取rbd logs信息"""
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        follow = "true" if follow else "false"
+        url = url + "/v2/cluster/rbd-resource/log?pod_name={}&follow={}".format(pod_name, follow)
+        res, _ = self._get(url, self.default_headers, None, region=region, preload_content=False)
+        return res
+
+    def get_rbd_component_logs(self, region, rbd_name, rows):
+        """获取rbd组件日志"""
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/rbd-name/{0}/logs?rows={1}".format(rbd_name, rows)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def get_rbd_log_files(self, region, rbb_name):
+        """获取rbd日志文件列表"""
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/log-file?rbd_name={}".format(rbb_name)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def create_shell_pod(self, region):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/shell-pod"
+        data = {"region_name": region}
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        return body
+
+    def delete_shell_pod(self, region, pod_name):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/shell-pod"
+        data = {"region_name": region, "pod_name": pod_name}
+        res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(data))
+        return body

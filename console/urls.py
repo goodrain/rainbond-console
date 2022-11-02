@@ -58,7 +58,9 @@ from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupVie
 from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
-from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource)
+from console.views.enterprise import (MyEventsView, ServiceAlarm)
+from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
+                                      RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
 from console.views.enterprise import (
     EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView, EnterpriseMonitor, EnterpriseMyTeams,
     EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView,
@@ -74,6 +76,7 @@ from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView
                                  ApplicationInstallView, ApplicationPodView, ApplicationHelmAppComponentView,
                                  ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView,
                                  TenantAppUpgradableNumView, AppGovernanceModeCheckView, ApplicationVolumesView)
+from console.views.helm_app import HelmAppView, HelmRepo, HelmCenterApp, HelmChart, CommandInstallHelm
 from console.views.jwt_token_view import JWTTokenView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
 from console.views.k8s_resource import AppK8sResourceListView, AppK8ResourceView
@@ -201,7 +204,6 @@ urlpatterns = [
 
     # 移交团队管理权
     url(r'^teams/(?P<team_name>[\w\-]+)/pemtransfer$', UserPemTraView.as_view(), perms.UserPemTraView),
-
     # 新建团队
     url(r'^teams/add-teams$', AddTeamView.as_view(), perms.AddTeamView),
     # 获取团队下所有用户
@@ -237,8 +239,15 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/overview$', TeamOverView.as_view(), perms.TeamOverView),
     # 总览 获取应用状态
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/services/status$', AllServiceInfo.as_view(), perms.AllServiceInfo),
+    # 上传yaml文件
     url(r'^teams/(?P<team_name>[\w\-]+)/resource-name$', YamlResourceName.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/resource-detailed$', YamlResourceDetailed.as_view()),
+    # helm应用处理
+    url(r'^helm/repos$', HelmRepo.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/helm_app$', HelmAppView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/chart/version$', HelmChart.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/helm_command$', CommandInstallHelm.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/helm_center_app$', HelmCenterApp.as_view()),
 
     # 团队应用模块（5.1）
     url(r'^teams/(?P<team_name>[\w\-]+)/apps$', TeamAppSortViewView.as_view(), perms.TeamAppSortViewView),
@@ -842,7 +851,23 @@ urlpatterns = [
     url(r'^enterprise/helm/token$', HelmTokenView.as_view()),
     url(r'^enterprise/helm/region_info$', HelmAddReginInfo.as_view()),
     url(r'^enterprise/helm/region_status$', HelmInstallStatus.as_view()),
+    # 查看当前用户所有团队组件日志
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/my_events$', MyEventsView.as_view()),
+    # 用户组件报警
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/service_alarm$', ServiceAlarm.as_view()),
 
+    # 查看控制台日志
+    url(r'^enterprise/goodrain_log$', Goodrainlog.as_view()),
+    url(r'^enterprise/download/goodrain_log$', Downlodlog.as_view(), name='download'),
+
+    # 查看rbd资源日志
+    url(r'^enterprise/region_name/(?P<region_name>[\w\-]+)/rbd-pods$', RbdPods.as_view()),
+    url(r'^enterprise/region_name/(?P<region_name>[\w\-]+)/rbd-logs$', RbdPodLog.as_view()),
+    url(r'^enterprise/region_name/(?P<region_name>[\w\-]+)/rbd-component-logs$', RbdComponentLogs.as_view()),
+    url(r'^enterprise/region_name/(?P<region_name>[\w\-]+)/rbd-log-files$', RbdLogFiles.as_view()),
+
+    # shell
+    url(r'^enterprise/shell-pod$', ShellPod.as_view()),
     # 查看用户审核状态
     url(r'^user/applicants/status$', UserApplyStatusView.as_view()),
     # 用户申请某个团队
