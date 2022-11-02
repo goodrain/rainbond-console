@@ -15,7 +15,7 @@ CREATE TABLE "plugin_config_items" (
     "is_change" tinyint(1) NOT NULL,
     "create_time" datetime(6) NOT NULL,
     "attr_info" varchar(32),
-    "protocol" varchar(32),
+    "protocol" varchar(32)
 );
 
 CREATE TABLE "service_plugin_config_var" (
