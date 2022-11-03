@@ -23,7 +23,7 @@ steps:
   - git clone -b $UI_BRANCH --depth=1 https://github.com/goodrain/rainbond-ui.git
 
 - name: build rainbond-ui dist
-  image: node:12
+  image: node:14
   commands:
   - cd rainbond-ui
   - yarn install
