@@ -62,6 +62,12 @@ steps:
       from_secret: operator_branch
     ADAPTOR_BRANCH:
       from_secret: adaptor_branch
+    DOMESTIC_DOCKER_USERNAME:
+      from_secret: domestic_docker_username
+    DOMESTIC_DOCKER_PASSWORD:
+      from_secret: domestic_docker_password
+    DOMESTIC_BASE_NAME:
+      from_secret: domestic_base_name
   commands:
   - rm -rf rainbond-ui
   - BUILD_ARCH=$GOARCH ./release.sh dind
