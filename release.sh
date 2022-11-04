@@ -4,6 +4,7 @@ IMAGE_NAMESPACE=${IMAGE_NAMESPACE:-rainbond}
 DOMESTIC_BASE_NAME=${DOMESTIC_BASE_NAME:-'registry.cn-hangzhou.aliyuncs.com'}
 DOMESTIC_NAMESPACE=${DOMESTIC_NAMESPACE:-'goodrain'}
 ARCH=${BUILD_ARCH:-'amd64'}
+OFFLINE=${OFFLINE:-'false'}
 TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST:-false}
 # rainbond operator org and branch
 OPERATOR_BRANCH=${OPERATOR_BRANCH:-${VERSION}}
@@ -69,6 +70,7 @@ function release_dind() {
   release_desc=${VERSION/-release}-${git_commit}-${buildTime}-allinone
   image_name="rainbond"
   imageName=${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION/-release}-dind-allinone
+  domestcName=${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rainbond:${VERSION/-release}-dind-allinone
   docker build --network=host --build-arg VERSION="${VERSION}" --build-arg IMAGE_NAMESPACE="${IMAGE_NAMESPACE}" \
     --build-arg RELEASE_DESC="${release_desc}" \
     --build-arg ARCH="${ARCH}" \
@@ -79,13 +81,16 @@ function release_dind() {
   if [ $? -ne 0 ]; then
     exit 1
   fi
+  if [ "$OFFLINE" == "true" ]; then
+    imageName="${imageName}-offline"
+    domestcName="${domestcName}-offline"
+  fi
   if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     if [ "$DOCKER_USERNAME" ]; then
       echo "$DOCKER_PASSWORD" | docker login ${IMAGE_DOMAIN} -u "$DOCKER_USERNAME" --password-stdin
       docker push "${imageName}"
     fi
     if [ "${DOMESTIC_DOCKER_USERNAME}" ]; then
-      domestcName=${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rainbond:${VERSION/-release}-dind-allinone
       docker tag ${imageName} ${domestcName}
       docker login -u "$DOMESTIC_DOCKER_USERNAME" -p "$DOMESTIC_DOCKER_PASSWORD" "${DOMESTIC_BASE_NAME}"
       docker push "${domestcName}"
@@ -94,6 +99,7 @@ function release_dind() {
 }
 
 function build_dind_package () {
+  OFFLINE=${OFFLINE} \
   IMAGE_DOMAIN=${IMAGE_DOMAIN} \
   IMAGE_NAMESPACE=${IMAGE_NAMESPACE} \
   VERSION=${VERSION} \
