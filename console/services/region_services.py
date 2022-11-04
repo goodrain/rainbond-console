@@ -575,7 +575,6 @@ class RegionService(object):
         region_resource["used_disk"] = 0
         region_resource["rbd_version"] = "unknown"
         region_resource["health_status"] = "ok"
-        region_resource["enterprise_id"] = region.enterprise_id
         region_resource["resource_proxy_status"] = False
         region_resource["create_time"] = region.create_time
         enterprise_info = enterprise_services.get_enterprise_by_enterprise_id(region.enterprise_id)
