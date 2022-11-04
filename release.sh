@@ -77,6 +77,10 @@ function release_dind() {
   image_name="rainbond"
   imageName=${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION/-release}-dind-allinone
   domestcName=${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rainbond:${VERSION/-release}-dind-allinone
+  if [ "$OFFLINE" == "true" ]; then
+    imageName="${imageName}-offline"
+    domestcName="${domestcName}-offline"
+  fi
   docker build --network=host --build-arg VERSION="${VERSION}" --build-arg IMAGE_NAMESPACE="${IMAGE_NAMESPACE}" \
     --build-arg RELEASE_DESC="${release_desc}" \
     --build-arg ARCH="${ARCH}" \
@@ -86,10 +90,6 @@ function release_dind() {
     -t "${imageName}" -f Dockerfile.dind .
   if [ $? -ne 0 ]; then
     exit 1
-  fi
-  if [ "$OFFLINE" == "true" ]; then
-    imageName="${imageName}-offline"
-    domestcName="${domestcName}-offline"
   fi
   if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     if [ "$DOCKER_USERNAME" ]; then
