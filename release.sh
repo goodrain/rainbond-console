@@ -5,6 +5,8 @@ DOMESTIC_BASE_NAME=${DOMESTIC_BASE_NAME:-'registry.cn-hangzhou.aliyuncs.com'}
 DOMESTIC_NAMESPACE=${DOMESTIC_NAMESPACE:-'goodrain'}
 ARCH=${BUILD_ARCH:-'amd64'}
 OFFLINE=${OFFLINE:-'false'}
+BUILDER=${BUILDER:-"v5.8.1-release"}
+RUNNER=${RUNNER:-"v5.8.1-release"}
 TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST:-false}
 # rainbond operator org and branch
 OPERATOR_BRANCH=${OPERATOR_BRANCH:-${VERSION}}
@@ -45,7 +47,7 @@ function release_allinone() {
   buildTime=$(date +%F-%H)
   release_desc=${VERSION}-${git_commit}-${buildTime}-allinone
   image_name="rainbond"
-  imageName=${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION}-allinone
+  imageName=${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION}
   docker build --network=host --build-arg VERSION="${VERSION}" --build-arg IMAGE_NAMESPACE="${IMAGE_NAMESPACE}"  --build-arg ADAPTOR_BRANCH="${ADAPTOR_BRANCH}" --build-arg RELEASE_DESC="${release_desc}" --build-arg ARCH="${ARCH}" -t "${imageName}" -f Dockerfile.allinone .
   if [ $? -ne 0 ]; then
     exit 1
@@ -53,13 +55,17 @@ function release_allinone() {
   if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     if [ "$DOCKER_USERNAME" ]; then
       echo "$DOCKER_PASSWORD" | docker login ${IMAGE_DOMAIN} -u "$DOCKER_USERNAME" --password-stdin
-      docker push ${imageName}
+      docker tag "${imageName}" "${imageName}-allinone"
+      docker push "${imageName}"
+      docker push "${imageName}-allinone"
     fi
     if [ "${DOMESTIC_BASE_NAME}" ]; then
-      domestcName=$DOMESTIC_BASE_NAME/$DOMESTIC_NAMESPACE/rainbond:${VERSION}-allinone
+      domestcName=$DOMESTIC_BASE_NAME/$DOMESTIC_NAMESPACE/rainbond:${VERSION}
       docker tag "${imageName}" "${domestcName}"
+      docker tag "${imageName}" "${domestcName}-allinone"
       echo "$DOMESTIC_DOCKER_PASSWORD"|docker login -u "$DOMESTIC_DOCKER_USERNAME" "${DOMESTIC_BASE_NAME}" --password-stdin
       docker push "${domestcName}"
+      docker push "${domestcName}-allinone"
     fi
   fi
 }
@@ -99,6 +105,8 @@ function release_dind() {
 }
 
 function build_dind_package () {
+  BUILDER=${BUILDER} \
+  RUNNER=${RUNNER} \
   OFFLINE=${OFFLINE} \
   IMAGE_DOMAIN=${IMAGE_DOMAIN} \
   IMAGE_NAMESPACE=${IMAGE_NAMESPACE} \

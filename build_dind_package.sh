@@ -35,7 +35,7 @@ rancher/mirrored-library-busybox:1.32.1"
 image_offline="
 registry.cn-hangzhou.aliyuncs.com/goodrain/builder:${BUILDER}
 registry.cn-hangzhou.aliyuncs.com/goodrain/runner:${RUNNER}
-registry.cn-hangzhou.aliyuncs.com/goodrain/kaniko:latest"
+registry.cn-hangzhou.aliyuncs.com/goodrain/kaniko-executor:latest"
 
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     image_list=${image_list}${image_offline}
