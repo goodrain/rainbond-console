@@ -21,12 +21,12 @@ jobs:
       - name: check-code
         run: ./check_code.sh
 
-      - name: SonarQube Scan
-        uses: kitabisa/sonarqube-action@v1.1.0
-        with:
-          host: ${{ secrets.SONARQUBE_HOST }}
-          login: ${{ secrets.SONARQUBE_TOKEN }}
-          projectName: rainbond-console
+#      - name: SonarQube Scan
+#        uses: kitabisa/sonarqube-action@v1.1.0
+#        with:
+#          host: ${{ secrets.SONARQUBE_HOST }}
+#          login: ${{ secrets.SONARQUBE_TOKEN }}
+#          projectName: rainbond-console
 
       - name: Extract branch name
         shell: bash
