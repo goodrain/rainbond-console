@@ -596,7 +596,7 @@ class RegionService(object):
             try:
                 _, rbd_version = region_api.get_enterprise_api_version_v2(
                     enterprise_id=region.enterprise_id, region=region.region_name)
-                region_services_status = region_repo.get_service_status_count_by_region_name(region.region_name)
+                region_services_status = region_repo.get_service_status_count_by_region_name(region)
                 res, body = region_api.get_region_resources(region.enterprise_id, region=region.region_name)
                 rbd_version = rbd_version["raw"]
                 if res.get("status") == 200:

@@ -1,14 +1,14 @@
 ARG VERSION=V5.4-dev
 ARG IMAGE_NAMESPACE=rainbond
 
-FROM golang:1.14-stretch as builder
+FROM rainbond/golang-gcc-buildstack:1.17-alpine3.16 as builder
 ARG ADAPTOR_BRANCH=v5.7.1-release
+ARG LDFLAGS="-w -s -linkmode external -extldflags '-static'"
 # ENV GOPROXY=https://goproxy.io
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
-RUN git clone -b ${ADAPTOR_BRANCH} --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
+RUN apk add git && git clone -b ${ADAPTOR_BRANCH} --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
-ARG LDFLAGS
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
 
 FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION}
