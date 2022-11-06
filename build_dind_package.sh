@@ -32,17 +32,7 @@ rancher/mirrored-coredns-coredns:1.8.4
 rancher/mirrored-metrics-server:v0.5.0
 rancher/mirrored-library-busybox:1.32.1"
 
-image_offline="
-registry.cn-hangzhou.aliyuncs.com/goodrain/builder:${BUILDER}
-registry.cn-hangzhou.aliyuncs.com/goodrain/runner:${RUNNER}
-registry.cn-hangzhou.aliyuncs.com/goodrain/kaniko-executor:latest"
 
-if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-    image_list=${image_list}${image_offline}
-    offline_resource_proxy="registry.cn-hangzhou.aliyuncs.com/goodrain-zq/rbd-resource-proxy:v5.3.0-release-offline"
-    docker pull ${offline_resource_proxy}
-    docker tag ${offline_resource_proxy} "${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rbd-resource-proxy:${VERSION}"
-fi
 for image in ${image_list}; do
     docker pull "${image}"
 done

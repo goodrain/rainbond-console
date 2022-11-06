@@ -5,19 +5,15 @@ FROM golang:1.14-stretch as builder
 ARG VERSION=v5.7.1-release
 ARG LDFLAGS
 ARG ADAPTOR_BRANCH=v5.7.1-release
+ARG GOPROXY
+ARG GITPROXY
 
-# ENV GOPROXY=https://goproxy.io
+ENV GOPROXY=${GOPROXY}
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
 
-RUN git clone -b ${ADAPTOR_BRANCH} --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
+RUN git clone -b ${ADAPTOR_BRANCH} --depth=1 ${GITPROXY}https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
-
-RUN sed -i "s/dockersock/containerdsock/g" ./chart/templates/deployment.yaml \
-    &&  sed -i "s#path: /var/run#path: /run/k3s#g" ./chart/templates/deployment.yaml \
-    && sed -i "s#mountPath: /var/run#mountPath: /run#g" ./chart/templates/deployment.yaml \
-    && sed -i "s/v2.0.0/${VERSION}/g" ./chart/values.yaml
-
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
 
 FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION}
@@ -26,69 +22,49 @@ ARG ARCH=amd64
 ARG OPERATOR_BRANCH=v2.3.0
 ARG OPERATOR_ORG=goodrain
 ARG VERSION
+ARG GITPROXY
+ARG PYTHONPROXY
 
-RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ && \
-    mkdir -p /opt/rainbond/ && \
-    mkdir -p /var/lib/k3s/server/manifests/metrics-server/rainbond && \
-	mkdir -p ~/.kube/ && \
-    mkdir -p /app/logs/ && \
-    touch /app/logs/init_rainbond_node.log && \
-    touch /app/logs/init_rainbond_api.log && \
+RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ /opt/rainbond/ ~/.kube/ /app/logs/ /var/log/supervisor /opt/cni/bin && \
 	apt-get update && apt-get install -y supervisor nfs-common iptables && rm -rf /var/lib/apt/lists/* && \
     set -eux; \
     if [ "${ARCH}" = "arm64" ]; then \
-        wget "https://pkg.goodrain.com/pkg/helm-arm64" && chmod +x helm-arm64 && mv helm-arm64 /usr/local/bin/helm; \
-        wget "https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/nerdctl-arm64" && chmod +x nerdctl-arm64 && mv nerdctl-arm64 /usr/local/bin/nerdctl; \
+        wget -O /usr/local/bin/helm "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm-arm64" && chmod +x /usr/local/bin/helm; \
+        wget -O /usr/local/bin/nerdctl "https://pkg.goodrain.com/pkg/nerdctl/v1.0.0/nerdctl-arm64" && chmod +x /usr/local/bin/nerdctl; \
+        wget -O /usr/local/bin/k3s "https://pkg.goodrain.com/pkg/k3s/v1.22.3-k3s1/k3s-arm64" && chmod +x /usr/local/bin/k3s; \
+        wget -O /usr/bin/log "https://pkg.rainbond.com/images-pkg/arm64/log" && chmod +x /usr/bin/log; \
+        wget -O /usr/local/bin/containerd.tar.gz "https://pkg.goodrain.com/pkg/containerd/v1.6.9/containerd-1.6.9-linux-arm64.tar.gz" && tar Cxzvf /usr/local/bin /usr/local/bin/containerd.tar.gz && mv /usr/local/bin/bin/* /usr/local/bin && rm -rf /usr/local/bin/containerd.tar.gz /usr/local/bin/bin; \
+        wget -O /opt/cni-plugins.tgz "https://pkg.goodrain.com/pkg/cni-plugins/v1.1.1/cni-plugins-linux-arm64-v1.1.1.tgz" && tar Cxzvf /opt/cni/bin /opt/cni-plugins.tgz && rm -rf /opt/cni-plugins.tgz; \
+        wget -O /usr/local/bin/runc "https://pkg.goodrain.com/pkg/runc/v1.1.4/runc.arm64" && chmod 755 /usr/local/bin/runc; \
     else \
-        wget "https://pkg.goodrain.com/pkg/helm" && chmod +x helm && mv helm /usr/local/bin/; \
-        wget "https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/nerdctl" && chmod +x nerdctl && mv nerdctl /usr/local/bin/; \
+        wget -O /usr/local/bin/helm "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm" && chmod +x /usr/local/bin/helm; \
+        wget -O /usr/local/bin/nerdctl "https://pkg.goodrain.com/pkg/nerdctl/v1.0.0/nerdctl" && chmod +x /usr/local/bin/nerdctl; \
+        wget -O /usr/local/bin/k3s "https://pkg.goodrain.com/pkg/k3s/v1.22.3-k3s1/k3s" && chmod +x /usr/local/bin/k3s; \
+        wget -O /usr/bin/log "https://pkg.rainbond.com/images-pkg/log" && chmod +x /usr/bin/log; \
+        wget -O /usr/local/bin/containerd.tar.gz "https://pkg.goodrain.com/pkg/containerd/v1.6.9/containerd-1.6.9-linux-amd64.tar.gz" && tar Cxzvf /usr/local/bin /usr/local/bin/containerd.tar.gz && mv /usr/local/bin/bin/* /usr/local/bin && rm -rf /usr/local/bin/containerd.tar.gz /usr/local/bin/bin; \
+        wget -O /opt/cni-plugins.tgz "https://pkg.goodrain.com/pkg/cni-plugins/v1.1.1/cni-plugins-linux-amd64-v1.1.1.tgz" && tar Cxzvf /opt/cni/bin /opt/cni-plugins.tgz && rm -rf /opt/cni-plugins.tgz; \
+        wget -O /usr/local/bin/runc "https://pkg.goodrain.com/pkg/runc/v1.1.4/runc.amd64" && chmod 755 /usr/local/bin/runc; \
     fi && \
-    mkdir -p /var/log/supervisor
-# Distinguish download addresses according to the CPU architecture of the build environment
-RUN set -eux; \
-	case "${ARCH}" in \
-		'amd64') \
-            k3s_url="https://github.com/rancher/k3s/releases/download/v1.22.3+k3s1/k3s" \
-			;; \
-		'arm64') \
-            k3s_url="https://github.com/rancher/k3s/releases/download/v1.22.3+k3s1/k3s-arm64" \
-			;; \
-	esac \
-    && mkdir -p /etc/docker \
-    && wget -O /usr/local/bin/k3s "$k3s_url" \
-	&& chmod +x /usr/local/bin/k3s \
-	&& ln -s /etc/rancher/k3s/k3s.yaml ~/.kube/config
+    ln -s /etc/rancher/k3s/k3s.yaml ~/.kube/config
 
 COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
 COPY --from=builder /cloud-adaptor /app/cloudadaptor
 ADD . /app/ui
 WORKDIR /app/ui
 
-RUN set -eux; \
-    if [ "${ARCH}" = "arm64" ]; then \
-        wget "https://pkg.rainbond.com/images-pkg/arm64/log"; \
-    else \
-        wget "https://pkg.rainbond.com/images-pkg/log"; \
-    fi && \
-    git clone -b $OPERATOR_BRANCH --depth=1 https://github.com/$OPERATOR_ORG/rainbond-operator.git /app/ui/rainbond-operator && \
-    chmod +x /app/ui/entrypoint.sh /app/ui/entrypoint-dind.sh && \
+RUN git clone -b $OPERATOR_BRANCH --depth=1 ${GITPROXY}https://github.com/$OPERATOR_ORG/rainbond-operator.git /app/ui/rainbond-operator && \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
     mv /app/ui/dind.conf /etc/supervisor/conf.d/dind.conf && \
-	chmod +x /app/cloudadaptor && \
-    mv /dist/index.html /app/ui/www/templates/index.html && \
-    chmod +x /app/ui/log && mv /app/ui/log /usr/bin/log && \
+	chmod +x /app/cloudadaptor
+
+RUN mv /dist/index.html /app/ui/www/templates/index.html && \
     rm -rf /app/ui/www/static/dists && \
-    mkdir /app/ui/www/static/dists && \
+    mkdir -p /app/ui/www/static/dists /app/data /root/.ssh && \
     cp -a /dist/* /app/ui/www/static/dists/ && \
-    rm -rf /dist \
-    && mkdir /app/data \
-    && mkdir /root/.ssh \
-    && python -m pip install --upgrade pip \
-    && pip install -r requirements.txt \
-    && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
-    && rm -rf /root/.cache \
-    && rm -rf /tmp/* \
-    && rm -rf /app/ui/www/static/www/weavescope
+    python -m pip install --upgrade pip && \
+    pip install -r requirements.txt $PYTHONPROXY && \
+    python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework && \
+    rm -rf /dist /root/.cache /tmp/* /app/ui/www/static/www/weavescope
 
 ENV PORT 7070
 ENV IS_OPEN_API=true
@@ -105,12 +81,11 @@ ENV RAINBOND_VERSION=${VERSION}
 ENV OPERATOR_VERSION=${VERSION}
 ENV DOMESTIC_NAMESPACE=${DOMESTIC_NAMESPACE}
 ENV ENABLE_CLUSTER=true
-ENV CONTAINERD_ADDRESS=/run/k3s/containerd/containerd.sock
+ENV CONTAINERD_ADDRESS=/run/containerd/containerd.sock
 
 VOLUME /app/data
 VOLUME /app/logs
 VOLUME /root/.ssh
 VOLUME /opt/rainbond
-VOLUME /app/data/k3s/agent/containerd
 
-CMD ["/usr/bin/supervisord"]
+CMD [ "/usr/bin/supervisord" ]

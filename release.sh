@@ -13,6 +13,12 @@ OPERATOR_BRANCH=${OPERATOR_BRANCH:-${VERSION}}
 OPERATOR_ORG=${OPERATOR_ORG:-'goodrain'}
 # adaptor branch
 ADAPTOR_BRANCH=${ADAPTOR_BRANCH:-${VERSION}}
+# Domestic packing acceleration
+if [ "$PROXY" == "domestic" ]; then
+  GOPROXY="https://goproxy.cn"
+  GITPROXY="https://ghproxy.com/"
+  PYTHONPROXY="-i https://pypi.tuna.tsinghua.edu.cn/simple"
+fi
 
 if [ -z "$VERSION" ]; then
   if [ -z "$TRAVIS_TAG" ]; then
@@ -83,6 +89,9 @@ function release_dind() {
     --build-arg OPERATOR_BRANCH="${OPERATOR_BRANCH}" \
     --build-arg OPERATOR_ORG="${OPERATOR_ORG}" \
     --build-arg ADAPTOR_BRANCH="${ADAPTOR_BRANCH}" \
+    --build-arg GOPROXY="${GOPROXY}" \
+    --build-arg GITPROXY="${GITPROXY}" \
+    --build-arg PYTHONPROXY="${PYTHONPROXY}" \
     -t "${imageName}" -f Dockerfile.dind .
   if [ $? -ne 0 ]; then
     exit 1
