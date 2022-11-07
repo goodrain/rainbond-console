@@ -70,7 +70,7 @@ cat > /etc/cni/net.d/10-containerd-net.conflist << EOF
         "type": "host-local",
         "ranges": [
           [{
-            "subnet": "10.42.0.0/24"
+            "subnet": "10.88.0.0/24"
           }]
         ],
         "routes": [
