@@ -279,13 +279,9 @@ if [ "$OS_TYPE" = "Linux" ]; then
     fi
 elif [ "$OS_TYPE" = "Darwin" ]; then
     if [ "$ARCH_TYPE" = "amd64" ]; then
-        docker volume create rainbond-data
-        docker volume create rainbond-opt
         VOLUME_OPTS="-v ~/.ssh:/root/.ssh -v rainbond-data:/app/data -v rainbond-opt:/opt/rainbond"
         RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-dind-allinone"
     elif [ "$ARCH_TYPE" = "arm64" ]; then
-        docker volume create rainbond-data
-        docker volume create rainbond-opt
         VOLUME_OPTS="-v ~/.ssh:/root/.ssh -v rainbond-data:/app/data -v rainbond-opt:/opt/rainbond"
         RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-arm64-dind-allinone"
     fi
