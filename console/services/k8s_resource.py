@@ -47,7 +47,7 @@ class ComponentK8sResourceService(object):
             "error_overview": body["bean"]["error_overview"],
             "state": body["bean"]["state"]
         }
-        k8s_resources_repo.update(app_id, name, **data)
+        k8s_resources_repo.update(app_id, name, resources.kind, **data)
         return data["state"]
 
     @transaction.atomic
