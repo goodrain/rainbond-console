@@ -9,9 +9,11 @@ from www.utils.return_message import general_message
 
 class AppK8ResourceView(ApplicationView):
     def get(self, request, name, *args, **kwargs):
-        resources = k8s_resource_service.get_by_app_id_and_name(self.app_id, name)
-        resources = resources.values()
-        return Response(general_message(200, "success", "查询成功", list=resources))
+        resource_id = request.GET.get("id")
+        state = k8s_resource_service.get_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, str(self.app_id),
+                                                      self.region_name, name, resource_id)
+
+        return Response(general_message(200, "success", "查询成功", list=state))
 
     def put(self, request, name, *args, **kwargs):
         resource_yaml = request.data.get("resource_yaml", {})
