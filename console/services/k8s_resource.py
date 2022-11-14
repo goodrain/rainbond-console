@@ -24,6 +24,15 @@ class ComponentK8sResourceService(object):
         return resources
 
     @transaction.atomic
+    def get_k8s_resource(self, enterprise_id, tenant_name, app_id, region_name, name, resource_id):
+        namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
+        resources = k8s_resources_repo.get_by_id(resource_id)
+        data = {"app_id": region_app_id, "resource_yaml": "", "namespace": namespace, "name": name, "kind": resources.kind}
+        res, body = region_api.get_app_resource(enterprise_id, region_name, data)
+        k8s_resources_repo.update(app_id, name, resources.kind, content=body["bean"]["content"])
+        return body["bean"]
+
+    @transaction.atomic
     def create_k8s_resource(self, enterprise_id, tenant_name, app_id, resource_yaml, region_name):
         namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
         data = {"app_id": region_app_id, "resource_yaml": resource_yaml, "namespace": namespace}
@@ -47,7 +56,7 @@ class ComponentK8sResourceService(object):
             "error_overview": body["bean"]["error_overview"],
             "state": body["bean"]["state"]
         }
-        k8s_resources_repo.update(app_id, name, **data)
+        k8s_resources_repo.update(app_id, name, resources.kind, **data)
         return data["state"]
 
     @transaction.atomic

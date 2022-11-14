@@ -1701,7 +1701,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/cluster"
         self._set_headers(token)
         kwargs["retries"] = 1
-        kwargs["timeout"] = 3
+        kwargs["timeout"] = 5
         res, body = self._get(url, self.default_headers, **kwargs)
         return res, body
 
@@ -2152,6 +2152,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         resp, _ = self._delete(url, self._set_headers(token), region=region_name, body=json.dumps(body))
         return resp
+
+    def get_app_resource(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/k8s-resource"
+        res, body = self._get(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
+        return res, body
 
     def create_app_resource(self, enterprise_id, region, data):
         region_info = self.get_enterprise_region_info(enterprise_id, region)
