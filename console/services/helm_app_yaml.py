@@ -80,7 +80,7 @@ class HelmAppService(object):
             app["creater"] = 1
             app["cmd"] = cv["basic_management"]["command"]
             app["probes"] = []
-            if cv["health_check_management"]:
+            if cv["health_check_management"] and cv["health_check_management"]["port"] != 0:
                 probes = dict()
                 probes["port"] = cv["health_check_management"]["port"]
                 probes["mode"] = cv["health_check_management"]["mode"]
@@ -88,11 +88,12 @@ class HelmAppService(object):
                 probes["path"] = cv["health_check_management"]["path"]
                 probes["cmd"] = cv["health_check_management"]["cmd"]
                 probes["http_header"] = cv["health_check_management"]["http_header"]
-                probes["initial_delay_second"] = cv["health_check_management"]["initial_delay_second"]
-                probes["period_second"] = cv["health_check_management"]["period_second"]
-                probes["timeout_second"] = cv["health_check_management"]["timeout_second"]
-                probes["failure_threshold"] = cv["health_check_management"]["failure_threshold"]
-                probes["success_threshold"] = cv["health_check_management"]["success_threshold"]
+                second = cv["health_check_management"]
+                probes["initial_delay_second"] = second["initial_delay_second"]
+                probes["period_second"] = second["period_second"] if second["period_second"] else 10
+                probes["timeout_second"] = second["timeout_second"] if second["timeout_second"] else 1
+                probes["failure_threshold"] = second["failure_threshold"] if second["failure_threshold"] else 3
+                probes["success_threshold"] = second["success_threshold"] if second["success_threshold"] else 1
                 probes["is_used"] = True
                 probes["service_id"] = service_id
                 app["probes"] = [probes]
