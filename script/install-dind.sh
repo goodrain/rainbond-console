@@ -65,10 +65,10 @@ OS_TYPE=$(uname -s)
 if [ "${OS_TYPE}" == "Linux" ]; then
     MD5_CMD="md5sum"
     if find /lib/modules/$(uname -r) -type f -name '*.ko*' | grep iptable_raw; then
-       if ! lsmod | grep iptable_raw ; then
-          echo iptable_raw > /etc/modules-load.d/iptable_raw.conf
-          modprobe iptable_raw
-       fi
+        if ! lsmod | grep iptable_raw; then
+            echo iptable_raw >/etc/modules-load.d/iptable_raw.conf
+            modprobe iptable_raw
+        fi
     fi
 elif [ "${OS_TYPE}" == "Darwin" ]; then
     MD5_CMD="md5"
@@ -131,6 +131,9 @@ if [ $(arch) = "x86_64" ] || [ $(arch) = "amd64" ]; then
     ARCH_TYPE=amd64
 elif [ $(arch) = "aarch64" ] || [ $(arch) = "arm64" ]; then
     ARCH_TYPE=arm64
+elif [ $(arch) = "i386" ]; then
+    ARCH_TYPE=amd64
+    send_warn "i386 has been detect, we'll treat it like x86_64(amd64). If you are using the M1 chip MacOS,make sure your terminal has Rosetta disabled.\n\t Have a look : https://github.com/goodrain/rainbond/issues/1439 "
 else
     send_error "Rainbond do not support $(arch) architecture"
     exit 1
@@ -209,6 +212,7 @@ EOF
     done
 
     for i in 1 2 3; do
+        echo -e "\n${GREEN}For example: enter '1' to choose the first IP, or input '11.22.33.44'(IPv4 address) for specific one ${NC}"
         echo -n -e "Enter your choose or a specific IP address:"
         read res
         verify_eip $IF_NUM $res && break
@@ -291,7 +295,6 @@ fi
 docker_run_cmd="docker run --privileged -d -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 8443:8443 --name=rainbond-allinone --restart=on-failure \
 ${VOLUME_OPTS} -e EIP=$EIP -e UUID=${UUID} ${RBD_IMAGE}"
 send_info "$docker_run_cmd"
-
 
 # Pull image
 send_info "Pulling image ${RBD_IMAGE}..."
