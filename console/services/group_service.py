@@ -402,7 +402,6 @@ class GroupService(object):
         return services
 
     def get_multi_apps_all_info(self, sort, groups, app_ids, region, tenant_name, enterprise_id, tenant):
-        app_list = groups.filter(ID__in=app_ids)
         service_list = service_repo.get_services_in_multi_apps_with_app_info(app_ids)
         # memory info
         service_ids = [service.service_id for service in service_list]
@@ -415,7 +414,7 @@ class GroupService(object):
 
         app_id_statuses = self.get_region_app_statuses(tenant_name, region, app_ids)
         apps = dict()
-        for app in app_list:
+        for app in groups:
             app_status = app_id_statuses.get(app.ID)
             apps[app.ID] = {
                 "group_id": app.ID,
@@ -440,7 +439,7 @@ class GroupService(object):
             apps[service.group_id]["accesses"].append(accesses[service.service_id])
 
         re_app_list = []
-        for a in app_list:
+        for a in groups:
             app = apps.get(a.ID)
             app["services_num"] = len(app["service_list"])
             if not app.get("run_service_num"):
