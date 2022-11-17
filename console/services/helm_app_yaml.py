@@ -89,7 +89,7 @@ class HelmAppService(object):
                 probes["cmd"] = cv["health_check_management"]["cmd"]
                 probes["http_header"] = cv["health_check_management"]["http_header"]
                 second = cv["health_check_management"]
-                probes["initial_delay_second"] = second["initial_delay_second"]
+                probes["initial_delay_second"] = second["initial_delay_second"] if second["initial_delay_second"] else 1
                 probes["period_second"] = second["period_second"] if second["period_second"] else 10
                 probes["timeout_second"] = second["timeout_second"] if second["timeout_second"] else 1
                 probes["failure_threshold"] = second["failure_threshold"] if second["failure_threshold"] else 3
@@ -109,9 +109,7 @@ class HelmAppService(object):
                 "container_cpu": 0,
                 "max_node": 64
             }
-            if cv["basic_management"]["replicas"]:
-                app["extend_method_map"]["min_node"] = cv["basic_management"]["replicas"]
-
+            app["extend_method_map"]["min_node"] = 1
             app["port_map_list"] = []
             if cv["port_management"]:
                 for port in cv["port_management"]:
