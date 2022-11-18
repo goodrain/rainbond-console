@@ -728,31 +728,33 @@ class MyEventsView(JWTAuthApiView):
 
 class ServiceAlarm(EnterpriseAdminView):
     def get(self, request, enterprise_id, *args, **kwargs):
-        # 获取企业下可用集群
-        usable_regions = region_repo.get_usable_regions(enterprise_id)
-        # 获取异常组件
-        all_abnormal_service_id = []
-        for usable_region in usable_regions:
-            abnormal_service_id = region_api.get_user_service_abnormal_status(usable_region.region_name, enterprise_id)
-            all_abnormal_service_id += abnormal_service_id["service_ids"]
-        # 根据组件id获取应用信息
-        result_map = group_service.get_services_group_name(all_abnormal_service_id)
-        # 根据组件id获取组件信息
-        serivce_infos = service_repo.get_services_by_service_ids(all_abnormal_service_id)
         res_service = []
-        for serivce in serivce_infos:
-            # 获取团队信息
-            team = team_repo.get_team_by_team_id(serivce.tenant_id)
-            res_service.append({
-                "service_cname": serivce.service_cname,
-                "group_id": result_map[serivce.service_id]["group_id"],
-                "group_name": result_map[serivce.service_id]["group_name"],
-                "service_alias": serivce.service_alias,
-                "service_id": serivce.service_id,
-                "tenant_id": serivce.tenant_id,
-                "region_name": serivce.service_region,
-                "tenant_name": team.tenant_name,
-                "tenant_alias": team.tenant_alias
-            })
+        # 获取企业下团队数量
+        if team_repo.get_team_by_enterprise_id(enterprise_id).count() > 0:
+            # 获取企业下可用集群
+            usable_regions = region_repo.get_usable_regions(enterprise_id)
+            # 获取异常组件
+            all_abnormal_service_id = []
+            for usable_region in usable_regions:
+                abnormal_service_id = region_api.get_user_service_abnormal_status(usable_region.region_name, enterprise_id)
+                all_abnormal_service_id += abnormal_service_id["service_ids"]
+            # 根据组件id获取应用信息
+            result_map = group_service.get_services_group_name(all_abnormal_service_id)
+            # 根据组件id获取组件信息
+            serivce_infos = service_repo.get_services_by_service_ids(all_abnormal_service_id)
+            for serivce in serivce_infos:
+                # 获取团队信息
+                team = team_repo.get_team_by_team_id(serivce.tenant_id)
+                res_service.append({
+                    "service_cname": serivce.service_cname,
+                    "group_id": result_map[serivce.service_id]["group_id"],
+                    "group_name": result_map[serivce.service_id]["group_name"],
+                    "service_alias": serivce.service_alias,
+                    "service_id": serivce.service_id,
+                    "tenant_id": serivce.tenant_id,
+                    "region_name": serivce.service_region,
+                    "tenant_name": team.tenant_name,
+                    "tenant_alias": team.tenant_alias
+                })
         result = general_message(200, "team query success", "查询成功", list=res_service)
         return Response(result, status=200)
