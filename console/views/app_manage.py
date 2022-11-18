@@ -560,3 +560,31 @@ class TeamAppsCloseView(JWTAuthApiView):
         else:
             app_manage_service.close_all_component_in_team(self.team, self.user)
         return Response(status=200, data=general_message(200, "success", "操作成功"))
+
+
+class PackageToolView(AppBaseCloudEnterpriseCenterView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        """
+        设置语言和依赖包
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 组件别名
+              required: true
+              type: string
+              paramType: path
+
+        """
+        lang = request.data.get("lang", "")
+        package_tool = request.data.get("package_tool", "")
+        # 修改语言和包依赖
+        code, msg = app_manage_service.change_lang_and_package_tool(self.tenant, self.service, lang, package_tool)
+        if code != 200:
+            return Response(status=code, data=general_message(code, "failed", "操作失败"))
+        return Response(status=200, data=general_message(code, "succeed", "操作成功"))

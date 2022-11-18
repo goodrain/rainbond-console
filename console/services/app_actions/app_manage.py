@@ -1290,3 +1290,14 @@ class AppManageService(AppManageBase):
             self.batch_operations(tenant, region_name, user, "stop", component_ids)
         except Exception as e:
             logger.exception(e)
+
+    def change_lang_and_package_tool(self, tenant, service, lang, package_tool):
+        serivce_params = {"language": lang}
+        env_var_params = {"attr_value": package_tool}
+        try:
+            service_repo.update(tenant.tenant_id, service.service_id, **serivce_params)
+            env_var_repo.update_env_var(tenant.tenant_id, service.service_id, "BUILD_PACKAGE_TOOL", **env_var_params)
+        except Exception as e:
+            logger.exception(e)
+            return 507, "failed"
+        return 200, "success"
