@@ -40,7 +40,7 @@ from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEvent
 from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete, ChangeServiceNameView, ChangeServiceTypeView,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
                                       MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
-                                      TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView)
+                                      TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView)
 from console.views.app_market import BindableMarketsView
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView)
@@ -526,6 +526,8 @@ urlpatterns = [
     # 查询云市安装的应用是否有（小版本，大版本）更新
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/market_service/upgrade$',
         MarketServiceUpgradeView.as_view(), perms.MarketServiceUpgradeView),
+    # 组件设置语言和安装依赖
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/package_tool$', PackageToolView.as_view()),
 
     # 批量操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch_actions$', BatchActionView.as_view(), perms.BatchActionView),
