@@ -292,7 +292,7 @@ elif [ "$OS_TYPE" = "Darwin" ]; then
 fi
 
 # Generate cmd
-docker_run_cmd="docker run --privileged -d -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 8443:8443 --name=rainbond-allinone --restart=on-failure \
+docker_run_cmd="docker run --privileged -d -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 8443:8443 -p 10000-10010:10000-10010 --name=rainbond-allinone --restart=on-failure \
 ${VOLUME_OPTS} -e EIP=$EIP -e UUID=${UUID} ${RBD_IMAGE}"
 send_info "$docker_run_cmd"
 
