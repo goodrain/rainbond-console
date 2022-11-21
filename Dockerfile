@@ -1,5 +1,5 @@
 ARG BASE_VERSION=V5.3
-FROM rainbond/rbd-ui-base:${BASE_VERSION}
+FROM registry.cn-hangzhou.aliyuncs.com/quyc/rbd-ui-base:v5.3
 
 ARG RELEASE_DESC=
 ARG PIP_SOURCE_URL=http://mirrors.aliyun.com/pypi/simple
