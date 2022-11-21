@@ -293,13 +293,14 @@ class AppEventService(object):
                 msg.to_dict()
                 current_build_info = msg["build_list"]["list"]
                 if not current_build_info:
-                    # 如果类型是list，说明没有组件构建信息
                     continue
                 every_event_log = msg["service_event"]
                 group_info = group_service.get_service_group_info(every_event_log["TargetID"])
                 group = group_service_relation_repo.get_group_by_service_id(every_event_log["TargetID"])
                 service_info = service_repo.get_service_by_service_id(every_event_log["TargetID"])
                 tenant_info = team_repo.get_team_by_team_id(every_event_log["TenantID"])
+                if not group_info or not group or not service_info or not tenant_info:
+                    continue
                 every_event_log["build_version"] = current_build_info["build_version"]
                 every_event_log["kind"] = current_build_info["kind"]
                 every_event_log["delivered_type"] = current_build_info["image"]
