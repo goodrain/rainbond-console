@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 import json
-import linecache
 import logging
 import os
 import time
@@ -610,21 +609,11 @@ class HelmInstallStatus(JWTAuthApiView):
 class Goodrainlog(EnterpriseAdminView):
     def get(self, request, *args, **kwargs):
         filepath = LOG_PATH + '/goodrain.log'
-        lines = 1000
-        linecache.clearcache()
-        line_count = 0
-        with open(filepath, 'r') as f:
-            while True:
-                buffer = f.read(1024 * 1)
-                if not buffer:
-                    break
-                line_count += buffer.count('\n')
-        line_count = line_count - 999
-        res = []
-        for i in range(lines):
-            last_line = linecache.getline(filepath, line_count)
-            res.append(last_line)
-            line_count += 1
+        res = list()
+        with open(filepath, 'r', errors='ignore') as f:
+            lines = f.readlines()[-1000:]
+            for line in lines:
+                res.append(line)
         result = general_message(200, "success", "获取成功", bean=res)
         return Response(result, status=status.HTTP_200_OK)
 
