@@ -138,7 +138,7 @@ class CommandInstallHelm(RegionTenantHeaderView):
             ret["status"] = True
             if str(command).endswith('tgz'):
                 ret["tgz"] = False
-                helm_app_service.tgz_yaml_handle(self.enterprise.enterprise_id, self.region.region_id, self.tenant, app_id,
+                helm_app_service.tgz_yaml_handle(self.enterprise.enterprise_id, self.region, self.tenant, app_id,
                                                  self.user, command_yaml_data)
                 ret["information"] = ""
             else:
