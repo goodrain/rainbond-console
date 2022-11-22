@@ -43,7 +43,8 @@ class HelmAppService(object):
         app_template["governance_mode"] = "KUBERNETES_NATIVE_SERVICE"
         app_template["k8s_resources"] = cvdata["kubernetes_resources"]
         apps = list()
-        for cv in cvdata["convert_resource"]:
+        convert_resource = cvdata["convert_resource"] if cvdata["convert_resource"] else []
+        for cv in convert_resource:
             app = dict()
             app["service_cname"] = cv["components_name"]
             app["tenant_id"] = tenant.tenant_id
