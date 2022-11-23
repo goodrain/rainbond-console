@@ -522,6 +522,8 @@ class AppManageService(AppManageBase):
                     self.upgrade(tenant, service, user, oauth_instance=oauth_instance)
                 code = 200
                 msg = "success"
+                service.update_time = datetime.datetime.now()
+                service.save()
             except ServiceHandleException as e:
                 raise e
             except Exception as e:
