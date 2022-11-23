@@ -527,7 +527,7 @@ class TenantServiceInfo(BaseModel):
     service_source = models.CharField(
         max_length=15, default="", null=True, blank=True, help_text="组件来源(source_code, market, docker_run, docker_compose)")
     create_status = models.CharField(max_length=15, null=True, blank=True, help_text="组件创建状态 creating|complete")
-    update_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="更新时间")
+    update_time = models.DateTimeField(auto_now=True, blank=True, help_text="更新时间")
     check_uuid = models.CharField(max_length=36, blank=True, null=True, default="", help_text="组件检测ID")
     check_event_id = models.CharField(max_length=32, blank=True, null=True, default="", help_text="组件检测事件ID")
     docker_cmd = models.CharField(max_length=1024, null=True, blank=True, help_text="镜像创建命令")
