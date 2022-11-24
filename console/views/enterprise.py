@@ -699,19 +699,14 @@ class MyEventsView(JWTAuthApiView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         res_events = []
-        res_total = 0
-        res_has_next = False
         for region_name in eval(region_names):
             my_tenant_ids = team_repo.get_tenants_by_user_id(self.user.user_id).values_list("tenant_id", flat=True)
             tenant_id_list = {"tenant_ids": list(my_tenant_ids)}
-            events, total, has_next = event_service.get_myteams_events("tenant", json.dumps(tenant_id_list), eid, region_name,
-                                                                       int(page), int(page_size))
+            events = event_service.get_myteams_events("tenant", json.dumps(tenant_id_list), eid, region_name, int(page),
+                                                      int(page_size))
             if events:
                 res_events += events
-                res_total += total
-            if has_next:
-                res_has_next = has_next
-        result = general_message(200, "success", "查询成功", list=res_events, total=res_total, has_next=res_has_next)
+        result = general_message(200, "success", "查询成功", list=res_events)
         return Response(result, status=result["code"])
 
 
