@@ -527,7 +527,7 @@ class TenantServiceInfo(BaseModel):
     service_source = models.CharField(
         max_length=15, default="", null=True, blank=True, help_text="组件来源(source_code, market, docker_run, docker_compose)")
     create_status = models.CharField(max_length=15, null=True, blank=True, help_text="组件创建状态 creating|complete")
-    update_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="更新时间")
+    update_time = models.DateTimeField(auto_now=True, blank=True, help_text="更新时间")
     check_uuid = models.CharField(max_length=36, blank=True, null=True, default="", help_text="组件检测ID")
     check_event_id = models.CharField(max_length=32, blank=True, null=True, default="", help_text="组件检测事件ID")
     docker_cmd = models.CharField(max_length=1024, null=True, blank=True, help_text="镜像创建命令")
@@ -645,6 +645,9 @@ class TenantServiceInfoDelete(BaseModel):
     build_upgrade = models.BooleanField(default=True, help_text='组件构建后是否升级')
     service_name = models.CharField(max_length=100, default='', help_text="组件名称（新加属性，数据中心使用）")
     k8s_component_name = models.CharField(max_length=100, help_text="集群组件名称")
+    job_strategy = models.CharField(max_length=2047, null=True, default="", help_text="job任务策略")
+    exec_user = models.CharField(max_length=128, default="", help_text="执行删除的用户")
+    app_name = models.CharField(max_length=128, default="", help_text="应用名称")
 
 
 class TenantServiceLog(BaseModel):

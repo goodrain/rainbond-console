@@ -99,3 +99,9 @@ CREATE TABLE `helm_repo` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE tenant_info ADD logo longtext NULL;
+
+-- 5.10.0 - 5.10.1 sql
+
+ALTER TABLE tenant_service_delete ADD COLUMN job_strategy varchar(2047) DEFAULT '';
+ALTER TABLE tenant_service_delete ADD COLUMN exec_user varchar(128) DEFAULT '';
+ALTER TABLE tenant_service_delete ADD COLUMN app_name varchar(128) DEFAULT '';

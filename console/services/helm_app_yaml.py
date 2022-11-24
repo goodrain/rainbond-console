@@ -43,7 +43,8 @@ class HelmAppService(object):
         app_template["governance_mode"] = "KUBERNETES_NATIVE_SERVICE"
         app_template["k8s_resources"] = cvdata["kubernetes_resources"]
         apps = list()
-        for cv in cvdata["convert_resource"]:
+        convert_resource = cvdata["convert_resource"] if cvdata["convert_resource"] else []
+        for cv in convert_resource:
             app = dict()
             app["service_cname"] = cv["components_name"]
             app["tenant_id"] = tenant.tenant_id
@@ -80,7 +81,7 @@ class HelmAppService(object):
             app["creater"] = 1
             app["cmd"] = cv["basic_management"]["command"]
             app["probes"] = []
-            if cv["health_check_management"]:
+            if cv["health_check_management"] and cv["health_check_management"]["port"] != 0:
                 probes = dict()
                 probes["port"] = cv["health_check_management"]["port"]
                 probes["mode"] = cv["health_check_management"]["mode"]
@@ -88,11 +89,12 @@ class HelmAppService(object):
                 probes["path"] = cv["health_check_management"]["path"]
                 probes["cmd"] = cv["health_check_management"]["cmd"]
                 probes["http_header"] = cv["health_check_management"]["http_header"]
-                probes["initial_delay_second"] = cv["health_check_management"]["initial_delay_second"]
-                probes["period_second"] = cv["health_check_management"]["period_second"]
-                probes["timeout_second"] = cv["health_check_management"]["timeout_second"]
-                probes["failure_threshold"] = cv["health_check_management"]["failure_threshold"]
-                probes["success_threshold"] = cv["health_check_management"]["success_threshold"]
+                second = cv["health_check_management"]
+                probes["initial_delay_second"] = second["initial_delay_second"] if second["initial_delay_second"] else 1
+                probes["period_second"] = second["period_second"] if second["period_second"] else 10
+                probes["timeout_second"] = second["timeout_second"] if second["timeout_second"] else 1
+                probes["failure_threshold"] = second["failure_threshold"] if second["failure_threshold"] else 3
+                probes["success_threshold"] = second["success_threshold"] if second["success_threshold"] else 1
                 probes["is_used"] = True
                 probes["service_id"] = service_id
                 app["probes"] = [probes]
@@ -108,9 +110,7 @@ class HelmAppService(object):
                 "container_cpu": 0,
                 "max_node": 64
             }
-            if cv["basic_management"]["replicas"]:
-                app["extend_method_map"]["min_node"] = cv["basic_management"]["replicas"]
-
+            app["extend_method_map"]["min_node"] = 1
             app["port_map_list"] = []
             if cv["port_management"]:
                 for port in cv["port_management"]:

@@ -10,8 +10,8 @@ class AppK8sResourceRepo(object):
     def bulk_create(self, app_k8s_resource):
         return K8sResource.objects.bulk_create(app_k8s_resource)
 
-    def update(self, app_id, name, **data):
-        return K8sResource.objects.filter(app_id=app_id, name=name).update(**data)
+    def update(self, app_id, name, kind, **data):
+        return K8sResource.objects.filter(app_id=app_id, name=name, kind=kind).update(**data)
 
     def delete_by_name(self, app_id, name):
         return K8sResource.objects.filter(app_id=app_id, name=name).delete()

@@ -609,7 +609,7 @@ class RegionService(object):
                     region_resource["rbd_version"] = rbd_version
                     region_resource["resource_proxy_status"] = body["bean"]["resource_proxy_status"]
                     region_resource["k8s_version"] = body["bean"]["k8s_version"]
-                    region_resource["all_node"] = body["bean"]["all_node"]
+                    region_resource["all_nodes"] = body["bean"]["all_node"]
                     region_resource["services_status"] = region_services_status
                     region_resource["node_ready"] = body["bean"]["node_ready"]
             except (region_api.CallApiError, ServiceHandleException) as e:

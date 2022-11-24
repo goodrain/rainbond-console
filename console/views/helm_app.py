@@ -100,7 +100,7 @@ class HelmChart(RegionTenantHeaderView):
         if not data:
             ret = dict()
             ret["repo_exist"] = False
-            result = general_message(200, "success", "查询成功", bean=json.dumps(ret))
+            result = general_message(200, "success", "查询成功", bean=ret)
             return Response(result, status=status.HTTP_200_OK)
         chart_information = helm_app_service.get_helm_chart_information(self.region_name, self.tenant_name, data["repo_url"],
                                                                         chart_name)
@@ -137,9 +137,9 @@ class CommandInstallHelm(RegionTenantHeaderView):
         if command_yaml_data["status"]:
             ret["status"] = True
             if str(command).endswith('tgz'):
-                ret["tgz"] = False
-                helm_app_service.tgz_yaml_handle(self.enterprise.enterprise_id, self.region.region_id, self.tenant, app_id,
-                                                 self.user, command_yaml_data)
+                ret["tgz"] = True
+                helm_app_service.tgz_yaml_handle(self.enterprise.enterprise_id, self.region, self.tenant, app_id, self.user,
+                                                 command_yaml_data)
                 ret["information"] = ""
             else:
                 ret["tgz"] = False

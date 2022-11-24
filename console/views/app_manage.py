@@ -3,6 +3,7 @@
   Created on 18/1/15.
 """
 import logging
+from datetime import datetime
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -57,6 +58,8 @@ class StartAppView(AppBaseCloudEnterpriseCenterView):
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+            self.service.update_time = datetime.now()
+            self.service.save()
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -86,6 +89,8 @@ class StopAppView(AppBaseView):
         """
         app_manage_service.stop(self.tenant, self.service, self.user)
         result = general_message(200, "success", "操作成功", bean={})
+        self.service.update_time = datetime.now()
+        self.service.save()
         return Response(result, status=result["code"])
 
 
@@ -113,6 +118,8 @@ class ReStartAppView(AppBaseCloudEnterpriseCenterView):
         if code != 200:
             return Response(general_message(code, "restart app error", msg, bean=bean), status=code)
         result = general_message(code, "success", "操作成功", bean=bean)
+        self.service.update_time = datetime.now()
+        self.service.save()
         return Response(result, status=result["code"])
 
 
@@ -143,6 +150,8 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
             if code != 200:
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+            self.service.update_time = datetime.now()
+            self.service.save()
         except ErrServiceSourceNotFound as e:
             logger.exception(e)
             return Response(general_message(412, e.message, "无法找到云市应用的构建源"), status=412)
@@ -189,6 +198,8 @@ class RollBackAppView(AppBaseView):
             if code != 200:
                 return Response(general_message(code, "roll back app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+            self.service.update_time = datetime.now()
+            self.service.save()
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -247,6 +258,8 @@ class VerticalExtendAppView(AppBaseCloudEnterpriseCenterView):
             if code != 200:
                 return Response(general_message(code, "vertical upgrade error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+            self.service.update_time = datetime.now()
+            self.service.save()
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -287,6 +300,8 @@ class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
             app_manage_service.horizontal_upgrade(
                 self.tenant, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
             result = general_message(200, "success", "操作成功", bean={})
+            self.service.update_time = datetime.now()
+            self.service.save()
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -480,6 +495,8 @@ class UpgradeAppView(AppBaseView, CloudEnterpriseCenterView):
             if code != 200:
                 return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+            self.service.update_time = datetime.now()
+            self.service.save()
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:
@@ -560,3 +577,31 @@ class TeamAppsCloseView(JWTAuthApiView):
         else:
             app_manage_service.close_all_component_in_team(self.team, self.user)
         return Response(status=200, data=general_message(200, "success", "操作成功"))
+
+
+class PackageToolView(AppBaseCloudEnterpriseCenterView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        """
+        设置语言和依赖包
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 组件别名
+              required: true
+              type: string
+              paramType: path
+
+        """
+        lang = request.data.get("lang", "")
+        package_tool = request.data.get("package_tool", "")
+        # 修改语言和包依赖
+        code, msg = app_manage_service.change_lang_and_package_tool(self.tenant, self.service, lang, package_tool)
+        if code != 200:
+            return Response(status=code, data=general_message(code, "failed", "操作失败"))
+        return Response(status=200, data=general_message(code, "succeed", "操作成功"))
