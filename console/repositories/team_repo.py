@@ -201,6 +201,11 @@ class TeamRepo(object):
     def get_team_by_team_ids(self, team_ids):
         return Tenants.objects.filter(tenant_id__in=team_ids)
 
+    def get_team_map_by_team_ids(self, team_ids):
+        tenants = Tenants.objects.filter(tenant_id__in=team_ids)
+        tenants_map = {t.tenant_id: t.to_dict() for t in tenants}
+        return tenants_map
+
     def get_team_by_team_names(self, team_names):
         return Tenants.objects.filter(tenant_name__in=team_names)
 

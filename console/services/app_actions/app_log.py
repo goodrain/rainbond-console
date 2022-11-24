@@ -16,7 +16,7 @@ from console.utils.timeutil import str_to_time, time_to_str
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from console.services.group_service import group_service
-from console.repositories.app import service_repo
+from console.repositories.app import service_repo, delete_service_repo
 from console.repositories.team_repo import team_repo
 from www.utils.crypt import make_uuid
 
@@ -277,49 +277,44 @@ class AppEventService(object):
 
     def get_myteams_events(self, tenant, tenant_id_list, enterprise_id, region, page, page_size):
         msg_list = []
-        has_next = False
-        total = 0
         res, rt_data = region_api.get_myteams_events_list(region, enterprise_id, tenant, tenant_id_list, page, page_size)
         if int(res.status) == 200:
             msg_list = rt_data.get("list", [])
-            total = rt_data.get("number", 0)
-            has_next = True
-            if page_size * page >= total:
-                has_next = False
         my_teams_all_events = []
         if msg_list:
-            for msg in msg_list:
-                # TODO: 需要将数据库查询放在循环外
-                msg.to_dict()
-                current_build_info = msg["build_list"]["list"]
-                if not current_build_info:
-                    # 如果类型是list，说明没有组件构建信息
-                    continue
-                every_event_log = msg["service_event"]
-                group_info = group_service.get_service_group_info(every_event_log["TargetID"])
-                group = group_service_relation_repo.get_group_by_service_id(every_event_log["TargetID"])
-                service_info = service_repo.get_service_by_service_id(every_event_log["TargetID"])
-                tenant_info = team_repo.get_team_by_team_id(every_event_log["TenantID"])
-                every_event_log["build_version"] = current_build_info["build_version"]
-                every_event_log["kind"] = current_build_info["kind"]
-                every_event_log["delivered_type"] = current_build_info["image"]
-                every_event_log["delivered_path"] = current_build_info["delivered_path"]
-                every_event_log["code_commit_msg"] = current_build_info["code_commit_msg"]
-                every_event_log["code_commit_author"] = current_build_info["code_commit_author"]
-                every_event_log["create_time"] = current_build_info["create_time"]
-                every_event_log["finish_time"] = current_build_info["finish_time"]
-                every_event_log["final_status"] = current_build_info["final_status"]
-                every_event_log["group_name"] = group_info.group_name
-                every_event_log["group_id"] = group.group_id
-                every_event_log["team_alias"] = tenant_info.tenant_alias
-                every_event_log["team_name"] = tenant_info.tenant_name
-                every_event_log["team_namespace"] = tenant_info.namespace
-                every_event_log["service_name"] = service_info.service_cname
-                every_event_log["service_alias"] = service_info.service_alias
-                every_event_log["service_group_id"] = service_info.tenant_service_group_id
-                every_event_log["region_name"] = group_info.region_name
-                my_teams_all_events.append(every_event_log)
-        return my_teams_all_events, total, has_next
+            all_service_id = [msg["target_id"] for msg in msg_list]
+            all_tenant_id = [msg["tenant_id"] for msg in msg_list]
+            if len(all_service_id) > 0 and len(all_tenant_id) > 0:
+                service_group_map = group_service.get_services_group_name(all_service_id)
+                service_map = service_repo.get_service_map_by_service_ids(all_service_id)
+                tenants_map = team_repo.get_team_map_by_team_ids(all_tenant_id)
+                delete_service_name_map = delete_service_repo.get_delete_service_map(all_service_id)
+                for msg in msg_list:
+                    res_map = {}
+                    res_map = self.eventinit(res_map, msg, region)
+                    target_id = msg["target_id"]
+                    tenant_id = msg["tenant_id"]
+                    if target_id:
+                        service_group = service_group_map.get(target_id, {})
+                        service = service_map.get(target_id, {})
+                        del_service = delete_service_name_map.get(target_id, {})
+                        if service:
+                            res_map["service_name"] = service["service_cname"]
+                            res_map["service_group_id"] = service["tenant_service_group_id"]
+                            res_map["service_alias"] = service["service_alias"]
+                        res_map["group_name"] = service_group["group_name"]
+                        res_map["group_id"] = service_group["group_id"]
+                        if del_service:
+                            res_map["service_name"] = del_service["service_cname"]
+                            res_map["UserName"] = del_service["exec_user"]
+                            res_map["group_name"] = del_service["app_name"]
+                    if tenant_id:
+                        tenants = tenants_map.get(tenant_id, {})
+                        if tenants:
+                            res_map["team_alias"] = tenants["tenant_alias"]
+                            res_map["team_name"] = tenants["tenant_name"]
+                    my_teams_all_events.append(res_map)
+        return my_teams_all_events
 
     def get_event_log(self, tenant, region_name, event_id):
         content = []
@@ -330,6 +325,40 @@ class AppEventService(object):
         except region_api.CallApiError as e:
             logger.debug(e)
         return content
+
+    def eventinit(self, res_map, msg, region_name):
+        res_map["group_name"] = ""
+        res_map["group_id"] = ""
+        res_map["service_name"] = ""
+        res_map["service_alias"] = ""
+        res_map["service_group_id"] = ""
+        res_map["region_name"] = region_name
+        res_map["team_alias"] = ""
+        res_map["team_name"] = ""
+        res_map["EndTime"] = msg["end_time"]
+        res_map["TenantID"] = msg["tenant_id"]
+        res_map["EndTime"] = msg["end_time"]
+        res_map["Target"] = msg["target"]
+        res_map["TargetID"] = msg["target_id"]
+        res_map["UserName"] = msg["user_name"]
+        res_map["StartTime"] = msg["start_time"]
+        res_map["OptType"] = msg["opt_type"]
+        res_map["SynType"] = msg["syn_type"]
+        res_map["Status"] = msg["status"]
+        res_map["FinalStatus"] = msg["final_status"]
+        res_map["Message"] = msg["message"]
+        res_map["Reason"] = msg["reason"]
+        res_map["kind"] = msg["kind"]
+        res_map["delivered_type"] = msg["delivered_type"]
+        res_map["delivered_path"] = msg["delivered_path"]
+        res_map["image_name"] = msg["image_name"]
+        res_map["cmd"] = msg["cmd"]
+        res_map["repo_url"] = msg["repo_url"]
+        res_map["code_version"] = msg["code_version"]
+        res_map["code_branch"] = msg["code_branch"]
+        res_map["code_commit_msg"] = msg["code_commit_msg"]
+        res_map["code_commit_author"] = msg["code_commit_author"]
+        return res_map
 
 
 class AppLogService(object):

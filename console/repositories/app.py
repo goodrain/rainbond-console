@@ -47,6 +47,11 @@ class TenantServiceInfoRepository(object):
     def get_services_by_service_ids(self, service_ids):
         return TenantServiceInfo.objects.filter(service_id__in=service_ids)
 
+    def get_service_map_by_service_ids(self, service_ids):
+        services = TenantServiceInfo.objects.filter(service_id__in=service_ids)
+        service_map = {s.service_id: s.to_dict() for s in services}
+        return service_map
+
     def get_services_in_multi_apps_with_app_info(self, group_ids):
         ids = "{0}".format(",".join(str(group_id) for group_id in group_ids))
         sql = """
@@ -303,6 +308,11 @@ class ServiceRelationRecycleBinRepository(object):
 class TenantServiceDeleteRepository(object):
     def create_delete_service(self, **params):
         return TenantServiceInfoDelete.objects.create(**params)
+
+    def get_delete_service_map(self, service_ids):
+        tsds = TenantServiceInfoDelete.objects.filter(service_id__in=service_ids)
+        del_service_map = {t.service_id: t.to_dict() for t in tsds}
+        return del_service_map
 
 
 class TenantServiceWebhooks(object):
