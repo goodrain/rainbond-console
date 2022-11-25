@@ -1,0 +1,263 @@
+#!/bin/bash
+
+set -o nounset
+#set -o errexit
+#set -o xtrace
+
+RED='\033[0;31m'
+GREEN='\033[32;1m'
+YELLOW='\033[33;1m'
+NC='\033[0m' # No Color
+
+# default version, can be overridden by cmd line options
+export CONSOLE=${CONSOLE:-false}
+os_type=$(cat /etc/os-release | grep "^ID=" | awk -F= '{print $2}' | tr -d [:punct:])
+os_version_id=$(cat /etc/os-release | grep "VERSION_ID=" | awk -F= '{print $2}' | tr -d [:punct:])
+
+function install_docker() {
+    if systemctl status docker | grep Active | grep -q running; then
+        echo -e "${GREEN}[INFO] Docker has been installed on the host ${NC}"
+    else
+        curl -sfL https://get.rainbond.com/install_docker | bash
+    fi
+}
+
+function add_user_in_ubuntu() {
+    sudo useradd --create-home -s /bin/bash -g docker "$1"
+    echo "$1":"$2" | sudo chpasswd
+    echo -e "${GREEN}[INFO] User $1 has been created ${NC}"
+}
+
+function add_user_in_redhat() {
+    sudo adduser -g docker "$1"
+    echo "$1":"$2" | sudo chpasswd
+    echo -e "${GREEN}[INFO] User $1 has been created ${NC}"
+}
+
+function add_user() {
+    user=${DOCKER_USER:-"docker"}
+    pass=${DOCKER_PASS:-'rbd-123465!'}
+    
+    sudo groupadd --force docker
+
+    if id -u "$user" >/dev/null 2>&1; then
+        sudo gpasswd -a "$user" docker
+        echo -e "${GREEN}[INFO] User $user already exists ${NC}"
+    else
+        case $os_type in
+        centos|redhat|euleros|fusionos)
+            add_user_in_redhat "$user" "$pass"
+            echo -e "${GREEN}[INFO] User $user has been created ${NC}"
+        ;;
+        ubuntu|debian)
+            add_user_in_ubuntu "$user" "$pass"
+            echo -e "${GREEN}[INFO] User $user has been created ${NC}"
+        ;;
+        *)
+            echo -e "${RED}[ERROR] Does not support $os_type temporarily ${NC}" && exit 1
+        ;;
+        esac
+    fi
+
+    $CONSOLE || add_ssh_rsa "$user"
+}
+
+function add_ssh_rsa() {
+    
+    if id -u "$user" >/dev/null 2>&1; then
+        if [ ! -d "/home/$1/.ssh" ]; then
+            echo -e "${GREEN}[INFO] Create /home/$1/.ssh ${NC}"
+            sudo mkdir -p /home/"$1"/.ssh
+        fi
+        if [ -f "/home/$1/.ssh/authorized_keys" ]; then
+            echo -e "${GREEN}[INFO] /home/$1/.ssh/authorized_keys already exists ${NC}"
+            sudo chmod 777 /home/"$1"/.ssh/authorized_keys
+            if ! < /home/"$1"/.ssh/authorized_keys grep -q "$SSH_RSA"; then
+                echo "$SSH_RSA" >> /home/"$1"/.ssh/authorized_keys
+            fi
+        else
+            echo -e "${GREEN}[INFO] Create /home/$1/.ssh/authorized_keys ${NC}"
+            sudo touch /home/"$1"/.ssh/authorized_keys
+            sudo chmod 777 /home/"$1"/.ssh/authorized_keys
+            echo "$SSH_RSA" > /home/"$1"/.ssh/authorized_keys
+        fi
+
+        if < /home/"$1"/.ssh/authorized_keys grep -q "$SSH_RSA"; then
+            echo -e "${GREEN}[INFO] Add ssh public key to /home/$1/.ssh/authorized_keys successfully ${NC}"
+        else
+            echo -e "${RED}[ERROR] Add ssh public key to /home/$1/.ssh/authorized_keys failed ${NC}" && exit 1
+        fi
+        sudo chmod 600 /home/"$1"/.ssh/authorized_keys
+        chown -R "$1":"$1"  /home/"$1"/.ssh
+    fi
+}
+
+function check_user_permission(){
+    echo -e "${GREEN}[INFO] Checks whether the docker user can use the docker command ${NC}"
+    if su "docker" -c "docker ps"; then
+        echo -e "${GREEN}[INFO] User docker can use docker command ${NC}"
+    else
+        echo -e "${RED}[ERROR] User docker cannot use execution docker command, Please try to restart docker 'systemctl restart docker'. After restarting docker, execute the script again.${NC}"
+        exit 1
+    fi
+}
+
+function disable_firewalld() {
+    if systemctl status firewalld | grep Active | grep -q running >/dev/null 2>&1; then
+        sudo systemctl stop firewalld >/dev/null 2>&1
+        sudo systemctl disable firewalld >/dev/null 2>&1
+        echo -e "${GREEN}[INFO] firewalld has been disabled ${NC}"
+    else
+        echo -e "${GREEN}[INFO] firewalld service not installed ${NC}"
+    fi
+}
+
+function disable_swap() {
+    if swapoff -a; then
+        sudo sed -nr "s/(.*swap.*)/#\1/p" /etc/fstab
+        echo -e "${GREEN}[INFO] swap has been disabled ${NC}"
+    fi    
+}
+
+function time_sync() {
+
+    echo -e "${GREEN}[INFO] Start time synchronization ${NC}"
+    case $os_type in
+    centos|redhat|euleros|fusionos)
+        if [ "$os_version_id" == "8" ]; then
+            echo -e "${YELLOW}[WARN] $os_type $os_version_id please manually synchronize the time ${NC}"
+        else
+            sudo yum install -y ntpdate;
+            sudo ntpdate time.pool.aliyun.com
+            echo -e "${GREEN}[INFO] Time synchronization is complete ${NC}"
+        fi
+	;;
+    ubuntu|debian)
+        sudo apt -q update && sudo apt install -y ntpdate;
+        sudo ntpdate time.pool.aliyun.com
+        echo -e "${GREEN}[INFO] Time synchronization is complete ${NC}"
+	;;
+    *)
+        echo -e "${RED}[ERROR] Does not support $os_type temporarily ${NC}" && exit 1
+    ;;
+    esac
+    
+}
+
+function check_resource(){
+    cpu=$(lscpu | awk '/^CPU\(/{print $2}')
+    mem=$(free -g | awk '/^Mem/{print $2}')
+    DISK_SPACE=$(df /|sed -n '2p'|awk '{print $2}')
+
+    # check cpu
+    if [ "${cpu}" -lt 2 ]; then
+        echo -e "${YELLOW}[WARN] The cpu is recommended to be at least 2C ${NC}"
+    fi
+
+    # check memory
+    if [ "${mem}" -lt 3 ]; then
+        echo -e "${YELLOW}[WARN] The Memory is recommended to be at least 8G ${NC}"
+    fi
+
+    # check disk space
+    if [ "${DISK_SPACE}" -lt 47185920 ];then
+      echo -e "${YELLOW}[WARN] The root partition space must not be less than 50G ${NC}"
+    fi
+}
+
+function check_os() {
+    os_version=$(cat /etc/os-release | grep VERSION_ID|awk -F= '{print $2}'|tr -d [:punct:])
+    case $os_type in
+    centos|redhat|euleros|fusionos)
+    if [ "$os_version" -lt "7" ]; then
+        echo -e "${RED}[ERROR] Centos or redhat version must be higher than 7.0 ${NC}" && exit 1
+    fi
+    ;;
+    ubuntu)
+    if [ "$os_version" -lt "1604" ]; then
+        echo -e "${RED}[ERROR] Ubuntu version must be higher than 16.04 ${NC}" && exit 1
+    fi
+    ;;
+    debian)
+    if [ "$os_version" -lt "9" ]; then
+        echo -e "${RED}[ERROR] Debian version must be higher than 9.0 ${NC}" && exit 1
+    fi
+    ;;
+    *)
+    echo -e "${RED}[ERROR] Does not support $os_type temporarily ${NC}" && exit 1
+    ;;
+    esac
+}
+
+function check_kernel() {
+    kernel_version=$(uname -r | awk -F. '{print $1}')
+    if [ "$kernel_version" -lt "4" ]; then 
+        echo -e "${YELLOW}[WARN] Kernel version must be higher than 4.0, Please upgrade the kernel to 4.0+ as soon as possible ${NC}"
+    fi
+}
+
+function install_nfscli(){
+    case $os_type in
+    centos|redhat|euleros|fusionos)
+        sudo yum list installed nfs-utils | grep nfs || sudo yum install -y nfs-utils
+        echo -e "${GREEN}[INFO] nfs-utils has been installed ${NC}"
+    ;;
+    ubuntu|debian)
+        sudo apt list --installed nfs-common | grep nfs || sudo apt install -y nfs-common
+        echo -e "${GREEN}[INFO] nfs-common has been installed ${NC}"
+    ;;
+    esac
+}
+
+
+function check_openssh(){
+
+    if ssh -V >/dev/null 2>&1; then
+      OPENSSH_VERSION=$(sudo ssh -V |& awk -F[_.] '{print $2}')
+      if [ "${OPENSSH_VERSION}" -lt "7" ];then
+          echo -e "${RED}[ERROR] openssh version must be higher than 7.0 ${NC}" && exit 1
+      fi
+    else
+      echo -e "${RED}[ERROR] Need to install 7.0+ version of openssh ${NC}" && exit 1
+    fi
+}
+
+function init_syscfg(){
+    curl -sfL https://get.rainbond.com/linux-optimize.sh | bash
+}
+
+# add docker user
+add_user
+
+# install docker
+install_docker 
+
+# check docker user permission
+check_user_permission
+
+# time sync
+time_sync
+
+#install nfs client
+install_nfscli
+
+# check os
+check_os
+
+# disable swap
+disable_swap
+
+# disable firewalld
+disable_firewalld
+
+# init syscfg
+init_syscfg
+
+# check kernel
+check_kernel
+
+# check resource
+check_resource
+
+# check openssh
+check_openssh

@@ -97,7 +97,7 @@ if ! (docker info &>/dev/null); then
     elif [ "${OS_TYPE}" = "Linux" ]; then
         send_warn "Ops! Docker has not been installed.\nDocker is going to be automatically installed...\n"
         sleep 3
-        curl sh.rainbond.com/install_docker | bash
+        curl -sfL https://get.rainbond.com/install_docker | bash
         if [ "$?" != "0" ]; then
             send_error "Ops! Automatic docker installation failed."
             exit 1
