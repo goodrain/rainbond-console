@@ -308,6 +308,7 @@ class AppEventService(object):
                             res_map["service_name"] = del_service["service_cname"]
                             res_map["UserName"] = del_service["exec_user"]
                             res_map["group_name"] = del_service["app_name"]
+                            res_map["group_id"] = del_service["app_id"]
                     if tenant_id:
                         tenants = tenants_map.get(tenant_id, {})
                         if tenants:
