@@ -1145,7 +1145,8 @@ class AppManageService(AppManageBase):
             code = 412
             msg = "当前组件被其他应用下的组件依赖了，您确定要删除吗？"
             return code, msg
-
+        # 组件在哪个应用下
+        app_name = self.get_app_by_service(service)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
@@ -1156,7 +1157,7 @@ class AppManageService(AppManageBase):
             return code, msg
         else:
             try:
-                code, msg = self.truncate_service(tenant, service, user)
+                code, msg = self.truncate_service(tenant, service, app_name, user)
                 if code != 200:
                     return code, msg
                 else:

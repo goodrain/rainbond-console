@@ -63,7 +63,8 @@ class GroupRepository(object):
             return None
 
     def update_group_name(self, group_id, new_group_name, group_note=""):
-        ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name, note=group_note, update_time=datetime.now())
+        ServiceGroup.objects.filter(pk=group_id).update(group_name=new_group_name, note=group_note,
+                                                        update_time=datetime.now())
 
     def update_governance_mode(self, tenant_id, region_name, app_id, governance_mode):
         ServiceGroup.objects.filter(pk=app_id).update(
@@ -171,6 +172,17 @@ class GroupServiceRelationRepository(object):
                 group_info["group_id"] = -1
                 result_map[service_id] = group_info
         return result_map
+
+    def get_all_group_by_tenant_ids(self, tenant_ids):
+        groups = group_repo.get_groups_by_tenant_ids(tenant_ids)
+        id_name_map = {}
+        id_name_map_list = []
+        tenant_group = {}
+        for group in groups:
+            id_name_map[group.group_name] = group.ID
+            id_name_map_list.append(id_name_map)
+            tenant_group[group.tenant_id] = id_name_map_list
+        return tenant_group
 
     def create_service_group_relation(self, **params):
         return ServiceGroupRelation.objects.create(**params)

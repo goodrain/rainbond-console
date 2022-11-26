@@ -289,6 +289,7 @@ class AppEventService(object):
                 service_map = service_repo.get_service_map_by_service_ids(all_service_id)
                 tenants_map = team_repo.get_team_map_by_team_ids(all_tenant_id)
                 delete_service_name_map = delete_service_repo.get_delete_service_map(all_service_id)
+                group_map = group_service.get_group_name_and_id_map(all_tenant_id)
                 for msg in msg_list:
                     res_map = {}
                     res_map = self.eventinit(res_map, msg, region)
@@ -309,6 +310,13 @@ class AppEventService(object):
                             res_map["UserName"] = del_service["exec_user"]
                             res_map["group_name"] = del_service["app_name"]
                     if tenant_id:
+                        group_name = res_map["group_name"]
+                        group_map_list = group_map.get(tenant_id, [])
+                        for gm in group_map_list:
+                            group_id = gm.get(group_name, "")
+                            if group_id:
+                                res_map["group_id"] = group_id
+                                break
                         tenants = tenants_map.get(tenant_id, {})
                         if tenants:
                             res_map["team_alias"] = tenants["tenant_alias"]

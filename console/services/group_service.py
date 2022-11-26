@@ -349,6 +349,9 @@ class GroupService(object):
     def get_services_group_name(self, service_ids):
         return group_service_relation_repo.get_group_by_service_ids(service_ids)
 
+    def get_group_name_and_id_map(self, tenant_ids):
+        return group_service_relation_repo.get_all_group_by_tenant_ids(tenant_ids)
+
     def delete_service_group_relation_by_service_id(self, service_id):
         group_service_relation_repo.delete_relation_by_service_id(service_id)
 
