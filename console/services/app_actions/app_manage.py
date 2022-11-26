@@ -900,8 +900,9 @@ class AppManageService(AppManageBase):
             data.pop("open_webhooks")
             data.pop("server_type")
             data.pop("git_full_name")
-            data["exec_user"] = user.nick_name
             data["app_name"] = app_name
+            if user:
+                data["exec_user"] = user.nick_name
         try:
             with transaction.atomic():
                 delete_service_repo.create_delete_service(**data)
