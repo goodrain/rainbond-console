@@ -845,7 +845,7 @@ class AppManageService(AppManageBase):
         if is_mounted:
             return 412, "当前组件有存储被{0}组件挂载, 不可删除".format(msg)
         # 组件在哪个应用下
-        app_name = self.get_app_by_service(service)
+        app = self.get_app_by_service(service)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
@@ -854,7 +854,7 @@ class AppManageService(AppManageBase):
             return 200, "success"
         else:
             try:
-                code, msg = self.truncate_service(tenant, service, app_name, user)
+                code, msg = self.truncate_service(tenant, service, user, app)
                 if code != 200:
                     return code, msg
                 else:
@@ -866,7 +866,7 @@ class AppManageService(AppManageBase):
     def get_app_by_service(self, service):
         relation = group_service_relation_repo.get_group_by_service_id(service.service_id)
         group = group_repo.get_group_by_id(relation.group_id)
-        return group.group_name
+        return group
 
     def delete_components(self, tenant, components, user=None):
         # Batch delete considers that the preconditions have been met,
@@ -887,7 +887,7 @@ class AppManageService(AppManageBase):
                 keys.append(event.region_share_id)
         return keys
 
-    def _truncate_service(self, tenant, service, app_name, user=None):
+    def _truncate_service(self, tenant, service, user=None, app=None):
         data = {}
         if service.create_status == "complete":
             data = service.toJSON()
@@ -900,8 +900,11 @@ class AppManageService(AppManageBase):
             data.pop("open_webhooks")
             data.pop("server_type")
             data.pop("git_full_name")
-            data["exec_user"] = user.nick_name
-            data["app_name"] = app_name
+            if app:
+                data["app_name"] = app.group_name
+                data["app_id"] = app.ID
+            if user:
+                data["exec_user"] = user.nick_name
         try:
             with transaction.atomic():
                 delete_service_repo.create_delete_service(**data)
@@ -934,7 +937,7 @@ class AppManageService(AppManageBase):
         service.delete()
 
     @transaction.atomic
-    def truncate_service(self, tenant, service, app_name, user=None):
+    def truncate_service(self, tenant, service, user=None, app=None):
         """彻底删除组件"""
         try:
             data = {}
@@ -946,7 +949,7 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 return 500, "删除组件失败 {0}".format(e.message)
 
-        self._truncate_service(tenant, service, app_name, user)
+        self._truncate_service(tenant, service, user, app)
 
         # 如果这个组件属于应用, 则删除应用最后一个组件后同时删除应用
         # 如果这个组件属于模型安装应用, 则删除最后一个组件后同时删除安装应用关系。
@@ -1144,7 +1147,8 @@ class AppManageService(AppManageBase):
             code = 412
             msg = "当前组件被其他应用下的组件依赖了，您确定要删除吗？"
             return code, msg
-
+        # 组件在哪个应用下
+        app = self.get_app_by_service(service)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
@@ -1155,7 +1159,7 @@ class AppManageService(AppManageBase):
             return code, msg
         else:
             try:
-                code, msg = self.truncate_service(tenant, service, user)
+                code, msg = self.truncate_service(tenant, service, user, app)
                 if code != 200:
                     return code, msg
                 else:

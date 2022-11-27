@@ -648,6 +648,7 @@ class TenantServiceInfoDelete(BaseModel):
     job_strategy = models.CharField(max_length=2047, null=True, default="", help_text="job任务策略")
     exec_user = models.CharField(max_length=128, default="", help_text="执行删除的用户")
     app_name = models.CharField(max_length=128, default="", help_text="应用名称")
+    app_id = models.IntegerField(default=0, help_text="应用id")
 
 
 class TenantServiceLog(BaseModel):
