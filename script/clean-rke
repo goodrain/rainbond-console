@@ -22,20 +22,6 @@ function clean_rke_containers() {
   fi
 }
 
-function clean_volume() {
-  VOLUME_LIST=$(docker volume ls -q)
-  echo -e "${GREEN}[INFO] Start cleaning up docker volume.......... ${NC}"
-  if [ "$VOLUME_LIST" == "" ]; then
-      echo -e "${GREEN}[INFO] No volume to clean ${NC}"
-  else
-      if docker volume ls -q | xargs docker volume rm; then
-          echo -e "${GREEN}[INFO] Clean up docker volume successfully ${NC}"
-      else
-          echo -e "${RED}[ERROR] Clean up docker volume failed ${NC}"
-      fi
-  fi
-}
-
 function clean_mount(){
   echo -e "${GREEN}[INFO] Start cleaning up mount point.......... ${NC}"
 
@@ -119,9 +105,6 @@ function restart_docker(){
 function clean_rke_cluster() {
   # clean up rke containers
   clean_rke_containers
-
-  # clean up docker volume
-  clean_volume
 
   # clean up mount point
   clean_mount
