@@ -1,0 +1,128 @@
+#!/bin/bash
+
+RED='\033[0;31m'
+GREEN='\033[32;1m'
+YELLOW='\033[33;1m'
+NC='\033[0m' # No Color
+
+
+# clean up rke containers
+function clean_rke_containers() {
+  CONTAINERS=$(docker ps -a | grep 'rke-tools\|hyperkube\|coreos-etcd\|k8s' | awk '{print $1}')
+
+  echo -e "${GREEN}[INFO] Start cleaning up rke containers.......... ${NC}"
+  if [ "$CONTAINERS" == "" ]; then
+    echo -e "${GREEN}[INFO] No containers to Clean${NC}"
+  else
+    if docker ps -a | grep 'rke-tools\|hyperkube\|coreos-etcd\|k8s' | awk '{print $1}' | xargs docker rm -f; then
+        echo -e "${GREEN}[INFO] Clean up rke containers successfully ${NC}"
+    else
+        echo -e "${RED}[ERROR] Clean up rke containers failed ${NC}"
+    fi
+  fi
+}
+
+function clean_mount(){
+  echo -e "${GREEN}[INFO] Start cleaning up mount point.......... ${NC}"
+
+  K8S_MOUNTS=$(mount | grep tmpfs | grep '/var/lib/kubelet' | awk '{ print $3 }')
+  if [ "$K8S_MOUNTS" == "" ];then
+    echo -e "${GREEN}[INFO] No Kubernetes mount point to clean ${NC}"
+  else
+    if mount | grep tmpfs | grep '/var/lib/kubelet' | awk '{ print $3 }' | xargs umount -l; then
+      echo -e "${GREEN}[INFO] Clean up Kubernetes mount point successfully ${NC}"
+    else
+      echo -e "${RED}[ERROR] Clean up Kubernetes mount point failed ${NC}"
+    fi
+  fi
+  
+  RAINBOND_NFS=$(mount | grep export | awk '{print $1}')
+  if [ "$RAINBOND_NFS" == "" ]; then
+      echo -e "${GREEN}[INFO] No Rainbond NFS mount point to clean ${NC}"
+  else
+      if mount | grep export | awk '{print $1}' | xargs umount -l; then
+          echo -e "${GREEN}[INFO] Clean up Rainbond NFS mount point successfully ${NC}"
+      else
+          echo -e "${RED}[ERROR] Clean up Rainbond NFS mount point failed ${NC}"
+      fi
+  fi
+}
+
+function clean_directory() {
+  DIR_LIST=(/etc/cni /opt/cni /run/secrets/kubernetes.io /run/flannel /var/lib/cni /var/lib/kubelet /var/log/containers /var/log/kube-audit /var/log/pods /etc/kubernetes /var/lib/etcd /opt/rke /opt/rainbond)
+
+  for dir in "${DIR_LIST[@]}"; do
+    if [ -d "$dir" ]; then
+      echo -e "${GREEN}[INFO] Start cleaning up $dir.......... ${NC}"
+      if rm -rf "$dir"; then
+        echo -e "${GREEN}[INFO] Clean up $dir successfully ${NC}"
+      else
+        echo -e "${RED}[ERROR] Clean up $dir failed ${NC}"
+      fi
+    fi
+  done
+}
+
+function clean_net_inter() {
+
+no_del_net_inter='
+lo
+docker0
+eth
+ens
+bond
+'
+  network_interface=$(ls /sys/class/net)
+  echo -e "${GREEN}[INFO] Start cleaning up network interface.......... ${NC}"
+  for net_inter in $network_interface;
+  do
+    if ! echo "${no_del_net_inter}" | grep -qE "${net_inter:0:3}"; then
+      ip link delete "$net_inter"
+      echo -e "${GREEN}[INFO] Delete network interface $net_inter successfully ${NC}"
+    fi
+  done
+}
+
+function clean_iptables() {
+  echo -e "${GREEN}[INFO] Start cleaning up iptables rules.......... ${NC}"
+  sudo iptables --flush
+  sudo iptables --flush --table nat
+  sudo iptables --flush --table filter
+  sudo iptables --table nat --delete-chain
+  sudo iptables --table filter --delete-chain
+  echo -e "${GREEN}[INFO] Clean up iptables rules successfully ${NC}"
+}
+
+function restart_docker(){
+  echo -e "${GREEN}[INFO] Restarting docker.......... ${NC}"
+  if systemctl restart docker; then
+    echo -e "${GREEN}[INFO] Restart docker successfully ${NC}"
+  else
+    echo -e "${RED}[ERROR] Restart docker failed ${NC}"
+  fi
+}
+
+function clean_rke_cluster() {
+  # clean up rke containers
+  clean_rke_containers
+
+  # clean up mount point
+  clean_mount
+
+  # clean up directory
+  clean_directory
+
+  # clean up network interface
+  clean_net_inter
+
+  # clean up iptables rules
+  clean_iptables
+
+  # restart docker
+  restart_docker
+}
+
+# clean up rke cluster
+clean_rke_cluster
+
+echo -e "${GREEN}[INFO] Clean up rke cluster successfully ${NC}"
