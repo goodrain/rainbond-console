@@ -226,6 +226,9 @@ function init_syscfg(){
     curl -sfL https://get.rainbond.com/linux-optimize.sh | bash
 }
 
+# disable firewalld
+disable_firewalld
+
 # add docker user
 add_user
 
@@ -246,9 +249,6 @@ check_os
 
 # disable swap
 disable_swap
-
-# disable firewalld
-disable_firewalld
 
 # init syscfg
 init_syscfg
