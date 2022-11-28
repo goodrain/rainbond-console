@@ -900,11 +900,11 @@ class AppManageService(AppManageBase):
             data.pop("open_webhooks")
             data.pop("server_type")
             data.pop("git_full_name")
-            if app:
-                data["app_name"] = app.group_name
-                data["app_id"] = app.ID
-            if user:
-                data["exec_user"] = user.nick_name
+        if app:
+            data["app_name"] = app.group_name
+            data["app_id"] = app.ID
+        if user:
+            data["exec_user"] = user.nick_name
         try:
             with transaction.atomic():
                 delete_service_repo.create_delete_service(**data)
@@ -1173,6 +1173,8 @@ class AppManageService(AppManageBase):
 
     @transaction.atomic
     def delete_again(self, user, tenant, service, is_force):
+        # 组件在哪个应用下
+        app = self.get_app_by_service(service)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(service)
@@ -1180,19 +1182,19 @@ class AppManageService(AppManageBase):
             self.move_service_relation_info_recycle_bin(tenant, service)
         else:
             try:
-                self.really_delete_service(tenant, service, user)
+                self.really_delete_service(tenant, service, user, app=app)
             except ServiceHandleException as e:
                 raise e
             except Exception as e:
                 logger.exception(e)
                 raise ServiceHandleException(msg="delete component {} failure".format(service.service_alias), msg_show="组件删除失败")
 
-    def really_delete_service(self, tenant, service, user=None, ignore_cluster_result=False, not_delete_from_cluster=False):
+    def really_delete_service(self, tenant, service, user=None, ignore_cluster_result=False, not_delete_from_cluster=False, app=None):
         """组件真实删除方法，调用端必须进行事务控制"""
         ignore_delete_from_cluster = not_delete_from_cluster
+        data = {}
         if not not_delete_from_cluster:
             try:
-                data = {}
                 data["etcd_keys"] = self.get_etcd_keys(tenant, service)
                 region_api.delete_service(service.service_region, tenant.tenant_name, service.service_alias,
                                           tenant.enterprise_id, data)
@@ -1217,6 +1219,11 @@ class AppManageService(AppManageBase):
             data.pop("open_webhooks")
             data.pop("server_type")
             data.pop("git_full_name")
+        if app:
+            data["app_name"] = app.group_name
+            data["app_id"] = app.ID
+        if user:
+            data["exec_user"] = user.nick_name
         try:
             with transaction.atomic():
                 delete_service_repo.create_delete_service(**data)
