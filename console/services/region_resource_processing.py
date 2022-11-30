@@ -161,7 +161,7 @@ class RegionResource(object):
             new_service.k8s_component_name = component["ts"]["k8s_component_name"]
             new_service.job_strategy = component["ts"]["job_strategy"]
             new_service.save()
-            group_service_relation_repo.add_service_group_relation(application.ID, component["ts"]["service_id"],
+            group_service_relation_repo.add_service_group_relation(application.app_id, component["ts"]["service_id"],
                                                                    tenant.tenant_id, region_name)
             self.create_component_env(component["env"], tenant.tenant_id, new_service)
             self.create_component_config(component["config"], tenant.tenant_id, new_service)
