@@ -163,7 +163,7 @@ class GroupServiceRelationRepository(object):
             group_id = sgr_map.get(service_id, None)
             group_info = dict()
             if group_id:
-                group_info["group_name"] = group_map[group_id]
+                group_info["group_name"] = group_map.get(group_id, "")
                 group_info["group_id"] = group_id
                 result_map[service_id] = group_info
             else:
