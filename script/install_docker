@@ -135,7 +135,7 @@ function check_iptables() {
     os_type=$(cat /etc/os-release | grep "^ID=" | awk -F= '{print $2}' | tr -d [:punct:])
     os_version_id=$(cat /etc/os-release | grep "VERSION_ID=" | awk -F= '{print $2}' | tr -d [:punct:])
 
-    if [[ -e /usr/sbin/iptables ]]; then
+    if [[ -e /usr/sbin/iptables ]] || [[ -e /sbin/iptables ]]; then
         echo -e "${GREEN}[INFO] iptables already installed ${NC}"
     else
         case $os_type in
