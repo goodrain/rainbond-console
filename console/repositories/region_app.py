@@ -20,5 +20,9 @@ class RegionAppRepository(object):
     def list_by_app_ids(region_name, app_ids):
         return RegionApp.objects.filter(region_name=region_name, app_id__in=app_ids)
 
+    @staticmethod
+    def list_by_region_app_ids(region_name, region_app_ids):
+        return RegionApp.objects.filter(region_name=region_name, region_app_id__in=region_app_ids)
+
 
 region_app_repo = RegionAppRepository()
