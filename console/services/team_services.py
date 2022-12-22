@@ -348,9 +348,8 @@ class TeamService(object):
             tenant["region_num"] = region_num
         return tenants, total
 
-    def list_by_tenant_names(self, tenant_names):
-        query_set = Tenants.objects.filter(tenant_name__in=tenant_names)
-        return [qs.to_dict() for qs in query_set]
+    def list_by_namespaces(self, namespaces):
+        return Tenants.objects.filter(namespace__in=namespaces)
 
     def list_teams_by_user_id(self, eid, user_id, query=None, page=None, page_size=None):
         tenants = team_repo.list_by_user_id(eid, user_id, query, page, page_size)

@@ -2357,3 +2357,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/container_disk/{}".format(container_type)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
+
+    def list_plugins(self, enterprise_id, region_name):
+        region_info = self.get_enterprise_region_info(enterprise_id, region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/plugins"
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
+        return res, body
