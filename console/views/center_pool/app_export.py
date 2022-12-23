@@ -65,13 +65,14 @@ class CenterAppExportView(JWTAuthApiView):
         app_id = request.data.get("app_id", None)
         app_versions = request.data.get("app_versions", [])
         export_format = request.data.get("format", None)
+        image_handle = request.data.get("image_handle", "")
         if not app_id or not app_versions:
             return Response(general_message(400, "app id is null", "请指明需要导出的应用"), status=400)
-        if not export_format or export_format not in ("rainbond-app", "docker-compose", "slug"):
+        if not export_format or export_format not in ("rainbond-app", "docker-compose", "slug", "helm-chart"):
             return Response(general_message(400, "export format is illegal", "请指明导出格式"), status=400)
-
+        helm_chart_parameter = {"image_handle": image_handle}
         new_export_record_list = []
-        record = export_service.export_app(enterprise_id, app_id, app_versions[0], export_format)
+        record = export_service.export_app(enterprise_id, app_id, app_versions[0], export_format, helm_chart_parameter)
         new_export_record_list.append(record.to_dict())
 
         result = general_message(200, "success", "操作成功，正在导出", list=new_export_record_list)

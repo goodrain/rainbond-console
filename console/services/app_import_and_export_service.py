@@ -38,7 +38,7 @@ class AppExportService(object):
                     return region_services.get_region_by_region_id(data[0]["region_id"])
         raise RegionNotFound("暂无可用的集群，应用导出功能不可用")
 
-    def export_app(self, eid, app_id, version, export_format):
+    def export_app(self, eid, app_id, version, export_format, helm_chart_parameter):
         app, app_version = rainbond_app_repo.get_rainbond_app_and_version(eid, app_id, version)
         if not app or not app_version:
             raise RbdAppNotFound("未找到该应用")
@@ -61,7 +61,7 @@ class AppExportService(object):
             "group_key": app.app_id,
             "version": app_version.version,
             "format": export_format,
-            "group_metadata": self.__get_app_metata(app, app_version)
+            "group_metadata": self.__get_app_metata(app, app_version, helm_chart_parameter)
         }
 
         try:
@@ -82,7 +82,7 @@ class AppExportService(object):
 
         return app_export_record_repo.create_app_export_record(**params)
 
-    def __get_app_metata(self, app, app_version):
+    def __get_app_metata(self, app, app_version, helm_chart_parameter):
         picture_path = app.pic
         suffix = picture_path.split('.')[-1]
         describe = app.describe
@@ -93,7 +93,7 @@ class AppExportService(object):
             image_base64_string = ""
 
         app_template = json.loads(app_version.app_template)
-        for ingress_http_route in app_template["ingress_http_routes"]:
+        for ingress_http_route in app_template.get("ingress_http_routes", []):
             ingress_http_route["proxy_header"] = ingress_http_route.get("proxy_header", {})
             if isinstance(ingress_http_route["proxy_header"], list):
                 ingress_http_route["proxy_header"] = {
@@ -107,6 +107,9 @@ class AppExportService(object):
             "image_base64_string": image_base64_string,
             "version_info": app_version.app_version_info,
             "version_alias": app_version.version_alias,
+        }
+        app_template["helm_chart"] = {
+            "image_handle": helm_chart_parameter["image_handle"],
         }
         return json.dumps(app_template, cls=MyEncoder)
 
@@ -132,6 +135,9 @@ class AppExportService(object):
             "is_export_before": False,
         }
         slug_init_data = {
+            "is_export_before": False,
+        }
+        helm_chart_init_data = {
             "is_export_before": False,
         }
 
@@ -184,7 +190,21 @@ class AppExportService(object):
                         self._wrapper_director_download_url(export_record.region_name, export_record.file_path.replace(
                             "/v2", ""))
                     })
-        result = {"rainbond_app": rainbond_app_init_data, "docker_compose": docker_compose_init_data}
+                if export_record.format == "helm-chart":
+                    helm_chart_init_data.update({
+                        "is_export_before":
+                        True,
+                        "status":
+                        export_record.status,
+                        "file_path":
+                        self._wrapper_director_download_url(export_record.region_name, export_record.file_path.replace(
+                            "/v2", ""))
+                    })
+        result = {
+            "rainbond_app": rainbond_app_init_data,
+            "docker_compose": docker_compose_init_data,
+            "helm_chart": helm_chart_init_data
+        }
         tmpl = json.loads(app_version.app_template)
         for component in tmpl.get("apps"):
             if component.get("service_source") == "source_code":
