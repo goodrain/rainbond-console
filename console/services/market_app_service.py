@@ -79,7 +79,10 @@ class MarketAppService(object):
 
         app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
                                                          version)
-        if app_template.get("governance_mode") and app_template["governance_mode"] != app.governance_mode:
+        if not app_template.get("governance_mode"):
+            app_template["governance_mode"] = "BUILD_IN_SERVICE_MESH"
+
+        if app_template["governance_mode"] != app.governance_mode:
             if group_service_relation_repo.count_service_by_app_id(app_id) > 0:
                 raise AbortRequest(
                     "app governance mode not match", "当前应用治理模式与应用模版治理模式不一致，请新建应用后再安装", status_code=400, error_code=400)

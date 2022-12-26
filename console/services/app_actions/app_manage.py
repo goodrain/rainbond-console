@@ -1189,7 +1189,13 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 raise ServiceHandleException(msg="delete component {} failure".format(service.service_alias), msg_show="组件删除失败")
 
-    def really_delete_service(self, tenant, service, user=None, ignore_cluster_result=False, not_delete_from_cluster=False, app=None):
+    def really_delete_service(self,
+                              tenant,
+                              service,
+                              user=None,
+                              ignore_cluster_result=False,
+                              not_delete_from_cluster=False,
+                              app=None):
         """组件真实删除方法，调用端必须进行事务控制"""
         ignore_delete_from_cluster = not_delete_from_cluster
         data = {}
