@@ -9,7 +9,6 @@ from django.conf import settings
 
 from console.constants import LogConstants, ServiceEventConstants
 from console.repositories.event_repo import event_repo
-from console.repositories.group import group_service_relation_repo
 from console.repositories.region_repo import region_repo
 from console.services.plugin.app_plugin import AppPluginService
 from console.utils.timeutil import str_to_time, time_to_str
