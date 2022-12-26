@@ -50,7 +50,7 @@ from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 # model
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceEnvVar, TenantServiceInfo,
-                             TenantServicesPort, Users)
+                             TenantServicesPort, Users, ServiceGroup)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -72,25 +72,30 @@ class MarketAppService(object):
                     version,
                     market_name,
                     install_from_cloud,
-                    is_deploy=False):
+                    is_deploy=False,
+                    dry_run=False):
         app = group_repo.get_group_by_id(app_id)
+        if dry_run:
+            app = ServiceGroup.objects.first()
+            app.governance_mode = "KUBERNETES_NATIVE_SERVICE"
         if not app:
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
 
         app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
                                                          version)
-        if not app_template.get("governance_mode"):
-            app_template["governance_mode"] = "BUILD_IN_SERVICE_MESH"
+        if not dry_run:
+            if not app_template.get("governance_mode"):
+                app_template["governance_mode"] = "BUILD_IN_SERVICE_MESH"
 
-        if app_template["governance_mode"] != app.governance_mode:
-            if group_service_relation_repo.count_service_by_app_id(app_id) > 0:
-                raise AbortRequest(
-                    "app governance mode not match", "当前应用治理模式与应用模版治理模式不一致，请新建应用后再安装", status_code=400, error_code=400)
-            app.governance_mode = app_template["governance_mode"]
-            region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
-            region_api.update_app(region.region_name, tenant.tenant_name, region_app_id,
-                                  {"governance_mode": app.governance_mode})
-            app.save()
+            if app_template["governance_mode"] != app.governance_mode:
+                if group_service_relation_repo.count_service_by_app_id(app_id) > 0:
+                    raise AbortRequest(
+                        "app governance mode not match", "当前应用治理模式与应用模版治理模式不一致，请新建应用后再安装", status_code=400, error_code=400)
+                app.governance_mode = app_template["governance_mode"]
+                region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
+                region_api.update_app(region.region_name, tenant.tenant_name, region_app_id,
+                                      {"governance_mode": app.governance_mode})
+                app.save()
 
         component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
                                                             version, market_app.app_name)
@@ -107,7 +112,10 @@ class MarketAppService(object):
             install_from_cloud,
             market_name,
             is_deploy=is_deploy)
-        app_upgrade.install()
+        if dry_run:
+            app_upgrade.preinstall()
+        else:
+            app_upgrade.install()
         return market_app.app_name
 
     def get_app_template(self, app_model_key, install_from_cloud, market_name, region, tenant, user, version):

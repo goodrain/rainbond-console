@@ -583,7 +583,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         url = uri_prefix + "/v2/helm/check_helm_app"
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data))
+        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data), timeout=20)
         return res, body
 
     def get_service_volumes_status(self, region, tenant_name, service_alias):
@@ -1630,7 +1630,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/batchoperation"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body), timeout=10)
         return res, body
 
     # 修改网关自定义配置项
