@@ -170,7 +170,7 @@ class EnterpriseTeams(JWTAuthApiView):
             user_id_dict[tenant_ids.get(user_id["tenant_id"])] = user_id_dict.get(tenant_ids.get(user_id["tenant_id"]), 0) + 1
         for usable_region in usable_regions:
             try:
-                region_tenants, total = team_services.get_tenant_list_by_region(
+                region_tenants, _ = team_services.get_tenant_list_by_region(
                     enterprise_id, usable_region.region_id, page=1, page_size=9999)
                 for region_tenant in region_tenants:
                     tenant = tenant_names.get(region_tenant["tenant_name"])
