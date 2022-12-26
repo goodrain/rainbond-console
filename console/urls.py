@@ -58,7 +58,8 @@ from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupVie
 from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
-from console.views.enterprise import (MyEventsView, ServiceAlarm)
+from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
+                                      NodeTaintOperate, RainbondComponents, ContainerDisk)
 from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
                                       RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
 from console.views.enterprise import (
@@ -803,6 +804,26 @@ urlpatterns = [
         perms.MavenSettingRUDView),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/mavensettings/(?P<name>[\w\-]+)$',
         MavenSettingRUDView.as_view(), perms.MavenSettingRUDView),
+    # 获取节点下rainbond组件
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/rbd-components$',
+        RainbondComponents.as_view()),
+    # 获取集群节点列表
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes$', GetNodes.as_view()),
+    # 获取节点详情
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes/(?P<node_name>[\w\-.]+)$',
+        GetNode.as_view()),
+    # 操作节点
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes/(?P<node_name>[\w\-.]+)/action$',
+        NodeAction.as_view()),
+    # 节点标签操作
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes/(?P<node_name>[\w\-.]+)/labels$',
+        NodeLabelsOperate.as_view()),
+    # 节点污点操作
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes/(?P<node_name>[\w\-.]+)/taints$',
+        NodeTaintOperate.as_view()),
+    # 容器存储
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes/(?P<node_name>[\w\-.]+)/container$',
+        ContainerDisk.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app/(?P<app_id>[\w\-]+)/components$', EnterpriseAppComponentsLView.as_view()),
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/storehub-check$', LocalComponentLibraryConfigCheck.as_view(),

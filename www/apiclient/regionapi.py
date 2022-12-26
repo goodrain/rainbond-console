@@ -2276,3 +2276,84 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         data = {"region_name": region, "pod_name": pod_name}
         res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(data))
         return body
+
+    def get_cluster_nodes(self, region):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes"
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def get_node_info(self, region, node_name):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/{0}/detail".format(node_name)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def operate_node_action(self, region, node_name, action):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/{0}/action/{1}".format(node_name, action)
+        res, body = self._post(url, self.default_headers, region=region)
+        return res, body
+
+    def get_node_labels(self, region, node_name):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/{0}/labels".format(node_name)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def update_node_labels(self, region, node_name, data):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/{0}/labels".format(node_name)
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def get_node_taints(self, region, node_name):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/{0}/taints".format(node_name)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def update_node_taints(self, region, node_name, data):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/{0}/taints".format(node_name)
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def get_rainbond_components(self, region):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/rbd-components"
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def get_container_disk(self, region, container_type):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/container_disk/{}".format(container_type)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
