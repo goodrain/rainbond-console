@@ -815,3 +815,52 @@ class ContainerDisk(EnterpriseAdminView):
         }
         result = general_message(200, "success", "获取成功", bean=res)
         return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseMenuManage(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        menus_res = enterprise_services.get_enterprise_menus(enterprise_id)
+        result = general_message(200, "success", "获取成功", list=menus_res)
+        return Response(result, status=status.HTTP_200_OK)
+
+    def post(self, request, enterprise_id, *args, **kwargs):
+        title = request.data.get("title", "")
+        path = request.data.get("path", "")
+        parent_id = request.data.get("parent_id", 0)
+        iframe = request.data.get("iframe", False)
+        data = {
+            "eid": enterprise_id,
+            "title": title,
+            "path": path,
+            "parent_id": parent_id,
+            "iframe": iframe,
+        }
+        menus = enterprise_services.get_menus_by_parent_id(enterprise_id, parent_id)
+        for menu in menus:
+            if menu.title == title:
+                return Response(general_message(400, "The menu already exists", "菜单名已经存在"), status=400)
+        enterprise_services.add_enterprise_menu(**data)
+        result = general_message(200, "success", "添加成功")
+        return Response(result, status=status.HTTP_200_OK)
+
+    def put(self, request, enterprise_id, *args, **kwargs):
+        id = request.data.get("id", "")
+        title = request.data.get("title", "")
+        path = request.data.get("path", "")
+        parent_id = request.data.get("parent_id", 0)
+        iframe = request.data.get("iframe", False)
+        data = {
+            "title": title,
+            "path": path,
+            "parent_id": parent_id,
+            "iframe": iframe,
+        }
+        enterprise_services.update_enterprise_menu(enterprise_id, id, **data)
+        result = general_message(200, "success", "更新成功")
+        return Response(result, status=status.HTTP_200_OK)
+
+    def delete(self, request, enterprise_id, *args, **kwargs):
+        id = request.data.get("id", "")
+        enterprise_services.delete_enterprise_menu(enterprise_id, id)
+        result = general_message(200, "success", "删除成功")
+        return Response(result, status=status.HTTP_200_OK)

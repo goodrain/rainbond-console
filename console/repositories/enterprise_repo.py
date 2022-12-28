@@ -12,7 +12,7 @@ from console.repositories.user_repo import user_repo
 from console.repositories.user_role_repo import (UserRoleNotFoundException, user_role_repo)
 from django.db.models import Q
 from www.models.main import (PermRelTenant, ServiceGroup, ServiceGroupRelation, TenantEnterprise, TenantRegionInfo, Tenants,
-                             Users)
+                             Users, Menus)
 
 logger = logging.getLogger("default")
 
@@ -54,6 +54,27 @@ class TenantEnterpriseRepo(object):
     def get_enterprise_apps(self, enterprise_id):
         tenant_ids = TenantRegionInfo.objects.filter(enterprise_id=enterprise_id).values_list("tenant_id", flat=True)
         return ServiceGroup.objects.filter(tenant_id__in=tenant_ids)
+
+    def get_top_menu_by_eid(self, enterprise_id):
+        return Menus.objects.filter(eid=enterprise_id, parent_id=0)
+
+    def get_children_menu_by_eid(self, enterprise_id):
+        return Menus.objects.filter(eid=enterprise_id).exclude(parent_id=0)
+
+    def get_menu_by_parent_id(self, enterprise_id, parent_id):
+        return Menus.objects.filter(eid=enterprise_id, parent_id=parent_id)
+
+    def add_menu(self, **data):
+        return Menus.objects.create(**data)
+
+    def update_menu(self, eid, id, **data):
+        return Menus.objects.filter(eid=eid, id=id).update(**data)
+
+    def delete_top_menu(self, eid, id):
+        return Menus.objects.filter(eid=eid, id=id).delete()
+
+    def delete_children_menu(self, eid, id):
+        return Menus.objects.filter(eid=eid, parent_id=id).delete()
 
     def get_enterprise_services(self, enterprise_id):
         tenant_ids = TenantRegionInfo.objects.filter(enterprise_id=enterprise_id).values_list("tenant_id", flat=True)
