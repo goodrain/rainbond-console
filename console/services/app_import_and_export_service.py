@@ -203,9 +203,10 @@ class AppExportService(object):
         result = {
             "rainbond_app": rainbond_app_init_data,
             "docker_compose": docker_compose_init_data,
-            "helm_chart": helm_chart_init_data
         }
         tmpl = json.loads(app_version.app_template)
+        if tmpl.get("governance_mode", "") == "KUBERNETES_NATIVE_SERVICE":
+            result["helm_chart"] = helm_chart_init_data
         for component in tmpl.get("apps"):
             if component.get("service_source") == "source_code":
                 result["slug"] = slug_init_data

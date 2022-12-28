@@ -340,5 +340,150 @@ class EnterpriseServices(object):
         page_alarms = [alert for alert in alerts if alert["labels"].get("PageAlarm") == "true"]
         return page_alarms
 
+    def get_rbdcomponents(self, region_name):
+        res, body = region_api.get_rainbond_components(region_name)
+        components = body["list"]
+
+        component_list = []
+        for component in components:
+            component_info = {}
+            pod_list = []
+            component_info["name"] = component["name"]
+            component_info["run_pods"] = component["run_pods"]
+            component_info["all_pods"] = component["all_pods"]
+            if component["run_pods"] == component["all_pods"]:
+                component_info["status"] = "Running"
+            else:
+                component_info["status"] = "Abnormal"
+            pod_succeed_num = 0
+            for pod in component["pods"]:
+                pod_info = {}
+                pod_name = pod["metadata"]["name"]
+                pod_status = pod["status"]["phase"]
+                pod_info["pod_name"] = pod_name
+                pod_info["create_time"] = pod["metadata"]["creationTimestamp"]
+                pod_info["status"] = pod_status
+                container_status = pod["status"]["containerStatuses"]
+                pod_info["pod_ip"] = pod["status"]["podIP"]
+                pod_info["all_container"] = len(container_status)
+                run_container = 0
+                restart_count = 0
+                for ctr_status in container_status:
+                    restart_count += ctr_status["restartCount"]
+                    state = ctr_status["state"]
+                    if "running" in state.keys():
+                        run_container += 1
+                pod_info["run_container"] = run_container
+                pod_info["restart_count"] = restart_count
+                if pod_status == "Succeeded":
+                    pod_succeed_num += 1
+                pod_list.append(pod_info)
+            if pod_succeed_num == component["all_pods"]:
+                component_info["status"] = "Completed"
+            component_info["pods"] = pod_list
+            component_list.append(component_info)
+        return component_list
+
+    def get_node_detail(self, region_name, node_name):
+        res, body = region_api.get_node_info(region_name, node_name)
+        node = body["bean"]
+        node_status = "NotReady"
+        res = {
+            "name": node["name"],
+            "ip": node["external_ip"] if node["external_ip"] else node["internal_ip"],
+            "container_runtime": node["container_run_time"],
+            "architecture": node["architecture"],
+            "roles": node["roles"],
+            "os_version": node["os_version"],
+            "unschedulable": node["unschedulable"],
+            "create_time": node["create_time"],
+            "kernel": node["kernel_version"],
+            "os_type": node["operating_system"],
+            "req_cpu": node["resource"]["req_cpu"],
+            "cap_cpu": node["resource"]["cap_cpu"],
+            "req_memory": node["resource"]["req_memory"] / 1000,
+            "cap_memory": node["resource"]["cap_memory"] / 1000,
+            "req_root_partition": node["resource"]["req_disk"] / 1024 / 1024 / 1024,
+            "cap_root_partition": node["resource"]["cap_disk"] / 1024 / 1024 / 1024,
+            "req_docker_partition": node["resource"]["cap_container_disk"],
+            "cap_docker_partition": node["resource"]["req_container_disk"]
+        }
+        for cond in node["conditions"]:
+            if cond["type"] == "Ready" and cond["status"] == "True":
+                node_status = "Ready"
+        if res["unschedulable"]:
+            node_status = node_status + ",SchedulingDisabled"
+        res["status"] = node_status
+        return res
+
+    def get_nodes(self, region_name):
+        res, body = region_api.get_cluster_nodes(region_name)
+        nodes = body["list"]
+        node_list = []
+        all_node_roles = []
+        cluster_role_count = {}
+        node_status = "NotReady"
+        for node in nodes:
+            for cond in node["conditions"]:
+                if cond["type"] == "Ready" and cond["status"] == "True":
+                    node_status = "Ready"
+            schedulable = node["unschedulable"]
+            if schedulable:
+                node_status = node_status + ",SchedulingDisabled"
+            node_list.append({
+                "name": node["name"],
+                "status": node_status,
+                "role": node["roles"],
+                "unschedulable": schedulable,
+                "req_cpu": node["resource"]["req_cpu"],
+                "cap_cpu": node["resource"]["cap_cpu"],
+                "req_memory": node["resource"]["req_memory"] / 1000,
+                "cap_memory": node["resource"]["cap_memory"] / 1000
+            })
+            all_node_roles += node["roles"]
+        for node_role in all_node_roles:
+            cluster_role_count[node_role] = all_node_roles.count(node_role)
+        return node_list, cluster_role_count
+
+    def get_enterprise_menus(self, enterprise_id):
+        top_menus = enterprise_repo.get_top_menu_by_eid(enterprise_id)
+        children_menus = enterprise_repo.get_children_menu_by_eid(enterprise_id)
+        menus_res = []
+        for top_menu in top_menus:
+            children = []
+            top_menus_dict = {}
+            top_menus_dict["id"] = top_menu.pk
+            top_menus_dict["title"] = top_menu.title
+            top_menus_dict["path"] = top_menu.path
+            top_menus_dict["iframe"] = top_menu.iframe
+            for children_menu in children_menus:
+                if children_menu.parent_id == top_menu.pk:
+                    children.append({
+                        "id": children_menu.pk,
+                        "title": children_menu.title,
+                        "path": children_menu.path,
+                        "iframe": children_menu.iframe,
+                        "parent_id": children_menu.parent_id
+                    })
+            if not children:
+                top_menus_dict["children"] = None
+            else:
+                top_menus_dict["children"] = children
+            menus_res.append(top_menus_dict)
+        return menus_res
+
+    def add_enterprise_menu(self, **data):
+        enterprise_repo.add_menu(**data)
+
+    def get_menus_by_parent_id(self, enterprise_id, parent_id):
+        return enterprise_repo.get_menu_by_parent_id(enterprise_id, parent_id)
+
+    def update_enterprise_menu(self, enterprise_id, id, **data):
+        enterprise_repo.update_menu(enterprise_id, id, **data)
+
+    def delete_enterprise_menu(self, enterprise_id, id):
+        enterprise_repo.delete_top_menu(enterprise_id, id)
+        enterprise_repo.delete_children_menu(enterprise_id, id)
+
 
 enterprise_services = EnterpriseServices()

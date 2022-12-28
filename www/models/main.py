@@ -1462,3 +1462,17 @@ class GatewayCustomConfiguration(BaseModel):
 
     rule_id = models.CharField(max_length=32, unique=True, help_text="规则id")
     value = models.TextField(help_text="配置value")
+
+
+class Menus(models.Model):
+    """菜单管理"""
+
+    class Meta:
+        db_table = "menus"
+
+    eid = models.CharField(max_length=32, null=True, blank=True, default='', help_text="企业id")
+    title = models.CharField(max_length=64, null=True, blank=True, default='', help_text="菜单标题")
+    path = models.TextField(help_text="菜单链接")
+    parent_id = models.IntegerField(default=0, help_text="父级id")
+    iframe = models.BooleanField(default=False, help_text="true:新开窗口; false:当前窗口")
+    sequence = models.IntegerField(default=0, help_text="")
