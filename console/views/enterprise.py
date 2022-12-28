@@ -746,67 +746,14 @@ class ServiceAlarm(EnterpriseAdminView):
 
 class GetNodes(EnterpriseAdminView):
     def get(self, request, region_name, *args, **kwargs):
-        res, body = region_api.get_cluster_nodes(region_name)
-        nodes = body["list"]
-        node_list = []
-        all_node_roles = []
-        cluster_role_count = {}
-        node_status = "NotReady"
-        for node in nodes:
-            for cond in node["conditions"]:
-                if cond["type"] == "Ready" and cond["status"] == "True":
-                    node_status = "Ready"
-            schedulable = node["unschedulable"]
-            if schedulable:
-                node_status = node_status + ",SchedulingDisabled"
-            node_list.append({
-                "name": node["name"],
-                "status": node_status,
-                "role": node["roles"],
-                "unschedulable": schedulable,
-                "req_cpu": node["resource"]["req_cpu"],
-                "cap_cpu": node["resource"]["cap_cpu"],
-                "req_memory": node["resource"]["req_memory"] / 1000,
-                "cap_memory": node["resource"]["cap_memory"] / 1000
-            })
-            all_node_roles += node["roles"]
-        for node_role in all_node_roles:
-            cluster_role_count[node_role] = all_node_roles.count(node_role)
-        result = general_message(200, "success", "获取成功", bean=cluster_role_count, list=node_list)
+        nodes, cluster_role_count = enterprise_services.get_nodes(region_name)
+        result = general_message(200, "success", "获取成功", bean=cluster_role_count, list=nodes)
         return Response(result, status=status.HTTP_200_OK)
 
 
 class GetNode(EnterpriseAdminView):
     def get(self, request, region_name, node_name, *args, **kwargs):
-        res, body = region_api.get_node_info(region_name, node_name)
-        node = body["bean"]
-        node_status = "NotReady"
-        res = {
-            "name": node["name"],
-            "ip": node["external_ip"] if node["external_ip"] else node["internal_ip"],
-            "container_runtime": node["container_run_time"],
-            "architecture": node["architecture"],
-            "roles": node["roles"],
-            "os_version": node["os_version"],
-            "unschedulable": node["unschedulable"],
-            "create_time": node["create_time"],
-            "kernel": node["kernel_version"],
-            "os_type": node["operating_system"],
-            "req_cpu": node["resource"]["req_cpu"],
-            "cap_cpu": node["resource"]["cap_cpu"],
-            "req_memory": node["resource"]["req_memory"] / 1000,
-            "cap_memory": node["resource"]["cap_memory"] / 1000,
-            "req_root_partition": node["resource"]["req_disk"] / 1024 / 1024 / 1024,
-            "cap_root_partition": node["resource"]["cap_disk"] / 1024 / 1024 / 1024,
-            "req_docker_partition": node["resource"]["cap_container_disk"],
-            "cap_docker_partition": node["resource"]["req_container_disk"]
-        }
-        for cond in node["conditions"]:
-            if cond["type"] == "Ready" and cond["status"] == "True":
-                node_status = "Ready"
-        if res["unschedulable"]:
-            node_status = node_status + ",SchedulingDisabled"
-        res["status"] = node_status
+        res = enterprise_services.get_node_detail(region_name, node_name)
         result = general_message(200, "success", "获取成功", bean=res)
         return Response(result, status=status.HTTP_200_OK)
 
@@ -850,47 +797,13 @@ class NodeTaintOperate(EnterpriseAdminView):
 
 class RainbondComponents(EnterpriseAdminView):
     def get(self, request, region_name, *args, **kwargs):
-        res, body = region_api.get_rainbond_components(region_name)
-        components = body["list"]
-
-        component_list = []
-        for component in components:
-            component_info = {}
-            pod_list = []
-            component_info["name"] = component["name"]
-            component_info["run_pods"] = component["run_pods"]
-            component_info["all_pods"] = component["all_pods"]
-            if component["run_pods"] == component["all_pods"]:
-                component_info["status"] = "Running"
-            else:
-                component_info["status"] = "Abnormal"
-            for pod in component["pods"]:
-                pod_info = {}
-                pod_name = pod["metadata"]["name"]
-                pod_info["pod_name"] = pod_name
-                pod_info["create_time"] = pod["metadata"]["creationTimestamp"]
-                pod_info["status"] = pod["status"]["phase"]
-                container_status = pod["status"]["containerStatuses"]
-                pod_info["pod_ip"] = pod["status"]["podIP"]
-                pod_info["all_container"] = len(container_status)
-                run_container = 0
-                restart_count = 0
-                for ctr_status in container_status:
-                    restart_count += ctr_status["restartCount"]
-                    state = ctr_status["state"]
-                    if "running" in state.keys():
-                        run_container += 1
-                pod_info["run_container"] = run_container
-                pod_info["restart_count"] = restart_count
-                pod_list.append(pod_info)
-            component_info["pods"] = pod_list
-            component_list.append(component_info)
+        component_list = enterprise_services.get_rbdcomponents(region_name)
         result = general_message(200, "success", "获取成功", list=component_list)
         return Response(result, status=status.HTTP_200_OK)
 
 
 class ContainerDisk(EnterpriseAdminView):
-    def get(self, request, region_name, node_name, *args, **kwargs):
+    def get(self, request, region_name, *args, **kwargs):
         container_runtime = request.GET.get("container_runtime", "")
         container = container_runtime.split(":")[0]
         res, body = region_api.get_container_disk(region_name, container)
@@ -898,7 +811,7 @@ class ContainerDisk(EnterpriseAdminView):
         res = {
             "path": container_disk["path"],
             "total": container_disk["total"] / 1024 / 1024 / 1024,
-            "used": container_disk["userd"] / 1024 / 1024 / 1024
+            "used": container_disk["used"] / 1024 / 1024 / 1024
         }
         result = general_message(200, "success", "获取成功", bean=res)
         return Response(result, status=status.HTTP_200_OK)
