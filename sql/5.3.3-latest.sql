@@ -107,7 +107,9 @@ ALTER TABLE tenant_service_delete ADD COLUMN exec_user varchar(128) DEFAULT '';
 ALTER TABLE tenant_service_delete ADD COLUMN app_name varchar(128) DEFAULT '';
 ALTER TABLE tenant_service_delete ADD COLUMN app_id  int DEFAULT 0;
 
--- 5.10.1 - 5.11 sql
+-- 5.10.1 - 5.11.0 sql
+
+ALTER TABLE tenant_services_port ADD name varchar(64) NULL;
 
 CREATE TABLE `menus` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
@@ -119,3 +121,4 @@ CREATE TABLE `menus` (
   `sequence` int(11) NULL,
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

@@ -115,6 +115,7 @@ class HelmAppService(object):
             if cv["port_management"]:
                 for port in cv["port_management"]:
                     port_management = {
+                        "name": port["name"],
                         "protocol": port["protocol"],
                         "tenant_id": tenant.tenant_id,
                         "port_alias": service_alias.upper() + str(port["port"]),
