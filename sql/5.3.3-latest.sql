@@ -106,3 +106,7 @@ ALTER TABLE tenant_service_delete ADD COLUMN job_strategy varchar(2047) DEFAULT 
 ALTER TABLE tenant_service_delete ADD COLUMN exec_user varchar(128) DEFAULT '';
 ALTER TABLE tenant_service_delete ADD COLUMN app_name varchar(128) DEFAULT '';
 ALTER TABLE tenant_service_delete ADD COLUMN app_id  int DEFAULT 0;
+
+-- 5.10.1 - 5.11.0 sql
+
+ALTER TABLE tenant_services_port ADD name varchar(64) NULL;
