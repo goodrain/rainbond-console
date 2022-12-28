@@ -445,5 +445,45 @@ class EnterpriseServices(object):
             cluster_role_count[node_role] = all_node_roles.count(node_role)
         return node_list, cluster_role_count
 
+    def get_enterprise_menus(self, enterprise_id):
+        top_menus = enterprise_repo.get_top_menu_by_eid(enterprise_id)
+        children_menus = enterprise_repo.get_children_menu_by_eid(enterprise_id)
+        menus_res = []
+        for top_menu in top_menus:
+            children = []
+            top_menus_dict = {}
+            top_menus_dict["id"] = top_menu.pk
+            top_menus_dict["title"] = top_menu.title
+            top_menus_dict["path"] = top_menu.path
+            top_menus_dict["iframe"] = top_menu.iframe
+            for children_menu in children_menus:
+                if children_menu.parent_id == top_menu.pk:
+                    children.append({
+                        "id": children_menu.pk,
+                        "title": children_menu.title,
+                        "path": children_menu.path,
+                        "iframe": children_menu.iframe,
+                        "parent_id": children_menu.parent_id
+                    })
+            if not children:
+                top_menus_dict["children"] = None
+            else:
+                top_menus_dict["children"] = children
+            menus_res.append(top_menus_dict)
+        return menus_res
+
+    def add_enterprise_menu(self, **data):
+        enterprise_repo.add_menu(**data)
+
+    def get_menus_by_parent_id(self, enterprise_id, parent_id):
+        return enterprise_repo.get_menu_by_parent_id(enterprise_id, parent_id)
+
+    def update_enterprise_menu(self, enterprise_id, id, **data):
+        enterprise_repo.update_menu(enterprise_id, id, **data)
+
+    def delete_enterprise_menu(self, enterprise_id, id):
+        enterprise_repo.delete_top_menu(enterprise_id, id)
+        enterprise_repo.delete_children_menu(enterprise_id, id)
+
 
 enterprise_services = EnterpriseServices()
