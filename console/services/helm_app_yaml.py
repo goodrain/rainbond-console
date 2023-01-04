@@ -281,7 +281,7 @@ class HelmAppService(object):
             if cmd_list[i] == "--repo" and i + 1 != len(cmd_list):
                 repo_url = cmd_list[i + 1]
                 repo_name = repo_url.split("/")[-1]
-                if repo_name == "":
+                if repo_name == "" or len(repo_name) > 32:
                     repo_name = "rainbond"
             if cmd_list[i] == "--username" and i + 1 != len(cmd_list):
                 username = cmd_list[i + 1]
