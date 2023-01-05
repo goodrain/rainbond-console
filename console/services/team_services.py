@@ -398,7 +398,7 @@ class TeamService(object):
             info["region_list"] = region_info_map
         service_reps = TenantServiceInfoRepository()
         service_count = service_reps.get_tenant_services_count(tenant.tenant_id)
-        app_count = group_repo.get_tenant_region_groups_count(tenant.tenant_id, info["region"])
+        app_count = group_repo.get_tenant_groups_count(tenant.tenant_id)
         info["app_count"] = app_count
         info["service_count"] = service_count
         return info
