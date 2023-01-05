@@ -323,14 +323,15 @@ class TeamNameModView(RegionTenantHeaderView):
               paramType: body
         """
         new_team_alias = request.data.get("new_team_alias", "")
+        new_logo = request.data.get("new_logo", "")
         if new_team_alias:
             try:
                 code = 200
-                team = team_services.update_tenant_alias(tenant_name=team_name, new_team_alias=new_team_alias)
-                result = general_message(code, "update success", "团队名修改成功", bean=team.to_dict())
+                team = team_services.update_tenant_info(tenant_name=team_name, new_team_alias=new_team_alias, new_logo=new_logo)
+                result = general_message(code, "update success", "团队信息修改成功", bean=team.to_dict())
             except Exception as e:
                 code = 500
-                result = general_message(code, "update failed", "团队名修改失败")
+                result = general_message(code, "update failed", "团队信息修改失败")
                 logger.exception(e)
         else:
             result = general_message(400, "failed", "修改的团队名不能为空")
