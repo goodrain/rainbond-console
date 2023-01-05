@@ -86,6 +86,9 @@ class GroupRepository(object):
     def get_tenant_region_groups_count(self, team_id, region):
         return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region).count()
 
+    def get_tenant_groups_count(self, team_id):
+        return ServiceGroup.objects.filter(tenant_id=team_id).count()
+
     def get_groups_by_tenant_ids(self, tenant_ids):
         return ServiceGroup.objects.filter(tenant_id__in=tenant_ids).order_by("-update_time", "-order_index")
 
