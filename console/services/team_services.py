@@ -87,9 +87,11 @@ class TeamService(object):
         user_list = team_repo.get_tenant_users_by_tenant_ID(tenant_ID=tenant.ID)
         return user_list
 
-    def update_tenant_alias(self, tenant_name, new_team_alias):
+    def update_tenant_info(self, tenant_name, new_team_alias, new_logo):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=True)
         tenant.tenant_alias = new_team_alias
+        if new_logo:
+            tenant.logo = new_logo
         tenant.save()
         return tenant
 
