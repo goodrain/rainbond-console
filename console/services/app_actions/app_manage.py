@@ -273,7 +273,7 @@ class AppManageService(AppManageBase):
             if body.get("image_info", None):
                 body["image_info"]["user"] = service_source.user_name
                 body["image_info"]["password"] = service_source.password
-        if service_source and service_source.extend_info:
+        if service_source and service_source.extend_info and kind == "build_from_market_image":
             extend_info = json.loads(service_source.extend_info)
             if service.is_slug():  # abandoned
                 body["slug_info"] = extend_info
