@@ -5,6 +5,7 @@ from django.db import transaction
 
 from .enum import ActionType
 from .new_app import NewApp
+from console.repositories.app import service_repo
 from .original_app import OriginalApp
 from .plugin import Plugin
 # repository
@@ -46,6 +47,13 @@ class MarketApp(object):
         self._sync_app_config_groups(self.new_app)
 
     def sync_new_app(self):
+        k8s_component_names = [component.component.k8s_component_name for component in self.new_app.new_components]
+        services = service_repo.get_service_by_tenant_and_k8s_component_name(self.new_app.tenant.tenant_id, k8s_component_names)
+        exist_k8s_component_name = {service.k8s_component_name: True for service in services}
+        for component in self.new_app.new_components:
+            if component.component and component.component.k8s_component_name != "":
+                if exist_k8s_component_name.get(component.component.k8s_component_name):
+                    component.component.k8s_component_name = component.component.service_alias
         self._sync_new_components()
         self._sync_app_config_groups(self.new_app)
         self._sync_app_k8s_resources(self.new_app)
