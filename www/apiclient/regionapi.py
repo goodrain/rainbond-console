@@ -2365,3 +2365,27 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url + "/v2/cluster/plugins"
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
+
+    def list_abilities(self, enterprise_id, region_name):
+        region_info = self.get_enterprise_region_info(enterprise_id, region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/abilities"
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
+        return res, body
+
+    def update_ability(self, enterprise_id, region_name, ability_id, body):
+        region_info = self.get_enterprise_region_info(enterprise_id, region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/abilities/{ability_id}".format(ability_id=ability_id)
+        res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name, timeout=10)
+        return res, body
+
+    def get_ability(self, enterprise_id, region_name, ability_id):
+        region_info = self.get_enterprise_region_info(enterprise_id, region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/abilities/{ability_id}".format(ability_id=ability_id)
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
+        return res, body
