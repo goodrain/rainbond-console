@@ -96,6 +96,7 @@ class GroupService(object):
             app_type=app_type,
             app_store_name=app_store_name,
             app_store_url=app_store_url,
+            governance_mode=GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name,
             app_template_name=app_template_name,
             version=version,
             logo=logo,
