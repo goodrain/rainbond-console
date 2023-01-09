@@ -2029,6 +2029,20 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         _, _ = self._get(url, self.default_headers, region=region_name)
 
+    def list_governance_mode(self, region_name, tenant_name):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/cluster/governance-mode"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body.get("list", None)
+
+    def create_governance_mode_cr(self, region_name, tenant_name, app_id, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/apps/{app_id}/governance-cr".format(tenant_name=tenant_name, app_id=app_id)
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(body))
+        return body.get("bean", None)
+
     def get_monitor_metrics(self, region_name, tenant, target, app_id, component_id):
         url, token = self.__get_region_access_info(tenant.tenant_name, region_name)
         url = url + "/v2/monitor/metrics?target={target}&tenant={tenant_id}&app={app_id}&component={component_id}".format(
