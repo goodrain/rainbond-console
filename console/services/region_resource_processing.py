@@ -234,7 +234,7 @@ class RegionResource(object):
                 port_alias=service.service_alias.upper().replace("-", "_") + str(port["port"]),
                 is_inner_service=False,
                 is_outer_service=False,
-                k8s_service_name=service.service_alias + "-" + str(port["port"]))
+                k8s_service_name=service.service_alias)
             port_data.append(service_port)
         if len(port_data):
             port_repo.bulk_create(port_data)

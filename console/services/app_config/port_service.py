@@ -67,19 +67,24 @@ class AppPortService(object):
                 raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式正确")
 
         # make a map of k8s services
-        new_k8s_services = {k8s_service.get("k8s_service_name"): k8s_service for k8s_service in k8s_services}
-        if len(new_k8s_services) != len(k8s_services):
-            raise ErrK8sServiceNameExists
+        new_k8s_services = dict()
+        for k8s_service in k8s_services:
+            k8s_service_name = k8s_service.get("k8s_service_name")
+            k8s_svc = new_k8s_services.get(k8s_service_name)
+            if k8s_svc:
+                if k8s_service["service_id"] != k8s_svc:
+                    raise ErrK8sServiceNameExists
+            else:
+                new_k8s_services[k8s_service.get("k8s_service_name")] = k8s_service["service_id"]
+
         ports = port_repo.list_by_k8s_service_names(tenant_id, k8s_service_names)
         for port in ports:
-            k8s_service = new_k8s_services.get(port.k8s_service_name)
-            if not k8s_service:
-                raise ErrK8sServiceNameExists
-            if port.service_id != k8s_service["service_id"] or port.container_port != k8s_service["port"]:
+            service_id = new_k8s_services.get(port.k8s_service_name)
+            if port.service_id != service_id:
                 raise ErrK8sServiceNameExists
 
     @staticmethod
-    def check_k8s_service_name(tenant_id, k8s_service_name, component_id="", container_port=None):
+    def check_k8s_service_name(tenant_id, k8s_service_name, component_id=""):
         if len(k8s_service_name) > 63:
             raise AbortRequest("k8s_service_name must be no more than 63 characters")
         if not re.fullmatch("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
@@ -88,9 +93,9 @@ class AppPortService(object):
         # make k8s_service_name unique
         try:
             port = port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
-            if not component_id or not container_port:
+            if not component_id:
                 raise ErrK8sServiceNameExists
-            if port.service_id != component_id or port.container_port != container_port:
+            if port.service_id != component_id:
                 raise ErrK8sServiceNameExists
         except TenantServicesPort.DoesNotExist:
             pass
@@ -116,7 +121,7 @@ class AppPortService(object):
                 port.k8s_service_name = k8s_service.get("k8s_service_name")
                 port.port_alias = k8s_service.get("port_alias")
             # create new port envs
-            if app.governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
+            if app.governance_mode != GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name:
                 attr_value = port.k8s_service_name
             else:
                 attr_value = "127.0.0.1"
@@ -190,9 +195,9 @@ class AppPortService(object):
                          is_outer_service=False,
                          k8s_service_name=None,
                          user_name=''):
-        k8s_service_name = k8s_service_name if k8s_service_name else service.service_alias + "-" + str(container_port)
+        k8s_service_name = k8s_service_name if k8s_service_name else service.service_alias
         try:
-            self.check_k8s_service_name(tenant.tenant_id, k8s_service_name)
+            self.check_k8s_service_name(tenant.tenant_id, k8s_service_name, service.service_id)
         except ErrK8sServiceNameExists:
             k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
         except AbortRequest:
@@ -214,7 +219,7 @@ class AppPortService(object):
         if is_inner_service:
             if not port_alias:
                 return 400, "端口别名不能为空", None
-            if app.governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
+            if app.governance_mode != GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name:
                 host_value = k8s_service_name
             else:
                 host_value = "127.0.0.1"
@@ -637,9 +642,8 @@ class AppPortService(object):
 
         # 添加环境变量
         app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
-        if app.governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
-            host_value = deal_port.k8s_service_name if deal_port.k8s_service_name else service.service_alias + "-" + str(
-                deal_port.container_port)
+        if app.governance_mode != GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name:
+            host_value = deal_port.k8s_service_name if deal_port.k8s_service_name else service.service_alias
         else:
             host_value = "127.0.0.1"
         code, msg, data = env_var_service.add_service_env_var(
@@ -711,7 +715,7 @@ class AppPortService(object):
             new_attr_name = new_port_alias + env.attr_name.replace(old_port_alias, '')
             env.attr_name = new_attr_name
             if env.attr_name.endswith("HOST"):
-                if app.governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
+                if app.governance_mode != GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name:
                     env.attr_value = k8s_service_name
                 else:
                     env.attr_value = "127.0.0.1"
@@ -736,7 +740,7 @@ class AppPortService(object):
             env.save()
 
         if k8s_service_name:
-            self.check_k8s_service_name(tenant.tenant_id, k8s_service_name, deal_port.service_id, deal_port.container_port)
+            self.check_k8s_service_name(tenant.tenant_id, k8s_service_name, deal_port.service_id)
             deal_port.k8s_service_name = k8s_service_name
 
         if service.create_status == "complete":
