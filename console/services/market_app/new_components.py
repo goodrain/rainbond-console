@@ -37,6 +37,7 @@ from console.constants import AppConstants
 from console.constants import DomainType
 # util
 from www.utils.crypt import make_uuid
+from ...enum.app import GovernanceModeEnum
 
 logger = logging.getLogger("default")
 baseService = BaseTenantService()
@@ -103,7 +104,7 @@ class NewComponents(object):
             # envs
             inner_envs = component_tmpl.get("service_env_map_list")
             outer_envs = component_tmpl.get("service_connect_info_map_list")
-            envs = self._template_to_envs(cpt, inner_envs, outer_envs)
+            envs = self._template_to_envs(cpt, inner_envs, outer_envs, ports)
             # volumes
             volumes, config_files = self._template_to_volumes(cpt, component_tmpl.get("service_volume_map_list"))
             # probe
@@ -240,10 +241,11 @@ class NewComponents(object):
             if tmpl.get("service_share_uuid", None) else tmpl.get("service_key"),
         )
 
-    def _template_to_envs(self, component, inner_envs, outer_envs):
+    def _template_to_envs(self, component, inner_envs, outer_envs, ports):
         if not inner_envs and not outer_envs:
             return []
         envs = []
+        port_map = {port.port_alias + "_HOST": port.k8s_service_name for port in ports}
         for env in inner_envs:
             if not env.get("attr_name"):
                 continue
@@ -263,16 +265,20 @@ class NewComponents(object):
             container_port = env.get("container_port", 0)
             if env.get("attr_value") == "**None**":
                 env["attr_value"] = make_uuid()[:8]
-            envs.append(
-                TenantServiceEnvVar(
-                    tenant_id=component.tenant_id,
-                    service_id=component.service_id,
-                    container_port=container_port,
-                    name=env.get("name"),
-                    attr_name=env.get("attr_name"),
-                    attr_value=env.get("attr_value"),
-                    is_change=env.get("is_change", True),
-                    scope="outer"))
+            service_env = TenantServiceEnvVar(
+                tenant_id=component.tenant_id,
+                service_id=component.service_id,
+                container_port=container_port,
+                name=env.get("name"),
+                attr_name=env.get("attr_name"),
+                attr_value=env.get("attr_value"),
+                is_change=env.get("is_change", True),
+                scope="outer")
+            if self.original_app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name \
+                    and service_env.is_host_env() \
+                    and service_env.attr_value == "127.0.0.1":
+                service_env.attr_value = port_map.get(service_env.attr_name, "")
+            envs.append(service_env)
         # port envs
         return envs
 
