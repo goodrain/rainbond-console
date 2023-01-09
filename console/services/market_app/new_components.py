@@ -288,8 +288,7 @@ class NewComponents(object):
         new_ports = []
         for port in ports:
             component_port = port["container_port"]
-            k8s_service_name = port.get("k8s_service_name") if port.get(
-                "k8s_service_name") else component.service_alias + "-" + str(component_port)
+            k8s_service_name = port.get("k8s_service_name") if port.get("k8s_service_name") else component.service_alias
             try:
                 port_service.check_k8s_service_name(component.tenant_id, k8s_service_name)
             except ErrK8sServiceNameExists:

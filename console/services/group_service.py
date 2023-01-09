@@ -642,7 +642,7 @@ class GroupService(object):
             port = ports.get(env.service_id + str(env.container_port))
             if not port:
                 continue
-            if governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
+            if governance_mode != GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name:
                 env.attr_value = port.k8s_service_name if port.k8s_service_name else cpt.service_alias + "-" + str(
                     port.container_port)
             else:

@@ -122,7 +122,7 @@ class HelmAppService(object):
                         "container_port": port["port"],
                         "is_inner_service": False,
                         "is_outer_service": False,
-                        "k8s_service_name": service_alias + "-" + str(port["port"])
+                        "k8s_service_name": service_alias
                     }
                     if port["protocol"] == "http":
                         port_management["is_outer_service"] = True
