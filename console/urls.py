@@ -76,7 +76,7 @@ from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView
                                  TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
                                  ApplicationInstallView, ApplicationPodView, ApplicationHelmAppComponentView,
                                  ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView,
-                                 TenantAppUpgradableNumView, AppGovernanceModeCheckView, ApplicationVolumesView)
+                                 TenantAppUpgradableNumView, AppGovernanceModeCheckView, ApplicationVolumesView, AppGovernanceModeCRView)
 from console.views.helm_app import HelmAppView, HelmRepo, HelmCenterApp, HelmChart, CommandInstallHelm
 from console.views.jwt_token_view import JWTTokenView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
@@ -316,6 +316,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/upgradable_num$', TenantAppUpgradableNumView.as_view(),
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode$', AppGovernanceModeView.as_view(),
+        perms.TenantGroupOperationView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode-cr$', AppGovernanceModeCRView.as_view(),
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode/check', AppGovernanceModeCheckView.as_view(),
         perms.TenantGroupOperationView),

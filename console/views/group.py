@@ -289,16 +289,41 @@ class AppGovernanceModeView(ApplicationView):
 
     def put(self, request, app_id, *args, **kwargs):
         governance_mode = parse_item(request, "governance_mode", required=True)
-        action = parse_item(request, "action", required=False)
+        action = parse_item(request, "action")
         # TODO: validate governance_mode
         # if governance_mode not in GovernanceModeEnum.names():
         #     raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.names()))
         bean = {"governance_mode": governance_mode}
-        governance_cr = group_service.update_governance_mode(self.tenant, self.region_name, app_id, governance_mode)
+        governance_cr = group_service.update_governance_mode(self.tenant, self.region_name, app_id, governance_mode, action)
         if governance_cr:
             bean["governance_cr"] = governance_cr
 
         result = general_message(200, "success", "更新成功", bean=bean)
+        return Response(result)
+
+
+class AppGovernanceModeCRView(ApplicationView):
+    def post(self, request, app_id, *args, **kwargs):
+        governance_cr = request.data.get("governance_cr", {})
+        # k8s_resource_service.create_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, self.app_id,
+        #                                          resource_yaml,
+        #                                          self.region_name)
+        return Response(general_message(200, "success", "创建成功", bean=governance_cr))
+
+    def put(self, request, app_id, *args, **kwargs):
+        governance_cr = request.data.get("governance_cr", {})
+        # k8s_resource_service.create_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, self.app_id,
+        #                                          resource_yaml,
+        #                                          self.region_name)
+        result = general_message(200, "success", "更新成功", bean=governance_cr)
+        return Response(result)
+
+    def delete(self, request, app_id, *args, **kwargs):
+        # governance_cr = request.data.get("governance_cr", {})
+        # k8s_resource_service.delete_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, self.app_id,
+        #                                          resource_yaml,
+        #                                          self.region_name)
+        result = general_message(200, "success", "删除成功")
         return Response(result)
 
 
