@@ -658,7 +658,9 @@ class GroupService(object):
             governance_cr = region_api.create_governance_mode_cr(region_name, tenant.tenant_name, region_app_id,
                                                                  {"provisioner": governance_mode})
             return governance_cr
-        # if action == "update":
+        if action == "update":
+            return "apiVersion:\n- test: test"
+
 
     def create_governance_mode_cr(self, enterprise_id, tenant_name, app_id, resource_yaml, region_name):
         namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
