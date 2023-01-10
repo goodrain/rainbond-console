@@ -659,14 +659,18 @@ class GroupService(object):
                                                                  {"provisioner": governance_mode})
             return governance_cr
         if action == "update":
-            return "apiVersion:\n- test: test"
+            governance_cr = region_api.update_governance_mode_cr(region_name, tenant.tenant_name, region_app_id,
+                                                                 {"provisioner": governance_mode})
+            return governance_cr
+        if action == "delete":
+            governance_cr = region_api.delete_governance_mode_cr(region_name, tenant.tenant_name, region_app_id)
+            return governance_cr
 
-
-    def create_governance_mode_cr(self, enterprise_id, tenant_name, app_id, resource_yaml, region_name):
-        namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
-        data = {"app_id": region_app_id, "resource_yaml": resource_yaml, "namespace": namespace}
-        res, body = region_api.create_app_resource(enterprise_id, region_name, data)
-        region_resource.create_k8s_resources(body["list"], app_id)
+    # def create_governance_mode_cr(self, enterprise_id, tenant_name, app_id, resource_yaml, region_name):
+    #     namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
+    #     data = {"app_id": region_app_id, "resource_yaml": resource_yaml, "namespace": namespace}
+    #     res, body = region_api.create_app_resource(enterprise_id, region_name, data)
+    #     region_resource.create_k8s_resources(body["list"], app_id)
 
     @staticmethod
     def sync_envs(tenant_name, region_name, region_app_id, components, envs):

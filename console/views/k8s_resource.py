@@ -13,7 +13,8 @@ class AppK8ResourceView(ApplicationView):
         state = k8s_resource_service.get_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, str(self.app_id),
                                                       self.region_name, name, resource_id)
 
-        return Response(general_message(200, "success", "查询成功", list=state))
+        # TODO content 调整回来
+        return Response(general_message(200, "success", "查询成功", list={"content": state}))
 
     def put(self, request, name, *args, **kwargs):
         resource_yaml = request.data.get("resource_yaml", {})

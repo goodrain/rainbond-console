@@ -19,7 +19,7 @@ class RainbondPluginService(object):
         team_map, region_apps_map = {}, {}
 
         _, body = region_api.list_plugins(enterprise_id, region_name)
-        plugins = body.get("list", [])
+        plugins = body["list"] if body.get("list") else []
         for plugin in plugins:
             region_app_ids.append(plugin["region_app_id"])
             namespaces.append(plugin["namespace"])
