@@ -1073,7 +1073,7 @@ class ServiceGroup(BaseModel):
         max_length=255,
         null=True,
         blank=True,
-        default=GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name,
+        default=GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name,
         help_text="governance mode")
     create_time = models.DateTimeField(help_text="创建时间")
     update_time = models.DateTimeField(help_text="更新时间")
