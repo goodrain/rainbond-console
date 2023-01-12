@@ -72,11 +72,11 @@ from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, Ent
                                              EnterpriseVisualMonitorView, EnterpriseAlertsView)
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
-from console.views.group import (AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
-                                 TenantGroupCommonOperationView, TenantGroupOperationView, TenantGroupView,
-                                 ApplicationInstallView, ApplicationPodView, ApplicationHelmAppComponentView,
-                                 ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView,
-                                 TenantAppUpgradableNumView, AppGovernanceModeCheckView, ApplicationVolumesView, AppGovernanceModeCRView)
+from console.views.group import (
+    AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView, TenantGroupCommonOperationView,
+    TenantGroupOperationView, TenantGroupView, ApplicationInstallView, ApplicationPodView, ApplicationHelmAppComponentView,
+    ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView, TenantAppUpgradableNumView,
+    AppGovernanceModeCheckView, ApplicationVolumesView, AppGovernanceModeCRView)
 from console.views.helm_app import HelmAppView, HelmRepo, HelmCenterApp, HelmChart, CommandInstallHelm
 from console.views.jwt_token_view import JWTTokenView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
