@@ -80,4 +80,5 @@ class ComponentK8sResourceService(object):
         return tenant.namespace, region_app_id
 
 
+
 k8s_resource_service = ComponentK8sResourceService()
