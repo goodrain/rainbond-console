@@ -100,4 +100,5 @@ class ComponentK8sResourceService(object):
     def delete_governance_resource(self, app):
         k8s_resources_repo.delete_by_name(app.app_id, app.k8s_app)
 
+
 k8s_resource_service = ComponentK8sResourceService()

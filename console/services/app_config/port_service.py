@@ -91,14 +91,12 @@ class AppPortService(object):
             raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式正确")
 
         # make k8s_service_name unique
-        try:
-            port = port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
+        port = port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
+        if port:
             if not component_id:
                 raise ErrK8sServiceNameExists
             if port.service_id != component_id:
                 raise ErrK8sServiceNameExists
-        except TenantServicesPort.DoesNotExist:
-            pass
 
     @transaction.atomic
     def update_by_k8s_services(self, tenant, region_name, app: ServiceGroup, k8s_services):

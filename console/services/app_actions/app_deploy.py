@@ -29,7 +29,6 @@ from console.services.plugin import app_plugin_service
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantServicesPort
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 
@@ -596,13 +595,12 @@ class MarketService(object):
     def update_port_data(self, port):
         container_port = int(port["container_port"])
         port_alias = self.service.service_alias.upper()
-        k8s_service_name = port.get("k8s_service_name", self.service.service_alias + "-" + str(container_port))
+        k8s_service_name = port.get("k8s_service_name", self.service.service_alias)
         if k8s_service_name:
-            try:
-                port_repo.get_by_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
-                k8s_service_name += "-" + make_uuid()[-4:]
-            except TenantServicesPort.DoesNotExist:
-                pass
+            port = port_repo.get_by_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
+            if port and self.service.service_id:
+                k8s_service_name = k8s_service_name + "-" + make_uuid(
+                )[-4:] if self.service.service_id != port.service_id else k8s_service_name
             port["k8s_service_name"] = k8s_service_name
         port["tenant_id"] = self.tenant.tenant_id
         port["service_id"] = self.service.service_id
