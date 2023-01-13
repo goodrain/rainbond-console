@@ -79,6 +79,27 @@ class ComponentK8sResourceService(object):
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         return tenant.namespace, region_app_id
 
+    def create_governance_resource(self, app, resource_yaml):
+        # state	CreateSuccess = 1
+        data = {
+            "app_id": app.app_id,
+            "name": app.k8s_app,
+            "kind": "ServiceMesh",
+            "content": resource_yaml,
+            "state": 1,
+        }
+        k8s_resources_repo.create(**data)
+
+    def update_governance_resource(self, app, resource_yaml):
+        # state	UpdateSuccess = 2
+        data = {
+            "content": resource_yaml,
+            "state": 2,
+        }
+        k8s_resources_repo.update(app.app_id, app.k8s_app, "ServiceMesh", **data)
+
+    def delete_governance_resource(self, app):
+        k8s_resources_repo.delete_by_name(app.app_id, app.k8s_app)
 
 
 k8s_resource_service = ComponentK8sResourceService()
