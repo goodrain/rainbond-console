@@ -230,7 +230,10 @@ class TenantServicePortRepository(object):
     def get_by_k8s_service_name(tenant_id, k8s_service_name):
         if not k8s_service_name:
             return
-        return TenantServicesPort.objects.get(tenant_id=tenant_id, k8s_service_name=k8s_service_name)
+        ports = TenantServicesPort.objects.filter(tenant_id=tenant_id, k8s_service_name=k8s_service_name)
+        if ports:
+            return ports[0]
+        return
 
     @staticmethod
     def check_k8s_service_name(tenant_id, service_id, port, k8s_service_names):

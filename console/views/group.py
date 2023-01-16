@@ -15,6 +15,7 @@ from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
 from console.services.application import application_service
 from console.services.market_app_service import market_app_service
+from console.services.k8s_resource import k8s_resource_service
 from console.utils.reqparse import parse_item
 from console.utils.validation import is_qualified_name
 from console.views.base import (ApplicationView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView)
@@ -282,13 +283,37 @@ class GroupStatusView(RegionTenantHeaderView):
 
 
 class AppGovernanceModeView(ApplicationView):
+    def get(self, *args, **kwargs):
+        data = region_api.list_governance_mode(self.response_region, self.tenant_name)
+        result = general_message(200, "success", "获取成功", list=data)
+        return Response(result, status=result["code"])
+
     def put(self, request, app_id, *args, **kwargs):
         governance_mode = parse_item(request, "governance_mode", required=True)
-        if governance_mode not in GovernanceModeEnum.names():
-            raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.names()))
+        action = parse_item(request, "action")
+        bean = {"governance_mode": governance_mode}
+        governance_cr = group_service.update_governance_mode(self.tenant, self.region_name, app_id, governance_mode, action)
+        if governance_cr:
+            bean["governance_cr"] = governance_cr
+        result = general_message(200, "success", "更新成功", bean=bean)
+        return Response(result)
 
-        group_service.update_governance_mode(self.tenant, self.region_name, app_id, governance_mode)
-        result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
+
+class AppGovernanceModeCRView(ApplicationView):
+    def post(self, request, *args, **kwargs):
+        governance_cr = request.data.get("governance_cr", {})
+        k8s_resource_service.create_governance_resource(self.app, governance_cr)
+        return Response(general_message(200, "success", "创建成功", bean=governance_cr))
+
+    def put(self, request, *args, **kwargs):
+        governance_cr = request.data.get("governance_cr", {})
+        k8s_resource_service.update_governance_resource(self.app, governance_cr)
+        result = general_message(200, "success", "更新成功", bean=governance_cr)
+        return Response(result)
+
+    def delete(self, request, *args, **kwargs):
+        k8s_resource_service.delete_governance_resource(self.app)
+        result = general_message(200, "success", "删除成功")
         return Response(result)
 
 

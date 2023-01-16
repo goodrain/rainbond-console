@@ -114,7 +114,7 @@ class TenantServiceInfoRepository(object):
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, k8s_component_name__in=k8s_component_names)
         if services:
             return services
-        return None
+        return []
 
     def get_services_by_tenant_id(self, tenant_id):
         services = TenantServiceInfo.objects.filter(tenant_id=tenant_id).count()

@@ -91,14 +91,12 @@ class AppPortService(object):
             raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式正确")
 
         # make k8s_service_name unique
-        try:
-            port = port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
+        port = port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
+        if port:
             if not component_id:
                 raise ErrK8sServiceNameExists
             if port.service_id != component_id:
                 raise ErrK8sServiceNameExists
-        except TenantServicesPort.DoesNotExist:
-            pass
 
     @transaction.atomic
     def update_by_k8s_services(self, tenant, region_name, app: ServiceGroup, k8s_services):
@@ -699,7 +697,7 @@ class AppPortService(object):
             body = deal_port.to_dict()
             body["protocol"] = protocol
             body["operator"] = user_name
-            self.update_service_port(tenant, service.service_region, service.service_alias, body)
+            self.update_service_port(tenant, service.service_region, service.service_alias, [body])
         deal_port.save()
 
         return 200, "success"
@@ -709,11 +707,15 @@ class AppPortService(object):
 
         old_port_alias = deal_port.port_alias
         deal_port.port_alias = new_port_alias
-        envs = env_var_service.get_env_by_container_port(tenant, service, deal_port.container_port)
+        envs = env_var_service.get_env_var(service)
+        ports = port_repo.get_service_ports(tenant.tenant_id, service.service_id)
         for env in envs:
+            if env.container_port == 0:
+                continue
             old_env_attr_name = env.attr_name
             new_attr_name = new_port_alias + env.attr_name.replace(old_port_alias, '')
-            env.attr_name = new_attr_name
+            if env.container_port == deal_port.container_port:
+                env.attr_name = new_attr_name
             if env.attr_name.endswith("HOST"):
                 if app.governance_mode != GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name:
                     env.attr_value = k8s_service_name
@@ -741,20 +743,19 @@ class AppPortService(object):
 
         if k8s_service_name:
             self.check_k8s_service_name(tenant.tenant_id, k8s_service_name, deal_port.service_id)
-            deal_port.k8s_service_name = k8s_service_name
-
+            for port in ports:
+                if port.container_port == deal_port.container_port:
+                    port.port_alias = new_port_alias
+                port.k8s_service_name = k8s_service_name
+        ports_dict = [port.to_dict() for port in ports]
         if service.create_status == "complete":
-            body = deal_port.to_dict()
-            body["port_alias"] = new_port_alias
-            body["k8s_service_name"] = k8s_service_name
-            self.update_service_port(tenant, service.service_region, service.service_alias, body, user_name)
-
-        deal_port.save()
+            self.update_service_port(tenant, service.service_region, service.service_alias, ports_dict, user_name)
+        port_repo.bulk_create_or_update(ports)
 
     @staticmethod
     def update_service_port(tenant, region_name, service_alias, body, user_name=''):
         region_api.update_service_port(region_name, tenant.tenant_name, service_alias, {
-            "port": [body],
+            "port": body,
             "enterprise_id": tenant.enterprise_id,
             "operator": user_name
         })

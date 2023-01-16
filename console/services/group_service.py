@@ -622,7 +622,7 @@ class GroupService(object):
             group_repo.update_group_time(sg.ID)
 
     @transaction.atomic
-    def update_governance_mode(self, tenant, region_name, app_id, governance_mode):
+    def update_governance_mode(self, tenant, region_name, app_id, governance_mode, action=None):
         # update the value of host env. eg. MYSQL_HOST
         component_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant.tenant_id, region_name, app_id)
 
@@ -653,6 +653,18 @@ class GroupService(object):
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         self.sync_envs(tenant.tenant_name, region_name, region_app_id, components.values(), envs)
         region_api.update_app(region_name, tenant.tenant_name, region_app_id, {"governance_mode": governance_mode})
+        # If the governance pattern is not the default governance pattern, you need to create a CustomResource
+        if action == "create":
+            governance_cr = region_api.create_governance_mode_cr(region_name, tenant.tenant_name, region_app_id,
+                                                                 {"provisioner": governance_mode})
+            return governance_cr
+        if action == "update":
+            governance_cr = region_api.update_governance_mode_cr(region_name, tenant.tenant_name, region_app_id,
+                                                                 {"provisioner": governance_mode})
+            return governance_cr
+        if action == "delete":
+            governance_cr = region_api.delete_governance_mode_cr(region_name, tenant.tenant_name, region_app_id)
+            return governance_cr
 
     @staticmethod
     def sync_envs(tenant_name, region_name, region_app_id, components, envs):
