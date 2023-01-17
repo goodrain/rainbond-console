@@ -49,7 +49,7 @@ from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 # model
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceEnvVar, TenantServiceInfo,
-                             TenantServicesPort, Users, ServiceGroup)
+                             TenantServicesPort, Users, ServiceGroup, Tenants)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -76,6 +76,7 @@ class MarketAppService(object):
         app = group_repo.get_group_by_id(app_id)
         if dry_run:
             app = ServiceGroup.objects.first()
+            tenant = Tenants.objects.get(tenant_id=app.tenant_id)
             app.governance_mode = "KUBERNETES_NATIVE_SERVICE"
         if not app:
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)

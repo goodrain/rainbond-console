@@ -118,7 +118,7 @@ class AppUpgrade(MarketApp):
         super(AppUpgrade, self).__init__(self.original_app, self.new_app)
 
     def preinstall(self):
-        self.install_plugins()
+        self.pre_install_plugins()
         self.pre_sync_new_app()
         self._install_predeploy()
 
@@ -220,6 +220,13 @@ class AppUpgrade(MarketApp):
             })
 
         return result
+
+    @transaction.atomic
+    def pre_install_plugins(self):
+        # sync plugins
+        self._sync_plugins(self.new_app.new_plugins)
+        # deploy plugins
+        self._deploy_plugins(self.new_app.new_plugins)
 
     @transaction.atomic
     def install_plugins(self):
