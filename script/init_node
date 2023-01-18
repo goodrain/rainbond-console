@@ -45,7 +45,7 @@ function add_user() {
         echo -e "${GREEN}[INFO] User $user already exists ${NC}"
     else
         case $os_type in
-        centos|redhat|euleros|fusionos)
+        centos|redhat|euleros|fusionos|anolis)
             add_user_in_redhat "$user" "$pass"
             echo -e "${GREEN}[INFO] User $user has been created ${NC}"
         ;;
@@ -123,7 +123,7 @@ function time_sync() {
 
     echo -e "${GREEN}[INFO] Start time synchronization ${NC}"
     case $os_type in
-    centos|redhat|euleros|fusionos)
+    centos|redhat|euleros|fusionos|anolis)
         if [ "$os_version_id" == "8" ]; then
             echo -e "${YELLOW}[WARN] $os_type $os_version_id please manually synchronize the time ${NC}"
         else
@@ -168,7 +168,7 @@ function check_resource(){
 function check_os() {
     os_version=$(cat /etc/os-release | grep VERSION_ID|awk -F= '{print $2}'|tr -d [:punct:])
     case $os_type in
-    centos|redhat|euleros|fusionos)
+    centos|redhat|euleros|fusionos|anolis)
     if [ "$os_version" -lt "7" ]; then
         echo -e "${RED}[ERROR] Centos or redhat version must be higher than 7.0 ${NC}" && exit 1
     fi
@@ -198,7 +198,7 @@ function check_kernel() {
 
 function install_nfscli(){
     case $os_type in
-    centos|redhat|euleros|fusionos)
+    centos|redhat|euleros|fusionos|anolis)
         sudo yum list installed nfs-utils | grep nfs || sudo yum install -y nfs-utils
         echo -e "${GREEN}[INFO] nfs-utils has been installed ${NC}"
     ;;
