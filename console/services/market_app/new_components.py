@@ -286,15 +286,17 @@ class NewComponents(object):
         if not ports:
             return []
         new_ports = []
+        k8s_service_name = ""
         for port in ports:
             component_port = port["container_port"]
-            k8s_service_name = port.get("k8s_service_name") if port.get("k8s_service_name") else component.service_alias
-            try:
-                port_service.check_k8s_service_name(component.tenant_id, k8s_service_name)
-            except ErrK8sServiceNameExists:
-                k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
-            except AbortRequest:
-                k8s_service_name = component.service_alias + "-" + str(component_port)
+            if not k8s_service_name:
+                k8s_service_name = port.get("k8s_service_name") if port.get("k8s_service_name") else component.service_alias
+                try:
+                    port_service.check_k8s_service_name(component.tenant_id, k8s_service_name)
+                except ErrK8sServiceNameExists:
+                    k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
+                except AbortRequest:
+                    k8s_service_name = component.service_alias + "-" + str(component_port)
             port = TenantServicesPort(
                 tenant_id=component.tenant_id,
                 service_id=component.service_id,
