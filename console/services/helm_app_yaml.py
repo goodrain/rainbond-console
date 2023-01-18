@@ -115,13 +115,14 @@ class HelmAppService(object):
             if cv["port_management"]:
                 for port in cv["port_management"]:
                     port_management = {
+                        "name": port["name"],
                         "protocol": port["protocol"],
                         "tenant_id": tenant.tenant_id,
                         "port_alias": service_alias.upper() + str(port["port"]),
                         "container_port": port["port"],
                         "is_inner_service": False,
                         "is_outer_service": False,
-                        "k8s_service_name": service_alias + "-" + str(port["port"])
+                        "k8s_service_name": service_alias
                     }
                     if port["protocol"] == "http":
                         port_management["is_outer_service"] = True
@@ -280,6 +281,8 @@ class HelmAppService(object):
             if cmd_list[i] == "--repo" and i + 1 != len(cmd_list):
                 repo_url = cmd_list[i + 1]
                 repo_name = repo_url.split("/")[-1]
+                if repo_name == "" or len(repo_name) > 32:
+                    repo_name = "rainbond"
             if cmd_list[i] == "--username" and i + 1 != len(cmd_list):
                 username = cmd_list[i + 1]
             if cmd_list[i] == "--version" and i + 1 != len(cmd_list):

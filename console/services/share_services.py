@@ -299,6 +299,7 @@ class ShareService(object):
                 data['memory'] = service.min_memory - service.min_memory % 32
                 data['service_type'] = service.service_type
                 data['service_source'] = service.service_source
+                data['k8s_component_name'] = service.k8s_component_name
                 data['deploy_version'] = deploy_versions[data['service_id']] if deploy_versions else service.deploy_version
                 data['image'] = service.image
                 data['service_alias'] = service.service_alias

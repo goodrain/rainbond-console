@@ -19,5 +19,9 @@ class ServiceGroupRelationRepositry(object):
     def get_components_by_app_id(app_id):
         return ServiceGroupRelation.objects.filter(group_id=app_id)
 
+    @staticmethod
+    def list_by_tenant_ids(tenant_ids):
+        return ServiceGroupRelation.objects.filter(tenant_id__in=tenant_ids)
+
 
 service_group_relation_repo = ServiceGroupRelationRepositry()

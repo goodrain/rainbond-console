@@ -999,6 +999,7 @@ class TenantServicesPort(BaseModel):
     is_inner_service = models.BooleanField(default=False, blank=True, help_text="是否内部组件；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text="是否外部组件；0:不绑定；1:绑定")
     k8s_service_name = models.CharField(max_length=63, blank=True, help_text="the name of kubernetes service")
+    name = models.CharField(max_length=64, blank=True, null=True, help_text="端口名称")
 
 
 class TenantServiceMountRelation(BaseModel):
@@ -1072,7 +1073,7 @@ class ServiceGroup(BaseModel):
         max_length=255,
         null=True,
         blank=True,
-        default=GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name,
+        default=GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name,
         help_text="governance mode")
     create_time = models.DateTimeField(help_text="创建时间")
     update_time = models.DateTimeField(help_text="更新时间")
@@ -1461,3 +1462,17 @@ class GatewayCustomConfiguration(BaseModel):
 
     rule_id = models.CharField(max_length=32, unique=True, help_text="规则id")
     value = models.TextField(help_text="配置value")
+
+
+class Menus(models.Model):
+    """菜单管理"""
+
+    class Meta:
+        db_table = "menus"
+
+    eid = models.CharField(max_length=32, null=True, blank=True, default='', help_text="企业id")
+    title = models.CharField(max_length=64, null=True, blank=True, default='', help_text="菜单标题")
+    path = models.TextField(help_text="菜单链接")
+    parent_id = models.IntegerField(default=0, help_text="父级id")
+    iframe = models.BooleanField(default=False, help_text="true:新开窗口; false:当前窗口")
+    sequence = models.IntegerField(default=0, help_text="")

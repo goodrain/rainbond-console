@@ -503,25 +503,12 @@ class UploadRecordLastView(JWTAuthApiView):
         """
         region = request.GET.get("region", None)
         component_id = request.GET.get("component_id", None)
-        file_type = request.GET.get("file_type", "")
         try:
             records = package_upload_service.get_last_upload_record(tenantName, region, component_id)
-            jwar_list = []
-            yaml_list = []
             bean = dict()
             if records.source_dir != "":
                 dir_list = eval(records.source_dir)
-                for dir in dir_list:
-                    if dir.split('.')[-1] in ["yaml", "yml"]:
-                        yaml_list.append(dir)
-                        bean["event_id"] = records.event_id
-                    elif dir.split('.')[-1] in ["jar", "war"]:
-                        jwar_list.append(dir)
-                        bean["event_id"] = records.event_id
-            if file_type == "jwar":
-                bean['source_dir'] = jwar_list
-            elif file_type == "yaml":
-                bean['source_dir'] = yaml_list
+                bean["source_dir"] = dir_list
             result = general_message(200, "success", "操作成功", bean=bean)
             return Response(result, status=result["code"])
         except Exception as e:

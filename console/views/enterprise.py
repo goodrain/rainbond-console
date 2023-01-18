@@ -170,7 +170,7 @@ class EnterpriseTeams(JWTAuthApiView):
             user_id_dict[tenant_ids.get(user_id["tenant_id"])] = user_id_dict.get(tenant_ids.get(user_id["tenant_id"]), 0) + 1
         for usable_region in usable_regions:
             try:
-                region_tenants, total = team_services.get_tenant_list_by_region(
+                region_tenants, _ = team_services.get_tenant_list_by_region(
                     enterprise_id, usable_region.region_id, page=1, page_size=9999)
                 for region_tenant in region_tenants:
                     tenant = tenant_names.get(region_tenant["tenant_name"])
@@ -742,3 +742,125 @@ class ServiceAlarm(EnterpriseAdminView):
                 })
         result = general_message(200, "team query success", "查询成功", list=res_service)
         return Response(result, status=200)
+
+
+class GetNodes(EnterpriseAdminView):
+    def get(self, request, region_name, *args, **kwargs):
+        nodes, cluster_role_count = enterprise_services.get_nodes(region_name)
+        result = general_message(200, "success", "获取成功", bean=cluster_role_count, list=nodes)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class GetNode(EnterpriseAdminView):
+    def get(self, request, region_name, node_name, *args, **kwargs):
+        res = enterprise_services.get_node_detail(region_name, node_name)
+        result = general_message(200, "success", "获取成功", bean=res)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class NodeAction(EnterpriseAdminView):
+    def post(self, request, region_name, node_name, *args, **kwargs):
+        action = request.data.get("action", "")
+        support_action = ["unschedulable", "reschedulable", "down", "up", "evict"]
+        if action not in support_action:
+            return Response(general_message(400, "failed", "暂不支持当前操作"), status=status.HTTP_400_BAD_REQUEST)
+        body = region_api.operate_node_action(region_name, node_name, action)
+        result = general_message(200, "success", "操作成功", bean=body)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class NodeLabelsOperate(EnterpriseAdminView):
+    def get(self, request, region_name, node_name, *args, **kwargs):
+        res, body = region_api.get_node_labels(region_name, node_name)
+        result = general_message(200, "success", "获取成功", bean=body["bean"])
+        return Response(result, status=status.HTTP_200_OK)
+
+    def put(self, request, region_name, node_name, *args, **kwargs):
+        labels = request.data.get("labels", {})
+        res, body = region_api.update_node_labels(region_name, node_name, labels)
+        result = general_message(200, "success", "操作成功", bean=body["bean"])
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class NodeTaintOperate(EnterpriseAdminView):
+    def get(self, request, region_name, node_name, *args, **kwargs):
+        res, body = region_api.get_node_taints(region_name, node_name)
+        result = general_message(200, "success", "获取成功", bean=body["list"])
+        return Response(result, status=status.HTTP_200_OK)
+
+    def put(self, request, region_name, node_name, *args, **kwargs):
+        taints = request.data.get("taints", [])
+        res, body = region_api.update_node_taints(region_name, node_name, taints)
+        result = general_message(200, "success", "操作成功", list=body["list"])
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class RainbondComponents(EnterpriseAdminView):
+    def get(self, request, region_name, *args, **kwargs):
+        component_list = enterprise_services.get_rbdcomponents(region_name)
+        result = general_message(200, "success", "获取成功", list=component_list)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class ContainerDisk(EnterpriseAdminView):
+    def get(self, request, region_name, *args, **kwargs):
+        container_runtime = request.GET.get("container_runtime", "")
+        container = container_runtime.split(":")[0]
+        res, body = region_api.get_container_disk(region_name, container)
+        container_disk = body["bean"]
+        res = {
+            "path": container_disk["path"],
+            "total": container_disk["total"] / 1024 / 1024 / 1024,
+            "used": container_disk["used"] / 1024 / 1024 / 1024
+        }
+        result = general_message(200, "success", "获取成功", bean=res)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseMenuManage(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        menus_res = enterprise_services.get_enterprise_menus(enterprise_id)
+        result = general_message(200, "success", "获取成功", list=menus_res)
+        return Response(result, status=status.HTTP_200_OK)
+
+    def post(self, request, enterprise_id, *args, **kwargs):
+        title = request.data.get("title", "")
+        path = request.data.get("path", "")
+        parent_id = request.data.get("parent_id", 0)
+        iframe = request.data.get("iframe", False)
+        data = {
+            "eid": enterprise_id,
+            "title": title,
+            "path": path,
+            "parent_id": parent_id,
+            "iframe": iframe,
+        }
+        menus = enterprise_services.get_menus_by_parent_id(enterprise_id, parent_id)
+        for menu in menus:
+            if menu.title == title:
+                return Response(general_message(400, "The menu already exists", "菜单名已经存在"), status=400)
+        enterprise_services.add_enterprise_menu(**data)
+        result = general_message(200, "success", "添加成功")
+        return Response(result, status=status.HTTP_200_OK)
+
+    def put(self, request, enterprise_id, *args, **kwargs):
+        id = request.data.get("id", "")
+        title = request.data.get("title", "")
+        path = request.data.get("path", "")
+        parent_id = request.data.get("parent_id", 0)
+        iframe = request.data.get("iframe", False)
+        data = {
+            "title": title,
+            "path": path,
+            "parent_id": parent_id,
+            "iframe": iframe,
+        }
+        enterprise_services.update_enterprise_menu(enterprise_id, id, **data)
+        result = general_message(200, "success", "更新成功")
+        return Response(result, status=status.HTTP_200_OK)
+
+    def delete(self, request, enterprise_id, *args, **kwargs):
+        id = request.data.get("id", "")
+        enterprise_services.delete_enterprise_menu(enterprise_id, id)
+        result = general_message(200, "success", "删除成功")
+        return Response(result, status=status.HTTP_200_OK)

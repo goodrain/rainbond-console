@@ -87,9 +87,11 @@ class TeamService(object):
         user_list = team_repo.get_tenant_users_by_tenant_ID(tenant_ID=tenant.ID)
         return user_list
 
-    def update_tenant_alias(self, tenant_name, new_team_alias):
+    def update_tenant_info(self, tenant_name, new_team_alias, new_logo):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=True)
         tenant.tenant_alias = new_team_alias
+        if new_logo:
+            tenant.logo = new_logo
         tenant.save()
         return tenant
 
@@ -346,9 +348,8 @@ class TeamService(object):
             tenant["region_num"] = region_num
         return tenants, total
 
-    def list_by_tenant_names(self, tenant_names):
-        query_set = Tenants.objects.filter(tenant_name__in=tenant_names)
-        return [qs.to_dict() for qs in query_set]
+    def list_by_team_names(self, team_names):
+        return Tenants.objects.filter(tenant_name__in=team_names)
 
     def list_teams_by_user_id(self, eid, user_id, query=None, page=None, page_size=None):
         tenants = team_repo.list_by_user_id(eid, user_id, query, page, page_size)
@@ -398,7 +399,7 @@ class TeamService(object):
             info["region_list"] = region_info_map
         service_reps = TenantServiceInfoRepository()
         service_count = service_reps.get_tenant_services_count(tenant.tenant_id)
-        app_count = group_repo.get_tenant_region_groups_count(tenant.tenant_id, info["region"])
+        app_count = group_repo.get_tenant_groups_count(tenant.tenant_id)
         info["app_count"] = app_count
         info["service_count"] = service_count
         return info

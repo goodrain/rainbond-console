@@ -5,6 +5,7 @@ from django.db import transaction
 
 from .enum import ActionType
 from .new_app import NewApp
+from console.repositories.app import service_repo
 from .original_app import OriginalApp
 from .plugin import Plugin
 # repository
@@ -41,7 +42,18 @@ class MarketApp(object):
     def save_new_app(self):
         self.new_app.save()
 
+    def pre_sync_new_app(self):
+        self._sync_new_components()
+        self._sync_app_config_groups(self.new_app)
+
     def sync_new_app(self):
+        k8s_component_names = [component.component.k8s_component_name for component in self.new_app.new_components]
+        services = service_repo.get_service_by_tenant_and_k8s_component_name(self.new_app.tenant.tenant_id, k8s_component_names)
+        exist_k8s_component_name = {service.k8s_component_name: True for service in services}
+        for component in self.new_app.new_components:
+            if component.component and component.component.k8s_component_name != "":
+                if exist_k8s_component_name.get(component.component.k8s_component_name):
+                    component.component.k8s_component_name = component.component.service_alias
         self._sync_new_components()
         self._sync_app_config_groups(self.new_app)
         self._sync_app_k8s_resources(self.new_app)
@@ -52,6 +64,22 @@ class MarketApp(object):
         # Since the application of k8s resources can create PV and other resources,
         # this kind of resources will not be rolled back for the time being
         # self._sync_app_k8s_resources(self.original_app)
+
+    def predeploy(self, helm_chart_parameter):
+        builds = self._generate_builds("export_helm_chart")
+        res = []
+        body = {
+            "operation": "export",
+            "build_infos": builds,
+            "helm_chart": {
+                "app_name": helm_chart_parameter["app_name"],
+                "app_version": helm_chart_parameter["app_version"],
+            },
+        }
+        _, body = region_api.batch_operation_service(self.new_app.region_name, self.new_app.tenant.tenant_name, body)
+        res += body["bean"]["batch_result"]
+
+        return res
 
     def deploy(self):
         builds = self._generate_builds()
@@ -407,7 +435,7 @@ class MarketApp(object):
         config_group_repo.bulk_create_plugin_config_group(config_groups)
         config_item_repo.bulk_create_items(config_items)
 
-    def _generate_builds(self):
+    def _generate_builds(self, kind="build_from_market_image"):
         builds = []
         for cpt in self.new_app.components():
             if cpt.action_type != ActionType.BUILD.value:
@@ -417,7 +445,7 @@ class MarketApp(object):
             build["action"] = 'deploy'
             if cpt.component.build_upgrade:
                 build["action"] = 'upgrade'
-            build["kind"] = "build_from_market_image"
+            build["kind"] = kind
             extend_info = json.loads(cpt.component_source.extend_info)
             build["image_info"] = {
                 "image_url": cpt.component.image,

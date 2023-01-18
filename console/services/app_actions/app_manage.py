@@ -273,7 +273,7 @@ class AppManageService(AppManageBase):
             if body.get("image_info", None):
                 body["image_info"]["user"] = service_source.user_name
                 body["image_info"]["password"] = service_source.password
-        if service_source and service_source.extend_info:
+        if service_source and service_source.extend_info and kind == "build_from_market_image":
             extend_info = json.loads(service_source.extend_info)
             if service.is_slug():  # abandoned
                 body["slug_info"] = extend_info
@@ -733,7 +733,7 @@ class AppManageService(AppManageBase):
                                         = template_app.get("service_share_uuid") \
                                         if template_app.get("service_share_uuid", None) \
                                         else template_app.get("service_key", "")
-                                    new_extend_info["update_time"] = app_version.update_time.strftime('%Y-%m-%d %H:%M:%S')
+                                    new_extend_info["update_time"] = apps_template.update_time.strftime('%Y-%m-%d %H:%M:%S')
                                     if install_from_cloud:
                                         new_extend_info["install_from_cloud"] = True
                                         new_extend_info["market"] = "default"
@@ -1189,7 +1189,13 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 raise ServiceHandleException(msg="delete component {} failure".format(service.service_alias), msg_show="组件删除失败")
 
-    def really_delete_service(self, tenant, service, user=None, ignore_cluster_result=False, not_delete_from_cluster=False, app=None):
+    def really_delete_service(self,
+                              tenant,
+                              service,
+                              user=None,
+                              ignore_cluster_result=False,
+                              not_delete_from_cluster=False,
+                              app=None):
         """组件真实删除方法，调用端必须进行事务控制"""
         ignore_delete_from_cluster = not_delete_from_cluster
         data = {}

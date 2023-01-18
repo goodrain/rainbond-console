@@ -583,7 +583,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         url = uri_prefix + "/v2/helm/check_helm_app"
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data))
+        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data), timeout=20)
         return res, body
 
     def get_service_volumes_status(self, region, tenant_name, service_alias):
@@ -1630,7 +1630,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/batchoperation"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body), timeout=10)
         return res, body
 
     # 修改网关自定义配置项
@@ -2029,6 +2029,34 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         _, _ = self._get(url, self.default_headers, region=region_name)
 
+    def list_governance_mode(self, region_name, tenant_name):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/cluster/governance-mode"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body.get("list", None)
+
+    def create_governance_mode_cr(self, region_name, tenant_name, app_id, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/apps/{app_id}/governance-cr".format(tenant_name=tenant_name, app_id=app_id)
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(body))
+        return body.get("bean", None)
+
+    def update_governance_mode_cr(self, region_name, tenant_name, app_id, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/apps/{app_id}/governance-cr".format(tenant_name=tenant_name, app_id=app_id)
+        self._set_headers(token)
+        res, body = self._put(url, self.default_headers, region=region_name, body=json.dumps(body))
+        return body.get("bean", None)
+
+    def delete_governance_mode_cr(self, region_name, tenant_name, app_id):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{tenant_name}/apps/{app_id}/governance-cr".format(tenant_name=tenant_name, app_id=app_id)
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region_name)
+        return body.get("bean", None)
+
     def get_monitor_metrics(self, region_name, tenant, target, app_id, component_id):
         url, token = self.__get_region_access_info(tenant.tenant_name, region_name)
         url = url + "/v2/monitor/metrics?target={target}&tenant={tenant_id}&app={app_id}&component={component_id}".format(
@@ -2276,3 +2304,116 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         data = {"region_name": region, "pod_name": pod_name}
         res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(data))
         return body
+
+    def get_cluster_nodes(self, region):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes"
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def get_node_info(self, region, node_name):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/{0}/detail".format(node_name)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def operate_node_action(self, region, node_name, action):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/{0}/action/{1}".format(node_name, action)
+        res, body = self._post(url, self.default_headers, region=region)
+        return res, body
+
+    def get_node_labels(self, region, node_name):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/{0}/labels".format(node_name)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def update_node_labels(self, region, node_name, data):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/{0}/labels".format(node_name)
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def get_node_taints(self, region, node_name):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/{0}/taints".format(node_name)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def update_node_taints(self, region, node_name, data):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/{0}/taints".format(node_name)
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def get_rainbond_components(self, region):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/rbd-components"
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def get_container_disk(self, region, container_type):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/container_disk/{}".format(container_type)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def list_plugins(self, enterprise_id, region_name):
+        region_info = self.get_enterprise_region_info(enterprise_id, region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/plugins"
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
+        return res, body
+
+    def list_abilities(self, enterprise_id, region_name):
+        region_info = self.get_enterprise_region_info(enterprise_id, region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/abilities"
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
+        return res, body
+
+    def update_ability(self, enterprise_id, region_name, ability_id, body):
+        region_info = self.get_enterprise_region_info(enterprise_id, region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/abilities/{ability_id}".format(ability_id=ability_id)
+        res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name, timeout=10)
+        return res, body
+
+    def get_ability(self, enterprise_id, region_name, ability_id):
+        region_info = self.get_enterprise_region_info(enterprise_id, region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/abilities/{ability_id}".format(ability_id=ability_id)
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
+        return res, body

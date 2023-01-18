@@ -106,8 +106,8 @@ class TenantServiceUpdateSerilizer(serializers.Serializer):
     min_memory = serializers.IntegerField(required=False, help_text="内存大小单位（M）")
     min_cpu = serializers.IntegerField(required=False, help_text="cpu分配额(单位：1000=1Core)")
     extend_method = serializers.CharField(max_length=32, required=False, help_text="组件类型")
-    user_name = serializers.CharField(max_length=32, required=False, allow_blank=True, help_text="拉取仓库需要的用户名")
-    password = serializers.CharField(max_length=32, required=False, allow_blank=True, help_text="拉取仓库需要的密码")
+    user_name = serializers.CharField(max_length=255, required=False, allow_blank=True, help_text="拉取仓库需要的用户名")
+    password = serializers.CharField(max_length=255, required=False, allow_blank=True, help_text="拉取仓库需要的密码")
     job_strategy = serializers.CharField(max_length=2047, required=False, help_text="job任务策略")
 
 

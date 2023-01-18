@@ -117,6 +117,11 @@ class AppUpgrade(MarketApp):
 
         super(AppUpgrade, self).__init__(self.original_app, self.new_app)
 
+    def preinstall(self):
+        self.pre_install_plugins()
+        self.pre_sync_new_app()
+        self._install_predeploy()
+
     def install(self):
         # install plugins
         self.install_plugins()
@@ -217,6 +222,13 @@ class AppUpgrade(MarketApp):
         return result
 
     @transaction.atomic
+    def pre_install_plugins(self):
+        # sync plugins
+        self._sync_plugins(self.new_app.new_plugins)
+        # deploy plugins
+        self._deploy_plugins(self.new_app.new_plugins)
+
+    @transaction.atomic
     def install_plugins(self):
         # delete old plugins
         self.delete_original_plugins(self.list_delete_plugin_ids())
@@ -247,6 +259,16 @@ class AppUpgrade(MarketApp):
             "plugins": new_plugins,
         }
         region_api.sync_plugins(self.tenant_name, self.region_name, body)
+
+    def _install_predeploy(self):
+        try:
+            helm_chart_parameter = dict()
+            helm_chart_parameter["app_name"] = self.app_template["group_name"]
+            helm_chart_parameter["app_version"] = self.app_template["group_version"]
+            _ = self.predeploy(helm_chart_parameter)
+        except Exception as e:
+            logger.exception(e)
+            raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常，请稍后重试")
 
     def _install_deploy(self):
         try:

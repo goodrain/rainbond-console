@@ -106,3 +106,19 @@ ALTER TABLE tenant_service_delete ADD COLUMN job_strategy varchar(2047) DEFAULT 
 ALTER TABLE tenant_service_delete ADD COLUMN exec_user varchar(128) DEFAULT '';
 ALTER TABLE tenant_service_delete ADD COLUMN app_name varchar(128) DEFAULT '';
 ALTER TABLE tenant_service_delete ADD COLUMN app_id  int DEFAULT 0;
+
+-- 5.10.1 - 5.11.0 sql
+
+ALTER TABLE tenant_services_port ADD name varchar(64) NULL;
+
+CREATE TABLE `menus` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `eid` varchar(33) NOT NULL,
+  `title` varchar(64) NOT NULL,
+  `path` longtext NOT NULL,
+  `parent_id` int(11) NOT NULL,
+  `iframe` bool DEFAULT false NOT NULL,
+  `sequence` int(11) NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

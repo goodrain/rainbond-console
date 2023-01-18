@@ -80,7 +80,8 @@ class TeamOverView(RegionTenantHeaderView):
             team_service_num = service_repo.get_team_service_num_by_team_id(
                 team_id=self.team.tenant_id, region_name=self.response_region)
             source = common_services.get_current_region_used_resource(self.team, self.response_region)
-
+            team = team_services.get_team_by_team_id_and_eid(self.team.tenant_id, self.team.enterprise_id)
+            overview_detail["logo"] = team.logo
             region = region_repo.get_region_by_region_name(self.response_region)
             if not region:
                 overview_detail["region_health"] = False

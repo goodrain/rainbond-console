@@ -601,7 +601,8 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
         lang = request.data.get("lang", "")
         package_tool = request.data.get("package_tool", "")
         # 修改语言和包依赖
-        code, msg = app_manage_service.change_lang_and_package_tool(self.tenant, self.service, lang, package_tool)
-        if code != 200:
-            return Response(status=code, data=general_message(code, "failed", "操作失败"))
-        return Response(status=200, data=general_message(code, "succeed", "操作成功"))
+        if lang:
+            code, msg = app_manage_service.change_lang_and_package_tool(self.tenant, self.service, lang, package_tool)
+            if code != 200:
+                return Response(status=code, data=general_message(code, "failed", "操作失败"))
+        return Response(status=200, data=general_message(200, "succeed", "操作成功"))
