@@ -597,10 +597,10 @@ class MarketService(object):
         port_alias = self.service.service_alias.upper()
         k8s_service_name = port.get("k8s_service_name", self.service.service_alias)
         if k8s_service_name:
-            port = port_repo.get_by_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
+            filter_port = port_repo.get_by_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
             if port and self.service.service_id:
                 k8s_service_name = k8s_service_name + "-" + make_uuid(
-                )[-4:] if self.service.service_id != port.service_id else k8s_service_name
+                )[-4:] if self.service.service_id != filter_port.service_id else k8s_service_name
             port["k8s_service_name"] = k8s_service_name
         port["tenant_id"] = self.tenant.tenant_id
         port["service_id"] = self.service.service_id
