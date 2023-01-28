@@ -429,10 +429,10 @@ class GroupappsMigrateService(object):
             k8s_service_name = port.get("k8s_service_name", "")
             if k8s_service_name:
                 body = dict()
-                port = port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
+                filter_port = port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
                 if port and service.service_id:
                     k8s_service_name = k8s_service_name + "-" + make_uuid(
-                    )[-4:] if service.service_id != port.service_id else k8s_service_name
+                    )[-4:] if service.service_id != filter_port.service_id else k8s_service_name
                     # update port if k8s_service_name has changed.
                     body = port
                     body["k8s_service_name"] = k8s_service_name
