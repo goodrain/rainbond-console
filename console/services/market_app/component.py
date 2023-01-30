@@ -260,7 +260,7 @@ class Component(object):
         k8s_service_name = port.get("k8s_service_name", self.component.service_alias)
         if k8s_service_name:
             filter_port = port_repo.get_by_k8s_service_name(self.component.tenant_id, k8s_service_name)
-            if port and self.component.service_id:
+            if filter_port and self.component.service_id:
                 k8s_service_name = k8s_service_name + "-" + make_uuid(
                 )[-4:] if self.component.service_id != filter_port.service_id else k8s_service_name
             port["k8s_service_name"] = k8s_service_name
