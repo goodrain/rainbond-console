@@ -360,18 +360,15 @@ class GroupappsMigrateService(object):
             TenantServiceEnvVar.objects.bulk_create(env_list)
 
     def __save_volume(self, tenant, service, tenant_service_volumes, service_config_file):
-        contain_config_file = False if not service_config_file else True
-        if not service_config_file:
-            contain_config_file = True
         volume_list = []
         config_list = []
         volume_name_id = {}
         for volume in tenant_service_volumes:
             index = volume.pop("ID")
             volume_name_id[volume["volume_name"]] = index
-            if volume["volume_type"] == "config-file" and contain_config_file:
+            if volume["volume_type"] == "config-file" and service_config_file:
                 for config_file in service_config_file:
-                    if config_file["volume_id"] == index:
+                    if config_file["service_id"] == volume["service_id"] and config_file["volume_name"] == volume["volume_name"]:
                         config_file.pop("ID")
                         new_config_file = TenantServiceConfigurationFile(**config_file)
                         new_config_file.service_id = service.service_id
