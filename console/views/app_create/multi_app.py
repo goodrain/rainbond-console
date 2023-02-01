@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+import os
 
 from rest_framework.response import Response
 from www.utils.return_message import general_message
@@ -60,13 +61,14 @@ class MultiAppCreateView(RegionTenantHeaderView):
         resp = validate_request(service_infos, "service_infos")
         if resp:
             return resp
-
+        host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
         group_id, service_ids = multi_app_service.create_services(
             region_name=self.response_region,
             tenant=self.tenant,
             user=self.user,
             service_alias=service_alias,
-            service_infos=service_infos)
+            service_infos=service_infos,
+            host=host)
 
         result = general_message(
             200,
