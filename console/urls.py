@@ -104,7 +104,8 @@ from console.views.plugin.service_plugin import (ServicePluginConfigView, Servic
 from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
-                                        TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView)
+                                        TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
+                                        GroupOperatorManagedView)
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
@@ -270,7 +271,7 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/groups$', ServiceGroupView.as_view(), perms.ServiceGroupView),
     # 应用列表、状态展示
     url(r'^teams/(?P<team_name>[\w\-]+)/service/group$', GroupServiceView.as_view(), perms.GroupServiceView),
-
+    url(r'^teams/(?P<team_name>[\w\-]+)/operator-managed$', GroupOperatorManagedView.as_view()),
     # 应用拓扑图
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/topological$', TopologicalGraphView.as_view(),
         perms.TopologicalGraphView),

@@ -2,10 +2,13 @@
 import logging
 from functools import reduce
 
+from console.repositories.region_app import region_app_repo
 from console.services.region_services import region_services
+from console.services.service_services import base_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import (ServiceDomain, ServiceGroupRelation, TenantServiceInfo, TenantServiceRelation, TenantServicesPort,
                              ServiceGroup)
+from www.utils.crypt import make_uuid3
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -130,7 +133,41 @@ class TopologicalService(object):
         except Exception as e:
             logger.exception(e)
             dynamic_services_list = []
+        region_app_id = region_app_repo.get_region_app_id(region, group_id)
+        watch_managed_data = base_service.get_watch_managed(region, team_name, region_app_id)
+        deployments = watch_managed_data.get("deployments", [])
+        statefulSets = watch_managed_data.get("statefulSets", [])
+        services = watch_managed_data.get("services", [])
+        component_dict = dict()
 
+        def components_handle(components, kind):
+            for component in components:
+                service_id = make_uuid3(component.get("name"))
+                cpu, memory, disk = 0, 0, 0
+                for pod in component.get("pods"):
+                    memory = memory + pod.get("memory", 0) / 1024 / 1024
+                    cpu = cpu + pod.get("cpu", 0)
+                    disk = disk + pod.get("disk", 0) / 1024 / 1024
+                component_dict[component.get("name")] = service_id
+                json_data[service_id] = {
+                    "service_id": service_id,
+                    "service_cname": component.get("name"),
+                    "service_alias": component.get("name"),
+                    "component_memory": memory,
+                    "component_cpu": cpu,
+                    "component_disk": disk,
+                    "runtime": component.get("runtime"),
+                    "readyReplicas": component.get("readyReplicas"),
+                    "cur_status": "operator",
+                    "kind": kind,
+                    "pod": component.get("pods"),
+                }
+
+        components_handle(deployments, "Deployment")
+        components_handle(statefulSets, "StatefulSet")
+        service_dict = dict()
+        for service in services:
+            service_dict[service.get("name")] = service.get("relation")
         for service_info in service_list:
             node_num = 0
             if dynamic_services_list:
@@ -153,7 +190,9 @@ class TopologicalService(object):
                 "app_name": app.group_name if app else "404 not found",
                 "app_status": app_statuses.get(app_id, "NIL"),
             }
-            json_svg[service_info.service_id] = []
+            name = service_info.service_cname.strip("-svc")
+            component_ids = [component_dict.get(relation) for relation in service_dict.get(name, [])]
+            json_svg[service_info.service_id] = component_ids
             if service_status_map.get(service_info.service_id):
                 status = service_status_map.get(service_info.service_id).get("status", "Unknown")
                 status_cn = service_status_map.get(service_info.service_id).get("status_cn", None)

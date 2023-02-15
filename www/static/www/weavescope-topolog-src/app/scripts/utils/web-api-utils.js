@@ -369,6 +369,45 @@ function goodrainData2scopeData(data = {}) {
   scopeData.update = scopeData.update !== null && scopeData.update.length > 0 ? scopeData.update : null;
   return scopeData;
 }
+//处理 operator 类型数据
+export function handleOperatorInfo(data) {
+  const keys = Object.keys(data.json_data);
+  const arr = [];
+  keys.forEach((k) => {
+    if (Object.prototype.hasOwnProperty.call(data.json_data, k)) {
+      const node = {};
+      const item = data.json_data[k];
+      node.cur_status = item.cur_status;
+      node.service_cname = item.service_cname;
+      node.service_id = item.service_id;
+      node.service_alias = item.service_alias;
+      node.component_cpu = item.component_cpu;
+      node.component_disk = item.component_disk;
+      node.component_memory = item.component_memory;
+      node.id = item.service_id;
+      node.label = item.service_cname;
+      node.lineTip = item.lineTip;
+      node.pod = item.pod;
+      node.kind = item.kind;
+      node.labelMinor = '';
+      node.shape = 'hexagon';
+      node.stack = true;
+      node.stackNum = 1;
+      node.runtime = item.runtime;
+      node.readyReplicas = item.readyReplicas;
+      node.linkable = item.cur_status === 'running' ? 1 : 0;
+      node.adjacency = data.json_svg[k] || [];
+      arr.push(node);
+    }
+  });
+  const arrOperator = []
+  arr.forEach(item => {
+    if(item.cur_status == 'operator'){
+      arrOperator.push(item)
+    }
+  });
+  return arrOperator
+}
 
 // TODO: topologyUrl and options are always used for the current topology so they as arguments
 // can be replaced by the `state` and then retrieved here internally from selectors.
@@ -388,6 +427,11 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
     success: (res) => {
       if (res.code === 200) {
         const scopeData = goodrainData2scopeData(res.data.bean);
+        const Operator = handleOperatorInfo(res.data.bean)
+        dispatch({
+          type:"OPERATOR",
+          data: Operator
+        });
         dispatch(receiveNodesDelta(scopeData));
       }
       setTimeout(() => {

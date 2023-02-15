@@ -204,6 +204,18 @@ class ServiceGroupView(RegionTenantHeaderView):
         return Response(general_message(200, "success", "查询成功", list=groups_services), status=code)
 
 
+class GroupOperatorManagedView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        """
+        纳管当前应用经用户Operator处理创建的资源
+        """
+        group_id = request.GET.get("group_id", None)
+        code = 200
+        operator_managed = group_service.get_watch_managed_data(self.tenant, self.region_name, group_id)
+        result = general_message(code, "success", "获取成功", list=operator_managed)
+        return Response(result, status=code)
+
+
 class GroupServiceView(RegionTenantHeaderView):
     @never_cache
     def get(self, request, *args, **kwargs):

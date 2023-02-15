@@ -9,7 +9,7 @@ from console.services.app_actions import app_manage_service
 from console.services.region_resource_processing import region_resource
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import RegionApp
-from www.utils.crypt import make_helm_uuid, make_uuid
+from www.utils.crypt import make_uuid3, make_uuid
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger('default')
@@ -48,10 +48,10 @@ class HelmAppService(object):
             app = dict()
             app["service_cname"] = cv["components_name"]
             app["tenant_id"] = tenant.tenant_id
-            service_id = make_helm_uuid(chart + "/" + cv["components_name"])
+            service_id = make_uuid3(chart + "/" + cv["components_name"])
             app["service_id"] = service_id
             app["service_key"] = service_id
-            app["service_share_uuid"] = make_helm_uuid(chart + "/" + cv["components_name"]) + "+" + make_helm_uuid(
+            app["service_share_uuid"] = make_uuid3(chart + "/" + cv["components_name"]) + "+" + make_uuid3(
                 chart + "/" + cv["components_name"])
             app["need_share"] = True
             app["category"] = "app_publish"

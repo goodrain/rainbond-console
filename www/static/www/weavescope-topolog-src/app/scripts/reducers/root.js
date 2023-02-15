@@ -93,7 +93,8 @@ export const initialState = makeMap({
   visitinfo: null,
   getpods:null,
   userPermission: null,
-  teamName: null
+  teamName: null,
+  operator: null
 });
 
 function calcSelectType(topology) {
@@ -216,6 +217,9 @@ export function rootReducer(state = initialState, action) {
     }
     case "TEAM_NAME":{
       return state.set('teamName',action)
+    }
+    case "OPERATOR": {
+      return state.set('operator', action);
     }
     case ActionTypes.CHANGE_TOPOLOGY_OPTION: {
       state = resumeUpdate(state);

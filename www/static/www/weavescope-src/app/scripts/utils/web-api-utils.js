@@ -319,7 +319,7 @@ function goodrainData2scopeData(data = {}) {
         node.stackNum = 1;
         node.is_flag = false;
         node.cur_status = item.cur_status;
-      }else if(item.app_id != groupId && item.cur_status != 'third_party' && item.app_type !== 'helm'){
+      }else if(item.app_id != groupId && item.cur_status != 'third_party' && item.app_type !== 'helm' && item.cur_status !== 'operator'){
         node.label = item.app_name;
         node.stackNum = 3;
         node.is_flag = true;
@@ -330,11 +330,16 @@ function goodrainData2scopeData(data = {}) {
         node.stackNum = 1;
         node.is_flag = false;
         node.cur_status = item.cur_status;
-      }else if(item.app_type === 'helm'){
+      }else if(item.app_type === 'helm' && item.cur_status !== 'operator'){
         node.cur_status = 'helm';
         node.label = item.app_name;
         node.stackNum = 3;
         node.is_flag = true;
+      }else if(item.app_id != groupId && item.cur_status == 'operator'){
+        node.label = item.service_cname;
+        node.stackNum = 1;
+        node.is_flag = false;
+        node.cur_status = item.cur_status;
       }
       node.component_memory = item.component_memory
       node.id = item.service_id;
@@ -359,8 +364,10 @@ function goodrainData2scopeData(data = {}) {
   let adds = []
   let newAdds = []
   for(let i = 0; i<add.length; i++){
-      if(add[i].app_id != groupId && add[i].cur_status != 'third_party' && add[i].cur_status != 'helm'){
+      if(add[i].app_id != groupId && add[i].cur_status != 'third_party' && add[i].cur_status != 'helm' && add[i].cur_status !== 'operator'){
         newAdds.push(add[i])
+      }else if(add[i].app_id != groupId && add[i].cur_status == 'operator'){
+        adds.push(add[i])
       }else{
         adds.push(add[i])
       }
@@ -428,6 +435,46 @@ function goodrainData2scopeData(data = {}) {
   return scopeData;
 }
 
+
+//处理 operator 类型数据
+export function handleOperatorInfo(data) {
+  const keys = Object.keys(data.json_data);
+  const arr = [];
+  keys.forEach((k) => {
+    if (Object.prototype.hasOwnProperty.call(data.json_data, k)) {
+      const node = {};
+      const item = data.json_data[k];
+      node.cur_status = item.cur_status;
+      node.service_cname = item.service_cname;
+      node.service_id = item.service_id;
+      node.service_alias = item.service_alias;
+      node.component_cpu = item.component_cpu;
+      node.component_disk = item.component_disk;
+      node.component_memory = item.component_memory;
+      node.id = item.service_id;
+      node.label = item.service_cname;
+      node.lineTip = item.lineTip;
+      node.pod = item.pod;
+      node.kind = item.kind;
+      node.labelMinor = '';
+      node.shape = 'hexagon';
+      node.stack = true;
+      node.stackNum = 1;
+      node.runtime = item.runtime;
+      node.readyReplicas = item.readyReplicas;
+      node.linkable = item.cur_status === 'running' ? 1 : 0;
+      node.adjacency = data.json_svg[k] || [];
+      arr.push(node);
+    }
+  });
+  const arrOperator = []
+  arr.forEach(item => {
+    if(item.cur_status == 'operator'){
+      arrOperator.push(item)
+    }
+  });
+  return arrOperator
+}
 // TODO: topologyUrl and options are always used for the current topology so they as arguments
 // can be replaced by the `state` and then retrieved here internally from selectors.
 export function getNodesDelta(topologyUrl, options, dispatch) {
@@ -446,6 +493,11 @@ export function getNodesDelta(topologyUrl, options, dispatch) {
     success: (res) => {
       if (res.code === 200) {
         const scopeData = goodrainData2scopeData(res.data.bean);
+        const Operator = handleOperatorInfo(res.data.bean)
+        dispatch({
+          type:"OPERATOR",
+          data: Operator
+        });
         dispatch(receiveNodesDelta(scopeData));
         
       }
