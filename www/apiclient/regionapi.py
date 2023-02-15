@@ -714,6 +714,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body), timeout=20)
         return body
 
+    def watch_operator_managed(self, region_name, tenant_name, region_app_id):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/apps/{}/watch_operator_managed".format(tenant_region.region_tenant_name, region_app_id)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body
+
     def get_enterprise_running_services(self, enterprise_id, region, test=False):
         if test:
             self.get_enterprise_api_version_v2(enterprise_id, region=region)

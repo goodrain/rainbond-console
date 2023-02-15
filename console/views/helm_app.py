@@ -7,7 +7,7 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.share_repo import share_repo
 from console.services.helm_app_yaml import helm_app_service
 from console.views.base import RegionTenantHeaderView, JWTAuthApiView
-from www.utils.crypt import make_helm_uuid
+from www.utils.crypt import make_uuid3
 from www.utils.return_message import general_message
 from rest_framework.response import Response
 
@@ -62,7 +62,7 @@ class HelmCenterApp(RegionTenantHeaderView):
         pic = request.data.get("pic", "")
         describe = request.data.get("describe", "")
         details = request.data.get("details", "This is a helm application from {}".format(repo_name))
-        app_id = make_helm_uuid(repo_name + "/" + chart_name)
+        app_id = make_uuid3(repo_name + "/" + chart_name)
         helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(self.enterprise.enterprise_id, app_id)
         data = {"exist": True, "app_model_id": app_id}
         if not helm_center_app:
@@ -104,7 +104,7 @@ class HelmChart(RegionTenantHeaderView):
             return Response(result, status=status.HTTP_200_OK)
         chart_information = helm_app_service.get_helm_chart_information(self.region_name, self.tenant_name, data["repo_url"],
                                                                         chart_name)
-        app = rainbond_app_repo.get_app_helm_overrides(app_id, make_helm_uuid(repo_name + "/" + chart_name)).last()
+        app = rainbond_app_repo.get_app_helm_overrides(app_id, make_uuid3(repo_name + "/" + chart_name)).last()
         overrides_dict = dict()
         if app:
             overrides = json.loads(app.overrides)

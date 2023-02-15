@@ -4,7 +4,7 @@ import hashlib
 import time
 import uuid
 
-NAMESPACE_HELM = uuid.UUID("edb115dc-4b8e-11ed-9539-5a219a836f51")
+NAMESPACE = uuid.UUID("edb115dc-4b8e-11ed-9539-5a219a836f51")
 
 
 def encrypt_passwd(string):
@@ -26,8 +26,8 @@ def make_uuid(key=None):
         return random_uuid
 
 
-def make_helm_uuid(key=None):
-    return str(uuid.uuid3(NAMESPACE_HELM, key)).replace('-', '')
+def make_uuid3(key=None):
+    return str(uuid.uuid3(NAMESPACE, key)).replace('-', '')
 
 
 class AuthCode(object):

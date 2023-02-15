@@ -128,7 +128,8 @@ const statusColorMap = {
   'not-configured': 'rgb(112,128,144)',//未配置 石板灰
   'unknown': 'rgb(205,2,0)',//未知 纯红
   'deployed': 'rgb(0,215,119)',//已部署 绿色
-  "succeeded": 'rgb(0,215,119)' //job、cronjob 已完成  绿色
+  "succeeded": 'rgb(0,215,119)', //job、cronjob 已完成  绿色
+  'operator': 'rgb(181 182 160)',// operator 类型组件 紫色
 }
 
 export function getStatusColor(status) {
