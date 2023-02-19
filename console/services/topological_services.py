@@ -144,7 +144,7 @@ class TopologicalService(object):
             for component in components:
                 service_id = make_uuid3(component.get("name"))
                 cpu, memory, disk = 0, 0, 0
-                for pod in component.get("pods"):
+                for pod in component.get("pods", []):
                     memory = memory + pod.get("memory", 0) / 1024 / 1024
                     cpu = cpu + pod.get("cpu", 0)
                     disk = disk + pod.get("disk", 0) / 1024 / 1024
@@ -157,17 +157,17 @@ class TopologicalService(object):
                     "component_cpu": cpu,
                     "component_disk": disk,
                     "runtime": component.get("runtime"),
-                    "readyReplicas": component.get("readyReplicas"),
+                    "readyReplicas": component.get("readyReplicas", 0),
                     "cur_status": "operator",
                     "kind": kind,
-                    "pod": component.get("pods"),
+                    "pod": component.get("pods", []),
                 }
 
         components_handle(deployments, "Deployment")
         components_handle(statefulSets, "StatefulSet")
         service_dict = dict()
         for service in services:
-            service_dict[service.get("name")] = service.get("relation")
+            service_dict[service.get("name")] = service.get("relation", [])
         for service_info in service_list:
             node_num = 0
             if dynamic_services_list:
