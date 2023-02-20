@@ -190,7 +190,7 @@ class TopologicalService(object):
                 "app_name": app.group_name if app else "404 not found",
                 "app_status": app_statuses.get(app_id, "NIL"),
             }
-            name = service_info.service_cname.strip("-svc")
+            name = service_info.service_cname[:-4]
             component_ids = [component_dict.get(relation) for relation in service_dict.get(name, [])]
             json_svg[service_info.service_id] = component_ids
             if service_status_map.get(service_info.service_id):
