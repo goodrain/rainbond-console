@@ -790,10 +790,20 @@ class GroupService(object):
             for service in watch_managed_data.get("services", []):
                 if app_service.is_k8s_component_name_duplicate(app_id, service.get("name") + "-svc"):
                     continue
-                services.append({
-                    "name": service.get("name") + "-svc",
-                    "address": [service.get("ip") + ":" + port for port in service.get("port").split(",")]
-                })
+                if service.get("ip") != "None":
+                    services.append({
+                        "name": service.get("name") + "-svc",
+                        "static": True,
+                        "address": [service.get("ip") + ":" + port for port in service.get("port").split(",")]
+                    })
+                else:
+                    services.append({
+                        "name": service.get("name") + "-svc",
+                        "static": False,
+                        "namespace": tenant.namespace,
+                        "service": service.get("name"),
+                        "port": service.get("port")
+                    })
         data = {
             "service": services,
         }
