@@ -109,19 +109,9 @@ class NodeDetails extends React.Component {
         {tools}
         <div className="node-details-header" style={{ backgroundColor: getStatusColor(nodeInfo.cur_status) }}>
           <div className="node-details-header-wrapper">
-
             <h2 className="node-details-header-label">
-              {
-                nodeInfo.id == 'The Internet' ?
-                  <span className="node-details-text truncate">{label} </span>
-                  :
-                  <a href="javascript:;" onClick={this.handleClickService.bind(this, nodeInfo)}>
-                    <span className="node-details-text truncate">{label} </span>
-                    <span style={{ verticalAlign: 'middle' }} className="icon-angle-right"></span>
-                  </a>
-              }
+              <span className="node-details-text truncate">{label} </span>
             </h2>
-
             <div className="node-details-relatives truncate">
               Loading...
             </div>

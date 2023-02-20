@@ -701,14 +701,12 @@ function hoverMetric(metricType) {
 }
 
 function unhoverMetric() {
-  console.log('10');
   return {
     type: _actionTypes2.default.UNHOVER_METRIC
   };
 }
 
 function pinMetric(metricType) {
-  console.log('11');
   return function (dispatch, getState) {
     dispatch({
       type: _actionTypes2.default.PIN_METRIC,
@@ -784,6 +782,7 @@ function changeTopologyOption(option, value, topologyId, addOrRemove) {
     (0, _webApiUtils.getTopologies)((0, _topology.activeTopologyOptionsSelector)(state), dispatch);
     (0, _webApiUtils.getNodesDelta)((0, _topologyUtils.getCurrentTopologyUrl)(state), (0, _topology.activeTopologyOptionsSelector)(state), dispatch);
     (0, _webApiUtils.getNodeDetails)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
+    (0, _webApiUtils.appModuleInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
   };
 }
 
@@ -908,6 +907,7 @@ function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
       nodeId: nodeId,
       serviceAlias: serviceAlias,
       serviceCname: serviceCname
+      // appId
     });
     (0, _routerUtils.updateRoute)(getState);
     var state = getState();
@@ -917,10 +917,12 @@ function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
     (0, _webApiUtils.Disklist)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
     (0, _webApiUtils.Visitinfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
     (0, _webApiUtils.GetPods)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
-    (0, _webApiUtils.appVisitInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
-    (0, _webApiUtils.appModuleInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
-    (0, _webApiUtils.appInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
+    (0, _webApiUtils.appVisitInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias, state.get('appNodes'), nodeId);
+    (0, _webApiUtils.appModuleInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias, state.get('appNodes'), nodeId);
+    (0, _webApiUtils.appInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias, state.get('appNodes'), nodeId);
     (0, _webApiUtils.getNodesDelta)((0, _topologyUtils.getCurrentTopologyUrl)(state), (0, _topology.activeTopologyOptionsSelector)(state), dispatch);
+    (0, _webApiUtils.visitInfoParams)(state.get('appNodes'), nodeId);
+    (0, _webApiUtils.appNameInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
     (0, _webApiUtils.UserPermission)(dispatch);
   };
 }
@@ -947,6 +949,7 @@ function clickRelative(nodeId, topologyId, label, origin, serviceAlias) {
     (0, _routerUtils.updateRoute)(getState);
     var state = getState();
     (0, _webApiUtils.getNodeDetails)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
+    (0, _webApiUtils.appModuleInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
   };
 }
 
@@ -1206,7 +1209,7 @@ function receiveTopologies(topologies) {
     var state = getState();
     (0, _webApiUtils.getNodesDelta)((0, _topologyUtils.getCurrentTopologyUrl)(state), (0, _topology.activeTopologyOptionsSelector)(state), dispatch);
     (0, _webApiUtils.getNodeDetails)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
-
+    (0, _webApiUtils.appModuleInfo)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
     // Populate search matches on first load
     if (firstLoad && state.get('searchQuery')) {
       dispatch(focusSearch());
@@ -1318,7 +1321,6 @@ function route(urlState) {
     (0, _webApiUtils.getNodesDelta)((0, _topologyUtils.getCurrentTopologyUrl)(state), (0, _topology.activeTopologyOptionsSelector)(state), dispatch);
 
     (0, _webApiUtils.getNodeDetails)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch);
-
     // If we are landing on the resource view page, we need to fetch not only all the
     // nodes for the current topology, but also the nodes of all the topologies that make
     // the layers in the resource view.
@@ -4205,7 +4207,7 @@ function brightenColor(c) {
 var statusColorMap = {
   'running': 'rgb(0,215,119)', //运行中 绿色
   'closed': 'rgb(0,0,33)', //已关闭 黑色
-
+  'helm': 'rgb(0,215,119)', //helm 绿色
   'third_party': "rgb(91,178,250)",
 
   'undeploy': 'rgb(112,128,144)', //未部署 石板灰
@@ -4245,6 +4247,7 @@ var statusColorMap = {
   'PARTIAL_ABNORMAL': 'rgb(205,2,0)', //部分异常 纯红
   'not-configured': 'rgb(112,128,144)', //未配置 石板灰
   'unknown': 'rgb(205,2,0)', //未知 纯红
+  'deployed': 'rgb(0,215,119)', //已部署 绿色
   "succeeded": 'rgb(0,215,119)', //job、cronjob 已完成  绿色
   'operator': 'rgb(181 182 160)' // operator 类型组件 紫色
 };
@@ -5179,6 +5182,8 @@ Object.defineProperty(exports, "__esModule", {
 exports.getNodeList = getNodeList;
 exports.showDetailContent = showDetailContent;
 exports.statusCN = statusCN;
+exports.componentStatusCN = componentStatusCN;
+exports.appStatusCN = appStatusCN;
 exports.getContainerMemory = getContainerMemory;
 exports.getPodNum = getPodNum;
 exports.getPodMemory = getPodMemory;
@@ -5248,12 +5253,54 @@ function statusCN(nodeDetails) {
     'startting': '开启中',
     'checking': '检测中',
     'stoping': '关闭中',
-    'stopping': '关闭中'
-
+    'stopping': '关闭中',
+    'abnormal': '运行异常',
+    'some_abnormal': '部分异常',
+    'third_party': '第三方组件',
+    'helm': 'helm'
   };
   return map[nodeDetails.cur_status] || '未知状态';
 }
-
+// 聚合应用下的节点状态对应的中文描述
+function componentStatusCN(nodeDetails) {
+  var map = {
+    'running': '运行中',
+    'closed': '已关闭',
+    'undeploy': '未部署',
+    'starting': '开启中',
+    'startting': '开启中',
+    'checking': '检测中',
+    'stoping': '关闭中',
+    'stopping': '关闭中',
+    'abnormal': '运行异常',
+    'third_party': '第三方组件',
+    'helm': 'helm',
+    'some_abnormal': '部分异常'
+  };
+  return map[nodeDetails.component_status] || '未知状态';
+}
+//应用对应的状态中文描述
+function appStatusCN(nodeDetails) {
+  var map = {
+    RUNNING: '运行中',
+    STARTING: '启动中',
+    CLOSED: '已关闭',
+    STOPPING: '关闭中',
+    ABNORMAL: '异常',
+    PARTIAL_ABNORMAL: '部分异常',
+    'not-configured': '未配置',
+    unknown: '未知',
+    deployed: '已部署',
+    superseded: '可升级',
+    failed: '失败',
+    uninstalled: '已卸载',
+    uninstalling: '卸载中',
+    'pending-install': '安装中',
+    'pending-upgrade': '升级中',
+    'pending-rollback': '回滚中'
+  };
+  return map[nodeDetails] || '未知状态';
+}
 // 获取节点的内存占用
 function getContainerMemory(nodeDetails) {
   //不是运行中的状态内存强制显示为0
@@ -13581,7 +13628,8 @@ var Node = function (_React$Component) {
           showingNetworks = _props3.showingNetworks,
           stack = _props3.stack,
           id = _props3.id,
-          metric = _props3.metric;
+          metric = _props3.metric,
+          appNodes = _props3.appNodes;
       var hovered = this.state.hovered;
 
 
@@ -13599,7 +13647,6 @@ var Node = function (_React$Component) {
         onMouseEnter: this.handleMouseEnter,
         onMouseLeave: this.handleMouseLeave
       };
-
       return _react2.default.createElement(
         "g",
         { className: nodeClassName, transform: transform },
@@ -13655,7 +13702,8 @@ function mapStateToProps(state) {
     exportingGraph: state.get("exportingGraph"),
     showingNetworks: state.get("showingNetworks"),
     currentTopology: state.get("currentTopology"),
-    contrastMode: state.get("contrastMode")
+    contrastMode: state.get("contrastMode"),
+    appNodes: state.get('appNodes')
   };
 }
 
@@ -14864,6 +14912,10 @@ var testable = exports.testable = {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }(); /* eslint-disable no-use-before-define */
+
+
 exports.buildOptionsQuery = buildOptionsQuery;
 exports.basePath = basePath;
 exports.basePathSlash = basePathSlash;
@@ -14880,8 +14932,10 @@ exports.Disklist = Disklist;
 exports.GetPods = GetPods;
 exports.Visitinfo = Visitinfo;
 exports.UserPermission = UserPermission;
+exports.visitInfoParams = visitInfoParams;
 exports.appVisitInfo = appVisitInfo;
 exports.appModuleInfo = appModuleInfo;
+exports.appNameInfo = appNameInfo;
 exports.appInfo = appInfo;
 exports.Podname = Podname;
 exports.Dateils = Dateils;
@@ -14915,8 +14969,9 @@ var _layout = __webpack_require__(419);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var log = (0, _debug2.default)('scope:web-api-utils'); /* eslint-disable no-use-before-define */
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
+var log = (0, _debug2.default)('scope:web-api-utils');
 
 var reconnectTimerInterval = 5000;
 var updateFrequency = '5s';
@@ -14945,6 +15000,9 @@ var createWebsocketAt = 0;
 var firstMessageOnWebsocketAt = 0;
 var continuePolling = true;
 var newData = null;
+var appName = null;
+var newAppInfo = [];
+var appServiceAlias = [];
 var tiem = 0;
 function buildOptionsQuery(options) {
   if (options) {
@@ -15174,6 +15232,8 @@ function getTopologies(options, dispatch, initialPoll) {
 function goodrainData2scopeData() {
   var data = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
+  var windowParent = window.parent;
+  var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   var scopeData = {
     add: [],
     update: null,
@@ -15185,6 +15245,7 @@ function goodrainData2scopeData() {
   var item = {};
   var cloud = {
     id: 'The Internet',
+    app_id: groupId,
     service_alias: 'internet',
     service_cname: 'The Internet',
     label: '网关',
@@ -15213,19 +15274,45 @@ function goodrainData2scopeData() {
     if (Object.prototype.hasOwnProperty.call(data.json_data, k)) {
       node = {};
       item = data.json_data[k];
-      node.cur_status = item.cur_status;
       node.service_cname = item.service_cname;
       node.service_id = item.service_id;
       node.service_alias = item.service_alias;
+      if (item.app_id == groupId && item.cur_status != 'third_party' && item.app_type !== 'helm') {
+        node.label = item.service_cname;
+        node.stackNum = 1;
+        node.is_flag = false;
+        node.cur_status = item.cur_status;
+      } else if (item.app_id != groupId && item.cur_status != 'third_party' && item.app_type !== 'helm' && item.cur_status !== 'operator') {
+        node.label = item.app_name;
+        node.stackNum = 3;
+        node.is_flag = true;
+        node.cur_status = item.app_status;
+        node.component_status = item.cur_status;
+      } else if (item.app_type !== 'helm' && item.cur_status == 'third_party') {
+        node.label = item.service_cname;
+        node.stackNum = 1;
+        node.is_flag = false;
+        node.cur_status = item.cur_status;
+      } else if (item.app_type === 'helm' && item.cur_status !== 'operator') {
+        node.cur_status = 'helm';
+        node.label = item.app_name;
+        node.stackNum = 3;
+        node.is_flag = true;
+      } else if (item.app_id != groupId && item.cur_status == 'operator') {
+        node.label = item.service_cname;
+        node.stackNum = 1;
+        node.is_flag = false;
+        node.cur_status = item.cur_status;
+      }
+      node.component_memory = item.component_memory;
       node.id = item.service_id;
-      node.label = item.service_cname;
+      node.app_id = item.app_id;
       node.lineTip = item.lineTip;
       node.labelMinor = '';
       // 根据状态改变颜色用
       node.rank = node.cur_status;
       node.shape = 'hexagon';
       node.stack = true;
-      node.stackNum = 1;
       node.linkable = item.cur_status === 'running' ? 1 : 0;
       node.adjacency = data.json_svg[k] || [];
       add.push(node);
@@ -15237,7 +15324,44 @@ function goodrainData2scopeData() {
   if (add.length && cloud.adjacency.length) {
     add.unshift(cloud);
   }
-  var scopeDataAdd = add;
+  var adds = [];
+  var newAdds = [];
+  for (var i = 0; i < add.length; i++) {
+    if (add[i].app_id != groupId && add[i].cur_status != 'third_party' && add[i].cur_status != 'helm' && add[i].cur_status !== 'operator') {
+      newAdds.push(add[i]);
+    } else if (add[i].app_id != groupId && add[i].cur_status == 'operator') {
+      adds.push(add[i]);
+    } else {
+      adds.push(add[i]);
+    }
+  }
+  var map = newAdds.reduce(function (all, m) {
+    var list = all.get(m.app_id);
+    if (!list) {
+      list = [];
+      all.set(m.app_id, list);
+    }
+    list.push(m);
+    return all;
+  }, new Map());;
+  Array.from(map.entries())
+  // 这里过滤掉 list 只有一个元素的，剩下的就是有重复的
+  .forEach(function (_ref) {
+    var _ref2 = _slicedToArray(_ref, 2),
+        app_id = _ref2[0],
+        list = _ref2[1];
+
+    if (list.length > 0) {
+      var values = list.map(function (m) {
+        return m;
+      });
+      adds.push(values[0]);
+      newAppInfo.push.apply(newAppInfo, _toConsumableArray(list));
+    } else {
+      adds.push(list[0]);
+    }
+  });
+  var scopeDataAdd = adds;
   scopeData.add = null;
   scopeData.remove = null;
   scopeData.update = null;
@@ -15250,24 +15374,25 @@ function goodrainData2scopeData() {
 
   if (newData !== null && newData !== scopeDataAdd) {
     var newAdjacency = newData[0] && newData[0].adjacency;
+
     var scopeAdjacency = scopeDataAdd[0] && scopeDataAdd[0].adjacency;
     scopeData.remove = [];
     scopeData.update = [];
 
     // remove
-    for (var i = 0; i < newAdjacency.length; i++) {
-      if (scopeAdjacency.indexOf(newAdjacency[i]) < 0) {
-        scopeData.remove.push(newAdjacency[i]);
+    for (var _i = 0; _i < newAdjacency.length; _i++) {
+      if (scopeAdjacency.indexOf(newAdjacency[_i]) < 0) {
+        scopeData.remove.push(newAdjacency[_i]);
       }
     }
-    for (var _i = 0; _i < newData.length; _i++) {
+    for (var _i2 = 0; _i2 < newData.length; _i2++) {
       for (var k = 0; k < scopeDataAdd.length; k++) {
         // add
         if (newData.length !== scopeDataAdd.length || scopeData.remove.length > 0) {
           scopeData.add = scopeDataAdd;
         }
         // update
-        if (newData[_i].adjacency !== scopeDataAdd[k].adjacency || newData[_i].cur_status !== scopeDataAdd[k].cur_status) {
+        if (newData[_i2].adjacency !== scopeDataAdd[k].adjacency || newData[_i2].cur_status !== scopeDataAdd[k].cur_status) {
           scopeData.update = scopeDataAdd;
         }
       }
@@ -15277,8 +15402,10 @@ function goodrainData2scopeData() {
   newData = scopeData.add == null ? newData : scopeData.add;
   scopeData.remove = scopeData.remove !== null && scopeData.remove.length > 0 ? scopeData.remove : null;
   scopeData.update = scopeData.update !== null && scopeData.update.length > 0 ? scopeData.update : null;
+
   return scopeData;
 }
+
 //处理 operator 类型数据
 function handleOperatorInfo(data) {
   var keys = Object.keys(data.json_data);
@@ -15318,7 +15445,6 @@ function handleOperatorInfo(data) {
   });
   return arrOperator;
 }
-
 // TODO: topologyUrl and options are always used for the current topology so they as arguments
 // can be replaced by the `state` and then retrieved here internally from selectors.
 function getNodesDelta(topologyUrl, options, dispatch) {
@@ -15387,16 +15513,15 @@ function getNodeMonitorData(dispatch) {
 
 function getNodeDetails(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   // get details for all opened nodes
-
   var windowParent = window.parent;
   var obj = nodeMap.last();
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   dispatch({
     type: "TEAM_NAME",
     tenantName: tenantName
   });
-  var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
-  var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   if (obj && serviceAlias && tenantName && groupId) {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
     var url = '';
@@ -15559,33 +15684,73 @@ function UserPermission(dispatch) {
     });
   }
 }
+function visitInfoParams(appNodes, nodeId) {
+  return new Promise(function (resolve, reject) {
+    var windowParent = window.parent;
+    var VisitParams = windowParent.iframeGetNodeVistitUrl && windowParent.iframeGetNodeVistitUrl();
+    var appnodes = appNodes._list._tail.array;
+    for (var i = 0; i < appnodes.length; i++) {
+      if (nodeId === appnodes[i][0].id) {
+        var app_ID = appnodes[i][0].app_id;
+      }
+    }
+    var url = '';
+    if (app_ID) {
+      url = VisitParams + '?group_id=' + app_ID;
+
+      doRequest({
+        url: url,
+        success: function success(res) {
+          if (res && res.code === 200) {
+            var data = res.data.bean;
+            if (JSON.stringify(data) === '{}') {
+              return;
+            }
+            var serviceIds = [];
+            var service_alias = [];
+            var json_data = data.json_data;
+
+            Object.keys(json_data).map(function (key) {
+              serviceIds.push(key);
+              if (json_data[key].cur_status == 'running' && json_data[key].is_internet == true) {
+                service_alias.push(json_data[key].service_alias);
+              }
+            });
+            resolve(service_alias);
+          }
+        },
+        error: function error(err) {
+          log('Error in node details request: ' + err.responseText);
+        }
+      });
+    }
+  });
+}
 //获取应用访问信息
-function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
+async function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias, appNodes, nodeId) {
+  var visitinfoParams = await visitInfoParams(appNodes, nodeId);
   var windowParent = window.parent;
   var obj = nodeMap.last();
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   var url = '';
-  if (serviceAlias && tenantName) {
-    var topologyUrl = topologyUrlsById.get(obj.topologyId);
-    url = '/console/teams/' + tenantName + '/group/service/visitservice_alias=' + serviceAlias + '?region=' + region + '&_=' + new Date().getTime();
+  var service_alias = [].concat(_toConsumableArray(new Set(visitinfoParams))).join('-');
+  if (tenantName) {
+    url = '/console/teams/' + tenantName + '/group/service/visit?service_alias=' + service_alias;
 
     doRequest({
       url: url,
       success: function success(res) {
-        // res = res || {};
+        res = res || {};
 
-        // res.rank = res.cur_status;
-        // if (obj.id === 'The Internet') {
-        //   res.cur_status = 'running';
-        // }
-        // res = res || {};
-        // const data = res.data.bean.access_info[0] || {};
-        // dispatch({
-        //   type:"VISIT_INFO",
-        //   data
-        // });
+        res.rank = res.cur_status;
+        res = res || {};
+        var data = res.data.list || [];
+        dispatch({
+          type: "APP_VISIT_INFO",
+          data: data
+        });
       },
       error: function error(err) {
         log('Error in node details request: ' + err.responseText);
@@ -15594,32 +15759,34 @@ function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dis
   }
 }
 //应用下面的组件数量
-function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
+function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias, appNodes, nodeId) {
   var windowParent = window.parent;
   var obj = nodeMap.last();
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var appnodes = appNodes._list._tail.array;
+  for (var i = 0; i < appnodes.length; i++) {
+    if (nodeId === appnodes[i][0].id) {
+      var app_Id = appnodes[i][0].app_id;
+    }
+  }
   var url = '';
-  if (serviceAlias && tenantName) {
-    var topologyUrl = topologyUrlsById.get(obj.topologyId);
-    url = '/console/teams/' + tenantName + '/groups/' + groupId + '?region=' + region + '&_=' + new Date().getTime();
+  if (tenantName && groupId) {
+    url = '/console/teams/' + tenantName + '/groups/' + app_Id + '?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
       url: url,
       success: function success(res) {
-        // res = res || {};
+        res = res || {};
 
-        // res.rank = res.cur_status;
-        // if (obj.id === 'The Internet') {
-        //   res.cur_status = 'running';
-        // }
-        // res = res || {};
-        // const data = res.data.bean.access_info[0] || {};
-        // dispatch({
-        //   type:"VISIT_INFO",
-        //   data
-        // });
+        res.rank = res.cur_status;
+        res = res || {};
+        var data = res.data.bean || {};
+        dispatch({
+          type: "APP_MODULE_INFO",
+          data: data
+        });
       },
       error: function error(err) {
         log('Error in node details request: ' + err.responseText);
@@ -15627,33 +15794,77 @@ function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, di
     });
   }
 }
+//应用名称信息
+function appNameInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
+  var formatArr = function formatArr() {
+    var map = new Map();
+    var _iteratorNormalCompletion = true;
+    var _didIteratorError = false;
+    var _iteratorError = undefined;
+
+    try {
+      for (var _iterator = newAppInfo[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+        var item = _step.value;
+
+        if (!map.has(item.service_cname)) {
+          map.set(item.service_cname, item);
+        }
+      }
+    } catch (err) {
+      _didIteratorError = true;
+      _iteratorError = err;
+    } finally {
+      try {
+        if (!_iteratorNormalCompletion && _iterator.return) {
+          _iterator.return();
+        }
+      } finally {
+        if (_didIteratorError) {
+          throw _iteratorError;
+        }
+      }
+    }
+
+    return [].concat(_toConsumableArray(map.values()));
+  };
+  var newArr = formatArr();
+  if (newArr.length > 0) {
+    var data = newArr;
+    dispatch({
+      type: "NEW_APP_INFO",
+      data: data
+    });
+  }
+}
 //应用下的基本信息
-function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
+function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias, appNodes, nodeId) {
   var windowParent = window.parent;
   var obj = nodeMap.last();
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
-  var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var appnodes = appNodes._list._tail.array;
+  for (var i = 0; i < appnodes.length; i++) {
+    if (nodeId === appnodes[i][0].id) {
+      var appId = appnodes[i][0].app_id;
+    }
+  }
   var url = '';
-  if (serviceAlias && tenantName) {
+  if (tenantName) {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
-    url = '/console/teams/' + tenantName + '/groups/' + groupId + '/status?region=' + region + '&_=' + new Date().getTime();
+    url = '/console/teams/' + tenantName + '/groups/' + appId + '/status?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
       url: url,
       success: function success(res) {
-        // res = res || {};
+        res = res || {};
 
-        // res.rank = res.cur_status;
-        // if (obj.id === 'The Internet') {
-        //   res.cur_status = 'running';
-        // }
-        // res = res || {};
-        // const data = res.data.bean.access_info[0] || {};
-        // dispatch({
-        //   type:"VISIT_INFO",
-        //   data
-        // });
+        res.rank = res.cur_status;
+        res = res || {};
+        var data = res.data.list || {};
+        dispatch({
+          type: "APP_INFO",
+          data: data
+        });
       },
       error: function error(err) {
         log('Error in node details request: ' + err.responseText);
@@ -26129,7 +26340,7 @@ var App = function (_React$Component) {
               left: monitorData.left,
               top: monitorData.top - 60,
               zIndex: 9999,
-              background: 'black'
+              background: '#fff'
             }
           },
           '\u541E\u5410\u7387 - \u70B9\u5BC6\u5EA6\u8868\u793A: ',
@@ -30114,6 +30325,7 @@ var NodeDetails = function (_React$Component) {
     _this.handleRelativeClick = _this.handleRelativeClick.bind(_this);
     _this.state = {
       shows: false,
+      // isFlag: false,
       count: 0,
       operatorData: false
     };
@@ -30208,21 +30420,11 @@ var NodeDetails = function (_React$Component) {
             _react2.default.createElement(
               'h2',
               { className: 'node-details-header-label' },
-              nodeInfo.id == 'The Internet' ? _react2.default.createElement(
+              _react2.default.createElement(
                 'span',
                 { className: 'node-details-text truncate' },
                 label,
                 ' '
-              ) : _react2.default.createElement(
-                'a',
-                { href: 'javascript:;', onClick: this.handleClickService.bind(this, nodeInfo) },
-                _react2.default.createElement(
-                  'span',
-                  { className: 'node-details-text truncate' },
-                  label,
-                  ' '
-                ),
-                _react2.default.createElement('span', { style: { verticalAlign: 'middle' }, className: 'icon-angle-right' })
               )
             ),
             _react2.default.createElement(
@@ -30474,13 +30676,14 @@ var NodeDetails = function (_React$Component) {
       if (this.props.details) {
         return this.renderDetails();
       }
+
       return this.renderLoading();
     }
   }, {
     key: 'handleClickService',
-    value: function handleClickService(nodeDetails) {
+    value: function handleClickService(nodeDetails, isFlag) {
       //调用父页面预留的接口
-      window.parent && parent.handleClickService && parent.handleClickService(nodeDetails);
+      window.parent && parent.handleClickService && parent.handleClickService(nodeDetails, isFlag);
     }
   }, {
     key: 'handleClickRelation',
@@ -30569,6 +30772,11 @@ var NodeDetails = function (_React$Component) {
           disk = _props.disk,
           visitinfo = _props.visitinfo,
           pods = _props.pods,
+          appinfo = _props.appinfo,
+          appmoduleinfo = _props.appmoduleinfo,
+          appvisitinfo = _props.appvisitinfo,
+          appNodes = _props.appNodes,
+          newAppInfo = _props.newAppInfo,
           userPermission = _props.userPermission,
           teamName = _props.teamName;
       var shows = this.state.shows;
@@ -30586,6 +30794,16 @@ var NodeDetails = function (_React$Component) {
           pending = _ref.pending;
 
       var tools = this.renderTools();
+      var appInfo = appinfo && appinfo.data || {};
+      var appModuleInfo = appmoduleinfo && appmoduleinfo.data || {};
+      var appVisitInfo = appvisitinfo && appvisitinfo.data || {};
+      var appCpu = (appInfo.cpu / 1000).toFixed(2);
+      var appMemoryUnit = appInfo.memory > 1024 ? 'GB' : 'MB';
+      var appMemory = appInfo.memory > 1024 ? (appInfo.memory / 1024).toFixed(2) : appInfo.memory;
+      var appDiskUnit = appInfo.disk > 1024 ? 'MB' : appInfo.disk >= 1048576 ? 'GB' : 'KB';
+      var appDiskValue = appInfo.disk > 1024 ? (appInfo.disk / 1024).toFixed(2) : appInfo.disk >= 1048576 ? (appInfo.disk / 1024 / 1024).toFixed(2) : appInfo.disk;
+      var appState = appInfo && (0, _nodeDetailsUtils.appStatusCN)(appInfo.status);
+      var appModule = newAppInfo && newAppInfo.data || [];
       var nodeInfo = this.props.nodes.get(this.props.id).toJS();
       //服务列表
       var portList = nodeDetails.port_list || {};
@@ -30595,6 +30813,9 @@ var NodeDetails = function (_React$Component) {
       var relationList = nodeDetails.relation_list || {};
       var show = (0, _nodeDetailsUtils.showDetailContent)(nodeDetails);
       var container_memory = nodeDetails.container_memory;
+      var appnodes = appNodes._list._tail.array;
+      // 实例平均占用内存
+      var podMemory = (0, _nodeDetailsUtils.getPodMemory)(nodeDetails);
 
       //用户操作权限
       var permission = userPermission && userPermission.data || [];
@@ -30624,8 +30845,10 @@ var NodeDetails = function (_React$Component) {
         var value = Object.values(oldList[item])[0];
         Object.assign(permissionObj, _defineProperty({}, key, value));
       });
-      // 实例平均占用内存
-      var podMemory = (0, _nodeDetailsUtils.getPodMemory)(nodeDetails);
+
+      var isFlag = null;
+      var is_Helm = null;
+      var newRes = [];
       var styles = {
         controls: {
           backgroundColor: (0, _colorUtils.brightenColor)(nodeColor)
@@ -30642,6 +30865,24 @@ var NodeDetails = function (_React$Component) {
         return instance_count;
       });
       // const nodeInfo = this.props.nodes.get(this.props.label).toJS();
+      // 节点依据
+      for (var i = 0; i < appnodes.length; i++) {
+        if (nodeDetails.id === appnodes[i][0].id && appnodes[i][0].is_flag) {
+          isFlag = true;
+        }
+      }
+      // helm依据
+      for (var _i = 0; _i < appnodes.length; _i++) {
+        if (nodeDetails.id === appnodes[_i][0].id && appnodes[_i][0].cur_status == 'helm') {
+          is_Helm = true;
+        }
+      };
+      //应用下的组件
+      for (var _i2 = 0; _i2 < appModule.length; _i2++) {
+        if (nodeDetails.app_id === appModule[_i2].app_id) {
+          newRes.push(appModule[_i2]);
+        }
+      }
       //计算运行时间
       var day = Math.floor(new Date().getTime() / 1000) - new Date(nodeDetails.start_time).getTime() / 1000,
           day2 = Math.floor(day / (24 * 3600)),
@@ -30651,14 +30892,13 @@ var NodeDetails = function (_React$Component) {
           day6 = day4 - day5 * 3600,
           day7 = Math.floor(day6 / 60),
           day8 = day6 - day7 * 60;
-
       return _react2.default.createElement(
         'div',
         { className: 'node-details' },
         tools,
         _react2.default.createElement(
           'div',
-          { className: 'node-details-header', style: { backgroundColor: (0, _colorUtils.getStatusColor)(nodeDetails.cur_status) } },
+          { className: 'node-details-header', style: { backgroundColor: is_Helm ? (0, _colorUtils.getStatusColor)('helm') : (0, _colorUtils.getStatusColor)(nodeDetails.cur_status) } },
           _react2.default.createElement(
             'div',
             { className: 'node-details-header-wrapper', style: { padding: '16px 36px 0px 36px' } },
@@ -30672,7 +30912,7 @@ var NodeDetails = function (_React$Component) {
                 ' '
               ) : _react2.default.createElement(
                 'a',
-                { href: 'javascript:;', onClick: this.handleClickService.bind(this, nodeDetails) },
+                { href: 'javascript:;', onClick: this.handleClickService.bind(this, nodeDetails, isFlag) },
                 _react2.default.createElement(
                   'span',
                   { className: 'node-details-text truncate' },
@@ -30682,7 +30922,7 @@ var NodeDetails = function (_React$Component) {
                 _react2.default.createElement('span', { style: { verticalAlign: 'middle' }, className: 'icon-angle-right' })
               )
             ),
-            nodeDetails.id == 'The Internet' || nodeDetails.cur_status == "operator" ? null : nodeDetails.cur_status == "third_party" ? _react2.default.createElement(
+            nodeDetails.id == 'The Internet' || nodeDetails.cur_status == "operator" ? null : nodeDetails.cur_status == "third_party" && !is_Helm ? _react2.default.createElement(
               'div',
               { className: 'node-details-header-relatives' },
               _react2.default.createElement(
@@ -30698,18 +30938,71 @@ var NodeDetails = function (_React$Component) {
                   )
                 )
               )
+            ) : nodeDetails.cur_status == "third_party" && is_Helm ? _react2.default.createElement(
+              'div',
+              { className: 'node-details-header-relatives' },
+              _react2.default.createElement(
+                'table',
+                { style: { width: '100%' } },
+                _react2.default.createElement(
+                  'tr',
+                  null,
+                  _react2.default.createElement(
+                    'td',
+                    { style: { width: '100%', textAlign: 'center' } },
+                    'Helm\u5E94\u7528'
+                  )
+                )
+              )
             ) : _react2.default.createElement(
               'div',
               { className: 'node-details-header-relatives', style: { width: '121%', paddingTop: '6px', marginLeft: '-36px' } },
+              isFlag ?
+              // 聚合的访问层
               _react2.default.createElement(
                 'table',
                 { style: { width: '100%', padding: '5px 0px', background: 'rgba(255,255,255,0.2)' } },
                 _react2.default.createElement(
                   'tr',
                   { style: { display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' } },
-
-                  // nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' &&  nodeDetails.cur_status != 'closed' &&  nodeDetails.cur_status != 'creating' &&
-                  visit.length > 0 && Object.keys(portList).length > 0 && nodeDetails.cur_status == 'running' && _react2.default.createElement(
+                  _react2.default.createElement(
+                    'td',
+                    { style: { cursor: 'pointer', position: 'relative', marginRight: '40px' } },
+                    _react2.default.createElement('div', { onMouseOver: function onMouseOver() {
+                        _this3.visit();
+                      }, title: '\u8BBF\u95EE', style: { fontSize: '20px' }, className: 'iconfont icon-icon_web' }),
+                    shows && _react2.default.createElement(
+                      'div',
+                      null,
+                      _react2.default.createElement(
+                        'div',
+                        { onMouseLeave: function onMouseLeave() {
+                            _this3.visitout();
+                          }, style: { position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' } },
+                        _react2.default.createElement(
+                          'div',
+                          { style: { width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight: '200px', overflow: 'auto' } },
+                          appVisitInfo.map(function (item, index) {
+                            return _react2.default.createElement(
+                              'a',
+                              { style: { color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }, href: item.access_info[0].access_urls[0], target: '_blank' },
+                              item.access_info[0].service_cname
+                            );
+                          })
+                        )
+                      )
+                    )
+                  )
+                )
+              ) :
+              // 普通模式
+              _react2.default.createElement(
+                'table',
+                { style: { width: '100%', padding: '5px 0px', background: 'rgba(255,255,255,0.2)' } },
+                _react2.default.createElement(
+                  'tr',
+                  { style: { display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' } },
+                  nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' && nodeDetails.cur_status != 'closed' && nodeDetails.cur_status != 'creating' && visit.length > 0 && Object.keys(portList).length > 0 && nodeDetails.cur_status == 'running' && _react2.default.createElement(
                     'td',
                     { style: { cursor: 'pointer', position: 'relative', marginRight: '40px' } },
                     _react2.default.createElement('div', { onMouseOver: function onMouseOver() {
@@ -30786,12 +31079,12 @@ var NodeDetails = function (_React$Component) {
             )
           )
         ),
+        !isFlag ?
+        // 普通模式
         _react2.default.createElement(
           'div',
           { className: 'node-details-content' },
-          nodeDetails.id == 'The Internet' ? null : nodeDetails.cur_status == "third_party" ? null :
-          // nodeDetails.cur_status == "closed" ? null :
-          _react2.default.createElement(
+          nodeDetails.id == 'The Internet' ? null : nodeDetails.cur_status == "third_party" ? null : nodeDetails.cur_status == "operator" ? null : _react2.default.createElement(
             'div',
             null,
             _react2.default.createElement(
@@ -31295,6 +31588,423 @@ var NodeDetails = function (_React$Component) {
               )
             )
           )
+        ) :
+        // 聚合模式
+        _react2.default.createElement(
+          'div',
+          { className: 'node-details-content' },
+          nodeDetails.id == 'The Internet' ? null : nodeDetails.cur_status == "third_party" ? null : nodeDetails.cur_status == "operator" ? null : _react2.default.createElement(
+            'div',
+            { className: 'node-details-content-section' },
+            _react2.default.createElement(
+              'div',
+              { className: 'node-details-content-section-header', style: { fontSize: '15px' } },
+              '\u57FA\u672C\u4FE1\u606F'
+            ),
+            _react2.default.createElement(
+              'div',
+              { style: { width: '100%' } },
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex', justifyContent: 'center' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  '\u8FD0\u884C\u72B6\u6001\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appState
+                )
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  '\u5185\u5B58\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appMemory,
+                  appMemoryUnit
+                )
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  'CPU\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appCpu + 'Core'
+                )
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  '\u78C1\u76D8\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appDiskValue,
+                  appDiskUnit
+                )
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  '\u7EC4\u4EF6\u6570\u91CF\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appModuleInfo.service_num
+                )
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  '\u521B\u5EFA\u65F6\u95F4\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appModuleInfo.create_time
+                )
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  '\u66F4\u65B0\u65F6\u95F4\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appModuleInfo.update_time
+                )
+              )
+            )
+          ),
+          nodeDetails.id == 'The Internet' ? null : nodeDetails.cur_status == 'operator' ? null :
+          // nodeDetails.cur_status == "helm"  ? 
+          is_Helm ? _react2.default.createElement(
+            'div',
+            { className: 'node-details-content-section' },
+            _react2.default.createElement(
+              'div',
+              { className: 'node-details-content-section-header', style: { fontSize: '15px' } },
+              '\u57FA\u672C\u4FE1\u606F'
+            ),
+            _react2.default.createElement(
+              'div',
+              { style: { width: '100%' } },
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex', justifyContent: 'center' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  '\u8FD0\u884C\u72B6\u6001\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appModuleInfo.status === "deployed" ? '已部署' : '运行中'
+                )
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  '\u5185\u5B58\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appInfo.memory + 'MB'
+                )
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  'CPU\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appModuleInfo.cpu ? appCpu + 'Core' : '不限制'
+                )
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  '\u670D\u52A1\u6570\u91CF\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appModuleInfo.service_num
+                )
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  '\u7248\u672C\u53F7\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appModuleInfo.version
+                )
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  '\u521B\u5EFA\u65F6\u95F4\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appModuleInfo.create_time
+                )
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { display: 'flex' } },
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'right', width: '40%' } },
+                  '\u66F4\u65B0\u65F6\u95F4\uFF1A'
+                ),
+                _react2.default.createElement(
+                  'div',
+                  { style: { textAlign: 'left', width: '60%' } },
+                  appModuleInfo.update_time
+                )
+              )
+            )
+          ) : null,
+          nodeDetails.id == 'The Internet' ? null : nodeDetails.cur_status == "third_party" ? null : nodeDetails.cur_status == "operator" ? null : _react2.default.createElement(
+            'div',
+            null,
+            instanceDetail.length > 0 && instanceDetail == null ? null : nodeDetails.cur_status == "closed" ? null : nodeDetails.cur_status == "undeploy" ? null : _react2.default.createElement(
+              'div',
+              { className: 'node-details-content-section' },
+              _react2.default.createElement(
+                'div',
+                { className: 'node-details-content-section-header', style: { fontSize: '15px' } },
+                '\u5E94\u7528\u7684\u7EC4\u4EF6'
+              ),
+              _react2.default.createElement(
+                'div',
+                { style: { width: '100%' } },
+                _react2.default.createElement(
+                  'table',
+                  { style: { tableLayout: 'fixed', width: '100%' } },
+                  _react2.default.createElement(
+                    'thead',
+                    null,
+                    _react2.default.createElement(
+                      'tr',
+                      null,
+                      _react2.default.createElement(
+                        'th',
+                        { style: { textAlign: 'center', width: '33%' } },
+                        '\u7EC4\u4EF6\u540D'
+                      ),
+                      _react2.default.createElement(
+                        'th',
+                        { style: { width: '33%', textAlign: 'center' } },
+                        '\u5185\u5B58'
+                      ),
+                      _react2.default.createElement(
+                        'th',
+                        { style: { width: '33%', textAlign: 'center' } },
+                        '\u72B6\u6001'
+                      )
+                    )
+                  ),
+                  newRes.length > 0 && newRes.map(function (item, index) {
+                    return _react2.default.createElement(
+                      'tbody',
+                      null,
+                      _react2.default.createElement(
+                        'tr',
+                        null,
+                        _react2.default.createElement(
+                          'td',
+                          { onClick: _this3.handleClickRelation.bind(_this3, item), className: 'node-details-info-field-value truncate', style: { textAlign: 'center', textDecoration: 'underline', cursor: 'pointer' }, title: item.service_cname },
+                          item.service_cname
+                        ),
+                        _react2.default.createElement(
+                          'td',
+                          { style: { textAlign: 'center' } },
+                          item.component_memory + 'MB'
+                        ),
+                        _react2.default.createElement(
+                          'td',
+                          { className: 'node-details-info-field-value truncate', style: { textAlign: 'center' } },
+                          (0, _nodeDetailsUtils.componentStatusCN)(item)
+                        )
+                      )
+                    );
+                  })
+                )
+              )
+            )
+          ),
+          _react2.default.createElement(
+            'div',
+            { className: 'node-details-content-section', style: { display: show ? 'block' : 'none' } },
+            Object.keys(relationList).length > 0 && _react2.default.createElement(
+              'div',
+              { className: 'node-details-content-section' },
+              _react2.default.createElement(
+                'table',
+                { style: { width: '100%', tableLayout: 'fixed' } },
+                _react2.default.createElement(
+                  'thead',
+                  null,
+                  _react2.default.createElement(
+                    'tr',
+                    null,
+                    _react2.default.createElement(
+                      'th',
+                      { style: { textAlign: 'left' } },
+                      '\u4F9D\u8D56\u670D\u52A1'
+                    ),
+                    _react2.default.createElement(
+                      'th',
+                      { style: { width: '80px', textAlign: 'right' } },
+                      '\u7AEF\u53E3'
+                    )
+                  )
+                ),
+                _react2.default.createElement(
+                  'tbody',
+                  null,
+                  Object.keys(relationList).map(function (key, index) {
+                    var relationListItem = relationList[key] || [];
+                    return relationListItem.map(function (item, index) {
+                      return _react2.default.createElement(
+                        'tr',
+                        null,
+                        _react2.default.createElement(
+                          'td',
+                          { onClick: _this3.handleClickRelation.bind(_this3, item), style: { textAlign: 'left', textDecoration: 'underline', cursor: 'pointer' } },
+                          item.service_cname
+                        ),
+                        _react2.default.createElement(
+                          'td',
+                          { style: { textAlign: 'right' } },
+                          item.mapping_port
+                        )
+                      );
+                    });
+                  })
+                )
+              )
+            ),
+            (nodeDetails.pod_list || []).length > 0 && _react2.default.createElement(
+              'div',
+              { className: 'node-details-content-section' },
+              _react2.default.createElement(
+                'table',
+                { style: { width: '100%', tableLayout: 'fixed' } },
+                _react2.default.createElement(
+                  'thead',
+                  null,
+                  _react2.default.createElement(
+                    'tr',
+                    null,
+                    _react2.default.createElement(
+                      'th',
+                      { style: { textAlign: 'left' } },
+                      '\u5B9E\u4F8B'
+                    ),
+                    _react2.default.createElement(
+                      'th',
+                      { style: { width: '80px', textAlign: 'right' } },
+                      '\u4F7F\u7528\u5185\u5B58'
+                    )
+                  )
+                ),
+                _react2.default.createElement(
+                  'tbody',
+                  null,
+                  (nodeDetails.pod_list || []).map(function (value, index) {
+                    return _react2.default.createElement(
+                      'tr',
+                      null,
+                      _react2.default.createElement(
+                        'td',
+                        { style: { textAlign: 'left' } },
+                        value.pod_name
+                      ),
+                      _react2.default.createElement(
+                        'td',
+                        { style: { textAlign: 'right' } },
+                        container_memory,
+                        'M'
+                      )
+                    );
+                  })
+                )
+              )
+            ),
+            _react2.default.createElement(
+              'div',
+              { className: 'node-details-content-section' },
+              _react2.default.createElement(
+                'table',
+                { style: { width: '100%', tableLayout: 'fixed' } },
+                _react2.default.createElement(
+                  'tbody',
+                  null,
+                  _react2.default.createElement(
+                    'tr',
+                    null,
+                    _react2.default.createElement('td', { style: { textAlign: 'left' } })
+                  )
+                )
+              )
+            )
+          )
         )
       );
     }
@@ -31337,16 +32047,22 @@ var NodeDetails = function (_React$Component) {
 
 function mapStateToProps(state, ownProps) {
   var currentTopologyId = state.get('currentTopologyId');
+  var nodesForCurrentTopologyKey = ['nodesByTopology', state.get('currentTopologyId')];
   return {
     tenantName: localStorage.getItem('tenantName'),
     groupId: localStorage.getItem('groupId'),
     nodeMatches: state.getIn(['searchNodeMatches', currentTopologyId, ownProps.id]),
     nodes: state.get('nodes'),
     selectedNodeId: state.get('selectedNodeId'),
-    bean: state.get('nodedetailes'),
-    disk: state.get('diskdetail'),
-    visitinfo: state.get('visitinfo'),
-    pods: state.get('getpods'),
+    bean: state.get('nodeDetailes'),
+    disk: state.get('diskDetail'),
+    visitinfo: state.get('visitInfo'),
+    pods: state.get('getPods'),
+    appinfo: state.get('appInfo'),
+    appmoduleinfo: state.get('appModuleInfo'),
+    appvisitinfo: state.get('appVisitInfo'),
+    appNodes: state.get('appNodes'),
+    newAppInfo: state.get('newAppInfo'),
     userPermission: state.get('userPermission'),
     teamName: state.get('teamName'),
     operatorInfo: state.get('operator')
@@ -34224,6 +34940,7 @@ var initialState = exports.initialState = (0, _immutable.Map)({
   mouseOverNodeId: null,
   nodeDetails: (0, _immutable.OrderedMap)(), // nodeId -> details
   nodes: (0, _immutable.OrderedMap)(), // nodeId -> node
+  appNodes: (0, _immutable.OrderedMap)(),
   nodeMonitorData: (0, _immutable.List)(), // serviceId -> monitorData
   nodesLoaded: false,
   // nodes cache, infrequently updated, used for search & resource view
@@ -34254,10 +34971,14 @@ var initialState = exports.initialState = (0, _immutable.Map)({
   websocketClosed: false,
   zoomCache: (0, _immutable.Map)(),
   serviceImages: (0, _immutable.Map)(),
-  nodedetailes: null,
-  diskdetail: null,
-  visitinfo: null,
-  getpods: null,
+  nodeDetailes: null,
+  diskDetail: null,
+  visitInfo: null,
+  getPods: null,
+  appInfo: null,
+  appModuleInfo: null,
+  appVisitInfo: null,
+  newAppInfo: null,
   userPermission: null,
   teamName: null,
   operator: null
@@ -34370,19 +35091,35 @@ function rootReducer() {
       }
     case "INSTANCE":
       {
-        return state.set('nodedetailes', action);
+        return state.set('nodeDetailes', action);
       }
     case "DISK_DETAIL":
       {
-        return state.set('diskdetail', action);
+        return state.set('diskDetail', action);
       }
     case "VISIT_INFO":
       {
-        return state.set('visitinfo', action);
+        return state.set('visitInfo', action);
       }
     case "GET_PODS":
       {
-        return state.set('getpods', action);
+        return state.set('getPods', action);
+      }
+    case "APP_INFO":
+      {
+        return state.set('appInfo', action);
+      }
+    case "APP_MODULE_INFO":
+      {
+        return state.set('appModuleInfo', action);
+      }
+    case "APP_VISIT_INFO":
+      {
+        return state.set('appVisitInfo', action);
+      }
+    case "NEW_APP_INFO":
+      {
+        return state.set('newAppInfo', action);
       }
     case "USER_PERMISSION":
       {
@@ -34874,6 +35611,7 @@ function rootReducer() {
             // to our nodes selectors (e.g. layout engine would be completely bypassed if the
             // adjacencies would stay the same but the metrics would get updated).
             state = state.setIn(['nodes', node.id], (0, _immutable.fromJS)(node));
+            state = state.setIn(['appNodes', node], (0, _immutable.fromJS)(node));
           }
         });
 
@@ -34885,6 +35623,7 @@ function rootReducer() {
             n[k] = node[k];
           }
           state = state.setIn(['nodes', node.id], (0, _immutable.fromJS)(n));
+          state = state.setIn(['appNodes', node], (0, _immutable.fromJS)(n));
         });
 
         // apply pinned searches, filters nodes that dont match
