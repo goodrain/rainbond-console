@@ -6,13 +6,15 @@ import os
 import pickle
 
 from console.constants import PluginCategoryConstants
-from console.exception.main import ServiceHandleException
+from console.exception.bcode import ErrK8sComponentNameExists, ErrComponentBuildFailed
+from console.exception.main import ServiceHandleException, ResourceNotEnoughException, AccountOverdueException, \
+    ErrInsufficientResource
 from console.repositories import deploy_repo
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
 from console.services.app import app_service as console_app_service
 from console.services.app_actions import app_manage_service, event_service
-from console.services.app_config import domain_service, port_service
+from console.services.app_config import domain_service, port_service, probe_service, volume_service, dependency_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.group_service import group_service
 from console.services.plugin import app_plugin_service
@@ -34,7 +36,9 @@ from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamApp
 from openapi.views.exceptions import ErrAppNotFound
 from rest_framework import status
 from rest_framework.response import Response
+from www.apiclient.baseclient import HttpClient
 from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -225,6 +229,104 @@ class ListAppServicesView(TeamAppAPIView):
         serializer = ServiceBaseInfoSerializer(data=services, many=True)
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="基于镜像创建组件",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
+        ],
+        tags=['openapi-apps'],
+    )
+    def post(self, request, region_name, app_id, *args, **kwargs):
+        group_id = request.data.get("group_id", -1)
+        service_cname = request.data.get("service_cname", None)
+        docker_cmd = request.data.get("docker_cmd", "")
+        image = request.data.get("image", "")
+        docker_password = request.data.get("password", None)
+        docker_user_name = request.data.get("user_name", None)
+        k8s_component_name = request.data.get("k8s_component_name", "")
+        image_type = "docker_image"
+        if k8s_component_name and console_app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
+            raise ErrK8sComponentNameExists
+        try:
+            if not image_type:
+                return Response(general_message(400, "image_type cannot be null", "参数错误"), status=400)
+            if not docker_cmd:
+                return Response(general_message(400, "docker_cmd cannot be null", "参数错误"), status=400)
+
+            # 根据group_id 获取团队
+            tenant = app_service.get_tenant_by_group_id(group_id)
+
+            code, msg_show, new_service = console_app_service.create_docker_run_app(
+                region_name, tenant, self.user, service_cname, docker_cmd, image_type, k8s_component_name, image)
+            if code != 200:
+                return Response(general_message(code, "service create fail", msg_show), status=code)
+
+            # 添加username,password信息
+            if docker_password or docker_user_name:
+                console_app_service.create_service_source_info(tenant, new_service, docker_user_name, docker_password)
+
+            code, msg_show = group_service.add_service_to_group(tenant, region_name, group_id, new_service.service_id)
+            if code != 200:
+                logger.debug("service.create", msg_show)
+
+        except ResourceNotEnoughException as re:
+            raise re
+        except AccountOverdueException as re:
+            logger.exception(re)
+            return Response(general_message(10410, "resource is not enough", re.message), status=412)
+
+        probe = None
+        # 创建成功后是否构建
+        is_deploy = request.data.get("is_deploy", True)
+        try:
+            # 数据中心创建组件
+            region_new_service = console_app_service.create_region_service(tenant, new_service, self.user.nick_name)
+
+            if is_deploy:
+                try:
+                    app_manage_service.deploy(tenant, region_new_service, self.user)
+                except ErrInsufficientResource as e:
+                    result = general_message(e.error_code, e.msg, e.msg_show)
+                    return Response(result, status=e.status_code)
+                except Exception as e:
+                    logger.exception(e)
+                    err = ErrComponentBuildFailed()
+                    result = general_message(err.error_code, e, err.msg_show)
+                    return Response(result, status=400)
+                # 添加组件部署关系
+                deploy_repo.deploy_repo.create_deploy_relation_by_service_id(service_id=region_new_service.service_id)
+            bean = {"service_id": region_new_service.service_id}
+            result = general_message(200, "success", "组件创建成功", bean=bean)
+            return Response(result, status=result["code"])
+        except HttpClient.CallApiError as e:
+            logger.exception(e)
+            if e.status == 403:
+                result = general_message(10407, "no cloud permission", e.message)
+                status = e.status
+            elif e.status == 400:
+                if "is exist" in e.message.get("body", ""):
+                    result = general_message(400, "the service is exist in region", "该组件在数据中心已存在，你可能重复创建？")
+                else:
+                    result = general_message(400, "call cloud api failure", e.message)
+                status = e.status
+            else:
+                result = general_message(400, "call cloud api failure", e.message)
+                status = 400
+        # 删除probe
+        # 删除region端数据
+        if probe:
+            probe_service.delete_service_probe(tenant, new_service, probe.probe_id)
+        if new_service.service_source != "third_party":
+            event_service.delete_service_events(new_service)
+            port_service.delete_region_port(tenant, new_service)
+            volume_service.delete_region_volumes(tenant, new_service)
+            env_var_service.delete_region_env(tenant, new_service)
+            dependency_service.delete_region_dependency(tenant, new_service)
+            app_manage_service.delete_region_service(tenant, new_service)
+        new_service.create_status = "checked"
+        new_service.save()
+        return Response(result, status=status)
 
 
 class CreateThirdComponentView(TeamAppAPIView):
