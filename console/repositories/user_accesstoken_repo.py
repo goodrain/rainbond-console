@@ -25,7 +25,7 @@ class UserAccessTokenRepo(object):
         return UserAccessKey.objects.filter(ID=id, user_id=user_id)
 
     def get_user_access_key_by_note(self, user_id, note):
-        return UserAccessKey.objects.filter(note, user_id=user_id)
+        return UserAccessKey.objects.filter(note=note, user_id=user_id)
 
     def delete_user_access_key_by_id(self, user_id, id):
         return self.get_user_access_key_by_id(user_id, id).delete()

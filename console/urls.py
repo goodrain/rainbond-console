@@ -104,7 +104,8 @@ from console.views.plugin.service_plugin import (ServicePluginConfigView, Servic
 from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
-                                        TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView)
+                                        TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
+                                        AccessTokenView)
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
@@ -251,6 +252,9 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/chart/version$', HelmChart.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_command$', CommandInstallHelm.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_center_app$', HelmCenterApp.as_view()),
+
+    # 获取生成令牌
+    url(r'^teams/(?P<team_name>[\w\-]+)/access-token/(?P<tokenNode>[\w\-]+)$', AccessTokenView.as_view()),
 
     # 团队应用模块（5.1）
     url(r'^teams/(?P<team_name>[\w\-]+)/apps$', TeamAppSortViewView.as_view(), perms.TeamAppSortViewView),
