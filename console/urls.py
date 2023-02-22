@@ -132,7 +132,7 @@ from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWe
                                    UpdateSecretKey, WebHooksDeploy, WebHooksStatus)
 from console.views.custom_configs import CustomConfigsCLView
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
-from console.views.rbd_plugin import RainbondPluginLView
+from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView
 from console.views.rbd_ability import RainbondAbilityLView, RainbondAbilityRUDView
 
 urlpatterns = [
@@ -809,6 +809,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities$', RainbondAbilityLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities/(?P<ability_id>.*)$',
         RainbondAbilityRUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/officialplugins$',
+        RainbondOfficialPluginLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/mavensettings$', MavenSettingView.as_view(),
         perms.MavenSettingRUDView),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/mavensettings/(?P<name>[\w\-]+)$',

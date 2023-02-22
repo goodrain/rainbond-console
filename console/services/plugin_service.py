@@ -14,11 +14,11 @@ logger = logging.getLogger('default')
 
 
 class RainbondPluginService(object):
-    def list_plugins(self, enterprise_id, region_name):
+    def list_plugins(self, enterprise_id, region_name, official=False):
         team_names, team_ids, region_app_ids, app_ids, component_ids = [], [], [], [], []
         region_apps_map = {}
 
-        _, body = region_api.list_plugins(enterprise_id, region_name)
+        _, body = region_api.list_plugins(enterprise_id, region_name, official)
         plugins = body["list"] if body.get("list") else []
         for plugin in plugins:
             region_app_ids.append(plugin["region_app_id"])
@@ -55,11 +55,12 @@ class RainbondPluginService(object):
             plugin["team_name"] = plugin["team_name"]
             plugin["app_id"] = app_id
             plugin["urls"] = []
-            if app_component_rels.get(app_id):
+            if official and len(plugin["access_urls"]) > 0:
+                plugin["urls"] = plugin["access_urls"]
+            elif app_component_rels.get(app_id):
                 for component_id in app_component_rels[app_id]:
                     if component_url_rels.get(component_id):
                         plugin["urls"].extend(component_url_rels[component_id])
-
         return plugins
 
 
