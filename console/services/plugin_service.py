@@ -44,11 +44,12 @@ class RainbondPluginService(object):
         component_url_rels = {}
         domains = domain_repo.list_by_component_ids(component_ids)
         for domain in domains:
-            url = domain.protocol + "://" + domain.domain_name
-            if component_url_rels.get(domain.service_id):
-                component_url_rels[domain.service_id].append(url)
-                continue
-            component_url_rels[domain.service_id] = [url]
+            if domain.is_outer_service:
+                url = domain.protocol + "://" + domain.domain_name
+                if component_url_rels.get(domain.service_id):
+                    component_url_rels[domain.service_id].append(url)
+                    continue
+                component_url_rels[domain.service_id] = [url]
 
         for plugin in plugins:
             app_id = region_apps_map.get(plugin["region_app_id"], -1)
