@@ -238,7 +238,6 @@ class ListAppServicesView(TeamAppAPIView):
     def post(self, request, region_name, app_id, *args, **kwargs):
         group_id = request.data.get("group_id", -1)
         service_cname = request.data.get("service_cname", None)
-        docker_cmd = request.data.get("docker_cmd", "")
         image = request.data.get("image", "")
         docker_password = request.data.get("password", None)
         docker_user_name = request.data.get("user_name", None)
@@ -249,14 +248,12 @@ class ListAppServicesView(TeamAppAPIView):
         try:
             if not image_type:
                 return Response(general_message(400, "image_type cannot be null", "参数错误"), status=400)
-            if not docker_cmd:
-                return Response(general_message(400, "docker_cmd cannot be null", "参数错误"), status=400)
 
             # 根据group_id 获取团队
             tenant = app_service.get_tenant_by_group_id(group_id)
 
             code, msg_show, new_service = console_app_service.create_docker_run_app(
-                region_name, tenant, self.user, service_cname, docker_cmd, image_type, k8s_component_name, image)
+                region_name, tenant, self.user, service_cname, "", image_type, k8s_component_name, image)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
 
