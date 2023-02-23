@@ -7,14 +7,13 @@ import pickle
 
 from console.constants import PluginCategoryConstants
 from console.exception.bcode import ErrK8sComponentNameExists, ErrComponentBuildFailed
-from console.exception.main import ServiceHandleException, ResourceNotEnoughException, AccountOverdueException, \
-    ErrInsufficientResource
+from console.exception.main import ServiceHandleException, AccountOverdueException
 from console.repositories import deploy_repo
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
 from console.services.app import app_service as console_app_service
 from console.services.app_actions import app_manage_service, event_service
-from console.services.app_config import domain_service, port_service, probe_service, volume_service, dependency_service
+from console.services.app_config import domain_service, port_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.group_service import group_service
 from console.services.plugin import app_plugin_service
@@ -36,7 +35,6 @@ from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamApp
 from openapi.views.exceptions import ErrAppNotFound
 from rest_framework import status
 from rest_framework.response import Response
-from www.apiclient.baseclient import HttpClient
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -270,13 +268,10 @@ class ListAppServicesView(TeamAppAPIView):
             if code != 200:
                 logger.debug("service.create", msg_show)
 
-        except ResourceNotEnoughException as re:
-            raise re
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
 
-        probe = None
         # 创建成功后是否构建
         is_deploy = request.data.get("is_deploy", True)
         try:
@@ -286,47 +281,18 @@ class ListAppServicesView(TeamAppAPIView):
             if is_deploy:
                 try:
                     app_manage_service.deploy(tenant, region_new_service, self.user)
-                except ErrInsufficientResource as e:
-                    result = general_message(e.error_code, e.msg, e.msg_show)
-                    return Response(result, status=e.status_code)
                 except Exception as e:
                     logger.exception(e)
                     err = ErrComponentBuildFailed()
                     result = general_message(err.error_code, e, err.msg_show)
                     return Response(result, status=400)
-                # 添加组件部署关系
-                deploy_repo.deploy_repo.create_deploy_relation_by_service_id(service_id=region_new_service.service_id)
             bean = {"service_id": region_new_service.service_id}
             result = general_message(200, "success", "组件创建成功", bean=bean)
             return Response(result, status=result["code"])
-        except HttpClient.CallApiError as e:
+        except Exception as e:
             logger.exception(e)
-            if e.status == 403:
-                result = general_message(10407, "no cloud permission", e.message)
-                status = e.status
-            elif e.status == 400:
-                if "is exist" in e.message.get("body", ""):
-                    result = general_message(400, "the service is exist in region", "该组件在数据中心已存在，你可能重复创建？")
-                else:
-                    result = general_message(400, "call cloud api failure", e.message)
-                status = e.status
-            else:
-                result = general_message(400, "call cloud api failure", e.message)
-                status = 400
-        # 删除probe
-        # 删除region端数据
-        if probe:
-            probe_service.delete_service_probe(tenant, new_service, probe.probe_id)
-        if new_service.service_source != "third_party":
-            event_service.delete_service_events(new_service)
-            port_service.delete_region_port(tenant, new_service)
-            volume_service.delete_region_volumes(tenant, new_service)
-            env_var_service.delete_region_env(tenant, new_service)
-            dependency_service.delete_region_dependency(tenant, new_service)
-            app_manage_service.delete_region_service(tenant, new_service)
-        new_service.create_status = "checked"
-        new_service.save()
-        return Response(result, status=status)
+            result = general_message(400, "call cloud api failure", e)
+            return Response(result, status=400)
 
 
 class CreateThirdComponentView(TeamAppAPIView):
