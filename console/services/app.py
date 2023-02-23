@@ -302,7 +302,7 @@ class AppService(object):
         service_alias = self.create_service_alias(make_uuid(service_id))
         return service_alias
 
-    def create_docker_run_app(self, region, tenant, user, service_cname, docker_cmd, image_type, k8s_component_name):
+    def create_docker_run_app(self, region, tenant, user, service_cname, docker_cmd, image_type, k8s_component_name, image):
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
             return 412, msg, None
@@ -318,6 +318,7 @@ class AppService(object):
         new_service.host_path = "/grdata/tenant/" + tenant.tenant_id + "/service/" + service_id
         new_service.docker_cmd = docker_cmd
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
+        new_service.image = image
         new_service.save()
         # # 创建镜像和组件的关系（兼容老的流程）
         # if not image_service_relation_repo.get_image_service_relation(tenant.tenant_id, service_id):
