@@ -254,7 +254,7 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_center_app$', HelmCenterApp.as_view()),
 
     # 获取生成令牌
-    url(r'^teams/(?P<team_name>[\w\-]+)/access-token/(?P<tokenNode>[\w\-]+)$', AccessTokenView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/access-token/(?P<token_note>[\w\-]+)$', AccessTokenView.as_view()),
 
     # 团队应用模块（5.1）
     url(r'^teams/(?P<team_name>[\w\-]+)/apps$', TeamAppSortViewView.as_view(), perms.TeamAppSortViewView),

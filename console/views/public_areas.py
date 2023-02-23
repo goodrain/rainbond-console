@@ -580,11 +580,11 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
 
 
 class AccessTokenView(JWTAuthApiView):
-    def get(self, request, team_name, tokenNode, **kwargs):
-        access_key = user_access_services.get_user_access_key_by_note(request.user.user_id, tokenNode).first()
+    def get(self, request, team_name, token_note, **kwargs):
+        access_key = user_access_services.get_user_access_key_by_note(request.user.user_id, token_note).first()
         if not access_key:
             try:
-                access_key = user_access_services.create_user_access_key(tokenNode, request.user.user_id, "")
+                access_key = user_access_services.create_user_access_key(token_note, request.user.user_id, "")
             except ValueError as e:
                 logger.exception(e)
                 raise e
