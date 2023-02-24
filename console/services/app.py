@@ -275,7 +275,7 @@ class AppService(object):
         tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ","
         tenant_service.min_node = 1
-        tenant_service.min_memory = 128
+        tenant_service.min_memory = 512
         tenant_service.min_cpu = baseService.calculate_service_cpu(region, 128)
         tenant_service.inner_port = 0
         tenant_service.version = "latest"
