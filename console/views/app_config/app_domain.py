@@ -387,6 +387,10 @@ class HttpStrategyView(RegionTenantHeaderView):
             bean.update({"rewrites": rewrites})
         else:
             bean = dict()
+        cf = configuration_repo.get_configuration_by_rule_id(http_rule_id)
+        if cf:
+            bean["rule_id"] = cf.rule_id
+            bean["value"] = json.loads(cf.value)
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
@@ -507,6 +511,11 @@ class HttpStrategyView(RegionTenantHeaderView):
             "rewrites": rewrites
         }
         data = domain_service.bind_httpdomain(self.tenant, self.user, service, httpdomain)
+        value = parse_item(request, 'value', required=True, error='value is a required parameter')
+        cf_dict = dict()
+        cf_dict["rule_id"] = data["http_rule_id"]
+        cf_dict["value"] = json.dumps(value)
+        configuration_repo.add_configuration(**cf_dict)
         result = general_message(201, "success", "策略添加成功", bean=data)
         return Response(result, status=status.HTTP_201_CREATED)
 
@@ -581,6 +590,8 @@ class HttpStrategyView(RegionTenantHeaderView):
             "rewrites": rewrites
         }
         domain_service.update_httpdomain(self.tenant, service, http_rule_id, update_data)
+        value = parse_item(request, 'value', required=True, error='value is a required parameter')
+        domain_service.update_http_rule_config(self.tenant, self.response_region, http_rule_id, value)
         result = general_message(200, "success", "策略编辑成功")
         return Response(result, status=200)
 
