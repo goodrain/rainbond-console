@@ -36,7 +36,7 @@ class APIUserService(object):
         # TODO: get perm list by user_services.get_user_in_enterprise_perm
         if user_services.is_user_admin_in_current_enterprise(user, enterprise_id):
             return ["all"]
-        return None
+        return ["common"]
 
 
 apiUserService = APIUserService()

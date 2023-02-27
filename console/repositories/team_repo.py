@@ -265,13 +265,12 @@ class TeamRepo(object):
             limit = "Limit {page}, {size}".format(page=page, size=page_size)
         where = """WHERE a.ID = b.tenant_id
                 AND c.user_id = b.user_id
-                AND a.creater = d.user_id
                 AND b.user_id = {user_id}
                 AND a.enterprise_id = '{eid}'
                 """.format(
             user_id=user_id, eid=eid)
         if query:
-            where += """AND ( a.tenant_alias LIKE "%{query}%" OR d.nick_name LIKE "%{query}%" )""".format(query=query)
+            where += """AND ( a.tenant_alias LIKE "%{query}%" OR c.nick_name LIKE "%{query}%" )""".format(query=query)
         sql = """
             SELECT DISTINCT
                 a.ID,
@@ -281,12 +280,11 @@ class TeamRepo(object):
                 a.is_active,
                 a.enterprise_id,
                 a.create_time,
-                d.nick_name as creater
+                c.nick_name as creater
             FROM
                 tenant_info a,
                 tenant_perms b,
-                user_info c,
-                user_info d
+                user_info c
             {where}
             {limit}
             """.format(
