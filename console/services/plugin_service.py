@@ -56,7 +56,7 @@ class RainbondPluginService(object):
             plugin["team_name"] = plugin["team_name"]
             plugin["app_id"] = app_id
             plugin["urls"] = []
-            if official and len(plugin["access_urls"]) > 0:
+            if official and plugin["access_urls"] and len(plugin["access_urls"]) > 0:
                 plugin["urls"] = plugin["access_urls"]
             elif app_component_rels.get(app_id):
                 for component_id in app_component_rels[app_id]:
