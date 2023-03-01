@@ -206,3 +206,26 @@ class ChangeUserPassword(BaseOpenAPIView):
                 return Response(None, status=200)
         logger.debug(info)
         return Response(None, status=400)
+
+
+class CurrentUsersView(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="获取当前用户信息",
+        manual_parameters=[],
+        tags=['openapi-user'],
+    )
+    def get(self, req, *args, **kwargs):
+        if req.user:
+            user_info = req.user.to_dict()
+            res = {
+                "user_id": user_info["user_id"],
+                "email": user_info["email"],
+                "nick_name": user_info["nick_name"],
+                "real_name": user_info["real_name"],
+                "phone": user_info["phone"],
+                "is_active": user_info["is_active"],
+                "origion": user_info["origion"],
+                "enterprise_id": user_info["enterprise_id"]
+            }
+            return Response({"bean": res}, status=200)
+        return Response(None, status=400)
