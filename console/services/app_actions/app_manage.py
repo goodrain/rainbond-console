@@ -960,6 +960,13 @@ class AppManageService(AppManageBase):
 
         return 200, "success"
 
+    def delete_compose_app(self, tenant, region_name, k8s_app=None):
+        try:
+            region_api.delete_compose_app_by_k8s_app(region_name, tenant.tenant_name, k8s_app)
+        except Exception as e:
+            logger.exception(e)
+            raise e
+
     def __create_service_delete_event(self, tenant, service, user):
         if not user:
             return None
