@@ -268,7 +268,8 @@ class HelmAppService(object):
             _, body = region_api.yaml_resource_import(eid, region.region_id, data)
             ac = body["bean"]
             region_resource.create_k8s_resources(ac["k8s_resources"], app_id)
-            service_ids = region_resource.create_components(app, ac["component"], tenant, region.region_name, user.user_id)
+            service_ids = region_resource.create_components(app, ac["component"], tenant, region.region_name, user.user_id,
+                                                            "yaml")
             app_manage_service.batch_action(region.region_name, tenant, user, "deploy", service_ids, None, None)
 
     def repo_yaml_handle(self, eid, region_id, command, region_name, tenant, data, user_id):
@@ -326,6 +327,17 @@ class HelmAppService(object):
             "eid": eid,
             "overrides": overrides
         }
+
+    def openapi_yaml_handle(self, eid, region_id, tenant, app, namespace, yaml):
+        yaml_resource_detailed_data = {
+            "event_id": "",
+            "region_app_id": app.region_app_id,
+            "tenant_id": tenant.tenant_id,
+            "namespace": namespace,
+            "yaml": yaml
+        }
+        _, body = region_api.yaml_resource_import(eid, region_id, yaml_resource_detailed_data)
+        return body["bean"]
 
 
 helm_app_service = HelmAppService()

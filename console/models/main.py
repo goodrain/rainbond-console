@@ -944,7 +944,7 @@ class AutoscalerRuleMetrics(BaseModel):
         db_table = "autoscaler_rule_metrics"
         unique_together = ('rule_id', 'metric_type', 'metric_name')
 
-    rule_id = rule_id = models.CharField(max_length=32, help_text="关联的自动伸缩规则ID")
+    rule_id = models.CharField(max_length=32, help_text="关联的自动伸缩规则ID")
     metric_type = models.CharField(max_length=16, help_text="指标类型")
     metric_name = models.CharField(max_length=255, help_text="指标名称")
     metric_target_type = models.CharField(max_length=13, help_text="指标目标类型")
