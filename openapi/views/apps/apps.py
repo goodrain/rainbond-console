@@ -10,14 +10,20 @@ from console.exception.bcode import ErrK8sComponentNameExists, ErrComponentBuild
 from console.exception.main import ServiceHandleException, AccountOverdueException
 from console.repositories import deploy_repo
 from console.repositories.app import service_repo
-from console.repositories.group import group_service_relation_repo
+from console.repositories.group import group_service_relation_repo, group_repo
+from console.repositories.region_app import region_app_repo
+from console.repositories.region_repo import region_repo
 from console.services.app import app_service as console_app_service
 from console.services.app_actions import app_manage_service, event_service
 from console.services.app_config import domain_service, port_service
 from console.services.app_config.env_service import AppEnvVarService
+from console.services.enterprise_services import enterprise_services
 from console.services.group_service import group_service
 from console.services.plugin import app_plugin_service
+from console.services.region_resource_processing import region_resource
+from console.services.region_services import region_services
 from console.services.service_services import base_service
+from console.services.team_services import team_services
 from console.utils.validation import validate_endpoints_info
 from django.forms.models import model_to_dict
 from drf_yasg import openapi
@@ -31,12 +37,14 @@ from openapi.serializer.app_serializer import (
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
-from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView)
-from openapi.views.exceptions import ErrAppNotFound
+from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView, BaseOpenAPIView)
+from openapi.views.exceptions import ErrAppNotFound, ErrRegionNotFound, ErrEnterpriseNotFound
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
+from console.services.helm_app_yaml import helm_app_service
+from console.repositories.team_repo import team_repo
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -653,3 +661,58 @@ class ComponentBuildView(TeamAppServiceAPIView):
         serializers = ComponentEventSerializers(data={"event_id": event_id})
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)
+
+
+class YamlAppView(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="根据yaml创建组件",
+        manual_parameters=[
+            openapi.Parameter("yaml", openapi.IN_BODY, description="yaml", type=openapi.TYPE_STRING),
+            openapi.Parameter("namespace", openapi.IN_BODY, description="namespace", type=openapi.TYPE_STRING),
+        ],
+        # responses={200: ServiceBaseInfoSerializer(many=True)},
+        tags=['openapi-apps'],
+    )
+    def post(self, req, enterprise_id, region_id, app_name, *args, **kwargs):
+        yaml = req.data.get("yaml", "")
+        namespace = req.data.get("namespace", "")
+        if not yaml or not namespace:
+            return Response(general_message(400, "缺少必要参数", "操作失败"), status=400)
+        yaml = base64.b64decode(yaml).decode()
+        region = region_repo.get_region_by_region_id(region_id)
+        if not region:
+            raise ErrRegionNotFound
+        team = team_repo.get_team_by_namespace(namespace)
+        if not team:
+            en = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
+            if not en:
+                return ErrEnterpriseNotFound
+            team = team_services.create_team(req.user, en, namespace=namespace)
+            region_services.create_tenant_on_region(enterprise_id, team.tenant_name, region.region_name, team.namespace)
+        group = group_repo.get_group_by_k8s_app(team.tenant_id, app_name)
+
+        if not group:
+            group = group_service.create_app(
+                team, region.region_name, app_name, username=req.user.get_username(), eid=enterprise_id, k8s_app=app_name)
+            app_id = group["group_id"]
+        else:
+            app_id = group.ID
+        region_app = region_app_repo.get_region_app(region.region_name, app_id)
+
+        ac = helm_app_service.openapi_yaml_handle(enterprise_id, region_id, team, region_app, namespace, yaml)
+        service_ids = []
+        if ac:
+            for component in ac["component"]:
+                services = service_repo.get_service_by_service_id(component["ts"]["service_id"])
+                # If the component already exists, update
+                if services:
+                    update_service_id = region_resource.update_components(component, team)
+                    service_ids.append(update_service_id)
+                else:
+                    create_service_id = region_resource.create_components(region_app, [component], team, region.region_name,
+                                                                          req.user.user_id, "yaml")
+                    service_ids += create_service_id
+        code, msg = app_manage_service.batch_action(region.region_name, team, req.user, "deploy", service_ids, None, None)
+        if code == 200:
+            return Response(general_message(code, msg, "操作成功", bean={"service_ids": service_ids}), status=200)
+        return Response(general_message(code, msg, "操作失败"), status=code)

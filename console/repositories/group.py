@@ -95,6 +95,9 @@ class GroupRepository(object):
     def get_group_by_id(self, group_id):
         return ServiceGroup.objects.filter(pk=group_id).first()
 
+    def get_group_by_k8s_app(self, tenant_id, k8s_app):
+        return ServiceGroup.objects.filter(tenant_id=tenant_id, k8s_app=k8s_app).first()
+
     def get_default_by_service(self, service):
         return ServiceGroup.objects.filter(
             tenant_id=service.tenant_id, region_name=service.service_region, is_default=True).first()
