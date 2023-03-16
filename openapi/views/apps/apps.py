@@ -676,6 +676,9 @@ class YamlAppView(BaseOpenAPIView):
     def post(self, req, enterprise_id, region_id, app_name, *args, **kwargs):
         yaml = req.data.get("yaml", "")
         namespace = req.data.get("namespace", "")
+        if not yaml or not namespace:
+            return Response(general_message(400, "缺少必要参数", "操作失败"), status=400)
+        yaml = base64.b64decode(yaml).decode()
         region = region_repo.get_region_by_region_id(region_id)
         if not region:
             raise ErrRegionNotFound
@@ -687,11 +690,13 @@ class YamlAppView(BaseOpenAPIView):
             team = team_services.create_team(req.user, en, namespace=namespace)
             region_services.create_tenant_on_region(enterprise_id, team.tenant_name, region.region_name, team.namespace)
         group = group_repo.get_group_by_k8s_app(team.tenant_id, app_name)
-        app_id = group.ID
+
         if not group:
             group = group_service.create_app(
                 team, region.region_name, app_name, username=req.user.get_username(), eid=enterprise_id, k8s_app=app_name)
             app_id = group["group_id"]
+        else:
+            app_id = group.ID
         region_app = region_app_repo.get_region_app(region.region_name, app_id)
 
         ac = helm_app_service.openapi_yaml_handle(enterprise_id, region_id, team, region_app, namespace, yaml)
