@@ -16,6 +16,9 @@ class ComponentK8sAttributeRepo(object):
     def delete(self, component_id, name):
         return ComponentK8sAttributes.objects.filter(component_id=component_id, name=name).delete()
 
+    def delete_all(self, component_id):
+        return ComponentK8sAttributes.objects.filter(component_id=component_id).delete()
+
     def list_by_component_ids(self, component_ids):
         return ComponentK8sAttributes.objects.filter(component_id__in=component_ids)
 

@@ -10,7 +10,7 @@ from drf_yasg.views import get_schema_view
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
-from openapi.views.apps.apps import ListAppsView
+from openapi.views.apps.apps import ListAppsView, YamlAppView
 from openapi.views.enterprise_view import EnterpriseConfigView
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
@@ -62,6 +62,9 @@ urlpatterns = [
     # apps
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps$', ListAppsView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/', include('openapi.sub_urls.app_url')),
+    # yaml
+    url(r'^v1/enterprise/(?P<enterprise_id>[\w\-]+)/region/(?P<region_id>[\w\-]+)/app/(?P<app_name>[\w\-]+)$',
+        YamlAppView.as_view()),
 
     # grctl
     url(r'^v1/grctl/ip$', ReplaceRegionIP.as_view()),

@@ -18,6 +18,9 @@ class AutoscalerRulesRepository(object):
     def get_by_rule_id(self, rule_id):
         return AutoscalerRules.objects.get(rule_id=rule_id)
 
+    def delete(self, service_id):
+        return AutoscalerRules.objects.filter(service_id=service_id).delete()
+
 
 class AutoscalerRuleMetricsRepository(object):
     def bulk_create(self, data):

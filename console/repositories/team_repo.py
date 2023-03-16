@@ -160,6 +160,12 @@ class TeamRepo(object):
         except Tenants.DoesNotExist:
             return None
 
+    def get_team_by_namespace(self, namespace):
+        try:
+            return Tenants.objects.get(namespace=namespace)
+        except Tenants.DoesNotExist:
+            return None
+
     def get_team_by_team_name_and_eid(self, eid, team_name):
         try:
             return Tenants.objects.get(tenant_name=team_name, enterprise_id=eid)

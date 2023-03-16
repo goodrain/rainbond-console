@@ -1,4 +1,7 @@
 import datetime
+import logging
+
+from django.db import transaction
 
 from console.enum.app import GovernanceModeEnum
 from console.models.main import AutoscalerRuleMetrics, ComponentK8sAttributes, K8sResource
@@ -7,7 +10,9 @@ from console.repositories.autoscaler_repo import autoscaler_rules_repo
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.repositories.k8s_resources import k8s_resources_repo
+from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
+from console.repositories.app import service_repo
 from console.services.app_actions import app_manage_service
 from console.services.perm_services import role_kind_services
 from console.services.team_services import team_services
@@ -16,6 +21,7 @@ from www.models.main import Tenants, ServiceGroup, TenantServiceInfo, TenantRegi
     TenantServiceEnvVar, TenantServicesPort, ServiceProbe
 
 region_api = RegionInvokeApi()
+logger = logging.getLogger("default")
 
 
 class RegionResource(object):
@@ -115,7 +121,7 @@ class RegionResource(object):
                     error_overview=k8s_resource["error_overview"]))
         k8s_resources_repo.bulk_create(app_k8s_resource_list)
 
-    def create_components(self, application, components, tenant, region_name, user_id):
+    def create_components(self, application, components, tenant, region_name, user_id, create_method=""):
         if not components:
             return []
         service_ids = list()
@@ -160,6 +166,9 @@ class RegionResource(object):
             new_service.docker_cmd = ""
             new_service.k8s_component_name = component["ts"]["k8s_component_name"]
             new_service.job_strategy = component["ts"]["job_strategy"]
+            if create_method == "yaml":
+                new_service.build_upgrade = True
+                new_service.is_upgrate = True
             new_service.save()
             group_service_relation_repo.add_service_group_relation(application.app_id, component["ts"]["service_id"],
                                                                    tenant.tenant_id, region_name)
@@ -301,6 +310,72 @@ class RegionResource(object):
     def resource_import(self, eid, region_id, namespace, content):
         res, body = region_api.resource_import(eid, region_id, namespace, content)
         return body
+
+    def update_components(self, component, tenant):
+        service_id = component["ts"]["service_id"]
+        serivce_params = {
+            "cmd": component["cmd"],
+            "extend_method": component["ts"]["extend_method"],
+            "min_node": component["ts"]["replicas"],
+            "min_memory": component["ts"]["container_memory"],
+            "min_cpu": component["ts"]["container_cpu"],
+            "image": component["image"],
+            "version": component["image"].split(":")[1] if len(component["image"].split(":")) > 1 else "latest",
+            "job_strategy": component["ts"]["job_strategy"],
+            "deploy_version": component["ts"]["deploy_version"]
+        }
+        service_repo.update(tenant.tenant_id, service_id, **serivce_params)
+        new_service = service_repo.get_service_by_service_id(service_id)
+
+        sid = None
+        try:
+            sid = transaction.savepoint()
+            self.delete_component_env(tenant.tenant_id, new_service.service_id)
+            self.delete_component_config(new_service.service_id)
+            self.delete_component_port(tenant.tenant_id, new_service.service_id)
+            self.delete_component_telescopic(component["telescopic"], new_service.service_id)
+            self.delete_component_healthy_check(new_service.service_id)
+            self.delete_component_special(new_service.service_id)
+            transaction.savepoint_commit(sid)
+        except Exception as e:
+            if sid:
+                transaction.savepoint_rollback(sid)
+            logger.exception(e)
+
+        try:
+            sid = transaction.savepoint()
+            self.create_component_env(component["env"], tenant.tenant_id, new_service)
+            self.create_component_config(component["config"], tenant.tenant_id, new_service)
+            self.create_component_port(component["port"], tenant.tenant_id, new_service)
+            self.create_component_telescopic(component["telescopic"], new_service)
+            self.create_healthy_check(component["healthy_check"], new_service)
+            self.create_component_special(component["component_k8s_attributes"], tenant.tenant_id, new_service)
+        except Exception as e:
+            if sid:
+                transaction.savepoint_rollback(sid)
+            logger.exception(e)
+        return new_service.service_id
+
+    def delete_component_env(self, tenant_id, service_id):
+        env_var_repo.delete_service_env(tenant_id, service_id)
+
+    def delete_component_config(self, service_id):
+        volume_repo.delete_config_files(service_id)
+
+    def delete_component_port(self, tenant_id, service_id):
+        port_repo.delete_service_port(tenant_id, service_id)
+
+    def delete_component_telescopic(self, telescopic, service_id):
+        if telescopic["rule_id"]:
+            autoscaler_rules_repo.delete(service_id)
+            AutoscalerRuleMetrics.objects.filter(telescopic["rule_id"]).delete()
+        return
+
+    def delete_component_healthy_check(self, service_id):
+        probe_repo.delete_service_probe(service_id)
+
+    def delete_component_special(self, service_id):
+        k8s_attribute_repo.delete_all(service_id)
 
 
 region_resource = RegionResource()
