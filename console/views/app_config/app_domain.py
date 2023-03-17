@@ -8,11 +8,14 @@ import re
 
 from console.constants import DomainType
 from console.repositories.app import service_repo
-from console.repositories.app_config import (configuration_repo, domain_repo, tcp_domain)
+from console.repositories.app_config import (configuration_repo, domain_repo, tcp_domain, port_repo)
 from console.repositories.group import group_repo, group_service_relation_repo
+from console.repositories.k8s_resources import k8s_resources_repo
+from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config import domain_service, port_service
 from console.services.config_service import EnterpriseConfigService
+from console.services.gateway_api import gateway_api
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.utils.reqparse import parse_item
@@ -108,7 +111,8 @@ class TenantCertificateView(RegionTenantHeaderView):
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
         certificate_id = make_uuid()
-        new_c = domain_service.add_certificate(self.tenant, alias, certificate_id, certificate, private_key, certificate_type)
+        new_c = domain_service.add_certificate(self.region, self.tenant, alias, certificate_id, certificate, private_key,
+                                               certificate_type)
         bean = {"alias": alias, "id": new_c.ID}
         result = general_message(200, "success", "操作成功", bean=bean)
         return Response(result, status=result["code"])
@@ -134,7 +138,7 @@ class TenantCertificateManageView(RegionTenantHeaderView):
 
         """
         certificate_id = kwargs.get("certificate_id", None)
-        domain_service.delete_certificate_by_pk(certificate_id)
+        domain_service.delete_certificate_by_pk(self.region.region_name, self.tenant, certificate_id)
         result = general_message(200, "success", "证书删除成功")
         return Response(result, status=result["code"])
 
@@ -181,7 +185,8 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
-        domain_service.update_certificate(self.tenant, certificate_id, new_alias, certificate, private_key, certificate_type)
+        domain_service.update_certificate(self.region, self.tenant, certificate_id, new_alias, certificate, private_key,
+                                          certificate_type)
         result = general_message(200, "success", "证书修改成功")
         return Response(result, status=result["code"])
 
@@ -607,6 +612,90 @@ class HttpStrategyView(RegionTenantHeaderView):
             return Response(general_message(400, "params error", "参数错误"), status=400)
         domain_service.unbind_httpdomain(self.tenant, self.response_region, http_rule_id)
         result = general_message(200, "success", "策略删除成功")
+        return Response(result, status=result["code"])
+
+
+class GatewayRouteBatch(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        app_id = request.GET.get("app_id", "")
+        namespace = self.tenant.namespace
+        data = gateway_api.list_http_routes(self.region_name, self.tenant_name, namespace, app_id)
+        result = general_message(200, "success", "查询成功", list=data)
+        return Response(result, status=result["code"])
+
+
+class TenantService(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        ports = port_repo.get_tenant_services(self.tenant.tenant_id)
+        component_list = service_repo.get_tenant_region_services(self.region_name, self.tenant.tenant_id)
+        component_dict = {component.service_id: component.service_cname for component in component_list}
+
+        port_list = list()
+        if ports:
+            for port in ports:
+                port_dict = dict()
+                port_dict["service_name"] = port.k8s_service_name
+                port_dict["namespace"] = self.tenant.namespace
+                port_dict["component_name"] = component_dict.get(port.service_id)
+                port_list.append(port_dict)
+        ret_data = {"namespace": self.tenant.namespace, "ports": port_list}
+        result = general_message(200, "success", "查询成功", bean=ret_data)
+        return Response(result, status=result["code"])
+
+
+class GatewayRoute(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        namespace = self.tenant.namespace
+        name = request.GET.get("name", "")
+        data = gateway_api.get_http_route(self.region_name, self.tenant_name, namespace, name)
+        result = general_message(200, "success", "查询成功", bean=data)
+        return Response(result, status=result["code"])
+
+    def post(self, request, *args, **kwargs):
+        app_id = request.data.get("app_id")
+        gateway_name = request.data.get("gateway_name")
+        gateway_namespace = request.data.get("gateway_namespace")
+        hosts = request.data.get("hosts", [])
+        rules = request.data.get("rules", [])
+        section_name = request.data.get("section_name", "")
+        namespace = self.tenant.namespace
+        data = gateway_api.add_http_route(self.region_name, self.tenant_name, app_id, namespace, gateway_name,
+                                          gateway_namespace, hosts, rules, section_name)
+        result = general_message(200, "success", "查询成功", bean=data)
+        return Response(result, status=result["code"])
+
+    def put(self, request, *args, **kwargs):
+        app_id = request.data.get("app_id")
+        name = request.data.get("name")
+        gateway_namespace = request.data.get("gateway_namespace")
+        gateway_name = request.data.get("gateway_name")
+        rules = request.data.get("rules", [])
+        hosts = request.data.get("hosts", [])
+        section_name = request.data.get("section_name", "")
+        namespace = self.tenant.namespace
+        region_app_id = region_app_repo.get_region_app_id(self.region_name, app_id)
+        if not region_app_id:
+            return Response(general_message(400, "can not find app by region_app_id", "提供的region_app_id查找不到应用"), status=400)
+        ret = gateway_api.update_http_route(self.region_name, self.tenant_name, name, app_id, namespace, gateway_name,
+                                            gateway_namespace, hosts, rules, section_name)
+        if ret:
+            data = {
+                "content": ret.get("content"),
+                "state": 2,
+                "error_overview": "更新成功",
+            }
+            k8s_resources_repo.update(app_id, name, "HTTPRoute", **data)
+        result = general_message(200, "success", "更新成功", bean=ret)
+        return Response(result, status=result["code"])
+
+    def delete(self, request, *args, **kwargs):
+        app_id = request.GET.get("app_id")
+        name = request.GET.get("name", "")
+        namespace = self.tenant.namespace
+        region_app_id = region_app_repo.get_region_app_id(self.region_name, app_id)
+        data = gateway_api.delete_http_route(self.region_name, self.tenant_name, namespace, name, region_app_id)
+        k8s_resources_repo.delete_by_name(app_id, name)
+        result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])
 
 

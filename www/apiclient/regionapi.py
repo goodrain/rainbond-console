@@ -916,6 +916,62 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
         return body
 
+    def list_gateway_http_route(self, region, tenant_name, namespace, region_app_id):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/batch-gateway-http-route?namespace={0}&app_id={1}".format(
+            namespace, region_app_id)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def get_gateway_certificate(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-certificate"
+        res, body = self._get(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def create_gateway_certificate(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-certificate"
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def update_gateway_certificate(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-certificate"
+        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def delete_gateway_certificate(self, region, tenant_name, namespace, name):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-certificate?namespace={0}&name={1}".format(namespace, name)
+        res, body = self._delete(url, self.default_headers, region=region)
+        return body
+
+    def get_gateway_http_route(self, region, tenant_name, namespace, name):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-http-route?namespace={0}&name={1}".format(namespace, name)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def add_gateway_http_route(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-http-route"
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def update_gateway_http_route(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-http-route"
+        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def delete_gateway_http_route(self, region, tenant_name, namespace, name, region_app_id):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-http-route?namespace={0}&name={1}&app_id={2}".format(
+            namespace, name, region_app_id)
+        res, body = self._delete(url, self.default_headers, region=region)
+        return body
+
     def bind_http_domain(self, region, tenant_name, body):
 
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -1729,6 +1785,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         except Exception as e:
             logger.exception(e)
             return None
+
+    def list_gateways(self, enterprise_id, region):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/batch-gateway?eid={0}".format(enterprise_id)
+        res, body = self._get(url, self.default_headers, region=region_info.region_name)
+        return res, body
 
     def list_namespaces(self, enterprise_id, region, content):
         region_info = self.get_enterprise_region_info(enterprise_id, region)

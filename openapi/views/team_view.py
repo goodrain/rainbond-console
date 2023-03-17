@@ -346,7 +346,7 @@ class TeamCertificatesLCView(TeamNoRegionAPIView):
         serializer = TeamCertificatesCSerializer(data=request.data)
         serializer.is_valid()
         data = serializer.data
-        data.update({"tenant": self.team, "certificate_id": make_uuid()})
+        data.update({"tenant": self.team, "certificate_id": make_uuid(), "region": self.region})
         new_c = domain_service.add_certificate(**data)
         rst = new_c.to_dict()
         rst["id"] = rst["ID"]
@@ -384,7 +384,7 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
 
         serializer.is_valid()
         data = serializer.data
-        data.update({"tenant": self.team, "certificate_id": certificate_id})
+        data.update({"tenant": self.team, "certificate_id": certificate_id, "region": self.region})
         new_c = domain_service.update_certificate(**data)
         rst = new_c.to_dict()
         rst["id"] = rst["ID"]
@@ -400,7 +400,7 @@ class TeamCertificatesRUDView(TeamNoRegionAPIView):
         tags=['openapi-team'],
     )
     def delete(self, request, team_id, certificate_id, *args, **kwargs):
-        domain_service.delete_certificate_by_pk(certificate_id)
+        domain_service.delete_certificate_by_pk(self.region.region_name, self.team, certificate_id)
         return Response(data=None, status=status.HTTP_200_OK)
 
 
