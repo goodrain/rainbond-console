@@ -167,6 +167,9 @@ class TenantServicePortRepository(object):
         service_port = TenantServicesPort.objects.create(**tenant_service_port)
         return service_port
 
+    def get_tenant_services(self, tenant_id):
+        return TenantServicesPort.objects.filter(tenant_id=tenant_id, is_inner_service=True)
+
     def delete_service_port(self, tenant_id, service_id):
         TenantServicesPort.objects.filter(tenant_id=tenant_id, service_id=service_id).delete()
 

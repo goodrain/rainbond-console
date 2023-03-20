@@ -10,7 +10,7 @@ from console.views.app_config.app_dependency import (AppDependencyManageView, Ap
 from console.views.app_config.app_domain import (
     AppServiceDomainQueryView, AppServiceTcpDomainQueryView, DomainQueryView, DomainView, GatewayCustomConfigurationView,
     GetPortView, GetSeniorUrlView, HttpStrategyView, SecondLevelDomainView, ServiceDomainView, ServiceTcpDomainQueryView,
-    ServiceTcpDomainView, TenantCertificateManageView, TenantCertificateView)
+    ServiceTcpDomainView, TenantCertificateManageView, TenantCertificateView, GatewayRouteBatch, GatewayRoute, TenantService)
 from console.views.app_config.app_env import (AppBuildEnvView, AppEnvManageView, AppEnvView)
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import (AppLabelAvailableView, AppLabelView)
@@ -59,7 +59,8 @@ from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
 from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
-                                      NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage)
+                                      NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage,
+                                      EnterpriseRegionGatewayBatch)
 from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
                                       RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
 from console.views.enterprise import (
@@ -492,6 +493,9 @@ urlpatterns = [
         perms.ServiceDomainView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/sld-domain', SecondLevelDomainView.as_view(),
         perms.SecondLevelDomainView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/batch-gateway-http-route$', GatewayRouteBatch.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/gateway-http-route$', GatewayRoute.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/service$', TenantService.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain$', DomainView.as_view(), perms.DomainView),
     # 查询策略（含模糊搜索）
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain/query$', DomainQueryView.as_view(), perms.DomainQueryView),
@@ -806,6 +810,8 @@ urlpatterns = [
         EnterpriseRegionTenantLimitView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/dashboard/(?P<path>.*)',
         EnterpriseRegionDashboard.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/batch-gateway',
+        EnterpriseRegionGatewayBatch.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/plugins$', RainbondPluginLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities$', RainbondAbilityLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities/(?P<ability_id>.*)$',
