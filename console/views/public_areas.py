@@ -12,7 +12,8 @@ from console.services.common_services import common_services
 from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.services.team_services import team_services
-from console.views.base import RegionTenantHeaderView
+from console.services.user_accesstoken_services import user_access_services
+from console.views.base import RegionTenantHeaderView, JWTAuthApiView
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import connection
 from django.views.decorators.cache import never_cache
@@ -140,6 +141,7 @@ class TeamOverView(RegionTenantHeaderView):
             overview_detail["team_app_num"] = team_app_num
             overview_detail["team_service_num"] = team_service_num
             overview_detail["eid"] = self.team.enterprise_id
+            overview_detail["team_id"] = self.team.tenant_id
             overview_detail["team_service_memory_count"] = 0
             overview_detail["team_service_total_disk"] = 0
             overview_detail["team_service_total_cpu"] = 0
@@ -587,3 +589,16 @@ class TenantServiceEnvsView(RegionTenantHeaderView):
                         attr_value_list.append(service_env[0])
             result = general_message(200, "success", "查询成功", list=attr_value_list)
             return Response(result)
+
+
+class AccessTokenView(JWTAuthApiView):
+    def get(self, request, team_name, token_note, **kwargs):
+        access_key = user_access_services.get_user_access_key_by_note(request.user.user_id, token_note).first()
+        if not access_key:
+            try:
+                access_key = user_access_services.create_user_access_key(token_note, request.user.user_id, "")
+            except ValueError as e:
+                logger.exception(e)
+                raise e
+        result = general_message(200, "success", None, bean=access_key.to_dict())
+        return Response(result, status=200)

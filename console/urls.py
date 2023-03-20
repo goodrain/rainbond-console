@@ -106,7 +106,7 @@ from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
-                                        GroupOperatorManagedView)
+                                        GroupOperatorManagedView, AccessTokenView)
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
@@ -134,7 +134,7 @@ from console.views.webhook import (CustomWebHooksDeploy, GetWebHooksUrl, ImageWe
                                    UpdateSecretKey, WebHooksDeploy, WebHooksStatus)
 from console.views.custom_configs import CustomConfigsCLView
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
-from console.views.rbd_plugin import RainbondPluginLView
+from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView
 from console.views.rbd_ability import RainbondAbilityLView, RainbondAbilityRUDView
 
 urlpatterns = [
@@ -253,6 +253,9 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/chart/version$', HelmChart.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_command$', CommandInstallHelm.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_center_app$', HelmCenterApp.as_view()),
+
+    # 获取生成令牌
+    url(r'^teams/(?P<team_name>[\w\-]+)/access-token/(?P<token_note>[\w\-]+)$', AccessTokenView.as_view()),
 
     # 团队应用模块（5.1）
     url(r'^teams/(?P<team_name>[\w\-]+)/apps$', TeamAppSortViewView.as_view(), perms.TeamAppSortViewView),
@@ -816,6 +819,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities$', RainbondAbilityLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities/(?P<ability_id>.*)$',
         RainbondAbilityRUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/officialplugins$',
+        RainbondOfficialPluginLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/mavensettings$', MavenSettingView.as_view(),
         perms.MavenSettingRUDView),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/mavensettings/(?P<name>[\w\-]+)$',

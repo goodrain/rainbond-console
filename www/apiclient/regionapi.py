@@ -2084,6 +2084,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         _, _ = self._delete(url, self.default_headers, region=region_name, body=json.dumps(data))
 
+    def delete_compose_app_by_k8s_app(self, region_name, tenant_name, k8s_app):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/k8s-app/" + k8s_app
+
+        self._set_headers(token)
+        _, _ = self._delete(url, self.default_headers, region=region_name)
+
     def delete_app_config_group(self, region_name, tenant_name, app_id, config_group_name):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
@@ -2468,11 +2476,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def list_plugins(self, enterprise_id, region_name):
+    def list_plugins(self, enterprise_id, region_name, official):
         region_info = self.get_enterprise_region_info(enterprise_id, region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
-        url = region_info.url + "/v2/cluster/plugins"
+        url = region_info.url + "/v2/cluster/plugins?official={0}".format(official)
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 

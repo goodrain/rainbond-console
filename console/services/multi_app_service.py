@@ -8,8 +8,10 @@ from console.services.app_check_service import app_check_service
 from console.services.app_actions import app_manage_service
 from console.services.app import app_service
 from console.services.group_service import group_service
-from console.repositories.app import service_repo, service_source_repo
+from console.repositories.app import service_repo, service_source_repo, service_webhooks_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
+from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
+from console.utils.oauth.oauth_types import get_oauth_instance
 
 logger = logging.getLogger("default")
 
@@ -28,7 +30,7 @@ class MultiAppService(object):
 
         return data["service_info"]
 
-    def create_services(self, region_name, tenant, user, service_alias, service_infos):
+    def create_services(self, region_name, tenant, user, service_alias, service_infos, host):
         # get temporary service
         temporary_service = service_repo.get_service_by_tenant_and_alias(tenant.tenant_id, service_alias)
         if not temporary_service:
@@ -43,7 +45,8 @@ class MultiAppService(object):
             group_id=group_id,
             service=temporary_service,
             user=user,
-            service_infos=service_infos)
+            service_infos=service_infos,
+            host=host)
 
         code, msg = app_manage_service.delete(user, tenant, temporary_service, True)
         if code != 200:
@@ -56,9 +59,29 @@ class MultiAppService(object):
         return group_id, service_ids
 
     @transaction.atomic
-    def save_multi_services(self, region_name, tenant, group_id, service, user, service_infos):
+    def save_multi_services(self, region_name, tenant, group_id, service, user, service_infos, host):
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         service_ids = []
+
+        git_service = None
+        if service.oauth_service_id:
+            try:
+                oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service.oauth_service_id)
+                oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service.oauth_service_id, user_id=user.pk)
+            except Exception as e:
+                logger.debug(e)
+                rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}
+                return 400, rst, None
+            try:
+                git_service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+            except Exception as e:
+                logger.debug(e)
+                rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务"}
+                return 400, rst, None
+            if not git_service.is_git_oauth():
+                rst = {"data": {"bean": None}, "status": 400, "msg_show": "该OAuth服务不是代码仓库类型"}
+                return 400, rst, None
+
         for service_info in service_infos:
             code, msg_show, new_service = app_service \
                 .create_source_code_app(region_name, tenant, user,
@@ -73,6 +96,20 @@ class MultiAppService(object):
             if code != 200:
                 raise AbortRequest("Multiple services; Service alias: {}; error creating service".format(service.service_alias),
                                    "创建多组件应用失败")
+
+            # 添加hook
+            if service.open_webhooks:
+                service_webhook = service_webhooks_repo.create_service_webhooks(new_service.service_id, "code_webhooks")
+                service_webhook.state = True
+                service_webhook.deploy_keyword = "deploy"
+                service_webhook.save()
+                try:
+                    git_service.create_hook(host, service.git_full_name, endpoint='console/webhooks/' + new_service.service_id)
+                    new_service.open_webhooks = True
+                except Exception as e:
+                    logger.exception(e)
+                    new_service.open_webhooks = False
+
             # add username and password
             if service_source:
                 git_password = service_source.password

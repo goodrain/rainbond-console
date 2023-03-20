@@ -14,7 +14,7 @@ logger = logging.getLogger("default")
 
 class GitlabApiV4MiXin(object):
     def set_api(self, host, access_token):
-        self.api = Gitlab(host, oauth_token=access_token)
+        self.api = Gitlab(host, oauth_token=access_token, per_page=999)
 
 
 class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
