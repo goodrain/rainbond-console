@@ -22,6 +22,9 @@ class AppK8sResourceRepo(object):
     def list_by_app_id(self, app_id):
         return K8sResource.objects.filter(app_id=app_id)
 
+    def list_by_ids(self, ids):
+        return K8sResource.objects.filter(ID__in=ids)
+
     def get_by_app_id_name(self, app_id, name):
         return K8sResource.objects.get(app_id=app_id, name=name)
 

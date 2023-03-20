@@ -2290,6 +2290,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
         return res, body
 
+    def batch_delete_app_resources(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/batch-k8s-resource"
+        res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=20)
+        return res, body
+
     def sync_k8s_resources(self, tenant_name, region_name, data):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/cluster/sync-k8s-resources"
