@@ -31,7 +31,6 @@ class RainbondPluginService(object):
         for region_app in region_apps:
             app_ids.append(region_app.app_id)
             region_apps_map[region_app.region_app_id] = region_app.app_id
-            
         app_component_rels = {}
         relations = service_group_relation_repo.list_by_tenant_ids(team_ids)
         for relation in relations:
