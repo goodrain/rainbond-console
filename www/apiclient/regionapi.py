@@ -714,6 +714,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body), timeout=20)
         return body
 
+    def watch_operator_managed(self, region_name, tenant_name, region_app_id):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/apps/{}/watch_operator_managed".format(tenant_region.region_tenant_name, region_app_id)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body
+
     def get_enterprise_running_services(self, enterprise_id, region, test=False):
         if test:
             self.get_enterprise_api_version_v2(enterprise_id, region=region)
@@ -906,6 +914,62 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             body["domain"]
         self._set_headers(token)
         res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def list_gateway_http_route(self, region, tenant_name, namespace, region_app_id):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/batch-gateway-http-route?namespace={0}&app_id={1}".format(
+            namespace, region_app_id)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def get_gateway_certificate(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-certificate"
+        res, body = self._get(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def create_gateway_certificate(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-certificate"
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def update_gateway_certificate(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-certificate"
+        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def delete_gateway_certificate(self, region, tenant_name, namespace, name):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-certificate?namespace={0}&name={1}".format(namespace, name)
+        res, body = self._delete(url, self.default_headers, region=region)
+        return body
+
+    def get_gateway_http_route(self, region, tenant_name, namespace, name):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-http-route?namespace={0}&name={1}".format(namespace, name)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def add_gateway_http_route(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-http-route"
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def update_gateway_http_route(self, region, tenant_name, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-http-route"
+        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def delete_gateway_http_route(self, region, tenant_name, namespace, name, region_app_id):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_name + "/gateway-http-route?namespace={0}&name={1}&app_id={2}".format(
+            namespace, name, region_app_id)
+        res, body = self._delete(url, self.default_headers, region=region)
         return body
 
     def bind_http_domain(self, region, tenant_name, body):
@@ -1722,6 +1786,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             logger.exception(e)
             return None
 
+    def list_gateways(self, enterprise_id, region):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/batch-gateway?eid={0}".format(enterprise_id)
+        res, body = self._get(url, self.default_headers, region=region_info.region_name)
+        return res, body
+
     def list_namespaces(self, enterprise_id, region, content):
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
@@ -2223,6 +2296,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url
         url += "/v2/cluster/k8s-resource"
         res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
+        return res, body
+
+    def batch_delete_app_resources(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/batch-k8s-resource"
+        res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=20)
         return res, body
 
     def sync_k8s_resources(self, tenant_name, region_name, data):

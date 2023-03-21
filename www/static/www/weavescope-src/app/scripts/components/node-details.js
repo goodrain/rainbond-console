@@ -39,6 +39,7 @@ class NodeDetails extends React.Component {
       shows: false,
       // isFlag: false,
       count: 0,
+      operatorData: false
     }
   }
 
@@ -54,12 +55,24 @@ class NodeDetails extends React.Component {
 
   componentDidMount() {
     this.updateTitle();
+    this.handleOperatorData();
   }
 
   componentWillUnmount() {
     resetDocumentTitle();
   }
-
+  handleOperatorData(){
+    const operatorInfoAll = (this.props.operatorInfo && this.props.operatorInfo.data) || [];
+    const operatorLabel = this.props.label || null;
+    const operatorData = {}
+    operatorInfoAll.forEach((item)=>{
+      if(operatorLabel == item.label){
+        this.setState({
+          operatorData: item
+        })
+      }
+    })
+  }
   renderTools() {
     const showSwitchTopology = this.props.nodeId !== this.props.selectedNodeId;
     const topologyTitle = `View ${this.props.label} in ${this.props.topologyId}`;
@@ -72,7 +85,7 @@ class NodeDetails extends React.Component {
       </div>
     );
   }
-
+  //loading 详情页展示页面
   renderLoading() {
     const node = this.props.nodes.get(this.props.nodeId);
     const label = node ? node.get('label') : this.props.label;
@@ -97,19 +110,9 @@ class NodeDetails extends React.Component {
         {tools}
         <div className="node-details-header" style={{ backgroundColor: getStatusColor(nodeInfo.cur_status) }}>
           <div className="node-details-header-wrapper">
-
             <h2 className="node-details-header-label">
-              {
-                nodeInfo.id == 'The Internet' ?
-                  <span className="node-details-text truncate">{label} </span>
-                  :
-                  <a href="javascript:;" onClick={this.handleClickService.bind(this, nodeInfo)}>
-                    <span className="node-details-text truncate">{label} </span>
-                    <span style={{ verticalAlign: 'middle' }} className="icon-angle-right"></span>
-                  </a>
-              }
+              <span className="node-details-text truncate">{label} </span>
             </h2>
-
             <div className="node-details-relatives truncate">
               Loading...
             </div>
@@ -123,8 +126,8 @@ class NodeDetails extends React.Component {
       </div>
     );
   }
-
-  renderNotAvailable() {
+  // 没有数据详情页展示页面
+  renderNotFoundLable() {
     const tools = this.renderTools();
     return (
       <div className="node-details">
@@ -149,7 +152,76 @@ class NodeDetails extends React.Component {
       </div>
     );
   }
-
+  // operator 数据展示页面
+  renderNotAvailable() {
+    const { operatorData } = this.state
+    const tools = this.renderTools();
+  //判断 operatorData 是否有数据
+    if(operatorData){
+      return (
+        <div className="node-details">
+          {tools}
+          <div className="node-details-header  node-details-header-notavailable" style={{ backgroundColor: getStatusColor(operatorData ? 'operator' : '') }}>
+            <div className="node-details-header-wrapper">
+              <h2 className="node-details-header-label">
+                {this.props.label}
+              </h2>
+            </div>
+          </div>
+          <div className="node-details-content">
+            <div>
+              <div className="node-details-content-section">
+                <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>基本信息</div>
+                <div style={{ width: '100%' }}>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>资源类型：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{operatorData.kind}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>内存：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{operatorData.component_memory + 'MB'}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>CPU：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{operatorData.component_cpu + 'm'}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>磁盘：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{operatorData.component_disk + 'MB'}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>运行时间：</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>{operatorData.runtime}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>运行实例数量：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{operatorData.readyReplicas}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div className="node-details-content-section">
+                <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>实例状态</div>
+                <div className="operator-pod">
+                  {operatorData.pod.length > 0 && operatorData.pod.map((item)=>{
+                    return(
+                      <div className="operator-pod-box">
+                        <div className="operator-pod-status" style={{ background: getStatusColor(item.status) }}></div>
+                        <p style={{width:'80%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginTop:'0px'}} title={item.name}>{item.name}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }else{
+      this.renderNotFoundLable()
+    }
+  }
   handleRelativeClick(ev, nodeId, topologyId, label, serviceAlias) {
     ev.preventDefault();
     // trackMixpanelEvent('scope.node.relative.click', {
@@ -359,7 +431,7 @@ class NodeDetails extends React.Component {
             </h2>
 
             {
-              nodeDetails.id == 'The Internet' ? null :
+              (nodeDetails.id == 'The Internet'|| nodeDetails.cur_status == "operator") ? null :
               nodeDetails.cur_status == "third_party" && !is_Helm ?
               <div className="node-details-header-relatives">
                 {/* 第三方 */}
@@ -496,7 +568,7 @@ class NodeDetails extends React.Component {
         <div className="node-details-content">
           {nodeDetails.id == 'The Internet' ? null :
             nodeDetails.cur_status == "third_party" ? null :
-              // nodeDetails.cur_status == "closed" ? null :
+              nodeDetails.cur_status == "operator" ? null :
               <div>
                 <div className="node-details-content-section">
                   <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>基本信息</div>
@@ -761,6 +833,7 @@ class NodeDetails extends React.Component {
         <div className="node-details-content">
           {nodeDetails.id == 'The Internet' ? null :
             nodeDetails.cur_status == "third_party" ? null :
+            nodeDetails.cur_status == "operator" ? null :
               <div className="node-details-content-section">
                 {/* 聚合模式普通展示层 */}
                 <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>基本信息</div>
@@ -799,6 +872,7 @@ class NodeDetails extends React.Component {
           {/* 聚合模式helm层 */}
           {
             nodeDetails.id == 'The Internet' ? null :
+            nodeDetails.cur_status == 'operator' ? null :
             // nodeDetails.cur_status == "helm"  ? 
             is_Helm ?
               <div className="node-details-content-section">
@@ -838,6 +912,7 @@ class NodeDetails extends React.Component {
           }
           {nodeDetails.id == 'The Internet' ? null :
             nodeDetails.cur_status == "third_party" ? null :
+            nodeDetails.cur_status == "operator" ? null :
               <div>
                 {instanceDetail.length > 0 && instanceDetail == null ? null :
                   nodeDetails.cur_status == "closed" ? null :
@@ -1002,7 +1077,8 @@ function mapStateToProps(state, ownProps) {
     appNodes: state.get('appNodes'),
     newAppInfo: state.get('newAppInfo'),
     userPermission: state.get('userPermission'),
-    teamName: state.get('teamName')
+    teamName: state.get('teamName'),
+    operatorInfo: state.get('operator')
   };
 }
 

@@ -37,7 +37,8 @@ class NodeDetails extends React.Component {
     this.handleRelativeClick = this.handleRelativeClick.bind(this);
     this.state = {
       shows: false,
-      count: 0
+      count: 0,
+      operatorData: false
     }
   }
 
@@ -53,12 +54,24 @@ class NodeDetails extends React.Component {
 
   componentDidMount() {
     this.updateTitle();
+    this.handleOperatorData();
   }
 
   componentWillUnmount() {
     resetDocumentTitle();
   }
-
+  handleOperatorData(){
+    const operatorInfoAll = (this.props.operatorInfo && this.props.operatorInfo.data) || [];
+    const operatorLabel = this.props.label || null;
+    const operatorData = {}
+    operatorInfoAll.forEach((item)=>{
+      if(operatorLabel == item.label){
+        this.setState({
+          operatorData: item
+        })
+      }
+    })
+  }
   renderTools() {
     const showSwitchTopology = this.props.nodeId !== this.props.selectedNodeId;
     const topologyTitle = `View ${this.props.label} in ${this.props.topologyId}`;
@@ -71,7 +84,7 @@ class NodeDetails extends React.Component {
       </div>
     );
   }
-
+  //loading 详情页展示页面
   renderLoading() {
     const node = this.props.nodes.get(this.props.nodeId);
     const label = node ? node.get('label') : this.props.label;
@@ -96,19 +109,9 @@ class NodeDetails extends React.Component {
         {tools}
         <div className="node-details-header" style={{ backgroundColor: getStatusColor(nodeInfo.cur_status) }}>
           <div className="node-details-header-wrapper">
-
             <h2 className="node-details-header-label">
-              {
-                nodeInfo.id == 'The Internet' ?
-                  <span className="node-details-text truncate">{label} </span>
-                  :
-                  <a href="javascript:;" onClick={this.handleClickService.bind(this, nodeInfo)}>
-                    <span className="node-details-text truncate">{label} </span>
-                    <span style={{ verticalAlign: 'middle' }} className="icon-angle-right"></span>
-                  </a>
-              }
+              <span className="node-details-text truncate">{label} </span>
             </h2>
-
             <div className="node-details-relatives truncate">
               Loading...
             </div>
@@ -122,8 +125,8 @@ class NodeDetails extends React.Component {
       </div>
     );
   }
-
-  renderNotAvailable() {
+  // 没有数据详情页展示页面
+  renderNotFoundLable() {
     const tools = this.renderTools();
     return (
       <div className="node-details">
@@ -148,7 +151,77 @@ class NodeDetails extends React.Component {
       </div>
     );
   }
-
+  // operator 数据展示页面
+  renderNotAvailable() {
+    const { operatorData } = this.state
+    const tools = this.renderTools();
+  //判断 operatorData 是否有数据
+    if(operatorData){
+      return (
+        <div className="node-details">
+          {tools}
+          <div className="node-details-header  node-details-header-notavailable" style={{ backgroundColor: getStatusColor(operatorData ? 'operator' : '') }}>
+            <div className="node-details-header-wrapper">
+              <h2 className="node-details-header-label">
+                {this.props.label}
+              </h2>
+            </div>
+          </div>
+          <div className="node-details-content">
+            <div>
+              <div className="node-details-content-section">
+                <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>基本信息</div>
+                <div style={{ width: '100%' }}>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>资源类型：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{operatorData.kind}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>内存：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{operatorData.component_memory + 'MB'}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>CPU：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{operatorData.component_cpu + 'm'}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>磁盘：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{operatorData.component_disk + 'MB'}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>运行时间：</div>
+                      <div style={{ textAlign: 'left', width: '60%' }}>{operatorData.runtime}</div>
+                  </div>
+                  <div style={{ display: 'flex' }}>
+                    <div style={{ textAlign: 'right', width: '40%' }}>运行实例数量：</div>
+                    <div style={{ textAlign: 'left', width: '60%' }}>{operatorData.readyReplicas}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div className="node-details-content-section">
+                <div className="node-details-content-section-header" style={{ fontSize: '15px' }}>实例状态</div>
+                <div className="operator-pod">
+                  {operatorData.pod.length > 0 && operatorData.pod.map((item)=>{
+                    return(
+                      <div className="operator-pod-box">
+                        <div className="operator-pod-status" style={{ background: getStatusColor(item.status) }}></div>
+                        <p style={{width:'80%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginTop:'0px'}} title={item.name}>{item.name}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }else{
+      this.renderNotFoundLable()
+    }
+  }
+  
   handleRelativeClick(ev, nodeId, topologyId, label, serviceAlias) {
     ev.preventDefault();
     // trackMixpanelEvent('scope.node.relative.click', {
@@ -172,7 +245,6 @@ class NodeDetails extends React.Component {
     if (this.props.details) {
       return this.renderDetails();
     }
-
     return this.renderLoading();
   }
 
@@ -305,7 +377,6 @@ class NodeDetails extends React.Component {
       day7 = Math.floor(day6 / 60),
       day8 = day6 - day7 * 60;
 
-
     return (
       <div className={'node-details'}>
         {tools}
@@ -326,93 +397,93 @@ class NodeDetails extends React.Component {
             </h2>
 
             {
-              nodeDetails.id == 'The Internet' ? null :
-                nodeDetails.cur_status == "third_party" ?
-                  <div className="node-details-header-relatives">
-                    <table style={{ width: '100%' }}>
-                      <tr>
-                        <td style={{ width: '100%', textAlign: 'center' }}>第三方服务</td>
-                      </tr>
-                    </table>
-                  </div> :
-                  <div className="node-details-header-relatives" style={{ width: '121%', paddingTop: '6px', marginLeft: '-36px' }}>
-                    <table style={{ width: '100%', padding: '5px 0px', background: 'rgba(255,255,255,0.2)' }}>
-                      <tr style={{ display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' }}>
-                        {
-                          // nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' &&  nodeDetails.cur_status != 'closed' &&  nodeDetails.cur_status != 'creating' &&
-                          (visit.length > 0 && Object.keys(portList).length > 0) && nodeDetails.cur_status == 'running' &&
-                          (<td style={{ cursor: 'pointer', position: 'relative', marginRight: '40px' }}>
-                            <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px' }} className="iconfont icon-icon_web"></div>
-                            {shows && (
-                              <div onMouseLeave={() => { this.visitout() }} style={{ position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' }}>
-                                <div style={{ width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight: '200px', overflow: 'auto' }}>
-                                  {Object.keys(portList).map((key, index) => {
-                                    let portItem = portList[key];
-                                    return (
-                                      <tbody>
-                                        {
-                                          portItem.outer_url && (
-                                            <div>
-                                              {
-                                                portItem.protocol === 'stream' ?
-                                                  <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href="javascript:;" target="_blank">{portItem.outer_url.split(':')[0]}</a>
-                                                  : <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href={portItem.protocol + '://' + portItem.outer_url} target="_blank">{portItem.outer_url.split(':')[0]}</a>
-                                              }
-                                            </div>
-                                          )
-                                        }
-                                        {
-                                          (portItem.domain_list || []).map((domain, index) => {
-                                            return (
-                                              <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href={domain} target="_blank">{domain}</a>
-                                            );
-                                          })
-                                        }
-                                      </tbody>
-                                    )
-                                  })}
-                                </div>
+              (nodeDetails.id == 'The Internet' || nodeDetails.cur_status == "operator") ? null :
+              nodeDetails.cur_status == "third_party" ?
+                <div className="node-details-header-relatives">
+                  <table style={{ width: '100%' }}>
+                    <tr>
+                      <td style={{ width: '100%', textAlign: 'center' }}>第三方服务</td>
+                    </tr>
+                  </table>
+                </div> :
+                <div className="node-details-header-relatives" style={{ width: '121%', paddingTop: '6px', marginLeft: '-36px' }}>
+                  <table style={{ width: '100%', padding: '5px 0px', background: 'rgba(255,255,255,0.2)' }}>
+                    <tr style={{ display: 'flex', justifyContent: 'start', alignItems: 'center', padding: '0px 34px' }}>
+                      {
+                        // nodeDetails.cur_status != 'abnormal' && nodeDetails.cur_status != 'undeploy' && nodeDetails.cur_status != 'starting' &&  nodeDetails.cur_status != 'closed' &&  nodeDetails.cur_status != 'creating' &&
+                        (visit.length > 0 && Object.keys(portList).length > 0) && nodeDetails.cur_status == 'running' &&
+                        (<td style={{ cursor: 'pointer', position: 'relative', marginRight: '40px' }}>
+                          <div onMouseOver={() => { this.visit() }} title="访问" style={{ fontSize: '20px' }} className="iconfont icon-icon_web"></div>
+                          {shows && (
+                            <div onMouseLeave={() => { this.visitout() }} style={{ position: 'absolute', left: '-20%', top: '85%', paddingTop: '15px' }}>
+                              <div style={{ width: '360px', background: '#fff', padding: '0px 10px', fontSize: '12px', boxShadow: '0 2px 8px rgb(0 0 0 / 15%)', borderRadius: '4px', maxHeight: '200px', overflow: 'auto' }}>
+                                {Object.keys(portList).map((key, index) => {
+                                  let portItem = portList[key];
+                                  return (
+                                    <tbody>
+                                      {
+                                        portItem.outer_url && (
+                                          <div>
+                                            {
+                                              portItem.protocol === 'stream' ?
+                                                <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href="javascript:;" target="_blank">{portItem.outer_url.split(':')[0]}</a>
+                                                : <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href={portItem.protocol + '://' + portItem.outer_url} target="_blank">{portItem.outer_url.split(':')[0]}</a>
+                                            }
+                                          </div>
+                                        )
+                                      }
+                                      {
+                                        (portItem.domain_list || []).map((domain, index) => {
+                                          return (
+                                            <a style={{ color: 'rgba(0,0,0,.65)', lineHeight: '30px', textDecoration: 'underline', display: 'block' }} href={domain} target="_blank">{domain}</a>
+                                          );
+                                        })
+                                      }
+                                    </tbody>
+                                  )
+                                })}
                               </div>
-                            )}
-                          </td>)
-                        }
-                        {nodeDetails.cur_status == 'undeploy' ? (
-                          null
-                        ) : (nodeDetails.cur_status != 'undeploy' && permissionObj.visit_web_terminal && (
-                              <td style={{ cursor: 'pointer', marginRight: '40px' }}>
-                                <a onClick={this.handleClickTerminal.bind(this, nodeDetails)} target="_blank" title="终端" style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-terminalzhongduan"></a>
-                              </td>
-                        ))}
-                        {(nodeDetails.cur_status == 'undeploy' || nodeDetails.cur_status == 'closed') && permissionObj.construct ? (
-                              <td style={{ cursor: 'pointer', marginRight: '40px'  }} title="构建">
-                                <a onClick={this.handleClickBuild.bind(this, 'build', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-dabaoxiazai"></a>
-                              </td>
-                        ) : (permissionObj.update && (
-                              <td style={{ cursor: 'pointer', marginRight: '40px' }} title="更新">
-                                <a onClick={this.handleClickUpdate.bind(this, 'update', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-shuaxin"></a>
-                              </td>
-                            )
-                        )}
-                        {nodeDetails.cur_status == 'closed' && permissionObj.start ? (
-                              <td style={{ cursor: 'pointer', marginRight: '40px' }} title="启动">
-                                <a onClick={this.handleClickStart.bind(this, 'start', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-qidong1"></a>
-                              </td>
-                        ) : (permissionObj.stop && nodeDetails.cur_status != 'undeploy' && (
-                              <td style={{ cursor: 'pointer', marginRight: '40px'  }} title="关闭">
-                                <a onClick={this.handleClickCloses.bind(this, 'closes', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-guanbi"></a>
-                              </td>
-                            )
-                        )}
-                        {permissionObj.delete ? (
-                          <td style={{ cursor: 'pointer' }} title="删除">
-                            <a onClick={this.handleClickDelete.bind(this, 'deleteApp', nodeDetails)} style={{ fontSize: '20px' }} className="iconfont icon-shanchu2"></a>
-                          </td>
-                        ) : (
-                          null
-                        )}
-                      </tr>
-                    </table>
-                  </div>
+                            </div>
+                          )}
+                        </td>)
+                      }
+                      {nodeDetails.cur_status == 'undeploy' ? (
+                        null
+                      ) : (nodeDetails.cur_status != 'undeploy' && permissionObj.visit_web_terminal && (
+                            <td style={{ cursor: 'pointer', marginRight: '40px' }}>
+                              <a onClick={this.handleClickTerminal.bind(this, nodeDetails)} target="_blank" title="终端" style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-terminalzhongduan"></a>
+                            </td>
+                      ))}
+                      {(nodeDetails.cur_status == 'undeploy' || nodeDetails.cur_status == 'closed') && permissionObj.construct ? (
+                            <td style={{ cursor: 'pointer', marginRight: '40px'  }} title="构建">
+                              <a onClick={this.handleClickBuild.bind(this, 'build', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-dabaoxiazai"></a>
+                            </td>
+                      ) : (permissionObj.update && (
+                            <td style={{ cursor: 'pointer', marginRight: '40px' }} title="更新">
+                              <a onClick={this.handleClickUpdate.bind(this, 'update', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-shuaxin"></a>
+                            </td>
+                          )
+                      )}
+                      {nodeDetails.cur_status == 'closed' && permissionObj.start ? (
+                            <td style={{ cursor: 'pointer', marginRight: '40px' }} title="启动">
+                              <a onClick={this.handleClickStart.bind(this, 'start', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-qidong1"></a>
+                            </td>
+                      ) : (permissionObj.stop && nodeDetails.cur_status != 'undeploy' && (
+                            <td style={{ cursor: 'pointer', marginRight: '40px'  }} title="关闭">
+                              <a onClick={this.handleClickCloses.bind(this, 'closes', nodeDetails)} style={{ fontSize: '20px', fontWeight: '600' }} className="iconfont icon-guanbi"></a>
+                            </td>
+                          )
+                      )}
+                      {permissionObj.delete ? (
+                        <td style={{ cursor: 'pointer' }} title="删除">
+                          <a onClick={this.handleClickDelete.bind(this, 'deleteApp', nodeDetails)} style={{ fontSize: '20px' }} className="iconfont icon-shanchu2"></a>
+                        </td>
+                      ) : (
+                        null
+                      )}
+                    </tr>
+                  </table>
+                </div>
             }
           </div>
         </div>
@@ -727,7 +798,8 @@ function mapStateToProps(state, ownProps) {
     visitinfo: state.get('visitinfo'),
     pods: state.get('getpods'),
     userPermission: state.get('userPermission'),
-    teamName: state.get('teamName')
+    teamName: state.get('teamName'),
+    operatorInfo: state.get('operator')
   };
 }
 

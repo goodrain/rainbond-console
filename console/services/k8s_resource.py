@@ -74,6 +74,23 @@ class ComponentK8sResourceService(object):
             region_api.delete_app_resource(enterprise_id, region_name, data)
         k8s_resources_repo.delete_by_id(resource_id)
 
+    def batch_delete_k8s_resource(self, enterprise_id, tenant_name, app_id, region_name, resource_ids):
+        resources = k8s_resources_repo.list_by_ids(resource_ids)
+        namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
+        data = {
+            "app_id":
+            region_app_id,
+            "k8s_resources": [{
+                "app_id": region_app_id,
+                "resource_yaml": resource.content,
+                "namespace": namespace,
+                "name": resource.name,
+                "kind": resource.kind
+            } for resource in resources]
+        }
+        region_api.batch_delete_app_resources(enterprise_id, region_name, data)
+        resources.delete()
+
     def get_app_id_and_namespace(self, app_id, tenant_name, region_name):
         tenant = Tenants.objects.get(tenant_name=tenant_name)
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)

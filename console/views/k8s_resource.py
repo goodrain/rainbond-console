@@ -42,3 +42,9 @@ class AppK8sResourceListView(ApplicationView):
         k8s_resource_service.create_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, self.app_id, resource_yaml,
                                                  self.region_name)
         return Response(general_message(200, "success", "创建成功"))
+
+    def delete(self, request, *args, **kwargs):
+        resource_ids = request.data.get("ids")
+        k8s_resource_service.batch_delete_k8s_resource(self.enterprise.enterprise_id, self.tenant_name, str(self.app_id),
+                                                       self.region_name, resource_ids)
+        return Response(general_message(200, "success", "删除成功"))

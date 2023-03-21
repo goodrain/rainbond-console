@@ -14,6 +14,7 @@ from console.repositories.app_config import (configuration_repo, domain_repo, po
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.services.app_config.exceptoin import (err_cert_name_exists, err_cert_not_found, err_still_has_http_rules)
+from console.services.gateway_api import gateway_api
 from console.services.group_service import group_service
 from console.services.region_services import region_services
 from console.utils.certutil import analyze_cert, cert_is_effective
@@ -56,9 +57,12 @@ class DomainService(object):
         if domain_repo.get_certificate_by_alias(tenant.tenant_id, alias):
             raise err_cert_name_exists
 
-    def add_certificate(self, tenant, alias, certificate_id, certificate, private_key, certificate_type):
+    def add_certificate(self, region, tenant, alias, certificate_id, certificate, private_key, certificate_type):
         self.__check_certificate_alias(tenant, alias)
         cert_is_effective(certificate, private_key)
+        if certificate_type == "gateway":
+            gateway_api.create_gateway_tls(region.region_name, tenant.tenant_name, tenant.namespace, alias, private_key,
+                                           certificate)
         certificate = base64.b64encode(bytes(certificate, 'utf-8'))
         certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id, certificate, private_key,
                                                   certificate_type)
@@ -85,7 +89,7 @@ class DomainService(object):
         data["private_key"] = certificate.private_key
         return 200, "success", data
 
-    def delete_certificate_by_pk(self, pk):
+    def delete_certificate_by_pk(self, region, tenant, pk):
         cert = domain_repo.get_certificate_by_pk(pk)
         if not cert:
             raise err_cert_not_found
@@ -94,11 +98,12 @@ class DomainService(object):
         http_rules = domain_repo.list_service_domains_by_cert_id(pk)
         if http_rules:
             raise err_still_has_http_rules
-
+        if cert.certificate_type == "gateway":
+            gateway_api.delete_gateway_tls(region, tenant.tenant_name, tenant.namespace, cert.alias)
         cert.delete()
 
     @transaction.atomic
-    def update_certificate(self, tenant, certificate_id, alias, certificate, private_key, certificate_type):
+    def update_certificate(self, region, tenant, certificate_id, alias, certificate, private_key, certificate_type):
         cert_is_effective(certificate, private_key)
         cert = domain_repo.get_certificate_by_pk(certificate_id)
         if cert is None:
@@ -108,10 +113,15 @@ class DomainService(object):
             cert.alias = alias
         if certificate:
             cert.certificate = base64.b64encode(bytes(certificate, 'utf-8'))
-        if certificate_type:
+        if certificate_type and certificate_type != cert.certificate_type:
+            if certificate_type == "服务端证书":
+                gateway_api.delete_gateway_tls(region.region_name, tenant.tenant_name, tenant.namespace, alias)
             cert.certificate_type = certificate_type
         if private_key:
             cert.private_key = private_key
+        if certificate_type == "gateway":
+            gateway_api.update_gateway_tls(region.region_name, tenant.tenant_name, tenant.namespace, alias, private_key,
+                                           certificate)
         cert.save()
 
         # update all ingress related to the certificate

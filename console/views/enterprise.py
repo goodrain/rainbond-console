@@ -15,6 +15,7 @@ from console.repositories.group import group_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
+from console.services.gateway_api import gateway_api
 from console.services.app_actions import ws_service
 from console.services.app_config.component_logs import component_log_service
 from console.services.config_service import EnterpriseConfigService
@@ -394,6 +395,13 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         else:
             result = general_message(500, "failed", "创建失败")
             return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class EnterpriseRegionGatewayBatch(JWTAuthApiView):
+    def get(self, request, enterprise_id, region_name, *args, **kwargs):
+        data = gateway_api.list_gateways(enterprise_id, region_name)
+        result = general_message(200, "success", "获取成功", list=data["list"])
+        return Response(result, status=status.HTTP_200_OK)
 
 
 class EnterpriseRegionNamespace(JWTAuthApiView):

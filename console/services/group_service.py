@@ -781,5 +781,33 @@ class GroupService(object):
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         return region_api.check_app_governance_mode(region_name, tenant.tenant_name, region_app_id, governance_mode)
 
+    def get_watch_managed_data(self, tenant, region_name, app_id):
+        from console.services.app import app_service
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        watch_managed_data = base_service.get_watch_managed(region_name, tenant.tenant_name, region_app_id)
+        services = list()
+        if watch_managed_data:
+            for service in watch_managed_data.get("services", []):
+                if app_service.is_k8s_component_name_duplicate(app_id, service.get("name") + "-svc"):
+                    continue
+                if service.get("ip") != "None":
+                    services.append({
+                        "name": service.get("name") + "-svc",
+                        "static": True,
+                        "address": [service.get("ip") + ":" + port for port in service.get("port").split(",")]
+                    })
+                else:
+                    services.append({
+                        "name": service.get("name") + "-svc",
+                        "static": False,
+                        "namespace": tenant.namespace,
+                        "service": service.get("name"),
+                        "port": service.get("port")
+                    })
+        data = {
+            "service": services,
+        }
+        return data
+
 
 group_service = GroupService()

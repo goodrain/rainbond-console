@@ -147,6 +147,14 @@ class BaseService(object):
             logger.exception(e)
             return []
 
+    def get_watch_managed(self, region_name, tenant_name, region_app_id):
+        try:
+            body = region_api.watch_operator_managed(region_name, tenant_name, region_app_id)
+            return body.get("bean")
+        except Exception as e:
+            logger.exception(e)
+            return {}
+
     def get_apps_deploy_versions(self, region, tenant_name, service_ids):
         data = {"service_ids": service_ids}
         try:
