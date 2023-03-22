@@ -440,7 +440,8 @@ class EnterpriseServices(object):
                 "req_memory": node["resource"]["req_memory"] / 1000,
                 "cap_memory": node["resource"]["cap_memory"] / 1000
             })
-            all_node_roles += node["roles"]
+            if node["roles"]:
+                all_node_roles += node["roles"]
         for node_role in all_node_roles:
             cluster_role_count[node_role] = all_node_roles.count(node_role)
         return node_list, cluster_role_count
