@@ -278,8 +278,8 @@ class GroupService(object):
         res['app_name'] = app.group_name
         res['app_type'] = app.app_type
         res['service_num'] = group_service_relation_repo.count_service_by_app_id(app_id)
-        res['backup_num'] = backup_record_repo.count_by_app_id(app_id)
         res['share_num'] = share_repo.count_by_app_id(app_id)
+        res['resources_num'] = k8s_resources_repo.list_by_app_id(app_id).count()
         res['ingress_num'] = self.count_ingress_by_app_id(tenant.tenant_id, region_name, app_id)
         res['config_group_num'] = app_config_group_service.count_by_app_id(region_name, app_id)
         res['logo'] = app.logo
