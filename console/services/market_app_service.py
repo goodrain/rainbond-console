@@ -999,7 +999,10 @@ class MarketAppService(object):
             min_memory = 0
             try:
                 app_temp = json.loads(app_model_version.app_template)
-                for app in app_temp.get("apps"):
+                apps = list()
+                if app_temp.get("apps", []):
+                    apps = app_temp.get("apps", [])
+                for app in apps:
                     if app.get("extend_method_map"):
                         try:
                             if app.get("extend_method_map").get("init_memory"):

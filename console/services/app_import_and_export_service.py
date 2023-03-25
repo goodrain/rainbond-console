@@ -207,6 +207,8 @@ class AppExportService(object):
         tmpl = json.loads(app_version.app_template)
         if tmpl.get("governance_mode", "") == "KUBERNETES_NATIVE_SERVICE":
             result["helm_chart"] = helm_chart_init_data
+        if not tmpl.get("apps"):
+            return {"no_export": "true"}
         for component in tmpl.get("apps"):
             if component.get("service_source") == "source_code":
                 result["slug"] = slug_init_data

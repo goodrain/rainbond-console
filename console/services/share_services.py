@@ -40,6 +40,10 @@ region_api = RegionInvokeApi()
 class ShareService(object):
     def check_service_source(self, team, team_name, group_id, region_name):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
+        k8s_resources_list = k8s_resources_repo.list_by_app_id(group_id)
+        data = {"code": 400, "success": False, "msg_show": "当前应用内无组件和k8s资源", "list": list(), "bean": dict()}
+        if k8s_resources_list:
+            data = {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}
         if service_list:
             # 批量查询组件状态
             service_ids = [service.service_id for service in service_list]
@@ -47,13 +51,10 @@ class ShareService(object):
                 region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
             for status in status_list:
                 if status["status"] == "running":
-                    data = {"code": 200, "success": True, "msg_show": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
+                    data = {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}
                     return data
             data = {"code": 400, "success": False, "msg_show": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
-            return data
-        else:
-            data = {"code": 400, "success": False, "msg_show": "当前应用内无组件", "list": list(), "bean": dict()}
-            return data
+        return data
 
     def check_whether_have_share_history(self, group_id):
         return share_repo.get_rainbond_cent_app_by_tenant_service_group_id(group_id=group_id)
@@ -873,10 +874,6 @@ class ShareService(object):
                             ssre.save()
                         new_services.append(service)
                     app_template["apps"] = new_services
-                else:
-                    if sid:
-                        transaction.savepoint_rollback(sid)
-                    return 400, "分享的组件信息不能为空", None
             except ServiceHandleException as e:
                 raise e
             except Exception as e:
