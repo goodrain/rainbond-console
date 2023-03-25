@@ -77,7 +77,11 @@ class MarketApp(object):
             },
         }
         _, body = region_api.batch_operation_service(self.new_app.region_name, self.new_app.tenant.tenant_name, body)
-        res += body["bean"]["batch_result"]
+        batch_result = list()
+        if body["bean"]["batch_result"]:
+            batch_result = batch_result
+
+        res += batch_result
 
         return res
 

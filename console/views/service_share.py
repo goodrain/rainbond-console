@@ -341,8 +341,12 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             return Response(result, status=400)
         app_version_info = request.data.get("app_version_info", None)
         share_app_info = request.data.get("share_service_list", None)
-        if not app_version_info or not share_app_info:
-            result = general_message(400, "share info can not be empty", "分享应用基本信息或应用信息不能为空")
+        k8s_resource_info = request.data.get("share_k8s_resources", None)
+        if not app_version_info:
+            result = general_message(400, "share info can not be empty", "分享应用信息不能为空")
+            return Response(result, status=400)
+        if not share_app_info and not k8s_resource_info:
+            result = general_message(400, "share info can not be empty", "应用基本信息不能为空")
             return Response(result, status=400)
         if not app_version_info.get("app_model_id", None):
             result = general_message(400, "share app model id can not be empty", "分享应用信息不全")

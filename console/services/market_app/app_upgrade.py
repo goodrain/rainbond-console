@@ -173,7 +173,9 @@ class AppUpgrade(MarketApp):
         return self.record
 
     def changes(self):
-        templates = self.app_template.get("apps")
+        templates = list()
+        if self.app_template.get("apps"):
+            templates = self.app_template.get("apps")
         templates = {tmpl["service_key"]: tmpl for tmpl in templates}
 
         result = []
@@ -436,7 +438,10 @@ class AppUpgrade(MarketApp):
         original_components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self.original_app.components()}
 
         deps = []
-        for tmpl in self.app_template.get("apps", []):
+        apps = list()
+        if self.app_template.get("apps", []):
+            apps = self.app_template.get("apps", [])
+        for tmpl in apps:
             for dep in tmpl.get("dep_service_map_list", []):
                 component_key = tmpl.get("service_share_uuid")
                 component = components.get(component_key)
@@ -472,7 +477,10 @@ class AppUpgrade(MarketApp):
         original_components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self.original_app.components()}
 
         deps = []
-        for tmpl in self.app_template.get("apps", []):
+        apps = list()
+        if self.app_template.get("apps", []):
+            apps = self.app_template.get("apps", [])
+        for tmpl in apps:
             component_key = tmpl.get("service_share_uuid")
             component = components.get(component_key)
             if not component:
@@ -641,10 +649,13 @@ class AppUpgrade(MarketApp):
         old_plugin_deps = [dep.service_id + dep.plugin_id for dep in self.original_app.plugin_deps]
 
         components = {cpt.component.service_key: cpt for cpt in components}
-        component_keys = {tmpl["service_id"]: tmpl["service_key"] for tmpl in self.app_template.get("apps")}
+        apps = list()
+        if self.app_template.get("apps", []):
+            apps = self.app_template.get("apps", [])
+        component_keys = {tmpl["service_id"]: tmpl["service_key"] for tmpl in apps}
 
         plugin_deps = []
-        for component in self.app_template["apps"]:
+        for component in apps:
             plugin_deps.extend(component.get("service_related_plugin_config", []))
 
         new_plugin_deps = []
@@ -851,7 +862,10 @@ class AppUpgrade(MarketApp):
         return config_groups, config_items
 
     def _tmpl_components(self, components: [Component]):
-        component_keys = [tmpl.get("service_key") for tmpl in self.app_template.get("apps")]
+        apps = list()
+        if self.app_template.get("apps", []):
+            apps = self.app_template.get("apps", [])
+        component_keys = [tmpl.get("service_key") for tmpl in apps]
         return [cpt for cpt in components if cpt.component.service_key in component_keys]
 
     def _k8s_resources(self):
