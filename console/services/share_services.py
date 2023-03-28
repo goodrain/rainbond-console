@@ -335,6 +335,7 @@ class ShareService(object):
                         p['is_inner_service'] = port.is_inner_service
                         p['is_outer_service'] = port.is_outer_service
                         p['k8s_service_name'] = port.k8s_service_name
+                        p['name'] = port.name
                         data['port_map_list'].append(p)
 
                 data['service_volume_map_list'] = list()
