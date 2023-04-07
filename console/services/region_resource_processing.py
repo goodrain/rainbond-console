@@ -150,7 +150,8 @@ class RegionResource(object):
             new_service.language = ""
             new_service.create_status = "complete"
             new_service.tenant_id = tenant.tenant_id
-            new_service.service_cname = component["ts"]["k8s_component_name"]
+            k8s_component_name_cname = component["ts"]["k8s_component_name"].split(",")
+            new_service.service_cname = k8s_component_name_cname[0]
             new_service.service_source = "docker_image"
             new_service.service_id = component["ts"]["service_id"]
             new_service.service_alias = component["ts"]["service_alias"]
@@ -158,7 +159,7 @@ class RegionResource(object):
             new_service.build_upgrade = False
             new_service.host_path = "/grdata/tenant/" + tenant.tenant_id + "/service/" + component["ts"]["service_id"]
             new_service.docker_cmd = ""
-            new_service.k8s_component_name = component["ts"]["k8s_component_name"]
+            new_service.k8s_component_name = k8s_component_name_cname[1]
             new_service.job_strategy = component["ts"]["job_strategy"]
             new_service.save()
             group_service_relation_repo.add_service_group_relation(application.app_id, component["ts"]["service_id"],
