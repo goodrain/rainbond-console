@@ -39,3 +39,17 @@ class RainbondOfficialPluginLView(JWTAuthApiView):
     def get(self, request, enterprise_id, region_name, *args, **kwargs):
         plugins, need_authz = rbd_plugin_service.list_plugins(enterprise_id, region_name, official=True)
         return Response(general_message(200, "success", "查询成功", bean={"need_authz": need_authz}, list=plugins))
+
+
+class RainbondObservablePluginLView(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        regions = region_services.get_regions_by_enterprise_id(enterprise_id)
+        res = []
+        for region in regions:
+            plugins = rbd_plugin_service.list_plugins(enterprise_id, region.region_name, official=True)
+            for plugin in plugins:
+                if plugin["name"] == "observability":
+                    res.append({"region_name": region.region_name, "urls": plugin["urls"], "name": "observability"})
+                elif plugin["name"] == "rainbond-large-screen":
+                    res.append({"region_name": region.region_name, "urls": plugin["urls"], "name": "rainbond-large-screen"})
+        return Response(general_message(200, "success", "查询成功", list=res))

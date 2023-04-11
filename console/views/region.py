@@ -1,11 +1,14 @@
 # -*- coding: utf8 -*-
+import json
 import logging
+
+import requests
 
 from console.exception.main import ServiceHandleException
 from console.services.operation_log import operation_log_service, Operation
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.views.base import (JWTAuthApiView, RegionTenantHeaderView, TenantHeaderView)
+from console.views.base import (JWTAuthApiView, RegionTenantHeaderView, TenantHeaderView, AlowAnyApiView)
 from rest_framework.response import Response
 from www.apiclient.marketclient import MarketOpenAPI
 from www.apiclient.regionapi import RegionInvokeApi
@@ -155,6 +158,35 @@ class OpenRegionView(TenantHeaderView):
         operation_log_service.create_team_log(
             user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=tenant.tenant_name)
         return Response(result, result["code"])
+
+
+class RegionMonitor(AlowAnyApiView):
+    def post(self, request, *args, **kwargs):
+        url = request.data.get("url", None)
+        data = request.data.get("data", None)
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        ret = requests.post(url, headers=headers, data=json.dumps(data).encode("utf-8"))
+        ret_data = json.loads(ret.text)
+        results = ret_data.get("results", {})
+        body = dict()
+        for k, result in results.items():
+            frames = result.get("frames", [])
+            for frame in frames:
+                schema = frame.get("schema", {})
+                fields = schema.get("fields", [])
+                instance = fields[1].get("labels", {}).get("instance", "")
+                name = schema.get("name", "")
+                data = frame.get("data", {})
+                instance_value = body.get(instance, {})
+                if name == "主机名":
+                    instance_value["A2"] = fields[1].get("labels", {}).get("nodename")
+                else:
+                    instance_value[k] = data.get("values")[1][0]
+                body[instance] = instance_value
+        body = [{"A1": k, **v} for k, v in body.items()]
+        return Response(body, status=200)
 
 
 class QyeryRegionView(JWTAuthApiView):
