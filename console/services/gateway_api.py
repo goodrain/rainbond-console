@@ -58,7 +58,9 @@ class GatewayAPI(object):
         body = dict()
         app = group_repo.get_group_by_id(app_id)
         region_app_id = region_app_repo.get_region_app_id(region, app_id)
-        body["name"] = app.k8s_app + "-" + make_uuid()[:6]
+        body["name"] = make_uuid()[:6]
+        if app.k8s_app:
+            body["name"] = app.k8s_app + "-" + make_uuid()[:6]
         body["app_id"] = region_app_id
         body["namespace"] = namespace
         body["section_name"] = section_name
