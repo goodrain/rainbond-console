@@ -145,7 +145,7 @@ function time_sync() {
 }
 
 function check_resource(){
-    cpu=$(lscpu | awk '/^CPU\(/{print $2}')
+    cpu=$(grep -c 'processor' /proc/cpuinfo)
     mem=$(free -g | awk '/^Mem/{print $2}')
     DISK_SPACE=$(df /|sed -n '2p'|awk '{print $2}')
 
