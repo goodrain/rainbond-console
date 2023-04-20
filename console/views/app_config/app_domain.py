@@ -565,7 +565,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             protocol = "https"
         service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name,
                                                                               protocol, domain_path)
-        if service_domain:
+        if service_domain and service_domain.http_rule_id != http_rule_id:
             result = general_message(400, "failed", "策略已存在")
             return Response(result, status=400)
         # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
