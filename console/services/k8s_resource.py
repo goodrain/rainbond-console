@@ -69,7 +69,8 @@ class ComponentK8sResourceService(object):
                 "resource_yaml": resources.content,
                 "namespace": namespace,
                 "name": name,
-                "kind": resources.kind
+                "kind": resources.kind,
+                "state": resources.state
             }
             region_api.delete_app_resource(enterprise_id, region_name, data)
         k8s_resources_repo.delete_by_id(resource_id)
@@ -85,7 +86,8 @@ class ComponentK8sResourceService(object):
                 "resource_yaml": resource.content,
                 "namespace": namespace,
                 "name": resource.name,
-                "kind": resource.kind
+                "kind": resource.kind,
+                "state": resource.state
             } for resource in resources]
         }
         region_api.batch_delete_app_resources(enterprise_id, region_name, data)
