@@ -937,7 +937,7 @@ class TenantServiceEndpoints(object):
             "tenant_id": tenant.tenant_id,
             "service_id": service.service_id,
             "service_cname": service.service_cname,
-            "endpoints_info": "",
+            "endpoints_info": "{}",
             "endpoints_type": "api"
         }
         return ThirdPartyServiceEndpoints.objects.create(**data)
