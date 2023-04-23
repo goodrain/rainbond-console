@@ -509,6 +509,7 @@ class UploadRecordLastView(JWTAuthApiView):
             if records.source_dir != "":
                 dir_list = eval(records.source_dir)
                 bean["source_dir"] = dir_list
+                bean["event_id"] = records.event_id
             result = general_message(200, "success", "操作成功", bean=bean)
             return Response(result, status=result["code"])
         except Exception as e:
