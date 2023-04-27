@@ -701,7 +701,7 @@ class GatewayRoute(RegionTenantHeaderView):
         namespace = self.tenant.namespace
         app_id = region_app_repo.get_app_id(self.region_name, region_app_id)
         data = gateway_api.delete_http_route(self.region_name, self.tenant_name, namespace, name, region_app_id)
-        k8s_resources_repo.delete_by_name(app_id, name)
+        k8s_resources_repo.delete_by_name(app_id, "HTTPRoute", name)
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])
 

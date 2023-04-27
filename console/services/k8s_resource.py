@@ -15,8 +15,8 @@ logger = logging.getLogger('default')
 
 
 class ComponentK8sResourceService(object):
-    def get_by_app_id_and_name(self, app_id, name):
-        resources = k8s_resources_repo.get_by_app_id_name(app_id, name)
+    def get_by_appid_kind_name(self, app_id, kind, name):
+        resources = k8s_resources_repo.get_by_app_id_kind_name(app_id, kind, name)
         return resources
 
     def list_by_app_id(self, app_id):
@@ -118,7 +118,7 @@ class ComponentK8sResourceService(object):
         k8s_resources_repo.update(app.app_id, app.k8s_app, "ServiceMesh", **data)
 
     def delete_governance_resource(self, app):
-        k8s_resources_repo.delete_by_name(app.app_id, app.k8s_app)
+        k8s_resources_repo.delete_by_name(app.app_id, "ServiceMesh", app.k8s_app)
 
 
 k8s_resource_service = ComponentK8sResourceService()
