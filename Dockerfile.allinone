@@ -16,8 +16,10 @@ ARG VERSION=v5.7.0-release
 ARG RELEASE_DESC=
 
 LABEL author="zengqg@goodrain.com"
-RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ && \
-    apt-get update && apt-get install -y supervisor && rm -rf /var/lib/apt/lists/* && \
+RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ \
+    && echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list \
+    && echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list \
+    && apt-get update && apt-get install -y supervisor && rm -rf /var/lib/apt/lists/* && \
     wget https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/helm && chmod +x helm && mv helm /usr/local/bin/ && \
     mkdir -p /var/log/supervisor
 
