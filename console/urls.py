@@ -77,7 +77,7 @@ from console.views.group import (
     AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView, TenantGroupCommonOperationView,
     TenantGroupOperationView, TenantGroupView, ApplicationInstallView, ApplicationPodView, ApplicationHelmAppComponentView,
     ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView, TenantAppUpgradableNumView,
-    AppGovernanceModeCheckView, ApplicationVolumesView, AppGovernanceModeCRView)
+    AppGovernanceModeCheckView, ApplicationVolumesView, AppGovernanceModeCRView, TenantGroupHandleView)
 from console.views.helm_app import HelmAppView, HelmRepo, HelmCenterApp, HelmChart, CommandInstallHelm
 from console.views.jwt_token_view import JWTTokenView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
@@ -311,6 +311,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups$', TenantGroupView.as_view(), perms.TenantGroupView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)$', TenantGroupOperationView.as_view(),
         perms.TenantGroupOperationView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/handle$', TenantGroupHandleView.as_view(),
+        perms.TenantGroupHandleView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/install$', ApplicationInstallView.as_view(),
         perms.TenantGroupOperationView),
     # 批量修改该应用下有状态组件的存储路径

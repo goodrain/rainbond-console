@@ -121,6 +121,22 @@ class AppConfigGroupService(object):
         app_config_group_service_repo.delete(cgroup.config_group_id)
         app_config_group_repo.delete(cgroup.region_name, app_id, config_group_name)
 
+    @transaction.atomic
+    def batch_delete_config_group(self, region_name, team_name, app_id):
+        config_groups = app_config_group_repo.list(region_name, app_id)
+        names = [config_group.config_group_name for config_group in config_groups]
+        config_group_ids = [config_group.config_group_id for config_group in config_groups]
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        config_group_names = ",".join(names)
+        try:
+            region_api.batch_delete_app_config_group(region_name, team_name, region_app_id, config_group_names)
+        except region_api.CallApiError as e:
+            if e.status != 404:
+                raise e
+        app_config_group_item_repo.batch_delete(config_group_ids)
+        app_config_group_service_repo.batch_delete(config_group_ids)
+        app_config_group_repo.batch_delete(region_name, app_id, names)
+
     def count_by_app_id(self, region_name, app_id):
         return app_config_group_repo.count(region_name, app_id)
 

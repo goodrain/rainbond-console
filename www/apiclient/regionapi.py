@@ -2101,6 +2101,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region_name)
         return res, body
 
+    def batch_delete_app_config_group(self, region_name, tenant_name, app_id, config_group_names):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{0}/apps/{1}/configgroups/{2}/batch".format(tenant_region.region_tenant_name, app_id,
+                                                                             config_group_names)
+
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region_name)
+        return res, body
+
     def check_app_governance_mode(self, region_name, tenant_name, region_app_id, query):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
