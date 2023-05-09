@@ -654,6 +654,7 @@ class BuildSourceinfo(AppBaseView):
                 self.service.git_url = ""
                 self.service.code_from = "image_manual"
                 self.service.service_key = "application"
+                self.service.language = ""
                 self.service.save()
                 transaction.savepoint_commit(s_id)
             result = general_message(200, "success", "修改成功")
