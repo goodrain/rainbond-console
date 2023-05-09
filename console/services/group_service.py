@@ -12,7 +12,8 @@ from console.enum.app import GovernanceModeEnum, AppType
 from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound, ErrK8sAppExists
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
-from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain)
+from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain, dep_relation_repo)
+from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.compose_repo import compose_repo
 from console.repositories.group import group_repo, group_service_relation_repo
@@ -20,6 +21,7 @@ from console.repositories.k8s_resources import k8s_resources_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.share_repo import share_repo
+from console.repositories.team_repo import team_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.migration_repo import migrate_repo
@@ -308,6 +310,123 @@ class GroupService(object):
 
         return res
 
+    def get_service_volume_by_ids(self, service_ids):
+        """
+        获取组件持久化目录
+        """
+        volume_list = share_repo.get_volume_list_by_service_ids(service_ids=service_ids)
+        if volume_list:
+            service_volume_map = {}
+            for volume in volume_list:
+                service_id = volume.service_id
+                tmp_list = []
+                if service_id in list(service_volume_map.keys()):
+                    tmp_list = service_volume_map.get(service_id)
+                tmp_list.append(volume)
+                service_volume_map[service_id] = tmp_list
+            return service_volume_map
+        else:
+            return {}
+
+    def is_service_related_by_other_app_service(self, tenant, service):
+        tsrs = dep_relation_repo.get_dependency_by_dep_id(tenant.tenant_id, service.service_id)
+        if tsrs:
+            sids = list(set([tsr.service_id for tsr in tsrs]))
+            service_group = ServiceGroupRelation.objects.get(service_id=service.service_id, tenant_id=tenant.tenant_id)
+            groups = ServiceGroupRelation.objects.filter(service_id__in=sids, tenant_id=tenant.tenant_id)
+            group_ids = set([group.group_id for group in groups])
+            if group_ids and service_group.group_id in group_ids:
+                group_ids.remove(service_group.group_id)
+            if not group_ids:
+                return False
+            return True
+        return False
+
+    def service_status(self, tenant, service):
+        status = ""
+        try:
+            if service.create_status != "complete":
+                return False
+            status_info = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
+                                                          tenant.enterprise_id)
+            status = status_info["bean"]["cur_status"]
+        except region_api.CallApiError as e:
+            if int(e.status) == 404:
+                return False
+        return status
+
+    def get_app_resource(self, tenant_id, region_name, app_id):
+        # app all service info
+        res = {}
+        services_info = []
+        tenant = team_repo.get_team_by_team_id(tenant_id)
+        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
+        services = service_repo.get_services_by_service_ids(service_ids)
+        if len(services) > 0:
+            service_volume_map = self.get_service_volume_by_ids(service_ids)
+            for service in services:
+                service_volumes = []
+                volumes = service_volume_map.get(service.service_id, None)
+                if volumes:
+                    service_volumes = [volume.volume_name for volume in volumes]
+                is_related = self.is_service_related_by_other_app_service(tenant, service)
+                status = self.service_status(tenant, service)
+                service_info = {
+                    "service_name": service.service_cname,
+                    "volume": service_volumes,
+                    "is_related": is_related,
+                    "status": status
+                }
+                services_info.append(service_info)
+        res["services_info"] = services_info
+        # k8s source
+        app_k8s_resources = k8s_resources_repo.list_by_app_id(app_id)
+
+        res['k8s_resources'] = [{"name": resource.name, "type": resource.kind} for resource in app_k8s_resources]
+        # domains
+        domains = domain_repo.get_domains_by_service_ids(service_ids)
+        res['domains'] = [domain.domain_name for domain in domains]
+        # config_groups
+        config_groups = app_config_group_repo.list(region_name, app_id)
+        res['config_groups'] = [config_group.config_group_name for config_group in config_groups]
+        # app share records
+        share_records = share_repo.get_app_share_records_by_groupid(tenant.tenant_name, group_id=app_id)
+        res['app_share_records'] = [share_record.share_app_model_name for share_record in share_records]
+        return res
+
+    def batch_delete_app_services(self, user, tenant_id, region_name, app_id):
+        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region_name, app_id)
+        services = service_repo.get_services_by_service_ids(service_ids)
+        tenant = team_repo.get_team_by_team_id(tenant_id)
+        # stop
+        stop_infos_list = []
+        for service in services:
+            service_dict = dict()
+            if service.create_status == "complete":
+                service_dict["service_id"] = service.service_id
+                stop_infos_list.append(service_dict)
+        body = {"operation": "stop", "stop_infos": stop_infos_list}
+        try:
+            region_api.batch_operation_service(region_name, tenant.tenant_name, body)
+        except region_api.CallApiError as e:
+            logger.exception(e)
+            raise AbortRequest(500, "failed to request region api", "数据中心操作失败")
+
+        # avoid circular import
+        from console.services.app_actions import app_manage_service
+        # Batch Delete Components
+        for service in services:
+            app_manage_service.batch_delete(user, tenant, service, is_force=True, is_del_app=True)
+        return
+
+    def delete_app_share_records(self, team_name, app_id):
+        share_records = share_repo.get_app_share_records_by_groupid(team_name, app_id)
+        if share_records:
+            for share_record in share_records:
+                share_record.status = 3
+                share_record.save()
+        return
+
     def get_group_by_id(self, tenant, region, group_id):
         principal_info = dict()
         principal_info["email"] = ""
@@ -551,15 +670,6 @@ class GroupService(object):
         self._delete_app(tenant.tenant_name, region_name, app.app_id)
 
     def _delete_rainbond_app(self, tenant, region_name, app):
-        """
-        For rainbond application, with components, cannot be deleted directly
-        """
-        service = group_service_relation_repo.get_service_by_group(app.app_id)
-        if service:
-            raise AbortRequest(msg="the app still has components", msg_show="当前应用内存在组件，无法删除")
-        k8s_resources = k8s_resources_repo.list_by_app_id(app.app_id)
-        if k8s_resources:
-            raise AbortRequest(msg="the app still has k8s resource", msg_show="当前应用内存在k8s资源，无法删除")
         self._delete_app(tenant.tenant_name, region_name, app.app_id)
 
     @staticmethod

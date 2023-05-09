@@ -686,6 +686,23 @@ TenantGroupOperationView = {
     }
 }
 
+TenantGroupHandleView = {
+    "__message": {
+        "get": {
+            "perms": [200001]
+        },
+        "post": {
+            "perms": []
+        },
+        "put": {
+            "perms": [300003]
+        },
+        "delete": {
+            "perms": [300004]
+        }
+    }
+}
+
 GroupStatusView = {
     "__message": {
         "get": {

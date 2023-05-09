@@ -10,6 +10,7 @@ from console.exception.bcode import ErrQualifiedName
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
 from console.repositories.region_app import region_app_repo
+from console.services.app_config_group import app_config_group_service
 from console.services.helm_app import helm_app_service
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
@@ -185,6 +186,36 @@ class TenantGroupOperationView(ApplicationView):
         """
         app = group_service.get_app_detail(self.tenant, self.region_name, app_id)
         result = general_message(200, "success", "success", bean=app)
+        return Response(result, status=result["code"])
+
+
+class TenantGroupHandleView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        '''
+        获取应用下资源信息
+        '''
+        res = group_service.get_app_resource(self.tenant.tenant_id, self.region_name, app_id)
+        result = general_message(200, "success", "success", bean=res)
+        return Response(result, status=result["code"])
+
+    def delete(self, request, app_id, *args, **kwargs):
+        """
+        删除应用及所有资源
+        """
+        # delete services
+        group_service.batch_delete_app_services(self.user, self.tenant.tenant_id, self.region_name, app_id)
+        # delete k8s resource
+        k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
+        resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
+        k8s_resource_service.batch_delete_k8s_resource(self.user.enterprise_id, self.tenant.tenant_name, str(app_id),
+                                                       self.region_name, resource_ids)
+        # delete configs
+        app_config_group_service.batch_delete_config_group(self.region_name, self.tenant.tenant_name, app_id)
+        # delete records
+        group_service.delete_app_share_records(self.tenant.tenant_name, app_id)
+        # delete app
+        group_service.delete_app(self.tenant, self.region_name, self.app)
+        result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
 

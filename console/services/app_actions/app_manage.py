@@ -1126,34 +1126,35 @@ class AppManageService(AppManageBase):
         region_api.update_service_app_id(service.service_region, tenant_name, service.service_alias, update_body)
 
     # 批量删除组件
-    def batch_delete(self, user, tenant, service, is_force):
-        # 判断组件是否是运行状态
-        if self.__is_service_running(tenant, service) and service.service_source != "third_party":
-            msg = "当前组件处于运行状态,请先关闭组件"
-            code = 409
-            return code, msg
-        # 判断组件是否被其他组件挂载
-        is_mounted, msg = self.__is_service_mnt_related(tenant, service)
-        if is_mounted:
-            code = 412
-            msg = "当前组件被其他组件挂载, 您确定要删除吗？"
-            return code, msg
-        # 判断组件是否绑定了域名
-        is_bind_domain = self.__is_service_bind_domain(service)
-        if is_bind_domain:
-            code = 412
-            msg = "当前组件绑定了域名， 您确定要删除吗？"
-            return code, msg
-        # 判断是否有插件
-        if self.__is_service_has_plugins(service):
-            code = 412
-            msg = "当前组件安装了插件， 您确定要删除吗？"
-            return code, msg
-        # 判断是否被其他应用下的组件依赖
-        if self.__is_service_related_by_other_app_service(tenant, service):
-            code = 412
-            msg = "当前组件被其他应用下的组件依赖了，您确定要删除吗？"
-            return code, msg
+    def batch_delete(self, user, tenant, service, is_force, is_del_app=True):
+        if not is_del_app:
+            # 判断组件是否是运行状态
+            if self.__is_service_running(tenant, service) and service.service_source != "third_party":
+                msg = "当前组件处于运行状态,请先关闭组件"
+                code = 409
+                return code, msg
+            # 判断组件是否被其他组件挂载
+            is_mounted, msg = self.__is_service_mnt_related(tenant, service)
+            if is_mounted:
+                code = 412
+                msg = "当前组件被其他组件挂载, 您确定要删除吗？"
+                return code, msg
+            # 判断组件是否绑定了域名
+            is_bind_domain = self.__is_service_bind_domain(service)
+            if is_bind_domain:
+                code = 412
+                msg = "当前组件绑定了域名， 您确定要删除吗？"
+                return code, msg
+            # 判断是否有插件
+            if self.__is_service_has_plugins(service):
+                code = 412
+                msg = "当前组件安装了插件， 您确定要删除吗？"
+                return code, msg
+            # 判断是否被其他应用下的组件依赖
+            if self.__is_service_related_by_other_app_service(tenant, service):
+                code = 412
+                msg = "当前组件被其他应用下的组件依赖了，您确定要删除吗？"
+                return code, msg
         # 组件在哪个应用下
         app = self.get_app_by_service(service)
         if not is_force:

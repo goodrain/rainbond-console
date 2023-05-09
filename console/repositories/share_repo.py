@@ -245,6 +245,9 @@ class ShareRepo(object):
     def get_multi_app_share_records(self, group_ids):
         return ServiceShareRecord.objects.filter(group_id__in=group_ids)
 
+    def get_app_share_records_by_groupid(self, team_name, group_id):
+        return ServiceShareRecord.objects.filter(group_id=group_id, team_name=team_name, status__in=[0, 1, 2])
+
     def get_app_share_record_count_by_groupid(self, group_id):
         return ServiceShareRecord.objects.filter(group_id=group_id, step=3).count()
 
