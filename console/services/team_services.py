@@ -235,7 +235,15 @@ class TeamService(object):
                 logger.exception(e)
                 raise ServiceHandleException(
                     msg_show="{}集群自动卸载失败，请手动卸载后重新删除团队".format(region.region_name), msg="delete tenant failure")
-        team_repo.delete_by_tenant_id(tenant_id=tenant.tenant_id)
+        sid = None
+        try:
+            sid = transaction.savepoint()
+            team_repo.delete_by_tenant_id(tenant_id=tenant.tenant_id)
+            transaction.savepoint_commit(sid)
+        except Exception as e:
+            if sid:
+                transaction.savepoint_rollback(sid)
+            logger.exception(e)
 
     def get_current_user_tenants(self, user_id):
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id)
