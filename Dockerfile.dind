@@ -53,6 +53,7 @@ ADD . /app/ui
 WORKDIR /app/ui
 
 RUN git clone -b $OPERATOR_BRANCH --depth=1 ${GITPROXY}https://github.com/$OPERATOR_ORG/rainbond-operator.git /app/ui/rainbond-operator && \
+    mkdir -p /etc/supervisor/conf.d && \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
     mv /app/ui/dind.conf /etc/supervisor/conf.d/dind.conf && \
 	chmod +x /app/cloudadaptor
