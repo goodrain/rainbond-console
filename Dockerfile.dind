@@ -26,6 +26,8 @@ ARG GITPROXY
 ARG PYTHONPROXY
 
 RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ /opt/rainbond/ ~/.kube/ /app/logs/ /var/log/supervisor /opt/cni/bin && \
+    echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list && \
+    echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
 	apt-get update && apt-get install -y supervisor nfs-common iptables && rm -rf /var/lib/apt/lists/* && \
     set -eux; \
     if [ "${ARCH}" = "arm64" ]; then \
@@ -53,7 +55,6 @@ ADD . /app/ui
 WORKDIR /app/ui
 
 RUN git clone -b $OPERATOR_BRANCH --depth=1 ${GITPROXY}https://github.com/$OPERATOR_ORG/rainbond-operator.git /app/ui/rainbond-operator && \
-    mkdir -p /etc/supervisor/conf.d && \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
     mv /app/ui/dind.conf /etc/supervisor/conf.d/dind.conf && \
 	chmod +x /app/cloudadaptor
