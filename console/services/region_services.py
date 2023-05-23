@@ -405,7 +405,7 @@ class RegionService(object):
         try:
             # create default team
             from console.services.team_services import team_services
-            team = team_services.create_team(user, ent, None, None)
+            team = team_services.create_team(user, ent, None, None, namespace="default")
             region_services.create_tenant_on_region(ent.enterprise_id, team.tenant_name, region.region_name, team.namespace)
         except Exception as e:
             logger.exception(e)
