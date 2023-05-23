@@ -2,6 +2,7 @@
 """
   Created on 18/1/15.
 """
+import json
 import logging
 
 from console.constants import LogConstants
@@ -242,6 +243,21 @@ class AppEventsView(RegionTenantHeaderView):
                 events, total, has_next = event_service.get_target_events(target, target_id,
                                                                           self.tenant, self.service.service_region, int(page),
                                                                           int(page_size))
+                relys = []
+                for event in events:
+                    if event["OptType"] == "INITIATING":
+                        msg = event["Message"]
+                        alias = msg.split(",")
+                        for ali in alias:
+                            service = TenantServiceInfo.objects.filter(service_alias=ali,
+                                                                    tenant_id=self.tenant.tenant_id).first()
+                            relys.append(
+                                {
+                                    "service_cname": service.service_cname,
+                                    "serivce_alias": service.service_alias,
+                                }
+                            )
+                        event["Message"] = "依赖的其他组件暂未运行 {0}".format(json.dumps(relys, ensure_ascii=False))
                 result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
             else:
                 result = general_message(200, "success", "查询成功", list=[], total=0, has_next=False)
