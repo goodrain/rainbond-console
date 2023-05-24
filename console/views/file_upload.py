@@ -3,6 +3,7 @@
   Created on 18/1/9.
 """
 import logging
+import os
 
 from rest_framework.response import Response
 
@@ -34,6 +35,10 @@ class ConsoleUploadFileView(JWTAuthApiView):
         if upload_file.size > 1048576 * 2:
             return Response(general_message(400, "file is too large", "图片大小不能超过2M"), status=400)
 
+        ext = os.path.splitext(upload_file.name)[1].lower()
+        allowed_extensions = ['.jpg', '.png', '.gif', '.jpeg']
+        if ext not in allowed_extensions:
+            return Response(general_message(400, "The image format is currently not supported", "图片格式暂不支持"), status=400)
         suffix = upload_file.name.split('.')[-1]
         file_url = upload_service.upload_file(upload_file, suffix)
         if not file_url:

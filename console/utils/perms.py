@@ -39,7 +39,22 @@ ENTERPRISE = {
             ["edit_app_version", "编辑应用版本", 110009],
             ["delete_app_version", "删除应用版本", 110010],
         ]
-    }
+    },
+    "upload_file": {
+        "perms": [
+            ["upload", "上传", 800001],
+        ]
+    },
+    "fuzzy_query_user": {
+        "perms": [
+            ["query", "用户模糊查询", 800002],
+        ]
+    },
+    "enterprise_users": {
+        "perms": [
+            ["users", "企业用户查询和创建", 800003],
+        ]
+    },
 }
 
 common_perms = [
@@ -165,8 +180,8 @@ TEAM = {
 }
 
 DEFAULT_ENTERPRISE_ROLE_PERMS = {
-    "管理员": [],
-    "开发者": [],
+    "管理员": [800001, 800002, 800003],
+    "开发者": [800001, 800002, 800003],
     "观察者": [],
 }
 
