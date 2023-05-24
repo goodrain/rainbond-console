@@ -183,7 +183,7 @@ urlpatterns = [
     # 我的详情
     url(r'^users/details$', UserDetailsView.as_view()),
     # 模糊查询用户
-    url(r'^users/query$', UserFuzSerView.as_view()),
+    url(r'^users/query$', UserFuzSerView.as_view(), perms.UserFuzSerView),
     url(r"^users/access-token$", UserAccessTokenCLView.as_view()),
     url(r"^users/access-token/(?P<id>[\w\-]+)$", UserAccessTokenRUDView.as_view()),
 
@@ -698,7 +698,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/plugins$', CenterPluginAppView.as_view()),
 
     # 文件上传
-    url(r'^files/upload$', ConsoleUploadFileView.as_view()),
+    url(r'^files/upload$', ConsoleUploadFileView.as_view(), perms.ConsoleUploadFileView),
     # 云市认证
     url(r'^teams/(?P<tenantName>[\w\-]+)/enterprise/active$', BindMarketEnterpriseAccessTokenView.as_view()),
     # 新版本优化云市认证
@@ -789,7 +789,7 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/app$', EnterpriseAppOverView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/monitor$', EnterpriseMonitor.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/users$', EnterPriseUsersCLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/users$', EnterPriseUsersCLView.as_view(), perms.EnterPriseUsersCLView),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/(?P<user_id>[\d\-]+)$', EnterPriseUsersUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/(?P<user_id>[\d\-]+)/teams$', EnterpriseUserTeams.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/myteams$', EnterpriseMyTeams.as_view()),
