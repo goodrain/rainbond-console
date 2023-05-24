@@ -17,7 +17,6 @@ from console.repositories.team_repo import team_repo
 
 from console.services.config_service import platform_config_service
 from console.services.enterprise_services import enterprise_services
-from console.services.group_service import group_service
 from console.services.service_services import base_service
 
 from django.core.paginator import Paginator
@@ -276,7 +275,6 @@ class RegionService(object):
                 tenant_region.region_scope = region_config.scope
                 tenant_region.enterprise_id = tenant.enterprise_id
                 tenant_region.save()
-        _ = group_service.create_default_app(tenant, region_name)
         return tenant_region
 
     @transaction.atomic
