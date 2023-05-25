@@ -15,6 +15,7 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
 	libjpeg-dev \
 	libsass-dev \
 	vim \
+	sqlite3 \
 	&& rm -rf /var/lib/apt/lists/*
 
 EXPOSE 7070
