@@ -15,19 +15,13 @@ FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION}
 ARG VERSION=v5.7.0-release
 ARG RELEASE_DESC=
 
-LABEL author="zengqg@goodrain.com"
-RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ \
-    && echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list \
-    && echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list \
-    && apt-get update && apt-get install -y supervisor && rm -rf /var/lib/apt/lists/* && \
-    wget https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/helm && chmod +x helm && mv helm /usr/local/bin/ && \
-    mkdir -p /var/log/supervisor
-
 COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
 COPY --from=builder /cloud-adaptor /app/cloudadaptor
 ADD . /app/ui
 WORKDIR /app/ui
-RUN chmod +x /app/ui/entrypoint.sh &&  \
+
+RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ /var/log/supervisor && \
+    chmod +x /app/ui/entrypoint.sh &&  \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
     mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
     chmod +x /app/cloudadaptor && \
