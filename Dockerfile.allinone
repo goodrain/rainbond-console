@@ -1,44 +1,60 @@
-ARG VERSION=V5.4-dev
 ARG IMAGE_NAMESPACE=rainbond
+ARG VERSION=V5.4-dev
 
 FROM rainbond/golang-gcc-buildstack:1.17-alpine3.16 as builder
 ARG ADAPTOR_BRANCH=v5.7.1-release
+ARG GOPROXY
+ARG GITPROXY
 ARG LDFLAGS="-w -s -linkmode external -extldflags '-static'"
-# ENV GOPROXY=https://goproxy.io
+
+ENV GOPROXY=${GOPROXY}
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
-RUN apk add git && git clone -b ${ADAPTOR_BRANCH} --depth=1 https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
+
+RUN apk add git upx && git clone -b ${ADAPTOR_BRANCH} --depth=1 ${GITPROXY}https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
-RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
+RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor && upx --best --lzma /cloud-adaptor && chmod +x /cloud-adaptor
 
-FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION}
-ARG VERSION=v5.7.0-release
-ARG RELEASE_DESC=
+# build ui
+FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION} AS ui
 
-COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
-COPY --from=builder /cloud-adaptor /app/cloudadaptor
 ADD . /app/ui
 WORKDIR /app/ui
 
-RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ /var/log/supervisor && \
-    chmod +x /app/ui/entrypoint.sh &&  \
-    mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
-    mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
-    chmod +x /app/cloudadaptor && \
-    mv /dist/index.html /app/ui/www/templates/index.html && \
-    mkdir -p /app/ui/www/static/dists && \
-    cp -a /dist/* /app/ui/www/static/dists/ && \
-    rm -rf /dist \
-    && mkdir -p /app/logs \
-    && mkdir -p /app/data \
-    && mkdir -p /root/.ssh \
-    && python -m pip install --upgrade pip \
-    && pip install -r requirements.txt \
-    && python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework\
-    && rm -rf /root/.cache \
-    && rm -rf /tmp/* \
-    && rm -rf /app/ui/www/static/www/weavescope
+RUN mv /dist/index.html /app/ui/www/templates/index.html && \
+    rm -rf /app/ui/www/static/dists && \
+    mkdir -p /app/ui/www/static/dists  && \
+    cp -a /dist/* /app/ui/www/static/dists/
 
+# build console
+FROM python:3.6-stretch AS build-console
+ARG PYTHONPROXY
+ARG ARCH=amd64
+
+COPY --from=ui /app/ui /app/ui
+WORKDIR /app/ui
+ENV PATH="/app/ui/py_venv/bin:$PATH"
+
+RUN python -m venv --copies /app/ui/py_venv && \
+    python -m pip install --upgrade pip && \
+    pip install -r requirements.txt $PYTHONPROXY && \
+    python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework
+
+# build console image
+FROM rainbond/python:3.6-slim-stretch
+ARG RELEASE_DESC=
+ARG VERSION
+
+COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
+COPY --from=builder /cloud-adaptor /app/cloudadaptor
+COPY --from=build-console /app/ui /app/ui
+WORKDIR /app/ui
+
+RUN mkdir -p /app/logs /app/data /root/.ssh && \
+    mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
+    mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf
+
+ENV PATH=/app/ui/py_venv/bin:$PATH
 ENV PORT 7070
 ENV IS_OPEN_API=true
 ENV RELEASE_DESC=${RELEASE_DESC}
@@ -56,4 +72,4 @@ VOLUME /app/data
 VOLUME /app/logs
 VOLUME /root/.ssh
 
-CMD ["/usr/bin/supervisord"]
+CMD [ "/usr/bin/supervisord" ]
