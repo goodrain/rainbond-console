@@ -2,7 +2,6 @@ ARG IMAGE_NAMESPACE=rainbond
 ARG VERSION=V5.4-dev
 
 FROM rainbond/golang-gcc-buildstack:1.17-alpine3.16 as builder
-ARG VERSION=v5.7.1-release
 ARG ADAPTOR_BRANCH=v5.7.1-release
 ARG GOPROXY
 ARG GITPROXY
