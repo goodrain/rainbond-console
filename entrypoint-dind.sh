@@ -113,7 +113,7 @@ function configuration {
   fi
 
   # Create registries file path
-  if [ -d "/etc/rancher/k3s" ]; then
+  if [ ! -d "/etc/rancher/k3s" ]; then
     mkdir -p /etc/rancher/k3s
   fi
 
