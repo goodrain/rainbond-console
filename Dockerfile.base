@@ -1,21 +1,12 @@
 FROM python:3.6-slim-stretch
 
 LABEL runtime="rainbond"
-RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-	&& echo 'Asia/Shanghai' >/etc/timezone && \
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+	echo 'Asia/Shanghai' >/etc/timezone && \
 	echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list && \
 	echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
-	apt-get update && apt-get install -y \
-	wget curl git supervisor iptables \
-	python3-dev default-libmysqlclient-dev build-essential \
-	net-tools \
-	mysql-client \
-	libmemcached-dev \
-	zlib1g-dev \
-	libjpeg-dev \
-	libsass-dev \
-	vim \
-	sqlite3 \
-	&& rm -rf /var/lib/apt/lists/*
+	apt-get update && apt-get --no-install-recommends install -y \
+	curl supervisor iptables net-tools sqlite3 default-libmysqlclient-dev && \
+	rm -rf /var/lib/apt/lists/*
 
 EXPOSE 7070
