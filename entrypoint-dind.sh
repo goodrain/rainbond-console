@@ -46,37 +46,53 @@ function basic_check {
 ########################################
 function configuration {
 
+  if [ ! -d "/opt/rainbond" ]; then
+    mkdir -p /opt/rainbond;
+  fi
+
+  if [ ! -d "/app/logs" ]; then
+    mkdir -p /app/logs;
+  fi
+
+  if [ ! -d "/var/log/supervisor" ]; then
+    mkdir -p /var/log/supervisor;
+  fi
+
+  if [ ! -d "/app/data" ]; then
+    mkdir -p /app/data;
+  fi
+
+  if [ ! -d "/root/.ssh" ]; then
+    mkdir -p /root/.ssh;
+  fi
+
+  if [ ! -f "/usr/local/bin/nerdctl" ]; then
+    cp /app/ui/nerdctl /usr/local/bin/nerdctl
+  fi
+
+  if [ ! -f "/usr/local/bin/k3s" ]; then
+    cp /app/ui/k3s /usr/local/bin/k3s
+  fi
+
+  if [ ! -f "/usr/bin/log" ]; then
+    cp /app/ui/log /usr/bin/log
+  fi
+
   # Create manifests path
-  if [ -d "/app/data/k3s/server/manifests" ]; then
-    echo -e "${GREEN}$(date "$TIME") INFO: Directory \"/app/data/k3s/server/manifests\" created. ${NC}"
-  else
-    if mkdir -p /app/data/k3s/server/manifests; then
-      echo -e "${GREEN}$(date "$TIME") INFO: Directory \"/app/data/k3s/server/manifests\" successfully created. ${NC}"
-    fi
+  if [ ! -d "/app/data/k3s/server/manifests" ]; then
+    mkdir -p /app/data/k3s/server/manifests;
   fi
   
   # move rainbond-cluster.yml file
-  if [ -f "/app/data/k3s/server/manifests/01-rbd-operator.yml" ] && [ -f "/app/data/k3s/server/manifests/02-rbd-region.yml" ]; then
-    echo -e "${GREEN}$(date "$TIME") INFO: The 01-rbd-operator.yml and 02-rbd-region.yml already exists. ${NC}"
-  else
-    if cp /app/ui/01-rbd-operator.yml /app/data/k3s/server/manifests; then
-      echo -e "${GREEN}$(date "$TIME") INFO: Copy 01-rbd-operator.yml file successfully. ${NC}"
-    fi
-    if cp /app/ui/02-rbd-region.yml /app/data/k3s/server/manifests; then
-      echo -e "${GREEN}$(date "$TIME") INFO: Copy 02-rbd-region.yml file successfully. ${NC}"
-    fi
+  if [ ! -f "/app/data/k3s/server/manifests/01-rbd-operator.yml" ] && [ ! -f "/app/data/k3s/server/manifests/02-rbd-region.yml" ]; then
+    cp /app/ui/01-rbd-operator.yml /app/data/k3s/server/manifests
+    cp /app/ui/02-rbd-region.yml /app/data/k3s/server/manifests
   fi
 
   # Replace rainbond-cluster.yml file version to ${VERSION}
-  if grep "${VERSION}" /app/data/k3s/server/manifests/02-rbd-region.yml > /dev/null 2>&1; then
-    echo -e "${GREEN}$(date "$TIME") INFO: Installation file version is ${VERSION}, Has been the latest. ${NC}"
-  else
-    if sed -i "s/v5.6.0-release/${VERSION}/g" /app/data/k3s/server/manifests/01-rbd-operator.yml; then
-      echo -e "${GREEN}$(date "$TIME") INFO: Replace 01-rbd-operator.yml file version successfully. ${NC}"
-    fi
-    if sed -i "s/v5.6.0-release/${VERSION}/g" /app/data/k3s/server/manifests/02-rbd-region.yml; then
-      echo -e "${GREEN}$(date "$TIME") INFO: Replace 02-rbd-region.yml file version successfully. ${NC}"
-    fi
+  if ! grep "${VERSION}" /app/data/k3s/server/manifests/02-rbd-region.yml > /dev/null 2>&1; then
+    sed -i "s/v5.6.0-release/${VERSION}/g" /app/data/k3s/server/manifests/01-rbd-operator.yml
+    sed -i "s/v5.6.0-release/${VERSION}/g" /app/data/k3s/server/manifests/02-rbd-region.yml
   fi
 
   # Setting rainbondcluster
@@ -87,41 +103,23 @@ function configuration {
   sed -i "s/single_node_internal_ip/$NODE_INTERNAL_IP/" /app/data/k3s/server/manifests/02-rbd-region.yml
 
   # Create images path
-  if [ -d "/app/data/k3s/agent/images" ]; then
-    echo -e "${GREEN}$(date "$TIME") INFO: Directory \"/app/data/k3s/agent/images\" created. ${NC}"
-  else
-    if mkdir -p /app/data/k3s/agent/images; then
-      echo -e "${GREEN}$(date "$TIME") INFO: Directory \"/app/data/k3s/agent/images\" successfully created. ${NC}"
-    fi
+  if [ ! -d "/app/data/k3s/agent/images" ]; then
+    mkdir -p /app/data/k3s/agent/images
   fi
 
   # Move rainbond.tar to k3s images path
-  if [ -f "/app/data/k3s/agent/images/rainbond-${VERSION}.tar" ]; then
-    echo -e "${GREEN}$(date "$TIME") INFO: File \"/app/data/k3s/agent/images/rainbond-${VERSION}.tar\" already exists. ${NC}"
-  else
-    if cp /app/ui/rainbond-${VERSION}.tar /app/data/k3s/agent/images/rainbond-${VERSION}.tar; then
-      echo -e "${GREEN}$(date "$TIME") INFO: Copy rainbond-${VERSION}.tar file to \"/app/data/k3s/agent/images\" path. ${NC}"
-    else
-      echo -e "${RED}$(date "$TIME") ERROR: Failed to copy rainbond-${VERSION}.tar file to \"/app/data/k3s/agent/images\" path. ${NC}"
-    fi
+  if [ ! -f "/app/data/k3s/agent/images/rainbond-${VERSION}.tar" ]; then
+    cp /app/ui/rainbond-${VERSION}.tar /app/data/k3s/agent/images/rainbond-${VERSION}.tar
   fi
 
   # Create registries file path
   if [ -d "/etc/rancher/k3s" ]; then
-    echo -e "${GREEN}$(date "$TIME") INFO: Directory \"/etc/rancher/k3s\" created. ${NC}"
-  else
-    if mkdir -p /etc/rancher/k3s; then
-      echo -e "${GREEN}$(date "$TIME") INFO: Directory \"/etc/rancher/k3s\" successfully created. ${NC}"
-    fi
+    mkdir -p /etc/rancher/k3s
   fi
 
   # Create k3s registries file
-  if [ -f "/etc/rancher/k3s/registries.yaml" ]; then
-    echo -e "${GREEN}$(date "$TIME") INFO: File \"/etc/rancher/k3s/registries.yaml\" created. ${NC}"
-    return
-  fi
-
-  cat > /etc/rancher/k3s/registries.yaml << EOF
+  if [ ! -f "/etc/rancher/k3s/registries.yaml" ]; then
+cat > /etc/rancher/k3s/registries.yaml << EOF
 mirrors:
   "docker.io":
     endpoint:
@@ -139,7 +137,7 @@ configs:
     tls:
       insecure_skip_verify: true
 EOF
-
+  fi
 }
 
 ########################################
