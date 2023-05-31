@@ -410,6 +410,7 @@ class RegionService(object):
         return region
 
     def create_default_region(self, enterprise_id, user):
+        region = None
         try:
             cmd = subprocess.Popen(
                 'k3s kubectl get cm region-config -n rbd-system -ojson',
@@ -431,9 +432,10 @@ class RegionService(object):
                 "enterprise_id": enterprise_id,
                 "status": "1"
             }
-            region_services.add_region(region_info, user)
+            region = region_services.add_region(region_info, user)
         except Exception as e:
             logger.exception(e)
+        return region
 
     def update_region(self, region_data):
         region_id = region_data.get("region_id")
