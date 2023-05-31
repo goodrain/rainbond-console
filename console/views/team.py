@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+import os
 import re
 
 from console.exception.bcode import ErrK8sServiceNameExists, ErrQualifiedName, ErrNamespaceExists
@@ -552,7 +553,16 @@ class EnterpriseInfoView(RegionTenantHeaderView):
         except region_api.CallApiError as e:
             logger.warning("数据中心{0}不可达,无法获取相关信息: {1}".format(self.response_region.region_name, e.message))
         ent["is_enterprise"] = is_ent
-
+        enterprise_id = ent.get("enterprise_id", "")
+        regions = region_repo.get_regions_by_enterprise_id(enterprise_id, 1)
+        ent["disable_install_cluster_log"] = False
+        if regions:
+            ent["disable_install_cluster_log"] = True
+            _, total = team_services.get_enterprise_teams(enterprise_id)
+            if total == 0:
+                region_services.create_sample_application(enter, regions[0], request.user)
+        if not regions and os.getenv("ENABLE_CLUSTER") == "true":
+            region_services.create_default_region(enterprise_id, request.user)
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
