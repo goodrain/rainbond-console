@@ -124,7 +124,7 @@ from console.views.team import (AddTeamView, AdminAddUserView, ApplicantsView, C
                                 TeamDelView, TeamExitView, TeamNameModView, TeamRegionInitView, TeamSortDomainQueryView,
                                 TeamSortServiceQueryView, TeamUserCanJoin, TeamUserDetaislView, TeamUserView,
                                 UserApplyStatusView, UserDelView, UserFuzSerView, TeamsPermissionCreateApp,
-                                TeamCheckResourceName, TeamRegistryAuthLView, TeamRegistryAuthRUDView)
+                                TeamCheckResourceName, TeamRegistryAuthLView, TeamRegistryAuthRUDView, InitDefaultInfoView)
 from console.views.user import (AdministratorJoinTeamView, AdminRolesView, AdminUserLCView, AdminUserView, CheckSourceView,
                                 EnterPriseUsersCLView, EnterPriseUsersUDView, UserLogoutView, UserPemTraView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
@@ -772,6 +772,8 @@ urlpatterns = [
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
+    # 初始化集群、团队信息
+    url(r'^enterprise/init$', InitDefaultInfoView.as_view(), perms.AdminAddUserView),
     # 上传证书无用接口（为前端提供）
     url(r'^enterprise/team/certificate$', CertificateView.as_view()),
     # 企业管理员添加用户
