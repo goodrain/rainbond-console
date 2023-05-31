@@ -1330,10 +1330,9 @@ class AppManageService(AppManageBase):
 
     def change_lang_and_package_tool(self, tenant, service, lang, package_tool):
         serivce_params = {"language": lang}
-        env_var_params = {"attr_value": package_tool}
         try:
             service_repo.update(tenant.tenant_id, service.service_id, **serivce_params)
-            env_var_repo.update_env_var(tenant.tenant_id, service.service_id, "BUILD_PACKAGE_TOOL", **env_var_params)
+            env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_PACKAGE_TOOL", package_tool)
         except Exception as e:
             logger.exception(e)
             return 507, "failed"
