@@ -92,4 +92,4 @@ VOLUME /app/logs
 VOLUME /root/.ssh
 VOLUME /opt/rainbond
 
-CMD [ "/usr/bin/supervisord" ]
+CMD [ "/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf" ]
