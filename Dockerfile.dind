@@ -2,7 +2,6 @@ ARG IMAGE_NAMESPACE=rainbond
 ARG VERSION=V5.4-dev
 
 FROM rainbond/golang-gcc-buildstack:1.17-alpine3.16 as builder
-ARG VERSION=v5.7.1-release
 ARG ADAPTOR_BRANCH=v5.7.1-release
 ARG GOPROXY
 ARG GITPROXY
@@ -16,58 +15,61 @@ RUN apk add git && git clone -b ${ADAPTOR_BRANCH} --depth=1 ${GITPROXY}https://g
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
 
-FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION}
-ARG RELEASE_DESC=
-ARG ARCH=amd64
-ARG OPERATOR_BRANCH=v2.3.0
-ARG OPERATOR_ORG=goodrain
-ARG VERSION
-ARG GITPROXY
-ARG PYTHONPROXY
+# build ui
+FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION} AS ui
 
-RUN mkdir -p /app/ui /usr/share/zoneinfo/Asia/ /opt/rainbond/ ~/.kube/ /app/logs/ /var/log/supervisor /opt/cni/bin && \
-    echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list && \
-    echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
-	apt-get update && apt-get install -y supervisor nfs-common iptables && rm -rf /var/lib/apt/lists/* && \
-    set -eux; \
-    if [ "${ARCH}" = "arm64" ]; then \
-        wget -O /usr/local/bin/helm "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm-arm64" && chmod +x /usr/local/bin/helm; \
-        wget -O /usr/local/bin/nerdctl "https://pkg.goodrain.com/pkg/nerdctl/v1.0.0/nerdctl-arm64" && chmod +x /usr/local/bin/nerdctl; \
-        wget -O /usr/local/bin/k3s "https://pkg.goodrain.com/pkg/k3s/v1.22.3-k3s1/k3s-arm64" && chmod +x /usr/local/bin/k3s; \
-        wget -O /usr/bin/log "https://pkg.rainbond.com/images-pkg/arm64/log" && chmod +x /usr/bin/log; \
-        wget -O /usr/local/bin/containerd.tar.gz "https://pkg.goodrain.com/pkg/containerd/v1.6.9/containerd-1.6.9-linux-arm64.tar.gz" && tar Cxzvf /usr/local/bin /usr/local/bin/containerd.tar.gz && mv /usr/local/bin/bin/* /usr/local/bin && rm -rf /usr/local/bin/containerd.tar.gz /usr/local/bin/bin; \
-        wget -O /opt/cni-plugins.tgz "https://pkg.goodrain.com/pkg/cni-plugins/v1.1.1/cni-plugins-linux-arm64-v1.1.1.tgz" && tar Cxzvf /opt/cni/bin /opt/cni-plugins.tgz && rm -rf /opt/cni-plugins.tgz; \
-        wget -O /usr/local/bin/runc "https://pkg.goodrain.com/pkg/runc/v1.1.4/runc.arm64" && chmod 755 /usr/local/bin/runc; \
-    else \
-        wget -O /usr/local/bin/helm "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm" && chmod +x /usr/local/bin/helm; \
-        wget -O /usr/local/bin/nerdctl "https://pkg.goodrain.com/pkg/nerdctl/v1.0.0/nerdctl" && chmod +x /usr/local/bin/nerdctl; \
-        wget -O /usr/local/bin/k3s "https://pkg.goodrain.com/pkg/k3s/v1.22.3-k3s1/k3s" && chmod +x /usr/local/bin/k3s; \
-        wget -O /usr/bin/log "https://pkg.rainbond.com/images-pkg/log" && chmod +x /usr/bin/log; \
-        wget -O /usr/local/bin/containerd.tar.gz "https://pkg.goodrain.com/pkg/containerd/v1.6.9/containerd-1.6.9-linux-amd64.tar.gz" && tar Cxzvf /usr/local/bin /usr/local/bin/containerd.tar.gz && mv /usr/local/bin/bin/* /usr/local/bin && rm -rf /usr/local/bin/containerd.tar.gz /usr/local/bin/bin; \
-        wget -O /opt/cni-plugins.tgz "https://pkg.goodrain.com/pkg/cni-plugins/v1.1.1/cni-plugins-linux-amd64-v1.1.1.tgz" && tar Cxzvf /opt/cni/bin /opt/cni-plugins.tgz && rm -rf /opt/cni-plugins.tgz; \
-        wget -O /usr/local/bin/runc "https://pkg.goodrain.com/pkg/runc/v1.1.4/runc.amd64" && chmod 755 /usr/local/bin/runc; \
-    fi && \
-    ln -s /etc/rancher/k3s/k3s.yaml ~/.kube/config
-
-COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
-COPY --from=builder /cloud-adaptor /app/cloudadaptor
 ADD . /app/ui
 WORKDIR /app/ui
 
-RUN git clone -b $OPERATOR_BRANCH --depth=1 ${GITPROXY}https://github.com/$OPERATOR_ORG/rainbond-operator.git /app/ui/rainbond-operator && \
-    mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
-    mv /app/ui/dind.conf /etc/supervisor/conf.d/dind.conf && \
-	chmod +x /app/cloudadaptor
-
 RUN mv /dist/index.html /app/ui/www/templates/index.html && \
     rm -rf /app/ui/www/static/dists && \
-    mkdir -p /app/ui/www/static/dists /app/data /root/.ssh && \
-    cp -a /dist/* /app/ui/www/static/dists/ && \
+    mkdir -p /app/ui/www/static/dists  && \
+    cp -a /dist/* /app/ui/www/static/dists/
+
+# build console
+FROM python:3.6-stretch AS build-console
+ARG PYTHONPROXY
+ARG ARCH=amd64
+
+COPY --from=ui /app/ui /app/ui
+WORKDIR /app/ui
+ENV PATH="/app/ui/py_venv/bin:$PATH"
+
+RUN wget -O /app/ui/01-rbd-operator.yml "https://get.rainbond.com/01-rbd-operator.yml" && \
+    wget -O /app/ui/02-rbd-region.yml "https://get.rainbond.com/02-rbd-region.yml" && \
+    set -eux; \
+    if [ "${ARCH}" = "arm64" ]; then \
+        wget -O /app/ui/nerdctl "https://pkg.goodrain.com/pkg/nerdctl/v1.0.0/nerdctl-arm64" && chmod +x /app/ui/nerdctl; \
+        wget -O /app/ui/k3s "https://pkg.goodrain.com/pkg/k3s/v1.22.3-k3s1/k3s-arm64" && chmod +x /app/ui/k3s; \
+        wget -O /app/ui/log "https://pkg.rainbond.com/images-pkg/arm64/log" && chmod +x /app/ui/log; \
+    else \
+        wget -O /app/ui/nerdctl "https://pkg.goodrain.com/pkg/nerdctl/v1.0.0/nerdctl" && chmod +x /app/ui/nerdctl; \
+        wget -O /app/ui/k3s "https://pkg.goodrain.com/pkg/k3s/v1.22.3-k3s1/k3s" && chmod +x /app/ui/k3s; \
+        wget -O /app/ui/log "https://pkg.rainbond.com/images-pkg/log" && chmod +x /app/ui/log; \
+    fi && \
+    python -m venv --copies /app/ui/py_venv && \
     python -m pip install --upgrade pip && \
     pip install -r requirements.txt $PYTHONPROXY && \
     python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework && \
-    rm -rf /dist /root/.cache /tmp/* /app/ui/www/static/www/weavescope
+    echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list && \
+	echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
+    apt-get update && apt-get install -y upx && upx --best --lzma /app/ui/log
 
+# build console image
+FROM rainbond/python:3.6-slim-stretch
+ARG RELEASE_DESC=
+ARG VERSION
+
+COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
+COPY --from=builder /cloud-adaptor /app/cloudadaptor
+COPY --from=build-console /app/ui /app/ui
+WORKDIR /app/ui
+
+RUN mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
+    mv /app/ui/dind.conf /etc/supervisor/conf.d/dind.conf
+
+ENV KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+ENV PATH=/app/ui/py_venv/bin:$PATH
 ENV PORT 7070
 ENV IS_OPEN_API=true
 ENV RELEASE_DESC=${RELEASE_DESC}
@@ -83,11 +85,11 @@ ENV RAINBOND_VERSION=${VERSION}
 ENV OPERATOR_VERSION=${VERSION}
 ENV DOMESTIC_NAMESPACE=${DOMESTIC_NAMESPACE}
 ENV ENABLE_CLUSTER=true
-ENV CONTAINERD_ADDRESS=/run/containerd/containerd.sock
+ENV CONTAINERD_ADDRESS=/run/k3s/containerd/containerd.sock
 
 VOLUME /app/data
 VOLUME /app/logs
 VOLUME /root/.ssh
 VOLUME /opt/rainbond
 
-CMD [ "/usr/bin/supervisord" ]
+CMD [ "/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf" ]
