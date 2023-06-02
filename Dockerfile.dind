@@ -13,7 +13,7 @@ ENV GOPATH=/go
 
 RUN apk add git && git clone -b ${ADAPTOR_BRANCH} --depth=1 ${GITPROXY}https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
-RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor && upx --best --lzma /cloud-adaptor && chmod +x /cloud-adaptor
+RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor
 
 # build ui
 FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION} AS ui
