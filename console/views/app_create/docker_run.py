@@ -11,6 +11,8 @@ from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import ResourceNotEnoughException, AccountOverdueException
 from console.services.app import app_service
 from console.views.base import RegionTenantHeaderView
+from www.utils.crypt import make_uuid
+from www.models.main import ServiceGroup
 from www.utils.return_message import general_message
 from console.services.group_service import group_service
 
@@ -55,11 +57,36 @@ class DockerRunCreateView(RegionTenantHeaderView):
         group_id = request.data.get("group_id", -1)
         service_cname = request.data.get("service_cname", None)
         docker_cmd = request.data.get("docker_cmd", "")
-
+        is_demo = request.data.get("is_demo", "")
         # 私有docker仓库地址
         docker_password = request.data.get("password", None)
         docker_user_name = request.data.get("user_name", None)
         k8s_component_name = request.data.get("k8s_component_name", "")
+        if is_demo:
+            groups = ServiceGroup.objects.filter(
+                tenant_id=self.tenant.tenant_id, region_name=self.region_name, group_name="镜像构建示例")
+            k8s_app_name = "image-demo"
+            if groups:
+                group_id = groups[0].ID
+            else:
+                k8s_apps = ServiceGroup.objects.filter(
+                    tenant_id=self.tenant.tenant_id, region_name=self.region_name, k8s_app="image-demo")
+                if k8s_apps:
+                    k8s_app_name += make_uuid()[:6]
+                data = group_service.create_app(
+                    self.tenant,
+                    self.region_name,
+                    "镜像构建示例",
+                    None,
+                    self.user.get_username(),
+                    None,
+                    None,
+                    None,
+                    None,
+                    self.user.enterprise_id,
+                    None,
+                    k8s_app=k8s_app_name)
+                group_id = data["group_id"]
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             raise ErrK8sComponentNameExists
         try:
