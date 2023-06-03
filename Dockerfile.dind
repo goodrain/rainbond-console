@@ -12,9 +12,9 @@ ENV CGO_ENABLED=1
 ENV GOPATH=/go
 
 RUN if [ "${ARCH}" = "arm64" ]; then \
-        wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx 
+        wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx \
     else \
-        apk add upx
+        apk add upx \
     fi && \
     apk add git && git clone -b ${ADAPTOR_BRANCH} --depth=1 ${GITPROXY}https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
     WORKDIR /go/src/goodrain.com/cloud-adaptor/
