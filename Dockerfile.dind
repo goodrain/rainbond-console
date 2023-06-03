@@ -12,9 +12,9 @@ ENV CGO_ENABLED=1
 ENV GOPATH=/go
 
 RUN if [ "${ARCH}" = "arm64" ]; then \
-        wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx \
+        wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx; \
     else \
-        apk add upx \
+        apk add upx; \
     fi && \
     apk add git && git clone -b ${ADAPTOR_BRANCH} --depth=1 ${GITPROXY}https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
     WORKDIR /go/src/goodrain.com/cloud-adaptor/
@@ -59,9 +59,9 @@ RUN wget -O /app/ui/01-rbd-operator.yml "https://get.rainbond.com/01-rbd-operato
     echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list && \
 	echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
     if [ "${ARCH}" = "arm64" ]; then \
-        wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx \
+        wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx; \
     else \
-        apk add upx \
+        apk add upx; \
     fi && \
     upx --best --lzma /app/ui/log
 
