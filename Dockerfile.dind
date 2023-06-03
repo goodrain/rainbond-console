@@ -11,7 +11,8 @@ ENV GOPROXY=${GOPROXY}
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
 
-RUN apk add git upx && git clone -b ${ADAPTOR_BRANCH} --depth=1 ${GITPROXY}https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
+RUN RUN wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx && \
+apk add git upx && git clone -b ${ADAPTOR_BRANCH} --depth=1 ${GITPROXY}https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor && upx --best --lzma /cloud-adaptor && chmod +x /cloud-adaptor
 
@@ -53,7 +54,7 @@ RUN wget -O /app/ui/01-rbd-operator.yml "https://get.rainbond.com/01-rbd-operato
     python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework && \
     echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list && \
 	echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
-    apt-get update && apt-get install -y upx && upx --best --lzma /app/ui/log
+    wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx && upx --best --lzma /app/ui/log
 
 # build console image
 FROM rainbond/python:3.6-slim-stretch
