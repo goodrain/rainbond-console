@@ -11,7 +11,12 @@ ENV GOPROXY=${GOPROXY}
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
 
-RUN wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx && \
+RUN if [ "${ARCH}" = "arm64" ]; then \
+        echo "arm64 upx"; \
+        wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx; \
+    else \
+        apk add upx; \
+    fi && \
     apk add git && git clone -b ${ADAPTOR_BRANCH} --depth=1 ${GITPROXY}https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
     WORKDIR /go/src/goodrain.com/cloud-adaptor/
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor && upx --best --lzma /cloud-adaptor && chmod +x /cloud-adaptor
