@@ -55,14 +55,14 @@ RUN wget -O /app/ui/01-rbd-operator.yml "https://get.rainbond.com/01-rbd-operato
         wget -O /app/ui/nerdctl "https://pkg.goodrain.com/pkg/nerdctl/v1.0.0/nerdctl" && chmod +x /app/ui/nerdctl; \
         wget -O /app/ui/k3s "https://pkg.goodrain.com/pkg/k3s/v1.22.3-k3s1/k3s" && chmod +x /app/ui/k3s; \
         wget -O /app/ui/log "https://pkg.rainbond.com/images-pkg/log" && chmod +x /app/ui/log; \
+        echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list && \
+	echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
 	apt-get update && apt-get install -y upx; \
     fi && \
     python -m venv --copies /app/ui/py_venv && \
     python -m pip install --upgrade pip && \
     pip install -r requirements.txt $PYTHONPROXY && \
     python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework && \
-    echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list && \
-	echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
     upx --best --lzma /app/ui/log
 
 # build console image
