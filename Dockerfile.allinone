@@ -52,7 +52,10 @@ WORKDIR /app/ui
 
 RUN mkdir -p /app/logs /app/data /root/.ssh && \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
-    mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf
+    mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
+    apt-get update && apt-get install wget -y && \
+    wget https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/helm && chmod +x helm && mv helm /usr/local/bin/ && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV PATH=/app/ui/py_venv/bin:$PATH
 ENV PORT 7070
