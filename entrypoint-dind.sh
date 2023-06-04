@@ -70,6 +70,10 @@ function configuration {
     cp /app/ui/nerdctl /usr/local/bin/nerdctl
   fi
 
+  if [ ! -f "/usr/local/bin/helm" ]; then
+    cp /app/ui/helm /usr/local/bin/helm
+  fi
+
   if [ ! -f "/usr/local/bin/k3s" ]; then
     cp /app/ui/k3s /usr/local/bin/k3s
   fi

@@ -45,11 +45,13 @@ RUN wget -O /app/ui/01-rbd-operator.yml "https://get.rainbond.com/01-rbd-operato
     wget -O /app/ui/02-rbd-region.yml "https://get.rainbond.com/02-rbd-region.yml" && \
     set -eux; \
     if [ "${ARCH}" = "arm64" ] || [ "${ARCH}" = "aarch64" ]; then \
+        wget -O /app/ui/helm "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm-arm64" && chmod +x /app/ui/helm; \
         wget -O /app/ui/nerdctl "https://pkg.goodrain.com/pkg/nerdctl/v1.0.0/nerdctl-arm64" && chmod +x /app/ui/nerdctl; \
         wget -O /app/ui/k3s "https://pkg.goodrain.com/pkg/k3s/v1.22.3-k3s1/k3s-arm64" && chmod +x /app/ui/k3s; \
         wget -O /app/ui/log "https://pkg.rainbond.com/images-pkg/arm64/log" && chmod +x /app/ui/log; \
 	wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx; \
     else \
+        wget -O /app/ui/helm "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm" && chmod +x /app/ui/helm; \
         wget -O /app/ui/nerdctl "https://pkg.goodrain.com/pkg/nerdctl/v1.0.0/nerdctl" && chmod +x /app/ui/nerdctl; \
         wget -O /app/ui/k3s "https://pkg.goodrain.com/pkg/k3s/v1.22.3-k3s1/k3s" && chmod +x /app/ui/k3s; \
         wget -O /app/ui/log "https://pkg.rainbond.com/images-pkg/log" && chmod +x /app/ui/log; \
