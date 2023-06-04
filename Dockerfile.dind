@@ -6,13 +6,13 @@ ARG ADAPTOR_BRANCH=v5.7.1-release
 ARG GOPROXY
 ARG GITPROXY
 ARG LDFLAGS="-w -s -linkmode external -extldflags '-static'"
+ARG ARCH=amd64
 
 ENV GOPROXY=${GOPROXY}
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
 
-RUN echo "====ARCH:${ARCH}====, ====arch:${arch}===="; \
-    if [ ${ARCH} = "arm64" ] || [ ${ARCH} = "aarch64" ]; then \
+RUN if [ ${ARCH} = "arm64" ] || [ ${ARCH} = "aarch64" ]; then \
         wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx; \
     else \
         apk add upx; \
@@ -41,8 +41,7 @@ COPY --from=ui /app/ui /app/ui
 WORKDIR /app/ui
 ENV PATH="/app/ui/py_venv/bin:$PATH"
 
-RUN echo "====ARCH:${ARCH}====, ====arch:${arch}===="; \
-    wget -O /app/ui/01-rbd-operator.yml "https://get.rainbond.com/01-rbd-operator.yml" && \
+RUN wget -O /app/ui/01-rbd-operator.yml "https://get.rainbond.com/01-rbd-operator.yml" && \
     wget -O /app/ui/02-rbd-region.yml "https://get.rainbond.com/02-rbd-region.yml" && \
     set -eux; \
     if [ "${ARCH}" = "arm64" ] || [ "${ARCH}" = "aarch64" ]; then \
