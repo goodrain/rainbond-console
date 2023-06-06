@@ -135,7 +135,10 @@ class SourceCodeCreateView(RegionTenantHeaderView):
                     k8s_app=k8s_app_name)
                 group_id = data["group_id"]
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
-            raise ErrK8sComponentNameExists
+            if is_demo:
+                k8s_component_name = k8s_component_name + "-" + make_uuid()[:6]
+            else:
+                raise ErrK8sComponentNameExists
         result = {}
         if is_oauth:
             open_webhook = request.data.get("open_webhook", False)
