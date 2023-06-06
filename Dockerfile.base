@@ -1,17 +1,12 @@
-FROM python:3.6-stretch
+FROM python:3.6-slim-stretch
 
-LABEL email="zengqg@goodrain.com"
 LABEL runtime="rainbond"
-RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-	&& echo 'Asia/Shanghai' >/etc/timezone && \
-	apt-get update && apt-get install -y \
-	net-tools \
-	mysql-client \
-	libmemcached-dev \
-	zlib1g-dev \
-	libjpeg-dev \
-	libsass-dev \
-	vim \
-	&& rm -rf /var/lib/apt/lists/*
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+	echo 'Asia/Shanghai' >/etc/timezone && \
+	echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list && \
+	echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
+	apt-get update && apt-get --no-install-recommends install -y \
+	curl supervisor iptables mysql-client net-tools sqlite3 default-libmysqlclient-dev && \
+	rm -rf /var/lib/apt/lists/*
 
 EXPOSE 7070

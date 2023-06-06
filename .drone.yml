@@ -41,7 +41,7 @@ steps:
   commands:
   - sleep 10 # give docker enough time to start
   - cd rainbond-ui
-  - docker build --build-arg VERSION=v5.5.0-arm64 -t rainbond/rainbond-ui:$VERSION .
+  - docker build -t rainbond/rainbond-ui:$VERSION .
 
 - name: build rainbond-console
   image: rainbond/docker:dind

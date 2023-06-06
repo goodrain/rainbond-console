@@ -767,8 +767,6 @@ class AppManageService(AppManageBase):
         new_memory = int(new_memory)
         if new_memory > 65536 or new_memory < 0:
             return 400, "内存范围在0M到64G之间"
-        if new_memory % 32 != 0:
-            return 400, "内存必须为32的倍数"
         if new_memory > service.min_memory and not check_memory_quota(oauth_instance, tenant.enterprise_id,
                                                                       new_memory - int(service.min_memory), service.min_node):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
@@ -1328,12 +1326,22 @@ class AppManageService(AppManageBase):
         except Exception as e:
             logger.exception(e)
 
-    def change_lang_and_package_tool(self, tenant, service, lang, package_tool):
+    def change_lang_and_package_tool(self, tenant, service, lang, package_tool, dist):
         serivce_params = {"language": lang}
-        env_var_params = {"attr_value": package_tool}
         try:
             service_repo.update(tenant.tenant_id, service.service_id, **serivce_params)
-            env_var_repo.update_env_var(tenant.tenant_id, service.service_id, "BUILD_PACKAGE_TOOL", **env_var_params)
+            env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_PACKAGE_TOOL", package_tool)
+            if dist and lang == "NodeJSStatic":
+                tenantServiceEnvVar = {}
+                tenantServiceEnvVar["tenant_id"] = service.tenant_id
+                tenantServiceEnvVar["service_id"] = service.service_id
+                tenantServiceEnvVar['container_port'] = 0
+                tenantServiceEnvVar["name"] = "set_dist"
+                tenantServiceEnvVar["attr_name"] = "BUILD_DIST_DIR"
+                tenantServiceEnvVar["attr_value"] = dist
+                tenantServiceEnvVar["is_change"] = True
+                tenantServiceEnvVar["scope"] = "scope"
+                env_var_repo.add_service_env(**tenantServiceEnvVar)
         except Exception as e:
             logger.exception(e)
             return 507, "failed"

@@ -275,7 +275,10 @@ class TeamService(object):
 
     @transaction.atomic
     def create_team(self, user, enterprise, region_list=None, team_alias=None, namespace="", logo=""):
-        team_name = self.random_tenant_name(enterprise=user.enterprise_id, length=8)
+        if not team_alias and namespace == "default":
+            team_name = "default"
+        else:
+            team_name = self.random_tenant_name(enterprise=user.enterprise_id, length=8)
         is_public = settings.MODULES.get('SSO_LOGIN')
         if not is_public:
             pay_type = 'payed'

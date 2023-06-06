@@ -21,6 +21,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import ServiceGroup
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
 
@@ -103,12 +104,41 @@ class SourceCodeCreateView(RegionTenantHeaderView):
         user_id = request.user.user_id
         oauth_service_id = request.data.get("service_id")
         git_full_name = request.data.get("full_name")
+        is_demo = request.data.get("is_demo", False)
         git_service = None
         open_webhook = False
         k8s_component_name = request.data.get("k8s_component_name", "")
         host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
+        if is_demo:
+            groups = ServiceGroup.objects.filter(
+                tenant_id=self.tenant.tenant_id, region_name=self.region_name, group_name="源码构建示例")
+            k8s_app_name = "sourcecode-demo"
+            if groups:
+                group_id = groups[0].ID
+            else:
+                k8s_apps = ServiceGroup.objects.filter(
+                    tenant_id=self.tenant.tenant_id, region_name=self.region_name, k8s_app="sourcecode-demo")
+                if k8s_apps:
+                    k8s_app_name += make_uuid()[:6]
+                data = group_service.create_app(
+                    self.tenant,
+                    self.region_name,
+                    "源码构建示例",
+                    None,
+                    self.user.get_username(),
+                    None,
+                    None,
+                    None,
+                    None,
+                    self.user.enterprise_id,
+                    None,
+                    k8s_app=k8s_app_name)
+                group_id = data["group_id"]
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
-            raise ErrK8sComponentNameExists
+            if is_demo:
+                k8s_component_name = k8s_component_name + "-" + make_uuid()[:6]
+            else:
+                raise ErrK8sComponentNameExists
         result = {}
         if is_oauth:
             open_webhook = request.data.get("open_webhook", False)

@@ -391,7 +391,10 @@ class GroupService(object):
         res['config_groups'] = [config_group.config_group_name for config_group in config_groups]
         # app share records
         share_records = share_repo.get_app_share_records_by_groupid(tenant.tenant_name, group_id=app_id)
-        res['app_share_records'] = [share_record.share_app_model_name for share_record in share_records]
+        res['app_share_records'] = [{
+            "name": share_record.share_app_model_name,
+            "version": share_record.share_version
+        } for share_record in share_records]
         return res
 
     def batch_delete_app_services(self, user, tenant_id, region_name, app_id):

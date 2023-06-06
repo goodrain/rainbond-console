@@ -3776,3 +3776,30 @@ EnterpriseUserTeamRoles = {
         },
     }
 }
+
+ConsoleUploadFileView = {
+    "__message": {
+        "post": {
+            "perms": [800001]
+        },
+    }
+}
+
+UserFuzSerView = {
+    "__message": {
+        "get": {
+            "perms": [800002]
+        },
+    }
+}
+
+EnterPriseUsersCLView = {
+    "__message": {
+        "get": {
+            "perms": [800003]
+        },
+        "post": {
+            "perms": [800003]
+        },
+    }
+}

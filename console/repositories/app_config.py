@@ -97,6 +97,19 @@ class TenantServiceEnvVarRepository(object):
         TenantServiceEnvVar.objects.filter(
             tenant_id=tenant_id, service_id=service_id, attr_name=attr_name).update(**update_params)
 
+    def update_or_create_env_var(self, tenant_id, service_id, attr_name, package_tool):
+        try:
+            obj = TenantServiceEnvVar.objects.get(tenant_id=tenant_id, service_id=service_id, attr_name=attr_name)
+            setattr(obj, "attr_value", package_tool)
+            obj.save()
+        except TenantServiceEnvVar.DoesNotExist:
+            TenantServiceEnvVar.objects.create(
+                tenant_id=tenant_id,
+                service_id=service_id,
+                attr_name=attr_name,
+                attr_value=package_tool,
+                create_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
     def get_build_envs(self, tenant_id, service_id):
         envs = {}
         default_envs = Q(attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
