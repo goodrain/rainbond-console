@@ -1328,11 +1328,22 @@ class AppManageService(AppManageBase):
         except Exception as e:
             logger.exception(e)
 
-    def change_lang_and_package_tool(self, tenant, service, lang, package_tool):
+    def change_lang_and_package_tool(self, tenant, service, lang, package_tool, dist):
         serivce_params = {"language": lang}
         try:
             service_repo.update(tenant.tenant_id, service.service_id, **serivce_params)
             env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_PACKAGE_TOOL", package_tool)
+            if dist and lang == "NodeJSStatic":
+                tenantServiceEnvVar = {}
+                tenantServiceEnvVar["tenant_id"] = service.tenant_id
+                tenantServiceEnvVar["service_id"] = service.service_id
+                tenantServiceEnvVar['container_port'] = 0
+                tenantServiceEnvVar["name"] = "set_dist"
+                tenantServiceEnvVar["attr_name"] = "BUILD_DIST_DIR"
+                tenantServiceEnvVar["attr_value"] = dist
+                tenantServiceEnvVar["is_change"] = True
+                tenantServiceEnvVar["scope"] = "scope"
+                env_var_repo.add_service_env(**tenantServiceEnvVar)
         except Exception as e:
             logger.exception(e)
             return 507, "failed"
