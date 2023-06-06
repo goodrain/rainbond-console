@@ -1,8 +1,11 @@
 # -*- coding: utf8 -*-
+import datetime
 import json
+import logging
 
 from django.db import transaction
 
+from www.utils.crypt import make_uuid
 from .enum import ActionType
 from .new_app import NewApp
 from console.repositories.app import service_repo
@@ -15,7 +18,7 @@ from console.repositories.plugin import config_item_repo
 from console.repositories.plugin.plugin import plugin_version_repo
 from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.plugin.plugin_version import build_version_repo
-from console.repositories.app_config import domain_repo
+from console.repositories.app_config import domain_repo, tcp_domain
 # constant
 from console.constants import PluginMetaType
 from console.constants import PluginInjection
@@ -26,6 +29,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_app import region_app_repo
 
 region_api = RegionInvokeApi()
+logger = logging.getLogger("default")
 
 
 class MarketApp(object):
@@ -201,10 +205,16 @@ class MarketApp(object):
             probes = [probe.to_dict() for probe in cpt.probes]
             for probe in probes:
                 probe["is_used"] = 1 if probe["is_used"] else 0
+            # The TCP port is opened by default
+            temp_ports = []
+            for port in cpt.ports:
+                if port.protocol == "tcp":
+                    port.is_outer_service = True
+                temp_ports.append(port.to_dict())
             component = {
                 "component_base": component_base,
                 "envs": [env.to_dict() for env in cpt.envs],
-                "ports": [port.to_dict() for port in cpt.ports],
+                "ports": temp_ports,
                 "config_files": [cf.to_dict() for cf in cpt.config_files],
                 "probes": probes,
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
@@ -482,3 +492,39 @@ class MarketApp(object):
             result.append(dep)
             exists.append(dep.service_id + dep.dep_service_id)
         return result
+
+    def create_service_tcp_domains(self):
+        components = self.new_app.components()
+        for cpt in components:
+            for port in cpt.ports:
+                if port.protocol == "tcp":
+                    service = cpt.component
+                    res, data = region_api.get_port(self.region_name, self.tenant_name, True)
+                    if int(res.status) != 200:
+                        return 400, "请求数据中心异常"
+                    end_point = "0.0.0.0:{0}".format(data["bean"])
+                    service_id = service.service_id
+                    service_name = service.service_alias
+                    create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    container_port = port.container_port
+                    protocol = port.protocol
+                    service_alias = service.service_cname
+                    tcp_rule_id = make_uuid(end_point)
+                    tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port,
+                                                          protocol, service_alias, tcp_rule_id, service.tenant.tenant_id,
+                                                          service.region.region_id)
+                    if service.create_status == "complete":
+                        port = end_point.split(":")[1]
+                        data = dict()
+                        data["service_id"] = service.service_id
+                        data["container_port"] = int(container_port)
+                        data["ip"] = "0.0.0.0"
+                        data["port"] = int(port)
+                        data["tcp_rule_id"] = tcp_rule_id
+                        try:
+                            # 给数据中心传送数据添加策略
+                            region_api.bindTcpDomain(service.service_region, self.tenant_name, data)
+                        except Exception as e:
+                            logger.exception(e)
+                            tcp_domain.delete_tcp_domain(tcp_rule_id)
+                            return 412, "数据中心添加策略失败"
