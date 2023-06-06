@@ -133,6 +133,7 @@ class AppUpgrade(MarketApp):
         try:
             # Save the application to the console
             self.save_new_app()
+            self.create_service_tcp_domains()
         except Exception as e:
             logger.exception(e)
             # rollback on failure
