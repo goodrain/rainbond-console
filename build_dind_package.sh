@@ -3,16 +3,9 @@
 IMAGE_DOMAIN=${IMAGE_DOMAIN:-docker.io}
 IMAGE_NAMESPACE=${IMAGE_NAMESPACE:-rainbond}
 VERSION=${VERSION:-'v5.6.0-release'}
-OFFLINE=${OFFLINE:-"false"}
-BUILDER=${BUILDER:-"v5.8.1-release"}
-RUNNER=${RUNNER:-"v5.8.1-release"}
 
-image_list="rainbond/kubernetes-dashboard:v2.6.1
-rainbond/registry:2.6.2
-rainbond/metrics-server:v0.4.1
+image_list="rainbond/registry:2.6.2
 rainbond/etcd:v3.3.18
-rainbond/metrics-scraper:v1.0.4
-${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rbd-mesh-data-panel:${VERSION}
 ${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rbd-webcli:${VERSION}
 ${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rbd-eventlog:${VERSION}
 ${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rbd-init-probe:${VERSION}

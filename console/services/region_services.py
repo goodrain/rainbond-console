@@ -17,7 +17,6 @@ from console.repositories.team_repo import team_repo
 
 from console.services.config_service import platform_config_service
 from console.services.enterprise_services import enterprise_services
-from console.services.group_service import group_service
 from console.services.service_services import base_service
 
 from django.core.paginator import Paginator
@@ -276,7 +275,6 @@ class RegionService(object):
                 tenant_region.region_scope = region_config.scope
                 tenant_region.enterprise_id = tenant.enterprise_id
                 tenant_region.save()
-        _ = group_service.create_default_app(tenant, region_name)
         return tenant_region
 
     @transaction.atomic
@@ -405,13 +403,14 @@ class RegionService(object):
         try:
             # create default team
             from console.services.team_services import team_services
-            team = team_services.create_team(user, ent, None, None)
+            team = team_services.create_team(user, ent, None, None, namespace="default")
             region_services.create_tenant_on_region(ent.enterprise_id, team.tenant_name, region.region_name, team.namespace)
         except Exception as e:
             logger.exception(e)
         return region
 
     def create_default_region(self, enterprise_id, user):
+        region = None
         try:
             cmd = subprocess.Popen(
                 'k3s kubectl get cm region-config -n rbd-system -ojson',
@@ -433,9 +432,10 @@ class RegionService(object):
                 "enterprise_id": enterprise_id,
                 "status": "1"
             }
-            region_services.add_region(region_info, user)
+            region = region_services.add_region(region_info, user)
         except Exception as e:
             logger.exception(e)
+        return region
 
     def update_region(self, region_data):
         region_id = region_data.get("region_id")

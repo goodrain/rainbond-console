@@ -87,11 +87,18 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(DATA_DIR, 'db.sqlite3'),
+        # The lifetime of a database connection, in seconds. Use 0 to close database connections at the end of each request
+        # — Django’s historical behavior — and None for unlimited persistent connections.
+        # Refer: https://docs.djangoproject.com/en/2.2/ref/settings/#conn-max-age
+        # If you use sqlite's wal mode, you need to establish a persistent connection
+        # Make database in wal mode ahead of time in shell script, Refer: https://code.djangoproject.com/ticket/24018#comment:8
+        'CONN_MAX_AGE': None,
         'OPTIONS': {
             'timeout': 20,
         }
     }
 }
+
 if DATABASE_TYPE == 'mysql':
     DATABASES = {
         'default': {

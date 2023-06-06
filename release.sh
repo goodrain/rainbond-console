@@ -4,13 +4,7 @@ IMAGE_NAMESPACE=${IMAGE_NAMESPACE:-rainbond}
 DOMESTIC_BASE_NAME=${DOMESTIC_BASE_NAME:-'registry.cn-hangzhou.aliyuncs.com'}
 DOMESTIC_NAMESPACE=${DOMESTIC_NAMESPACE:-'goodrain'}
 ARCH=${BUILD_ARCH:-'amd64'}
-OFFLINE=${OFFLINE:-'false'}
-BUILDER=${BUILDER:-"v5.8.1-release"}
-RUNNER=${RUNNER:-"v5.8.1-release"}
 TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST:-false}
-# rainbond operator org and branch
-OPERATOR_BRANCH=${OPERATOR_BRANCH:-${VERSION}}
-OPERATOR_ORG=${OPERATOR_ORG:-'goodrain'}
 # adaptor branch
 ADAPTOR_BRANCH=${ADAPTOR_BRANCH:-${VERSION}}
 # Domestic packing acceleration
@@ -86,8 +80,6 @@ function release_dind() {
   docker build --network=host --build-arg VERSION="${VERSION}" --build-arg IMAGE_NAMESPACE="${IMAGE_NAMESPACE}" \
     --build-arg RELEASE_DESC="${release_desc}" \
     --build-arg ARCH="${ARCH}" \
-    --build-arg OPERATOR_BRANCH="${OPERATOR_BRANCH}" \
-    --build-arg OPERATOR_ORG="${OPERATOR_ORG}" \
     --build-arg ADAPTOR_BRANCH="${ADAPTOR_BRANCH}" \
     --build-arg GOPROXY="${GOPROXY}" \
     --build-arg GITPROXY="${GITPROXY}" \
@@ -95,10 +87,6 @@ function release_dind() {
     -t "${imageName}" -f Dockerfile.dind .
   if [ $? -ne 0 ]; then
     exit 1
-  fi
-  if [ "$OFFLINE" == "true" ]; then
-    imageName="${imageName}-offline"
-    domestcName="${domestcName}-offline"
   fi
   if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     if [ "$DOCKER_USERNAME" ]; then
@@ -114,9 +102,6 @@ function release_dind() {
 }
 
 function build_dind_package () {
-  BUILDER=${BUILDER} \
-  RUNNER=${RUNNER} \
-  OFFLINE=${OFFLINE} \
   IMAGE_DOMAIN=${IMAGE_DOMAIN} \
   IMAGE_NAMESPACE=${IMAGE_NAMESPACE} \
   VERSION=${VERSION} \

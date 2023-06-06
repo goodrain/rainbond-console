@@ -11,6 +11,9 @@ function database_ready() {
         fi
         return 1 # 1 = false
     fi
+    sqlite3 /app/data/db.sqlite3 <<EOF
+PRAGMA journal_mode = WAL;
+EOF
     return 0
 }
 
