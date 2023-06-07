@@ -493,7 +493,7 @@ class MarketApp(object):
             exists.append(dep.service_id + dep.dep_service_id)
         return result
 
-    def create_service_tcp_domains(self):
+    def create_service_tcp_domains(self, region):
         components = self.new_app.components()
         for cpt in components:
             for port in cpt.ports:
@@ -511,8 +511,8 @@ class MarketApp(object):
                     service_alias = service.service_cname
                     tcp_rule_id = make_uuid(end_point)
                     tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port,
-                                                          protocol, service_alias, tcp_rule_id, service.tenant.tenant_id,
-                                                          service.region.region_id)
+                                                          protocol, service_alias, tcp_rule_id, service.tenant_id,
+                                                          region.region_id)
                     if service.create_status == "complete":
                         port = end_point.split(":")[1]
                         data = dict()
