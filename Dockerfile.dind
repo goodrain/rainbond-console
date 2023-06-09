@@ -13,7 +13,7 @@ ENV CGO_ENABLED=1
 ENV GOPATH=/go
 
 RUN if [ ${ARCH} = "arm64" ] || [ ${ARCH} = "aarch64" ]; then \
-        wget https://rainbond-pkg.oss-cn-shanghai.aliyuncs.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx; \
+        wget https://pkg.rainbond.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx; \
     else \
         apk add upx; \
     fi && \
