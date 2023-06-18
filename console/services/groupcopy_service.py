@@ -58,8 +58,9 @@ class GroupAppCopyService(object):
     def check_and_get_team_group(self, user, team_name, region_name, group_id):
         team = team_services.check_and_get_user_team_by_name_and_region(user.user_id, team_name, region_name)
         if not team:
-            raise ServiceHandleException(
-                msg="no found team or team not join this region", msg_show="目标团队不存在，或团队为加入该数据中心", status_code=404)
+            raise ServiceHandleException(msg="no found team or team not join this region",
+                                         msg_show="目标团队不存在，或团队为加入该数据中心",
+                                         status_code=404)
         group = group_repo.get_group_by_id(group_id)
         if not group:
             raise ServiceHandleException(msg="no found group app", msg_show="目标应用不存在", status_code=404)
@@ -97,8 +98,8 @@ class GroupAppCopyService(object):
                 if service["service_mnts"]:
                     new_service_mnts = []
                     for service_mnt in service["service_mnts"]:
-                        if same_team_and_region_copy and service_mnt["dep_service_id"] not in (
-                                set(remove_service_ids) ^ set(service_ids)):
+                        if same_team_and_region_copy and service_mnt["dep_service_id"] not in (set(remove_service_ids)
+                                                                                               ^ set(service_ids)):
                             new_service_mnts.append(service_mnt)
                     service["service_mnts"] = new_service_mnts
                 # Handling plugin config
@@ -140,8 +141,8 @@ class GroupAppCopyService(object):
             if service["service_mnts"]:
                 new_service_mnts = []
                 for service_mnt in service["service_mnts"]:
-                    if same_team_and_region_copy and service_mnt["dep_service_id"] not in (
-                            set(remove_service_ids) ^ set(service_ids)):
+                    if same_team_and_region_copy and service_mnt["dep_service_id"] not in (set(remove_service_ids)
+                                                                                           ^ set(service_ids)):
                         new_service_mnts.append(service_mnt)
                 service["service_mnts"] = new_service_mnts
             # Handling plugin config

@@ -83,6 +83,12 @@ class MarketAppService(object):
 
         app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
                                                          version)
+        # 需要改
+        res, body = region_api.get_cluster_nodes_arch(region.region_name)
+        template_arch = app_template.get("arch", "amd64")
+        template_arch = template_arch if template_arch else "amd64"
+        if template_arch not in list(set(body.get("list"))) and len(list(set(body.get("list")))) < 2:
+            raise AbortRequest("app arch does not match build node arch", "应用架构与构建结点架构不匹配", status_code=404, error_code=404)
         if not app_template.get("goavernance_mode"):
             app_template["governance_mode"] = GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name
         if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
@@ -90,18 +96,17 @@ class MarketAppService(object):
         component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
                                                             version, market_app.app_name)
 
-        app_upgrade = AppUpgrade(
-            user.enterprise_id,
-            tenant,
-            region,
-            user,
-            app,
-            version,
-            component_group,
-            app_template,
-            install_from_cloud,
-            market_name,
-            is_deploy=is_deploy)
+        app_upgrade = AppUpgrade(user.enterprise_id,
+                                 tenant,
+                                 region,
+                                 user,
+                                 app,
+                                 version,
+                                 component_group,
+                                 app_template,
+                                 install_from_cloud,
+                                 market_name,
+                                 is_deploy=is_deploy)
         if dry_run:
             app_upgrade.preinstall()
         else:
@@ -111,21 +116,24 @@ class MarketAppService(object):
     def get_app_template(self, app_model_key, install_from_cloud, market_name, region, tenant, user, version):
         if install_from_cloud:
             _, market = app_market_service.get_app_market(tenant.enterprise_id, market_name, raise_exception=True)
-            market_app, app_version = app_market_service.cloud_app_model_to_db_model(
-                market, app_model_key, version, for_install=True)
+            market_app, app_version = app_market_service.cloud_app_model_to_db_model(market,
+                                                                                     app_model_key,
+                                                                                     version,
+                                                                                     for_install=True)
         else:
             market_app, app_version = market_app_service.get_rainbond_app_and_version(user.enterprise_id, app_model_key,
                                                                                       version)
             if app_version and app_version.region_name and app_version.region_name != region.region_name:
-                raise AbortRequest(
-                    msg="app version can not install to this region",
-                    msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
+                raise AbortRequest(msg="app version can not install to this region",
+                                   msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(
+                                       app_version.region_name))
         if not market_app:
             raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
         if not app_version:
             raise AbortRequest("app version not found", "应用市场应用版本不存在", status_code=404, error_code=404)
         app_template = json.loads(app_version.app_template)
         app_template["update_time"] = app_version.update_time
+        app_template["arch"] = app_version.arch
         return app_template, market_app
 
     def install_service(self,
@@ -515,17 +523,16 @@ class MarketAppService(object):
                 if ts:
                     dest_service_id, dest_service_alias = ts.service_id, ts.service_alias
             config_list.append(
-                ServicePluginConfigVar(
-                    service_id=service.service_id,
-                    plugin_id=plugin_id,
-                    build_version=build_version,
-                    service_meta_type=config["service_meta_type"],
-                    injection=config["injection"],
-                    dest_service_id=dest_service_id,
-                    dest_service_alias=dest_service_alias,
-                    container_port=config["container_port"],
-                    attrs=config["attrs"],
-                    protocol=config["protocol"]))
+                ServicePluginConfigVar(service_id=service.service_id,
+                                       plugin_id=plugin_id,
+                                       build_version=build_version,
+                                       service_meta_type=config["service_meta_type"],
+                                       injection=config["injection"],
+                                       dest_service_id=dest_service_id,
+                                       dest_service_alias=dest_service_alias,
+                                       container_port=config["container_port"],
+                                       attrs=config["attrs"],
+                                       protocol=config["protocol"]))
         ServicePluginConfigVar.objects.bulk_create(config_list)
 
     def create_plugin_for_tenant(self, region_name, user, tenant, plugins):
@@ -537,8 +544,9 @@ class MarketAppService(object):
                     logger.info("start install plugin {} for tenant {}".format(plugin["plugin_key"], tenant.tenant_id))
                     status, msg = self.__install_plugin(region_name, user, tenant, plugin)
                     if status != 200:
-                        raise ServiceHandleException(
-                            msg="install plugin failure {}".format(msg), msg_show="创建插件失败", status_code=status)
+                        raise ServiceHandleException(msg="install plugin failure {}".format(msg),
+                                                     msg_show="创建插件失败",
+                                                     status_code=status)
                 except Exception as e:
                     logger.exception(e)
                     raise ServiceHandleException(msg="install plugin failure", msg_show="创建插件失败", status_code=500)
@@ -581,17 +589,16 @@ class MarketAppService(object):
         build_version = plugin_template.get('build_version')
         min_memory = plugin_template.get('min_memory', 128)
 
-        plugin_build_version = plugin_version_service.create_build_version(
-            region_name,
-            plugin_base_info.plugin_id,
-            tenant.tenant_id,
-            user.user_id,
-            "",
-            "unbuild",
-            min_memory,
-            image_tag=image_tag,
-            code_version="",
-            build_version=build_version)
+        plugin_build_version = plugin_version_service.create_build_version(region_name,
+                                                                           plugin_base_info.plugin_id,
+                                                                           tenant.tenant_id,
+                                                                           user.user_id,
+                                                                           "",
+                                                                           "unbuild",
+                                                                           min_memory,
+                                                                           image_tag=image_tag,
+                                                                           code_version="",
+                                                                           build_version=build_version)
 
         share_config_groups = plugin_template.get('config_groups', [])
 
@@ -636,8 +643,13 @@ class MarketAppService(object):
     def __deploy_services(self, tenant, user, service_list, app_templates):
         try:
             body = dict()
-            code, data = app_manage_service.deploy_services_info(
-                body, service_list, tenant, user, oauth_instance=None, template_apps=app_templates, upgrade=False)
+            code, data = app_manage_service.deploy_services_info(body,
+                                                                 service_list,
+                                                                 tenant,
+                                                                 user,
+                                                                 oauth_instance=None,
+                                                                 template_apps=app_templates,
+                                                                 upgrade=False)
             if code == 200:
                 # 获取数据中心信息
                 one_service = service_list[0]
@@ -716,30 +728,28 @@ class MarketAppService(object):
         for env in inner_envs:
             if env.get("attr_name"):
                 envs.append(
-                    TenantServiceEnvVar(
-                        tenant_id=tenant.tenant_id,
-                        service_id=service.service_id,
-                        container_port=0,
-                        name=env.get("name"),
-                        attr_name=env.get("attr_name"),
-                        attr_value=env.get("attr_value"),
-                        is_change=env.get("is_change", True),
-                        scope="inner"))
+                    TenantServiceEnvVar(tenant_id=tenant.tenant_id,
+                                        service_id=service.service_id,
+                                        container_port=0,
+                                        name=env.get("name"),
+                                        attr_name=env.get("attr_name"),
+                                        attr_value=env.get("attr_value"),
+                                        is_change=env.get("is_change", True),
+                                        scope="inner"))
         for env in outer_envs:
             if env.get("attr_name"):
                 container_port = env.get("container_port", 0)
                 if env.get("attr_value") == "**None**":
                     env["attr_value"] = make_uuid()[:8]
                 envs.append(
-                    TenantServiceEnvVar(
-                        tenant_id=tenant.tenant_id,
-                        service_id=service.service_id,
-                        container_port=container_port,
-                        name=env.get("name"),
-                        attr_name=env.get("attr_name"),
-                        attr_value=env.get("attr_value"),
-                        is_change=env.get("is_change", True),
-                        scope="outer"))
+                    TenantServiceEnvVar(tenant_id=tenant.tenant_id,
+                                        service_id=service.service_id,
+                                        container_port=container_port,
+                                        name=env.get("name"),
+                                        attr_name=env.get("attr_name"),
+                                        attr_value=env.get("attr_value"),
+                                        is_change=env.get("is_change", True),
+                                        scope="outer"))
         if len(envs) > 0:
             env_var_repo.bulk_create_component_env(envs)
 
@@ -951,7 +961,8 @@ class MarketAppService(object):
                           page=1,
                           page_size=10,
                           need_install="false",
-                          is_plugin="false"):
+                          is_plugin="false",
+                          arch=""):
         if scope == "team":
             # prepare teams
             is_admin = user_services.is_user_admin_in_current_enterprise(user, eid)
@@ -975,7 +986,7 @@ class MarketAppService(object):
             return [], count[0].total
 
         self._patch_rainbond_app_tag(eid, apps)
-        self._patch_rainbond_app_versions(eid, apps, is_complete)
+        apps = self._patch_rainbond_app_versions(eid, apps, is_complete, arch)
         return apps, count[0].total
 
     # patch rainbond app tag
@@ -1019,7 +1030,7 @@ class MarketAppService(object):
         return apps_min_memory
 
     # patch rainbond app versions
-    def _patch_rainbond_app_versions(self, eid, apps, is_complete):
+    def _patch_rainbond_app_versions(self, eid, apps, is_complete, arch):
         app_ids = [app.app_id for app in apps]
         versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(eid, app_ids, is_complete, rm_template_field=True)
         if not versions:
@@ -1040,9 +1051,13 @@ class MarketAppService(object):
                 "version": version.version,
                 "version_alias": version.version_alias,
                 "dev_status": version.dev_status,
+                "arch": version.arch if version.arch else "amd64"
             }
             # If the versions are the same, take the last version information
             app_with_versions[version.app_id][version_info["version"]] = version_info
+            arch_dict = app_with_versions[version.app_id].get("arch", {})
+            arch_dict[version.arch] = 1
+            app_with_versions[version.app_id]["arch"] = arch_dict
             if version_info["version"] in app_release_ver_nums[version.app_id]:
                 app_release_ver_nums[version.app_id].remove(version_info["version"])
             if version_info["version"] in app_not_release_ver_nums[version.app_id]:
@@ -1053,7 +1068,11 @@ class MarketAppService(object):
             app_not_release_ver_nums[version.app_id].append(version_info["version"])
 
         apps_min_memory = self._get_rainbond_app_min_memory(versions)
+        arch_app = list()
         for app in apps:
+            app.arch = app_with_versions[app.app_id]["arch"].keys()
+            if arch and arch not in app.arch:
+                continue
             app.dev_status = ""
             app.versions_info = []
             app.min_memory = apps_min_memory.get(app.app_id, 0)
@@ -1075,6 +1094,8 @@ class MarketAppService(object):
             for ver_num in release_ver_nums:
                 versions.append(app_with_versions[app.app_id][ver_num])
             app.versions_info = list(reversed(versions))
+            arch_app.append(app)
+        return arch_app
 
     def get_visiable_apps_v2(self, tenant, scope, app_name, dev_status, page, page_size):
         limit = ""
@@ -1166,8 +1187,9 @@ class MarketAppService(object):
         else:
             # get from cloud
             try:
-                market = app_market_service.get_app_market_by_name(
-                    tenant.enterprise_id, extend_info.get("market_name"), raise_exception=True)
+                market = app_market_service.get_app_market_by_name(tenant.enterprise_id,
+                                                                   extend_info.get("market_name"),
+                                                                   raise_exception=True)
                 resp = app_market_service.get_market_app_model_version(market, service_source.group_key, service_source.version)
                 if not resp:
                     raise app_not_found
@@ -1197,8 +1219,9 @@ class MarketAppService(object):
 
     def get_service_app_from_cloud(self, tenant, group_key, group_version, service_source):
         extent_info = json.loads(service_source.extend_info)
-        market = app_market_service.get_app_market_by_name(
-            tenant.enterprise_id, extent_info.get("market_name"), raise_exception=True)
+        market = app_market_service.get_app_market_by_name(tenant.enterprise_id,
+                                                           extent_info.get("market_name"),
+                                                           raise_exception=True)
         _, market_app_version = app_market_service.cloud_app_model_to_db_model(market, group_key, group_version)
         if market_app_version:
             apps_template = json.loads(market_app_version.app_template)
@@ -1217,22 +1240,22 @@ class MarketAppService(object):
 
     def conversion_cloud_version_to_app(self, cloud_version):
         app = RainbondCenterApp(app_id=cloud_version.app_key_id, app_name="", source="cloud", scope="market")
-        app_version = RainbondCenterAppVersion(
-            app_id=cloud_version.app_key_id,
-            version=cloud_version.app_version,
-            share_user=0,
-            record_id=0,
-            source="cloud",
-            scope="market",
-            app_template=json.dumps(cloud_version.templete.to_dict()),
-            is_complete=True,
-            template_version=cloud_version.templete_version)
+        app_version = RainbondCenterAppVersion(app_id=cloud_version.app_key_id,
+                                               version=cloud_version.app_version,
+                                               share_user=0,
+                                               record_id=0,
+                                               source="cloud",
+                                               scope="market",
+                                               app_template=json.dumps(cloud_version.templete.to_dict()),
+                                               is_complete=True,
+                                               template_version=cloud_version.templete_version)
         return app, app_version
 
     def get_all_goodrain_market_apps(self, app_name, is_complete):
         if app_name:
-            return rainbond_app_repo.get_all_rainbond_apps().filter(
-                scope="goodrain", source="market", group_name__icontains=app_name)
+            return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain",
+                                                                    source="market",
+                                                                    group_name__icontains=app_name)
         if is_complete:
             if is_complete == "true":
                 return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market", is_complete=True)
@@ -1477,8 +1500,8 @@ class MarketAppService(object):
         app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
         if not app:
             raise RbdAppNotFound("未找到该应用")
-        app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(
-            enterprise_id, [app_id], rm_template_field=True).values()
+        app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(enterprise_id, [app_id],
+                                                                             rm_template_field=True).values()
 
         apv_ver_nums = []
         app_release = False
@@ -1579,18 +1602,17 @@ class MarketAppService(object):
         component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
                                                             version, market_app.app_name)
 
-        app_upgrade = AppUpgrade(
-            user.enterprise_id,
-            tenant,
-            region,
-            user,
-            app,
-            version,
-            component_group,
-            app_template,
-            install_from_cloud,
-            market_name,
-            is_deploy=is_deploy)
+        app_upgrade = AppUpgrade(user.enterprise_id,
+                                 tenant,
+                                 region,
+                                 user,
+                                 app,
+                                 version,
+                                 component_group,
+                                 app_template,
+                                 install_from_cloud,
+                                 market_name,
+                                 is_deploy=is_deploy)
         app_upgrade.install_plugins()
         return market_app.app_name
 

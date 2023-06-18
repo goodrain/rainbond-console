@@ -26,11 +26,10 @@ class JwtManager(object):
                     return JwtManager._instance
 
                 # create redis
-                cls.r = redis.Redis(
-                    host=os.getenv("REDIS_HOST", "127.0.0.1"),
-                    port=os.getenv("REDIS_PORT", 6379),
-                    db=os.getenv("REDIS_DB", 0),
-                    password=os.getenv("REDIS_PASSWORD", None))
+                cls.r = redis.Redis(host=os.getenv("REDIS_HOST", "127.0.0.1"),
+                                    port=os.getenv("REDIS_PORT", 6379),
+                                    db=os.getenv("REDIS_DB", 0),
+                                    password=os.getenv("REDIS_PASSWORD", None))
                 cls.cache_time = os.getenv("JWT_CACHE_TIME", 3600)
 
         return JwtManager._instance

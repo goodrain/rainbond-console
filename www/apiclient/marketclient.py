@@ -12,7 +12,6 @@ class MarketOpenAPI(HttpClient):
     """
     云市OpenAPI接口
     """
-
     def __init__(self, *args, **kwargs):
         HttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}

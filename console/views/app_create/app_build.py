@@ -11,6 +11,7 @@ from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service, event_service
 from console.services.app_config import (dependency_service, env_var_service, port_service, probe_service, volume_service)
+from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderCloudEnterpriseCenterView)
@@ -60,6 +61,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
             self.service = new_service
             if is_deploy:
                 try:
+                    arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)
                     app_manage_service.deploy(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
                 except ErrInsufficientResource as e:
                     result = general_message(e.error_code, e.msg, e.msg_show)

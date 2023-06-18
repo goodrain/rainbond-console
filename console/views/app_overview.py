@@ -20,6 +20,7 @@ from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.app import app_service, package_upload_service
 from console.services.app_actions import ws_service
 from console.services.app_config import port_service
+from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
@@ -555,6 +556,8 @@ class BuildSourceinfo(AppBaseView):
             package_names = package_upload_service.get_name_by_component_id(service_ids)
             if package_names:
                 bean["package_name"] = package_names[0]
+        res, body = region_api.get_cluster_nodes_arch(self.region_name)
+        bean["arch"] = list(set(body.get("list")))
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
 
@@ -579,12 +582,12 @@ class BuildSourceinfo(AppBaseView):
             oauth_service_id = request.data.get("service_id")
             git_full_name = request.data.get("full_name")
             server_type = request.data.get("server_type", "")
-
+            arch = request.data.get("arch", "amd64")
             if not service_source:
                 return Response(general_message(400, "param error", "参数错误"), status=400)
 
-            service_source_user = service_source_repo.get_service_source(
-                team_id=self.service.tenant_id, service_id=self.service.service_id)
+            service_source_user = service_source_repo.get_service_source(team_id=self.service.tenant_id,
+                                                                         service_id=self.service.service_id)
 
             if not service_source_user:
                 service_source_info = {
@@ -657,6 +660,9 @@ class BuildSourceinfo(AppBaseView):
                 self.service.language = ""
                 self.service.save()
                 transaction.savepoint_commit(s_id)
+            self.service.arch = arch
+            self.service.save()
+            arch_service.update_affinity_by_arch(arch, self.tenant, self.region_name, self.service)
             result = general_message(200, "success", "修改成功")
         except Exception as e:
             logger.exception(e)

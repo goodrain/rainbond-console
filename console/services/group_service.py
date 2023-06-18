@@ -288,6 +288,8 @@ class GroupService(object):
         res['k8s_app'] = app.k8s_app
         res['can_edit'] = True
         components = group_service_relation_repo.get_services_by_group(app_id)
+        services = service_repo.get_services_by_service_ids([component.service_id for component in components])
+        res['app_arch'] = {service.arch: "1" for service in services if service.arch}.keys()
         running_components = region_api.get_dynamic_services_pods(region_name, tenant.tenant_name,
                                                                   [component.service_id for component in components])
         if running_components.get("list") and len(running_components["list"]) > 0:
@@ -458,13 +460,12 @@ class GroupService(object):
         :param group_id:
         :rtype: ServiceGroup
         """
-        return get_object_or_404(
-            ServiceGroup,
-            msg="Group does not exist",
-            msg_show="应用不存在",
-            tenant_id=tenant.tenant_id,
-            region_name=response_region,
-            pk=group_id)
+        return get_object_or_404(ServiceGroup,
+                                 msg="Group does not exist",
+                                 msg_show="应用不存在",
+                                 tenant_id=tenant.tenant_id,
+                                 region_name=response_region,
+                                 pk=group_id)
 
     def get_service_group_info(self, service_id):
         return group_service_relation_repo.get_group_info_by_service_id(service_id)
@@ -582,10 +583,10 @@ class GroupService(object):
             app.pop("service_list")
             re_app_list.append(app)
         if sort != 2:
-            re_app_list = sorted(
-                re_app_list,
-                key=lambda i: (1 if i["status"] == "RUNNING" else 2 if i["status"] == "ABNORMAL" else 3
-                               if i["status"] == "STARTING" else 5 if i["status"] == "CLOSED" else 4, -i["used_mem"]))
+            re_app_list = sorted(re_app_list,
+                                 key=lambda i: (1 if i["status"] == "RUNNING" else 2 if i["status"] == "ABNORMAL" else 3
+                                                if i["status"] == "STARTING" else 5
+                                                if i["status"] == "CLOSED" else 4, -i["used_mem"]))
         return re_app_list
 
     @staticmethod

@@ -29,8 +29,13 @@ class MarketPluginsView(RegionTenantHeaderView):
         # is_download = request.GET.get('is_download')
 
         # market_plugin_service.sync_market_plugins(self.tenant.tenant_id)
-        total, plugins = market_plugin_service.get_paged_plugins(
-            plugin_name, page=page, limit=limit, order_by='is_complete', source='market', scope='goodrain', tenant=self.tenant)
+        total, plugins = market_plugin_service.get_paged_plugins(plugin_name,
+                                                                 page=page,
+                                                                 limit=limit,
+                                                                 order_by='is_complete',
+                                                                 source='market',
+                                                                 scope='goodrain',
+                                                                 tenant=self.tenant)
         result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
         return Response(data=result, status=200)
 
@@ -123,8 +128,12 @@ class InternalMarketPluginsView(RegionTenantHeaderView):
         limit = request.GET.get('limit', 10)
         scope = request.GET.get('scope')
 
-        total, plugins = market_plugin_service.get_paged_plugins(
-            plugin_name, is_complete=True, scope=scope, tenant=self.tenant, page=page, limit=limit)
+        total, plugins = market_plugin_service.get_paged_plugins(plugin_name,
+                                                                 is_complete=True,
+                                                                 scope=scope,
+                                                                 tenant=self.tenant,
+                                                                 page=page,
+                                                                 limit=limit)
         result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
         return Response(data=result, status=200)
 
@@ -142,8 +151,11 @@ class InstallableInteralPluginsView(RegionTenantHeaderView):
         page = request.GET.get('page', 1)
         limit = request.GET.get('limit', 10)
 
-        total, plugins = market_plugin_service.get_paged_plugins(
-            plugin_name, is_complete=True, tenant=self.tenant, page=page, limit=limit)
+        total, plugins = market_plugin_service.get_paged_plugins(plugin_name,
+                                                                 is_complete=True,
+                                                                 tenant=self.tenant,
+                                                                 page=page,
+                                                                 limit=limit)
 
         installed = plugin_repo.get_tenant_plugins(self.tenant.tenant_id, self.response_region). \
             filter(origin__in=['local_market', 'market'])
