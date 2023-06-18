@@ -91,22 +91,21 @@ class OriginalApp(object):
             graphs = component_graph_repo.list(cpt.service_id)
             plugin_deps = app_plugin_relation_repo.list_by_component_ids([cpt.service_id])
             k8s_attrs = k8s_attribute_repo.get_by_component_id(cpt.service_id)
-            component = Component(
-                cpt,
-                component_source,
-                envs,
-                ports,
-                volumes,
-                config_files,
-                probes,
-                None,
-                monitors,
-                graphs,
-                plugin_deps,
-                http_rules=http_rules.get(cpt.component_id),
-                tcp_rules=tcp_rules.get(cpt.component_id),
-                support_labels=self.support_labels,
-                k8s_attributes=k8s_attrs)
+            component = Component(cpt,
+                                  component_source,
+                                  envs,
+                                  ports,
+                                  volumes,
+                                  config_files,
+                                  probes,
+                                  None,
+                                  monitors,
+                                  graphs,
+                                  plugin_deps,
+                                  http_rules=http_rules.get(cpt.component_id),
+                                  tcp_rules=tcp_rules.get(cpt.component_id),
+                                  support_labels=self.support_labels,
+                                  k8s_attributes=k8s_attrs)
             result.append(component)
         return result
 

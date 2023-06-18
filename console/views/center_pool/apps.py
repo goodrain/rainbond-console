@@ -164,12 +164,13 @@ class CenterAppCLView(JWTAuthApiView):
         tags = request.GET.get("tags", [])
         is_complete = request.GET.get("is_complete", None)
         need_install = request.GET.get("need_install", "false")
+        arch = request.GET.get("arch", "")
         if tags:
             tags = json.loads(tags)
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         apps, count = market_app_service.get_visiable_apps(self.user, enterprise_id, scope, app_name, tags, is_complete, page,
-                                                           page_size, need_install, is_plugin)
+                                                           page_size, need_install, is_plugin, arch)
         return MessageResponse("success", msg_show="查询成功", list=apps, total=count, next_page=int(page) + 1)
 
     @never_cache
@@ -219,7 +220,6 @@ class CenterAppUDView(JWTAuthApiView):
         编辑和删除应用市场应用
         ---
     """
-
     def put(self, request, enterprise_id, app_id, *args, **kwargs):
         name = request.data.get("name")
         if not validate_name(name):

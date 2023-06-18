@@ -84,8 +84,11 @@ class AppDeployService(object):
         if async_action == AsyncAction.BUILD.value:
             code, msg, event_id = app_manage_service.deploy(tenant, service, user, oauth_instance=oauth_instance)
         elif async_action == AsyncAction.UPDATE.value:
-            code, msg, event_id = app_manage_service.upgrade(
-                tenant, service, user, committer_name, oauth_instance=oauth_instance)
+            code, msg, event_id = app_manage_service.upgrade(tenant,
+                                                             service,
+                                                             user,
+                                                             committer_name,
+                                                             oauth_instance=oauth_instance)
         else:
             return 200, "", ""
         return code, msg, event_id
@@ -103,7 +106,6 @@ class OtherService(object):
     """
     Services outside the market service
     """
-
     def pre_action(self):
         logger.info("type: other; pre-deployment action.")
 
@@ -115,7 +117,6 @@ class MarketService(object):
     """
     Define some methods for upgrading market services.
     """
-
     def __init__(self, tenant, service, version, all_component_one_model=None, component_change_info=None, app_version=None):
         self.tenant = tenant
         self.service = service
@@ -268,11 +269,10 @@ class MarketService(object):
     def set_changes(self):
         pc = None
         if not self.template:
-            pc = PropertiesChanges(
-                self.service,
-                self.tenant,
-                all_component_one_model=self.all_component_one_model,
-                install_from_cloud=self.install_from_cloud)
+            pc = PropertiesChanges(self.service,
+                                   self.tenant,
+                                   all_component_one_model=self.all_component_one_model,
+                                   install_from_cloud=self.install_from_cloud)
             template = get_upgrade_app_template(self.tenant, self.version, pc)
             self.template = template
             self.template_update_time = pc.template_updatetime

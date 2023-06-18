@@ -19,8 +19,10 @@ class UserAccessTokenServices(object):
             expire_time = time.time() + age
         else:
             expire_time = None
-        return user_access_repo.create_user_access_key(
-            note=note, user_id=user_id, expire_time=expire_time, access_key=access_key)
+        return user_access_repo.create_user_access_key(note=note,
+                                                       user_id=user_id,
+                                                       expire_time=expire_time,
+                                                       access_key=access_key)
 
     def check_user_access_key(self, access_key):
         return user_access_repo.get_user_perm_by_access_key(access_key)

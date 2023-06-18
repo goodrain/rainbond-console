@@ -93,8 +93,11 @@ class GitCodeService(object):
                 if parsed_git_url.host:
                     if parsed_git_url.host.endswith('github.com'):
                         code_type = "github"
-            code, msg, branchs = self.get_code_branch(
-                user, code_type, service.git_url, service.git_project_id, current_branch=service.code_version)
+            code, msg, branchs = self.get_code_branch(user,
+                                                      code_type,
+                                                      service.git_url,
+                                                      service.git_project_id,
+                                                      current_branch=service.code_version)
             if code != 200:
                 return []
             return branchs

@@ -249,8 +249,8 @@ class AppEventsView(RegionTenantHeaderView):
                         msg = event["Message"]
                         alias = msg.split(",")
                         for ali in alias:
-                            service = TenantServiceInfo.objects.filter(
-                                service_alias=ali, tenant_id=self.tenant.tenant_id).first()
+                            service = TenantServiceInfo.objects.filter(service_alias=ali,
+                                                                       tenant_id=self.tenant.tenant_id).first()
                             relys.append({
                                 "service_cname": service.service_cname,
                                 "serivce_alias": service.service_alias,

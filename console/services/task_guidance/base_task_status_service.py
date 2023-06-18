@@ -14,7 +14,6 @@ logger = logging.getLogger("default")
 
 class BaseTaskStatusStrategy(object, metaclass=abc.ABCMeta):
     """Abstract class: confirm the status of the base task"""
-
     @abc.abstractmethod
     def confirm_status(self, tenants):
         raise NotImplementedError("Doesn't provide a reprØesentation for BaseTaskStatus.")
@@ -27,63 +26,54 @@ class DefaultStrategy(BaseTaskStatusStrategy):
     When the BaseTaskStatusContext is initialized, if an unsupported task is entered,
     the above error will be triggered.
     """
-
     def confirm_status(self, tenants):
         return False
 
 
 class AppCreationStrategy(BaseTaskStatusStrategy):
     """Task: app creation"""
-
     def confirm_status(self, eid):
         return svc_group_repo.check_non_default_group_by_eid(eid)
 
 
 class SourceCodeServiceCreationStrategy(BaseTaskStatusStrategy):
     """Task: create a service based on source code"""
-
     def confirm_status(self, eid):
         return service_repo.check_sourcecode_svc_by_eid(eid)
 
 
 class InstallMysqlFromMarketStrategy(BaseTaskStatusStrategy):
     """Task: install the database based on the application market"""
-
     def confirm_status(self, eid):
         return service_repo.check_db_from_market_by_eid(eid)
 
 
 class ServiceConnectDBStrategy(BaseTaskStatusStrategy):
     """Task: connect database with service"""
-
     def confirm_status(self, eid):
         return dep_relation_repo.check_db_dep_by_eid(eid)
 
 
 class ShareAppStrategy(BaseTaskStatusStrategy):
     """Task: share application to market"""
-
     def confirm_status(self, eid):
         return share_repo.check_app_by_eid(eid)
 
 
 class CustomGatewayRuleStrategy(BaseTaskStatusStrategy):
     """Task: customize application access rules"""
-
     def confirm_status(self, eid):
         return http_rule_repo.check_custom_rule(eid)
 
 
 class InstallPluginStrategy(BaseTaskStatusStrategy):
     """Task: install the performance analysis plugin"""
-
     def confirm_status(self, eid):
         return app_plugin_relation_repo.check_plugins_by_eid(eid)
 
 
 class ImageServiceCreateStrategy(BaseTaskStatusStrategy):
     """Task: install the performance analysis plugin"""
-
     def confirm_status(self, eid):
         return service_repo.check_image_svc_by_eid(eid)
 

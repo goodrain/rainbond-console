@@ -13,7 +13,6 @@ logger = logging.getLogger('default')
 
 class OpenWeChatAPI(object):
     """user.goodrain.com对应的开放平台API"""
-
     def __init__(self, config, *args, **kwargs):
         if settings.MODULES["WeChat_Module"]:
             logger.debug("OpenWeChatAPI", "now init wechat config.config is " + config)
@@ -121,16 +120,15 @@ class OpenWeChatAPI(object):
         if res.status_code == 200:
             try:
                 jd = res.json()
-                wechat_user = WeChatUser(
-                    open_id=jd.get("openid"),
-                    nick_name=jd.get("nickname"),
-                    union_id=jd.get("unionid"),
-                    sex=jd.get("sex"),
-                    city=jd.get("city"),
-                    province=jd.get("province"),
-                    country=jd.get("country"),
-                    headimgurl=jd.get("headimgurl"),
-                    config=self.config.config)
+                wechat_user = WeChatUser(open_id=jd.get("openid"),
+                                         nick_name=jd.get("nickname"),
+                                         union_id=jd.get("unionid"),
+                                         sex=jd.get("sex"),
+                                         city=jd.get("city"),
+                                         province=jd.get("province"),
+                                         country=jd.get("country"),
+                                         headimgurl=jd.get("headimgurl"),
+                                         config=self.config.config)
                 wechat_user.save()
                 return wechat_user
             except Exception as e:
@@ -177,7 +175,6 @@ class OpenWeChatAPI(object):
 
 class MPWeChatAPI(object):
     """好雨云公众平台账号API"""
-
     def __init__(self, *args, **kwargs):
         if settings.MODULES["WeChat_Module"]:
             logger.debug("wechatapi", "now init public wechat config.")

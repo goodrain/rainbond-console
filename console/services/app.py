@@ -126,7 +126,8 @@ class AppService(object):
                                event_id=None,
                                oauth_service_id=None,
                                git_full_name=None,
-                               k8s_component_name=""):
+                               k8s_component_name="",
+                               arch="amd64"):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
@@ -141,6 +142,7 @@ class AppService(object):
         new_service.creater = user.pk
         new_service.server_type = server_type
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
+        new_service.arch = arch
         new_service.save()
         code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url, service_code_id,
                                            service_code_version, check_uuid, event_id, oauth_service_id, git_full_name)
@@ -302,7 +304,16 @@ class AppService(object):
         service_alias = self.create_service_alias(make_uuid(service_id))
         return service_alias
 
-    def create_docker_run_app(self, region, tenant, user, service_cname, docker_cmd, image_type, k8s_component_name, image=""):
+    def create_docker_run_app(self,
+                              region,
+                              tenant,
+                              user,
+                              service_cname,
+                              docker_cmd,
+                              image_type,
+                              k8s_component_name,
+                              image="",
+                              arch="amd64"):
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
             return 412, msg, None
@@ -319,6 +330,7 @@ class AppService(object):
         new_service.docker_cmd = docker_cmd
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         new_service.image = image
+        new_service.arch = arch
         new_service.save()
         # # 创建镜像和组件的关系（兼容老的流程）
         # if not image_service_relation_repo.get_image_service_relation(tenant.tenant_id, service_id):
@@ -595,8 +607,8 @@ class AppService(object):
     def get_service_resource_with_plugin(self, tenant, service, status):
         disk = 0
 
-        service_consume = ServiceConsume.objects.filter(
-            tenant_id=tenant.tenant_id, service_id=service.service_id).order_by("-ID")
+        service_consume = ServiceConsume.objects.filter(tenant_id=tenant.tenant_id,
+                                                        service_id=service.service_id).order_by("-ID")
         if service_consume:
             disk = service_consume[0].disk
 
@@ -1073,14 +1085,18 @@ class AppMarketService(object):
         app_market.save()
         return app_market
 
-    def app_models_serializers(self, market, data, extend=False):
+    def app_models_serializers(self, market, data, extend=False, arch=""):
         app_models = []
 
         if data:
             for dt in data:
                 versions = []
+                app_arch = dict()
                 for version in dt.versions:
+                    arch = version.arch if version.arch else "amd64"
+                    app_arch[arch] = 1
                     versions.append({
+                        "arch": arch,
                         "is_plugin": version.is_plugin,
                         "app_key_id": version.app_key_id,
                         "app_version": version.app_version,
@@ -1091,7 +1107,10 @@ class AppMarketService(object):
                         "update_time": version.update_time,
                         "update_version": version.update_version,
                     })
-
+                if not app_arch:
+                    app_arch["amd64"] = 1
+                if arch and arch not in app_arch.keys():
+                    continue
                 market_info = {
                     "app_id": dt.app_key_id,
                     "app_name": dt.name,
@@ -1101,6 +1120,7 @@ class AppMarketService(object):
                     "enterprise_id": market.enterprise_id,
                     "source": "market",
                     "versions": versions,
+                    "arch": app_arch.keys(),
                     "tags": [t for t in dt.tags],
                     "logo": dt.logo,
                     "market_id": dt.market_id,
@@ -1195,9 +1215,9 @@ class AppMarketService(object):
             }
         return Dict(version)
 
-    def get_market_app_list(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
+    def get_market_app_list(self, market, page=1, page_size=10, query=None, query_all=False, extend=False, arch=""):
         results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
-        data = self.app_models_serializers(market, results.apps, extend=extend)
+        data = self.app_models_serializers(market, results.apps, extend=extend, arch=arch)
         return data, results.page, results.page_size, results.total
 
     def get_market_plugins_apps(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
@@ -1239,17 +1259,16 @@ class AppMarketService(object):
             if e.status_code != 404:
                 logger.exception(e)
             app_template = None
-        rainbond_app = RainbondCenterApp(
-            app_id=app.app_key_id,
-            app_name=app.name,
-            dev_status=app.dev_status,
-            source="market",
-            scope="goodrain",
-            describe=app.desc,
-            details=app.introduction,
-            pic=app.logo,
-            create_time=app.create_time,
-            update_time=app.update_time)
+        rainbond_app = RainbondCenterApp(app_id=app.app_key_id,
+                                         app_name=app.name,
+                                         dev_status=app.dev_status,
+                                         source="market",
+                                         scope="goodrain",
+                                         describe=app.desc,
+                                         details=app.introduction,
+                                         pic=app.logo,
+                                         create_time=app.create_time,
+                                         update_time=app.update_time)
         rainbond_app.market_name = market.name
         if app_template:
             rainbond_app_version = RainbondCenterAppVersion(
@@ -1260,7 +1279,9 @@ class AppMarketService(object):
                 template_version=app_template.rainbond_version,
                 app_version_info=app_template.description,
                 update_time=app_template.update_time,
-                is_official=1)
+                is_official=1,
+                arch=app_template.arch,
+            )
             rainbond_app_version.template_type = app_template.template_type
         return rainbond_app, rainbond_app_version
 
@@ -1318,11 +1339,12 @@ class PackageUploadService(object):
 
     def get_last_upload_record(self, team_name, region, component_id):
         if component_id:
-            return PackageUploadRecord.objects.filter(
-                team_name=team_name, region=region, component_id=component_id,
-                status="unfinished").order_by("-create_time").first()
-        return PackageUploadRecord.objects.filter(
-            team_name=team_name, region=region, status="unfinished").order_by("-create_time").first()
+            return PackageUploadRecord.objects.filter(team_name=team_name,
+                                                      region=region,
+                                                      component_id=component_id,
+                                                      status="unfinished").order_by("-create_time").first()
+        return PackageUploadRecord.objects.filter(team_name=team_name, region=region,
+                                                  status="unfinished").order_by("-create_time").first()
 
     def update_upload_record(self, team_name, event_id, **data):
         return PackageUploadRecord.objects.filter(team_name=team_name, event_id=event_id).update(**data)
@@ -1330,8 +1352,8 @@ class PackageUploadService(object):
     def get_name_by_component_id(self, component_ids):
         package_names = []
         for component_id in component_ids:
-            res = PackageUploadRecord.objects.filter(
-                component_id=component_id, status="finished").order_by("-create_time").first()
+            res = PackageUploadRecord.objects.filter(component_id=component_id,
+                                                     status="finished").order_by("-create_time").first()
             if res:
                 package_name = eval(res.source_dir)
                 package_names += package_name

@@ -437,10 +437,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         except RegionApiBaseHttpClient.CallApiError as e:
             message = e.body.get("msg")
             if message and message.find("do not allow operate outer port for thirdpart domain endpoints") >= 0:
-                raise ServiceHandleException(
-                    status_code=400,
-                    msg="do not allow operate outer port for thirdpart domain endpoints",
-                    msg_show="该第三方组件具有域名类实例，暂不支持开放网关访问")
+                raise ServiceHandleException(status_code=400,
+                                             msg="do not allow operate outer port for thirdpart domain endpoints",
+                                             msg_show="该第三方组件具有域名类实例，暂不支持开放网关访问")
             else:
                 raise e
 
@@ -1208,8 +1207,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         region_info = self.get_region_info(region_name)
         url = region_info.url + "/v2/event"
         self._set_headers(region_info.token)
-        res, body = self._get(
-            url, self.default_headers, region=region_name, body=json.dumps({"event_ids": event_ids}), timeout=10)
+        res, body = self._get(url,
+                              self.default_headers,
+                              region=region_name,
+                              body=json.dumps({"event_ids": event_ids}),
+                              timeout=10)
         return body
 
     def __get_region_access_info(self, tenant_name, region):
@@ -2162,11 +2164,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/checkResourceName"
 
         self._set_headers(token)
-        _, body = self._post(
-            url, self.default_headers, region=region_name, body=json.dumps({
-                "type": rtype,
-                "name": name,
-            }))
+        _, body = self._post(url, self.default_headers, region=region_name, body=json.dumps({
+            "type": rtype,
+            "name": name,
+        }))
         return body["bean"]
 
     def parse_app_services(self, region_name, tenant_name, app_id, values):
@@ -2175,10 +2176,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/parse-services"
 
         self._set_headers(token)
-        _, body = self._post(
-            url, self.default_headers, region=region_name, body=json.dumps({
-                "values": values,
-            }))
+        _, body = self._post(url, self.default_headers, region=region_name, body=json.dumps({
+            "values": values,
+        }))
         return body["list"]
 
     def list_app_releases(self, region_name, tenant_name, app_id):
@@ -2323,6 +2323,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_name, timeout=20)
         return res, body
 
+    def get_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, body
+
     def create_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
@@ -2411,6 +2418,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url = url + "/v2/cluster/nodes"
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def get_cluster_nodes_arch(self, region):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/arch"
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 

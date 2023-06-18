@@ -18,12 +18,12 @@ logger = logging.getLogger("default")
 
 class AppServiceRelationService(object):
     def __get_dep_service_ids(self, tenant, service):
-        return dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id).values_list(
-            "dep_service_id", flat=True)
+        return dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id).values_list("dep_service_id",
+                                                                                                            flat=True)
 
     def get_dep_service_ids(self, service):
-        return dep_relation_repo.get_service_dependencies(service.tenant_id, service.service_id).values_list(
-            "dep_service_id", flat=True)
+        return dep_relation_repo.get_service_dependencies(service.tenant_id, service.service_id).values_list("dep_service_id",
+                                                                                                             flat=True)
 
     def get_service_dependencies(self, tenant, service):
         dep_ids = self.__get_dep_service_ids(tenant, service)
@@ -48,8 +48,9 @@ class AppServiceRelationService(object):
 
     def __is_env_duplicate(self, tenant, service, dep_service):
         dep_ids = self.__get_dep_service_ids(tenant, service)
-        attr_names = env_var_repo.get_service_env(tenant.tenant_id, dep_service.service_id).filter(scope="outer").values_list(
-            "attr_name", flat=True)
+        attr_names = env_var_repo.get_service_env(tenant.tenant_id,
+                                                  dep_service.service_id).filter(scope="outer").values_list("attr_name",
+                                                                                                            flat=True)
         envs = env_var_repo.get_env_by_ids_and_attr_names(dep_service.tenant_id, dep_ids, attr_names).filter(scope="outer")
         if envs:
             return True

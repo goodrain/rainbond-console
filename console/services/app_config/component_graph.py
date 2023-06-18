@@ -168,8 +168,9 @@ class ComponentGraphService(object):
 
     @staticmethod
     def _sequence_move_back(component_id, left_sequence, right_sequence):
-        graphs = component_graph_repo.list_between_sequence(
-            component_id=component_id, left_sequence=left_sequence, right_sequence=right_sequence)
+        graphs = component_graph_repo.list_between_sequence(component_id=component_id,
+                                                            left_sequence=left_sequence,
+                                                            right_sequence=right_sequence)
         for graph in graphs:
             graph.sequence += 1
             graph.save()
