@@ -51,16 +51,17 @@ class PluginConfigService(object):
     def create_config_items(self, plugin_id, build_version, service_meta_type, *options):
         config_items_list = []
         for option in options:
-            config_item = PluginConfigItems(plugin_id=plugin_id,
-                                            build_version=build_version,
-                                            service_meta_type=service_meta_type,
-                                            attr_name=option["attr_name"],
-                                            attr_alt_value=option["attr_alt_value"],
-                                            attr_type=option.get("attr_type", "string"),
-                                            attr_default_value=option.get("attr_default_value", None),
-                                            is_change=option.get("is_change", False),
-                                            attr_info=option.get("attr_info", ""),
-                                            protocol=option.get("protocol", ""))
+            config_item = PluginConfigItems(
+                plugin_id=plugin_id,
+                build_version=build_version,
+                service_meta_type=service_meta_type,
+                attr_name=option["attr_name"],
+                attr_alt_value=option["attr_alt_value"],
+                attr_type=option.get("attr_type", "string"),
+                attr_default_value=option.get("attr_default_value", None),
+                is_change=option.get("is_change", False),
+                attr_info=option.get("attr_info", ""),
+                protocol=option.get("protocol", ""))
             config_items_list.append(config_item)
 
         config_item_repo.bulk_create_items(config_items_list)
@@ -71,23 +72,25 @@ class PluginConfigService(object):
         if config_group:
             for config in config_group:
                 options = config["options"]
-                plugin_config_meta = PluginConfigGroup(plugin_id=plugin_id,
-                                                       build_version=build_version,
-                                                       config_name=config["config_name"],
-                                                       service_meta_type=config["service_meta_type"],
-                                                       injection=config["injection"])
+                plugin_config_meta = PluginConfigGroup(
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    config_name=config["config_name"],
+                    service_meta_type=config["service_meta_type"],
+                    injection=config["injection"])
                 plugin_config_meta_list.append(plugin_config_meta)
                 for option in options:
-                    config_item = PluginConfigItems(plugin_id=plugin_id,
-                                                    build_version=build_version,
-                                                    service_meta_type=config["service_meta_type"],
-                                                    attr_name=option.get("attr_name", ""),
-                                                    attr_alt_value=option.get("attr_alt_value", ""),
-                                                    attr_type=option.get("attr_type", "string"),
-                                                    attr_default_value=option.get("attr_default_value", None),
-                                                    is_change=option.get("is_change", False),
-                                                    attr_info=option.get("attr_info", ""),
-                                                    protocol=option.get("protocol", ""))
+                    config_item = PluginConfigItems(
+                        plugin_id=plugin_id,
+                        build_version=build_version,
+                        service_meta_type=config["service_meta_type"],
+                        attr_name=option.get("attr_name", ""),
+                        attr_alt_value=option.get("attr_alt_value", ""),
+                        attr_type=option.get("attr_type", "string"),
+                        attr_default_value=option.get("attr_default_value", None),
+                        is_change=option.get("is_change", False),
+                        attr_info=option.get("attr_info", ""),
+                        protocol=option.get("protocol", ""))
                     config_items_list.append(config_item)
 
         config_group_repo.bulk_create_plugin_config_group(plugin_config_meta_list)

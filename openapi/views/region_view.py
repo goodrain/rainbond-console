@@ -27,9 +27,8 @@ logger = logging.getLogger("default")
 class ListRegionInfo(BaseOpenAPIView):
     view_perms = ["regions"]
 
-    @swagger_auto_schema(responses={200: RegionInfoRespSerializer(many=True)},
-                         tags=['openapi-region'],
-                         operation_description="获取全部数据中心列表")
+    @swagger_auto_schema(
+        responses={200: RegionInfoRespSerializer(many=True)}, tags=['openapi-region'], operation_description="获取全部数据中心列表")
     def get(self, req):
         regions = region_services.get_enterprise_regions(self.enterprise.enterprise_id, level="")
         serializer = RegionInfoRespSerializer(data=regions, many=True)
@@ -86,11 +85,8 @@ class RegionInfo(BaseOpenAPIView):
         operation_description="获取指定数据中心数据",
         manual_parameters=[
             openapi.Parameter("region_id", openapi.IN_QUERY, description="数据中心名称、id", type=openapi.TYPE_STRING),
-            openapi.Parameter("extend_info",
-                              openapi.IN_QUERY,
-                              description="是否需要额外数据",
-                              type=openapi.TYPE_STRING,
-                              enum=["true", "false"]),
+            openapi.Parameter(
+                "extend_info", openapi.IN_QUERY, description="是否需要额外数据", type=openapi.TYPE_STRING, enum=["true", "false"]),
         ],
         responses={
             status.HTTP_200_OK: RegionInfoRSerializer(),
@@ -108,9 +104,8 @@ class RegionInfo(BaseOpenAPIView):
         if not self.region:
             raise ServiceHandleException(msg="no found region", msg_show="数据中心不存在", status_code=404)
 
-        data = region_services.get_enterprise_region(self.enterprise.enterprise_id,
-                                                     self.region.region_id,
-                                                     check_status=extend_info)
+        data = region_services.get_enterprise_region(
+            self.enterprise.enterprise_id, self.region.region_id, check_status=extend_info)
         serializers = RegionInfoRSerializer(data=data)
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)

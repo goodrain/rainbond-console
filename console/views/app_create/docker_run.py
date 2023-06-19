@@ -64,30 +64,29 @@ class DockerRunCreateView(RegionTenantHeaderView):
         k8s_component_name = request.data.get("k8s_component_name", "")
         arch = request.data.get("arch", "amd64")
         if is_demo:
-            groups = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                 region_name=self.region_name,
-                                                 group_name="镜像构建示例")
+            groups = ServiceGroup.objects.filter(
+                tenant_id=self.tenant.tenant_id, region_name=self.region_name, group_name="镜像构建示例")
             k8s_app_name = "image-demo"
             if groups:
                 group_id = groups[0].ID
             else:
-                k8s_apps = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                       region_name=self.region_name,
-                                                       k8s_app="image-demo")
+                k8s_apps = ServiceGroup.objects.filter(
+                    tenant_id=self.tenant.tenant_id, region_name=self.region_name, k8s_app="image-demo")
                 if k8s_apps:
                     k8s_app_name += make_uuid()[:6]
-                data = group_service.create_app(self.tenant,
-                                                self.region_name,
-                                                "镜像构建示例",
-                                                None,
-                                                self.user.get_username(),
-                                                None,
-                                                None,
-                                                None,
-                                                None,
-                                                self.user.enterprise_id,
-                                                None,
-                                                k8s_app=k8s_app_name)
+                data = group_service.create_app(
+                    self.tenant,
+                    self.region_name,
+                    "镜像构建示例",
+                    None,
+                    self.user.get_username(),
+                    None,
+                    None,
+                    None,
+                    None,
+                    self.user.enterprise_id,
+                    None,
+                    k8s_app=k8s_app_name)
                 group_id = data["group_id"]
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             if is_demo:

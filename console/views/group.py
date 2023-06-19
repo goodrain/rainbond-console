@@ -79,18 +79,19 @@ class TenantGroupView(RegionTenantHeaderView):
             k8s_app = app_template_name
         if not is_qualified_name(k8s_app):
             raise ErrQualifiedName(msg_show="应用英文名称只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
-        data = group_service.create_app(self.tenant,
-                                        region_name,
-                                        app_name,
-                                        note,
-                                        self.user.get_username(),
-                                        app_store_name,
-                                        app_store_url,
-                                        app_template_name,
-                                        version,
-                                        self.user.enterprise_id,
-                                        logo,
-                                        k8s_app=k8s_app)
+        data = group_service.create_app(
+            self.tenant,
+            region_name,
+            app_name,
+            note,
+            self.user.get_username(),
+            app_store_name,
+            app_store_url,
+            app_template_name,
+            version,
+            self.user.enterprise_id,
+            logo,
+            k8s_app=k8s_app)
         result = general_message(200, "success", "创建成功", bean=data)
         return Response(result, status=result["code"])
 
@@ -131,17 +132,18 @@ class TenantGroupOperationView(ApplicationView):
         version = request.data.get("version", "")
         revision = request.data.get("revision", 0)
 
-        group_service.update_group(self.tenant,
-                                   self.response_region,
-                                   app_id,
-                                   app_name,
-                                   note,
-                                   username,
-                                   overrides=overrides,
-                                   version=version,
-                                   revision=revision,
-                                   logo=logo,
-                                   k8s_app=k8s_app)
+        group_service.update_group(
+            self.tenant,
+            self.response_region,
+            app_id,
+            app_name,
+            note,
+            username,
+            overrides=overrides,
+            version=version,
+            revision=revision,
+            logo=logo,
+            k8s_app=k8s_app)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 

@@ -51,9 +51,8 @@ class HelmAppService(object):
             service_id = make_uuid3(chart + "/" + cv["components_name"])
             app["service_id"] = service_id
             app["service_key"] = service_id
-            app["service_share_uuid"] = make_uuid3(chart + "/" +
-                                                   cv["components_name"]) + "+" + make_uuid3(chart + "/" +
-                                                                                             cv["components_name"])
+            app["service_share_uuid"] = make_uuid3(chart + "/" + cv["components_name"]) + "+" + make_uuid3(
+                chart + "/" + cv["components_name"])
             app["need_share"] = True
             app["category"] = "app_publish"
             app["language"] = ""

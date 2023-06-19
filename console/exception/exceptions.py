@@ -6,6 +6,7 @@ class UserExistError(Exception):
     """
     用户已存在异常
     """
+
     def __init__(self, message):
         msg = "用户名已存在"
         super(UserExistError, self).__init__(msg)
@@ -15,6 +16,7 @@ class EmailExistError(Exception):
     """
     邮箱已存在异常
     """
+
     def __init__(self, message):
         msg = "邮箱已存在"
         super(EmailExistError, self).__init__(msg)
@@ -24,6 +26,7 @@ class PhoneExistError(Exception):
     """
     手机号已存在异常
     """
+
     def __init__(self, message):
         msg = "手机号已存在"
         super(PhoneExistError, self).__init__(msg)
@@ -33,6 +36,7 @@ class PasswordTooShortError(Exception):
     """
     密码过短
     """
+
     def __init__(self, message):
         super(PasswordTooShortError, self).__init__(message)
 
@@ -41,6 +45,7 @@ class ParamsError(Exception):
     """
     参数异常
     """
+
     def __init__(self, message):
         super(ParamsError, self).__init__(message)
 
@@ -49,6 +54,7 @@ class ConfigExistError(Exception):
     """
     配置已存在
     """
+
     def __init__(self, message):
         super(ConfigExistError, self).__init__(message)
 
@@ -57,6 +63,7 @@ class TenantOverFlowError(Exception):
     """
     租户超过最大配额
     """
+
     def __init__(self, message):
         super(TenantOverFlowError, self).__init__(message)
 

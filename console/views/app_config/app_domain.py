@@ -801,11 +801,8 @@ class SecondLevelDomainView(AppBaseView):
                                        DomainType.SLD_DOMAIN)
         else:
             # 先解绑 再绑定
-            code, msg = domain_service.unbind_domain(self.tenant,
-                                                     self.service,
-                                                     container_port,
-                                                     sld_domains[0].domain_name,
-                                                     is_tcp=False)
+            code, msg = domain_service.unbind_domain(
+                self.tenant, self.service, container_port, sld_domains[0].domain_name, is_tcp=False)
             if code != 200:
                 return Response(general_message(code, "unbind domain error", msg), status=code)
             domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, "http", None,

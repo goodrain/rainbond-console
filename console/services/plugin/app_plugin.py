@@ -218,16 +218,17 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.UNDEFINE:
                 attrs_map = {item.attr_name: item.attr_default_value for item in items}
                 service_plugin_var.append(
-                    ServicePluginConfigVar(service_id=service.service_id,
-                                           plugin_id=plugin_id,
-                                           build_version=build_version,
-                                           service_meta_type=config_group.service_meta_type,
-                                           injection=config_group.injection,
-                                           dest_service_id="",
-                                           dest_service_alias="",
-                                           container_port=0,
-                                           attrs=json.dumps(attrs_map),
-                                           protocol=""))
+                    ServicePluginConfigVar(
+                        service_id=service.service_id,
+                        plugin_id=plugin_id,
+                        build_version=build_version,
+                        service_meta_type=config_group.service_meta_type,
+                        injection=config_group.injection,
+                        dest_service_id="",
+                        dest_service_alias="",
+                        container_port=0,
+                        attrs=json.dumps(attrs_map),
+                        protocol=""))
 
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
@@ -239,16 +240,17 @@ class AppPluginService(object):
                         if item.protocol == "" or (port.protocol in item.protocol.split(",")):
                             attrs_map[item.attr_name] = item.attr_default_value
                     service_plugin_var.append(
-                        ServicePluginConfigVar(service_id=service.service_id,
-                                               plugin_id=plugin_id,
-                                               build_version=build_version,
-                                               service_meta_type=config_group.service_meta_type,
-                                               injection=config_group.injection,
-                                               dest_service_id="",
-                                               dest_service_alias="",
-                                               container_port=port.container_port,
-                                               attrs=json.dumps(attrs_map),
-                                               protocol=port.protocol))
+                        ServicePluginConfigVar(
+                            service_id=service.service_id,
+                            plugin_id=plugin_id,
+                            build_version=build_version,
+                            service_meta_type=config_group.service_meta_type,
+                            injection=config_group.injection,
+                            dest_service_id="",
+                            dest_service_alias="",
+                            container_port=port.container_port,
+                            attrs=json.dumps(attrs_map),
+                            protocol=port.protocol))
 
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
                 dep_services = dependency_service.get_service_dependencies(tenant, service)
@@ -257,39 +259,40 @@ class AppPluginService(object):
                 for dep_service in dep_services:
                     ports = port_repo.get_service_ports(dep_service.tenant_id, dep_service.service_id)
                     if not self.__check_ports_for_config_items(ports, items):
-                        raise ServiceHandleException(msg="do not support protocol",
-                                                     status_code=409,
-                                                     msg_show="该组件依赖的组件的端口协议与插件支持的协议不一致")
+                        raise ServiceHandleException(
+                            msg="do not support protocol", status_code=409, msg_show="该组件依赖的组件的端口协议与插件支持的协议不一致")
                     for port in ports:
                         attrs_map = dict()
                         for item in items:
                             if item.protocol == "" or (port.protocol in item.protocol.split(",")):
                                 attrs_map[item.attr_name] = item.attr_default_value
                         service_plugin_var.append(
-                            ServicePluginConfigVar(service_id=service.service_id,
-                                                   plugin_id=plugin_id,
-                                                   build_version=build_version,
-                                                   service_meta_type=config_group.service_meta_type,
-                                                   injection=config_group.injection,
-                                                   dest_service_id=dep_service.service_id,
-                                                   dest_service_alias=dep_service.service_alias,
-                                                   container_port=port.container_port,
-                                                   attrs=json.dumps(attrs_map),
-                                                   protocol=port.protocol))
+                            ServicePluginConfigVar(
+                                service_id=service.service_id,
+                                plugin_id=plugin_id,
+                                build_version=build_version,
+                                service_meta_type=config_group.service_meta_type,
+                                injection=config_group.injection,
+                                dest_service_id=dep_service.service_id,
+                                dest_service_alias=dep_service.service_alias,
+                                container_port=port.container_port,
+                                attrs=json.dumps(attrs_map),
+                                protocol=port.protocol))
 
             if config_group.service_meta_type == PluginMetaType.PLUGINSTORAGE:
                 attrs_map = {item.attr_name: item.attr_default_value for item in items}
                 service_plugin_var.append(
-                    ServicePluginConfigVar(service_id=service.service_id,
-                                           plugin_id=plugin_id,
-                                           build_version=build_version,
-                                           service_meta_type=config_group.service_meta_type,
-                                           injection=config_group.injection,
-                                           dest_service_id="",
-                                           dest_service_alias="",
-                                           container_port=0,
-                                           attrs=json.dumps(attrs_map),
-                                           protocol=""))
+                    ServicePluginConfigVar(
+                        service_id=service.service_id,
+                        plugin_id=plugin_id,
+                        build_version=build_version,
+                        service_meta_type=config_group.service_meta_type,
+                        injection=config_group.injection,
+                        dest_service_id="",
+                        dest_service_alias="",
+                        container_port=0,
+                        attrs=json.dumps(attrs_map),
+                        protocol=""))
 
         # 保存数据
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
@@ -442,8 +445,8 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
                 for port in ports:
-                    upstream_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.UPSTREAM_PORT,
-                                                               container_port=port.container_port)
+                    upstream_envs = service_plugin_vars.filter(
+                        service_meta_type=PluginMetaType.UPSTREAM_PORT, container_port=port.container_port)
                     upstream_options = None
                     if upstream_envs:
                         upstream_env = upstream_envs[0]
@@ -478,9 +481,10 @@ class AppPluginService(object):
                 for dep_service in dep_services:
                     ports = port_repo.list_inner_ports(dep_service.tenant_id, dep_service.service_id)
                     for port in ports:
-                        downstream_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.DOWNSTREAM_PORT,
-                                                                     dest_service_id=dep_service.service_id,
-                                                                     container_port=port.container_port)
+                        downstream_envs = service_plugin_vars.filter(
+                            service_meta_type=PluginMetaType.DOWNSTREAM_PORT,
+                            dest_service_id=dep_service.service_id,
+                            container_port=port.container_port)
                         downstream_options = None
                         if downstream_envs:
                             downstream_env = downstream_envs[0]
@@ -565,59 +569,63 @@ class AppPluginService(object):
         if undefine_env:
             attrs_map = {c.attr_name: c.attr_value for c in undefine_env.config}
             service_plugin_var.append(
-                ServicePluginConfigVar(service_id=service.service_id,
-                                       plugin_id=plugin_id,
-                                       build_version=build_version,
-                                       service_meta_type=undefine_env.service_meta_type,
-                                       injection=undefine_env.injection,
-                                       dest_service_id="",
-                                       dest_service_alias="",
-                                       container_port=0,
-                                       attrs=json.dumps(attrs_map),
-                                       protocol=""))
+                ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=undefine_env.service_meta_type,
+                    injection=undefine_env.injection,
+                    dest_service_id="",
+                    dest_service_alias="",
+                    container_port=0,
+                    attrs=json.dumps(attrs_map),
+                    protocol=""))
         upstream_config_list = config_bean.upstream_env
         for upstream_config in upstream_config_list:
             attrs_map = {c.attr_name: c.attr_value for c in upstream_config.config}
             service_plugin_var.append(
-                ServicePluginConfigVar(service_id=service.service_id,
-                                       plugin_id=plugin_id,
-                                       build_version=build_version,
-                                       service_meta_type=upstream_config.service_meta_type,
-                                       injection=upstream_config.injection,
-                                       dest_service_id="",
-                                       dest_service_alias="",
-                                       container_port=upstream_config.port,
-                                       attrs=json.dumps(attrs_map),
-                                       protocol=upstream_config.protocol))
+                ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=upstream_config.service_meta_type,
+                    injection=upstream_config.injection,
+                    dest_service_id="",
+                    dest_service_alias="",
+                    container_port=upstream_config.port,
+                    attrs=json.dumps(attrs_map),
+                    protocol=upstream_config.protocol))
         dowstream_config_list = config_bean.downstream_env
         for dowstream_config in dowstream_config_list:
             attrs_map = {c.attr_name: c.attr_value for c in dowstream_config.config}
             service_plugin_var.append(
-                ServicePluginConfigVar(service_id=service.service_id,
-                                       plugin_id=plugin_id,
-                                       build_version=build_version,
-                                       service_meta_type=dowstream_config.service_meta_type,
-                                       injection=dowstream_config.injection,
-                                       dest_service_id=dowstream_config.dest_service_id,
-                                       dest_service_alias=dowstream_config.dest_service_alias,
-                                       container_port=dowstream_config.port,
-                                       attrs=json.dumps(attrs_map),
-                                       protocol=dowstream_config.protocol))
+                ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=dowstream_config.service_meta_type,
+                    injection=dowstream_config.injection,
+                    dest_service_id=dowstream_config.dest_service_id,
+                    dest_service_alias=dowstream_config.dest_service_alias,
+                    container_port=dowstream_config.port,
+                    attrs=json.dumps(attrs_map),
+                    protocol=dowstream_config.protocol))
         storage_dict = [config_bean.storage_env]
         for storage in storage_dict:
             if storage:
                 attrs_map = {c.attr_name: c.attr_value for c in storage.config}
                 service_plugin_var.append(
-                    ServicePluginConfigVar(service_id=service.service_id,
-                                           plugin_id=plugin_id,
-                                           build_version=build_version,
-                                           service_meta_type=storage.service_meta_type,
-                                           injection=storage.injection,
-                                           dest_service_id="",
-                                           dest_service_alias="",
-                                           container_port=0,
-                                           attrs=json.dumps(attrs_map),
-                                           protocol=""))
+                    ServicePluginConfigVar(
+                        service_id=service.service_id,
+                        plugin_id=plugin_id,
+                        build_version=build_version,
+                        service_meta_type=storage.service_meta_type,
+                        injection=storage.injection,
+                        dest_service_id="",
+                        dest_service_alias="",
+                        container_port=0,
+                        attrs=json.dumps(attrs_map),
+                        protocol=""))
         ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
 
     def create_plugin_4marketsvc(self, region_name, tenant, service, version, components, plugins):
@@ -670,16 +678,17 @@ class AppPluginService(object):
                     dest_service_alias = dest_service.get("service_alias", "")
 
             config_list.append(
-                ServicePluginConfigVar(service_id=service.service_id,
-                                       plugin_id=plugin_id,
-                                       build_version=build_version,
-                                       service_meta_type=config["service_meta_type"],
-                                       injection=config["injection"],
-                                       dest_service_id=dest_service_id,
-                                       dest_service_alias=dest_service_alias,
-                                       container_port=config["container_port"],
-                                       attrs=config["attrs"],
-                                       protocol=config["protocol"]))
+                ServicePluginConfigVar(
+                    service_id=service.service_id,
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    service_meta_type=config["service_meta_type"],
+                    injection=config["injection"],
+                    dest_service_id=dest_service_id,
+                    dest_service_alias=dest_service_alias,
+                    container_port=config["container_port"],
+                    attrs=config["attrs"],
+                    protocol=config["protocol"]))
         if config_list and len(config_list) > 0:
             ServicePluginConfigVar.objects.bulk_create(config_list)
 
@@ -848,14 +857,8 @@ class PluginService(object):
             plugin_base_info.origin_share_id = plugin_type
             plugin_base_info.save()
 
-            plugin_build_version = plugin_version_service.create_build_version(region,
-                                                                               plugin_base_info.plugin_id,
-                                                                               tenant.tenant_id,
-                                                                               user.user_id,
-                                                                               "",
-                                                                               "unbuild",
-                                                                               256,
-                                                                               image_tag=image_tag)
+            plugin_build_version = plugin_version_service.create_build_version(
+                region, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 256, image_tag=image_tag)
 
             plugin_config_meta_list = []
             config_items_list = []
@@ -863,24 +866,26 @@ class PluginService(object):
             if config_group:
                 for config in config_group:
                     options = config["options"]
-                    plugin_config_meta = PluginConfigGroup(plugin_id=plugin_build_version.plugin_id,
-                                                           build_version=plugin_build_version.build_version,
-                                                           config_name=config["config_name"],
-                                                           service_meta_type=config["service_meta_type"],
-                                                           injection=config["injection"])
+                    plugin_config_meta = PluginConfigGroup(
+                        plugin_id=plugin_build_version.plugin_id,
+                        build_version=plugin_build_version.build_version,
+                        config_name=config["config_name"],
+                        service_meta_type=config["service_meta_type"],
+                        injection=config["injection"])
                     plugin_config_meta_list.append(plugin_config_meta)
 
                     for option in options:
-                        config_item = PluginConfigItems(plugin_id=plugin_build_version.plugin_id,
-                                                        build_version=plugin_build_version.build_version,
-                                                        service_meta_type=config["service_meta_type"],
-                                                        attr_name=option["attr_name"],
-                                                        attr_alt_value=option["attr_alt_value"],
-                                                        attr_type=option.get("attr_type", "string"),
-                                                        attr_default_value=option.get("attr_default_value", None),
-                                                        is_change=option.get("is_change", False),
-                                                        attr_info=option.get("attr_info", ""),
-                                                        protocol=option.get("protocol", ""))
+                        config_item = PluginConfigItems(
+                            plugin_id=plugin_build_version.plugin_id,
+                            build_version=plugin_build_version.build_version,
+                            service_meta_type=config["service_meta_type"],
+                            attr_name=option["attr_name"],
+                            attr_alt_value=option["attr_alt_value"],
+                            attr_type=option.get("attr_type", "string"),
+                            attr_default_value=option.get("attr_default_value", None),
+                            is_change=option.get("is_change", False),
+                            attr_info=option.get("attr_info", ""),
+                            protocol=option.get("protocol", ""))
                         config_items_list.append(config_item)
 
                 config_group_repo.bulk_create_plugin_config_group(plugin_config_meta_list)

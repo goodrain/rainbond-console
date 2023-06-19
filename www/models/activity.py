@@ -5,6 +5,7 @@ from django.db import models
 
 class TenantActivity(BaseModel):
     """活动租户记录"""
+
     class Meta:
         db_table = 'tenant_activity'
 

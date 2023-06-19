@@ -82,12 +82,13 @@ class UserService(object):
         通过云市sso的用户信息来生成本地用户信息
         :param sso_user:
         """
-        user = Users.objects.create(nick_name=self.check_nick_name(sso_user.username),
-                                    password=sso_user.get('pwd'),
-                                    email=sso_user.get('email', ''),
-                                    phone=sso_user.get('mobile', ''),
-                                    sso_user_id=sso_user.get('uid', ''),
-                                    sso_user_token=sso_user.get('sso_user_token', ''),
-                                    is_active=False,
-                                    rf='sso')
+        user = Users.objects.create(
+            nick_name=self.check_nick_name(sso_user.username),
+            password=sso_user.get('pwd'),
+            email=sso_user.get('email', ''),
+            phone=sso_user.get('mobile', ''),
+            sso_user_id=sso_user.get('uid', ''),
+            sso_user_token=sso_user.get('sso_user_token', ''),
+            is_active=False,
+            rf='sso')
         return user

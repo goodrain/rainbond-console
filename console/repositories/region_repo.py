@@ -137,7 +137,8 @@ class RegionRepo(object):
             tenant_region tr
         {where}
         {limit}
-        """.format(where=where, limit=limit)
+        """.format(
+            where=where, limit=limit)
         conn = BaseConnection()
         return conn.query(sql)
 
@@ -219,10 +220,8 @@ class RegionRepo(object):
     def get_service_status_count_by_region_name(self, region):
         from console.services.team_services import team_services
         region_services_status = {"running": 0}
-        region_tenants, total = team_services.get_tenant_list_by_region(region.enterprise_id,
-                                                                        region.region_id,
-                                                                        page=1,
-                                                                        page_size=9999)
+        region_tenants, total = team_services.get_tenant_list_by_region(
+            region.enterprise_id, region.region_id, page=1, page_size=9999)
         for region_tenant in region_tenants:
             region_services_status["running"] += region_tenant["running_app_num"]
         return region_services_status

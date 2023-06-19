@@ -78,10 +78,8 @@ class EnterpriseTeamFeeView(JWTAuthApiView):
                 return Response(general_message(404, "team not exist", "指定的团队不存在"), status=404)
 
             try:
-                res, dict_body = market_api.get_enterprise_team_fee(region=region,
-                                                                    enterprise_id=team.enterprise_id,
-                                                                    team_id=team.tenant_id,
-                                                                    date=date)
+                res, dict_body = market_api.get_enterprise_team_fee(
+                    region=region, enterprise_id=team.enterprise_id, team_id=team.tenant_id, date=date)
                 data_body = dict_body['data']
                 if 'data' not in dict_body:
                     return Response(general_message(400, "{0}".format(data_body), "查询异常"), status=400)
@@ -143,11 +141,8 @@ class EnterpriseRechargeRecordsView(JWTAuthApiView):
             res, data = market_api.get_enterprise_recharge_records(team.tenant_id, enterprise.enterprise_id, start_time,
                                                                    end_time, page, page_size)
 
-            result = general_message(200,
-                                     "get recharge record success",
-                                     "查询成功",
-                                     list=data["data"]["list"],
-                                     total=data["data"]["total"])
+            result = general_message(
+                200, "get recharge record success", "查询成功", list=data["data"]["list"], total=data["data"]["total"])
 
         except Exception as e:
             logger.exception(e)
@@ -178,10 +173,8 @@ class EnterpriseAllRegionFeeView(JWTAuthApiView):
             total_list = []
             for region in regions:
                 try:
-                    res, dict_body = market_api.get_enterprise_region_fee(region=region.region_name,
-                                                                          enterprise_id=team.enterprise_id,
-                                                                          team_id=team.tenant_id,
-                                                                          date=date)
+                    res, dict_body = market_api.get_enterprise_region_fee(
+                        region=region.region_name, enterprise_id=team.enterprise_id, team_id=team.tenant_id, date=date)
 
                     rt_list = dict_body["data"]["list"]
                     enter_total = {}

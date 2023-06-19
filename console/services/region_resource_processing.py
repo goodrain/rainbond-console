@@ -106,12 +106,13 @@ class RegionResource(object):
             return
         for k8s_resource in k8s_resources:
             app_k8s_resource_list.append(
-                K8sResource(app_id=app_id,
-                            name=k8s_resource["name"],
-                            kind=k8s_resource["kind"],
-                            content=k8s_resource["content"],
-                            state=k8s_resource["state"],
-                            error_overview=k8s_resource["error_overview"]))
+                K8sResource(
+                    app_id=app_id,
+                    name=k8s_resource["name"],
+                    kind=k8s_resource["kind"],
+                    content=k8s_resource["content"],
+                    state=k8s_resource["state"],
+                    error_overview=k8s_resource["error_overview"]))
         k8s_resources_repo.bulk_create(app_k8s_resource_list)
 
     def create_components(self, application, components, tenant, region_name, user_id):
@@ -176,14 +177,15 @@ class RegionResource(object):
             return
         env_data = list()
         for env in envs:
-            tenantServiceEnvVar = TenantServiceEnvVar(tenant_id=tenant_id,
-                                                      service_id=service.service_id,
-                                                      container_port=0,
-                                                      name=env["env_explain"],
-                                                      attr_name=env["env_key"],
-                                                      attr_value=env["env_value"],
-                                                      is_change=1,
-                                                      scope="inner")
+            tenantServiceEnvVar = TenantServiceEnvVar(
+                tenant_id=tenant_id,
+                service_id=service.service_id,
+                container_port=0,
+                name=env["env_explain"],
+                attr_name=env["env_key"],
+                attr_value=env["env_value"],
+                is_change=1,
+                scope="inner")
             env_data.append(tenantServiceEnvVar)
         if len(env_data) > 0:
             env_var_repo.bulk_create_component_env(env_data)
@@ -223,15 +225,16 @@ class RegionResource(object):
             return
         port_data = list()
         for port in ports:
-            service_port = TenantServicesPort(tenant_id=tenant_id,
-                                              service_id=service.service_id,
-                                              container_port=port["port"],
-                                              mapping_port=port["port"],
-                                              protocol=port["protocol"],
-                                              port_alias=service.service_alias.upper().replace("-", "_") + str(port["port"]),
-                                              is_inner_service=False,
-                                              is_outer_service=False,
-                                              k8s_service_name=service.service_alias)
+            service_port = TenantServicesPort(
+                tenant_id=tenant_id,
+                service_id=service.service_id,
+                container_port=port["port"],
+                mapping_port=port["port"],
+                protocol=port["protocol"],
+                port_alias=service.service_alias.upper().replace("-", "_") + str(port["port"]),
+                is_inner_service=False,
+                is_outer_service=False,
+                k8s_service_name=service.service_alias)
             port_data.append(service_port)
         if len(port_data):
             port_repo.bulk_create(port_data)
@@ -265,20 +268,21 @@ class RegionResource(object):
     def create_healthy_check(self, healthy_check, service):
         if not healthy_check["status"]:
             return
-        ServiceProbe(service_id=service.service_id,
-                     probe_id=healthy_check["probe_id"],
-                     mode=healthy_check["mode"],
-                     scheme=healthy_check["detection_method"],
-                     path=healthy_check["path"],
-                     port=healthy_check["port"],
-                     cmd=healthy_check["cmd"],
-                     http_header=healthy_check["http_header"],
-                     initial_delay_second=healthy_check["initial_delay_second"],
-                     period_second=healthy_check["period_second"],
-                     timeout_second=healthy_check["timeout_second"],
-                     success_threshold=healthy_check["success_threshold"],
-                     failure_threshold=healthy_check["failure_threshold"],
-                     is_used=1).save()
+        ServiceProbe(
+            service_id=service.service_id,
+            probe_id=healthy_check["probe_id"],
+            mode=healthy_check["mode"],
+            scheme=healthy_check["detection_method"],
+            path=healthy_check["path"],
+            port=healthy_check["port"],
+            cmd=healthy_check["cmd"],
+            http_header=healthy_check["http_header"],
+            initial_delay_second=healthy_check["initial_delay_second"],
+            period_second=healthy_check["period_second"],
+            timeout_second=healthy_check["timeout_second"],
+            success_threshold=healthy_check["success_threshold"],
+            failure_threshold=healthy_check["failure_threshold"],
+            is_used=1).save()
 
     def create_component_special(self, specials, tenant_id, service):
         componentK8sAttributes = list()
@@ -286,11 +290,12 @@ class RegionResource(object):
             return
         for special in specials:
             componentK8sAttributes.append(
-                ComponentK8sAttributes(tenant_id=tenant_id,
-                                       component_id=service.service_id,
-                                       name=special["name"],
-                                       save_type=special["save_type"],
-                                       attribute_value=special["attribute_value"]))
+                ComponentK8sAttributes(
+                    tenant_id=tenant_id,
+                    component_id=service.service_id,
+                    name=special["name"],
+                    save_type=special["save_type"],
+                    attribute_value=special["attribute_value"]))
         k8s_attribute_repo.bulk_create(componentK8sAttributes)
 
     def resource_import(self, eid, region_id, namespace, content):

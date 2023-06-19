@@ -115,12 +115,8 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         if code != 200:
             return Response(general_message(code, "parse yaml error", msg), status=code)
         # 创建组
-        group_info = group_service.create_app(self.tenant,
-                                              self.response_region,
-                                              group_name,
-                                              group_note,
-                                              self.user.get_username(),
-                                              k8s_app=k8s_app)
+        group_info = group_service.create_app(
+            self.tenant, self.response_region, group_name, group_note, self.user.get_username(), k8s_app=k8s_app)
         code, msg, group_compose = compose_service.create_group_compose(
             self.tenant, self.response_region, group_info["group_id"], yaml_content, hub_user, hub_pass)
         if code != 200:
@@ -293,6 +289,7 @@ class ComposeCheckUpdate(ComposeGroupBaseView):
 
 class ComposeDeleteView(ComposeGroupBaseView):
     """放弃创建compose"""
+
     @never_cache
     def delete(self, request, *args, **kwargs):
         """

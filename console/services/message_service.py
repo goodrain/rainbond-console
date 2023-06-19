@@ -18,15 +18,16 @@ class MessageService(object):
         msg_list = []
         for announce in announcements:
             msg_list.append(
-                UserMessage(message_id=make_uuid(),
-                            receiver_id=user.user_id,
-                            content=announce.content,
-                            is_read=False,
-                            msg_type=MessageType.ANNOUNCEMENT,
-                            announcement_id=announce.announcement_id,
-                            title=announce.title,
-                            level=announce.level,
-                            create_time=announce.create_time))
+                UserMessage(
+                    message_id=make_uuid(),
+                    receiver_id=user.user_id,
+                    content=announce.content,
+                    is_read=False,
+                    msg_type=MessageType.ANNOUNCEMENT,
+                    announcement_id=announce.announcement_id,
+                    title=announce.title,
+                    level=announce.level,
+                    create_time=announce.create_time))
         UserMessage.objects.bulk_create(msg_list)
         # 更新已有的公告
         old_announcements = announcement_repo.get_enabled_announcements().filter(announcement_id__in=noticed_msg_ids)
