@@ -86,18 +86,11 @@ function configuration {
   if [ ! -d "/app/data/k3s/server/manifests" ]; then
     mkdir -p /app/data/k3s/server/manifests;
   fi
-  
-  # move rainbond-cluster.yml file
-  if [ ! -f "/app/data/k3s/server/manifests/01-rbd-operator.yml" ] && [ ! -f "/app/data/k3s/server/manifests/02-rbd-region.yml" ]; then
-    cp /app/ui/01-rbd-operator.yml /app/data/k3s/server/manifests
-    cp /app/ui/02-rbd-region.yml /app/data/k3s/server/manifests
-  fi
 
-  # Replace rainbond-cluster.yml file version to ${VERSION}
-  if ! grep "${VERSION}" /app/data/k3s/server/manifests/02-rbd-region.yml > /dev/null 2>&1; then
-    sed -i "s/v5.6.0-release/${VERSION}/g" /app/data/k3s/server/manifests/01-rbd-operator.yml
-    sed -i "s/v5.6.0-release/${VERSION}/g" /app/data/k3s/server/manifests/02-rbd-region.yml
-  fi
+  sed -i "s/v5.6.0-release/${VERSION}/g" /app/ui/01-rbd-operator.yml
+  sed -i "s/v5.6.0-release/${VERSION}/g" /app/ui/02-rbd-region.yml
+  cp /app/ui/01-rbd-operator.yml /app/data/k3s/server/manifests
+  cp /app/ui/02-rbd-region.yml /app/data/k3s/server/manifests
 
   # Setting rainbondcluster
   NODE_INTERNAL_IP=$(hostname -i)
