@@ -1093,8 +1093,8 @@ class AppMarketService(object):
                 versions = []
                 app_arch = dict()
                 for version in dt.versions:
-                    arch = version.arch if version.arch else "amd64"
-                    app_arch[arch] = 1
+                    arch_version = version.arch if version.arch else "amd64"
+                    app_arch[arch_version] = 1
                     versions.append({
                         "arch": arch,
                         "is_plugin": version.is_plugin,
@@ -1218,6 +1218,8 @@ class AppMarketService(object):
     def get_market_app_list(self, market, page=1, page_size=10, query=None, query_all=False, extend=False, arch=""):
         results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
         data = self.app_models_serializers(market, results.apps, extend=extend, arch=arch)
+        if arch != "":
+            results.total = len(data)
         return data, results.page, results.page_size, results.total
 
     def get_market_plugins_apps(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
