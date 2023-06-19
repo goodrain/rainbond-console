@@ -111,30 +111,29 @@ class SourceCodeCreateView(RegionTenantHeaderView):
         k8s_component_name = request.data.get("k8s_component_name", "")
         host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.get_host())
         if is_demo:
-            groups = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                 region_name=self.region_name,
-                                                 group_name="源码构建示例")
+            groups = ServiceGroup.objects.filter(
+                tenant_id=self.tenant.tenant_id, region_name=self.region_name, group_name="源码构建示例")
             k8s_app_name = "sourcecode-demo"
             if groups:
                 group_id = groups[0].ID
             else:
-                k8s_apps = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                       region_name=self.region_name,
-                                                       k8s_app="sourcecode-demo")
+                k8s_apps = ServiceGroup.objects.filter(
+                    tenant_id=self.tenant.tenant_id, region_name=self.region_name, k8s_app="sourcecode-demo")
                 if k8s_apps:
                     k8s_app_name += make_uuid()[:6]
-                data = group_service.create_app(self.tenant,
-                                                self.region_name,
-                                                "源码构建示例",
-                                                None,
-                                                self.user.get_username(),
-                                                None,
-                                                None,
-                                                None,
-                                                None,
-                                                self.user.enterprise_id,
-                                                None,
-                                                k8s_app=k8s_app_name)
+                data = group_service.create_app(
+                    self.tenant,
+                    self.region_name,
+                    "源码构建示例",
+                    None,
+                    self.user.get_username(),
+                    None,
+                    None,
+                    None,
+                    None,
+                    self.user.enterprise_id,
+                    None,
+                    k8s_app=k8s_app_name)
                 group_id = data["group_id"]
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             if is_demo:
@@ -172,21 +171,22 @@ class SourceCodeCreateView(RegionTenantHeaderView):
             # 创建源码组件
             if service_code_clone_url:
                 service_code_clone_url = service_code_clone_url.strip()
-            code, msg_show, new_service = app_service.create_source_code_app(self.response_region,
-                                                                             self.tenant,
-                                                                             self.user,
-                                                                             service_code_from,
-                                                                             service_cname,
-                                                                             service_code_clone_url,
-                                                                             service_code_id,
-                                                                             service_code_version,
-                                                                             server_type,
-                                                                             check_uuid,
-                                                                             event_id,
-                                                                             oauth_service_id,
-                                                                             git_full_name,
-                                                                             k8s_component_name=k8s_component_name,
-                                                                             arch=arch)
+            code, msg_show, new_service = app_service.create_source_code_app(
+                self.response_region,
+                self.tenant,
+                self.user,
+                service_code_from,
+                service_cname,
+                service_code_clone_url,
+                service_code_id,
+                service_code_version,
+                server_type,
+                check_uuid,
+                event_id,
+                oauth_service_id,
+                git_full_name,
+                k8s_component_name=k8s_component_name,
+                arch=arch)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
             # 添加username,password信息

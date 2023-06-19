@@ -38,19 +38,19 @@ class AutoscalerRuleMetricsRepository(object):
 
     def update_or_create(self, rule_id, metric):
         try:
-            m = AutoscalerRuleMetrics.objects.get(rule_id=rule_id,
-                                                  metric_type=metric["metric_type"],
-                                                  metric_name=metric["metric_name"])
+            m = AutoscalerRuleMetrics.objects.get(
+                rule_id=rule_id, metric_type=metric["metric_type"], metric_name=metric["metric_name"])
             m.metric_target_type = metric["metric_target_type"]
             m.metric_target_value = metric["metric_target_value"]
             m.save()
             return m
         except AutoscalerRuleMetrics.DoesNotExist:
-            return AutoscalerRuleMetrics.objects.create(rule_id=rule_id,
-                                                        metric_type=metric["metric_type"],
-                                                        metric_name=metric["metric_name"],
-                                                        metric_target_type=metric["metric_target_type"],
-                                                        metric_target_value=metric["metric_target_value"])
+            return AutoscalerRuleMetrics.objects.create(
+                rule_id=rule_id,
+                metric_type=metric["metric_type"],
+                metric_name=metric["metric_name"],
+                metric_target_type=metric["metric_target_type"],
+                metric_target_value=metric["metric_target_value"])
 
     def delete_by_rule_id(self, rule_id):
         AutoscalerRuleMetrics.objects.filter(rule_id=rule_id).delete()

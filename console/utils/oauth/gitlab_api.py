@@ -166,11 +166,8 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
         per_page = kwargs.get("per_page", 10)
         repo_list = []
         name = full_name.split("/")[-1]
-        for repo in self.api.projects.list(search=name,
-                                           page=page,
-                                           per_page=per_page,
-                                           order_by="last_activity_at",
-                                           membership="true"):
+        for repo in self.api.projects.list(
+                search=name, page=page, per_page=per_page, order_by="last_activity_at", membership="true"):
             repo_list.append({
                 "project_id": repo.id,
                 "project_full_name": repo.path_with_namespace,

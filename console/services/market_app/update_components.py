@@ -13,6 +13,7 @@ class UpdateComponents(object):
     """
     components that need to be updated.
     """
+
     def __init__(self, original_app: OriginalApp, app_model_key, app_template, version, components_keys, property_changes):
         """
         components_keys: component keys that the user select.

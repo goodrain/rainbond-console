@@ -220,6 +220,7 @@ class CenterAppUDView(JWTAuthApiView):
         编辑和删除应用市场应用
         ---
     """
+
     def put(self, request, enterprise_id, app_id, *args, **kwargs):
         name = request.data.get("name")
         if not validate_name(name):

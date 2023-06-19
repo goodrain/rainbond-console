@@ -772,21 +772,22 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
     def test_tenant_consume_detail(self):
         # 增加
-        TenantConsumeDetail.objects.create(tenant_id="e0090b27209c446e83313cd4e03e6d68",
-                                           service_id="866cf9d9ed37b98e50581ee76a72d597",
-                                           service_alias="gr12ks81",
-                                           node_num=2,
-                                           cpu=4,
-                                           memory=8192,
-                                           disk=40,
-                                           net=10,
-                                           money=0,
-                                           total_memory=8192,
-                                           fee_rule="unknown",
-                                           pay_status="failed",
-                                           region="rainbond",
-                                           status=0,
-                                           time=now).save()
+        TenantConsumeDetail.objects.create(
+            tenant_id="e0090b27209c446e83313cd4e03e6d68",
+            service_id="866cf9d9ed37b98e50581ee76a72d597",
+            service_alias="gr12ks81",
+            node_num=2,
+            cpu=4,
+            memory=8192,
+            disk=40,
+            net=10,
+            money=0,
+            total_memory=8192,
+            fee_rule="unknown",
+            pay_status="failed",
+            region="rainbond",
+            status=0,
+            time=now).save()
 
         # 查询
         assert len(TenantConsumeDetail.objects.all()) == 1
@@ -907,17 +908,18 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
     def test_tenant_region_pay_model(self):
         # 增加
-        TenantRegionPayModel.objects.create(tenant_id="e0090b27209c446e83313cd4e03e6d68",
-                                            region_name="rainbond",
-                                            pay_model="check",
-                                            buy_period=10,
-                                            buy_memory=100,
-                                            buy_disk=20,
-                                            buy_net=5,
-                                            buy_start_time=now,
-                                            buy_end_time=now,
-                                            buy_money=20,
-                                            create_time=now).save()
+        TenantRegionPayModel.objects.create(
+            tenant_id="e0090b27209c446e83313cd4e03e6d68",
+            region_name="rainbond",
+            pay_model="check",
+            buy_period=10,
+            buy_memory=100,
+            buy_disk=20,
+            buy_net=5,
+            buy_start_time=now,
+            buy_end_time=now,
+            buy_money=20,
+            create_time=now).save()
 
         # 查询
         assert len(TenantRegionPayModel.objects.all()) == 1
@@ -1003,9 +1005,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantServicesPort.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b9662d34f1ec49a4b81c2d415f678af3",
-                   service_id="866cf9d9ed37b98e50581ee76a72d597",
-                   container_port=5000)
+        filter = Q(
+            tenant_id="b9662d34f1ec49a4b81c2d415f678af3", service_id="866cf9d9ed37b98e50581ee76a72d597", container_port=5000)
         TenantServicesPort.objects.filter(filter).update(is_inner_service=True, is_outer_service=False)
 
         updated = TenantServicesPort.objects.get(filter)
@@ -1030,9 +1031,10 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(TenantServiceMountRelation.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="4797d3ac8f8149e4904ee4f679723e49",
-                   service_id="4117899c6756be4f9bace8310192201a",
-                   dep_service_id="9216556f8c6242358a0ce760eaff6808")
+        filter = Q(
+            tenant_id="4797d3ac8f8149e4904ee4f679723e49",
+            service_id="4117899c6756be4f9bace8310192201a",
+            dep_service_id="9216556f8c6242358a0ce760eaff6808")
         TenantServiceMountRelation.objects.filter(filter).update(mnt_dir="/mnt/grda43201")
 
         updated = TenantServiceMountRelation.objects.get(filter)
@@ -1115,10 +1117,11 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
     def test_service_group_relation(self):
         # 增加
-        ServiceGroupRelation.objects.create(service_id="2aab7a1728ce42a1a4ba820ad405420a",
-                                            group_id=2,
-                                            tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                                            region_name="rainbond").save()
+        ServiceGroupRelation.objects.create(
+            service_id="2aab7a1728ce42a1a4ba820ad405420a",
+            group_id=2,
+            tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
+            region_name="rainbond").save()
 
         # 查询
         assert len(ServiceGroupRelation.objects.all()) == 1
@@ -1136,10 +1139,11 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
     def test_tenant_service_image_relation(self):
         # 增加
-        ImageServiceRelation.objects.create(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                                            service_id='2aab7a1728ce42a1a4ba820ad405420a',
-                                            image_url='goodrain.me/nginx',
-                                            service_cname='nginx').save()
+        ImageServiceRelation.objects.create(
+            tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
+            service_id='2aab7a1728ce42a1a4ba820ad405420a',
+            image_url='goodrain.me/nginx',
+            service_cname='nginx').save()
 
         # 查询
         assert len(ImageServiceRelation.objects.all()) == 1
@@ -1200,9 +1204,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
         assert len(ServiceRule.objects.all()) == 1
 
         # 修改
-        filter = Q(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                   tenant_name="gr12nd92",
-                   service_id="2aab7a1728ce42a1a4ba820ad405420a")
+        filter = Q(
+            tenant_id="b73e01d3b83546cc8d33d60a1618a79f", tenant_name="gr12nd92", service_id="2aab7a1728ce42a1a4ba820ad405420a")
         ServiceRule.objects.filter(filter).update(port_type="one_outer", port="80", status=True)
 
         updated = ServiceRule.objects.get(filter)
@@ -1272,9 +1275,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
     def test_service_create_step(self):
         # 增加
-        ServiceCreateStep.objects.create(tenant_id="b73e01d3b83546cc8d33d60a1618a79f",
-                                         service_id="2aab7a1728ce42a1a4ba820ad405420a",
-                                         app_step=5).save()
+        ServiceCreateStep.objects.create(
+            tenant_id="b73e01d3b83546cc8d33d60a1618a79f", service_id="2aab7a1728ce42a1a4ba820ad405420a", app_step=5).save()
 
         # 查询
         assert len(ServiceCreateStep.objects.all()) == 1
@@ -1510,9 +1512,8 @@ cWVibu0Ks5iaVThwfM2R2EMaZBFYFzQZqia0owEYwFGNrIAXibHCd/0""",
 
         # 修改
         filter = Q(enterprise_id="b44871d051ed41e9ab9defea40d4e21d")
-        TenantEnterprise.objects.filter(filter).update(enterprise_alias="fanyangyang",
-                                                       enterprise_token="219da0fbc4681fd16f32c7e5431c96ea",
-                                                       is_active=1)
+        TenantEnterprise.objects.filter(filter).update(
+            enterprise_alias="fanyangyang", enterprise_token="219da0fbc4681fd16f32c7e5431c96ea", is_active=1)
 
         updated = TenantEnterprise.objects.get(filter)
         assert updated.enterprise_alias == "fanyangyang"

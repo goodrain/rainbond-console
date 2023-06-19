@@ -42,6 +42,7 @@ class NewApp(object):
     """
     A new application formed by template application in existing application
     """
+
     def __init__(self,
                  tenant,
                  region_name,

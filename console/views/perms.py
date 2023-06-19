@@ -86,10 +86,8 @@ class TeamRolePermsRUDView(RegionTenantHeaderView):
 class TeamUsersRolesLView(RegionTenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
         team_users = team_services.get_team_users(self.tenant)
-        data = user_kind_role_service.get_users_roles(kind="team",
-                                                      kind_id=self.tenant.tenant_id,
-                                                      users=team_users,
-                                                      creater_id=self.tenant.creater)
+        data = user_kind_role_service.get_users_roles(
+            kind="team", kind_id=self.tenant.tenant_id, users=team_users, creater_id=self.tenant.creater)
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 
@@ -124,10 +122,11 @@ class TeamUserPermsLView(RegionTenantHeaderView):
     def get(self, request, team_name, user_id, *args, **kwargs):
         team_users = team_services.get_team_users(self.tenant)
         user = team_users.filter(user_id=user_id).first()
-        data = user_kind_perm_service.get_user_perms(kind="team",
-                                                     kind_id=self.tenant.tenant_id,
-                                                     user=user,
-                                                     is_owner=self.is_team_owner,
-                                                     is_ent_admin=self.is_enterprise_admin)
+        data = user_kind_perm_service.get_user_perms(
+            kind="team",
+            kind_id=self.tenant.tenant_id,
+            user=user,
+            is_owner=self.is_team_owner,
+            is_ent_admin=self.is_enterprise_admin)
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=200)
