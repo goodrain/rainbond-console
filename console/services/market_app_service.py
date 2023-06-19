@@ -83,12 +83,15 @@ class MarketAppService(object):
 
         app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
                                                          version)
-        # 需要改
         res, body = region_api.get_cluster_nodes_arch(region.region_name)
-        template_arch = app_template.get("arch", "amd64")
-        template_arch = template_arch if template_arch else "amd64"
-        if template_arch not in list(set(body.get("list"))) and len(list(set(body.get("list")))) < 2:
-            raise AbortRequest("app arch does not match build node arch", "应用架构与构建结点架构不匹配", status_code=404, error_code=404)
+        chaos_arch = list(set(body.get("list")))
+        if market_app.source.split(":") and market_app.source.split(":")[0] == "helm":
+            template_arch = chaos_arch[0]
+        else:
+            template_arch = app_template.get("arch", "amd64")
+            template_arch = template_arch if template_arch else "amd64"
+        if template_arch not in chaos_arch and len(chaos_arch) < 2:
+            raise AbortRequest("app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
         if not app_template.get("goavernance_mode"):
             app_template["governance_mode"] = GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name
         if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
@@ -96,17 +99,18 @@ class MarketAppService(object):
         component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id, market_app.app_id,
                                                             version, market_app.app_name)
 
-        app_upgrade = AppUpgrade(user.enterprise_id,
-                                 tenant,
-                                 region,
-                                 user,
-                                 app,
-                                 version,
-                                 component_group,
-                                 app_template,
-                                 install_from_cloud,
-                                 market_name,
-                                 is_deploy=is_deploy)
+        app_upgrade = AppUpgrade(
+            user.enterprise_id,
+            tenant,
+            region,
+            user,
+            app,
+            version,
+            component_group,
+            app_template,
+            install_from_cloud,
+            market_name,
+            is_deploy=is_deploy)
         if dry_run:
             app_upgrade.preinstall()
         else:
@@ -116,17 +120,15 @@ class MarketAppService(object):
     def get_app_template(self, app_model_key, install_from_cloud, market_name, region, tenant, user, version):
         if install_from_cloud:
             _, market = app_market_service.get_app_market(tenant.enterprise_id, market_name, raise_exception=True)
-            market_app, app_version = app_market_service.cloud_app_model_to_db_model(market,
-                                                                                     app_model_key,
-                                                                                     version,
-                                                                                     for_install=True)
+            market_app, app_version = app_market_service.cloud_app_model_to_db_model(
+                market, app_model_key, version, for_install=True)
         else:
             market_app, app_version = market_app_service.get_rainbond_app_and_version(user.enterprise_id, app_model_key,
                                                                                       version)
             if app_version and app_version.region_name and app_version.region_name != region.region_name:
-                raise AbortRequest(msg="app version can not install to this region",
-                                   msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(
-                                       app_version.region_name))
+                raise AbortRequest(
+                    msg="app version can not install to this region",
+                    msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
         if not market_app:
             raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
         if not app_version:
