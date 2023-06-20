@@ -116,11 +116,15 @@ class RegionResource(object):
         k8s_resources_repo.bulk_create(app_k8s_resource_list)
 
     def create_components(self, application, components, tenant, region_name, user_id):
+        res, body = region_api.get_cluster_nodes_arch(region_name)
+        chaos_arch = list(set(body.get("list")))
+        arch = chaos_arch[0] if chaos_arch else "amd64"
         if not components:
             return []
         service_ids = list()
         for component in components:
             new_service = TenantServiceInfo()
+            new_service.arch = arch
             new_service.cmd = component["cmd"]
             new_service.service_region = region_name
             new_service.service_key = "0000"
