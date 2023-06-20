@@ -435,6 +435,7 @@ class EnterpriseServices(object):
                 "status": node_status,
                 "role": node["roles"],
                 "unschedulable": schedulable,
+                "arch": node["architecture"],
                 "req_cpu": node["resource"]["req_cpu"],
                 "cap_cpu": node["resource"]["cap_cpu"],
                 "req_memory": node["resource"]["req_memory"] / 1000,

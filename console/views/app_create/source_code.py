@@ -105,6 +105,7 @@ class SourceCodeCreateView(RegionTenantHeaderView):
         oauth_service_id = request.data.get("service_id")
         git_full_name = request.data.get("full_name")
         is_demo = request.data.get("is_demo", False)
+        arch = request.data.get("arch", "amd64")
         git_service = None
         open_webhook = False
         k8s_component_name = request.data.get("k8s_component_name", "")
@@ -184,7 +185,8 @@ class SourceCodeCreateView(RegionTenantHeaderView):
                 event_id,
                 oauth_service_id,
                 git_full_name,
-                k8s_component_name=k8s_component_name)
+                k8s_component_name=k8s_component_name,
+                arch=arch)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
             # 添加username,password信息

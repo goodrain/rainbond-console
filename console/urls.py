@@ -106,7 +106,7 @@ from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
-                                        GroupOperatorManagedView, AccessTokenView)
+                                        GroupOperatorManagedView, AccessTokenView, TeamArchView)
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
@@ -242,6 +242,7 @@ urlpatterns = [
 
     # 总览 团队信息
     url(r'^teams/(?P<team_name>[\w\-]+)/overview$', TeamOverView.as_view(), perms.TeamOverView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/arch$', TeamArchView.as_view(), perms.TeamOverView),
     # 总览 获取应用状态
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/services/status$', AllServiceInfo.as_view(), perms.AllServiceInfo),
     # 上传yaml文件

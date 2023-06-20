@@ -83,6 +83,12 @@ class MarketAppService(object):
 
         app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
                                                          version)
+        res, body = region_api.get_cluster_nodes_arch(region.region_name)
+        chaos_arch = list(set(body.get("list")))
+        template_arch = app_template.get("arch", "amd64")
+        template_arch = template_arch if template_arch else "amd64"
+        if template_arch not in chaos_arch and len(chaos_arch) < 2:
+            raise AbortRequest("app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
         if not app_template.get("goavernance_mode"):
             app_template["governance_mode"] = GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name
         if app.governance_mode == GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name:
@@ -126,6 +132,7 @@ class MarketAppService(object):
             raise AbortRequest("app version not found", "应用市场应用版本不存在", status_code=404, error_code=404)
         app_template = json.loads(app_version.app_template)
         app_template["update_time"] = app_version.update_time
+        app_template["arch"] = app_version.arch
         return app_template, market_app
 
     def install_service(self,
@@ -951,7 +958,8 @@ class MarketAppService(object):
                           page=1,
                           page_size=10,
                           need_install="false",
-                          is_plugin="false"):
+                          is_plugin="false",
+                          arch=""):
         if scope == "team":
             # prepare teams
             is_admin = user_services.is_user_admin_in_current_enterprise(user, eid)
@@ -962,18 +970,19 @@ class MarketAppService(object):
             if teams:
                 teams = [team.tenant_name for team in teams]
             apps = rainbond_app_repo.get_rainbond_app_in_teams_by_querey(eid, scope, teams, app_name, tag_names, page,
-                                                                         page_size, need_install, is_plugin)
+                                                                         page_size, need_install, is_plugin, arch)
             count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, teams, app_name, tag_names, need_install,
                                                                    is_plugin)
         else:
             # default scope is enterprise
             apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, scope, app_name, tag_names, page, page_size,
-                                                                             need_install, is_plugin)
+                                                                             need_install, is_plugin, arch)
             count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, None, app_name, tag_names, need_install,
                                                                    is_plugin)
         if not apps:
             return [], count[0].total
-
+        for app in apps:
+            app.arch = str.split(app.arch, ",")
         self._patch_rainbond_app_tag(eid, apps)
         self._patch_rainbond_app_versions(eid, apps, is_complete)
         return apps, count[0].total
@@ -1040,6 +1049,7 @@ class MarketAppService(object):
                 "version": version.version,
                 "version_alias": version.version_alias,
                 "dev_status": version.dev_status,
+                "arch": version.arch if version.arch else "amd64"
             }
             # If the versions are the same, take the last version information
             app_with_versions[version.app_id][version_info["version"]] = version_info

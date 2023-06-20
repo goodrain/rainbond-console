@@ -81,10 +81,10 @@ class AppStore(object):
         return data
 
     @apiException
-    def get_apps(self, store, query, query_all, page=1, page_size=10):
+    def get_apps(self, store, query, query_all, page=1, page_size=10, arch=""):
         store_client = get_market_client(store.access_key, store.url)
         data = store_client.get_user_app_list(
-            page=page, page_size=page_size, market_domain=store.domain, query=query, query_all=query_all)
+            page=page, page_size=page_size, market_domain=store.domain, query=query, query_all=query_all, arch=arch)
         return data
 
     @apiException

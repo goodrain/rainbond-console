@@ -2323,6 +2323,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_name, timeout=20)
         return res, body
 
+    def get_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, body
+
     def create_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
@@ -2411,6 +2418,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url = url + "/v2/cluster/nodes"
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def get_cluster_nodes_arch(self, region):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url = url + "/v2/cluster/nodes/arch"
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 

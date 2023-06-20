@@ -126,7 +126,8 @@ class AppService(object):
                                event_id=None,
                                oauth_service_id=None,
                                git_full_name=None,
-                               k8s_component_name=""):
+                               k8s_component_name="",
+                               arch="amd64"):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
@@ -141,6 +142,7 @@ class AppService(object):
         new_service.creater = user.pk
         new_service.server_type = server_type
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
+        new_service.arch = arch
         new_service.save()
         code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url, service_code_id,
                                            service_code_version, check_uuid, event_id, oauth_service_id, git_full_name)
@@ -302,7 +304,16 @@ class AppService(object):
         service_alias = self.create_service_alias(make_uuid(service_id))
         return service_alias
 
-    def create_docker_run_app(self, region, tenant, user, service_cname, docker_cmd, image_type, k8s_component_name, image=""):
+    def create_docker_run_app(self,
+                              region,
+                              tenant,
+                              user,
+                              service_cname,
+                              docker_cmd,
+                              image_type,
+                              k8s_component_name,
+                              image="",
+                              arch="amd64"):
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
             return 412, msg, None
@@ -319,6 +330,7 @@ class AppService(object):
         new_service.docker_cmd = docker_cmd
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         new_service.image = image
+        new_service.arch = arch
         new_service.save()
         # # 创建镜像和组件的关系（兼容老的流程）
         # if not image_service_relation_repo.get_image_service_relation(tenant.tenant_id, service_id):
@@ -1079,8 +1091,12 @@ class AppMarketService(object):
         if data:
             for dt in data:
                 versions = []
+                app_arch = dict()
                 for version in dt.versions:
+                    arch = version.arch if version.arch else "amd64"
+                    app_arch[arch] = 1
                     versions.append({
+                        "arch": arch,
                         "is_plugin": version.is_plugin,
                         "app_key_id": version.app_key_id,
                         "app_version": version.app_version,
@@ -1091,7 +1107,6 @@ class AppMarketService(object):
                         "update_time": version.update_time,
                         "update_version": version.update_version,
                     })
-
                 market_info = {
                     "app_id": dt.app_key_id,
                     "app_name": dt.name,
@@ -1101,6 +1116,7 @@ class AppMarketService(object):
                     "enterprise_id": market.enterprise_id,
                     "source": "market",
                     "versions": versions,
+                    "arch": app_arch.keys(),
                     "tags": [t for t in dt.tags],
                     "logo": dt.logo,
                     "market_id": dt.market_id,
@@ -1195,8 +1211,8 @@ class AppMarketService(object):
             }
         return Dict(version)
 
-    def get_market_app_list(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
-        results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
+    def get_market_app_list(self, market, page=1, page_size=10, query=None, query_all=False, extend=False, arch=""):
+        results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all, arch=arch)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
@@ -1260,7 +1276,9 @@ class AppMarketService(object):
                 template_version=app_template.rainbond_version,
                 app_version_info=app_template.description,
                 update_time=app_template.update_time,
-                is_official=1)
+                is_official=1,
+                arch=app_template.arch,
+            )
             rainbond_app_version.template_type = app_template.template_type
         return rainbond_app, rainbond_app_version
 

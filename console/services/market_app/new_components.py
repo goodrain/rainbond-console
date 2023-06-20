@@ -180,6 +180,8 @@ class NewComponents(object):
         component.version = template.get("version")
         component.create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         component.deploy_version = template.get("deploy_version")
+        arch = template.get("arch", "amd64")
+        component.arch = arch if arch else "amd64"
         component.service_type = "application"
         component.service_source = AppConstants.MARKET
         component.create_status = "complete"

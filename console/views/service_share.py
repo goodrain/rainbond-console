@@ -259,9 +259,13 @@ class ServiceShareDeleteView(RegionTenantHeaderView):
             if share_record.is_success or share_record.step >= 3:
                 result = general_message(400, "share record is complete", "分享流程已经完成，无法放弃")
                 return Response(result, status=400)
-            app = share_service.get_app_by_key(key=share_record.group_share_id)
-            if app and not app.is_complete:
-                share_service.delete_app(app)
+            share_service.get_app_version_by_app_id(app_id=share_record.app_id, is_complete=False).delete()
+            app = share_service.get_app_by_key(key=share_record.app_id)
+            if app:
+                app_versions = share_service.get_app_version_by_app_id(app_id=share_record.app_id, is_complete=True)
+                app_versions = [version.arch for version in app_versions]
+                app_versions = list(set(app_versions))
+                app.arch = ",".join(app_versions)
             share_service.delete_record(share_record)
             result = general_message(200, "delete success", "放弃成功")
             return Response(result, status=200)
@@ -667,13 +671,14 @@ class AppMarketAppModelLView(JWTAuthApiView):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         is_plugin = request.GET.get("is_plugin", False)
+        arch = request.GET.get("arch", "")
         market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
         if is_plugin == "true":
             data, page, page_size, total = app_market_service.get_market_plugins_apps(
                 market_model, page, page_size, query=query, query_all=query_all, extend=True)
         else:
             data, page, page_size, total = app_market_service.get_market_app_list(
-                market_model, page, page_size, query=query, query_all=query_all, extend=True)
+                market_model, page, page_size, query=query, query_all=query_all, extend=True, arch=arch)
         result = general_message(200, msg="success", msg_show=None, list=data, page=page, page_size=page_size, total=total)
         return Response(result, status=200)
 

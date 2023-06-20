@@ -131,8 +131,8 @@ class ShareRepo(object):
     def get_app_by_app_id(self, app_id):
         return RainbondCenterApp.objects.filter(app_id=app_id).first()
 
-    def get_app_versions_by_app_id(self, app_id):
-        return RainbondCenterAppVersion.objects.filter(app_id=app_id)
+    def get_app_versions_by_app_id(self, app_id, is_complete):
+        return RainbondCenterAppVersion.objects.filter(app_id=app_id, is_complete=is_complete)
 
     def get_last_app_versions_by_app_id(self, app_id):
         conn = BaseConnection()

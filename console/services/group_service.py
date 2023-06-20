@@ -288,6 +288,8 @@ class GroupService(object):
         res['k8s_app'] = app.k8s_app
         res['can_edit'] = True
         components = group_service_relation_repo.get_services_by_group(app_id)
+        services = service_repo.get_services_by_service_ids([component.service_id for component in components])
+        res['app_arch'] = {service.arch: "1" for service in services if service.arch}.keys()
         running_components = region_api.get_dynamic_services_pods(region_name, tenant.tenant_name,
                                                                   [component.service_id for component in components])
         if running_components.get("list") and len(running_components["list"]) > 0:

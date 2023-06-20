@@ -107,6 +107,7 @@ class RainbondCenterApp(BaseModel):
     install_number = models.IntegerField(default=0, help_text='安装次数')
     is_official = models.BooleanField(default=False, help_text='是否官方认证')
     details = models.TextField(null=True, blank=True, help_text="应用详情")
+    arch = models.CharField(max_length=32, default="amd64", help_text="架构")
 
 
 class RainbondCenterAppVersion(BaseModel):
@@ -141,6 +142,7 @@ class RainbondCenterAppVersion(BaseModel):
     # region_name is not null,This means that the version can only be installed on that cluster.
     region_name = models.CharField(max_length=64, null=True, default=None, help_text="数据中心名称")
     is_plugin = models.BooleanField(default=False, help_text='应用版本是否作为插件')
+    arch = models.CharField(max_length=32, default="amd64", help_text='应用架构')
 
 
 class AppHelmOverrides(BaseModel):

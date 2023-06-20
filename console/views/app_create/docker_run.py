@@ -62,6 +62,7 @@ class DockerRunCreateView(RegionTenantHeaderView):
         docker_password = request.data.get("password", None)
         docker_user_name = request.data.get("user_name", None)
         k8s_component_name = request.data.get("k8s_component_name", "")
+        arch = request.data.get("arch", "amd64")
         if is_demo:
             groups = ServiceGroup.objects.filter(
                 tenant_id=self.tenant.tenant_id, region_name=self.region_name, group_name="镜像构建示例")
@@ -98,8 +99,9 @@ class DockerRunCreateView(RegionTenantHeaderView):
             if not docker_cmd:
                 return Response(general_message(400, "docker_cmd cannot be null", "参数错误"), status=400)
 
-            code, msg_show, new_service = app_service.create_docker_run_app(
-                self.response_region, self.tenant, self.user, service_cname, docker_cmd, image_type, k8s_component_name)
+            code, msg_show, new_service = app_service.create_docker_run_app(self.response_region, self.tenant, self.user,
+                                                                            service_cname, docker_cmd, image_type,
+                                                                            k8s_component_name, "", arch)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
 

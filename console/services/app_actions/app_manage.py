@@ -206,6 +206,11 @@ class AppManageService(AppManageBase):
         return 200, "操作成功"
 
     def deploy(self, tenant, service, user, oauth_instance=None, service_copy_path=None):
+        res, body = region_api.get_cluster_nodes_arch(service.service_region)
+        chaos_arch = list(set(body.get("list")))
+        service.arch = service.arch if service.arch else "amd64"
+        if service.arch not in chaos_arch:
+            raise AbortRequest("app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
         status_info_map = app_service.get_service_status(tenant, service)
         if status_info_map.get("status", "Unknown") in [
                 "undeploy", "closed "
@@ -219,6 +224,7 @@ class AppManageService(AppManageBase):
         body["envs"] = env_var_repo.get_build_envs(tenant.tenant_id, service.service_id)
         kind = self.__get_service_kind(service)
         body["kind"] = kind
+        body["arch"] = service.arch
         body["operator"] = str(user.nick_name)
         body["configs"] = {}
         if service_copy_path != {}:
@@ -517,6 +523,12 @@ class AppManageService(AppManageBase):
                     group_service.sync_app_services(tenant, region_name, move_group_id)
                     self.move(service, move_group_id)
                 elif action == "deploy" and service.service_source != "third_party":
+                    res, body = region_api.get_cluster_nodes_arch(region_name)
+                    chaos_arch = list(set(body.get("list")))
+                    service.arch = service.arch if service.arch else "amd64"
+                    if service.arch not in chaos_arch:
+                        raise AbortRequest(
+                            "app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
                     self.deploy(tenant, service, user, oauth_instance=oauth_instance)
                 elif action == "upgrade" and service.service_source != "third_party":
                     self.upgrade(tenant, service, user, oauth_instance=oauth_instance)

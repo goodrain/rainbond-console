@@ -612,6 +612,13 @@ class RegionService(object):
                     region_resource["all_nodes"] = body["bean"]["all_node"]
                     region_resource["services_status"] = region_services_status
                     region_resource["node_ready"] = body["bean"]["node_ready"]
+                    res, body = region_api.get_cluster_nodes(region.region_name)
+                    nodes = body["list"]
+                    arch_map = dict()
+                    if nodes:
+                        for node in nodes:
+                            arch_map[node.get("architecture")] = 1
+                    region_resource["arch"] = arch_map.keys()
             except (region_api.CallApiError, ServiceHandleException) as e:
                 logger.exception(e)
                 region_resource["rbd_version"] = ""

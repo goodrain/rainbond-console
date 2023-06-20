@@ -61,6 +61,13 @@ class AllServiceInfo(RegionTenantHeaderView):
         return Response(result, status=code)
 
 
+class TeamArchView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        res, body = region_api.get_cluster_nodes_arch(self.region_name)
+        result = general_message(200, "success", "架构获取成功", list=list(set(body.get("list"))))
+        return Response(result, status=200)
+
+
 class TeamOverView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
         """

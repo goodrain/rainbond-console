@@ -37,9 +37,10 @@ class RainbondCenterAppRepository(object):
                                                 page=1,
                                                 page_size=10,
                                                 need_install="false",
-                                                is_plugin="false"):
+                                                is_plugin="false",
+                                                arch=""):
         sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, app_name, None, tag_names, page, page_size, need_install,
-                                                          is_plugin)
+                                                          is_plugin, arch)
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps
@@ -53,13 +54,16 @@ class RainbondCenterAppRepository(object):
                                                page=1,
                                                page_size=10,
                                                need_install="false",
-                                               is_plugin="false"):
+                                               is_plugin="false",
+                                               arch=""):
         extend_where = ""
         join_version = ""
         if tag_names:
             extend_where += " and tag.name in ({0})".format(",".join("'{0}'".format(tag_name) for tag_name in tag_names))
         if app_name:
             extend_where += " and app.app_name like '%{0}%'".format(app_name)
+        if arch:
+            extend_where += " and app.arch like '%{0}%'".format(arch)
         # When installing components from the component library, you need to display the versioned application template
         if need_install == "true":
             join_version += " left join rainbond_center_app_version apv on app.app_id = apv.app_id" \
@@ -106,18 +110,10 @@ class RainbondCenterAppRepository(object):
                                             page=1,
                                             page_size=10,
                                             need_install="false",
-                                            is_plugin="false"):
-        sql = self._prepare_get_rainbond_app_by_query_sql(
-            eid,
-            scope,
-            app_name,
-            teams,
-            tag_names,
-            page,
-            page_size,
-            need_install,
-            is_plugin,
-        )
+                                            is_plugin="false",
+                                            arch=""):
+        sql = self._prepare_get_rainbond_app_by_query_sql(eid, scope, app_name, teams, tag_names, page, page_size, need_install,
+                                                          is_plugin, arch)
         conn = BaseConnection()
         apps = conn.query(sql)
         return apps

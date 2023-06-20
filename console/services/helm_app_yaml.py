@@ -34,6 +34,9 @@ class HelmAppService(object):
 
     def generate_template(self, cvdata, app_model, version, tenant, chart, region_name, enterprise_id, user_id, overrides,
                           app_id):
+        res, body = region_api.get_cluster_nodes_arch(region_name)
+        chaos_arch = list(set(body.get("list")))
+        arch = chaos_arch[0] if chaos_arch else "amd64"
         app_template = {}
         app_template["template_version"] = "v2"
         app_template["group_key"] = app_model.app_id
@@ -42,6 +45,7 @@ class HelmAppService(object):
         app_template["group_dev_status"] = ""
         app_template["governance_mode"] = "KUBERNETES_NATIVE_SERVICE"
         app_template["k8s_resources"] = cvdata["kubernetes_resources"]
+        app_template["arch"] = arch
         apps = list()
         convert_resource = cvdata["convert_resource"] if cvdata["convert_resource"] else []
         for cv in convert_resource:
@@ -73,6 +77,7 @@ class HelmAppService(object):
             now = datetime.datetime.now()
             app["deploy_version"] = now.strftime("%Y%m%d%H%M%S")
             app["image"] = cv["basic_management"]["image"]
+            app["arch"] = arch
             app["share_image"] = cv["basic_management"]["image"]
             app["share_type"] = ["image"]
             service_alias = "gr" + service_id[-6:]
