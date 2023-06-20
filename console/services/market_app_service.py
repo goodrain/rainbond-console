@@ -970,20 +970,21 @@ class MarketAppService(object):
             if teams:
                 teams = [team.tenant_name for team in teams]
             apps = rainbond_app_repo.get_rainbond_app_in_teams_by_querey(eid, scope, teams, app_name, tag_names, page,
-                                                                         page_size, need_install, is_plugin)
+                                                                         page_size, need_install, is_plugin, arch)
             count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, teams, app_name, tag_names, need_install,
                                                                    is_plugin)
         else:
             # default scope is enterprise
             apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, scope, app_name, tag_names, page, page_size,
-                                                                             need_install, is_plugin)
+                                                                             need_install, is_plugin, arch)
             count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, None, app_name, tag_names, need_install,
                                                                    is_plugin)
         if not apps:
             return [], count[0].total
-
+        for app in apps:
+            app.arch = str.split(app.arch, ",")
         self._patch_rainbond_app_tag(eid, apps)
-        apps = self._patch_rainbond_app_versions(eid, apps, is_complete, arch)
+        self._patch_rainbond_app_versions(eid, apps, is_complete)
         return apps, count[0].total
 
     # patch rainbond app tag
@@ -1027,7 +1028,7 @@ class MarketAppService(object):
         return apps_min_memory
 
     # patch rainbond app versions
-    def _patch_rainbond_app_versions(self, eid, apps, is_complete, arch):
+    def _patch_rainbond_app_versions(self, eid, apps, is_complete):
         app_ids = [app.app_id for app in apps]
         versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(eid, app_ids, is_complete, rm_template_field=True)
         if not versions:
@@ -1052,9 +1053,6 @@ class MarketAppService(object):
             }
             # If the versions are the same, take the last version information
             app_with_versions[version.app_id][version_info["version"]] = version_info
-            arch_dict = app_with_versions[version.app_id].get("arch", {})
-            arch_dict[version.arch] = 1
-            app_with_versions[version.app_id]["arch"] = arch_dict
             if version_info["version"] in app_release_ver_nums[version.app_id]:
                 app_release_ver_nums[version.app_id].remove(version_info["version"])
             if version_info["version"] in app_not_release_ver_nums[version.app_id]:
@@ -1065,11 +1063,7 @@ class MarketAppService(object):
             app_not_release_ver_nums[version.app_id].append(version_info["version"])
 
         apps_min_memory = self._get_rainbond_app_min_memory(versions)
-        arch_app = list()
         for app in apps:
-            app.arch = app_with_versions[app.app_id]["arch"].keys()
-            if arch and arch not in app.arch:
-                continue
             app.dev_status = ""
             app.versions_info = []
             app.min_memory = apps_min_memory.get(app.app_id, 0)
@@ -1091,8 +1085,6 @@ class MarketAppService(object):
             for ver_num in release_ver_nums:
                 versions.append(app_with_versions[app.app_id][ver_num])
             app.versions_info = list(reversed(versions))
-            arch_app.append(app)
-        return arch_app
 
     def get_visiable_apps_v2(self, tenant, scope, app_name, dev_status, page, page_size):
         limit = ""

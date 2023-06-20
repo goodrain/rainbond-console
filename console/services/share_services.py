@@ -661,6 +661,9 @@ class ShareService(object):
         else:
             return 400, '应用包不存在', None
 
+    def get_app_version_by_app_id(self, app_id, is_complete):
+        return share_repo.get_app_versions_by_app_id(app_id, is_complete)
+
     def get_app_by_key(self, key):
         app = share_repo.get_app_by_key(key)
         if app:
@@ -908,6 +911,12 @@ class ShareService(object):
             if app_store.is_no_multiple_region_hub(enterprise_id=share_team.enterprise_id):
                 app_version.region_name = region_name
             app_version.save()
+            if not market_id:
+                arch = list(local_app_version.arch.split(","))
+                if app_version.arch not in arch:
+                    arch.append(app_version.arch)
+                local_app_version.arch = ",".join(arch)
+                local_app_version.save()
             share_record.step = 2
             share_record.scope = scope
             share_record.app_id = app_model_id
@@ -1126,7 +1135,8 @@ class ShareService(object):
         apps = share_repo.get_local_apps()
         if apps:
             for app in apps:
-                app_versions = list(set(share_repo.get_app_versions_by_app_id(app.app_id).values_list("version", flat=True)))
+                app_versions = list(
+                    set(share_repo.get_app_versions_by_app_id(app.app_id, True).values_list("version", flat=True)))
                 app_list.append({
                     "app_name": app.app_name,
                     "app_id": app.app_id,

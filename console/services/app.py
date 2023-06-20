@@ -1085,7 +1085,7 @@ class AppMarketService(object):
         app_market.save()
         return app_market
 
-    def app_models_serializers(self, market, data, extend=False, arch=""):
+    def app_models_serializers(self, market, data, extend=False):
         app_models = []
 
         if data:
@@ -1107,10 +1107,6 @@ class AppMarketService(object):
                         "update_time": version.update_time,
                         "update_version": version.update_version,
                     })
-                if not app_arch:
-                    app_arch["amd64"] = 1
-                if arch and arch not in app_arch.keys():
-                    continue
                 market_info = {
                     "app_id": dt.app_key_id,
                     "app_name": dt.name,
@@ -1216,8 +1212,8 @@ class AppMarketService(object):
         return Dict(version)
 
     def get_market_app_list(self, market, page=1, page_size=10, query=None, query_all=False, extend=False, arch=""):
-        results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
-        data = self.app_models_serializers(market, results.apps, extend=extend, arch=arch)
+        results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all, arch=arch)
+        data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
     def get_market_plugins_apps(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):

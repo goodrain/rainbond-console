@@ -259,9 +259,13 @@ class ServiceShareDeleteView(RegionTenantHeaderView):
             if share_record.is_success or share_record.step >= 3:
                 result = general_message(400, "share record is complete", "分享流程已经完成，无法放弃")
                 return Response(result, status=400)
-            app = share_service.get_app_by_key(key=share_record.group_share_id)
-            if app and not app.is_complete:
-                share_service.delete_app(app)
+            share_service.get_app_version_by_app_id(app_id=share_record.app_id, is_complete=False).delete()
+            app = share_service.get_app_by_key(key=share_record.app_id)
+            if app:
+                app_versions = share_service.get_app_version_by_app_id(app_id=share_record.app_id, is_complete=True)
+                app_versions = [version.arch for version in app_versions]
+                app_versions = list(set(app_versions))
+                app.arch = ",".join(app_versions)
             share_service.delete_record(share_record)
             result = general_message(200, "delete success", "放弃成功")
             return Response(result, status=200)

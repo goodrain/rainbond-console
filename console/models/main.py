@@ -107,6 +107,7 @@ class RainbondCenterApp(BaseModel):
     install_number = models.IntegerField(default=0, help_text='安装次数')
     is_official = models.BooleanField(default=False, help_text='是否官方认证')
     details = models.TextField(null=True, blank=True, help_text="应用详情")
+    arch = models.CharField(max_length=32, default="amd64", help_text="架构")
 
 
 class RainbondCenterAppVersion(BaseModel):
