@@ -85,11 +85,8 @@ class MarketAppService(object):
                                                          version)
         res, body = region_api.get_cluster_nodes_arch(region.region_name)
         chaos_arch = list(set(body.get("list")))
-        if market_app.source.split(":") and market_app.source.split(":")[0] == "helm":
-            template_arch = chaos_arch[0]
-        else:
-            template_arch = app_template.get("arch", "amd64")
-            template_arch = template_arch if template_arch else "amd64"
+        template_arch = app_template.get("arch", "amd64")
+        template_arch = template_arch if template_arch else "amd64"
         if template_arch not in chaos_arch and len(chaos_arch) < 2:
             raise AbortRequest("app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
         if not app_template.get("goavernance_mode"):
