@@ -62,13 +62,13 @@ function docker-install-and-run {
 }
 #输出IP提示
 function messageip {
-    Write-ColoredText "###############################################" green
-    Write-ColoredText "# 自动检测到您的系统上有以下 IP" green
-    Write-ColoredText "# 您可以通过输入其索引来选择一个" green
-    Write-ColoredText "# 例如:" green
-    Write-ColoredText "#   您可以输入1选择第一个IP" green
-    Write-ColoredText "#   或直接回车默认使用127.0.0.1作为所选IP地址" green
-    Write-ColoredText "###############################################" green
+    Write-ColoredText "######################################################################" green
+    Write-ColoredText "# The following IPs are automatically detected on your system" green
+    Write-ColoredText "# You can select one by entering its index" green
+    Write-ColoredText "# For example:" green
+    Write-ColoredText "#   You can enter 1 to select the first IP" green
+    Write-ColoredText "#   Or directly enter 127.0.0.1 as the selected IP address by default" green
+    Write-ColoredText "######################################################################" green
 }
 #选择IP地址
 function selected-ip { 
@@ -102,7 +102,7 @@ function check-message {
         Write-ColoredText "# Time: $clock" green
         Write-ColoredText "##############################################" green
         Write-Host
-        Write-ColoredText "开始安装rainbond请稍等" green
+        Write-ColoredText "To start installing Rainbond, please wait" green
     
 }
 #启动容器
@@ -121,7 +121,7 @@ function start-rainbond {
             Write-ColoredText "#############################################################" green
             Start-Sleep -Seconds 130
         } else {
-            Write-ColoredText "Docker 容器启动失败,请查看是否有重名" red
+            Write-ColoredText "Docker The container failed to start, check to see if there is a duplicate name" red
             # 可以处理容器启动失败的情况
         }
 }
@@ -129,7 +129,7 @@ function start-rainbond {
 function print-logs {
     $variable =docker ps -q
     docker logs $variable
-    Write-ColoredText "http://$($selectedIPAddress):7070 访问 Rainbond（Hold down CTRL+left mouse button and click on the left URL to jump）" green
+    Write-ColoredText "http://$($selectedIPAddress):7070 Access Rainbond（Hold down CTRL+left mouse button and click on the left URL to jump）" green
     Write-ColoredText "Press any key to exit..." blue
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
