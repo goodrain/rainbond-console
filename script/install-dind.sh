@@ -1,9 +1,8 @@
 #!/bin/bash
 
-# Basic environment variables 
+# Basic environment variables
 RAINBOND_VERSION=${VERSION:-'v5.11.0'}
 IMGHUB_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain"
-LANG=$(locale | grep -qi 'UTF-8' && echo 'true' || echo 'false')
 
 # Define colorful stdout
 RED='\033[0;31m'
@@ -11,7 +10,6 @@ GREEN='\033[32;1m'
 YELLOW='\033[33;1m'
 NC='\033[0m'
 TIME="+%Y-%m-%d %H:%M:%S"
-
 
 ########################################
 # Information collection
@@ -21,12 +19,9 @@ TIME="+%Y-%m-%d %H:%M:%S"
 
 function send_msg() {
     dest_url="https://log.rainbond.com"
+    #msg=${1:-"Terminating by userself."}
     if [ -z "$1" ]; then
-        if [ "$LANG" == "true" ]; then
-            msg="用户自行终止。"
-        else
-            msg="Terminating by userself."
-        fi
+        msg="Terminating by userself."
     else
         msg=$(echo $1 | tr '"' " " | tr "'" " ")
     fi
@@ -34,38 +29,26 @@ function send_msg() {
     curl --silent -H "Content-Type: application/json" -X POST "$dest_url/dindlog" \
         -d "{\"message\":\"$msg\", \"os_info\":\"${OS_INFO}\", \"eip\":\"$EIP\", \"uuid\":\"${UUID}\"}" 2>&1 >/dev/null || :
 
-    if [ "$msg" == "用户自行终止。" ] || [ "$msg" == "Terminating by userself." ]; then
+    if [ "$msg" == "Terminating by userself." ]; then
         exit 1
     fi
 }
 
 function send_info() {
     info=$1
-    if [ "$LANG" == "true" ]; then
-        echo -e "${GREEN}$(date "$TIME") 信息: $info${NC}"
-    else
-        echo -e "${GREEN}$(date "$TIME") INFO: $info${NC}"
-    fi
+    echo -e "${GREEN}$(date "$TIME") INFO: $info${NC}"
     send_msg "$info"
 }
 
 function send_warn() {
     warn=$1
-    if [ "$LANG" == "true" ]; then
-        echo -e "${YELLOW}$(date "$TIME") 警告: $warn${NC}"
-    else
-        echo -e "${YELLOW}$(date "$TIME") WARN: $warn${NC}"
-    fi
+    echo -e "${YELLOW}$(date "$TIME") WARN: $warn${NC}"
     send_msg "$warn"
 }
 
 function send_error() {
     error=$1
-    if [ "$LANG" == "true" ]; then
-        echo -e "${RED}$(date "$TIME") 错误: $error${NC}"
-    else
-        echo -e "${RED}$(date "$TIME") ERROR: $error${NC}"
-    fi
+    echo -e "${RED}$(date "$TIME") ERROR: $error${NC}"
     send_msg "$error"
 }
 
@@ -90,22 +73,23 @@ if [ "${OS_TYPE}" == "Linux" ]; then
 elif [ "${OS_TYPE}" == "Darwin" ]; then
     MD5_CMD="md5"
 else
-    if [ "$LANG" == "true" ]; then
-        send_error "Rainbond 不支持 ${OS_TYPE} 操作系统"
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        send_error "${OS_TYPE} 操作系统暂不支持"
+        exit 1
     else
         send_error "Rainbond do not support ${OS_TYPE} OS"
+        exit 1
     fi
-    exit 1
 fi
 
 OS_INFO=$(uname -a)
 UUID=$(echo $OS_INFO | ${MD5_CMD} | cut -b 1-32)
 
 ################ Start #################
-if [ "$LANG" == "true" ]; then
-    send_info "欢迎！让我们开始 Rainbond 发行版的安装吧！"
+if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    send_info "欢迎您安装 Rainbond, 如果您安装遇到问题, 请反馈到 https://www.rainbond.com/community/support"
 else
-    send_info "Welcome! let\`s start Rainbond dind allinone distribution..."
+    send_info "Welcome to install Rainbond, If you install problem, please feedback to https://www.rainbond.com/community/support"
 fi
 
 ########################################
@@ -117,56 +101,61 @@ fi
 
 if ! (docker info &>/dev/null); then
     if (which docker &>/dev/null); then
-        if [ "$LANG" == "true" ]; then
-            send_error "Ops! Docker daemon is not running. Start docker first please.\nTry to exec 'systemctl start docker' in Linux or start Docker Desktop APP in MacOS.\nAnd re-exec this script."
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "未检测到 Docker 守护进程, 请先启动 Docker.\n\t- Linux 系统请执行 'systemctl start docker' 启动 Docker.\n\t- MacOS 系统请先启动 Docker Desktop APP.\n\t- 然后重新执行本脚本."
+            exit 1
         else
-            send_error "错误：Docker 守护进程未运行。请先启动 Docker。\n在 Linux 系统下执行 'systemctl start docker' 命令，或在 MacOS 系统下启动 Docker Desktop APP。\n然后再次执行本脚本。"
+            send_error "Ops! Docker daemon is not running. Start docker first please.\n\t- For Linux, exec 'systemctl start docker' start docker.\n\t- For MacOS, start the Docker Desktop APP.\n\t- And re-exec this script."
+            exit 1
         fi
-        exit 1
     elif [ "${OS_TYPE}" = "Linux" ]; then
-        if [ "$LANG" == "true" ]; then
-            send_warn "Ops! Docker has not been installed.\nDocker is going to be automatically installed...\n"
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_warn "未检测到 Docker 环境, 即将自动安装 Docker...\n"
         else
-            send_warn "警告：未安装 Docker。\n正在自动安装 Docker...\n"
+            send_warn "Ops! Docker has not been installed.\nDocker is going to be automatically installed...\n"
         fi
         sleep 3
         curl -sfL https://get.rainbond.com/install_docker | bash
         if [ "$?" != "0" ]; then
-            if [ "$LANG" == "true" ]; then
-                send_error "Ops! Automatic docker installation failed."
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                send_error "自动安装 Docker 失败！请自行手动安装 Docker 后重新执行本脚本."
+                exit 1
             else
-                send_error "错误：自动安装 Docker 失败。"
+                send_error "Ops! Automatic docker installation failed."
+                exit 1
             fi
-            exit 1
         fi
     elif [ "${OS_TYPE}" = "Darwin" ]; then
-        if [ "$LANG" == "true" ]; then
-            send_warn "Ops! Docker has not been installed.\nPlease visit the following website to get the latest Docker Desktop APP.\n\thttps://www.docker.com/products/docker-desktop/"
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_warn "未检测到 Docker 环境, 请先安装 Docker Desktop APP, 然后重新执行本脚本."
+            exit 1
         else
-            send_warn "警告：未安装 Docker。\n请访问以下网站获取最新的 Docker Desktop APP。\n\thttps://www.docker.com/products/docker-desktop/"
+            send_warn "Ops! Docker has not been installed.\nPlease visit the following website to get the latest Docker Desktop APP.\n\thttps://www.docker.com/products/docker-desktop/"
+            exit 1
         fi
-        exit 1
     fi
 else
     if docker ps -a | grep rainbond-allinone 2>&1 >/dev/null; then
-        if [ "$LANG" == "true" ]; then
-            send_error "Ops! rainbond-allinone container already exists.\n\t- Ensure if rainbond-allinone is running.\n\t- Try to exec 'docker start rainbond-allinone' to start it.\n\t- Or you can remove it by 'docker rm -f rainbond-allinone'"
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "rainbond-allinone 容器已存在.\n\t- 确保 rainbond-allinone 是否在运行.\n\t- 尝试执行 'docker start rainbond-allinone' 命令启动.\n\t- 或者你可以选择删除该容器 'docker rm -f rainbond-allinone'"
+            exit 1
         else
-            send_error "错误：rainbond-allinone 容器已经存在。\n\t- 请确保 rainbond-allinone 正在运行。\n\t- 尝试执行 'docker start rainbond-allinone' 命令启动它。\n\t- 或者您可以通过 'docker rm -f rainbond-allinone' 命令删除它。"
+            send_error "Ops! rainbond-allinone container already exists.\n\t- Ensure if rainbond-allinone is running.\n\t- Try to exec 'docker start rainbond-allinone' to start it.\n\t- Or you can remove it by 'docker rm -f rainbond-allinone'"
+            exit 1
         fi
-        exit 1
     fi
 fi
 
-ports=(80 443 6060 7070 8443)
+ports=(80 443 6060 7070)
 for port in ${ports[@]}; do
     if (curl -s 127.0.0.1:$port >/dev/null); then
-        if [ "$LANG" == "true" ]; then
-            send_error "Ops! Port $port has been used."
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "$port 端口已被占用."
+            exit 1
         else
-            send_error "错误：端口 $port 已经被占用。"
+            send_error "Ops! Port $port has been used."
+            exit 1
         fi
-        exit 1
     fi
 done
 
@@ -182,18 +171,19 @@ elif [ $(arch) = "aarch64" ] || [ $(arch) = "arm64" ]; then
     ARCH_TYPE=arm64
 elif [ $(arch) = "i386" ]; then
     ARCH_TYPE=amd64
-    if [ "$LANG" == "true" ]; then
-        send_warn "检测到 i386，我们将把它视为 x86_64 (amd64) 处理。如果你正在使用 M1 芯片的 MacOS，请确保终端已禁用 Rosetta。\n\t 请参考: https://github.com/goodrain/rainbond/issues/1439"
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        send_warn "检测到 i386, 我们把它当做 x86_64(amd64). 如果您使用的是 M1 芯片的 MacOS, 确保您禁用了 Rosetta. \n\t 请参阅: https://github.com/goodrain/rainbond/issues/1439 "
     else
-        send_warn "i386 has been detected, we'll treat it like x86_64 (amd64). If you are using the M1 chip MacOS, make sure your terminal has Rosetta disabled.\n\t Have a look: https://github.com/goodrain/rainbond/issues/1439"
+        send_warn "i386 has been detect, we'll treat it like x86_64(amd64). If you are using the M1 chip MacOS,make sure your terminal has Rosetta disabled.\n\t Have a look : https://github.com/goodrain/rainbond/issues/1439 "
     fi
 else
-    if [ "$LANG" == "true" ]; then
-        send_error "Rainbond 不支持 $(arch) 架构"
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        send_error "Rainbond 目前还不支持 $(arch) 架构"
+        exit 1
     else
-        send_error "Rainbond does not support $(arch) architecture"
+        send_error "Rainbond do not support $(arch) architecture"
+        exit 1
     fi
-    exit 1
 fi
 
 ########################################
@@ -223,11 +213,7 @@ function verify_eip() {
     local result=$2
     local max=$1
     if [ -z $result ]; then
-        if [ "$LANG" == "true" ]; then
-            echo -e "${YELLOW}不要输入空值${NC}"
-        else
-            echo -e "${YELLOW}Do not enter null values${NC}"
-        fi
+        echo -e "${YELLOW}Do not enter null values${NC}"
         return 1
     # Regular matching IPv4
     elif [[ $result =~ ^([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
@@ -239,11 +225,6 @@ function verify_eip() {
             export EIP=${ip_list[$result - 1]}
             return 0
         else
-            if [ "$LANG" == "true" ]; then
-                echo -e "${YELLOW}错误的IP索引${NC}"
-            else
-                echo -e "${YELLOW}Wrong index of IP${NC}"
-            fi
             return 1
         fi
     else
@@ -256,81 +237,80 @@ if [ -n "$IPS" ]; then
     # Convert to indexed array
     declare -a ip_list=$(echo \($IPS\))
 
-    # Print colored output based on system locale
-    if [ "$LANG" == "true" ]; then
+    # Gave some tips
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
         echo -e ${GREEN}
         cat <<EOF
 ###############################################
-# 自动检测到以下IP地址
-# 您可以通过输入索引来选择其中一个IP地址
-# 如果您有一个公网IP，请直接输入
-# 例如：
-#   输入"1"以选择第一个IP
-#   或输入"11.22.33.44"以选择特定的IP
+# 脚本将自动检测到系统中存在的 IP 地址
+# 您可以通过输入序号来选择一个 IP 地址
+# 如果您有公网 IP 地址, 直接输入即可
 ###############################################
-
-自动检测到以下IP地址：
+ 
+检测到以下IP:
 EOF
+        echo -e ${NC}
     else
         echo -e ${GREEN}
         cat <<EOF
 ###############################################
-# The following IP are automatically detected
+# The script automatically detects IP addresses in the system
 # You can choose one by enter its index
 # If you have an Public IP, Just type it in
-# For example: 
-#   you can enter "1" to choose the first IP
-#   or enter "11.22.33.44" for specific one
 ###############################################
-
-The following IP addresses have been detected:
+ 
+The following IP has been detected:
 EOF
+        echo -e ${NC}
     fi
-    echo -e ${NC}
-
     for ((i = 1; i <= $IF_NUM; i++)); do
         echo -e "\t${GREEN}$i${NC} : ${ip_list[$i - 1]}"
     done
-		
-		for i in 1 2 3; do
-    		if [ "$LANG" == "true" ]; then
-        		echo -e "\n${GREEN}例如：输入'1'选择第一个IP，或输入'11.22.33.44'(IPv4地址)选择特定的IP ${NC}"
-        		echo -n -e "输入您的选择或指定的IP地址："
-   			else
-        		echo -e "\n${GREEN}For example: enter '1' to choose the first IP, or input '11.22.33.44'(IPv4 address) for specific one ${NC}"
-       		  echo -n -e "Enter your choose or a specific IP address:"
-    		fi
-    
-    read res
-    verify_eip $IF_NUM $res && break
 
-    		if [ "$LANG" == "true" ]; then
-       		 echo -e "${RED}输入有误，请重试${NC}"
-   		  else
-       		 echo -e "${RED}Incorrect input, please try again${NC}"
-   		  fi
-    
-    		if [ "$i" = "3" ]; then
-        		if [ "$LANG" == "true" ]; then
-           		  send_error "输入错误超过3次，正在终止程序"
-       		  else
-            		send_error "The input error exceeds 3 times, aborting"
-        		fi
-       		  exit 1
-    		fi
-		done
+    for i in 1 2 3; do
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "\n${GREEN}例如: 输入 '1 or 2' 选择 IP, 或指定IP '11.22.33.44'(IPv4 address), 直接回车则使用默认 IP 地址${NC}"
+            verify_eip $IF_NUM 2
+            echo -n -e "输入您的选择或指定 IP 地址(默认IP是: $EIP):"
+        else
+            echo -e "\n${GREEN}For example: enter '1 or 2' to choose the IP, or input '11.22.33.44'(IPv4 address) for specific one, press enter to use the default IP address${NC}"
+            verify_eip $IF_NUM 2
+            echo -n -e "Enter your choose or a specific IP address( Default IP is $EIP):"
+        fi
+        read res
+        if [ -z $res ]; then
+            verify_eip $IF_NUM 2 && break
+        else
+            verify_eip $IF_NUM $res && break
+        fi
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${RED}输入错误, 请重新输入${NC}"
+        else
+            echo -e "${RED}Incorrect input, please try again${NC}"
+        fi
+        if [ "$i" = "3" ]; then
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                send_error "输入错误超过3次, 中止安装"
+                exit 1
+            else
+                send_error "The input error exceeds 3 times, aborting"
+                exit 1
+            fi
+        fi
+    done
 else
-    # Print colored output based on system locale
-    if [ "$LANG" == "true" ]; then
+    # Gave some tips
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
         echo -e ${YELLOW}
         cat <<EOF
 ###############################################
-# 未能自动检测到IP地址
-# 您需要指定自己的IP地址
-# 例如：
-#   输入"11.22.33.44"选择特定的IP地址
+# 自定检测 IP 失败
+# 您必须指定一个 IP
+# 例如: 
+#   您可以输入 "11.22.33.44" 来指定一个 IP
 ###############################################
 EOF
+        echo -e ${NC}
     else
         echo -e ${YELLOW}
         cat <<EOF
@@ -341,33 +321,30 @@ EOF
 #   you can enter "11.22.33.44" for specific one
 ###############################################
 EOF
+        echo -e ${NC}
     fi
-    echo -e ${NC}
-
     for i in 1 2 3; do
-        if [ "$LANG" == "true" ]; then
-        		echo -n -e "输入您的选择或指定的IP地址："
-    		else
-        		echo -n -e "Enter your choose or a specific IP address:"
-    		fi
-
-    read RES
-    verify_eip $IF_NUM $RES && break
-
-    		if [ "$LANG" == "true" ]; then
-        		echo -e "${RED}输入有误，请重试${NC}"
-    		else
-        		echo -e "${RED}Incorrect input, please try again${NC}"
-    		fi
-    		
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -n -e "请输入您的 IP 地址:"
+        else
+            echo -n -e "Enter your IP address:"
+        fi
+        read RES
+        verify_eip $IF_NUM $RES && break
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${RED}输入错误, 请重新输入${NC}"
+        else
+            echo -e "${RED}Incorrect input, please try again${NC}"
+        fi
         if [ "$i" = "3" ]; then
-        		if [ "$LANG" == "true" ]; then
-           		  send_error "输入错误超过3次，正在终止程序"
-       		  else
-            		send_error "The input error exceeds 3 times, aborting"
-        		fi
-       		  exit 1
-    		fi
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                send_error "输入错误超过3次, 中止安装"
+                exit 1
+            else
+                send_error "The input error exceeds 3 times, aborting"
+                exit 1
+            fi
+        fi
     done
 fi
 
@@ -376,22 +353,22 @@ fi
 # Automatically generate install cmd with envs
 ########################################
 
-if [ "$LANG" == "true" ]; then
+# Gave some info
+if [ "$LANG" == "zh_CN.UTF-8" ]; then
     echo -e ${GREEN}
     cat <<EOF
 ###############################################
-# 将安装以下配置的 Rainbond 发行版：
-# Rainbond 版本：$RAINBOND_VERSION
-# 架构：$ARCH_TYPE
-# 操作系统：$OS_TYPE
-# 网站：http://$EIP:7070
-# Rainbond 文档：https://www.rainbond.com/docs
-# 如遇到任何问题，可以反馈给我们：
-#     https://github.com/goodrain/rainbond
+# Rainbond 版本: $RAINBOND_VERSION
+# 架构: $ARCH_TYPE
+# 操作系统: $OS_TYPE
+# Web 控制台访问地址: http://$EIP:7070
+# Rainbond 文档: https://www.rainbond.com/docs
+# 如过您安装遇到问题，请反馈至:
+#     https://www.rainbond.com/community/support
 ###############################################
+
 EOF
     echo -e "${NC}"
-    echo -e "${GREEN}正在生成安装命令：${NC}"
 else
     echo -e ${GREEN}
     cat <<EOF
@@ -402,14 +379,21 @@ else
 # OS: $OS_TYPE
 # Web Site: http://$EIP:7070
 # Rainbond Docs: https://www.rainbond.com/docs
-# You can submit an issue if you encounter any problems:
-#     https://github.com/goodrain/rainbond
+# If you install problem, please feedback to: 
+#     https://www.rainbond.com/community/support
 ###############################################
+
 EOF
     echo -e "${NC}"
-    echo -e "${GREEN}Generating the installation command:${NC}"
 fi
-sleep 3
+
+if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    echo -e "${GREEN}生成安装命令:${NC}"
+    sleep 3
+else
+    echo -e "${GREEN}Generating the installation command:${NC}"
+    sleep 3
+fi
 
 # Generate the installation command based on the detect results
 if [ "$OS_TYPE" = "Linux" ]; then
@@ -431,36 +415,35 @@ elif [ "$OS_TYPE" = "Darwin" ]; then
 fi
 
 # Generate cmd
-docker_run_cmd="docker run --privileged -d -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 8443:8443 -p 10000-10010:10000-10010 --name=rainbond-allinone --restart=on-failure \
+docker_run_cmd="docker run --privileged -d -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 10000-10010:10000-10010 --name=rainbond-allinone --restart=on-failure \
 ${VOLUME_OPTS} -e EIP=$EIP -e UUID=${UUID} ${RBD_IMAGE}"
 send_info "$docker_run_cmd"
 
 # Pull image
-if [ "$LANG" == "true" ]; then
-    send_info "Pulling image ${RBD_IMAGE}..."
+if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    send_info "获取镜像中 ${RBD_IMAGE}..."
 else
-    send_info "正在拉取镜像 ${RBD_IMAGE}..."
+    send_info "Pulling image ${RBD_IMAGE}..."
 fi
-
 if docker pull ${RBD_IMAGE}; then
-    rbd_image_id=$(docker images | grep dind-allinone | grep ${RAINBOND_VERSION} | awk '{print $3}')    
-    if [ "$LANG" == "true" ]; then
-        send_info "Use dind image with ID:${rbd_image_id}"
+    rbd_image_id=$(docker images | grep dind-allinone | grep ${RAINBOND_VERSION} | awk '{print $3}')
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        send_info "Rainbond 容器 ID 为: ${rbd_image_id}"
     else
-        send_info "使用的发行版镜像 ID 为:${rbd_image_id}"
+        send_info "Rainbond container ID is: ${rbd_image_id}"
     fi
 else
-    if [ "$LANG" == "true" ]; then
-        send_error "Pull image failed."
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        send_error "获取镜像失败."
     else
-        send_error "拉取镜像失败."
+        send_error "Pull image failed."
     fi
 fi
 sleep 3
 
 # Run container
-if [ "$LANG" == "true" ]; then
-    send_info "Rainbond 发行版正在安装中...\n"
+if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    send_info "Rainbond dind allinone 正在安装中...\n"
 else
     send_info "Rainbond dind allinone distribution is installing...\n"
 fi
@@ -469,24 +452,22 @@ send_info "$docker_run_meg"
 sleep 3
 
 # Verify startup
-if [ "$LANG" == "true" ]; then
-    container_id=$(docker ps -a | grep rainbond-allinone | awk '{print $1}')
-    if docker ps | grep rainbond-allinone 2>&1 >/dev/null; then
-        send_info "Rainbond 发行版容器启动成功，容器ID为 $container_id。\n请注意安装日志。\n"
+container_id=$(docker ps -a | grep rainbond-allinone | awk '{print $1}')
+if docker ps | grep rainbond-allinone 2>&1 >/dev/null; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        send_info "Rainbond dind allinone 启动成功，容器 ID 为: $container_id. 请观察 rainbond-allinone 容器启动日志.\n"
     else
-        send_warn " 警告：Rainbond 发行版容器启动失败。\n请注意安装日志。\n"
-        send_msg "$(docker logs rainbond-allinone)" # 消息可能太长
+        send_info "Rainbond dind allinone container startup succeeded with $container_id. Please observe rainbond-allinone container startup logs.\n"
     fi
 else
-    container_id=$(docker ps -a | grep rainbond-allinone | awk '{print $1}')
-    if docker ps | grep rainbond-allinone 2>&1 >/dev/null; then
-        send_info "Rainbond dind allinone container startup succeeded with $container_id.\nPay attention to the installation log.\n"
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        send_warn "Rainbond dind allinone 容器启动失败. 请查看 rainbond-allinone 容器启动日志.\n"
     else
-        send_warn "Ops! Rainbond dind allinone container startup failed.\nPay attention to the installation log.\n"
-        send_msg "$(docker logs rainbond-allinone)" # Msg maybe too lang
+        send_warn "Ops! Rainbond dind allinone container startup failed. please observe rainbond-allinone container startup logs.\n"
     fi
+    send_msg "$(docker logs rainbond-allinone)" # Msg maybe too lang
 fi
-sleep 3
 
+sleep 3
 # Follow logs stdout
 docker logs -f rainbond-allinone
