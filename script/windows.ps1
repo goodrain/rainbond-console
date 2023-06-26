@@ -1,5 +1,4 @@
 $OutputEncoding = [System.Text.Encoding]::GetEncoding("UTF-8")
-
 #基本环境变量
 $RAINBOND_VERSION="v5.14.2"
 $IMGHUB_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain"
@@ -46,23 +45,33 @@ function docker-install-and-run {
     $dockerDesktopInstalled = Get-Command -ErrorAction SilentlyContinue -Name "docker" | Select-Object -First 1
 
     if ($dockerDesktopInstalled) {
-        Write-Host "Docker Desktop Installed."  > $null 2>&1
+        Write-ColoredText "Docker Desktop Installed." green
         $dockerDesktopRunning = Get-Process -Name "Docker Desktop" 2>$null
     
         if ($dockerDesktopRunning) {
-            Write-Host "Docker Desktop Running." > $null 2>&1
+            Write-ColoredText "Docker Desktop Running." green
         }
         else {
             Write-ColoredText "Docker Desktop Not running, start it first" red
         }
     }
     else {
-        Write-Host "Docker Desktop Not installed."
+        Write-ColoredText "Docker Desktop Not installed." red
         Exit
     }
 }
+#输出IP提示
+function messageip {
+    Write-ColoredText "###############################################" green
+    Write-ColoredText "# 自动检测到您的系统上有以下 IP" green
+    Write-ColoredText "# 您可以通过输入其索引来选择一个" green
+    Write-ColoredText "# 例如:" green
+    Write-ColoredText "#   您可以输入1选择第一个IP" green
+    Write-ColoredText "#   或直接回车默认使用127.0.0.1作为所选IP地址" green
+    Write-ColoredText "###############################################" green
+}
 #选择IP地址
-function selected-ip {
+function selected-ip { 
     $ipAddresses = (Get-NetIPAddress | Where-Object { $_.InterfaceAlias -ne 'Loopback Pseudo-Interface 1' -and $_.AddressFamily -eq 'IPv4' }).IPAddress
     Write-ColoredText "Available local IP addresses：" green
     for ($i = 0; $i -lt $ipAddresses.Count; $i++) {
@@ -87,7 +96,7 @@ function check-message {
         Write-ColoredText "# System architecture: $osarch" green
         Write-ColoredText "# OS: $ostype" green
         Write-ColoredText "# URl: http://$($selectedIPAddress):7070" green
-        Write-ColoredText "# Rainbond document: hTimettps://www.rainbond.com/docs" green
+        Write-ColoredText "# Rainbond document: https://www.rainbond.com/docs" green
         Write-ColoredText "# If you encounter any problems, you can submit a problem to:" green
         Write-ColoredText "# https://github.com/goodrain/rainbond" green
         Write-ColoredText "# Time: $clock" green
@@ -112,7 +121,7 @@ function start-rainbond {
             Write-ColoredText "#############################################################" green
             Start-Sleep -Seconds 130
         } else {
-            Write-Host "Docker 容器启动失败,请查看是否有重名"
+            Write-ColoredText "Docker 容器启动失败,请查看是否有重名" red
             # 可以处理容器启动失败的情况
         }
 }
@@ -129,6 +138,7 @@ system-judgment
 port-is-open-or-no
 welcome
 docker-install-and-run
+messageip
 selected-ip
 check-message
 start-rainbond
