@@ -910,6 +910,7 @@ class AppManageService(AppManageBase):
             data.pop("open_webhooks")
             data.pop("server_type")
             data.pop("git_full_name")
+            data.pop("arch")
         if app:
             data["app_name"] = app.group_name
             data["app_id"] = app.ID
@@ -1243,6 +1244,7 @@ class AppManageService(AppManageBase):
             data.pop("open_webhooks")
             data.pop("server_type")
             data.pop("git_full_name")
+            data.pop("arch")
         if app:
             data["app_name"] = app.group_name
             data["app_id"] = app.ID
