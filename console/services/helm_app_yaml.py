@@ -130,7 +130,7 @@ class HelmAppService(object):
                         "is_outer_service": False,
                         "k8s_service_name": service_alias
                     }
-                    if port["protocol"] == "http":
+                    if port["protocol"] in ["http", "tcp"]:
                         port_management["is_outer_service"] = True
                     app["port_map_list"].append(port_management)
 

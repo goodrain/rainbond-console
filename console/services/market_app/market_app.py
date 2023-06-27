@@ -205,16 +205,10 @@ class MarketApp(object):
             probes = [probe.to_dict() for probe in cpt.probes]
             for probe in probes:
                 probe["is_used"] = 1 if probe["is_used"] else 0
-            # The TCP port is opened by default
-            temp_ports = []
-            for port in cpt.ports:
-                if port.protocol == "tcp":
-                    port.is_outer_service = True
-                temp_ports.append(port.to_dict())
             component = {
                 "component_base": component_base,
                 "envs": [env.to_dict() for env in cpt.envs],
-                "ports": temp_ports,
+                "ports": [port.to_dict() for port in cpt.ports],
                 "config_files": [cf.to_dict() for cf in cpt.config_files],
                 "probes": probes,
                 "monitors": [monitor.to_dict() for monitor in cpt.monitors],
@@ -497,7 +491,7 @@ class MarketApp(object):
         components = self.new_app.components()
         for cpt in components:
             for port in cpt.ports:
-                if port.protocol == "tcp":
+                if port.protocol == "tcp" and port.is_outer_service:
                     service = cpt.component
                     res, data = region_api.get_port(self.region_name, self.tenant_name, True)
                     if int(res.status) != 200:
