@@ -9,6 +9,17 @@ $ports = @(80, 443, 6060, 7070, 8443)
 function Write-ColoredText($Text,$Color) {
     Write-Host $Text -ForegroundColor $Color
 }
+#等待时间
+function Wait-Time([int]$Seconds) {
+    $remainingSeconds = $Seconds
+    while ($remainingSeconds -gt 0) {
+        Write-Host "Remaining seconds: $remainingSeconds" -ForegroundColor green -NoNewline
+        Start-Sleep -Seconds 1
+        Write-Host "`r" -NoNewline
+        $remainingSeconds--
+    }
+    #Write-Host "Done!"
+}
 #系统MD5值
 function cmd5 {
     $systemInfo = Get-CimInstance Win32_OperatingSystem | Select-Object Caption, OSArchitecture, Manufacturer, SerialNumber
@@ -22,21 +33,18 @@ function cmd5 {
 #请求信息记录
 function send_msg {
     $dest_url = "https://log.rainbond.com"
-    
     if (-not $global:args) {
         $msg = "Terminating by userself."
     }
     else {
         $msg = $global:args[0] -replace '"', ' ' -replace "'", ' '
     }
-    
     $body = @{
         "message" = $msg
         "os_info" = [System.Environment]::OSVersion.Version
         "eip" = $selectedIP
         "uuid" = $md5Hash
     } | ConvertTo-Json
-    
     $params = @{
         Uri = "$dest_url/dindlog"
         Method = "POST"
@@ -173,6 +181,7 @@ function check-message {
         Write-ColoredText "##############################################" green
         Write-Host
         Write-ColoredText "To start installing Rainbond, please wait" green
+        Wait-Time -Seconds 130
 }
 #启动容器
 function start-rainbond {
@@ -208,7 +217,7 @@ docker logs $variable
 if ($LASTEXITCODE -eq 0) {
     Write-Host
     Write-Host
-    Write-ColoredText "http://$($global:selectedIP):7070 Access Rainbond(Hold down CTRL+left mouse button and click on the left URL to jump)" green
+    Write-ColoredText "http://$($global:selectedIP):7070 Access Rainbond" green
 }
 Write-ColoredText "Press any key to exit..." blue
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
@@ -218,7 +227,6 @@ cmd5
 system-judgment
 port-is-open-or-no
 welcome
-#send_msg
 docker-install-and-run
 messageip
 selected-ip
