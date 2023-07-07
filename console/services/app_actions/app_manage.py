@@ -633,7 +633,7 @@ class AppManageService(AppManageBase):
             service_dict["kind"] = kind
             service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
             clone_url = service.git_url
-
+            service_dict["arch"] = service.arch
             # 源码
             if kind == "build_from_source_code" or kind == "source":
                 source_code = dict()
