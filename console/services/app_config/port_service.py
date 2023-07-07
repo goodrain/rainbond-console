@@ -64,7 +64,7 @@ class AppPortService(object):
             if len(k8s_service_name) > 63:
                 raise AbortRequest("k8s_service_name must be no more than 63 characters")
             if not re.fullmatch("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
-                raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式正确")
+                raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式不正确")
 
         # make a map of k8s services
         new_k8s_services = dict()
@@ -88,7 +88,7 @@ class AppPortService(object):
         if len(k8s_service_name) > 63:
             raise AbortRequest("k8s_service_name must be no more than 63 characters")
         if not re.fullmatch("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
-            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式正确")
+            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式不正确")
 
         # make k8s_service_name unique
         port = port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
@@ -716,7 +716,7 @@ class AppPortService(object):
             new_attr_name = new_port_alias + env.attr_name.replace(old_port_alias, '')
             if env.container_port == deal_port.container_port:
                 env.attr_name = new_attr_name
-            if env.attr_name.endswith("HOST"):
+            if env.attr_name.endswith("HOST") and k8s_service_name:
                 if app.governance_mode != GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name:
                     env.attr_value = k8s_service_name
                 else:
@@ -741,11 +741,11 @@ class AppPortService(object):
                 region_api.add_service_env(service.service_region, tenant.tenant_name, service.service_alias, add_env)
             env.save()
 
-        if k8s_service_name:
-            self.check_k8s_service_name(tenant.tenant_id, k8s_service_name, deal_port.service_id)
-            for port in ports:
-                if port.container_port == deal_port.container_port:
-                    port.port_alias = new_port_alias
+        for port in ports:
+            if port.container_port == deal_port.container_port:
+                port.port_alias = new_port_alias
+            if k8s_service_name != "":
+                self.check_k8s_service_name(tenant.tenant_id, k8s_service_name, deal_port.service_id)
                 port.k8s_service_name = k8s_service_name
         ports_dict = [port.to_dict() for port in ports]
         if service.create_status == "complete":
