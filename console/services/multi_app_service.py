@@ -92,7 +92,8 @@ class MultiAppService(object):
                                         service.code_version,
                                         service.server_type,
                                         oauth_service_id=service.oauth_service_id,
-                                        git_full_name=service.git_full_name)
+                                        git_full_name=service.git_full_name,
+                                        arch=service_info.get("arch", "amd64"))
             if code != 200:
                 raise AbortRequest("Multiple services; Service alias: {}; error creating service".format(service.service_alias),
                                    "创建多组件应用失败")
