@@ -36,6 +36,7 @@ from openapi.views.exceptions import ErrAppNotFound
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
 
 region_api = RegionInvokeApi()
@@ -86,6 +87,7 @@ class ListAppsView(TeamAPIView):
             data["app_name"],
             data.get("app_note"),
             self.user.get_username(),
+            k8s_app="app-" + make_uuid()[:6],
         )
         re = AppBaseInfoSerializer(group_info)
         return Response(re.data, status=status.HTTP_201_CREATED)
