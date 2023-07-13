@@ -565,13 +565,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def command_helm_yaml(self, region, tenant_name, data):
-        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
-        url = uri_prefix + "/v2/helm/command_helm"
-        self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data), timeout=20)
-        return res, body
-
     def get_chart_information(self, region, tenant_name, data):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         url = uri_prefix + "/v2/helm/get_chart_information"

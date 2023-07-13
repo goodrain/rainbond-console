@@ -128,29 +128,9 @@ class CommandInstallHelm(RegionTenantHeaderView):
         命令安装helm应用
         """
         command = request.data.get("command")
-        app_id = request.data.get("app_id")
-        command = command.replace("helm install", "template", 1)
-        command_yaml_data = helm_app_service.get_command_install_yaml(self.region_name, self.tenant_name, command)
-        ret = dict()
-        ret["information"] = command_yaml_data.get("yaml", "")
-        ret["status"] = command_yaml_data.get("status", False)
-        if command_yaml_data["status"]:
-            ret["status"] = True
-            if str(command).endswith('tgz'):
-                ret["tgz"] = True
-                helm_app_service.tgz_yaml_handle(self.enterprise.enterprise_id, self.region, self.tenant, app_id, self.user,
-                                                 command_yaml_data)
-                ret["information"] = ""
-            else:
-                ret["tgz"] = False
-                data = helm_app_service.repo_yaml_handle(self.enterprise.enterprise_id, self.region.region_id, command,
-                                                         self.region_name, self.tenant, command_yaml_data, self.user.user_id)
-                ret["information"] = ""
-                if not data:
-                    ret["status"] = False
-                    ret["information"] = "未从命令中获取到chart名字"
-                ret["chart"] = data
-        result = general_message(200, "success", "执行成功", bean=ret)
+        data = helm_app_service.parse_helm_command(command, self.region_name, self.tenant)
+        data['eid'] = self.enterprise.enterprise_id
+        result = general_message(200, "success", "执行成功", bean=data)
         return Response(result, status=status.HTTP_200_OK)
 
 
