@@ -1,14 +1,13 @@
 import datetime
 import json
 import logging
+import re
 import time
 
+from console.exception.main import AbortRequest
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion, AppHelmOverrides
 from console.repositories.helm import helm_repo
-from console.services.app_actions import app_manage_service
-from console.services.region_resource_processing import region_resource
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import RegionApp
 from www.utils.crypt import make_uuid3, make_uuid
 
 region_api = RegionInvokeApi()
@@ -256,82 +255,68 @@ class HelmAppService(object):
         _, body = region_api.get_chart_information(region, tenant_name, repo_chart)
         return body["bean"]
 
-    def get_command_install_yaml(self, region, tenant_name, command):
-        _, body = region_api.command_helm_yaml(region, tenant_name, {"command": command})
-        return body["bean"]
-
-    def tgz_yaml_handle(self, eid, region, tenant, app_id, user, data):
-        app = RegionApp.objects.filter(app_id=app_id)
-        if app:
-            app = app[0]
-            data = {
-                "event_id": "",
-                "region_app_id": app.region_app_id,
-                "tenant_id": tenant.tenant_id,
-                "namespace": tenant.namespace,
-                "yaml": data.get("yaml", "")
-            }
-            _, body = region_api.yaml_resource_import(eid, region.region_id, data)
-            ac = body["bean"]
-            region_resource.create_k8s_resources(ac["k8s_resources"], app_id)
-            service_ids = region_resource.create_components(app, ac["component"], tenant, region.region_name, user.user_id)
-            app_manage_service.batch_action(region.region_name, tenant, user, "deploy", service_ids, None, None)
-
-    def repo_yaml_handle(self, eid, region_id, command, region_name, tenant, data, user_id):
-        logger.info("begin function repo_yaml_handle")
-        cmd_list = command.split()
-        repo_name, repo_url, username, password, chart_name, version = "", "", "", "", "", ""
-        overrides = list()
-        logger.info("parse the helm command")
-        for i in range(len(cmd_list)):
-            if cmd_list[i] == "--repo" and i + 1 != len(cmd_list):
-                repo_url = cmd_list[i + 1]
-                repo_name = repo_url.split("/")[-1]
-                if repo_name == "" or len(repo_name) > 32:
-                    repo_name = "rainbond"
-            if cmd_list[i] == "--username" and i + 1 != len(cmd_list):
-                username = cmd_list[i + 1]
-            if cmd_list[i] == "--version" and i + 1 != len(cmd_list):
-                version = cmd_list[i + 1]
-            if cmd_list[i] == "--password" and i + 1 != len(cmd_list):
-                password = cmd_list[i + 1]
-            if cmd_list[i] == "--set" and i + 1 != len(cmd_list):
-                overrides.append(cmd_list[i + 1])
-            if not cmd_list[i].startswith('-') and i + 1 != len(cmd_list):
-                if not cmd_list[i + 1].startswith('-'):
-                    chart_name = cmd_list[i + 1]
-        overrides = [{override.split("=")[0]: override.split("=")[1]} for override in overrides]
-        if not repo_name:
-            return None
-        chart_data = self.get_helm_chart_information(region_name, tenant.tenant_name, repo_url, chart_name)
-        if not version:
-            logger.warning("version is not obtained from the command.use the highest version of {}".format(chart_name))
-            version = chart_data[0]["Version"]
-        i = 0
-        repo_name = repo_name + "cmd"
-        while True:
-            i = i + 1
-            repo_name = repo_name + str(i)
+    def parse_helm_command(self, command, region_name, tenant):
+        result = dict()
+        repo_add_pattern = r'^helm\s+repo\s+add\s+(?P<repo_name>\S+)\s+(?P<repo_url>\S+)(?:\s+--username\s+(?P<username>\S+))?(?:\s+--password\s+(?P<password>\S+))?$'
+        repo_add_match = re.match(repo_add_pattern, command)
+        if repo_add_match:
+            result['command'] = 'repo_add'
+            repo_name = repo_add_match.group('repo_name')
+            repo_url = repo_add_match.group('repo_url')
+            username = repo_add_match.group('username') if repo_add_match.group('username') else ""
+            password = repo_add_match.group('password') if repo_add_match.group('password') else ""
             repo = helm_repo.get_helm_repo_by_name(repo_name)
             if not repo:
                 logger.info("create helm repo {}".format(repo_name))
                 self.add_helm_repo(repo_name, repo_url, username, password)
-                break
             else:
-                if repo["repo_url"] == repo_url:
-                    logger.info("helm repo {} is exist and url is the same".format(repo_name))
-                    break
+                raise AbortRequest("helm repo is exist", "仓库名称已存在", status_code=404, error_code=404)
+            result["repo_name"] = repo_name
+            result["repo_url"] = repo_url
+            result["username"] = username
+            result["password"] = password
+            return result
 
-        return {
-            "version": version,
-            "repo_name": repo_name,
-            "repo_url": repo_url,
-            "username": username,
-            "password": password,
-            "chart_name": chart_name,
-            "eid": eid,
-            "overrides": overrides
-        }
+        install_pattern = r'^helm\s+install\s+(?P<release_name>\S+)\s+(?P<chart>\S+)(?:\s+-n\s+(?P<namespace>\S+))?(?:(?:\s+--version\s+(?P<version>\S+))?(?P<set_values>(?:\s+--set\s+[^-].*)*))?'
+        set_pattern = r'--set\s+([^=]+)=([^ \s]+)'
+
+        install_match = re.match(install_pattern, command)
+        if install_match:
+            result['command'] = 'install'
+            release_name = install_match.group('release_name')
+            version = install_match.group('version')
+            chart = install_match.group('chart')
+            namespace = install_match.group('namespace')
+            if namespace:
+                raise AbortRequest("can not set namespace", "团队下不支持设置命名空间", status_code=404, error_code=404)
+            result['overrides'] = list()
+            set_values_str = install_match.group('set_values')
+            if set_values_str:
+                set_values = re.findall(set_pattern, set_values_str)
+                for key, value in set_values:
+                    result['overrides'].append({key.strip(): value.strip()})
+            repo_chart = chart.split("/")
+            if len(repo_chart) == 2:
+                repo_name = chart.split("/")[0]
+                chart_name = chart.split("/")[1]
+            else:
+                raise AbortRequest("repo_name/chart_name incorrect format", "格式不正确，仓库名称和应用名称之间应用 '/' 划分", status_code=404, error_code=404)
+            repo = helm_repo.get_helm_repo_by_name(repo_name)
+            if not repo:
+                raise AbortRequest("helm repo is not exist", "商店不存在，执行 helm repo add 进行添加", status_code=404, error_code=404)
+            repo_url = repo.get("repo_url")
+            chart_data = self.get_helm_chart_information(region_name, tenant.tenant_name, repo_url, chart_name)
+            if not version:
+                logger.warning("version is not obtained from the command.use the highest version of {}".format(chart_name))
+                version = chart_data[0]["Version"]
+            result["release_name"] = release_name
+            result["chart"] = chart
+            result["version"] = version
+            result["repo_name"] = repo_name
+            result["repo_url"] = repo_url
+            result["chart_name"] = chart_name
+            return result
+        raise AbortRequest("helm command command mismatch", "命令解析失败，请检查命令", status_code=404, error_code=404)
 
 
 helm_app_service = HelmAppService()
