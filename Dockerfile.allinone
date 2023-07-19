@@ -6,12 +6,18 @@ ARG ADAPTOR_BRANCH=v5.7.1-release
 ARG GOPROXY
 ARG GITPROXY
 ARG LDFLAGS="-w -s -linkmode external -extldflags '-static'"
+ARG ARCH=amd64
 
 ENV GOPROXY=${GOPROXY}
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
 
-RUN apk add git upx && git clone -b ${ADAPTOR_BRANCH} --depth=1 ${GITPROXY}https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
+RUN if [ ${ARCH} = "arm64" ] || [ ${ARCH} = "aarch64" ]; then \
+        wget https://pkg.rainbond.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx; \
+    else \
+        apk add upx; \
+    fi && \
+    apk add git && git clone -b ${ADAPTOR_BRANCH} --depth=1 ${GITPROXY}https://github.com/goodrain/cloud-adaptor /go/src/goodrain.com/cloud-adaptor
 WORKDIR /go/src/goodrain.com/cloud-adaptor/
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor && upx --best --lzma /cloud-adaptor && chmod +x /cloud-adaptor
 
@@ -38,7 +44,7 @@ ENV PATH="/app/ui/py_venv/bin:$PATH"
 RUN python -m venv --copies /app/ui/py_venv && \
     python -m pip install --upgrade pip && \
     pip install -r requirements.txt $PYTHONPROXY && \
-    python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg  --ignore rest_framework
+    python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework
 
 # build console image
 FROM rainbond/python:3.6-slim-stretch
@@ -54,7 +60,11 @@ RUN mkdir -p /app/logs /app/data /root/.ssh && \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
     mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
     apt-get update && apt-get install wget -y && \
-    wget https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/helm && chmod +x helm && mv helm /usr/local/bin/ && \
+    if [ "${ARCH}" = "arm64" ] || [ "${ARCH}" = "aarch64" ]; then \
+        wget -O /app/ui/helm "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm-arm64" && chmod +x /app/ui/helm && mv /app/ui/helm /usr/local/bin; \
+    else \
+        wget https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/helm && chmod +x helm && mv helm /usr/local/bin; \
+    fi && \
     rm -rf /var/lib/apt/lists/*
 
 ENV PATH=/app/ui/py_venv/bin:$PATH
