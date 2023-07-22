@@ -50,6 +50,7 @@ RUN python -m venv --copies /app/ui/py_venv && \
 FROM rainbond/python:3.6-slim-stretch
 ARG RELEASE_DESC=
 ARG VERSION
+ARG ARCH=amd64
 
 COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
 COPY --from=builder /cloud-adaptor /app/cloudadaptor
@@ -60,7 +61,7 @@ RUN mkdir -p /app/logs /app/data /root/.ssh && \
     mv /app/ui/supervisord.conf /etc/supervisor/supervisord.conf && \
     mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
     apt-get update && apt-get install wget -y && \
-    if [ "${ARCH}" = "arm64" ] || [ "${ARCH}" = "aarch64" ]; then \
+    if [ ${ARCH} = "arm64" ] || [ ${ARCH} = "aarch64" ]; then \
         wget -O /app/ui/helm "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm-arm64" && chmod +x /app/ui/helm && mv /app/ui/helm /usr/local/bin; \
     else \
         wget https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/helm && chmod +x helm && mv helm /usr/local/bin; \
