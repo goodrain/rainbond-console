@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v5.14.2'}
+RAINBOND_VERSION=${VERSION:-'v5.15.0'}
 IMGHUB_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain"
 
 # Define colorful stdout
