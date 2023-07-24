@@ -2690,6 +2690,23 @@ CenterAppView = {
     }
 }
 
+CmdInstallAppView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [300002, 400002]
+        },
+        "put": {
+            "perms": []
+        },
+        "delete": {
+            "perms": []
+        }
+    }
+}
+
 RegionProtocolView = {
     "__message": {
         "get": {

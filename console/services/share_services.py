@@ -667,7 +667,7 @@ class ShareService(object):
     def get_app_by_key(self, key):
         app = share_repo.get_app_by_key(key)
         if app:
-            return app[0]
+            return app
         else:
             return None
 
@@ -1311,6 +1311,32 @@ class ShareService(object):
             del a["ID"]
             result[attr.component_id].append(a)
         return result
+
+    def update_or_create_rainbond_center_app_version(self, tenant, region, user, app_id, version, app_template):
+        try:
+            obj = RainbondCenterAppVersion.objects.get(app_id=app_id, version=version)
+            obj.app_template = app_template
+            obj.save()
+        except RainbondCenterAppVersion.DoesNotExist:
+            RainbondCenterAppVersion.objects.create(
+                app_id=app_id,
+                version=app_template["group_version"],
+                app_version_info="",
+                version_alias="",
+                template_type="",
+                record_id=0,
+                share_user=user.user_id,
+                share_team=tenant.tenant_name,
+                # group_id=share_record.group_id,
+                source="local",
+                scope="enterprise",
+                app_template=json.dumps(app_template),
+                template_version="v2",
+                enterprise_id=tenant.enterprise_id,
+                region_name=region.region_name,
+                arch=app_template["arch"],
+                is_complete=True,
+                upgrade_time=time.time())
 
 
 share_service = ShareService()
