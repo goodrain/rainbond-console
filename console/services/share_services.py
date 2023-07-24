@@ -1315,7 +1315,7 @@ class ShareService(object):
     def update_or_create_rainbond_center_app_version(self, tenant, region, user, app_id, version, app_template):
         try:
             obj = RainbondCenterAppVersion.objects.get(app_id=app_id, version=version)
-            obj.app_template = app_template
+            obj.app_template = json.dumps(app_template)
             obj.save()
         except RainbondCenterAppVersion.DoesNotExist:
             RainbondCenterAppVersion.objects.create(
