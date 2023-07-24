@@ -5,9 +5,12 @@
 import datetime
 import json
 import logging
+import os
 import time
 
 # enum
+import requests
+
 from console.constants import AppConstants
 from console.enum.app import GovernanceModeEnum
 from console.enum.component_enum import ComponentType
@@ -39,6 +42,7 @@ from console.services.market_app.app_upgrade import AppUpgrade
 from console.services.market_app.component_group import ComponentGroup
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.services.region_services import region_services
+from console.services.share_services import share_service
 from console.services.upgrade_services import upgrade_service
 from console.services.user_services import user_services
 from console.utils.version import compare_version, sorted_versions
@@ -134,6 +138,75 @@ class MarketAppService(object):
         app_template["update_time"] = app_version.update_time
         app_template["arch"] = app_version.arch
         return app_template, market_app
+
+    def install_app_by_cmd(self, tenant, region, user, app_id, app_model_key, version):
+        app = group_repo.get_group_by_id(app_id)
+        if not app:
+            raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
+        app_template = self.get_app_template_cmd(app_model_key, version)
+        if app_template:
+            share_app = share_service.get_app_by_key(key=app_template["group_key"])
+            if not share_app:
+                center_app = {
+                    "app_id": app_template["group_key"],
+                    "app_name": app_template["group_name"],
+                    "create_team": tenant.tenant_name,
+                    "source": "cmd",
+                    "scope": "enterprise",
+                    "pic": "",
+                    "describe": "",
+                    "enterprise_id": tenant.enterprise_id,
+                    "details": "",
+                    "arch": app_template["arch"],
+                }
+                self.cmd_create_center_app(**center_app)
+                share_app = share_service.get_app_by_key(key=app_template["group_key"])
+            share_service.update_or_create_rainbond_center_app_version(tenant, region, user, share_app.app_id, version,
+                                                                       app_template)
+            res, body = region_api.get_cluster_nodes_arch(region.region_name)
+            chaos_arch = list(set(body.get("list")))
+            template_arch = share_app.arch if share_app.arch else "amd64"
+            if template_arch not in chaos_arch and len(chaos_arch) < 2:
+                raise AbortRequest("app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
+
+            component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id,
+                                                                app_template["group_key"], version, app_template["group_name"])
+            app_upgrade = AppUpgrade(
+                user.enterprise_id,
+                tenant,
+                region,
+                user,
+                app,
+                version,
+                component_group,
+                app_template,
+                False,
+                "",
+                is_deploy=True)
+            app_upgrade.install()
+            return app_template["group_name"]
+        return
+
+    def get_app_template_cmd(self, app_model_key, version):
+        market_domain = os.getenv("MARKET_DOMAIN", "https://hub.grapps.cn")
+        market_id = os.getenv("MARKET_ID", "859a51f9bb3b48b5bfd222e3bef56425")
+        url = "{0}/app-server/markets/{1}/apps/{2}/version/{3}/cmd".format(market_domain, market_id, app_model_key, version)
+        res = requests.get(url)
+        if res.status_code == 200:
+            cmd = res.json()
+            template = cmd["cmd"]
+            arch = cmd["arch"]
+            if template:
+                temp = json.loads(template)
+                temp["arch"] = arch
+                return temp
+        else:
+            err = res.json()
+            raise AbortRequest(err["msg"], status_code=400, error_code=err["code"])
+
+    def cmd_create_center_app(self, **kwargs):
+        logger.info("begin create center app by cmd")
+        return RainbondCenterApp(**kwargs).save()
 
     def install_service(self,
                         tenant,

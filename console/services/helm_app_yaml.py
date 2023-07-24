@@ -300,7 +300,8 @@ class HelmAppService(object):
                 repo_name = chart.split("/")[0]
                 chart_name = chart.split("/")[1]
             else:
-                raise AbortRequest("repo_name/chart_name incorrect format", "格式不正确，仓库名称和应用名称之间应用 '/' 划分", status_code=404, error_code=404)
+                raise AbortRequest(
+                    "repo_name/chart_name incorrect format", "格式不正确，仓库名称和应用名称之间应用 '/' 划分", status_code=404, error_code=404)
             repo = helm_repo.get_helm_repo_by_name(repo_name)
             if not repo:
                 raise AbortRequest("helm repo is not exist", "商店不存在，执行 helm repo add 进行添加", status_code=404, error_code=404)

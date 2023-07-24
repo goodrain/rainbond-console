@@ -5,6 +5,7 @@
 import datetime
 import json
 import logging
+import re
 
 from console.repositories.app import app_tag_repo
 from console.repositories.market_app_repo import rainbond_app_repo
@@ -128,6 +129,27 @@ class CenterAppView(RegionTenantHeaderView):
         market_app_service.install_app(self.tenant, self.region, self.user, app_id, app_model_key, version, market_name,
                                        install_from_cloud, is_deploy, dry_run)
         return Response(general_message(200, "success", "创建成功"), status=200)
+
+
+class CmdInstallAppView(RegionTenantHeaderView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        """
+        命令行创建应用
+        """
+        app_id = request.data.get("group_id", -1)
+        cmd = request.data.get("cmd", "")
+        app_id_pattern = r"--appID\s+(\S+)"
+        version_pattern = r"--version\s+(\S+)"
+        appID_match = re.search(app_id_pattern, cmd)
+        version_match = re.search(version_pattern, cmd)
+        if appID_match and version_match:
+            app_model_key = appID_match.group(1) if appID_match else None
+            version = version_match.group(1) if version_match else None
+            market_app_service.install_app_by_cmd(self.tenant, self.region, self.user, app_id, app_model_key, version)
+            return Response(general_message(200, "success", "创建成功"), status=200)
+        else:
+            return Response(general_message(400, "failed", "解析命令失败"), status=200)
 
 
 class CenterAppCLView(JWTAuthApiView):
