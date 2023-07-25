@@ -98,8 +98,7 @@ function Test-ValidIPAddress {
     }
 }
 
-function Prompt {
-    
+function Select_EIP { 
     Write-Host "Welcome to install Rainbond, If you install problem, please feedback to https://www.rainbond.com/community/support. `n" -ForegroundColor green
 
     Write-Host "######################################################################" -ForegroundColor green
@@ -107,11 +106,6 @@ function Prompt {
     Write-Host "# You can choose one by enter its index" -ForegroundColor green
     Write-Host "# If you have an Public IP, Just type it in" -ForegroundColor green
     Write-Host "######################################################################" -ForegroundColor green
-}
-
-function Select_EIP { 
-    # exec prompt
-    prompt
 
     $Default_IP = "127.0.0.1"
     Write-Host "The following IP has been detected:" -ForegroundColor green
@@ -139,8 +133,9 @@ function Select_EIP {
 
     Write-Host "The selected IP address is: $EIP" -ForegroundColor green
 }
-#输出安装检测准备好的信息
-function Check_Message {
+
+function Running_Rainbond {
+    
     Write-Host "##############################################" -ForegroundColor green
     Write-Host "# Rainbond dind allinone will be installed:" -ForegroundColor green
     Write-Host "# Rainbond version: $RAINBOND_VERSION" -ForegroundColor green
@@ -151,19 +146,13 @@ function Check_Message {
     Write-Host "# If you install problem, please feedback to:" -ForegroundColor green
     Write-Host "#    https://www.rainbond.com/community/support" -ForegroundColor green
     Write-Host "##############################################" -ForegroundColor green
-}
-
-function CMD {
     Write-Host "Generating the installation command:" -ForegroundColor green
+
     $global:docker_run_cmd = "docker run --privileged -d --name=rainbond-allinone --restart=on-failure -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 10000-10010:10000-10010 -v rainbond-data:/app/data -v rainbond-opt:/opt/rainbond -e EIP=$EIP -e uuid=$UUID $IMGHUB_MIRROR/rainbond:$($RAINBOND_VERSION)-dind-allinone"
     Write-Host $docker_run_cmd
     send_msg $docker_run_cmd
-}
-#启动容器
-function Running_Rainbond {
-    CMD
 
-    $container_id = iex $docker_run_cmd
+    $container_id = Invoke-Expression $docker_run_cmd
     if ($container_id) {
         Write-ColoredText "Rainbond dind allinone container startup succeeded with $container_id. Please observe rainbond-allinone container startup logs." green
     } else {
@@ -180,7 +169,5 @@ Check_Docker
 Check_Ports
 
 Select_EIP
-
-Check_Message
 
 Running_Rainbond
