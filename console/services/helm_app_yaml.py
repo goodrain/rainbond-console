@@ -257,7 +257,8 @@ class HelmAppService(object):
 
     def parse_helm_command(self, command, region_name, tenant):
         result = dict()
-        repo_add_pattern = r'^helm\s+repo\s+add\s+(?P<repo_name>\S+)\s+(?P<repo_url>\S+)(?:\s+--username\s+(?P<username>\S+))?(?:\s+--password\s+(?P<password>\S+))?$'
+        repo_add_pattern = r'^helm\s+repo\s+add\s+(?P<repo_name>\S+)\s+(?P<repo_url>\S+)(?:\s+--username\s+' \
+                           r'(?P<username>\S+))?(?:\s+--password\s+(?P<password>\S+))?$'
         repo_add_match = re.match(repo_add_pattern, command)
         if repo_add_match:
             result['command'] = 'repo_add'
@@ -277,7 +278,8 @@ class HelmAppService(object):
             result["password"] = password
             return result
 
-        install_pattern = r'^helm\s+install\s+(?P<release_name>\S+)\s+(?P<chart>\S+)(?:\s+-n\s+(?P<namespace>\S+))?(?:(?:\s+--version\s+(?P<version>\S+))?(?P<set_values>(?:\s+--set\s+[^-].*)*))?'
+        install_pattern = r'^helm\s+install\s+(?P<release_name>\S+)\s+(?P<chart>\S+)(?:\s+-n\s+(?P<namespace>\S+))' \
+                          r'?(?:(?:\s+--version\s+(?P<version>\S+))?(?P<set_values>(?:\s+--set\s+[^-].*)*))?'
         set_pattern = r'--set\s+([^=]+)=([^ \s]+)'
 
         install_match = re.match(install_pattern, command)
