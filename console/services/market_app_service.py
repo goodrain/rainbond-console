@@ -5,7 +5,6 @@
 import datetime
 import json
 import logging
-import os
 import time
 
 # enum
@@ -139,11 +138,11 @@ class MarketAppService(object):
         app_template["arch"] = app_version.arch
         return app_template, market_app
 
-    def install_app_by_cmd(self, tenant, region, user, app_id, app_model_key, version):
+    def install_app_by_cmd(self, tenant, region, user, app_id, app_model_key, version, market_domain, market_id):
         app = group_repo.get_group_by_id(app_id)
         if not app:
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
-        app_template = self.get_app_template_cmd(app_model_key, version)
+        app_template = self.get_app_template_cmd(app_model_key, version, market_domain, market_id)
         if app_template:
             share_app = share_service.get_app_by_key(key=app_template["group_key"])
             if not share_app:
@@ -187,9 +186,7 @@ class MarketAppService(object):
             return app_template["group_name"]
         return
 
-    def get_app_template_cmd(self, app_model_key, version):
-        market_domain = os.getenv("MARKET_DOMAIN", "https://hub.grapps.cn")
-        market_id = os.getenv("MARKET_ID", "859a51f9bb3b48b5bfd222e3bef56425")
+    def get_app_template_cmd(self, app_model_key, version, market_domain, market_id):
         url = "{0}/app-server/markets/{1}/apps/{2}/version/{3}/cmd".format(market_domain, market_id, app_model_key, version)
         res = requests.get(url)
         if res.status_code == 200:

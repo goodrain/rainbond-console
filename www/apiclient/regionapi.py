@@ -2313,7 +2313,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def sync_k8s_resources(self, tenant_name, region_name, data):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/cluster/sync-k8s-resources"
-        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_name, timeout=20)
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_name, timeout=100)
         return res, body
 
     def get_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
