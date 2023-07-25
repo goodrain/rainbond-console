@@ -145,15 +145,18 @@ class CmdInstallAppView(RegionTenantHeaderView):
         market_id_pattern = r"--market_id\s+(\S+)"
         appID_match = re.search(app_id_pattern, cmd)
         version_match = re.search(version_pattern, cmd)
-        market_domain = re.search(market_domain_pattern, cmd)
-        market_id = re.search(market_id_pattern, cmd)
-        if not market_domain:
-            market_domain = "https://hub.grapps.cn"
-        if not market_id:
-            market_id = "859a51f9bb3b48b5bfd222e3bef56425"
+        market_domain_match = re.search(market_domain_pattern, cmd)
+        market_id_match = re.search(market_id_pattern, cmd)
         if appID_match and version_match:
             app_model_key = appID_match.group(1) if appID_match else None
             version = version_match.group(1) if version_match else None
+            market_domain = market_domain_match.group(1) if market_domain_match else None
+            market_id = market_id_match.group(1) if market_id_match else None
+            if not market_domain:
+                market_domain = "https://hub.grapps.cn"
+            if not market_id:
+                market_id = "859a51f9bb3b48b5bfd222e3bef56425"
+
             market_app_service.install_app_by_cmd(self.tenant, self.region, self.user, app_id, app_model_key, version,
                                                   market_domain, market_id)
             return Response(general_message(200, "success", "创建成功"), status=200)
