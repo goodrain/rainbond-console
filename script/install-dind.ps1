@@ -48,7 +48,7 @@ if ($os_info.Name -match 'Microsoft Windows') {
 }
 
 # Check if Docker is installed and running
-function Check_Docker {
+function check_docker {
 
     if (-not (Get-Command -Name docker -ErrorAction SilentlyContinue)) {
         Write-ColoredText "Ops! Docker has not been installed.`nPlease visit the following website to get the latest Docker Desktop for Windows.`n`thttps://docs.docker.com/desktop/install/windows-install/" red
@@ -65,7 +65,7 @@ function Check_Docker {
 }
 
 # check ports
-function Check_Ports {  
+function check_ports {  
     $ports = @(80, 443, 6060, 7070)
     foreach ($port in $ports) {
         if (netstat -ano | Select-String -Pattern "LISTENING" | Select-String -Pattern ":$port\s") {
@@ -98,7 +98,7 @@ function Test-ValidIPAddress {
     }
 }
 
-function Select_EIP { 
+function select_eip { 
     Write-Host "Welcome to install Rainbond, If you install problem, please feedback to https://www.rainbond.com/community/support. `n" -ForegroundColor green
 
     Write-Host "######################################################################" -ForegroundColor green
@@ -134,7 +134,7 @@ function Select_EIP {
     Write-Host "The selected IP address is: $EIP" -ForegroundColor green
 }
 
-function Running_Rainbond {
+function start_rainbond {
     
     Write-Host "##############################################" -ForegroundColor green
     Write-Host "# Rainbond dind allinone will be installed:" -ForegroundColor green
@@ -164,10 +164,10 @@ function Running_Rainbond {
 
 MD5
 
-Check_Docker
+check_docker
 
-Check_Ports
+check_ports
 
-Select_EIP
+select_eip
 
-Running_Rainbond
+start_rainbond
