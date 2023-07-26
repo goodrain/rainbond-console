@@ -1,8 +1,13 @@
-$RAINBOND_VERSION="v5.15.0"
-$IMGHUB_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain"
+################################################################################
+# Copyright (c) Goodrain, Inc.
+#
+# This source code is licensed under the LGPL-3.0 license found in the
+# LICENSE file in the root directory of this source tree.
+################################################################################
+
+param($IMAGE_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain", $RAINBOND_VERSION="v5.15.0")
 $DATE=Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
-# Define color
 function Write-ColoredText($Text,$Color) {
     switch -regex ($Color) {
         "green" {
@@ -47,7 +52,6 @@ if ($os_info.Name -match 'Microsoft Windows') {
     Exit
 }
 
-# Check if Docker is installed and running
 function check_docker {
 
     if (-not (Get-Command -Name docker -ErrorAction SilentlyContinue)) {
@@ -64,7 +68,6 @@ function check_docker {
     }
 }
 
-# check ports
 function check_ports {  
     $ports = @(80, 443, 6060, 7070)
     foreach ($port in $ports) {
@@ -148,9 +151,16 @@ function start_rainbond {
     Write-Host "##############################################" -ForegroundColor green
     Write-Host "Generating the installation command:" -ForegroundColor green
 
-    $global:docker_run_cmd = "docker run --privileged -d --name=rainbond-allinone --restart=on-failure -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 10000-10010:10000-10010 -v rainbond-data:/app/data -v rainbond-opt:/opt/rainbond -e EIP=$EIP -e uuid=$UUID $IMGHUB_MIRROR/rainbond:$($RAINBOND_VERSION)-dind-allinone"
+    $RBD_IMAGE = "$IMAGE_MIRROR/rainbond:$($RAINBOND_VERSION)-dind-allinone"
+    $docker_run_cmd = "docker run --privileged -d --name=rainbond-allinone --restart=on-failure -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 10000-10010:10000-10010 -v rainbond-data:/app/data -v rainbond-opt:/opt/rainbond -e EIP=$EIP -e uuid=$UUID $RBD_IMAGE"
     Write-Host $docker_run_cmd
     send_msg $docker_run_cmd
+
+    Write-ColoredText "Pulling image ${RBD_IMAGE}..." green
+    if (-not (docker pull $RBD_IMAGE)) {
+        Write-ColoredText "Ops! Pull image ${RBD_IMAGE} failed. Please check your network." red
+        Exit
+    }
 
     $container_id = Invoke-Expression $docker_run_cmd
     if ($container_id) {
