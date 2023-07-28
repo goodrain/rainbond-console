@@ -59,7 +59,7 @@ function release_allinone() {
       docker push "${imageName}"
       docker push "${imageName}-allinone"
     fi
-    if [ "${DOMESTIC_BASE_NAME}" ]; then
+    if [ "${DOMESTIC_DOCKER_USERNAME}" ]; then
       domestcName=$DOMESTIC_BASE_NAME/$DOMESTIC_NAMESPACE/rainbond:${VERSION}
       docker tag "${imageName}" "${domestcName}"
       docker tag "${imageName}" "${domestcName}-allinone"
