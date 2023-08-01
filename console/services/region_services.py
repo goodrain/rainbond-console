@@ -420,7 +420,7 @@ class RegionService(object):
             region_config = json.JSONDecoder().decode(cmd.stdout.read().decode("UTF-8"))
             region_info = {
                 "region_alias": "默认集群",
-                "region_name": "default",
+                "region_name": "dind-region",
                 "ssl_ca_cert": base64.b64decode(region_config["binaryData"]["ca.pem"]).decode("UTF-8"),
                 "key_file": base64.b64decode(region_config["binaryData"]["client.key.pem"]).decode("UTF-8"),
                 "cert_file": base64.b64decode(region_config["binaryData"]["client.pem"]).decode("UTF-8"),
@@ -430,7 +430,8 @@ class RegionService(object):
                 "tcpdomain": region_config["data"]["defaultTCPHost"],
                 "region_id": make_uuid(),
                 "enterprise_id": enterprise_id,
-                "status": "1"
+                "status": "1",
+                "desc": "该集群为平台默认集群，不可被删除",
             }
             region = region_services.add_region(region_info, user)
         except Exception as e:
