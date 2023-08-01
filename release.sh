@@ -7,6 +7,8 @@ ARCH=${BUILD_ARCH:-'amd64'}
 TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST:-false}
 # adaptor branch
 ADAPTOR_BRANCH=${ADAPTOR_BRANCH:-${VERSION}}
+# install version
+INSTALL_VERSION=${VERSION/-arm64}
 # Domestic packing acceleration
 if [ "$PROXY" == "domestic" ]; then
   GOPROXY="https://goproxy.cn"
@@ -48,7 +50,12 @@ function release_allinone() {
   release_desc=${VERSION}-${git_commit}-${buildTime}-allinone
   image_name="rainbond"
   imageName=${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION}
-  docker build --network=host --build-arg VERSION="${VERSION}" --build-arg IMAGE_NAMESPACE="${IMAGE_NAMESPACE}"  --build-arg ADAPTOR_BRANCH="${ADAPTOR_BRANCH}" --build-arg RELEASE_DESC="${release_desc}" --build-arg ARCH="${ARCH}" -t "${imageName}" -f Dockerfile.allinone .
+  docker build --network=host --build-arg VERSION="${VERSION}" --build-arg INSTALL_VERSION="${INSTALL_VERSION}" \
+  --build-arg IMAGE_NAMESPACE="${IMAGE_NAMESPACE}"  \
+  --build-arg ADAPTOR_BRANCH="${ADAPTOR_BRANCH}" \
+  --build-arg RELEASE_DESC="${release_desc}" \
+  --build-arg ARCH="${ARCH}" \
+  -t "${imageName}" -f Dockerfile.allinone .
   if [ $? -ne 0 ]; then
     exit 1
   fi
@@ -78,6 +85,7 @@ function release_dind() {
   imageName=${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/${image_name}:${VERSION/-release}-dind-allinone
   domestcName=${DOMESTIC_BASE_NAME}/${DOMESTIC_NAMESPACE}/rainbond:${VERSION/-release}-dind-allinone
   docker build --network=host --build-arg VERSION="${VERSION}" --build-arg IMAGE_NAMESPACE="${IMAGE_NAMESPACE}" \
+    --build-arg INSTALL_VERSION="${INSTALL_VERSION}" \
     --build-arg RELEASE_DESC="${release_desc}" \
     --build-arg ARCH="${ARCH}" \
     --build-arg ADAPTOR_BRANCH="${ADAPTOR_BRANCH}" \

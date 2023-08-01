@@ -69,6 +69,7 @@ RUN wget -O /app/ui/01-rbd-operator.yml "https://get.rainbond.com/01-rbd-operato
 FROM rainbond/python:3.6-slim-stretch
 ARG RELEASE_DESC=
 ARG VERSION
+ARG INSTALL_VERSION
 
 COPY --from=builder /go/src/goodrain.com/cloud-adaptor/chart /app/chart
 COPY --from=builder /cloud-adaptor /app/cloudadaptor
@@ -91,8 +92,8 @@ ENV CONFIG_DIR=/app/data/cloudadaptor
 ENV HELM_PATH=/usr/local/bin/helm
 ENV MYSQL_DB=console
 ENV VERSION=${VERSION}
-ENV RAINBOND_VERSION=${VERSION}
-ENV OPERATOR_VERSION=${VERSION}
+ENV RAINBOND_VERSION=${INSTALL_VERSION}
+ENV OPERATOR_VERSION=${INSTALL_VERSION}
 ENV DOMESTIC_NAMESPACE=${DOMESTIC_NAMESPACE}
 ENV ENABLE_CLUSTER=true
 ENV CONTAINERD_ADDRESS=/run/k3s/containerd/containerd.sock
