@@ -63,7 +63,7 @@ function release_allinone() {
     if [ "$DOCKER_USERNAME" ]; then
       echo "$DOCKER_PASSWORD" | docker login ${IMAGE_DOMAIN} -u "$DOCKER_USERNAME" --password-stdin
       docker tag "${imageName}" "${imageName}-allinone"
-      # docker push "${imageName}"
+      docker push "${imageName}"
       docker push "${imageName}-allinone"
     fi
     if [ "${DOMESTIC_DOCKER_USERNAME}" ]; then
@@ -71,7 +71,7 @@ function release_allinone() {
       docker tag "${imageName}" "${domestcName}"
       docker tag "${imageName}" "${domestcName}-allinone"
       echo "$DOMESTIC_DOCKER_PASSWORD"|docker login -u "$DOMESTIC_DOCKER_USERNAME" "${DOMESTIC_BASE_NAME}" --password-stdin
-      # docker push "${domestcName}"
+      docker push "${domestcName}"
       docker push "${domestcName}-allinone"
     fi
   fi
