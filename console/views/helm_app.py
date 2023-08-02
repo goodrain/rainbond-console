@@ -77,7 +77,7 @@ class HelmCenterApp(RegionTenantHeaderView):
                 "enterprise_id": self.enterprise.enterprise_id,
                 "details": details
             }
-            helm_app_service.create_helm_center_app(**center_app)
+            helm_app_service.create_helm_center_app(center_app, self.region_name)
             data["exist"] = False
             data["app_model_id"] = app_id
             result = general_message(200, "success", "创建成功", bean=json.dumps(data))

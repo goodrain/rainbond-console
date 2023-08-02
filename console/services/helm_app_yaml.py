@@ -27,9 +27,14 @@ class HelmAppService(object):
         res, body = region_api.check_helm_app(region, tenant_name, data)
         return res, body["bean"]
 
-    def create_helm_center_app(self, **kwargs):
+    def create_helm_center_app(self, center_app, region_name):
         logger.info("begin create_helm_center_app")
-        return RainbondCenterApp(**kwargs).save()
+        res, body = region_api.get_cluster_nodes_arch(region_name)
+        chaos_arch = list(set(body.get("list")))
+        logger.info("arch{}".format(chaos_arch))
+        arch = chaos_arch[0] if chaos_arch else "amd64"
+        center_app["arch"] = arch
+        return RainbondCenterApp(**center_app).save()
 
     def generate_template(self, cvdata, app_model, version, tenant, chart, region_name, enterprise_id, user_id, overrides,
                           app_id):
@@ -209,7 +214,9 @@ class HelmAppService(object):
             app_template=template,
             template_version="v2",
             enterprise_id=enterprise_id,
-            upgrade_time=time.time())
+            upgrade_time=time.time(),
+            arch=arch
+        )
         app_version.region_name = region_name
         app_version.save()
 
