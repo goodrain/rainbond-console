@@ -912,10 +912,13 @@ class ShareService(object):
                 app_version.region_name = region_name
             app_version.save()
             if not market_id:
-                arch = list(local_app_version.arch.split(","))
-                if app_version.arch not in arch:
-                    arch.append(app_version.arch)
-                local_app_version.arch = ",".join(arch)
+                if local_app_version.arch:
+                    arch = list(local_app_version.arch.split(","))
+                    if app_version.arch not in arch:
+                        arch.append(app_version.arch)
+                    local_app_version.arch = ",".join(arch)
+                else:
+                    local_app_version.arch = app_version.arch
                 local_app_version.save()
             share_record.step = 2
             share_record.scope = scope

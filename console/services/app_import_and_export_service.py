@@ -437,13 +437,17 @@ class AppImportService(object):
         for app_template in metadata:
             annotations = app_template.get("annotations", {})
             app_describe = app_template.pop("describe", "")
+            apps = app_template.get("apps")
             if annotations.get("describe", ""):
                 app_describe = annotations.pop("describe", "")
             app = rainbond_app_repo.get_rainbond_app_by_app_id(import_record.enterprise_id, app_template["group_key"])
+            arch_map = {a.get("arch"): 1 for a in apps}
+            arch = "&".join(list(arch_map.keys()))
             # if app exists, update it
             if app:
                 app.scope = import_record.scope
                 app.describe = app_describe
+                app.arch = app.arch if arch in app.arch.split(",") else app.arch + "," + arch
                 app.save()
                 app_version = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(
                     app.app_id, app_template["group_version"])
@@ -460,10 +464,11 @@ class AppImportService(object):
                     app_version.template_version = app_template["template_version"]
                     app_version.app_version_info = version_info,
                     app_version.version_alias = version_alias,
+                    app_version.arch = arch
                     app_version.save()
                 else:
                     # create a new version
-                    rainbond_app_versions.append(self.create_app_version(app, import_record, app_template))
+                    rainbond_app_versions.append(self.create_app_version(app, import_record, app_template, arch))
             else:
                 image_base64_string = app_template.pop("image_base64_string", "")
                 if annotations.get("image_base64_string"):
@@ -487,15 +492,15 @@ class AppImportService(object):
                     scope=import_record.scope,
                     describe=app_describe,
                     pic=pic_url,
-                )
+                    arch=arch)
                 rainbond_apps.append(rainbond_app)
                 # create a new app version
-                rainbond_app_versions.append(self.create_app_version(rainbond_app, import_record, app_template))
+                rainbond_app_versions.append(self.create_app_version(rainbond_app, import_record, app_template, arch))
         rainbond_app_repo.bulk_create_rainbond_app_versions(rainbond_app_versions)
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
     @staticmethod
-    def create_app_version(app, import_record, app_template):
+    def create_app_version(app, import_record, app_template, arch):
         version = RainbondCenterAppVersion(
             scope=import_record.scope,
             enterprise_id=import_record.enterprise_id,
@@ -508,6 +513,7 @@ class AppImportService(object):
             is_complete=1,
             app_version_info=app_template.get("annotations", {}).get("version_info", ""),
             version_alias=app_template.get("annotations", {}).get("version_alias", ""),
+            arch=arch,
         )
         if app_store.is_no_multiple_region_hub(import_record.enterprise_id):
             version.region_name = import_record.region
