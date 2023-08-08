@@ -215,8 +215,7 @@ class HelmAppService(object):
             template_version="v2",
             enterprise_id=enterprise_id,
             upgrade_time=time.time(),
-            arch=arch
-        )
+            arch=arch)
         app_version.region_name = region_name
         app_version.save()
 
