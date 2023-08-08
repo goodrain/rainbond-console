@@ -705,7 +705,6 @@ class AppMarketAppModelLView(JWTAuthApiView):
             "publish_type": request.data.get("publish_type"),
             "tags": request.data.get("tags"),
             "introduction": request.data.get("introduction"),
-            "org_id": request.data.get("org_id")
         }
         market = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
         rst = app_market_service.create_market_app_model(market, body=dt)
