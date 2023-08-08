@@ -32,6 +32,7 @@ from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
 from console.services.app_config import label_service
+from console.services.app_config.arch_service import arch_service
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 from console.services.app_config.service_monitor import service_monitor_repo
@@ -716,6 +717,7 @@ class AppService(object):
         # conponent install complete
         service.create_status = "complete"
         service.save()
+        arch_service.update_affinity_by_arch(service.arch, tenant, service.service_region, service)
         return service
 
     def __init_stream_rule_for_region(self, tenant, service, rule, user_name):
