@@ -14,7 +14,8 @@ class ComponentGraphListView(AppBaseView):
         serializer = CreateComponentGraphReq(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
-        graph = component_graph_service.create_component_graph(self.service.service_id, data['title'], data['promql'])
+        graph = component_graph_service.create_component_graph(self.service.service_id, data['title'], data['promql'],
+                                                               self.service.arch)
         result = general_message(200, "success", "创建成功", bean=graph)
         return Response(result, status=result["code"])
 
@@ -39,7 +40,8 @@ class ComponentGraphView(ComponentGraphBaseView):
         serializer = UpdateComponentGraphReq(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
-        graphs = component_graph_service.update_component_graph(self.graph, data["title"], data["promql"], data["sequence"])
+        graphs = component_graph_service.update_component_graph(self.graph, data["title"], data["promql"], data["sequence"],
+                                                                self.service.arch)
         result = general_message(200, "success", "修改成功", list=graphs)
         return Response(result, status=result["code"])
 
@@ -52,7 +54,7 @@ class ComponentGraphView(ComponentGraphBaseView):
 class ComponentInternalGraphsView(AppBaseView):
     def post(self, request, *args, **kwargs):
         graph_name = parse_item(request, "graph_name", required=True)
-        component_graph_service.create_internal_graphs(self.service.service_id, graph_name)
+        component_graph_service.create_internal_graphs(self.service.service_id, graph_name, self.service.arch)
         result = general_message(200, "success", "导入成功")
         return Response(result, status=result["code"])
 

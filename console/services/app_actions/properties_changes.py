@@ -153,7 +153,7 @@ class PropertiesChanges(object):
         add = []
         for graph in component_graphs:
             try:
-                new_promql = promql_service.add_or_update_label(self.service.service_id, graph.get("promql"))
+                new_promql = promql_service.add_or_update_label(self.service.service_id, graph.get("promql"), self.service.arch)
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue
