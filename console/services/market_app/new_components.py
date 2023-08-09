@@ -114,7 +114,7 @@ class NewComponents(object):
             # service monitors
             monitors = self._template_to_service_monitors(cpt, component_tmpl.get("component_monitors"))
             # graphs
-            graphs = self._template_to_component_graphs(cpt, component_tmpl.get("component_graphs"))
+            graphs = self._template_to_component_graphs(cpt, component_tmpl.get("component_graphs"), cpt.arch)
             # component k8s attributes
             k8s_attrs = self._template_to_k8s_attributes(cpt, component_tmpl.get("component_k8s_attributes"))
             service_group_rel = ServiceGroupRelation(
@@ -433,13 +433,13 @@ class NewComponents(object):
             monitors.append(data)
         return monitors
 
-    def _template_to_component_graphs(self, component, graphs):
+    def _template_to_component_graphs(self, component, graphs, arch):
         if not graphs:
             return []
         new_graphs = {}
         for graph in graphs:
             try:
-                promql = promql_service.add_or_update_label(component.service_id, graph.get("promql"))
+                promql = promql_service.add_or_update_label(component.service_id, graph.get("promql"), arch)
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue

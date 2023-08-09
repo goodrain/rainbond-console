@@ -12,11 +12,14 @@ logger = logging.getLogger("default")
 
 class PromQLService(object):
     @staticmethod
-    def add_or_update_label(component_id, promql):
+    def add_or_update_label(component_id, promql, component_arch=""):
         """
         Add service_id label, or replace illegal service_id label
         """
-        promql_parser = BASE_DIR + "/bin/" + platform.system().lower() + "/promql-parser"
+        promql_name = "/promql-parser"
+        if component_arch == "arm64":
+            promql_name = "/promql-parser-arm64"
+        promql_parser = BASE_DIR + "/bin/" + platform.system().lower() + promql_name
         c = subprocess.Popen([os.getenv("PROMQL_PARSER", promql_parser), "--component_id", component_id],
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
