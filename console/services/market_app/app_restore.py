@@ -165,7 +165,13 @@ class AppRestore(MarketApp):
         """
         components = []
         now_components = self.original_app.components()
-        now_volumes = {now.component.service_id: now.volumes for now in now_components}
+        now_volumes = {}
+        for now in now_components:
+            volumes = []
+            for volume in now.volumes:
+                if volume.volume_type != "config-file":
+                    volumes = volumes.append(volume)
+            now_volumes = {now.component.service_id: volumes}
         for snap in self.snapshot["components"]:
             components.append(self._create_component(snap, now_volumes))
         component_ids = [cpt.component.component_id for cpt in components]
