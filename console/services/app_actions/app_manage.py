@@ -966,7 +966,7 @@ class AppManageService(AppManageBase):
         # 如果这个组件属于模型安装应用, 则删除最后一个组件后同时删除安装应用关系。
         if service.tenant_service_group_id > 0:
             count = service_repo.get_services_by_service_group_id(service.tenant_service_group_id).count()
-            if count <= 1:
+            if not count:
                 tenant_service_group_repo.delete_tenant_service_group_by_pk(service.tenant_service_group_id)
 
         return 200, "success"
