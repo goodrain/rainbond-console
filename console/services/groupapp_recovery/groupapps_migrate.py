@@ -93,7 +93,7 @@ class GroupappsMigrateService(object):
 
     def __create_new_group_by_group_name(self, tenant, region, old_group_id):
         new_group_name = '_'.join(["备份应用", make_uuid()[-4:]])
-        app = group_service.create_app(tenant, region, new_group_name)
+        app = group_service.create_app(tenant, region, new_group_name, k8s_app="backup-" + make_uuid()[-4:])
         new_app = group_repo.get_group_by_id(app["ID"])
         return new_app
 
@@ -101,10 +101,11 @@ class GroupappsMigrateService(object):
         old_group = group_repo.get_group_by_id(old_group_id)
         if old_group:
             new_group_name = '_'.join([old_group.group_name, make_uuid()[-4:]])
+            k8s_app = old_group.k8s_app + "-" + make_uuid()[-4:]
         else:
             new_group_name = make_uuid()[:8]
-
-        app = group_service.create_app(tenant, region, new_group_name, "备份创建")
+            k8s_app = "backup-" + make_uuid()[-4:]
+        app = group_service.create_app(tenant, region, new_group_name, "备份创建", k8s_app=k8s_app)
         new_app = group_repo.get_group_by_id(app["ID"])
         return new_app
 
@@ -434,7 +435,7 @@ class GroupappsMigrateService(object):
                     body = port
                     body["k8s_service_name"] = k8s_service_name
                 if sync_flag and body:
-                    port_service.update_service_port(tenant, region_name, service.service_alias, body)
+                    port_service.update_service_port(tenant, region_name, service.service_alias, [body])
             new_port = TenantServicesPort(**port)
             new_port.service_id = service.service_id
             new_port.tenant_id = tenant.tenant_id
