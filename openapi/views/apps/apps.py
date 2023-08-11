@@ -81,13 +81,14 @@ class ListAppsView(TeamAPIView):
         serializer = AppPostInfoSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.data
+        k8s_app = request.data.get("k8s_app", "")
         group_info = group_service.create_app(
             self.team,
             self.region_name,
             data["app_name"],
             data.get("app_note"),
             self.user.get_username(),
-            k8s_app="app-" + make_uuid()[:6],
+            k8s_app=k8s_app if k8s_app else "app-" + make_uuid()[:6],
         )
         re = AppBaseInfoSerializer(group_info)
         return Response(re.data, status=status.HTTP_201_CREATED)
