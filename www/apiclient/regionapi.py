@@ -1563,7 +1563,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def delete_service_build_version(self, region, tenant_name, service_alias, version_id):
+    def delete_service_build_version(self, region, tenant_name, service_alias, version_id, body):
         """删除组件的某次构建版本"""
 
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -1572,7 +1572,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             + service_alias + "/build-version/" + version_id
 
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def get_service_build_version_by_id(self, region, tenant_name, service_alias, version_id):
