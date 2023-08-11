@@ -113,6 +113,7 @@ class GroupService(object):
         res["group_id"] = app.ID
         res['app_id'] = app.ID
         res['app_name'] = app.group_name
+        res['k8s_app'] = app.k8s_app
         return res
 
     def create_default_app(self, tenant, region_name):
