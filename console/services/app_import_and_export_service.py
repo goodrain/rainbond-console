@@ -278,7 +278,7 @@ class AppImportService(object):
         import_record.status = "importing"
         import_record.save()
 
-    def get_and_update_import_by_event_id(self, event_id):
+    def get_and_update_import_by_event_id(self, event_id, arch):
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
         if not import_record:
             raise RecordNotFound("import_record not found")
@@ -288,7 +288,7 @@ class AppImportService(object):
         if import_record.status != "success":
             if status == "success":
                 logger.debug("app import success !")
-                self.__save_enterprise_import_info(import_record, body["bean"]["metadata"])
+                self.__save_enterprise_import_info(import_record, body["bean"]["metadata"], arch)
                 import_record.source_dir = body["bean"]["source_dir"]
                 import_record.format = body["bean"]["format"]
                 import_record.status = "success"
@@ -427,7 +427,7 @@ class AppImportService(object):
 
         app_import_record_repo.delete_by_event_id(event_id)
 
-    def __save_enterprise_import_info(self, import_record, metadata):
+    def __save_enterprise_import_info(self, import_record, metadata, arch):
         rainbond_apps = []
         rainbond_app_versions = []
         metadata = json.loads(metadata)
@@ -441,8 +441,9 @@ class AppImportService(object):
             if annotations.get("describe", ""):
                 app_describe = annotations.pop("describe", "")
             app = rainbond_app_repo.get_rainbond_app_by_app_id(import_record.enterprise_id, app_template["group_key"])
-            arch_map = {a.get("arch"): 1 for a in apps}
-            arch = "&".join(list(arch_map.keys()))
+            if not arch:
+                arch_map = {a.get("arch", "amd64"): 1 for a in apps}
+                arch = "&".join(list(arch_map.keys()))
             # if app exists, update it
             if app:
                 app.scope = import_record.scope

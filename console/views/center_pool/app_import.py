@@ -122,9 +122,10 @@ class CenterAppImportView(JWTAuthApiView):
               paramType: path
         """
         sid = None
+        arch = request.GET.get("arch")
         try:
             sid = transaction.savepoint()
-            record, apps_status = import_service.get_and_update_import_by_event_id(event_id)
+            record, apps_status = import_service.get_and_update_import_by_event_id(event_id, arch)
             transaction.savepoint_commit(sid)
             result = general_message(200, 'success', "查询成功", bean=record.to_dict(), list=apps_status)
         except Exception as e:
