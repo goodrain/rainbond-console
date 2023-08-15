@@ -553,17 +553,6 @@ class EnterpriseInfoView(RegionTenantHeaderView):
         except region_api.CallApiError as e:
             logger.warning("数据中心{0}不可达,无法获取相关信息: {1}".format(self.response_region.region_name, e.message))
         ent["is_enterprise"] = is_ent
-        regions = region_repo.get_regions_by_enterprise_id(self.enterprise.enterprise_id, 1)
-        default_region = {}
-        if os.getenv("ENABLE_CLUSTER") == "true" and not regions:
-            region = region_services.create_default_region(self.enterprise.enterprise_id, request.user)
-            if region:
-                ent["disable_install_cluster_log"] = True
-                _, total = team_services.get_enterprise_teams(self.enterprise.enterprise_id)
-                if total == 0:
-                    region_services.create_sample_application(enter, region, request.user)
-            default_region = region.to_dict()
-        ent["default_region"] = default_region
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
