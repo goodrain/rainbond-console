@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+import os
 import time
 
 from django.http import StreamingHttpResponse, FileResponse
@@ -72,6 +73,17 @@ class EnterpriseRUDView(JWTAuthApiView):
         enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
         ent = enter.to_dict()
         if ent:
+            regions = region_repo.get_regions_by_enterprise_id(self.enterprise.enterprise_id, 1)
+            default_region = {}
+            if os.getenv("ENABLE_CLUSTER") == "true" and not regions:
+                region = region_services.create_default_region(self.enterprise.enterprise_id, request.user)
+                if region:
+                    ent["disable_install_cluster_log"] = True
+                    _, total = team_services.get_enterprise_teams(self.enterprise.enterprise_id)
+                    if total == 0:
+                        region_services.create_sample_application(enter, region, request.user)
+                default_region = region.to_dict()
+            ent["default_region"] = default_region
             ent.update(EnterpriseConfigService(enterprise_id).initialization_or_get_config)
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
