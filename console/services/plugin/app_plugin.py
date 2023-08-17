@@ -369,7 +369,7 @@ class AppPluginService(object):
             self.__create_service_monitor(tenant, service, plugin_name, user)
 
         # component graphs
-        self.__create_component_graphs(service.service_id, plugin_name)
+        self.__create_component_graphs(service.service_id, plugin_name, service.arch)
 
     @staticmethod
     def __create_service_monitor(tenant, service, plugin_name, user=None):
@@ -389,9 +389,9 @@ class AppPluginService(object):
             logger.debug(e)
 
     @staticmethod
-    def __create_component_graphs(component_id, plugin_name):
+    def __create_component_graphs(component_id, plugin_name, arch):
         try:
-            component_graph_service.create_internal_graphs(component_id, plugin_name)
+            component_graph_service.create_internal_graphs(component_id, plugin_name, arch)
         except ErrInternalGraphsNotFound as e:
             logger.warning("plugin name '{}': {}", plugin_name, e)
 
