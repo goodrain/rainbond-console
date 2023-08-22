@@ -278,6 +278,42 @@ class AppImportService(object):
         import_record.status = "importing"
         import_record.save()
 
+    def openapi_deploy_import_apps(self, region, scope, event_id, file_names, team_name=None, enterprise_id=None):
+        service_image = app_store.get_app_hub_info(enterprise_id=enterprise_id)
+        data = {"service_image": service_image, "event_id": event_id, "apps": file_names}
+        if scope == "enterprise":
+            region_api.import_app_2_enterprise(region, enterprise_id, data)
+        else:
+            region_api.import_app(region, team_name, data)
+
+    def get_helm_yaml_info(self,
+                           region_name,
+                           tenant,
+                           event_id,
+                           file_name,
+                           region_app_id,
+                           name,
+                           version,
+                           enterprise_id=None,
+                           region_id=None):
+        data = {
+            "event_id": event_id,
+            "file_name": file_name,
+            "namespace": tenant.namespace,
+            "name": name,
+            "version": version,
+        }
+        res, body = region_api.get_yaml_by_chart(region_name, enterprise_id, data)
+        yaml_resource_detailed_data = {
+            "event_id": "",
+            "region_app_id": region_app_id,
+            "tenant_id": tenant.tenant_id,
+            "namespace": tenant.namespace,
+            "yaml": body["bean"]["yaml"]
+        }
+        _, body = region_api.yaml_resource_detailed(enterprise_id, region_id, yaml_resource_detailed_data)
+        return body["bean"]
+
     def get_and_update_import_by_event_id(self, event_id, arch):
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
         if not import_record:
@@ -323,6 +359,34 @@ class AppImportService(object):
             import_record.save()
 
         return import_record, apps_status
+
+    def openapi_deploy_app_get_import_by_event_id(self, event_id):
+        import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
+        if not import_record:
+            raise RecordNotFound("import_record not found")
+        # get import status from region
+        res, body = region_api.get_enterprise_app_import_status(import_record.region, import_record.enterprise_id, event_id)
+        metadata = []
+        status = body["bean"]["status"]
+        if import_record.status != "success":
+            if status == "success":
+                logger.debug("app import success !")
+                import_record.scope = "enterprise"
+                self.__save_enterprise_import_info(import_record, body["bean"]["metadata"])
+                import_record.source_dir = body["bean"]["source_dir"]
+                import_record.format = body["bean"]["format"]
+                import_record.status = "success"
+                import_record.save()
+                metadata = json.loads(body["bean"]["metadata"])
+                # 成功以后删除数据中心目录数据
+                try:
+                    region_api.delete_enterprise_import_file_dir(import_record.region, import_record.enterprise_id, event_id)
+                except Exception as e:
+                    logger.exception(e)
+            else:
+                import_record.status = status
+                import_record.save()
+        return import_record, metadata
 
     def get_and_update_import_status(self, tenant, region, event_id):
         """获取并更新导入状态"""
