@@ -255,6 +255,30 @@ class HelmAppService(object):
         _, body = region_api.get_chart_information(region, tenant_name, repo_chart)
         return body["bean"]
 
+    def parse_cmd_add_repo(self,command):
+        result = dict()
+        repo_add_pattern = r'^helm\s+repo\s+add\s+(?P<repo_name>\S+)\s+(?P<repo_url>\S+)(?:\s+--username\s+' \
+                           r'(?P<username>\S+))?(?:\s+--password\s+(?P<password>\S+))?$'
+        repo_add_match = re.match(repo_add_pattern, command)
+        if repo_add_match:
+            result['command'] = 'repo_add'
+            repo_name = repo_add_match.group('repo_name')
+            repo_url = repo_add_match.group('repo_url')
+            username = repo_add_match.group('username') if repo_add_match.group('username') else ""
+            password = repo_add_match.group('password') if repo_add_match.group('password') else ""
+            repo = helm_repo.get_helm_repo_by_name(repo_name)
+            if not repo:
+                logger.info("create helm repo {}".format(repo_name))
+                self.add_helm_repo(repo_name, repo_url, username, password)
+                return repo_name
+            else:
+                # 有一种情况，仓库名被占用了，但是url不同。
+                repo = helm_repo.get_helm_repo_by_url(repo_url)
+                if repo:
+                    return repo_name
+                else:
+                    raise AbortRequest("helm repo is exist", "仓库名称已被占用，请更改仓库名称", status_code=404, error_code=404)
+
     def parse_helm_command(self, command, region_name, tenant):
         result = dict()
         repo_add_pattern = r'^helm\s+repo\s+add\s+(?P<repo_name>\S+)\s+(?P<repo_url>\S+)(?:\s+--username\s+' \

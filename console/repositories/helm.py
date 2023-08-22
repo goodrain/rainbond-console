@@ -17,6 +17,12 @@ class HelmRepo(object):
             return None
         return perms[0].to_dict()
 
+    def get_helm_repo_by_url(self, url):
+        perms = HelmRepoInfo.objects.filter(repo_url=url)
+        if not perms:
+            return None
+        return perms[0].to_dict()
+
     def update_helm_repo(self, repo_name, repo_url):
         perms = HelmRepoInfo.objects.filter(repo_name=repo_name)
         if not perms:
