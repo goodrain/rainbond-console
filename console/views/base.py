@@ -537,6 +537,7 @@ def custom_exception_handler(exc, context):
     elif isinstance(exc, BusinessException):
         return exc.get_response()
     elif isinstance(exc, ImportError):
+        # print(exc.msg)
         # 处理数据为标准返回格式
         data = {
             "code": status.HTTP_400_BAD_REQUEST,

@@ -154,9 +154,9 @@ class HelmRepoAdd(RegionTenantHeaderView):
         """
         command = request.data.get("command")
 
-        repo_name, repo_url, username, password,status = helm_app_service.parse_cmd_add_repo(command)
+        repo_name, repo_url, username, password,success = helm_app_service.parse_cmd_add_repo(command)
         data = {
-            "status":status,
+            "status":success,
             "repo_name":repo_name,
             "repo_url":repo_url,
             "username":username,
