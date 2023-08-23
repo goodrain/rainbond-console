@@ -372,7 +372,7 @@ class AppImportService(object):
             if status == "success":
                 logger.debug("app import success !")
                 import_record.scope = "enterprise"
-                self.__save_enterprise_import_info(import_record, body["bean"]["metadata"])
+                self.__save_enterprise_import_info(import_record, body["bean"]["metadata"], "")
                 import_record.source_dir = body["bean"]["source_dir"]
                 import_record.format = body["bean"]["format"]
                 import_record.status = "success"

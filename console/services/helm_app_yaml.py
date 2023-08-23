@@ -362,7 +362,7 @@ class HelmAppService(object):
                 "enterprise_id": enterprise_id,
                 "details": ""
             }
-            helm_app_service.create_helm_center_app(**center_app)
+            RainbondCenterApp(**center_app).save()
             helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(enterprise_id, app_model_id)
         return helm_center_app
 
