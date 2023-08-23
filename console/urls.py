@@ -255,11 +255,8 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_app$', HelmAppView.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/chart/version$', HelmChart.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_command$', CommandInstallHelm.as_view()),
-
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_list$', HelmList.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_cmd_add$', HelmRepoAdd.as_view()),
-
-
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_center_app$', HelmCenterApp.as_view()),
 
     # 获取生成令牌

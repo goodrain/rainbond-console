@@ -31,8 +31,7 @@ class HelmAppService(object):
         logger.info("begin create_helm_center_app")
         return RainbondCenterApp(**kwargs).save()
 
-    def generate_template(self, cvdata, app_model, version, tenant, chart, region_name, enterprise_id, user_id,
-                          overrides,
+    def generate_template(self, cvdata, app_model, version, tenant, chart, region_name, enterprise_id, user_id, overrides,
                           app_id):
         res, body = region_api.get_cluster_nodes_arch(region_name)
         chaos_arch = list(set(body.get("list")))
@@ -214,8 +213,7 @@ class HelmAppService(object):
         app_version.region_name = region_name
         app_version.save()
 
-    def yaml_conversion(self, name, repo_name, chart_name, version, overrides, region, tenant_name, tenant, eid,
-                        region_id):
+    def yaml_conversion(self, name, repo_name, chart_name, version, overrides, region, tenant_name, tenant, eid, region_id):
         check_helm_app_data = helm_repo.get_helm_repo_by_name(repo_name)
         if not check_helm_app_data:
             check_helm_app_data = dict()
@@ -279,8 +277,7 @@ class HelmAppService(object):
             if repo:
                 return repo_name, repo_url, username, password, False
             else:
-                raise AbortRequest("helm repo is exist", "仓库名称已被占用，请更改仓库名称", status_code=409,
-                                   error_code=409)
+                raise AbortRequest("helm repo is exist", "仓库名称已被占用，请更改仓库名称", status_code=409, error_code=409)
 
     def parse_helm_command(self, command, region_name, tenant):
         result = dict()
@@ -330,17 +327,14 @@ class HelmAppService(object):
                 chart_name = chart.split("/")[1]
             else:
                 raise AbortRequest(
-                    "repo_name/chart_name incorrect format", "格式不正确，仓库名称和应用名称之间应用 '/' 划分",
-                    status_code=404, error_code=404)
+                    "repo_name/chart_name incorrect format", "格式不正确，仓库名称和应用名称之间应用 '/' 划分", status_code=404, error_code=404)
             repo = helm_repo.get_helm_repo_by_name(repo_name)
             if not repo:
-                raise AbortRequest("helm repo is not exist", "商店不存在，执行 helm repo add 进行添加", status_code=404,
-                                   error_code=404)
+                raise AbortRequest("helm repo is not exist", "商店不存在，执行 helm repo add 进行添加", status_code=404, error_code=404)
             repo_url = repo.get("repo_url")
             chart_data = self.get_helm_chart_information(region_name, tenant.tenant_name, repo_url, chart_name)
             if not version:
-                logger.warning(
-                    "version is not obtained from the command.use the highest version of {}".format(chart_name))
+                logger.warning("version is not obtained from the command.use the highest version of {}".format(chart_name))
                 version = chart_data[0]["Version"]
             result["release_name"] = release_name
             result["chart"] = chart

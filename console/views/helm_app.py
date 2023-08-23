@@ -42,8 +42,7 @@ class HelmAppView(RegionTenantHeaderView):
         overrides_list = list()
         for key, value in overrides.items():
             overrides_list.append(key + "=" + value)
-        cvdata = helm_app_service.yaml_conversion(name, repo_name, chart_name, version, overrides_list,
-                                                  self.region_name,
+        cvdata = helm_app_service.yaml_conversion(name, repo_name, chart_name, version, overrides_list, self.region_name,
                                                   self.tenant_name, self.tenant, self.enterprise.enterprise_id,
                                                   self.region.region_id)
         helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(self.enterprise.enterprise_id, app_model_id)
@@ -104,8 +103,7 @@ class HelmChart(RegionTenantHeaderView):
             ret["repo_exist"] = False
             result = general_message(200, "success", "查询成功", bean=ret)
             return Response(result, status=status.HTTP_200_OK)
-        chart_information = helm_app_service.get_helm_chart_information(self.region_name, self.tenant_name,
-                                                                        data["repo_url"],
+        chart_information = helm_app_service.get_helm_chart_information(self.region_name, self.tenant_name, data["repo_url"],
                                                                         chart_name)
         app = rainbond_app_repo.get_app_helm_overrides(app_id, make_uuid3(repo_name + "/" + chart_name)).last()
         overrides_dict = dict()
@@ -155,13 +153,7 @@ class HelmRepoAdd(RegionTenantHeaderView):
         command = request.data.get("command")
 
         repo_name, repo_url, username, password, success = helm_app_service.parse_cmd_add_repo(command)
-        data = {
-            "status": success,
-            "repo_name": repo_name,
-            "repo_url": repo_url,
-            "username": username,
-            "password": password
-        }
+        data = {"status": success, "repo_name": repo_name, "repo_url": repo_url, "username": username, "password": password}
         result = general_message(200, "success", "添加成功", bean=data)
 
         return Response(result, status=status.HTTP_200_OK)
