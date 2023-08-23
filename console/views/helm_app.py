@@ -7,6 +7,7 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.share_repo import share_repo
 from console.services.helm_app_yaml import helm_app_service
 from console.views.base import RegionTenantHeaderView, JWTAuthApiView
+from www.models.main import HelmRepoInfo
 from www.utils.crypt import make_uuid3
 from www.utils.return_message import general_message
 from rest_framework.response import Response
@@ -134,6 +135,30 @@ class CommandInstallHelm(RegionTenantHeaderView):
         return Response(result, status=status.HTTP_200_OK)
 
 
+class HelmList(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        """
+        查询本地已经有的helm商店
+        """
+        data = HelmRepoInfo.objects.all().values()
+        result = general_message(200, "success", "查询成功", list=data)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class HelmRepoAdd(RegionTenantHeaderView):
+    def post(self, request, *args, **kwargs):
+        """
+        根据cmd 命令行 增加helm仓库
+        """
+        command = request.data.get("command")
+
+        repo_name, repo_url, username, password, success = helm_app_service.parse_cmd_add_repo(command)
+        data = {"status": success, "repo_name": repo_name, "repo_url": repo_url, "username": username, "password": password}
+        result = general_message(200, "success", "添加成功", bean=data)
+
+        return Response(result, status=status.HTTP_200_OK)
+
+
 class HelmRepo(JWTAuthApiView):
     def post(self, request, *args, **kwargs):
         """
@@ -144,7 +169,7 @@ class HelmRepo(JWTAuthApiView):
         username = request.data.get("username", "")
         password = request.data.get("password", "")
         if helm_repo.get_helm_repo_by_name(repo_name):
-            result = general_message(200, "success", "添加成功", "")
+            result = general_message(200, "success", "仓库已存在", "")
             return Response(result, status=status.HTTP_200_OK)
         helm_app_service.add_helm_repo(repo_name, repo_url, username, password)
         result = general_message(200, "success", "添加成功", "")

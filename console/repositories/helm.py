@@ -6,23 +6,29 @@ class HelmRepo(object):
         return HelmRepoInfo.objects.create(**params)
 
     def delete_helm_repo(self, repo_name):
-        perms = HelmRepoInfo.objects.filter(repo_name=repo_name)
-        if not perms:
+        data = HelmRepoInfo.objects.filter(repo_name=repo_name)
+        if not data:
             return None
-        return perms.delete()
+        return data.delete()
 
     def get_helm_repo_by_name(self, repo_name):
-        perms = HelmRepoInfo.objects.filter(repo_name=repo_name)
-        if not perms:
+        data = HelmRepoInfo.objects.filter(repo_name=repo_name)
+        if not data:
             return None
-        return perms[0].to_dict()
+        return data[0].to_dict()
+
+    def get_helm_repo_by_url(self, url):
+        data = HelmRepoInfo.objects.filter(repo_url=url)
+        if not data:
+            return None
+        return data[0].to_dict()
 
     def update_helm_repo(self, repo_name, repo_url):
-        perms = HelmRepoInfo.objects.filter(repo_name=repo_name)
-        if not perms:
+        data = HelmRepoInfo.objects.filter(repo_name=repo_name)
+        if not data:
             return None
-        perms[0].repo_url = repo_url
-        perms[0].save()
+        data[0].repo_url = repo_url
+        data[0].save()
 
 
 helm_repo = HelmRepo()
