@@ -10,7 +10,8 @@ from drf_yasg.views import get_schema_view
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
-from openapi.views.apps.apps import ListAppsView
+from openapi.views.apps.apps import ListAppsView, AppModelImportEvent, AppTarballDirView, \
+    AppImportView, AppDeployView, AppChartInfo, DeleteApp
 from openapi.views.enterprise_view import EnterpriseConfigView
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
@@ -65,6 +66,23 @@ urlpatterns = [
 
     # grctl
     url(r'^v1/grctl/ip$', ReplaceRegionIP.as_view()),
+
+    # 应用部署
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/deploy$', AppDeployView.as_view()),
+    # 创建应用导入记录
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import$', AppModelImportEvent.as_view()),
+    # 应用包目录查询
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)/dir$',
+        AppTarballDirView.as_view()),
+    # 应用包生成本地组件库模版
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)$',
+        AppImportView.as_view(), perms.CenterAppImportView),
+    # 获取chart包信息
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)/chart$',
+        AppChartInfo.as_view()),
+    # 删除应用及所有资源
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/delete$',
+        DeleteApp.as_view()),
 ]
 if os.environ.get("OPENAPI_V2") == "true":
     urlpatterns += [url(r'^v2', include('openapi.v2.urls'))]

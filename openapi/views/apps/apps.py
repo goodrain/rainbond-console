@@ -1,23 +1,39 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import base64
+import json
 import logging
 import os
 import pickle
+import time
+
+from django.db import transaction
 
 from console.constants import PluginCategoryConstants
 from console.exception.bcode import ErrK8sComponentNameExists, ErrComponentBuildFailed
-from console.exception.main import ServiceHandleException, AccountOverdueException
+from console.exception.main import ServiceHandleException, AccountOverdueException, RegionNotFound, AbortRequest
 from console.repositories import deploy_repo
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo
+from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.region_app import region_app_repo
+from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app import app_service as console_app_service
 from console.services.app_actions import app_manage_service, event_service
-from console.services.app_config import domain_service, port_service
+from console.services.app_check_service import app_check_service
+from console.services.app_config import (dependency_service, port_service, domain_service, volume_service)
 from console.services.app_config.env_service import AppEnvVarService
+from console.services.app_config_group import app_config_group_service
+from console.services.app_import_and_export_service import import_service
+from console.services.compose_service import compose_service
 from console.services.group_service import group_service
+from console.services.k8s_resource import k8s_resource_service
+from console.services.market_app_service import market_app_service
 from console.services.plugin import app_plugin_service
+from console.services.region_services import region_services
 from console.services.service_services import base_service
+from console.services.helm_app_yaml import helm_app_service
+from console.services.upgrade_services import upgrade_service
 from console.utils.validation import validate_endpoints_info
 from django.forms.models import model_to_dict
 from drf_yasg import openapi
@@ -27,7 +43,7 @@ from openapi.serializer.app_serializer import (
     AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentBuildReqSerializers,
     ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers, CreateThirdComponentResponseSerializer,
     CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
-    TeamAppsCloseSerializers)
+    TeamAppsCloseSerializers, DeployAppSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
@@ -37,7 +53,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
-from www.utils.return_message import general_message
+from www.utils.return_message import general_message, error_message
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -656,3 +672,397 @@ class ComponentBuildView(TeamAppServiceAPIView):
         serializers = ComponentEventSerializers(data={"event_id": event_id})
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)
+
+
+class AppModelImportEvent(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="创建应用导入记录",
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+        # 查询导入记录，如果有未完成的记录返回未完成的记录，如果没有，创建新的导入记录
+        unfinished_records = import_service.get_user_not_finish_import_record_in_enterprise(
+            self.enterprise.enterprise_id, self.user)
+        new = False
+        r = None
+        if unfinished_records:
+            r = unfinished_records[len(unfinished_records) - 1]
+            region = region_services.get_region_by_region_name(r.region)
+            if not region:
+                logger.warning("not found region for old import recoder")
+                new = True
+        else:
+            new = True
+        if new:
+            try:
+                r = import_service.create_app_import_record_2_enterprise(self.enterprise.enterprise_id, self.user.nick_name)
+            except RegionNotFound:
+                return Response(general_message(200, "success", "查询成功", bean={"region_name": ''}), status=200)
+        upload_url = import_service.get_upload_url(r.region, r.event_id)
+        region = region_services.get_region_by_region_name(r.region)
+        data = {
+            "status": r.status,
+            "source_dir": r.source_dir,
+            "event_id": r.event_id,
+            "upload_url": upload_url,
+            "region_name": region.region_alias if region else '',
+        }
+        return Response(general_message(200, "success", "查询成功", bean=data), status=200)
+
+
+class AppTarballDirView(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="应用包目录查询",
+        tags=['openapi-apps'],
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        查询应用包目录
+        """
+        event_id = kwargs.get("event_id", None)
+        if not event_id:
+            return Response(general_message(400, "event id is null", "请指明需要查询的event id"), status=400)
+
+        apps = import_service.get_import_app_dir(event_id)
+        result = general_message(200, "success", "查询成功", list=apps)
+        return Response(result, status=result["code"])
+
+    def post(self, request, *args, **kwargs):
+        """
+        批量导入时创建一个目录
+        """
+        import_record = import_service.create_import_app_dir(self.team, self.user, self.region_name)
+
+        result = general_message(200, "success", "查询成功", bean=import_record.to_dict())
+        return Response(result, status=result["code"])
+
+    def delete(self, request, *args, **kwargs):
+        """
+        删除导入
+        """
+        event_id = request.GET.get("event_id", None)
+        if not event_id:
+            return Response(general_message(400, "event id is null", "请指明需要查询的event id"), status=400)
+
+        import_record = import_service.delete_import_app_dir(self, self.region_name)
+
+        result = general_message(200, "success", "查询成功", bean=import_record.to_dict())
+        return Response(result, status=result["code"])
+
+
+class AppImportView(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="应用导入",
+        tags=['openapi-apps'],
+    )
+    def post(self, request, event_id, *args, **kwargs):
+        """
+        导入应用包
+        """
+        file_name = request.data.get("file_name", None)
+        team_name = request.data.get("tenant_name", None)
+        if not file_name:
+            raise AbortRequest(msg="file name is null", msg_show="请选择要导入的文件")
+        if not event_id:
+            raise AbortRequest(msg="event is not found", msg_show="参数错误，未提供事件ID")
+        files = file_name.split(",")
+        import_service.start_import_apps("enterprise", event_id, files, team_name, self.enterprise.enterprise_id)
+        result = general_message(200, 'success', "操作成功，正在导入")
+        return Response(result, status=result["code"])
+
+    def get(self, request, event_id, *args, **kwargs):
+        """
+        查询应用包导入状态
+        """
+        sid = None
+        try:
+            sid = transaction.savepoint()
+            record, metadata = import_service.openapi_deploy_app_get_import_by_event_id(event_id)
+            transaction.savepoint_commit(sid)
+            result = general_message(200, 'success', "查询成功", bean=record.to_dict(), list=metadata)
+        except Exception as e:
+            if sid:
+                transaction.savepoint_rollback(sid)
+            raise e
+        return Response(result, status=result["code"])
+
+    def delete(self, request, event_id, *args, **kwargs):
+        """
+        放弃导入
+        """
+        try:
+            import_service.delete_import_app_dir_by_event_id(event_id)
+            result = general_message(200, "success", "操作成功")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e)
+        return Response(result, status=result["code"])
+
+
+class AppDeployView(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="部署应用, ram or docker-compose",
+        request_body=DeployAppSerializer(),
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+        serializer_data = DeployAppSerializer(data=request.data)
+        serializer_data.is_valid(raise_exception=True)
+        req_date = serializer_data.data
+        if req_date["deploy_type"] == "ram":
+            if req_date["action"] == "deploy":
+                # 走安装模版的逻辑
+                app_version = req_date["group_version"]
+                app_key = req_date["group_key"]
+                market_app_service.install_app(
+                    self.team,
+                    self.region,
+                    self.user,
+                    req_date["app_id"],
+                    app_key,
+                    app_version,
+                    "",
+                    False,
+                    is_deploy=True,
+                    dry_run=False)
+                return Response(general_message(200, "success", "安装应用成功"), status=200)
+            elif req_date["action"] == "upgrade":
+                # 走更新的逻辑
+                try:
+                    group = group_service.get_app_by_id(
+                        tenant=self.team, region=self.region.region_name, app_id=req_date["app_id"])
+                    apps = market_app_service.get_market_apps_in_app(self.region_name, self.team, group)
+                    app_enable_upgrade_map = {app["app_model_id"]: app["can_upgrade"] for app in apps}
+                    app_upgrade_group_id_map = {app["app_model_id"]: app["upgrade_group_id"] for app in apps}
+
+                    app_version = req_date["group_version"]
+                    app_key = req_date["group_key"]
+                    enable_upgrade = app_enable_upgrade_map[app_key]
+                    app_upgrade_group_id = app_upgrade_group_id_map[app_key]
+                    if enable_upgrade:
+                        # 升级
+                        rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=app_key, version=app_version)
+                        ram_model_info = json.loads(rainbond_app.app_template)
+                        component_keys = [cpt["service_key"] for cpt in ram_model_info["apps"]]
+                        record = upgrade_service.create_upgrade_record(self.user.enterprise_id, self.team, group,
+                                                                       app_upgrade_group_id)
+                        app_upgrade_record = upgrade_repo.get_by_record_id(record["ID"])
+                        record, _ = upgrade_service.upgrade(
+                            self.team,
+                            self.region,
+                            self.user,
+                            group,
+                            app_version,
+                            app_upgrade_record,
+                            component_keys,
+                        )
+                    else:
+                        return Response(general_message(404, "failed", "没有可升级的版本"), status=404)
+                except ServiceHandleException as e:
+                    if e.status_code != 404:
+                        raise e
+                return Response(general_message(200, "success", "升级应用成功"), status=200)
+            else:
+                return Response(general_message(400, "params error", "暂不支持当前操作:{}".format(req_date["action"])), status=400)
+        if req_date["deploy_type"] == "docker-compose":
+            group_name = request.data.get("group_name", None)
+            k8s_app = request.data.get("k8s_app", None)
+            hub_user = request.data.get("user_name", "")
+            hub_pass = request.data.get("password", "")
+            yaml_content = request.data.get("yaml_content", "")
+            group_note = request.data.get("group_note", "")
+            if group_note and len(group_note) > 2048:
+                return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
+            if not group_name:
+                return Response(general_message(400, 'params error', "请指明需要创建的compose组名"), status=400)
+            if not yaml_content:
+                return Response(general_message(400, "params error", "未指明yaml内容"), status=400)
+            # Parsing yaml determines whether the input is illegal
+            code, msg, json_data = compose_service.yaml_to_json(yaml_content)
+            if code != 200:
+                return Response(general_message(code, "parse yaml error", msg), status=code)
+            # 创建组
+            group_info = group_service.create_app(
+                self.team, self.region_name, group_name, group_note, self.user.get_username(), k8s_app=k8s_app)
+            code, msg, group_compose = compose_service.create_group_compose(self.team, self.region_name, group_info["group_id"],
+                                                                            yaml_content, hub_user, hub_pass)
+            if code != 200:
+                return Response(general_message(code, "create group compose error", msg), status=code)
+            # 检测
+            code, msg, compose_bean = compose_service.check_compose(self.region_name, self.team, group_compose.compose_id)
+            # 获取检测结果
+            compose_id = group_compose.compose_id
+            while True:
+                sid = None
+                try:
+                    group_compose = compose_service.get_group_compose_by_compose_id(compose_id)
+                    code, msg, data = app_check_service.get_service_check_info(self.team, self.region_name,
+                                                                               compose_bean["check_uuid"])
+                    logger.debug("start save compose info ! {0}".format(group_compose.create_status))
+                    save_code, save_msg, service_list = compose_service.save_compose_services(
+                        self.team, self.user, self.region_name, group_compose, data)
+                    if save_code != 200:
+                        data["check_status"] = "failure"
+                        return Response(general_message(code, "check docker compose error", msg), status=code)
+                    else:
+                        transaction.savepoint_commit(sid)
+                except Exception as e:
+                    logger.exception(e)
+                    return Response(general_message(10410, "resource is not enough", e), status=412)
+                if data["check_status"] != "checking":
+                    break
+                time.sleep(2)
+            # build
+            services = None
+            try:
+                group_compose = compose_service.get_group_compose_by_compose_id(compose_id)
+                services = compose_service.get_compose_services(compose_id)
+                # 数据中心创建组件
+                new_app_list = []
+                for service in services:
+                    new_service = console_app_service.create_region_service(self.team, service, self.user.nick_name)
+                    new_app_list.append(new_service)
+                group_compose.create_status = "complete"
+                group_compose.save()
+                for s in new_app_list:
+                    try:
+                        app_manage_service.deploy(self.team, s, self.user, oauth_instance=None)
+                    except Exception as e:
+                        logger.exception(e)
+                        continue
+            except Exception as e:
+                logger.exception(e)
+                if services:
+                    for service in services:
+                        event_service.delete_service_events(service)
+                        port_service.delete_region_port(self.team, service)
+                        volume_service.delete_region_volumes(self.team, service)
+                        env_var_service.delete_region_env(self.team, service)
+                        dependency_service.delete_region_dependency(self.team, service)
+                        app_manage_service.delete_region_service(self.team, service)
+                        service.create_status = "checked"
+                        service.save()
+                raise e
+            return Response(general_message(200, "success", "docker compose 部署成功"), status=200)
+        else:
+            return Response(general_message(400, "params error", "暂不支持当前操作:{}".format(req_date["deploy_type"])), status=400)
+
+
+class AppChartInfo(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="chart包部署应用",
+        tags=['openapi-apps'],
+    )
+    def post(self, request, event_id, *args, **kwargs):
+        """
+        chart包部署应用
+        """
+        group_id = request.data.get("app_id", None)
+        name = request.data.get("name", None)
+        version = request.data.get("version", None)
+        file_name = "{}-{}.tgz".format(name, version)
+        action = request.data.get("action", None)
+        if not group_id:
+            return Response(general_message(400, "params error", "缺少应用id"), status=400)
+        if not name:
+            return Response(general_message(400, 'params error', "缺少chart包名称"), status=400)
+        if not version:
+            return Response(general_message(400, "params error", "缺少chart包版本"), status=400)
+        if not action:
+            return Response(general_message(400, "params error", "请指定操作方式，deploy or upgrade"), status=400)
+
+        try:
+            region_app_id = region_app_repo.get_region_app_id(self.region_name, group_id)
+
+            cvdata = import_service.get_helm_yaml_info(self.region_name, self.team, event_id, file_name, region_app_id, name,
+                                                       version, self.enterprise.enterprise_id, self.region.region_id)
+            if not cvdata["convert_resource"]:
+                return Response(general_message(400, "failed", "解析失败，没有找到{}".format(file_name)), status=200)
+
+            helm_center_app = helm_app_service.create_center_app_by_chart(self.enterprise.enterprise_id, name)
+
+            helm_app_service.generate_template(cvdata, helm_center_app, version, self.team, name, self.region_name,
+                                               self.enterprise.enterprise_id, self.user.user_id, "", group_id)
+            helm_app_service.parse_chart_record(event_id)
+        except Exception as e:
+            logger.error(e)
+            raise e
+
+        if action == "deploy":
+            # 安装应用
+            market_app_service.install_app(
+                self.team,
+                self.region,
+                self.user,
+                group_id,
+                helm_center_app.app_id,
+                version,
+                "",
+                False,
+                is_deploy=True,
+                dry_run=False)
+            return Response(general_message(200, "success", "安装应用成功"), status=200)
+        elif action == "upgrade":
+            # 更新应用
+            try:
+                group = group_service.get_app_by_id(tenant=self.team, region=self.region.region_name, app_id=group_id)
+                apps = market_app_service.get_market_apps_in_app(self.region_name, self.team, group)
+                app_enable_upgrade_map = {app["app_model_id"]: app["can_upgrade"] for app in apps}
+                app_upgrade_group_id_map = {app["app_model_id"]: app["upgrade_group_id"] for app in apps}
+
+                app_version = version
+                app_key = helm_center_app.app_id
+                enable_upgrade = app_enable_upgrade_map[app_key]
+                app_upgrade_group_id = app_upgrade_group_id_map[app_key]
+                if enable_upgrade:
+                    # 升级
+                    rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_version(group_key=app_key, version=app_version)
+                    ram_model_info = json.loads(rainbond_app.app_template)
+                    component_keys = [cpt["service_key"] for cpt in ram_model_info["apps"]]
+                    record = upgrade_service.create_upgrade_record(self.user.enterprise_id, self.team, group,
+                                                                   app_upgrade_group_id)
+                    app_upgrade_record = upgrade_repo.get_by_record_id(record["ID"])
+                    record, _ = upgrade_service.upgrade(
+                        self.team,
+                        self.region,
+                        self.user,
+                        group,
+                        app_version,
+                        app_upgrade_record,
+                        component_keys,
+                    )
+                else:
+                    return Response(general_message(404, "failed", "没有可升级的版本"), status=404)
+            except ServiceHandleException as e:
+                if e.status_code != 404:
+                    raise e
+            return Response(general_message(200, "success", "更新应用成功"), status=200)
+        else:
+            return Response(general_message(400, "params error", "暂不支持当前操作:{}".format(action)), status=400)
+
+
+class DeleteApp(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="一键删除应用",
+        tags=['openapi-apps'],
+    )
+    def delete(self, request, app_id, *args, **kwargs):
+        """
+        删除应用及所有资源
+        """
+        # delete services
+        group_service.batch_delete_app_services(self.user, self.team.tenant_id, self.region_name, app_id)
+        # delete k8s resource
+        k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
+        resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
+        k8s_resource_service.batch_delete_k8s_resource(self.user.enterprise_id, self.team.tenant_name, str(app_id),
+                                                       self.region_name, resource_ids)
+        # delete configs
+        app_config_group_service.batch_delete_config_group(self.region_name, self.team.tenant_name, app_id)
+        # delete records
+        group_service.delete_app_share_records(self.team.tenant_name, app_id)
+        # delete app
+        app = group_service.get_app_by_id(self.team, self.region_name, app_id)
+        group_service.delete_app(self.team, self.region_name, app)
+        result = general_message(200, "success", "删除成功")
+        return Response(result, status=result["code"])
