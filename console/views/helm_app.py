@@ -154,18 +154,15 @@ class HelmRepoAdd(RegionTenantHeaderView):
         """
         command = request.data.get("command")
 
-        repo_name, repo_url, username, password,success = helm_app_service.parse_cmd_add_repo(command)
+        repo_name, repo_url, username, password, success = helm_app_service.parse_cmd_add_repo(command)
         data = {
-            "status":success,
-            "repo_name":repo_name,
-            "repo_url":repo_url,
-            "username":username,
-           "password": password
+            "status": success,
+            "repo_name": repo_name,
+            "repo_url": repo_url,
+            "username": username,
+            "password": password
         }
-        if repo_name:
-            result = general_message(200, "success", "添加成功", bean=data)
-        else:
-            result = general_message(200, "success", "仓库已经存在")
+        result = general_message(200, "success", "添加成功", bean=data)
 
         return Response(result, status=status.HTTP_200_OK)
 

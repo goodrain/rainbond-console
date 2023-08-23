@@ -256,9 +256,7 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/chart/version$', HelmChart.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_command$', CommandInstallHelm.as_view()),
 
-    # GET 请求
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_list$', HelmList.as_view()),
-    # POST {"app_id":8,"command":"helm repo add appstore111 https://charts.grapps.cn"}
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_cmd_add$', HelmRepoAdd.as_view()),
 
 
