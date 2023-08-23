@@ -42,7 +42,7 @@ class ComponentGraphService(object):
         graphs, _ = self._load_internal_graphs()
         return graphs
 
-    def create_internal_graphs(self, component_id, graph_name):
+    def create_internal_graphs(self, component_id, graph_name, component_arch):
         _, internal_graphs = self._load_internal_graphs()
         if not internal_graphs or not internal_graphs.get(graph_name):
             raise ErrInternalGraphsNotFound
@@ -57,7 +57,7 @@ class ComponentGraphService(object):
                 pass
 
             try:
-                promql = promql_service.add_or_update_label(component_id, graph["promql"])
+                promql = promql_service.add_or_update_label(component_id, graph["promql"], component_arch)
             except AbortRequest as e:
                 logger.warning("promql {}: {}".format(graph["promql"], e))
                 continue
@@ -74,8 +74,8 @@ class ComponentGraphService(object):
         ComponentGraph.objects.bulk_create(graphs)
 
     @transaction.atomic
-    def create_component_graph(self, component_id, title, promql):
-        promql = promql_service.add_or_update_label(component_id, promql)
+    def create_component_graph(self, component_id, title, promql, component_arch):
+        promql = promql_service.add_or_update_label(component_id, promql, component_arch)
         graph_id = make_uuid()
         sequence = self._next_sequence(component_id)
         if sequence > 10000:
@@ -108,10 +108,10 @@ class ComponentGraphService(object):
         return component_graph_repo.delete_by_component_id(component_id)
 
     @transaction.atomic()
-    def update_component_graph(self, graph, title, promql, sequence):
+    def update_component_graph(self, graph, title, promql, sequence, arch):
         data = {
             "title": title,
-            "promql": promql_service.add_or_update_label(graph.component_id, promql),
+            "promql": promql_service.add_or_update_label(graph.component_id, promql, arch),
         }
         if sequence != graph.sequence:
             data["sequence"] = sequence
@@ -119,7 +119,7 @@ class ComponentGraphService(object):
         component_graph_repo.update(graph.component_id, graph.graph_id, **data)
         return component_graph_repo.get(graph.component_id, graph.graph_id).to_dict()
 
-    def bulk_create(self, component_id, graphs):
+    def bulk_create(self, component_id, graphs, arch):
         if not graphs:
             return
         cgs = []
@@ -131,7 +131,7 @@ class ComponentGraphService(object):
                 pass
 
             try:
-                promql = promql_service.add_or_update_label(component_id, graph.get("promql"))
+                promql = promql_service.add_or_update_label(component_id, graph.get("promql"), arch)
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue

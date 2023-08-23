@@ -59,7 +59,7 @@ class AppMonitorQueryView(AppBaseView):
         try:
             query = request.GET.get("query", "")
             if "service_id" not in query:
-                query = promql_service.add_or_update_label(self.service.service_id, query)
+                query = promql_service.add_or_update_label(self.service.service_id, query, self.service.arch)
             sufix = "?" + get_sufix_path(request, query)
             res, body = region_api.get_query_data(self.service.service_region, self.tenant.tenant_name, sufix)
             result = general_message(200, "success", "查询成功", bean=body["data"])
@@ -91,7 +91,7 @@ class AppMonitorQueryRangeView(AppBaseView):
             query = request.GET.get("query", "")
             disable_auto_label = request.GET.get("disable_auto_label", "false")
             if "service_id" not in query and disable_auto_label == "false":
-                query = promql_service.add_or_update_label(self.service.service_id, query)
+                query = promql_service.add_or_update_label(self.service.service_id, query, self.service.arch)
             sufix = "?" + get_sufix_path(request, query)
             res, body = region_api.get_query_range_data(self.service.service_region, self.tenant.tenant_name, sufix)
             result = general_message(200, "success", "查询成功", bean=body["data"])

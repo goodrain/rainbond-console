@@ -354,6 +354,7 @@ class PackageCreateView(RegionTenantHeaderView):
         event_id = request.data.get("event_id")
         service_cname = request.data.get("service_cname", None)
         k8s_component_name = request.data.get("k8s_component_name", "")
+        arch = request.data.get("arch", "amd64")
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             raise ErrK8sComponentNameExists
         try:
@@ -361,7 +362,7 @@ class PackageCreateView(RegionTenantHeaderView):
             pkg_create_time = pkg_record.create_time
             # 创建信息
             ts = app_service.create_package_upload_info(region, self.tenant, self.user, service_cname, k8s_component_name,
-                                                        event_id, pkg_create_time)
+                                                        event_id, pkg_create_time, arch)
             # 更新状态
             update_record = {
                 "status": "finished",

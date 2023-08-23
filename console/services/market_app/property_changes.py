@@ -130,7 +130,7 @@ class PropertyChanges(object):
             result["plugin_deps"] = plugin_deps
 
         component_graphs = self._graphs(component.component.component_id, component.graphs,
-                                        component_tmpl.get("component_graphs", []))
+                                        component_tmpl.get("component_graphs", []), component.component.arch)
         if component_graphs:
             result["component_graphs"] = component_graphs
 
@@ -291,7 +291,7 @@ class PropertyChanges(object):
         return result
 
     @staticmethod
-    def _graphs(component_id, old_graphs, graphs):
+    def _graphs(component_id, old_graphs, graphs, arch):
         """
         Support adding and updating promql
         """
@@ -308,8 +308,8 @@ class PropertyChanges(object):
                 continue
 
             try:
-                old_promql = promql_service.add_or_update_label(component_id, old_graph.promql)
-                new_promql = promql_service.add_or_update_label(component_id, graph.get("promql"))
+                old_promql = promql_service.add_or_update_label(component_id, old_graph.promql, arch)
+                new_promql = promql_service.add_or_update_label(component_id, graph.get("promql"), arch)
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue

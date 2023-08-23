@@ -579,6 +579,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data), timeout=20)
         return res, body
 
+    def get_yaml_by_chart(self, region, tenant_name, data):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        url = uri_prefix + "/v2/helm/get_chart_yaml"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data), timeout=20)
+        return res, body
+
     def get_service_volumes_status(self, region, tenant_name, service_alias):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
@@ -1563,7 +1570,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def delete_service_build_version(self, region, tenant_name, service_alias, version_id):
+    def delete_service_build_version(self, region, tenant_name, service_alias, version_id, body):
         """删除组件的某次构建版本"""
 
         url, token = self.__get_region_access_info(tenant_name, region)
@@ -1572,7 +1579,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             + service_alias + "/build-version/" + version_id
 
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def get_service_build_version_by_id(self, region, tenant_name, service_alias, version_id):

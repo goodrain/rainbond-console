@@ -23,6 +23,9 @@ ENTERPRISE = {
             # what is What is 10000 and 20000?
             ["", "", 100000],
             ["", "", 200000],
+            ["users", "企业用户查询和创建", 800003],
+            ["query", "用户模糊查询", 800002],
+            ["upload", "上传", 800001],
         ]
     },
     "app_store": {
@@ -38,21 +41,6 @@ ENTERPRISE = {
             ["delete_app_store", "删除应用商店", 110008],
             ["edit_app_version", "编辑应用版本", 110009],
             ["delete_app_version", "删除应用版本", 110010],
-        ]
-    },
-    "upload_file": {
-        "perms": [
-            ["upload", "上传", 800001],
-        ]
-    },
-    "fuzzy_query_user": {
-        "perms": [
-            ["query", "用户模糊查询", 800002],
-        ]
-    },
-    "enterprise_users": {
-        "perms": [
-            ["users", "企业用户查询和创建", 800003],
         ]
     },
 }

@@ -278,7 +278,43 @@ class AppImportService(object):
         import_record.status = "importing"
         import_record.save()
 
-    def get_and_update_import_by_event_id(self, event_id):
+    def openapi_deploy_import_apps(self, region, scope, event_id, file_names, team_name=None, enterprise_id=None):
+        service_image = app_store.get_app_hub_info(enterprise_id=enterprise_id)
+        data = {"service_image": service_image, "event_id": event_id, "apps": file_names}
+        if scope == "enterprise":
+            region_api.import_app_2_enterprise(region, enterprise_id, data)
+        else:
+            region_api.import_app(region, team_name, data)
+
+    def get_helm_yaml_info(self,
+                           region_name,
+                           tenant,
+                           event_id,
+                           file_name,
+                           region_app_id,
+                           name,
+                           version,
+                           enterprise_id=None,
+                           region_id=None):
+        data = {
+            "event_id": event_id,
+            "file_name": file_name,
+            "namespace": tenant.namespace,
+            "name": name,
+            "version": version,
+        }
+        res, body = region_api.get_yaml_by_chart(region_name, enterprise_id, data)
+        yaml_resource_detailed_data = {
+            "event_id": "",
+            "region_app_id": region_app_id,
+            "tenant_id": tenant.tenant_id,
+            "namespace": tenant.namespace,
+            "yaml": body["bean"]["yaml"]
+        }
+        _, body = region_api.yaml_resource_detailed(enterprise_id, region_id, yaml_resource_detailed_data)
+        return body["bean"]
+
+    def get_and_update_import_by_event_id(self, event_id, arch):
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
         if not import_record:
             raise RecordNotFound("import_record not found")
@@ -288,7 +324,7 @@ class AppImportService(object):
         if import_record.status != "success":
             if status == "success":
                 logger.debug("app import success !")
-                self.__save_enterprise_import_info(import_record, body["bean"]["metadata"])
+                self.__save_enterprise_import_info(import_record, body["bean"]["metadata"], arch)
                 import_record.source_dir = body["bean"]["source_dir"]
                 import_record.format = body["bean"]["format"]
                 import_record.status = "success"
@@ -323,6 +359,34 @@ class AppImportService(object):
             import_record.save()
 
         return import_record, apps_status
+
+    def openapi_deploy_app_get_import_by_event_id(self, event_id):
+        import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
+        if not import_record:
+            raise RecordNotFound("import_record not found")
+        # get import status from region
+        res, body = region_api.get_enterprise_app_import_status(import_record.region, import_record.enterprise_id, event_id)
+        metadata = []
+        status = body["bean"]["status"]
+        if import_record.status != "success":
+            if status == "success":
+                logger.debug("app import success !")
+                import_record.scope = "enterprise"
+                self.__save_enterprise_import_info(import_record, body["bean"]["metadata"], "")
+                import_record.source_dir = body["bean"]["source_dir"]
+                import_record.format = body["bean"]["format"]
+                import_record.status = "success"
+                import_record.save()
+                metadata = json.loads(body["bean"]["metadata"])
+                # 成功以后删除数据中心目录数据
+                try:
+                    region_api.delete_enterprise_import_file_dir(import_record.region, import_record.enterprise_id, event_id)
+                except Exception as e:
+                    logger.exception(e)
+            else:
+                import_record.status = status
+                import_record.save()
+        return import_record, metadata
 
     def get_and_update_import_status(self, tenant, region, event_id):
         """获取并更新导入状态"""
@@ -427,7 +491,7 @@ class AppImportService(object):
 
         app_import_record_repo.delete_by_event_id(event_id)
 
-    def __save_enterprise_import_info(self, import_record, metadata):
+    def __save_enterprise_import_info(self, import_record, metadata, arch):
         rainbond_apps = []
         rainbond_app_versions = []
         metadata = json.loads(metadata)
@@ -437,13 +501,18 @@ class AppImportService(object):
         for app_template in metadata:
             annotations = app_template.get("annotations", {})
             app_describe = app_template.pop("describe", "")
+            apps = app_template.get("apps")
             if annotations.get("describe", ""):
                 app_describe = annotations.pop("describe", "")
             app = rainbond_app_repo.get_rainbond_app_by_app_id(import_record.enterprise_id, app_template["group_key"])
+            if not arch:
+                arch_map = {a.get("arch", "amd64"): 1 for a in apps}
+                arch = "&".join(list(arch_map.keys()))
             # if app exists, update it
             if app:
                 app.scope = import_record.scope
                 app.describe = app_describe
+                app.arch = app.arch if arch in app.arch.split(",") else app.arch + "," + arch
                 app.save()
                 app_version = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(
                     app.app_id, app_template["group_version"])
@@ -460,10 +529,11 @@ class AppImportService(object):
                     app_version.template_version = app_template["template_version"]
                     app_version.app_version_info = version_info,
                     app_version.version_alias = version_alias,
+                    app_version.arch = arch
                     app_version.save()
                 else:
                     # create a new version
-                    rainbond_app_versions.append(self.create_app_version(app, import_record, app_template))
+                    rainbond_app_versions.append(self.create_app_version(app, import_record, app_template, arch))
             else:
                 image_base64_string = app_template.pop("image_base64_string", "")
                 if annotations.get("image_base64_string"):
@@ -487,15 +557,15 @@ class AppImportService(object):
                     scope=import_record.scope,
                     describe=app_describe,
                     pic=pic_url,
-                )
+                    arch=arch)
                 rainbond_apps.append(rainbond_app)
                 # create a new app version
-                rainbond_app_versions.append(self.create_app_version(rainbond_app, import_record, app_template))
+                rainbond_app_versions.append(self.create_app_version(rainbond_app, import_record, app_template, arch))
         rainbond_app_repo.bulk_create_rainbond_app_versions(rainbond_app_versions)
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 
     @staticmethod
-    def create_app_version(app, import_record, app_template):
+    def create_app_version(app, import_record, app_template, arch):
         version = RainbondCenterAppVersion(
             scope=import_record.scope,
             enterprise_id=import_record.enterprise_id,
@@ -508,6 +578,7 @@ class AppImportService(object):
             is_complete=1,
             app_version_info=app_template.get("annotations", {}).get("version_info", ""),
             version_alias=app_template.get("annotations", {}).get("version_alias", ""),
+            arch=arch,
         )
         if app_store.is_no_multiple_region_hub(import_record.enterprise_id):
             version.region_name = import_record.region

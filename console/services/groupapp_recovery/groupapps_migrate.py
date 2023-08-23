@@ -93,7 +93,7 @@ class GroupappsMigrateService(object):
 
     def __create_new_group_by_group_name(self, tenant, region, old_group_id):
         new_group_name = '_'.join(["备份应用", make_uuid()[-4:]])
-        app = group_service.create_app(tenant, region, new_group_name)
+        app = group_service.create_app(tenant, region, new_group_name, k8s_app="backup-" + make_uuid()[-4:])
         new_app = group_repo.get_group_by_id(app["ID"])
         return new_app
 
@@ -101,10 +101,11 @@ class GroupappsMigrateService(object):
         old_group = group_repo.get_group_by_id(old_group_id)
         if old_group:
             new_group_name = '_'.join([old_group.group_name, make_uuid()[-4:]])
+            k8s_app = old_group.k8s_app + "-" + make_uuid()[-4:]
         else:
             new_group_name = make_uuid()[:8]
-
-        app = group_service.create_app(tenant, region, new_group_name, "备份创建")
+            k8s_app = "backup-" + make_uuid()[-4:]
+        app = group_service.create_app(tenant, region, new_group_name, "备份创建", k8s_app=k8s_app)
         new_app = group_repo.get_group_by_id(app["ID"])
         return new_app
 
@@ -232,6 +233,8 @@ class GroupappsMigrateService(object):
     ):
         from console.services.groupcopy_service import groupapp_copy_service
         group = group_repo.get_group_by_id(group_id)
+        services = group_service.get_group_services(group_id)
+        tar_group_k8s_component_names = [service.k8s_component_name for service in services]
         apps = metadata["apps"]
 
         old_new_service_id_map = dict()
@@ -242,7 +245,11 @@ class GroupappsMigrateService(object):
             service_base_info = app["service_base"]
             new_service_id = changed_service_map[service_base_info["service_id"]]["ServiceID"]
             new_service_alias = changed_service_map[service_base_info["service_id"]]["ServiceAlias"]
-            ts = self.__init_app(app["service_base"], new_service_id, new_service_alias, user, migrate_region, migrate_tenant)
+            new_k8s_component_name = changed_service_map[service_base_info["service_id"]]["new_k8s_component_name"]
+            if new_k8s_component_name in tar_group_k8s_component_names:
+                new_k8s_component_name = "{}-{}".format(new_k8s_component_name, new_service_alias)
+            ts = self.__init_app(app["service_base"], new_service_id, new_service_alias, new_k8s_component_name, user,
+                                 migrate_region, migrate_tenant)
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)
             self.__save_port(migrate_region, migrate_tenant, ts, app["service_ports"], group.governance_mode,
@@ -324,7 +331,7 @@ class GroupappsMigrateService(object):
         self.__save_app_config_groups(
             metadata.get("app_config_group_info"), migrate_tenant, migrate_region, group_id, changed_service_map)
 
-    def __init_app(self, service_base_info, new_service_id, new_servie_alias, user, region, tenant):
+    def __init_app(self, service_base_info, new_service_id, new_servie_alias, new_k8s_component_name, user, region, tenant):
         service_base_info.pop("ID")
         ts = TenantServiceInfo(**service_base_info)
         if service_base_info["service_source"] == "third_party":
@@ -337,9 +344,7 @@ class GroupappsMigrateService(object):
         ts.tenant_id = tenant.tenant_id
         ts.create_status = "creating"
         ts.service_cname = ts.service_cname + "-copy"
-        ts.k8s_component_name = "{}-{}".format(
-            service_base_info["k8s_component_name"],
-            new_servie_alias) if service_base_info.get("k8s_component_name") else new_servie_alias
+        ts.k8s_component_name = new_k8s_component_name
         # compatible component type
         if ts.extend_method == "state":
             ts.extend_method = "state_multiple"
@@ -434,7 +439,7 @@ class GroupappsMigrateService(object):
                     body = port
                     body["k8s_service_name"] = k8s_service_name
                 if sync_flag and body:
-                    port_service.update_service_port(tenant, region_name, service.service_alias, body)
+                    port_service.update_service_port(tenant, region_name, service.service_alias, [body])
             new_port = TenantServicesPort(**port)
             new_port.service_id = service.service_id
             new_port.tenant_id = tenant.tenant_id

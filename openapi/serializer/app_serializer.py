@@ -254,3 +254,11 @@ class ComponentBuildReqSerializers(serializers.Serializer):
     repo_url = serializers.CharField(max_length=1024, required=False, allow_null=True, help_text="来源仓库服务地址，包括代码仓库、镜像仓库、OSS地址")
     username = serializers.CharField(max_length=255, required=False, allow_null=True, help_text="来源仓库服务账号")
     password = serializers.CharField(max_length=255, required=False, allow_null=True, help_text="来源仓库服务密码")
+
+
+class DeployAppSerializer(serializers.Serializer):
+    app_id = serializers.IntegerField(help_text="应用id", required=False)
+    deploy_type = serializers.CharField(max_length=255, required=True, help_text="部署类型，支持2种:docker-compose, ram")
+    action = serializers.CharField(max_length=255, required=True, help_text="操作类型，如:deploy, update")
+    group_key = serializers.CharField(max_length=128, required=False, help_text="生成模型的key")
+    group_version = serializers.CharField(max_length=128, required=False, help_text="生成模型的version")

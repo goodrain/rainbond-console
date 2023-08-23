@@ -32,6 +32,7 @@ from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
 from console.services.app_config import label_service
+from console.services.app_config.arch_service import arch_service
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 from console.services.app_config.service_monitor import service_monitor_repo
@@ -236,7 +237,8 @@ class AppService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def create_package_upload_info(self, region, tenant, user, service_cname, k8s_component_name, event_id, pkg_create_time):
+    def create_package_upload_info(self, region, tenant, user, service_cname, k8s_component_name, event_id, pkg_create_time,
+                                   arch):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
@@ -253,6 +255,7 @@ class AppService(object):
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         new_service.git_url = "/grdata/package_build/components/" + service_id + "/events/" + event_id
         new_service.code_version = pkg_create_time
+        new_service.arch = arch
         new_service.save()
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return ts
@@ -716,6 +719,7 @@ class AppService(object):
         # conponent install complete
         service.create_status = "complete"
         service.save()
+        arch_service.update_affinity_by_arch(service.arch, tenant, service.service_region, service)
         return service
 
     def __init_stream_rule_for_region(self, tenant, service, rule, user_name):

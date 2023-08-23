@@ -69,11 +69,15 @@ class GroupAppCopyService(object):
 
     def get_modify_group_metadata(self, old_team, old_region_name, tar_team, tar_region_name, group_id, service_ids, changes):
         total_memory, services_metadata = groupapp_backup_service.get_group_app_metadata(group_id, old_team, old_region_name)
+        old_services_map = {
+            app["service_base"]["service_id"]: app["service_base"]["k8s_component_name"]
+            for app in services_metadata["apps"]
+        }
         group_all_service_ids = [service["service_id"] for service in services_metadata["service_group_relation"]]
         if not service_ids:
             service_ids = group_all_service_ids
         remove_service_ids = list(set(service_ids) ^ set(group_all_service_ids))
-        change_services_map = self.change_services_map(service_ids)
+        change_services_map = self.change_services_map(service_ids, old_services_map)
         services_metadata = self.pop_services_metadata(old_team, old_region_name, tar_team, tar_region_name, services_metadata,
                                                        remove_service_ids, service_ids, change_services_map)
         services_metadata = self.change_services_metadata_info(services_metadata, changes)
@@ -191,15 +195,17 @@ class GroupAppCopyService(object):
     def save_new_group_app(self, user, tar_team, region_name, group_id, metadata, changed_service_map, same_team, same_region):
         migrate_service.save_data(tar_team, region_name, user, changed_service_map, metadata, group_id, same_team, same_region)
 
-    def change_services_map(self, service_ids):
+    def change_services_map(self, service_ids, old_services_map):
         change_services = {}
         for service_id in service_ids:
             new_service_id = make_uuid()
-            change_services.update(
-                {service_id: {
+            change_services.update({
+                service_id: {
                     "ServiceID": new_service_id,
-                    "ServiceAlias": app_service.create_service_alias(new_service_id)
-                }})
+                    "ServiceAlias": app_service.create_service_alias(new_service_id),
+                    "k8s_component_name": old_services_map[service_id]
+                }
+            })
         return change_services
 
     def new_services_and_copy_path(self, tar_team_name, region, change_services):

@@ -454,7 +454,7 @@ class MarketAppService(object):
         self.__create_component_monitor(tenant, ts, component_monitors)
         # component graphs
         component_graphs = app.get("component_graphs") if app.get("component_graphs") else []
-        component_graph_service.bulk_create(ts.service_id, component_graphs)
+        component_graph_service.bulk_create(ts.service_id, component_graphs, ts.arch)
         logger.debug("create component {0} take time {1}".format(ts.service_alias, datetime.datetime.now() - start))
         return ts
 

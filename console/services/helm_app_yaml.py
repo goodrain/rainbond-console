@@ -4,9 +4,10 @@ import logging
 import re
 import time
 
-from console.exception.main import AbortRequest
+from console.exception.main import AbortRequest, RecordNotFound
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion, AppHelmOverrides
 from console.repositories.helm import helm_repo
+from console.repositories.market_app_repo import app_import_record_repo, rainbond_app_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid3, make_uuid
 
@@ -27,9 +28,14 @@ class HelmAppService(object):
         res, body = region_api.check_helm_app(region, tenant_name, data)
         return res, body["bean"]
 
-    def create_helm_center_app(self, **kwargs):
+    def create_helm_center_app(self, center_app, region_name):
         logger.info("begin create_helm_center_app")
-        return RainbondCenterApp(**kwargs).save()
+        res, body = region_api.get_cluster_nodes_arch(region_name)
+        chaos_arch = list(set(body.get("list")))
+        logger.info("arch{}".format(chaos_arch))
+        arch = chaos_arch[0] if chaos_arch else "amd64"
+        center_app["arch"] = arch
+        return RainbondCenterApp(**center_app).save()
 
     def generate_template(self, cvdata, app_model, version, tenant, chart, region_name, enterprise_id, user_id, overrides,
                           app_id):
@@ -209,7 +215,8 @@ class HelmAppService(object):
             app_template=template,
             template_version="v2",
             enterprise_id=enterprise_id,
-            upgrade_time=time.time())
+            upgrade_time=time.time(),
+            arch=arch)
         app_version.region_name = region_name
         app_version.save()
 
@@ -344,6 +351,44 @@ class HelmAppService(object):
             result["chart_name"] = chart_name
             return result
         raise AbortRequest("helm command command mismatch", "命令解析失败，请检查命令", status_code=404, error_code=404)
+
+    def parse_chart_record(self, event_id):
+        import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
+        if not import_record:
+            raise RecordNotFound("import_record not found")
+
+        logger.debug("app import success !")
+        import_record.scope = "enterprise"
+        import_record.format = "helm-app"
+        import_record.status = "success"
+        import_record.save()
+        # 成功以后删除数据中心目录数据
+        try:
+            region_api.delete_enterprise_import_file_dir(import_record.region, import_record.enterprise_id, event_id)
+        except Exception as e:
+            logger.exception(e)
+
+        return import_record
+
+    def create_center_app_by_chart(self, enterprise_id, chart_name):
+        # 创建本地组件库模版
+        app_model_id = make_uuid3(chart_name)
+        helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(enterprise_id, app_model_id)
+        if not helm_center_app:
+            center_app = {
+                "app_id": app_model_id,
+                "app_name": chart_name,
+                "create_team": "",
+                "source": "helm",
+                "scope": "enterprise",
+                "pic": "",
+                "describe": "",
+                "enterprise_id": enterprise_id,
+                "details": ""
+            }
+            RainbondCenterApp(**center_app).save()
+            helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(enterprise_id, app_model_id)
+        return helm_center_app
 
 
 helm_app_service = HelmAppService()
