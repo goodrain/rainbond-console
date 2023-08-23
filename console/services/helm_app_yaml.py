@@ -270,12 +270,12 @@ class HelmAppService(object):
             if not repo:
                 logger.info("create helm repo {}".format(repo_name))
                 self.add_helm_repo(repo_name, repo_url, username, password)
-                return repo_name
+                return repo_name,repo_url,username,password
             else:
                 # 有一种情况，仓库名被占用了，但是url不同。
                 repo = helm_repo.get_helm_repo_by_url(repo_url)
                 if repo:
-                    return repo_name
+                    return repo_name,repo_url,username,password
                 else:
                     raise AbortRequest("helm repo is exist", "仓库名称已被占用，请更改仓库名称", status_code=404, error_code=404)
 
