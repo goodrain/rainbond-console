@@ -49,16 +49,6 @@ class RegisterForm(Form):
 
     password_repeat = forms.CharField(required=True, label='', widget=forms.PasswordInput, validators=[password_len])
 
-    captcha_code = forms.CharField(
-        required=True,
-        label='',
-    )
-
-    real_captcha_code = forms.CharField(
-        required=False,
-        label='',
-    )
-
     error_messages = {
         'nick_name_used': "该用户名已存在",
         'email_used': "邮件地址已被注册",
@@ -68,7 +58,6 @@ class RegisterForm(Form):
         'phone_empty': "手机号为空",
         'phone_captch_error': "手机验证码已失效",
         'phone_code_error': "手机验证码错误",
-        'captcha_code_error': "验证码有误",
         'machine_region_error': "请选择数据中心",
     }
 
@@ -77,8 +66,6 @@ class RegisterForm(Form):
         email = self.cleaned_data.get('email')
         password = self.cleaned_data.get('password')
         password_repeat = self.cleaned_data.get('password_repeat')
-        captcha_code = self.cleaned_data.get('captcha_code')
-        real_captcha_code = self.cleaned_data.get('real_captcha_code')
         phone = self.cleaned_data.get('phone')
 
         try:
@@ -113,8 +100,5 @@ class RegisterForm(Form):
                 self.error_messages['password_repeat'],
                 code='password_repeat',
             )
-
-        if real_captcha_code is None or captcha_code is None or real_captcha_code.lower() != captcha_code.lower():
-            raise forms.ValidationError(self.error_messages['captcha_code_error'], code='captcha_code_error')
 
         return self.cleaned_data

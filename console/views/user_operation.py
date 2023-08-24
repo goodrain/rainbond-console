@@ -114,8 +114,6 @@ class TenantServiceView(BaseApiView):
         try:
             import copy
             querydict = copy.copy(request.data)
-            captcha_code = request.session.get("captcha_code")
-            querydict.update({'real_captcha_code': captcha_code})
             client_ip = request.META.get("REMOTE_ADDR", None)
             register_form = RegisterForm(querydict)
 
