@@ -245,7 +245,7 @@ class GroupappsMigrateService(object):
             service_base_info = app["service_base"]
             new_service_id = changed_service_map[service_base_info["service_id"]]["ServiceID"]
             new_service_alias = changed_service_map[service_base_info["service_id"]]["ServiceAlias"]
-            new_k8s_component_name = changed_service_map[service_base_info["service_id"]]["new_k8s_component_name"]
+            new_k8s_component_name = changed_service_map[service_base_info["service_id"]]["k8s_component_name"]
             if new_k8s_component_name in tar_group_k8s_component_names:
                 new_k8s_component_name = "{}-{}".format(new_k8s_component_name, new_service_alias)
             ts = self.__init_app(app["service_base"], new_service_id, new_service_alias, new_k8s_component_name, user,
