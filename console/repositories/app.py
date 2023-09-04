@@ -456,7 +456,7 @@ class AppMarketRepository(object):
     def create_default_app_market_if_not_exists(self, markets_all, eid):
         access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY", "")
         domain = os.getenv("DEFAULT_APP_MARKET_DOMAIN", "rainbond")
-        url = os.getenv("DEFAULT_APP_MARKET_URL", "https://store.goodrain.com")
+        url = os.getenv("DEFAULT_APP_MARKET_URL", "https://hub.grapps.cn")
         name = os.getenv("DEFAULT_APP_MARKET_NAME", "RainbondMarket")
         markets = markets_all.filter(domain=domain, url=url)
 
