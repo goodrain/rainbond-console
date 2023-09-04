@@ -602,8 +602,11 @@ class GroupService(object):
             region_app_ids.append(region_app.region_app_id)
             app_id_rels[region_app.app_id] = region_app.region_app_id
         # Get the status of cluster application
-        resp = region_api.list_app_statuses_by_app_ids(tenant_name, region_name, {"app_ids": region_app_ids})
-        app_statuses = resp.get("list", [])
+        try:
+            resp = region_api.list_app_statuses_by_app_ids(tenant_name, region_name, {"app_ids": region_app_ids})
+            app_statuses = resp.get("list", [])
+        except Exception:
+            app_statuses = list()
         if not app_statuses:
             app_statuses = list()
         # The relationship between cluster application ID and state
