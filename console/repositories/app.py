@@ -462,6 +462,11 @@ class AppMarketRepository(object):
 
         if markets or os.getenv("DISABLE_DEFAULT_APP_MARKET", False):
             return
+        # Due to the default domain name change in the application market,
+        # a database unique index error will be triggered when created with name.
+        # For compatibility, so if there is an application market with the same name, no longer create
+        if markets_all.filter(name=name):
+            return
         AppMarket.objects.create(
             name=name,
             url=url,
