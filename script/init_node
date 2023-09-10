@@ -14,6 +14,13 @@ export CONSOLE=${CONSOLE:-false}
 os_type=$(cat /etc/os-release | grep "^ID=" | awk -F= '{print $2}' | tr -d [:punct:])
 os_version_id=$(cat /etc/os-release | grep "VERSION_ID=" | awk -F= '{print $2}' | tr -d [:punct:])
 
+function root_start() {
+    if [ "$EUID" -ne 0 ]; then
+      echo "Only root user can execute this script."
+      exit 1
+    fi
+}
+
 function install_docker() {
     if systemctl status docker | grep Active | grep -q running; then
         echo -e "${GREEN}[INFO] Docker has been installed on the host ${NC}"
@@ -23,14 +30,14 @@ function install_docker() {
 }
 
 function add_user_in_ubuntu() {
-    sudo useradd --create-home -s /bin/bash -g docker "$1"
-    echo "$1":"$2" | sudo chpasswd
+    useradd --create-home -s /bin/bash -g docker "$1"
+    echo "$1":"$2" | chpasswd
     echo -e "${GREEN}[INFO] User $1 has been created ${NC}"
 }
 
 function add_user_in_redhat() {
-    sudo adduser -g docker "$1"
-    echo "$1":"$2" | sudo chpasswd
+    adduser -g docker "$1"
+    echo "$1":"$2" | chpasswd
     echo -e "${GREEN}[INFO] User $1 has been created ${NC}"
 }
 
@@ -38,10 +45,10 @@ function add_user() {
     user=${DOCKER_USER:-"docker"}
     pass=${DOCKER_PASS:-'rbd-123465!'}
     
-    sudo groupadd --force docker
+    groupadd --force docker
 
     if id -u "$user" >/dev/null 2>&1; then
-        sudo gpasswd -a "$user" docker
+        gpasswd -a "$user" docker
         echo -e "${GREEN}[INFO] User $user already exists ${NC}"
     else
         case $os_type in
@@ -67,18 +74,18 @@ function add_ssh_rsa() {
     if id -u "$user" >/dev/null 2>&1; then
         if [ ! -d "/home/$1/.ssh" ]; then
             echo -e "${GREEN}[INFO] Create /home/$1/.ssh ${NC}"
-            sudo mkdir -p /home/"$1"/.ssh
+            mkdir -p /home/"$1"/.ssh
         fi
         if [ -f "/home/$1/.ssh/authorized_keys" ]; then
             echo -e "${GREEN}[INFO] /home/$1/.ssh/authorized_keys already exists ${NC}"
-            sudo chmod 777 /home/"$1"/.ssh/authorized_keys
+            chmod 777 /home/"$1"/.ssh/authorized_keys
             if ! < /home/"$1"/.ssh/authorized_keys grep -q "$SSH_RSA"; then
                 echo "$SSH_RSA" >> /home/"$1"/.ssh/authorized_keys
             fi
         else
             echo -e "${GREEN}[INFO] Create /home/$1/.ssh/authorized_keys ${NC}"
-            sudo touch /home/"$1"/.ssh/authorized_keys
-            sudo chmod 777 /home/"$1"/.ssh/authorized_keys
+            touch /home/"$1"/.ssh/authorized_keys
+            chmod 777 /home/"$1"/.ssh/authorized_keys
             echo "$SSH_RSA" > /home/"$1"/.ssh/authorized_keys
         fi
 
@@ -87,7 +94,7 @@ function add_ssh_rsa() {
         else
             echo -e "${RED}[ERROR] Add ssh public key to /home/$1/.ssh/authorized_keys failed ${NC}" && exit 1
         fi
-        sudo chmod 600 /home/"$1"/.ssh/authorized_keys
+        chmod 600 /home/"$1"/.ssh/authorized_keys
         chown -R "$1":"$1"  /home/"$1"/.ssh
     fi
 }
@@ -104,8 +111,8 @@ function check_user_permission(){
 
 function disable_firewalld() {
     if systemctl status firewalld | grep Active | grep -q running >/dev/null 2>&1; then
-        sudo systemctl stop firewalld >/dev/null 2>&1
-        sudo systemctl disable firewalld >/dev/null 2>&1
+        systemctl stop firewalld >/dev/null 2>&1
+        systemctl disable firewalld >/dev/null 2>&1
         echo -e "${GREEN}[INFO] firewalld has been disabled ${NC}"
     else
         echo -e "${GREEN}[INFO] firewalld service not installed ${NC}"
@@ -114,7 +121,7 @@ function disable_firewalld() {
 
 function disable_swap() {
     if swapoff -a; then
-        sudo sed -nr "s/(.*swap.*)/#\1/p" /etc/fstab
+        sed -nr "s/(.*swap.*)/#\1/p" /etc/fstab
         echo -e "${GREEN}[INFO] swap has been disabled ${NC}"
     fi    
 }
@@ -127,16 +134,16 @@ function time_sync() {
         if [ "$os_version_id" == "8" ]; then
             echo -e "${YELLOW}[WARN] $os_type $os_version_id please manually synchronize the time ${NC}"
         else
-            sudo yum install -y ntpdate;
-            sudo ntpdate time.pool.aliyun.com
+            yum install -y ntpdate;
+            ntpdate time.pool.aliyun.com
             echo -e "${GREEN}[INFO] Time synchronization is complete ${NC}"
         fi
-	;;
+  ;;
     ubuntu|debian)
-        sudo apt -q update && sudo apt install -y ntpdate;
-        sudo ntpdate time.pool.aliyun.com
+        apt -q update && apt install -y ntpdate;
+        ntpdate time.pool.aliyun.com
         echo -e "${GREEN}[INFO] Time synchronization is complete ${NC}"
-	;;
+  ;;
     *)
         echo -e "${RED}[ERROR] Does not support $os_type temporarily ${NC}" && exit 1
     ;;
@@ -199,11 +206,11 @@ function check_kernel() {
 function install_nfscli(){
     case $os_type in
     centos|redhat|euleros|fusionos|anolis)
-        sudo yum list installed nfs-utils | grep nfs || sudo yum install -y nfs-utils
+        yum list installed nfs-utils | grep nfs || yum install -y nfs-utils
         echo -e "${GREEN}[INFO] nfs-utils has been installed ${NC}"
     ;;
     ubuntu|debian)
-        sudo apt list --installed nfs-common | grep nfs || sudo apt install -y nfs-common
+        apt list --installed nfs-common | grep nfs || apt install -y nfs-common
         echo -e "${GREEN}[INFO] nfs-common has been installed ${NC}"
     ;;
     esac
@@ -213,7 +220,7 @@ function install_nfscli(){
 function check_openssh(){
 
     if ssh -V >/dev/null 2>&1; then
-      OPENSSH_VERSION=$(sudo ssh -V |& awk -F[_.] '{print $2}')
+      OPENSSH_VERSION=$(ssh -V |& awk -F[_.] '{print $2}')
       if [ "${OPENSSH_VERSION}" -lt "7" ];then
           echo -e "${RED}[ERROR] openssh version must be higher than 7.0 ${NC}" && exit 1
       fi
@@ -225,6 +232,8 @@ function check_openssh(){
 function init_syscfg(){
     curl -sfL https://get.rainbond.com/linux-optimize.sh | bash
 }
+#check root run
+root_start
 
 # disable firewalld
 disable_firewalld
