@@ -1647,9 +1647,8 @@ class MarketAppService(object):
                            tenant_id,
                            region_name,
                            is_deploy=False):
-        new_group = group_repo.get_or_create_default_group(tenant_id, region_name)
-        app = group_repo.get_group_by_id(new_group.ID)
-
+        apps = group_repo.list_tenant_group_on_region(tenant, region_name)
+        app = apps[0] if len(apps) > 0 else None
         if not app:
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
 
