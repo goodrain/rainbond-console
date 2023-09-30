@@ -20,6 +20,9 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 from www.apiclient.baseclient import HttpClient
 from www.utils.return_message import error_message, general_message
+from console.services.k8s_attribute import k8s_attribute_service
+from www.apiclient.regionapi import RegionInvokeApi
+region_api = RegionInvokeApi()
 
 logger = logging.getLogger("default")
 
@@ -46,6 +49,8 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
         """
         probe = None
         is_deploy = request.data.get("is_deploy", True)
+        # 获取需要被调度的边缘节点
+        edge_node = request.data.get("edge_node", None)
         try:
             if not check_memory_quota(self.oauth_instance, self.tenant.enterprise_id, self.service.min_memory,
                                       self.service.min_node):
@@ -61,6 +66,21 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
             self.service = new_service
             if is_deploy:
                 try:
+                    # 如果选择了边缘节点
+                    if edge_node:
+                        # 新增容忍
+                        attribute = {}
+                        attribute["save_type"]="yaml"
+                        attribute["name"]="tolerations"
+                        # 查询所选边缘节点的污点
+                        res, body = region_api.get_node_taints(self.region.region_name, edge_node)
+                        attribute["attribute_value"]="- key: \""+body["list"][0]["key"]+"\"         \n  operator: \"Equal\"   \n  value: \""+body["list"][0]["value"]+"\"      \n  effect: \""+body["list"][0]["effect"]+"\""
+                        k8s_attribute_service.create_k8s_attribute(self.tenant, self.service, self.region.region_name, attribute)
+                        # 新增nodeSelector
+                        attribute["save_type"]="json"
+                        attribute["name"]="nodeSelector"
+                        attribute["attribute_value"]=[{"key":"kubernetes.io/hostname","value":edge_node}]
+                        k8s_attribute_service.create_k8s_attribute(self.tenant, self.service, self.region.region_name, attribute)
                     arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)
                     app_manage_service.deploy(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
                 except ErrInsufficientResource as e:
