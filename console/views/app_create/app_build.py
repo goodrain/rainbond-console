@@ -70,16 +70,16 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                     if edge_node:
                         # 新增容忍
                         attribute = {}
-                        attribute["save_type"]="yaml"
-                        attribute["name"]="tolerations"
+                        attribute["save_type"] = "yaml"
+                        attribute["name"]  ="tolerations"
                         # 查询所选边缘节点的污点
                         res, body = region_api.get_node_taints(self.region.region_name, edge_node)
-                        attribute["attribute_value"]="- key: \""+body["list"][0]["key"]+"\"         \n  operator: \"Equal\"   \n  value: \""+body["list"][0]["value"]+"\"      \n  effect: \""+body["list"][0]["effect"]+"\""
+                        attribute["attribute_value"] = "- key: \"" + body["list"][0]["key"] + "\"         \n  operator: \"Equal\"   \n  value: \"" + body["list"][0]["value"]+"\"      \n  effect: \"" + body["list"][0]["effect"]+"\""
                         k8s_attribute_service.create_k8s_attribute(self.tenant, self.service, self.region.region_name, attribute)
                         # 新增nodeSelector
-                        attribute["save_type"]="json"
-                        attribute["name"]="nodeSelector"
-                        attribute["attribute_value"]=[{"key":"kubernetes.io/hostname","value":edge_node}]
+                        attribute["save_type"] = "json"
+                        attribute["name"] = "nodeSelector"
+                        attribute["attribute_value"] = [{"key":"kubernetes.io/hostname","value":edge_node}]
                         k8s_attribute_service.create_k8s_attribute(self.tenant, self.service, self.region.region_name, attribute)
                     arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)
                     app_manage_service.deploy(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
