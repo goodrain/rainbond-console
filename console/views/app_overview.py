@@ -13,10 +13,11 @@ from console.constants import AppConstants, PluginCategoryConstants
 from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
-from console.repositories.app_config import service_endpoints_repo
+from console.repositories.app_config import (port_repo,service_endpoints_repo)
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
+from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.services.app import app_service, package_upload_service
 from console.services.app_actions import ws_service
 from console.services.app_config import port_service
@@ -274,7 +275,18 @@ class ListAppPodsView(AppBaseView):
                     bean["pod_name"] = d["pod_name"]
                     bean["pod_status"] = d["pod_status"]
                     bean["manage_name"] = "manager"
-                    container = d["container"]
+                    # 查询组件是否设置了hostNetwork
+                    hostNetwork = k8s_attribute_repo.get_by_component_id_name(d["service_id"], "hostNetwork")
+                    if hostNetwork:
+                        data = region_api.pod_detail(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
+                                         d["pod_name"])
+                        bean["host_ip"] = data.bean["node_ip"]
+                    # 查询组件的容器端口
+                    tenant_service_ports = port_service.get_service_ports(self.service)
+                    if tenant_service_ports:
+                        port_info = tenant_service_ports[0]
+                        bean["container_port"] = port_info.container_port
+                    container = d["container"]  
                     container_list = []
                     for key, val in list(container.items()):
                         if key == "POD":
