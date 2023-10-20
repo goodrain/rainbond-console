@@ -4,15 +4,14 @@ ARG VERSION=V5.4-dev
 FROM rainbond/golang-gcc-buildstack:1.17-alpine3.16 as builder
 ARG ADAPTOR_BRANCH=v5.7.1-release
 ARG GOPROXY
-ARG GITPROXY
+ARG GITPROXY=https://ghproxy.com/
 ARG LDFLAGS="-w -s -linkmode external -extldflags '-static'"
 ARG ARCH=amd64
 
 # ENV GOPROXY=${GOPROXY}
+ENV GOPROXY https://goproxy.cn
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
-ENV GO111MODULE=on
-ENV GOPROXY=https://goproxy.io,direct
 
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
@@ -26,7 +25,7 @@ WORKDIR /go/src/goodrain.com/cloud-adaptor/
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor && upx --best --lzma /cloud-adaptor && chmod +x /cloud-adaptor
 
 # build ui
-FROM rainbond/rainbond-ui:xbh AS ui
+FROM 192.168.0.237:5000/rainbond/rainbond-ui:xbh AS ui
 
 ADD . /app/ui
 WORKDIR /app/ui
