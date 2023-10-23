@@ -45,8 +45,8 @@ WORKDIR /app/ui
 ENV PATH="/app/ui/py_venv/bin:$PATH"
 
 RUN python -m venv --copies /app/ui/py_venv && \
-    python -m pip install --upgrade pip && \
-    pip install -r requirements.txt $PYTHONPROXY -i https://pypi.tuna.tsinghua.edu.cn/simple/ && \
+    python -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip install -r requirements.txt $PYTHONPROXY -i https://pypi.tuna.tsinghua.edu.cn/simple && \
     python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework
 
 # build console image
