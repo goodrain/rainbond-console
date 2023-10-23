@@ -78,7 +78,7 @@ class AppPortView(AppBaseView):
                     pod_detail_data = region_api.pod_detail(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                                         pod_name)
                     hostnetwork_list.append(pod_detail_data["bean"]["node_ip"])
-                port_info["node_ip_list"] = hostnetwork_list
+                port_info["hostnetwork_list"] = hostnetwork_list
                 port_info["is_hostNetwork"] = True
                 port_info["protocol"] = "tcp"
             else:
