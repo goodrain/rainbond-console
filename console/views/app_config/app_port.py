@@ -3,12 +3,14 @@
   Created on 18/1/15.
 """
 import logging
+import json
 
 from console.exception.main import AbortRequest
 from console.repositories.app_config import port_repo
 from console.services.app_config import domain_service, port_service
 from console.utils.reqparse import parse_item
 from console.views.app_config.base import AppBaseView
+from console.services.k8s_attribute import k8s_attribute_service
 from console.repositories.k8s_attribute import k8s_attribute_repo
 from django.forms.models import model_to_dict
 from django.views.decorators.cache import never_cache
@@ -40,6 +42,8 @@ class AppPortView(AppBaseView):
         """
         tenant_service_ports = port_service.get_service_ports(self.service)
         port_list = []
+        # 判断是否edge组件
+        nodeSelector = k8s_attribute_service.get_by_component_ids_and_name(self.service.service_id, "nodeSelector")
         # 判断是否开启hostnetwork
         hostnetwork = k8s_attribute_repo.get_by_component_id_name(self.service.service_id, "hostNetwork")
         for port in tenant_service_ports:
@@ -67,6 +71,14 @@ class AppPortView(AppBaseView):
             if outer_service:
                 outer_url = "{0}:{1}".format(variables["outer_service"]["domain"], variables["outer_service"]["port"])
             port_info["outer_url"] = outer_url
+            if nodeSelector and "kubernetes.io/hostname" in nodeSelector[0].attribute_value:
+                res, body = region_api.get_node_taints(self.region.region_name, nodeSelector[0].attribute_value["kubernetes.io/hostname"])
+                if body["list"][0]["key"] == "node-role.kubernetes.io/edge" and body["list"][0]["value"] == "true":
+                    port_info["is_edge"] = True
+                else:
+                    port_info["is_edge"] = False
+            else:
+                port_info["is_edge"] = False
             if hostnetwork:
                 # 查询组件的宿主机IP
                 pod_data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
@@ -83,6 +95,7 @@ class AppPortView(AppBaseView):
                 port_info["protocol"] = "tcp"
             else:
                 port_info["is_hostNetwork"] = False
+            
             port_info["bind_domains"] = []
             bind_domains = domain_service.get_port_bind_domains(self.service, port.container_port)
             if bind_domains:
