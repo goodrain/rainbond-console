@@ -4,16 +4,13 @@ ARG VERSION=V5.4-dev
 FROM rainbond/golang-gcc-buildstack:1.17-alpine3.16 as builder
 ARG ADAPTOR_BRANCH=v5.7.1-release
 ARG GOPROXY
-ARG GITPROXY=https://ghproxy.com/
+ARG GITPROXY
 ARG LDFLAGS="-w -s -linkmode external -extldflags '-static'"
 ARG ARCH=amd64
 
-# ENV GOPROXY=${GOPROXY}
-ENV GOPROXY https://goproxy.cn
+ENV GOPROXY=${GOPROXY}
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
-
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
 RUN if [ ${ARCH} = "arm64" ] || [ ${ARCH} = "aarch64" ]; then \
         wget https://pkg.rainbond.com/upx/upx-4.0.2-arm64_linux/upx && chmod +x upx && mv upx /usr/local/bin/upx; \
@@ -25,7 +22,7 @@ WORKDIR /go/src/goodrain.com/cloud-adaptor/
 RUN go build -ldflags "$LDFLAGS" -o /cloud-adaptor $PWD/cmd/cloud-adaptor && upx --best --lzma /cloud-adaptor && chmod +x /cloud-adaptor
 
 # build ui
-FROM 192.168.0.237:5000/rainbond/rainbond-ui:xbh AS ui
+FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION} AS ui
 
 ADD . /app/ui
 WORKDIR /app/ui
@@ -45,8 +42,8 @@ WORKDIR /app/ui
 ENV PATH="/app/ui/py_venv/bin:$PATH"
 
 RUN python -m venv --copies /app/ui/py_venv && \
-    python -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple && \
-    pip install -r requirements.txt $PYTHONPROXY -i https://pypi.tuna.tsinghua.edu.cn/simple && \
+    python -m pip install --upgrade pip && \
+    pip install -r requirements.txt $PYTHONPROXY && \
     python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework
 
 # build console image

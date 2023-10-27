@@ -79,7 +79,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                         # 新增nodeSelector
                         attribute["save_type"] = "json"
                         attribute["name"] = "nodeSelector"
-                        attribute["attribute_value"] = [{"key":"kubernetes.io/hostname","value":edge_node}]
+                        attribute["attribute_value"] = [{"key" : "kubernetes.io/hostname", "value" : edge_node}]
                         k8s_attribute_service.create_k8s_attribute(self.tenant, self.service, self.region.region_name, attribute)
                     arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)
                     app_manage_service.deploy(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)

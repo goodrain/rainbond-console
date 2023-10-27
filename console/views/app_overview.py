@@ -13,7 +13,7 @@ from console.constants import AppConstants, PluginCategoryConstants
 from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
-from console.repositories.app_config import (port_repo,service_endpoints_repo)
+from console.repositories.app_config import (service_endpoints_repo)
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo

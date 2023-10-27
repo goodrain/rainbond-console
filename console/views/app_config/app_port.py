@@ -3,7 +3,6 @@
   Created on 18/1/15.
 """
 import logging
-import json
 
 from console.exception.main import AbortRequest
 from console.repositories.app_config import port_repo
@@ -95,7 +94,6 @@ class AppPortView(AppBaseView):
                 port_info["protocol"] = "tcp"
             else:
                 port_info["is_hostNetwork"] = False
-            
             port_info["bind_domains"] = []
             bind_domains = domain_service.get_port_bind_domains(self.service, port.container_port)
             if bind_domains:
