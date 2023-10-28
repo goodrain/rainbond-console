@@ -77,11 +77,9 @@ class AppPortView(AppBaseView):
                 # 查询组件的宿主机IP
                 new_pods = pod_data["bean"]["new_pods"]
                 hostnetwork_list = []
-                for pod in new_pods:
-                    pod_name = pod["pod_name"]
-                    pod_detail_data = region_api.pod_detail(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                                        pod_name)
-                    hostnetwork_list.append(pod_detail_data["bean"]["node_ip"])
+                for new_pod in new_pods:
+                    # hostNetwork 模式下 podIP = NodeIP
+                    hostnetwork_list.append(new_pod["pod_ip"])
                 port_info["hostnetwork_list"] = hostnetwork_list
                 port_info["is_hostNetwork"] = True
                 port_info["protocol"] = "tcp"
