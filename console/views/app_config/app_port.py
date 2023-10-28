@@ -41,10 +41,12 @@ class AppPortView(AppBaseView):
         """
         tenant_service_ports = port_service.get_service_ports(self.service)
         port_list = []
-        # 判断是否edge组件
-        nodeSelector = k8s_attribute_service.get_by_component_ids_and_name(self.service.service_id, "nodeSelector")
         # 判断是否开启hostnetwork
         hostnetwork = k8s_attribute_repo.get_by_component_id_name(self.service.service_id, "hostNetwork")
+        # 查询pod信息
+        if hostnetwork:
+            pod_data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
+                                           self.tenant.enterprise_id)
         for port in tenant_service_ports:
             port_info = port.to_dict()
             variables = port_service.get_port_variables(self.tenant, self.service, port)
@@ -70,18 +72,9 @@ class AppPortView(AppBaseView):
             if outer_service:
                 outer_url = "{0}:{1}".format(variables["outer_service"]["domain"], variables["outer_service"]["port"])
             port_info["outer_url"] = outer_url
-            if nodeSelector and "kubernetes.io/hostname" in nodeSelector[0].attribute_value:
-                res, body = region_api.get_node_taints(self.region.region_name, nodeSelector[0].attribute_value["kubernetes.io/hostname"])
-                if body["list"][0]["key"] == "node-role.kubernetes.io/edge" and body["list"][0]["value"] == "true":
-                    port_info["is_edge"] = True
-                else:
-                    port_info["is_edge"] = False
-            else:
-                port_info["is_edge"] = False
+            port_info["is_hostNetwork"] = False              
             if hostnetwork:
                 # 查询组件的宿主机IP
-                pod_data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                           self.tenant.enterprise_id)
                 new_pods = pod_data["bean"]["new_pods"]
                 hostnetwork_list = []
                 for pod in new_pods:
@@ -92,8 +85,6 @@ class AppPortView(AppBaseView):
                 port_info["hostnetwork_list"] = hostnetwork_list
                 port_info["is_hostNetwork"] = True
                 port_info["protocol"] = "tcp"
-            else:
-                port_info["is_hostNetwork"] = False
             port_info["bind_domains"] = []
             bind_domains = domain_service.get_port_bind_domains(self.service, port.container_port)
             if bind_domains:

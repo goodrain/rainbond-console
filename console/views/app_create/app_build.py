@@ -71,11 +71,16 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                         # 新增容忍
                         attribute = {}
                         attribute["save_type"] = "yaml"
-                        attribute["name"]  ="tolerations"
+                        attribute["name"]  = "tolerations"
+                        attribute["attribute_value"] = ""
                         # 查询所选边缘节点的污点
                         res, body = region_api.get_node_taints(self.region.region_name, edge_node)
-                        attribute["attribute_value"] = "- key: \"" + body["list"][0]["key"] + "\"         \n  operator: \"Equal\"   \n  value: \"" + body["list"][0]["value"]+"\"      \n  effect: \"" + body["list"][0]["effect"]+"\""
-                        k8s_attribute_service.create_k8s_attribute(self.tenant, self.service, self.region.region_name, attribute)
+                        # 容忍边缘节点的所有污点
+                        if body["list"]:
+                            for item in body["list"]:
+                                attribute["attribute_value"] += "- key: \"{}\"\n  operator: \"Equal\"\n  value: \"{}\"\n  effect: \"{}\"\n".format(item["key"], item["value"], item["effect"])
+                            attribute["attribute_value"] = attribute["attribute_value"].strip()
+                            k8s_attribute_service.create_k8s_attribute(self.tenant, self.service, self.region.region_name, attribute)
                         # 新增nodeSelector
                         attribute["save_type"] = "json"
                         attribute["name"] = "nodeSelector"
