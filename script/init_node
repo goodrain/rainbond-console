@@ -121,7 +121,7 @@ function disable_firewalld() {
 
 function disable_swap() {
     if swapoff -a; then
-        sed -nr "s/(.*swap.*)/#\1/p" /etc/fstab
+        sed -ri "s/(.*swap.*)/#\1/" /etc/fstab 
         echo -e "${GREEN}[INFO] swap has been disabled ${NC}"
     fi    
 }
