@@ -17,7 +17,6 @@ from console.repositories.app_config import service_endpoints_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
-from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.services.app import app_service, package_upload_service
 from console.services.app_actions import ws_service
 from console.services.app_config import port_service
@@ -275,7 +274,7 @@ class ListAppPodsView(AppBaseView):
                     bean["pod_name"] = d["pod_name"]
                     bean["pod_status"] = d["pod_status"]
                     bean["manage_name"] = "manager"
-                    container = d["container"]  
+                    container = d["container"]
                     container_list = []
                     for key, val in list(container.items()):
                         if key == "POD":
