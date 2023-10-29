@@ -23,7 +23,6 @@ region_api = RegionInvokeApi()
 
 
 class AppPortView(AppBaseView):
-
     @never_cache
     def get(self, request, *args, **kwargs):
         """
@@ -66,8 +65,7 @@ class AppPortView(AppBaseView):
                                                    self.tenant.enterprise_id)
         for port in tenant_service_ports:
             port_info = port.to_dict()
-            variables = port_service.get_port_variables(
-                self.tenant, self.service, port)
+            variables = port_service.get_port_variables(self.tenant, self.service, port)
             port_info["environment"] = variables["environment"]
             outer_url = ""
             inner_url = ""
@@ -88,9 +86,7 @@ class AppPortView(AppBaseView):
             port_info["inner_url"] = inner_url
             outer_service = variables.get("outer_service", None)
             if outer_service:
-                outer_url = "{0}:{1}".format(
-                    variables["outer_service"]["domain"],
-                    variables["outer_service"]["port"])
+                outer_url = "{0}:{1}".format(variables["outer_service"]["domain"], variables["outer_service"]["port"])
             port_info["outer_url"] = outer_url
             port_info["is_hostNetwork"] = False
             port_info["contains_es_hostnetwork"] = contains_es_hostnetwork
@@ -103,8 +99,7 @@ class AppPortView(AppBaseView):
                 port_info["is_hostNetwork"] = True
                 port_info["protocol"] = "tcp"
             port_info["bind_domains"] = []
-            bind_domains = domain_service.get_port_bind_domains(
-                self.service, port.container_port)
+            bind_domains = domain_service.get_port_bind_domains(self.service, port.container_port)
             if bind_domains:
                 for bind_domain in bind_domains:
                     if not bind_domain.domain_path:
@@ -117,9 +112,7 @@ class AppPortView(AppBaseView):
                 self.service, port.container_port)
 
             if bind_tcp_domains:
-                port_info["bind_tcp_domains"] = [
-                    domain.to_dict() for domain in bind_tcp_domains
-                ]
+                port_info["bind_tcp_domains"] = [domain.to_dict() for domain in bind_tcp_domains]
             else:
                 port_info["bind_tcp_domains"] = []
             port_list.append(port_info)
@@ -175,30 +168,22 @@ class AppPortView(AppBaseView):
         is_inner_service = request.data.get('is_inner_service', False)
         is_outer_service = request.data.get('is_outer_service', False)
         if not port:
-            return Response(general_message(400, "params error", "缺少端口参数"),
-                            status=400)
+            return Response(general_message(400, "params error", "缺少端口参数"), status=400)
         if not protocol:
-            return Response(general_message(400, "params error", "缺少协议参数"),
-                            status=400)
+            return Response(general_message(400, "params error", "缺少协议参数"), status=400)
         if not port_alias:
-            port_alias = self.service.service_alias.upper().replace(
-                "-", "_") + str(port)
+            port_alias = self.service.service_alias.upper().replace("-", "_") + str(port)
         code, msg, port_info = port_service.add_service_port(
             self.tenant, self.service, port, protocol, port_alias,
             is_inner_service, is_outer_service, None, self.user.nick_name)
         if code != 200:
-            return Response(general_message(code, "add port error", msg),
-                            status=code)
-
-        result = general_message(200,
-                                 "success",
-                                 "端口添加成功",
-                                 bean=model_to_dict(port_info))
+            return Response(general_message(code, "add port error", msg), status=code)
+          
+        result = general_message(200, "success", "端口添加成功", bean=model_to_dict(port_info))
         return Response(result, status=result["code"])
 
 
 class AppPortManageView(AppBaseView):
-
     @never_cache
     def get(self, request, *args, **kwargs):
         """
@@ -224,15 +209,11 @@ class AppPortManageView(AppBaseView):
         """
         container_port = kwargs.get("port", None)
         if not container_port:
-            return Response(general_message(400, "container_port not specify",
-                                            "端口变量名未指定"),
-                            status=400)
+            return Response(general_message(400, "container_port not specify", "端口变量名未指定"), status=400)
 
-        port_info = port_service.get_service_port_by_port(
-            self.service, int(container_port))
+        port_info = port_service.get_service_port_by_port(self.service, int(container_port))
 
-        variables = port_service.get_port_variables(self.tenant, self.service,
-                                                    port_info)
+        variables = port_service.get_port_variables(self.tenant, self.service, port_info)
         bean = {"port": model_to_dict(port_info)}
         bean.update(variables)
         result = general_message(200, "success", "查询成功", bean=bean)
@@ -267,10 +248,7 @@ class AppPortManageView(AppBaseView):
         data = port_service.delete_port_by_container_port(
             self.tenant, self.service, int(container_port),
             self.user.nick_name)
-        result = general_message(200,
-                                 "success",
-                                 "删除成功",
-                                 bean=model_to_dict(data))
+        result = general_message(200, "success", "删除成功", bean=model_to_dict(data))
         return Response(result, status=result["code"])
 
     @never_cache
@@ -319,34 +297,22 @@ class AppPortManageView(AppBaseView):
         if not container_port:
             raise AbortRequest("container_port not specify", "端口变量名未指定")
 
-        if self.service.service_source == "third_party" and ("outer"
-                                                             in action):
-            msg, msg_show, code = port_service.check_domain_thirdpart(
-                self.tenant, self.service)
+        if self.service.service_source == "third_party" and ("outer" in action):
+            msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, self.service)
             if code != 200:
                 logger.exception(msg, msg_show)
-                return Response(general_message(code, msg, msg_show),
-                                status=code)
+                return Response(general_message(code, msg, msg_show), status=code)
 
-        code, msg, data = port_service.manage_port(self.tenant, self.service,
-                                                   self.response_region,
-                                                   int(container_port), action,
-                                                   protocol, port_alias,
-                                                   k8s_service_name,
-                                                   self.user.nick_name)
+        code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port), action,
+                                                   protocol, port_alias, k8s_service_name, self.user.nick_name)
         if code != 200:
-            return Response(general_message(code, "change port fail", msg),
-                            status=code)
-        result = general_message(200,
-                                 "success",
-                                 "操作成功",
-                                 bean=model_to_dict(data))
+            return Response(general_message(code, "change port fail", msg), status=code)
+        result = general_message(200, "success", "操作成功", bean=model_to_dict(data))
 
         return Response(result, status=result["code"])
 
 
 class AppTcpOuterManageView(AppBaseView):
-
     @never_cache
     def get(self, request, *args, **kwargs):
         """
@@ -369,21 +335,16 @@ class AppTcpOuterManageView(AppBaseView):
               type: string
               paramType: path
         """
-        tcp_outer_ports = port_service.get_team_region_usable_tcp_ports(
-            self.tenant, self.service)
+        tcp_outer_ports = port_service.get_team_region_usable_tcp_ports(self.tenant, self.service)
 
         port_list = []
         for p in tcp_outer_ports:
-            port_list.append({
-                "service_id": p.service_id,
-                "lb_mpping_port": p.lb_mapping_port
-            })
+            port_list.append({"service_id": p.service_id, "lb_mpping_port": p.lb_mapping_port})
         result = general_message(200, "success", "查询成功", list=port_list)
         return Response(result, status=result["code"])
 
 
 class TopologicalPortView(AppBaseView):
-
     @never_cache
     def put(self, request, *args, **kwargs):
         """
@@ -398,84 +359,52 @@ class TopologicalPortView(AppBaseView):
         container_port = request.data.get("container_port", None)
         # 开启对外端口
         if open_outer:
-            tenant_service_port = port_service.get_service_port_by_port(
-                self.service, int(container_port))
+            tenant_service_port = port_service.get_service_port_by_port(self.service, int(container_port))
             if self.service.service_source == "third_party":
-                msg, msg_show, code = port_service.check_domain_thirdpart(
-                    self.tenant, self.service)
+                msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, self.service)
                 if code != 200:
                     logger.exception(msg, msg_show)
-                    return Response(general_message(code, msg, msg_show),
-                                    status=code)
-            code, msg, data = port_service.manage_port(
-                self.tenant, self.service, self.response_region,
-                int(container_port), "open_outer",
-                tenant_service_port.protocol, tenant_service_port.port_alias)
+                    return Response(general_message(code, msg, msg_show), status=code)
+            code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port),
+                                                       "open_outer", tenant_service_port.protocol,
+                                                       tenant_service_port.port_alias)
             if code != 200:
-                return Response(general_message(412, "open outer fail",
-                                                "打开对外端口失败"),
-                                status=412)
-            return Response(general_message(200, "open outer success", "开启成功"),
-                            status=200)
+                return Response(general_message(412, "open outer fail", "打开对外端口失败"), status=412)
+            return Response(general_message(200, "open outer success", "开启成功"), status=200)
         # 关闭该组件所有对外端口
         if close_outer:
             tenant_service_ports = port_service.get_service_ports(self.service)
             for tenant_service_port in tenant_service_ports:
-                code, msg, data = port_service.manage_port(
-                    self.tenant, self.service, self.response_region,
-                    tenant_service_port.container_port, "close_outer",
-                    tenant_service_port.protocol,
-                    tenant_service_port.port_alias)
+                code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region,
+                                                           tenant_service_port.container_port, "close_outer",
+                                                           tenant_service_port.protocol, tenant_service_port.port_alias)
                 if code != 200:
-                    return Response(general_message(412, "open outer fail",
-                                                    "关闭对外端口失败"),
-                                    status=412)
-            return Response(general_message(200, "close outer success",
-                                            "关闭对外端口成功"),
-                            status=200)
+                    return Response(general_message(412, "open outer fail", "关闭对外端口失败"), status=412)
+            return Response(general_message(200, "close outer success", "关闭对外端口成功"), status=200)
 
         # 校验要依赖的组件是否开启了对外端口
-        open_outer_services = port_repo.get_service_ports(
-            self.tenant.tenant_id,
-            self.service.service_id).filter(is_outer_service=True)
+        open_outer_services = port_repo.get_service_ports(self.tenant.tenant_id,
+                                                          self.service.service_id).filter(is_outer_service=True)
         if not open_outer_services:
             if self.service.service_source == "third_party":
-                msg, msg_show, code = port_service.check_domain_thirdpart(
-                    self.tenant, self.service)
+                msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, self.service)
                 if code != 200:
                     logger.exception(msg, msg_show)
-                    return Response(general_message(code, msg, msg_show),
-                                    status=code)
-            service_ports = port_repo.get_service_ports(
-                self.tenant.tenant_id, self.service.service_id)
-            port_list = [
-                service_port.container_port for service_port in service_ports
-            ]
+                    return Response(general_message(code, msg, msg_show), status=code)
+            service_ports = port_repo.get_service_ports(self.tenant.tenant_id, self.service.service_id)
+            port_list = [service_port.container_port for service_port in service_ports]
             if len(port_list) == 1:
                 # 一个端口直接开启
-                tenant_service_port = port_service.get_service_port_by_port(
-                    self.service, int(port_list[0]))
-                code, msg, data = port_service.manage_port(
-                    self.tenant, self.service, self.response_region,
-                    int(port_list[0]), "open_outer",
-                    tenant_service_port.protocol,
-                    tenant_service_port.port_alias)
+                tenant_service_port = port_service.get_service_port_by_port(self.service, int(port_list[0]))
+                code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(
+                    port_list[0]), "open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
                 if code != 200:
-                    return Response(general_message(412, "open outer fail",
-                                                    "打开对外端口失败"),
-                                    status=412)
-                return Response(general_message(200, "open outer success",
-                                                "开启成功"),
-                                status=200)
+                    return Response(general_message(412, "open outer fail", "打开对外端口失败"), status=412)
+                return Response(general_message(200, "open outer success", "开启成功"), status=200)
             else:
                 # 多个端口需要用户选择后开启
-                return Response(general_message(
-                    201,
-                    "the service does not open an external port",
-                    "该组件未开启对外端口",
-                    list=port_list),
-                                status=201)
+                return Response(
+                    general_message(201, "the service does not open an external port", "该组件未开启对外端口", list=port_list),
+                    status=201)
         else:
-            return Response(general_message(
-                202, "the service has an external port open", "该组件已开启对外端口"),
-                            status=200)
+            return Response(general_message(202, "the service has an external port open", "该组件已开启对外端口"), status=200)
