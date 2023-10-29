@@ -9,7 +9,6 @@ from console.repositories.app_config import port_repo
 from console.services.app_config import domain_service, port_service
 from console.utils.reqparse import parse_item
 from console.views.app_config.base import AppBaseView
-from console.services.k8s_attribute import k8s_attribute_service
 from console.repositories.k8s_attribute import k8s_attribute_repo
 from django.db import connection
 from django.forms.models import model_to_dict
