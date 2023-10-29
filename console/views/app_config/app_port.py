@@ -175,7 +175,6 @@ class AppPortView(AppBaseView):
         if code != 200:
             return Response(general_message(code, "add port error", msg), status=code)
 
-      
         result = general_message(200, "success", "端口添加成功", bean=model_to_dict(port_info))
         return Response(result, status=result["code"])
 
