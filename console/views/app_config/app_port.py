@@ -44,8 +44,8 @@ class AppPortView(AppBaseView):
         # 判断是否开启 hostNetwork
         contains_k8s_hostnetwork = k8s_attribute_repo.get_by_component_id_name(
             self.service.service_id, "hostNetwork")
-         # 判断是否配置环境变量 ES_HOSTNETWORK
-        contains_es_hostnetwork = service_repo.check_env_by_attr(self.service.tenant_id,
+        # 判断是否配置环境变量 ES_HOSTNETWORK
+        contains_es_hostnetwork = service_repo.check_env_by_attr(self.service.tenant_id, 
                                                                  self.service.service_id, 
                                                                  'ES_HOSTNETWORK', 'true')
         # 查询pod信息
