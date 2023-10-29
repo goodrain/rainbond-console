@@ -10,7 +10,7 @@ from console.services.app_config import domain_service, port_service
 from console.utils.reqparse import parse_item
 from console.views.app_config.base import AppBaseView
 from console.repositories.k8s_attribute import k8s_attribute_repo
-from django.db import connection
+from console.repositories.service_repo import service_repo
 from django.forms.models import model_to_dict
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -44,18 +44,10 @@ class AppPortView(AppBaseView):
         # 判断是否开启 hostNetwork
         contains_k8s_hostnetwork = k8s_attribute_repo.get_by_component_id_name(
             self.service.service_id, "hostNetwork")
-        # 判断是否配置环境变量 ES_HOSTNETWORK
-        cursor = connection.cursor()
-        cursor.execute("select attr_name, attr_value \
-                        from tenant_service_env_var \
-                        where tenant_id='{0}' and \
-                        service_id='{1}' and \
-                        scope='inner' and \
-                        attr_name='{2}' and \
-                        attr_value='{3}';".format(self.service.tenant_id,
-                                                  self.service.service_id,
-                                                  'ES_HOSTNETWORK', 'true'))
-        contains_es_hostnetwork = cursor.fetchall()
+         # 判断是否配置环境变量 ES_HOSTNETWORK
+        contains_es_hostnetwork = service_repo.check_env_by_attr(self.service.tenant_id,
+                                                                 self.service.service_id, 
+                                                                 'ES_HOSTNETWORK', 'true')
         # 查询pod信息
         if contains_k8s_hostnetwork or contains_es_hostnetwork:
             pod_data = region_api.get_service_pods(self.service.service_region,
