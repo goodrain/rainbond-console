@@ -11,6 +11,7 @@ from console.utils.reqparse import parse_item
 from console.views.app_config.base import AppBaseView
 from console.services.k8s_attribute import k8s_attribute_service
 from console.repositories.k8s_attribute import k8s_attribute_repo
+from django.db import connection
 from django.forms.models import model_to_dict
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -42,11 +43,22 @@ class AppPortView(AppBaseView):
         """
         tenant_service_ports = port_service.get_service_ports(self.service)
         port_list = []
-        # 判断是否开启hostnetwork
-        hostnetwork = k8s_attribute_repo.get_by_component_id_name(
+        # 判断是否开启 hostNetwork
+        contains_k8s_hostnetwork = k8s_attribute_repo.get_by_component_id_name(
             self.service.service_id, "hostNetwork")
+        # 判断是否配置环境变量 ES_HOSTNETWORK
+        cursor = connection.cursor()
+        cursor.execute("select attr_name, attr_value \
+                        from tenant_service_env_var \
+                        where tenant_id='{0}' and \
+                        service_id='{1}' and \
+                        scope='inner' and \
+                        attr_name='{2}' and \
+                        attr_value='{3}';".format(
+                    self.service.tenant_id, self.service.service_id, 'ES_HOSTNETWORK', 'true'))
+        contains_es_hostnetwork = cursor.fetchall()
         # 查询pod信息
-        if hostnetwork:
+        if contains_k8s_hostnetwork or contains_es_hostnetwork:
             pod_data = region_api.get_service_pods(self.service.service_region,
                                                    self.tenant.tenant_name,
                                                    self.service.service_alias,
@@ -80,14 +92,13 @@ class AppPortView(AppBaseView):
                     variables["outer_service"]["port"])
             port_info["outer_url"] = outer_url
             port_info["is_hostNetwork"] = False
-            if hostnetwork:
-                # 查询组件的宿主机IP
+            port_info["contains_es_hostnetwork"] = contains_es_hostnetwork
+            if contains_k8s_hostnetwork or contains_es_hostnetwork:
                 new_pods = pod_data["bean"]["new_pods"]
-                hostnetwork_list = []
+                node_ip_list = []
                 for new_pod in new_pods:
-                    # hostNetwork 模式下 podIP = NodeIP
-                    hostnetwork_list.append(new_pod["pod_ip"])
-                port_info["hostnetwork_list"] = hostnetwork_list
+                    node_ip_list.append(new_pod["pod_ip"])
+                port_info["hostnetwork_list"] = node_ip_list
                 port_info["is_hostNetwork"] = True
                 port_info["protocol"] = "tcp"
             port_info["bind_domains"] = []
