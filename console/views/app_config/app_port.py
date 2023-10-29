@@ -105,11 +105,8 @@ class AppPortView(AppBaseView):
                     if not bind_domain.domain_path:
                         bind_domain.domain_path = '/'
                         bind_domain.save()
-            port_info["bind_domains"] = [
-                domain.to_dict() for domain in bind_domains
-            ]
-            bind_tcp_domains = domain_service.get_tcp_port_bind_domains(
-                self.service, port.container_port)
+            port_info["bind_domains"] = [domain.to_dict() for domain in bind_domains]
+            bind_tcp_domains = domain_service.get_tcp_port_bind_domains(self.service, port.container_port)
 
             if bind_tcp_domains:
                 port_info["bind_tcp_domains"] = [domain.to_dict() for domain in bind_tcp_domains]
@@ -173,15 +170,13 @@ class AppPortView(AppBaseView):
             return Response(general_message(400, "params error", "缺少协议参数"), status=400)
         if not port_alias:
             port_alias = self.service.service_alias.upper().replace("-", "_") + str(port)
-        code, msg, port_info = port_service.add_service_port(
-            self.tenant, self.service, port, protocol, port_alias,
-            is_inner_service, is_outer_service, None, self.user.nick_name)
+        code, msg, port_info = port_service.add_service_port(self.tenant, self.service, port, protocol, port_alias,
+                                                             is_inner_service, is_outer_service, None, self.user.nick_name)
         if code != 200:
             return Response(general_message(code, "add port error", msg), status=code)
           
         result = general_message(200, "success", "端口添加成功", bean=model_to_dict(port_info))
         return Response(result, status=result["code"])
-
 
 class AppPortManageView(AppBaseView):
     @never_cache
@@ -245,9 +240,7 @@ class AppPortManageView(AppBaseView):
         container_port = kwargs.get("port", None)
         if not container_port:
             raise AbortRequest("container_port not specify", "端口变量名未指定")
-        data = port_service.delete_port_by_container_port(
-            self.tenant, self.service, int(container_port),
-            self.user.nick_name)
+        data = port_service.delete_port_by_container_port(self.tenant, self.service, int(container_port), self.user.nick_name)
         result = general_message(200, "success", "删除成功", bean=model_to_dict(data))
         return Response(result, status=result["code"])
 
