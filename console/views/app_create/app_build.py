@@ -99,14 +99,8 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                         k8s_attribute_service.create_k8s_attribute(
                             self.tenant, self.service, self.region.region_name,
                             attribute)
-                    arch_service.update_affinity_by_arch(
-                        self.service.arch, self.tenant,
-                        self.region.region_name, self.service)
-                    app_manage_service.deploy(
-                        self.tenant,
-                        self.service,
-                        self.user,
-                        oauth_instance=self.oauth_instance)
+                    arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)
+                    app_manage_service.deploy(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
                 except ErrInsufficientResource as e:
                     result = general_message(e.error_code, e.msg, e.msg_show)
                     return Response(result, status=e.status_code)
