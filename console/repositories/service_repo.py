@@ -63,15 +63,13 @@ class ServiceRepo(object):
                 LIMIT 1""".format(eid=eid)
         result = conn.query(sql)
         return True if len(result) > 0 else False
-    
+
     def check_env_by_attr(self, tenant_id, service_id, attr_name, attr_value):
-        res = TenantServiceEnvVar.objects.filter(
-        tenant_id=tenant_id,
-        service_id=service_id,
-        scope=TenantServiceEnvVar.ScopeType.INNER.value,  
-        attr_name=attr_name,
-        attr_value=attr_value
-        )
+        res = TenantServiceEnvVar.objects.filter(tenant_id=tenant_id,
+                                                 service_id=service_id,
+                                                 scope=TenantServiceEnvVar.ScopeType.INNER.value,  
+                                                 attr_name=attr_name,
+                                                 attr_value=attr_value)
         return True if len(res) > 0 else False
 
     def list_svc_by_tenant(self, tenant):
