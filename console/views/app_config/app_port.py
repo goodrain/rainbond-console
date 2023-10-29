@@ -54,8 +54,9 @@ class AppPortView(AppBaseView):
                         service_id='{1}' and \
                         scope='inner' and \
                         attr_name='{2}' and \
-                        attr_value='{3}';".format(
-                    self.service.tenant_id, self.service.service_id, 'ES_HOSTNETWORK', 'true'))
+                        attr_value='{3}';".format(self.service.tenant_id,
+                                                  self.service.service_id,
+                                                  'ES_HOSTNETWORK', 'true'))
         contains_es_hostnetwork = cursor.fetchall()
         # 查询pod信息
         if contains_k8s_hostnetwork or contains_es_hostnetwork:
