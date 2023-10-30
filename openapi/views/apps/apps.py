@@ -14,6 +14,7 @@ from console.exception.bcode import ErrK8sComponentNameExists, ErrComponentBuild
 from console.exception.main import ServiceHandleException, AccountOverdueException, RegionNotFound, AbortRequest
 from console.repositories import deploy_repo
 from console.repositories.app import service_repo
+from console.repositories.app_config import port_repo
 from console.repositories.group import group_service_relation_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.region_app import region_app_repo
@@ -71,6 +72,30 @@ monitor_query_range_items = {
     "request_client": '?query=max(app_requestclient{service_id="%s"})&start=%s&end=%s&step=%s',
 }
 
+
+class AppsPortView(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="团队端口列表",
+        tags=['openapi-apps'],
+    )
+    def get(self, req, *args, **kwargs):
+        ports = port_repo.get_tenant_services(self.team.tenant_id)
+        component_list = service_repo.get_tenant_region_services(self.region_name, self.team.tenant_id)
+        component_dict = {component.service_id: component.service_cname for component in component_list}
+        port_list = list()
+        if ports:
+            for port in ports:
+                port_dict = dict()
+                if not port.is_inner_service:
+                    continue
+                port_dict["port"] = port.container_port
+                port_dict["service_name"] = port.k8s_service_name
+                port_dict["namespace"] = self.team.namespace
+                port_dict["component_name"] = component_dict.get(port.service_id)
+                port_list.append(port_dict)
+        ret_data = {"namespace": self.team.namespace, "ports": port_list}
+        result = general_message(200, "success", "查询成功", bean=ret_data)
+        return Response(result, status=result["code"])
 
 class ListAppsView(TeamAPIView):
     @swagger_auto_schema(
