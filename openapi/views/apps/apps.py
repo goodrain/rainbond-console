@@ -97,6 +97,7 @@ class AppsPortView(TeamAPIView):
         result = general_message(200, "success", "查询成功", bean=ret_data)
         return Response(result, status=result["code"])
 
+
 class ListAppsView(TeamAPIView):
     @swagger_auto_schema(
         operation_description="团队应用列表",
