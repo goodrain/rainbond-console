@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -o nounset
+#set -o nounset
 #set -o errexit
 #set -o xtrace
 
@@ -14,47 +14,99 @@ export CONSOLE=${CONSOLE:-false}
 os_type=$(cat /etc/os-release | grep "^ID=" | awk -F= '{print $2}' | tr -d [:punct:])
 os_version_id=$(cat /etc/os-release | grep "VERSION_ID=" | awk -F= '{print $2}' | tr -d [:punct:])
 
-function install_docker() {
-    if systemctl status docker | grep Active | grep -q running; then
-        echo -e "${GREEN}[INFO] Docker has been installed on the host ${NC}"
+# Check whether the current system user is root
+if [ "$EUID" -ne 0 ]; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        echo -e "${RED}[ERROR] 当前用户不是 root 用户，请切换到 root 用户执行该脚本.${NC}"
+        exit 1
     else
-        curl -sfL https://get.rainbond.com/install_docker | bash
+        echo -e "${RED}[ERROR] Current user is not root user, please switch to root user to execute the script.${NC}"
+        exit 1
+    fi
+fi
+
+if [ -z "$SSH_RSA" ]; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        echo -e "${RED}[ERROR] 请设置环境变量 SSH_RSA, 该变量为 SSH 公钥.${NC}"
+        exit 1
+    else
+        echo -e "${RED}[ERROR] Please set the environment variable SSH_RSA, the variable is SSH public key.${NC}"
+        exit 1
+    fi
+fi
+
+function check_docker() {
+    if systemctl status docker | grep Active | grep -q running; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${GREEN}[INFO] Docker 服务已经安装在主机上.${NC}"
+        else
+            echo -e "${GREEN}[INFO] The docker service has been installed on the host.${NC}"
+        fi
+    else
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${RED}[INFO] 未检测到 Docker 服务, 请执行该脚本安装 Docker 服务, 'curl -sfL https://get.rainbond.com/install_docker | bash'.${NC}"
+            exit 1
+        else
+            echo -e "${RED}[INFO] No Docker service is detected. Run this script to install the Docker service, 'curl -sfL https://get.rainbond.com/install_docker | bash'.${NC}"
+            exit 1
+        fi
     fi
 }
 
 function add_user_in_ubuntu() {
-    sudo useradd --create-home -s /bin/bash -g docker "$1"
-    echo "$1":"$2" | sudo chpasswd
-    echo -e "${GREEN}[INFO] User $1 has been created ${NC}"
+    useradd --create-home -s /bin/bash -g docker "$1"
+    echo "$1":"$2" | chpasswd
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        echo -e "${GREEN}[INFO] 用户 $1 已经创建.${NC}"
+    else
+        echo -e "${GREEN}[INFO] User $1 has been created.${NC}"
+    fi
 }
 
 function add_user_in_redhat() {
-    sudo adduser -g docker "$1"
-    echo "$1":"$2" | sudo chpasswd
-    echo -e "${GREEN}[INFO] User $1 has been created ${NC}"
+    adduser -g docker "$1"
+    echo "$1":"$2" | chpasswd
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        echo -e "${GREEN}[INFO] 用户 $1 已经创建.${NC}"
+    else
+        echo -e "${GREEN}[INFO] User $1 has been created.${NC}"
+    fi
 }
 
 function add_user() {
     user=${DOCKER_USER:-"docker"}
     pass=${DOCKER_PASS:-'rbd-123465!'}
     
-    sudo groupadd --force docker
+    if ! grep -q docker /etc/group; then
+        groupadd --force docker
+    fi
 
     if id -u "$user" >/dev/null 2>&1; then
-        sudo gpasswd -a "$user" docker
-        echo -e "${GREEN}[INFO] User $user already exists ${NC}"
+        if ! id -nG "$user" | grep -qw "docker"; then
+            gpasswd -a "$user" docker
+        fi
+        
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${GREEN}[INFO] 用户 $user 已经存在.${NC}"
+        else
+            echo -e "${GREEN}[INFO] User $user already exists.${NC}"
+        fi
     else
         case $os_type in
-        centos|redhat|euleros|fusionos|anolis|kylin)
+        centos|redhat|euleros|fusionos|anolis|kylin|rhel|rocky|fedora|openEuler)
             add_user_in_redhat "$user" "$pass"
-            echo -e "${GREEN}[INFO] User $user has been created ${NC}"
         ;;
         ubuntu|debian)
             add_user_in_ubuntu "$user" "$pass"
-            echo -e "${GREEN}[INFO] User $user has been created ${NC}"
         ;;
         *)
-            echo -e "${RED}[ERROR] Does not support $os_type temporarily ${NC}" && exit 1
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                echo -e "${RED}[ERROR] 暂不支持 $os_type 操作系统.${NC}"
+                exit 1
+            else
+                echo -e "${RED}[ERROR] The $os_type operating system is temporarily not supported.${NC}"
+                exit 1
+            fi
         ;;
         esac
     fi
@@ -66,82 +118,116 @@ function add_ssh_rsa() {
     
     if id -u "$user" >/dev/null 2>&1; then
         if [ ! -d "/home/$1/.ssh" ]; then
-            echo -e "${GREEN}[INFO] Create /home/$1/.ssh ${NC}"
-            sudo mkdir -p /home/"$1"/.ssh
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                echo -e "${GREEN}[INFO] 创建 /home/$1/.ssh 目录.${NC}"
+            else
+                echo -e "${GREEN}[INFO] Create /home/$1/.ssh directory.${NC}"
+            fi
+            mkdir -p /home/"$1"/.ssh
         fi
         if [ -f "/home/$1/.ssh/authorized_keys" ]; then
-            echo -e "${GREEN}[INFO] /home/$1/.ssh/authorized_keys already exists ${NC}"
-            sudo chmod 777 /home/"$1"/.ssh/authorized_keys
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                echo -e "${GREEN}[INFO] /home/$1/.ssh/authorized_keys 已经存在.${NC}"
+            else
+                echo -e "${GREEN}[INFO] /home/$1/.ssh/authorized_keys already exists.${NC}"
+            fi
+            chmod 777 /home/"$1"/.ssh/authorized_keys
             if ! < /home/"$1"/.ssh/authorized_keys grep -q "$SSH_RSA"; then
                 echo "$SSH_RSA" >> /home/"$1"/.ssh/authorized_keys
             fi
         else
-            echo -e "${GREEN}[INFO] Create /home/$1/.ssh/authorized_keys ${NC}"
-            sudo touch /home/"$1"/.ssh/authorized_keys
-            sudo chmod 777 /home/"$1"/.ssh/authorized_keys
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                echo -e "${GREEN}[INFO] 创建 /home/$1/.ssh/authorized_keys.${NC}"
+            else
+                echo -e "${GREEN}[INFO] Create /home/$1/.ssh/authorized_keys.${NC}"
+            fi
+            touch /home/"$1"/.ssh/authorized_keys
+            chmod 777 /home/"$1"/.ssh/authorized_keys
             echo "$SSH_RSA" > /home/"$1"/.ssh/authorized_keys
         fi
 
         if < /home/"$1"/.ssh/authorized_keys grep -q "$SSH_RSA"; then
-            echo -e "${GREEN}[INFO] Add ssh public key to /home/$1/.ssh/authorized_keys successfully ${NC}"
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                echo -e "${GREEN}[INFO] 成功将 SSH 公钥添加到 /home/$1/.ssh/authorized_keys.${NC}"
+            else
+                echo -e "${GREEN}[INFO] Successfully added ssh public key to /home/$1/.ssh/authorized_keys.${NC}"
+            fi
         else
-            echo -e "${RED}[ERROR] Add ssh public key to /home/$1/.ssh/authorized_keys failed ${NC}" && exit 1
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                echo -e "${RED}[ERROR] 将 SSH 公钥添加到 /home/$1/.ssh/authorized_keys 失败.${NC}"
+                exit 1
+            else
+                echo -e "${RED}[ERROR] Add ssh public key to /home/$1/.ssh/authorized_keys failed.${NC}"
+                exit 1
+            fi
         fi
-        sudo chmod 600 /home/"$1"/.ssh/authorized_keys
+        chmod 600 /home/"$1"/.ssh/authorized_keys
         chown -R "$1":"$1"  /home/"$1"/.ssh
     fi
 }
 
 function check_user_permission(){
-    echo -e "${GREEN}[INFO] Checks whether the docker user can use the docker command ${NC}"
-    if su "docker" -c "docker ps"; then
-        echo -e "${GREEN}[INFO] User docker can use docker command ${NC}"
+    if su "docker" -c "docker ps" >/dev/null 2>&1; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${GREEN}[INFO] Docker 用户有权限执行 docker 命令.${NC}"
+        else
+            echo -e "${GREEN}[INFO] Docker users have the permission to execute docker commands.${NC}"
+        fi
     else
-        echo -e "${RED}[ERROR] User docker cannot use execution docker command, Please try to restart docker 'systemctl restart docker'. After restarting docker, execute the script again.${NC}"
-        exit 1
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${RED}[ERROR] Docker 用户无权限执行 docker 命令, 请尝试重启docker 'systemctl restart docker'. 重启 docker 后, 再次执行该脚本.${NC}"
+            exit 1
+        else
+            echo -e "${RED}[ERROR] Docker users have no permission to execute docker commands, Please try to restart docker 'systemctl restart docker'. After restarting docker, execute the script again.${NC}"
+            exit 1
+        fi
     fi
 }
 
 function disable_firewalld() {
     if systemctl status firewalld | grep Active | grep -q running >/dev/null 2>&1; then
-        sudo systemctl stop firewalld >/dev/null 2>&1
-        sudo systemctl disable firewalld >/dev/null 2>&1
-        echo -e "${GREEN}[INFO] firewalld has been disabled ${NC}"
+        systemctl stop firewalld >/dev/null 2>&1
+        systemctl disable firewalld >/dev/null 2>&1
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${GREEN}[INFO] 检测到 Firewalld 服务已启动，正在将 Firewalld 服务关闭并禁用.${NC}"
+        else
+            echo -e "${GREEN}[INFO] The Firewalld service has been started, Firewalld service is being turned off and disabled.${NC}"
+        fi
     else
-        echo -e "${GREEN}[INFO] firewalld service not installed ${NC}"
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${GREEN}[INFO] Firewalld 服务未安装.${NC}"
+        else
+            echo -e "${GREEN}[INFO] Firewalld service is not installed.${NC}"
+        fi
     fi
 }
 
 function disable_swap() {
     if swapoff -a; then
-        sudo sed -nr "s/(.*swap.*)/#\1/p" /etc/fstab
-        echo -e "${GREEN}[INFO] swap has been disabled ${NC}"
+        sed -i '/swap/s/^/#/' /etc/fstab
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${GREEN}[INFO] swap 已经禁用.${NC}"
+        else
+            echo -e "${GREEN}[INFO] swap has been disabled.${NC}"
+        fi
     fi    
 }
 
-function time_sync() {
+function check_time_sync() {
 
-    echo -e "${GREEN}[INFO] Start time synchronization ${NC}"
-    case $os_type in
-    centos|redhat|euleros|fusionos|anolis|kylin)
-        if [ "$os_version_id" == "8" ]; then
-            echo -e "${YELLOW}[WARN] $os_type $os_version_id please manually synchronize the time ${NC}"
+    if timedatectl status | grep "NTP synchronized" | grep -q "yes" >/dev/null 2>&1 || timedatectl show | grep "NTPSynchronized=yes" >/dev/null 2>&1; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${GREEN}[INFO] NTP 时间同步已经启用.${NC}"
         else
-            sudo yum install -y ntpdate;
-            sudo ntpdate time.pool.aliyun.com
-            echo -e "${GREEN}[INFO] Time synchronization is complete ${NC}"
+            echo -e "${GREEN}[INFO] NTP time synchronization has been enabled.${NC}"
         fi
-	;;
-    ubuntu|debian)
-        sudo apt -q update && sudo apt install -y ntpdate;
-        sudo ntpdate time.pool.aliyun.com
-        echo -e "${GREEN}[INFO] Time synchronization is complete ${NC}"
-	;;
-    *)
-        echo -e "${RED}[ERROR] Does not support $os_type temporarily ${NC}" && exit 1
-    ;;
-    esac
-    
+    else
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${YELLOW}[WARN] NTP 时间同步未启用.${NC}"
+        else
+            echo -e "${YELLOW}[WARN] NTP time synchronization is not enabled.${NC}"
+        fi
+    fi
 }
 
 function check_resource(){
@@ -151,79 +237,118 @@ function check_resource(){
 
     # check cpu
     if [ "${cpu}" -lt 2 ]; then
-        echo -e "${YELLOW}[WARN] The cpu is recommended to be at least 2C ${NC}"
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${YELLOW}[WARN] CPU核数建议至少为2核.${NC}"
+        else
+            echo -e "${YELLOW}[WARN] The cpu is recommended to be at least 2C.${NC}"
+        fi
     fi
 
     # check memory
     if [ "${mem}" -lt 3 ]; then
-        echo -e "${YELLOW}[WARN] The Memory is recommended to be at least 8G ${NC}"
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${YELLOW}[WARN] 内存建议至少为8G.${NC}"
+        else
+            echo -e "${YELLOW}[WARN] The Memory is recommended to be at least 8G.${NC}"
+        fi
     fi
 
     # check disk space
     if [ "${DISK_SPACE}" -lt 47185920 ];then
-      echo -e "${YELLOW}[WARN] The root partition space must not be less than 50G ${NC}"
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${YELLOW}[WARN] 根分区空间需大于 50G.${NC}"
+        else
+            echo -e "${YELLOW}[WARN] The root partition space must be greater than 50G.${NC}"
+        fi
     fi
-}
-
-function check_os() {
-    os_version=$(cat /etc/os-release | grep VERSION_ID|awk -F= '{print $2}'|tr -d [:punct:])
-    case $os_type in
-    centos|redhat|euleros|fusionos|anolis)
-    if [ "$os_version" -lt "7" ]; then
-        echo -e "${RED}[ERROR] Centos or redhat version must be higher than 7.0 ${NC}" && exit 1
-    fi
-    ;;
-    kylin)
-    if [ "$os_version" != "V10" ]; then
-        echo -e "${RED}[ERROR] Kylin version only V10 is supported ${NC}" && exit 1
-    fi
-    ;;
-    ubuntu)
-    if [ "$os_version" -lt "1604" ]; then
-        echo -e "${RED}[ERROR] Ubuntu version must be higher than 16.04 ${NC}" && exit 1
-    fi
-    ;;
-    debian)
-    if [ "$os_version" -lt "9" ]; then
-        echo -e "${RED}[ERROR] Debian version must be higher than 9.0 ${NC}" && exit 1
-    fi
-    ;;
-    *)
-    echo -e "${RED}[ERROR] Does not support $os_type temporarily ${NC}" && exit 1
-    ;;
-    esac
 }
 
 function check_kernel() {
     kernel_version=$(uname -r | awk -F. '{print $1}')
     if [ "$kernel_version" -lt "4" ]; then 
-        echo -e "${YELLOW}[WARN] Kernel version must be higher than 4.0, Please upgrade the kernel to 4.0+ as soon as possible ${NC}"
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${YELLOW}[WARN] 内核版本必须高于4.0, 请尽快升级内核到4.0+.${NC}"
+        else
+            echo -e "${YELLOW}[WARN] Kernel version must be higher than 4.0, Please upgrade the kernel to 4.0+ as soon as possible.${NC}"
+        fi
     fi
 }
 
-function install_nfscli(){
+function check_nfscli(){
     case $os_type in
-    centos|redhat|euleros|fusionos|anolis|kylin)
-        sudo yum list installed nfs-utils | grep nfs || sudo yum install -y nfs-utils
-        echo -e "${GREEN}[INFO] nfs-utils has been installed ${NC}"
-    ;;
-    ubuntu|debian)
-        sudo apt list --installed nfs-common | grep nfs || sudo apt install -y nfs-common
-        echo -e "${GREEN}[INFO] nfs-common has been installed ${NC}"
-    ;;
-    esac
+        ubuntu|debian)
+            if dpkg -l | grep -q nfs-common >/dev/null 2>&1; then
+                if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                    echo -e "${GREEN}[INFO] nfs-common 已经安装在主机上.${NC}"
+                else
+                    echo -e "${GREEN}[INFO] nfs-common has been installed on the host.${NC}"
+                fi
+            else
+                if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                    echo -e "${YELLOW}[WARN] nfs-common 未安装在主机上, 请执行命令安装 'apt -y install nfs-common'.${NC}"
+                else
+                    echo -e "${YELLOW}[WARN] nfs-common is not installed on the host, please execute the command install 'apt -y install nfs-common'.${NC}"
+                fi
+            fi
+        ;;
+        *)
+            if rpm -qa | grep -q nfs-utils >/dev/null 2>&1; then
+                if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                    echo -e "${GREEN}[INFO] nfs-utils 已经安装在主机上.${NC}"
+                else
+                    echo -e "${GREEN}[INFO] nfs-utils has been installed on the host.${NC}"
+                fi
+            else
+                if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                    echo -e "${YELLOW}[WARN] nfs-utils 未安装在主机上, 请执行命令安装 'yum -y install nfs-utils'.${NC}"
+                else
+                    echo -e "${YELLOW}[WARN] nfs-utils is not installed on the host, please execute the command install 'yum -y install nfs-utils'.${NC}"
+                fi
+            fi
+        ;;
+        esac
 }
 
 
 function check_openssh(){
 
     if ssh -V >/dev/null 2>&1; then
-      OPENSSH_VERSION=$(sudo ssh -V |& awk -F[_.] '{print $2}')
+      OPENSSH_VERSION=$(ssh -V |& awk -F[_.] '{print $2}')
       if [ "${OPENSSH_VERSION}" -lt "7" ];then
-          echo -e "${RED}[ERROR] openssh version must be higher than 7.0 ${NC}" && exit 1
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${RED}[ERROR] Openssh 版本必须高于 7.0.${NC}"
+            exit 1
+        else
+            echo -e "${RED}[ERROR] Openssh version must be higher than 7.0 ${NC}"
+            exit 1
+        fi
       fi
     else
-      echo -e "${RED}[ERROR] Need to install 7.0+ version of openssh ${NC}" && exit 1
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${RED}[ERROR] 需要安装 7.0+ 版本的openssh.${NC}"
+            exit 1
+        else
+            echo -e "${RED}[ERROR] Need to install 7.0+ version of openssh.${NC}"
+            exit 1
+        fi
+    fi
+
+    if grep -v "^\s*#" /etc/ssh/sshd_config | grep "AllowTcpForwarding yes" >/dev/null 2>&1; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${GREEN}[INFO] /etc/ssh/sshd_config 已经配置 AllowTcpForwarding yes.${NC}"
+        else
+            echo -e "${GREEN}[INFO] /etc/ssh/sshd_config has been configured AllowTcpForwarding yes.${NC}"
+        fi
+    else
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${YELLOW}[WARN] /etc/ssh/sshd_config 未配置 AllowTcpForwarding yes, 正在配置 AllowTcpForwarding yes.${NC}"
+            echo "AllowTcpForwarding yes" >> /etc/ssh/sshd_config
+            echo -e "${YELLOW}[WARN] /etc/ssh/sshd_config 配置 AllowTcpForwarding yes 成功, 请重启 sshd 服务生效.${NC}"
+        else
+            echo -e "${YELLOW}[WARN] /etc/ssh/sshd_config is not configured AllowTcpForwarding yes, Being configured AllowTcpForwarding yes.${NC}"
+            echo "AllowTcpForwarding yes" >> /etc/ssh/sshd_config
+            echo -e "${YELLOW}[WARN] /etc/ssh/sshd_config AllowTcpForwarding yes is successfully configured, Restart the sshd service to take effect.${NC}"
+        fi
     fi
 }
 
@@ -231,38 +356,43 @@ function init_syscfg(){
     curl -sfL https://get.rainbond.com/linux-optimize.sh | bash
 }
 
-# disable firewalld
-disable_firewalld
+function os_environment_configuration {
+    # stop and disbale friewalld
+    disable_firewalld
 
-# add docker user
-add_user
+    # Close the swap partition permanently
+    disable_swap
 
-# install docker
-install_docker 
+    # check time sync
+    check_time_sync
 
-# check docker user permission
-check_user_permission
+    # check nfs-utils
+    check_nfscli
 
-# time sync
-time_sync
+    # check kernel version
+    check_kernel
 
-#install nfs client
-install_nfscli
+    # check os resource
+    check_resource
 
-# check os
-check_os
+    # check openssh version
+    check_openssh
 
-# disable swap
-disable_swap
+    # init system config
+    init_syscfg
+}
 
-# init syscfg
-init_syscfg
+function docker_environment_configuration {
+    # add docker user
+    add_user
 
-# check kernel
-check_kernel
+    # Check that docker is installed
+    check_docker
 
-# check resource
-check_resource
+    # check docker user permission
+    check_user_permission
+}
 
-# check openssh
-check_openssh
+os_environment_configuration
+
+docker_environment_configuration
