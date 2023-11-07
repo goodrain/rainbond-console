@@ -287,7 +287,7 @@ function check_nfscli(){
                 if [ "$LANG" == "zh_CN.UTF-8" ]; then
                     echo -e "${YELLOW}[WARN] nfs-common 未安装在主机上, 请执行命令安装 'apt -y install nfs-common'.${NC}"
                 else
-                    echo -e "${YELLOW}[WARN] nfs-common is not installed on the host, please execute the command install 'apt -y install nfs-common'.${NC}"
+                    echo -e "${YELLOW}[WARN] nfs-common is not installed on the host, please execute the command install 'apt-get update && apt -y install nfs-common'.${NC}"
                 fi
             fi
         ;;
@@ -340,14 +340,16 @@ function check_openssh(){
             echo -e "${GREEN}[INFO] /etc/ssh/sshd_config has been configured AllowTcpForwarding yes.${NC}"
         fi
     else
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            echo -e "${YELLOW}[WARN] /etc/ssh/sshd_config 未配置 AllowTcpForwarding yes, 正在配置 AllowTcpForwarding yes.${NC}"
-            echo "AllowTcpForwarding yes" >> /etc/ssh/sshd_config
-            echo -e "${YELLOW}[WARN] /etc/ssh/sshd_config 配置 AllowTcpForwarding yes 成功, 请重启 sshd 服务生效.${NC}"
+        if grep "AllowTcpForwarding no" /etc/ssh/sshd_config >/dev/null 2>&1; then
+            sed -i '/AllowTcpForwarding/s/^/#/' /etc/ssh/sshd_config
+            sed -i '$a\AllowTcpForwarding yes' /etc/ssh/sshd_config
         else
-            echo -e "${YELLOW}[WARN] /etc/ssh/sshd_config is not configured AllowTcpForwarding yes, Being configured AllowTcpForwarding yes.${NC}"
-            echo "AllowTcpForwarding yes" >> /etc/ssh/sshd_config
-            echo -e "${YELLOW}[WARN] /etc/ssh/sshd_config AllowTcpForwarding yes is successfully configured, Restart the sshd service to take effect.${NC}"
+            sed -i '$a\AllowTcpForwarding yes' /etc/ssh/sshd_config
+        fi
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            echo -e "${YELLOW}[WARN] /etc/ssh/sshd_config 配置 AllowTcpForwarding yes 成功, 请执行命令重启 sshd 服务生效, 'systemctl restart sshd'.${NC}"
+        else
+            echo -e "${YELLOW}[WARN] /etc/ssh/sshd_config AllowTcpForwarding yes is successfully configured, Run the following command to restart the sshd service to take effect, 'systemctl restart sshd'.${NC}"
         fi
     fi
 }
