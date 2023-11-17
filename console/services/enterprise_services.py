@@ -405,8 +405,8 @@ class EnterpriseServices(object):
             "cap_memory": node["resource"]["cap_memory"] / 1000,
             "req_root_partition": node["resource"]["req_disk"] / 1024 / 1024 / 1024,
             "cap_root_partition": node["resource"]["cap_disk"] / 1024 / 1024 / 1024,
-            "req_docker_partition": node["resource"]["cap_container_disk"],
-            "cap_docker_partition": node["resource"]["req_container_disk"]
+            "cap_docker_partition": node["resource"]["cap_container_disk"] / 1024 / 1024 / 1024,
+            "req_docker_partition": node["resource"]["req_container_disk"] / 1024 / 1024 / 1024
         }
         for cond in node["conditions"]:
             if cond["type"] == "Ready" and cond["status"] == "True":
