@@ -958,8 +958,8 @@ class OAuthServices(BaseModel):
         db_table = "oauth_service"
 
     name = models.CharField(max_length=32, null=False, unique=True, help_text="oauth服务名称")
-    client_id = models.CharField(max_length=64, null=False, help_text="client_id")
-    client_secret = models.CharField(max_length=64, null=False, help_text="client_secret")
+    client_id = models.CharField(max_length=255, null=False, help_text="client_id")
+    client_secret = models.CharField(max_length=255, null=False, help_text="client_secret")
     redirect_uri = models.CharField(max_length=255, null=False, help_text="redirect_uri")
     home_url = models.CharField(max_length=255, null=True, help_text="auth_url")
     auth_url = models.CharField(max_length=255, null=True, help_text="auth_url")
