@@ -43,7 +43,7 @@ class AppVolumeService(object):
     ]
 
     default_volume_type = "share-file"
-    simple_volume_type = [default_volume_type, "config-file", "memoryfs", "local"]
+    simple_volume_type = [default_volume_type, "config-file", "vm-file", "memoryfs", "local"]
 
     def is_simple_volume_type(self, volume_type):
         if volume_type in self.simple_volume_type:

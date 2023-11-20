@@ -170,6 +170,38 @@ class AppManageService(AppManageBase):
                 return 409, "操作过于频繁，请稍后再试"
         return 200, "操作成功"
 
+    def pause(self, tenant, service, user):
+        if service.create_status == "complete":
+            body = dict()
+            body["operator"] = str(user.nick_name)
+            body["enterprise_id"] = tenant.enterprise_id
+            try:
+                region_api.pause_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+                logger.debug("user {0} start app !".format(user.nick_name))
+            except region_api.CallApiError as e:
+                logger.exception(e)
+                return 507, "组件异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, "操作过于频繁，请稍后再试"
+        return 200, "操作成功"
+
+    def un_pause(self, tenant, service, user):
+        if service.create_status == "complete":
+            body = dict()
+            body["operator"] = str(user.nick_name)
+            body["enterprise_id"] = tenant.enterprise_id
+            try:
+                region_api.un_pause_service(service.service_region, tenant.tenant_name, service.service_alias, body)
+                logger.debug("user {0} start app !".format(user.nick_name))
+            except region_api.CallApiError as e:
+                logger.exception(e)
+                return 507, "组件异常"
+            except region_api.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, "操作过于频繁，请稍后再试"
+        return 200, "操作成功"
+
     def stop(self, tenant, service, user):
         if service.create_status == "complete":
             body = dict()
@@ -266,10 +298,11 @@ class AppManageService(AppManageBase):
                     "lang": service.language,
                     "cmd": service.cmd,
                 }
-        if kind == "build_from_image" or kind == "build_from_market_image":
+        if kind == "build_from_image" or kind == "build_from_market_image" or kind == "build_from_vm":
             body["image_info"] = {
                 "image_url": service.image,
                 "cmd": service.cmd,
+                "vm_image_source": service.git_url,
             }
         service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         if service_source and (service_source.user_name or service_source.password):
@@ -470,6 +503,8 @@ class AppManageService(AppManageBase):
                     return "build_from_market_slug"
                 else:
                     return "build_from_market_image"
+            elif service.service_source == AppConstants.VM_RUN:
+                return "build_from_vm"
         else:
             kind = "build_from_image"
             if service.category == "application":

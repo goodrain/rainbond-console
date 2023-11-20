@@ -512,6 +512,28 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
+    def pause_service(self, region, tenant_name, service_alias, body):
+        """挂起组件"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/pause"
+
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
+    def un_pause_service(self, region, tenant_name, service_alias, body):
+        """恢复组件"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/un_pause"
+
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        return body
+
     def stop_service(self, region, tenant_name, service_alias, body):
         """关闭组件"""
 

@@ -130,7 +130,7 @@ class AppCheckUpdate(AppBaseView):
                 'schedule': request.data.get("schedule", ""),
             }
             params['job_strategy'] = json.dumps(job_strategy)
-        code, msg = app_service.update_check_app(self.tenant, self.service, params)
+        code, msg = app_service.update_check_app(self.tenant, self.service, params, self.user)
         if code != 200:
             return Response(general_message(code, "update service info error", msg), status=code)
         result = general_message(200, "success", "修改成功")
