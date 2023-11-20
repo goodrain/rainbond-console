@@ -132,3 +132,11 @@ ALTER TABLE `rainbond_center_app` ADD COLUMN `arch` varchar(32) DEFAULT 'amd64';
 
 ALTER TABLE oauth_service MODIFY COLUMN client_secret varchar(255);
 ALTER TABLE oauth_service MODIFY COLUMN client_id varchar(255);
+
+CREATE TABLE `virtual_machine_image` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `tenant_id` varchar(32) NOT NULL,
+  `name` varchar(64) NOT NULL,
+  `image_url` varchar(200) NOT NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

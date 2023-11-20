@@ -1477,3 +1477,14 @@ class Menus(models.Model):
     parent_id = models.IntegerField(default=0, help_text="父级id")
     iframe = models.BooleanField(default=False, help_text="true:新开窗口; false:当前窗口")
     sequence = models.IntegerField(default=0, help_text="")
+
+
+class VirtualMachineImage(BaseModel):
+    """虚拟机镜像管理"""
+
+    class Meta:
+        db_table = "virtual_machine_image"
+
+    tenant_id = models.CharField(max_length=32, help_text="租户id")
+    name = models.CharField(max_length=64, help_text="镜像名称")
+    image_url = models.CharField(max_length=200, help_text="镜像地址")

@@ -109,6 +109,7 @@ class TenantServiceUpdateSerilizer(serializers.Serializer):
     user_name = serializers.CharField(max_length=255, required=False, allow_blank=True, help_text="拉取仓库需要的用户名")
     password = serializers.CharField(max_length=255, required=False, allow_blank=True, help_text="拉取仓库需要的密码")
     job_strategy = serializers.CharField(max_length=2047, required=False, help_text="job任务策略")
+    disk_cap = serializers.IntegerField(required=False, help_text="虚拟机磁盘大小 (G)")
 
 
 class AppConfigGroupCreateSerilizer(serializers.Serializer):

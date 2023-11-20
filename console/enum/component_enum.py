@@ -9,6 +9,7 @@ class ComponentType(Enum):
     state_multiple = "state_multiple"
     job = "job"
     cronjob = "cronjob"
+    vm = "vm"
 
 
 def is_state(component_type):

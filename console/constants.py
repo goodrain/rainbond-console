@@ -13,6 +13,7 @@ class AppConstants(object):
     DOCKER_COMPOSE = "docker_compose"
     DOCKER_IMAGE = "docker_image"
     PACKAGE_BUILD = "package_build"
+    VM_RUN = "vm_run"
 
 
 class LogConstants(object):
