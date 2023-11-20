@@ -839,6 +839,23 @@ DockerRunCreateView = {
     }
 }
 
+VMRunCreateView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [300002, 400002]
+        },
+        "put": {
+            "perms": []
+        },
+        "delete": {
+            "perms": []
+        }
+    }
+}
+
 DockerComposeCreateView = {
     "__message": {
         "get": {
@@ -1725,6 +1742,25 @@ GatewayCustomConfigurationView = {
 }
 
 StartAppView = {"__message": {"get": {"perms": []}, "post": {"perms": [400006]}, "put": {"perms": []}, "delete": {"perms": []}}}
+
+PauseAppView = {"__message": {"get": {"perms": []}, "post": {"perms": [400023]}, "put": {"perms": []}, "delete": {"perms": []}}}
+
+UNPauseAppView = {
+    "__message": {
+        "get": {
+            "perms": []
+        },
+        "post": {
+            "perms": [400024]
+        },
+        "put": {
+            "perms": []
+        },
+        "delete": {
+            "perms": []
+        }
+    }
+}
 
 StopAppView = {"__message": {"get": {"perms": []}, "post": {"perms": [400008]}, "put": {"perms": []}, "delete": {"perms": []}}}
 

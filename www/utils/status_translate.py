@@ -19,6 +19,11 @@ def status_map():
         "disabledAction": ['restart', 'visit', 'manage_container'],
         "activeAction": ['deploy', 'stop', 'reboot'],
     }
+    status_map["paused"] = {
+        "status_cn": "挂起",
+        "disabledAction": ["restart"],
+        "activeAction": ['stop', 'deploy', 'visit', 'manage_container', 'reboot'],
+    }
     # region
     status_map["checking"] = {
         "status_cn": "检测中",

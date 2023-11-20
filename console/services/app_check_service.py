@@ -34,6 +34,8 @@ class AppCheckService(object):
             return "third-party-service"
         elif service_source == AppConstants.PACKAGE_BUILD:
             return "package_build"
+        elif service_source == AppConstants.VM_RUN:
+            return "vm-run"
 
     def check_service(self, tenant, service, is_again, event_id, user=None):
         body = dict()
@@ -197,7 +199,8 @@ class AppCheckService(object):
             sid = None
             try:
                 sid = transaction.savepoint()
-                self.save_service_info(tenant, service, service_info_list[0])
+                if service.extend_method != "vm":
+                    self.save_service_info(tenant, service, service_info_list[0])
                 # save service info, checked 表示检测完成
                 service.create_status = "checked"
                 service.save()

@@ -9,6 +9,7 @@ from django.core.paginator import Paginator
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.repositories.virtual_machine import vm_repo
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
@@ -66,7 +67,9 @@ class AppVersionsView(AppBaseView):
         build_version_list = paginator.page(int(page)).object_list
         versions_info = build_version_list
         version_list = []
-
+        vm_image = ""
+        if self.service.extend_method == "vm":
+            vm_image = vm_repo.get_vm_name_by_tenant_id_image(self.tenant.tenant_id, self.service.image)
         for info in versions_info:
             repo_url = info["repo_url"]
             if repo_url and repo_url[0] == "/":
@@ -91,6 +94,7 @@ class AppVersionsView(AppBaseView):
                 "image_repo": info["image_repo"],
                 "image_domain": info.get("image_domain") if info.get("image_domain", "") else "docker.io",
                 "image_tag": info.get("image_tag") if info.get("image_tag", "") else "latest",
+                "vm_image": vm_image,
             }
 
             if info["finish_time"] != "0001-01-01T00:00:00Z":

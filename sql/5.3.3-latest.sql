@@ -127,3 +127,11 @@ CREATE TABLE `menus` (
 ALTER TABLE tenant_service ADD COLUMN arch varchar(32) DEFAULT 'amd64';
 ALTER TABLE `rainbond_center_app_version` ADD COLUMN `arch` varchar(32) DEFAULT 'amd64';
 ALTER TABLE `rainbond_center_app` ADD COLUMN `arch` varchar(32) DEFAULT 'amd64';
+
+CREATE TABLE `virtual_machine_image` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `tenant_id` varchar(32) NOT NULL,
+  `name` varchar(64) NOT NULL,
+  `image_url` varchar(200) NOT NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
