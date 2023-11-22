@@ -155,6 +155,11 @@ class ErrK8sComponentNameExists(ServiceHandleException):
             msg="k8s component name exists", msg_show="组件英文名已存在", status_code=400, error_code=20802)
 
 
+class ErrVMImageNameExists(ServiceHandleException):
+    def __init__(self):
+        super(ErrVMImageNameExists, self).__init__(
+            msg="vm image name exists", msg_show="镜像名称已存在，请检查已有镜像", status_code=400, error_code=20802)
+
 # 20900 ~ 20999 => app upgrade
 class ErrAppUpgradeRecordNotFound(ServiceHandleException):
     def __init__(self):

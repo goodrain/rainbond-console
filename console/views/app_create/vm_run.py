@@ -6,8 +6,7 @@ import logging
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
-from django import forms
-from console.exception.bcode import ErrK8sComponentNameExists
+from console.exception.bcode import ErrK8sComponentNameExists, ErrVMImageNameExists
 from console.exception.main import ResourceNotEnoughException
 from console.repositories.virtual_machine import vm_repo
 from console.services.app import app_service
@@ -66,7 +65,7 @@ class VMRunCreateView(RegionTenantHeaderView):
             if event_id != "" or vm_url != "":
                 image = vm_repo.get_vm_image_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
                 if image or len(image) > 0:
-                    raise forms.ValidationError("镜像名称已存在")
+                    raise ErrVMImageNameExists
                 image = self.tenant.namespace + ":" + image_name
                 vm = VirtualMachineImage(
                     tenant_id=self.tenant.tenant_id,

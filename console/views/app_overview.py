@@ -71,7 +71,7 @@ class AppDetailView(AppBaseView):
         service_model["disk_cap"] = 10
         if self.service.extend_method == "vm":
             namespace = self.tenant.namespace
-            name = namespace + "-" + self.service.service_cname
+            name = group_name + "-" + self.service.k8s_component_name
             base_vm_url = "{}/vnc_lite.html?path=".format(vm_url)
             base_path = "k8s/apis/subresources.kubevirt.io/v1alpha3/"
             path = base_path + "namespaces/{}/virtualmachineinstances/{}/vnc".format(namespace, name)
