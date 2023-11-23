@@ -102,6 +102,8 @@ class AppCheckService(object):
             service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(service.service_id).first()
             if service_endpoints and service_endpoints.endpoints_type == "discovery":
                 source_body = service_endpoints.endpoints_info
+        elif service.service_source == AppConstants.VM_RUN:
+            source_body = service.git_url
 
         body["username"] = user_name
         body["password"] = password

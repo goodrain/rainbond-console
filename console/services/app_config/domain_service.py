@@ -103,6 +103,21 @@ class DomainService(object):
         cert.delete()
 
     @transaction.atomic
+    def check_certificate(self, certificate_id, domain_name):
+        certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
+        cert = base64.b64decode(certificate_info.certificate).decode()
+        data = analyze_cert(cert)
+        sans = data["issued_to"]
+        for certificat_domain_name in sans:
+            if certificat_domain_name.startswith('*'):
+                domain_suffix = certificat_domain_name[2:]
+            else:
+                domain_suffix = certificat_domain_name
+            if domain_name.endswith(domain_suffix):
+                return "pass"
+        return "un_pass"
+
+    @transaction.atomic
     def update_certificate(self, region, tenant, certificate_id, alias, certificate, private_key, certificate_type):
         cert_is_effective(certificate, private_key)
         cert = domain_repo.get_certificate_by_pk(certificate_id)
@@ -140,7 +155,7 @@ class DomainService(object):
                 continue
         return cert
 
-    def __check_domain_name(self, team_id, region_id, domain_name, certificate_id=None):
+    def __check_domain_name(self, team_id, region_id, domain_name, certificate_id=None, ):
         if not domain_name:
             raise ServiceHandleException(status_code=400, error_code=400, msg="domain can not be empty", msg_show="域名不能为空")
         zh_pattern = re.compile('[\\u4e00-\\u9fa5]+')
@@ -156,19 +171,6 @@ class DomainService(object):
         if len(domain_name) > 256:
             raise ServiceHandleException(
                 status_code=400, error_code=400, msg="domain more than 256 bytes", msg_show="域名超过256个字符")
-        if certificate_id:
-            certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
-            cert = base64.b64decode(certificate_info.certificate).decode()
-            data = analyze_cert(cert)
-            sans = data["issued_to"]
-            for certificat_domain_name in sans:
-                if certificat_domain_name.startswith('*'):
-                    domain_suffix = certificat_domain_name[2:]
-                else:
-                    domain_suffix = certificat_domain_name
-                if domain_name.endswith(domain_suffix):
-                    return
-            raise ServiceHandleException(status_code=400, error_code=400, msg="domain", msg_show="域名与选择的证书不匹配")
 
     def get_port_bind_domains(self, service, container_port):
         return domain_repo.get_service_domain_by_container_port(service.service_id, container_port)

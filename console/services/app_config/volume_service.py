@@ -284,8 +284,8 @@ class AppVolumeService(object):
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         volume_name = self.check_volume_name(service, volume_name)
-
-        self.check_volume_path(service, volume_path)
+        if service.service_source != AppConstants.VM_RUN:
+            self.check_volume_path(service, volume_path)
         host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id, volume_path)
 
         volume_data = {

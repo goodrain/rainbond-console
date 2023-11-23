@@ -356,6 +356,15 @@ class ServiceDomainView(AppBaseView):
         return Response(result, status=result["code"])
 
 
+class CalibrationCertificate(RegionTenantHeaderView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        certificate_id = request.data.get("certificate_id", None)
+        domain_name = request.data.get("domain_name", None)
+        is_pass = domain_service.check_certificate(certificate_id, domain_name)
+        result = general_message(200, "success", "查询成功", bean={"is_pass": is_pass})
+        return Response(result, status=result["code"])
+
 class HttpStrategyView(RegionTenantHeaderView):
     @never_cache
     def get(self, request, *args, **kwargs):

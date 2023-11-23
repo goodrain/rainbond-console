@@ -289,6 +289,7 @@ class PlatformConfigService(ConfigService):
             "LOGO",
             "FAVICON",
             "IS_REGIST",
+            "IS_ALARM",
             "DOCUMENT",
             "OFFICIAL_DEMO",
             ConfigKeyEnum.ENTERPRISE_EDITION.name,
@@ -324,6 +325,11 @@ class PlatformConfigService(ConfigService):
             "IS_REGIST": {
                 "value": None,
                 "desc": "是否允许注册",
+                "enable": True
+            },
+            "IS_ALARM": {
+                "value": None,
+                "desc": "是否展示报警",
                 "enable": True
             },
             ConfigKeyEnum.ENTERPRISE_EDITION.name: {

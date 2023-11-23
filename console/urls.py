@@ -8,10 +8,13 @@ from console.views import app_upgrade
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
 from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView)
 from console.views.app_config.app_domain import (
-    AppServiceDomainQueryView, AppServiceTcpDomainQueryView, DomainQueryView, DomainView, GatewayCustomConfigurationView,
-    GetPortView, GetSeniorUrlView, HttpStrategyView, SecondLevelDomainView, ServiceDomainView, ServiceTcpDomainQueryView,
-    ServiceTcpDomainView, TenantCertificateManageView, TenantCertificateView, GatewayRouteBatch, GatewayRoute, TenantService,
-    VirtualMachineImageView)
+    AppServiceDomainQueryView, AppServiceTcpDomainQueryView, DomainQueryView, DomainView,
+    GatewayCustomConfigurationView,
+    GetPortView, GetSeniorUrlView, HttpStrategyView, SecondLevelDomainView, ServiceDomainView,
+    ServiceTcpDomainQueryView,
+    ServiceTcpDomainView, TenantCertificateManageView, TenantCertificateView, GatewayRouteBatch, GatewayRoute,
+    TenantService,
+    VirtualMachineImageView, CalibrationCertificate)
 from console.views.app_config.app_env import (AppBuildEnvView, AppEnvManageView, AppEnvView)
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import (AppLabelAvailableView, AppLabelView)
@@ -129,7 +132,8 @@ from console.views.team import (AddTeamView, AdminAddUserView, ApplicantsView, C
                                 TeamDelView, TeamExitView, TeamNameModView, TeamRegionInitView, TeamSortDomainQueryView,
                                 TeamSortServiceQueryView, TeamUserCanJoin, TeamUserDetaislView, TeamUserView,
                                 UserApplyStatusView, UserDelView, UserFuzSerView, TeamsPermissionCreateApp,
-                                TeamCheckResourceName, TeamRegistryAuthLView, TeamRegistryAuthRUDView, InitDefaultInfoView)
+                                TeamCheckResourceName, TeamRegistryAuthLView, TeamRegistryAuthRUDView,
+                                InitDefaultInfoView, MonitorAlarmStatusView)
 from console.views.user import (AdministratorJoinTeamView, AdminRolesView, AdminUserLCView, AdminUserView, CheckSourceView,
                                 EnterPriseUsersCLView, EnterPriseUsersUDView, UserLogoutView, UserPemTraView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
@@ -519,6 +523,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain/query$', DomainQueryView.as_view(), perms.DomainQueryView),
     # http操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/httpdomain$', HttpStrategyView.as_view(), perms.HttpStrategyView),
+    # 校验证书
+    url(r'^teams/(?P<tenantName>[\w\-]+)/calibration_certificate$', CalibrationCertificate.as_view()),
     # 查看高级路由信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain/get_senior_url$', GetSeniorUrlView.as_view(), perms.GetSeniorUrlView),
     # 查询tcp/udp策略（含模糊搜索）
@@ -789,6 +795,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/visualmonitor$', EnterpriseVisualMonitorView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/alerts$', EnterpriseAlertsView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
+    # 获取监控报警信息
+    url(r'^enterprise/monitor_alarm$', MonitorAlarmStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
     # 初始化集群、团队信息

@@ -509,6 +509,35 @@ class ApplicantsView(RegionTenantHeaderView):
             message_id=message_id, receiver_id=user_id, content=content, msg_type="warn", title="用户加入团队信息")
 
 
+class MonitorAlarmStatusView(JWTAuthApiView):
+    def get(self, request, *args, **kwargs):
+        alarm_config = platform_config_service.get_config_by_key("IS_ALARM")
+        if alarm_config.enable is False:
+            return Response(general_message(200, "status is close", "报警关闭状态", bean={"is_alarm": False}), status=200)
+        else:
+            return Response(general_message(200, "status is open", "报警开启状态", bean={"is_alarm": True}), status=200)
+
+    def put(self, request, *args, **kwargs):
+        """
+        修改开启、关闭报警状态
+        """
+        user_id = request.user.user_id
+        enterprise_id = request.user.enterprise_id
+        admin = enterprise_user_perm_repo.is_admin(user_id=user_id, eid=enterprise_id)
+        is_alarm = request.data.get("is_alarm")
+        if admin:
+            if is_alarm is False or is_alarm == "False":
+                # 修改全局配置
+                platform_config_service.update_config("IS_ALARM", {"enable": False, "value": None})
+
+                return Response(general_message(200, "close alarm", "关闭报警"), status=200)
+            else:
+                platform_config_service.update_config("IS_ALARM", {"enable": True, "value": None})
+                return Response(general_message(200, "open alarm", "开启报警"), status=200)
+        else:
+            return Response(general_message(400, "no jurisdiction", "没有权限"), status=400)
+
+
 class RegisterStatusView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         register_config = platform_config_service.get_config_by_key("IS_REGIST")
