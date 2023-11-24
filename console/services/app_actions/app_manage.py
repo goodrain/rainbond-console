@@ -30,6 +30,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.service_backup_repo import service_backup_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.virtual_machine import vm_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions.app_log import AppEventService
 from console.services.app_actions.exception import ErrVersionAlreadyExists
@@ -557,7 +558,7 @@ class AppManageService(AppManageBase):
                 elif action == "move":
                     group_service.sync_app_services(tenant, region_name, move_group_id)
                     self.move(service, move_group_id)
-                elif action == "deploy" and service.service_source != "third_party":
+                elif action == "deploy" and service.service_source != "third_party" and service.service_source != "vm_run":
                     res, body = region_api.get_cluster_nodes_arch(region_name)
                     chaos_arch = list(set(body.get("list")))
                     service.arch = service.arch if service.arch else "amd64"
@@ -565,7 +566,7 @@ class AppManageService(AppManageBase):
                         raise AbortRequest(
                             "app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
                     self.deploy(tenant, service, user, oauth_instance=oauth_instance)
-                elif action == "upgrade" and service.service_source != "third_party":
+                elif action == "upgrade" and service.service_source != "third_party" and service.service_source != "vm_run":
                     self.upgrade(tenant, service, user, oauth_instance=oauth_instance)
                 code = 200
                 msg = "success"
@@ -957,7 +958,8 @@ class AppManageService(AppManageBase):
         except Exception as e:
             logger.exception(e)
             pass
-
+        if service.create_status != "complete":
+            vm_repo.delete_vm_image_by_image_url(service.image)
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)

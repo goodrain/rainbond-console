@@ -63,6 +63,7 @@ class AppDetailView(AppBaseView):
         service_model = self.service.to_dict()
         group_map = group_service.get_services_group_name([self.service.service_id])
         group_name = group_map.get(self.service.service_id)["group_name"]
+        app_k8s_name = group_map.get(self.service.service_id)["k8s_app"]
         group_id = group_map.get(self.service.service_id)["group_id"]
         service_model["group_name"] = group_name
         service_model["group_id"] = group_id
@@ -71,7 +72,7 @@ class AppDetailView(AppBaseView):
         service_model["disk_cap"] = 10
         if self.service.extend_method == "vm":
             namespace = self.tenant.namespace
-            name = group_name + "-" + self.service.k8s_component_name
+            name = app_k8s_name + "-" + self.service.k8s_component_name
             base_vm_url = "{}/vnc_lite.html?path=".format(vm_url)
             base_path = "k8s/apis/subresources.kubevirt.io/v1alpha3/"
             path = base_path + "namespaces/{}/virtualmachineinstances/{}/vnc".format(namespace, name)

@@ -18,5 +18,9 @@ class VirtualMachineImageRepo(object):
     def get_vm_image_by_tenant_id_and_name(self, tenant_id, name):
         return VirtualMachineImage.objects.filter(tenant_id=tenant_id, name=name)
 
+    def delete_vm_image_by_image_url(self, image_url):
+        return VirtualMachineImage.objects.filter(image_url=image_url).delete()
+
+
 
 vm_repo = VirtualMachineImageRepo()
