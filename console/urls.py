@@ -67,7 +67,7 @@ from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, 
 from console.views.code_repo import ServiceCodeBranch
 from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
                                       NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage,
-                                      EnterpriseRegionGatewayBatch)
+                                      EnterpriseRegionGatewayBatch, EnterpriseTeamNames)
 from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
                                       RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
 from console.views.enterprise import (
@@ -81,10 +81,13 @@ from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, Ent
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (
-    AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView, TenantGroupCommonOperationView,
-    TenantGroupOperationView, TenantGroupView, ApplicationInstallView, ApplicationPodView, ApplicationHelmAppComponentView,
+    AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView,
+    TenantGroupCommonOperationView,
+    TenantGroupOperationView, TenantGroupView, ApplicationInstallView, ApplicationPodView,
+    ApplicationHelmAppComponentView,
     ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView, TenantAppUpgradableNumView,
-    AppGovernanceModeCheckView, ApplicationVolumesView, AppGovernanceModeCRView, TenantGroupHandleView)
+    AppGovernanceModeCheckView, ApplicationVolumesView, AppGovernanceModeCRView, TenantGroupHandleView,
+    AppComponentNameView)
 from console.views.helm_app import HelmAppView, HelmRepo, HelmCenterApp, HelmChart, CommandInstallHelm, HelmList, \
     HelmRepoAdd
 from console.views.jwt_token_view import JWTTokenView
@@ -113,8 +116,9 @@ from console.views.plugin.service_plugin import (ServicePluginConfigView, Servic
 from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
-                                        TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
-                                        GroupOperatorManagedView, AccessTokenView, TeamArchView)
+                                        TeamAppSortViewView, TeamOverView, TeamServiceOverViewView,
+                                        TenantServiceEnvsView,
+                                        GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
@@ -271,7 +275,7 @@ urlpatterns = [
 
     # 团队应用模块（5.1）
     url(r'^teams/(?P<team_name>[\w\-]+)/apps$', TeamAppSortViewView.as_view(), perms.TeamAppSortViewView),
-
+    url(r'^teams/(?P<team_name>[\w\-]+)/app_names$', TeamAppNamesView.as_view(), perms.TeamAppSortViewView),
     # 团队应用信息
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/service/over$', TeamServiceOverViewView.as_view(),
         perms.TeamServiceOverViewView),
@@ -340,6 +344,7 @@ urlpatterns = [
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode/check', AppGovernanceModeCheckView.as_view(),
         perms.TenantGroupOperationView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/component_names', AppComponentNameView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8sservices', AppKubernetesServiceView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources$', AppK8sResourceListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/(?P<name>[\w\-\.]+)$',
@@ -828,6 +833,7 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user/(?P<user_id>[\w\-]+)$', AdminUserView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/roles', AdminRolesView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/teams$', EnterpriseTeams.as_view(), perms.EnterpriseTeams),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/team_names$', EnterpriseTeamNames.as_view(), perms.EnterpriseTeams),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/apps$', EnterpriseAppsLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/menu$', EnterpriseMenuManage.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$', EnterpriseRegionsLCView.as_view()),
