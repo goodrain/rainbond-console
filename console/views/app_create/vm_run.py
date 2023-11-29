@@ -65,14 +65,18 @@ class VMRunCreateView(RegionTenantHeaderView):
             if event_id != "" or vm_url != "":
                 image = vm_repo.get_vm_image_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
                 if image or len(image) > 0:
-                    raise ErrVMImageNameExists
-                image = self.tenant.namespace + ":" + image_name
-                vm = VirtualMachineImage(
-                    tenant_id=self.tenant.tenant_id,
-                    name=image_name,
-                    image_url=image,
-                )
-                vm.save()
+                    if image_name == "centos7.9" or image_name == "anolisos7.9" or image_name == "deepin20.9" or image_name == "ubuntu23.10":
+                        image = vm_repo.get_vm_image_url_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
+                    else:
+                        raise ErrVMImageNameExists
+                else:
+                    image = self.tenant.namespace + ":" + image_name
+                    vm = VirtualMachineImage(
+                        tenant_id=self.tenant.tenant_id,
+                        name=image_name,
+                        image_url=image,
+                    )
+                    vm.save()
             else:
                 image = vm_repo.get_vm_image_url_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
             code, msg_show, new_service = app_service.create_vm_run_app(
