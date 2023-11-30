@@ -22,5 +22,4 @@ class VirtualMachineImageRepo(object):
         return VirtualMachineImage.objects.filter(image_url=image_url).delete()
 
 
-
 vm_repo = VirtualMachineImageRepo()

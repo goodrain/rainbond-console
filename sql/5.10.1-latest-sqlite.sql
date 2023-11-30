@@ -9,8 +9,8 @@ ALTER TABLE `rainbond_center_app_version` ADD COLUMN `arch` varchar(32) DEFAULT 
 ALTER TABLE `rainbond_center_app` ADD COLUMN `arch` varchar(32) DEFAULT "amd64";
 
 
---- 5.15.2 - 5.15.3 sql
-ALTER TABLE 'oauth_service' RENAME TO 'oauth_service_bak'
+--- 5.15.3 - 5.16.0 sql
+ALTER TABLE 'oauth_service' RENAME TO 'oauth_service_bak';
 
 CREATE TABLE "oauth_service" (
     "ID" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -35,3 +35,10 @@ INSERT INTO oauth_service
 SELECT client_id, client_secret, redirect_uri, home_url, auth_url, access_token_url, api_url, oauth_type, eid, enable, is_deleted, is_console, is_auto_login, is_git
 FROM oauth_service_bak;
 drop table oauth_service_bak;
+
+CREATE TABLE "virtual_machine_image" (
+    "ID" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "tenant_id" varchar(32) NOT NULL,
+    "name" varchar(64) NOT NULL,
+    "image_url" varchar(200) NOT NULL
+);

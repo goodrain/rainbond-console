@@ -128,7 +128,7 @@ ALTER TABLE tenant_service ADD COLUMN arch varchar(32) DEFAULT 'amd64';
 ALTER TABLE `rainbond_center_app_version` ADD COLUMN `arch` varchar(32) DEFAULT 'amd64';
 ALTER TABLE `rainbond_center_app` ADD COLUMN `arch` varchar(32) DEFAULT 'amd64';
 
--- 5.15.2 - 5.15.3 sql
+-- 5.15.3 - 5.16.0 sql
 
 ALTER TABLE oauth_service MODIFY COLUMN client_secret varchar(255);
 ALTER TABLE oauth_service MODIFY COLUMN client_id varchar(255);

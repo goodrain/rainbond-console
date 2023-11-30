@@ -365,6 +365,7 @@ class CalibrationCertificate(RegionTenantHeaderView):
         result = general_message(200, "success", "查询成功", bean={"is_pass": is_pass})
         return Response(result, status=result["code"])
 
+
 class HttpStrategyView(RegionTenantHeaderView):
     @never_cache
     def get(self, request, *args, **kwargs):

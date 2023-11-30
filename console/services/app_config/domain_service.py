@@ -155,7 +155,13 @@ class DomainService(object):
                 continue
         return cert
 
-    def __check_domain_name(self, team_id, region_id, domain_name, certificate_id=None, ):
+    def __check_domain_name(
+            self,
+            team_id,
+            region_id,
+            domain_name,
+            certificate_id=None,
+    ):
         if not domain_name:
             raise ServiceHandleException(status_code=400, error_code=400, msg="domain can not be empty", msg_show="域名不能为空")
         zh_pattern = re.compile('[\\u4e00-\\u9fa5]+')

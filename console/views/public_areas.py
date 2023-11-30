@@ -536,6 +536,7 @@ class TeamAppNamesView(RegionTenantHeaderView):
         data = {"app_names": group_k8s_app_names}
         return Response(general_message(200, "success", "查询成功", bean=data), status=200)
 
+
 class TeamAppSortViewView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
         """
