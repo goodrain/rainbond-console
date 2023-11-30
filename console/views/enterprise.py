@@ -156,6 +156,15 @@ class EnterpriseOverview(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
+class EnterpriseTeamNames(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        tenants = Tenants.objects.filter()
+        tenant_namespaces = [tenant.namespace for tenant in tenants]
+        data = {"tenant_names": tenant_namespaces}
+        result = general_message(200, "success", None, bean=data)
+        return Response(result, status=status.HTTP_200_OK)
+
+
 class EnterpriseTeams(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         page = int(request.GET.get("page", 1))

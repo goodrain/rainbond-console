@@ -94,6 +94,58 @@ class StopAppView(AppBaseView):
         return Response(result, status=result["code"])
 
 
+class PauseAppView(AppBaseView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        """
+        挂起组件
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 组件别名
+              required: true
+              type: string
+              paramType: path
+
+        """
+        app_manage_service.pause(self.tenant, self.service, self.user)
+        result = general_message(200, "success", "操作成功", bean={})
+        self.service.update_time = datetime.now()
+        self.service.save()
+        return Response(result, status=result["code"])
+
+
+class UNPauseAppView(AppBaseView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        """
+        恢复组件
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 组件别名
+              required: true
+              type: string
+              paramType: path
+
+        """
+        app_manage_service.un_pause(self.tenant, self.service, self.user)
+        result = general_message(200, "success", "操作成功", bean={})
+        self.service.update_time = datetime.now()
+        self.service.save()
+        return Response(result, status=result["code"])
+
+
 class ReStartAppView(AppBaseCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):

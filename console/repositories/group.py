@@ -160,17 +160,20 @@ class GroupServiceRelationRepository(object):
         sgr_map = {s.service_id: s.group_id for s in sgr}
         group_ids = [g.group_id for g in sgr]
         groups = ServiceGroup.objects.filter(ID__in=group_ids)
-        group_map = {g.ID: g.group_name for g in groups}
+        group_name_map = {g.ID: g.group_name for g in groups}
+        group_k8s_app_map = {g.ID: g.k8s_app for g in groups}
         result_map = {}
         for service_id in service_ids:
             group_id = sgr_map.get(service_id, None)
             group_info = dict()
             if group_id:
-                group_info["group_name"] = group_map.get(group_id, "")
+                group_info["group_name"] = group_name_map.get(group_id, "")
                 group_info["group_id"] = group_id
+                group_info["k8s_app"] = group_k8s_app_map.get(group_id, "")
                 result_map[service_id] = group_info
             else:
                 group_info["group_name"] = "未分组"
+                group_info["k8s_app"] = "default"
                 group_info["group_id"] = -1
                 result_map[service_id] = group_info
         return result_map

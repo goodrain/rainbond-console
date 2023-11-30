@@ -13,7 +13,7 @@ from console.constants import AppConstants, PluginCategoryConstants
 from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
-from console.repositories.app_config import service_endpoints_repo
+from console.repositories.app_config import service_endpoints_repo, volume_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
@@ -57,15 +57,29 @@ class AppDetailView(AppBaseView):
               type: string
               paramType: path
         """
+        vm_url = request.GET.get("vm_url", "")
         bean = dict()
         namespace = self.tenant.namespace
         service_model = self.service.to_dict()
         group_map = group_service.get_services_group_name([self.service.service_id])
         group_name = group_map.get(self.service.service_id)["group_name"]
+        app_k8s_name = group_map.get(self.service.service_id)["k8s_app"]
         group_id = group_map.get(self.service.service_id)["group_id"]
         service_model["group_name"] = group_name
         service_model["group_id"] = group_id
         service_model["namespace"] = namespace
+        volumes = volume_repo.get_service_volumes_with_config_file(self.service.service_id)
+        service_model["disk_cap"] = 10
+        if self.service.extend_method == "vm":
+            namespace = self.tenant.namespace
+            name = app_k8s_name + "-" + self.service.k8s_component_name
+            base_vm_url = "{}/vnc_lite.html?path=".format(vm_url)
+            base_path = "k8s/apis/subresources.kubevirt.io/v1alpha3/"
+            path = base_path + "namespaces/{}/virtualmachineinstances/{}/vnc".format(namespace, name)
+            vm_url = base_vm_url + path
+            bean["vm_url"] = vm_url
+        if volumes:
+            service_model["disk_cap"] = volumes[0].volume_capacity
         bean.update({"service": service_model})
         event_websocket_url = ws_service.get_event_log_ws(self.request, self.service.service_region)
         bean.update({"event_websocket_url": event_websocket_url})

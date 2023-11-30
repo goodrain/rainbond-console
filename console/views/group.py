@@ -359,6 +359,18 @@ class AppGovernanceModeCheckView(ApplicationView):
         return Response(result)
 
 
+class AppComponentNameView(ApplicationView):
+    def get(self, request, app_id, *args, **kwargs):
+        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(self.tenant.tenant_id, self.region_name, app_id)
+        services = list()
+        if service_ids:
+            services = service_repo.list_by_ids(service_ids)
+        component_names = [service.k8s_component_name for service in services]
+        data = {"component_names": component_names}
+        result = general_message(200, "success", "查询成功", bean=data)
+        return Response(result)
+
+
 class AppKubernetesServiceView(ApplicationView):
     def get(self, request, app_id, *args, **kwargs):
         res = group_service.list_kubernetes_services(self.tenant.tenant_id, self.region_name, app_id)

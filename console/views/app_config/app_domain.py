@@ -18,6 +18,7 @@ from console.services.config_service import EnterpriseConfigService
 from console.services.gateway_api import gateway_api
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.services.virtual_machine import vms
 from console.utils.reqparse import parse_item
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
@@ -352,6 +353,16 @@ class ServiceDomainView(AppBaseView):
             return Response(general_message(400, "params error", "参数错误"), status=400)
         domain_service.unbind_domain(self.tenant, self.service, container_port, domain_name, is_tcp)
         result = general_message(200, "success", "域名解绑成功")
+        return Response(result, status=result["code"])
+
+
+class CalibrationCertificate(RegionTenantHeaderView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        certificate_id = request.data.get("certificate_id", None)
+        domain_name = request.data.get("domain_name", None)
+        is_pass = domain_service.check_certificate(certificate_id, domain_name)
+        result = general_message(200, "success", "查询成功", bean={"is_pass": is_pass})
         return Response(result, status=result["code"])
 
 
@@ -1325,3 +1336,10 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
         domain_service.update_http_rule_config(self.tenant, self.response_region, rule_id, value)
         result = general_message(200, "success", "更新成功")
         return Response(result, status=200)
+
+
+class VirtualMachineImageView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        data = vms.list_vm_image(self.tenant.tenant_id)
+        result = general_message(200, "success", "查询成功", list=data)
+        return Response(result, status=result["code"])

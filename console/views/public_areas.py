@@ -529,6 +529,14 @@ class TeamServiceOverViewView(RegionTenantHeaderView):
             return Response(result, status=200)
 
 
+class TeamAppNamesView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, "")
+        group_k8s_app_names = [app.k8s_app for app in groups]
+        data = {"app_names": group_k8s_app_names}
+        return Response(general_message(200, "success", "查询成功", bean=data), status=200)
+
+
 class TeamAppSortViewView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
         """

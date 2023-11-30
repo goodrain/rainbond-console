@@ -83,6 +83,8 @@ class AppVolumeView(AppBaseView):
             for vo in volumes:
                 vo["dep_services"] = name2deps.get(vo["volume_name"], None)
                 volumes_list.append(vo)
+        if volumes_list and len(volumes_list) > 0:
+            volumes_list[0]["first"] = True
         result = general_message(200, "success", "查询成功", list=volumes_list)
         return Response(result, status=result["code"])
 

@@ -10,7 +10,8 @@ from console.views.app_config.app_dependency import (AppDependencyManageView, Ap
 from console.views.app_config.app_domain import (
     AppServiceDomainQueryView, AppServiceTcpDomainQueryView, DomainQueryView, DomainView, GatewayCustomConfigurationView,
     GetPortView, GetSeniorUrlView, HttpStrategyView, SecondLevelDomainView, ServiceDomainView, ServiceTcpDomainQueryView,
-    ServiceTcpDomainView, TenantCertificateManageView, TenantCertificateView, GatewayRouteBatch, GatewayRoute, TenantService)
+    ServiceTcpDomainView, TenantCertificateManageView, TenantCertificateView, GatewayRouteBatch, GatewayRoute, TenantService,
+    VirtualMachineImageView, CalibrationCertificate)
 from console.views.app_config.app_env import (AppBuildEnvView, AppEnvManageView, AppEnvView)
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import (AppLabelAvailableView, AppLabelView)
@@ -35,12 +36,14 @@ from console.views.app_create.source_code import (AppCompileEnvView, SourceCodeC
                                                   PackageUploadRecordView, PackageCreateView)
 from console.views.app_create.source_outer import (ThirdPartyAppPodsView, ThirdPartyHealthzView, ThirdPartyServiceApiView,
                                                    ThirdPartyServiceCreateView, ThirdPartyUpdateSecretKeyView)
+from console.views.app_create.vm_run import VMRunCreateView
 from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEventsView, AppEventView, AppHistoryLogView,
                                      AppLogInstanceView, AppLogView)
 from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete, ChangeServiceNameView, ChangeServiceTypeView,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
                                       MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
-                                      TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView)
+                                      TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView, PauseAppView,
+                                      UNPauseAppView)
 from console.views.app_market import BindableMarketsView
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView)
@@ -61,7 +64,7 @@ from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, 
 from console.views.code_repo import ServiceCodeBranch
 from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
                                       NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage,
-                                      EnterpriseRegionGatewayBatch)
+                                      EnterpriseRegionGatewayBatch, EnterpriseTeamNames)
 from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
                                       RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
 from console.views.enterprise import (
@@ -78,7 +81,7 @@ from console.views.group import (
     AppGovernanceModeView, AppKubernetesServiceView, ApplicationStatusView, GroupStatusView, TenantGroupCommonOperationView,
     TenantGroupOperationView, TenantGroupView, ApplicationInstallView, ApplicationPodView, ApplicationHelmAppComponentView,
     ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView, TenantAppUpgradableNumView,
-    AppGovernanceModeCheckView, ApplicationVolumesView, AppGovernanceModeCRView, TenantGroupHandleView)
+    AppGovernanceModeCheckView, ApplicationVolumesView, AppGovernanceModeCRView, TenantGroupHandleView, AppComponentNameView)
 from console.views.helm_app import HelmAppView, HelmRepo, HelmCenterApp, HelmChart, CommandInstallHelm, HelmList, \
     HelmRepoAdd
 from console.views.jwt_token_view import JWTTokenView
@@ -108,7 +111,7 @@ from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
-                                        GroupOperatorManagedView, AccessTokenView, TeamArchView)
+                                        GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.role_prems import TeamAddUserView
@@ -121,12 +124,12 @@ from console.views.service_share import (
 from console.views.service_version import AppVersionManageView, AppVersionsView
 from console.views.services_toplogical import (GroupServiceDetView, TopologicalGraphView, TopologicalInternetView)
 from console.views.task_guidance import BaseGuidance
-from console.views.team import (AddTeamView, AdminAddUserView, ApplicantsView, CertificateView, EnterpriseInfoView,
-                                JoinTeamView, NotJoinTeamUserView, RegisterStatusView, TeamCheckKubernetesServiceName,
-                                TeamDelView, TeamExitView, TeamNameModView, TeamRegionInitView, TeamSortDomainQueryView,
-                                TeamSortServiceQueryView, TeamUserCanJoin, TeamUserDetaislView, TeamUserView,
-                                UserApplyStatusView, UserDelView, UserFuzSerView, TeamsPermissionCreateApp,
-                                TeamCheckResourceName, TeamRegistryAuthLView, TeamRegistryAuthRUDView, InitDefaultInfoView)
+from console.views.team import (
+    AddTeamView, AdminAddUserView, ApplicantsView, CertificateView, EnterpriseInfoView, JoinTeamView, NotJoinTeamUserView,
+    RegisterStatusView, TeamCheckKubernetesServiceName, TeamDelView, TeamExitView, TeamNameModView, TeamRegionInitView,
+    TeamSortDomainQueryView, TeamSortServiceQueryView, TeamUserCanJoin, TeamUserDetaislView, TeamUserView, UserApplyStatusView,
+    UserDelView, UserFuzSerView, TeamsPermissionCreateApp, TeamCheckResourceName, TeamRegistryAuthLView,
+    TeamRegistryAuthRUDView, InitDefaultInfoView, MonitorAlarmStatusView)
 from console.views.user import (AdministratorJoinTeamView, AdminRolesView, AdminUserLCView, AdminUserView, CheckSourceView,
                                 EnterPriseUsersCLView, EnterPriseUsersUDView, UserLogoutView, UserPemTraView)
 from console.views.user_accesstoken import (UserAccessTokenCLView, UserAccessTokenRUDView)
@@ -264,7 +267,7 @@ urlpatterns = [
 
     # 团队应用模块（5.1）
     url(r'^teams/(?P<team_name>[\w\-]+)/apps$', TeamAppSortViewView.as_view(), perms.TeamAppSortViewView),
-
+    url(r'^teams/(?P<team_name>[\w\-]+)/app_names$', TeamAppNamesView.as_view(), perms.TeamAppSortViewView),
     # 团队应用信息
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/service/over$', TeamServiceOverViewView.as_view(),
         perms.TeamServiceOverViewView),
@@ -333,6 +336,7 @@ urlpatterns = [
         perms.TenantGroupOperationView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode/check', AppGovernanceModeCheckView.as_view(),
         perms.TenantGroupOperationView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/component_names', AppComponentNameView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8sservices', AppKubernetesServiceView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources$', AppK8sResourceListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/(?P<name>[\w\-\.]+)$',
@@ -384,6 +388,8 @@ urlpatterns = [
     # docker-compose文件创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_compose$', DockerComposeCreateView.as_view(),
         perms.DockerComposeCreateView),
+    # 虚拟机镜像创建
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/vm_run$', VMRunCreateView.as_view(), perms.VMRunCreateView),
     # 应用检测
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/check$', AppCheck.as_view(), perms.AppCheck),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/get_check_uuid$', GetCheckUUID.as_view(),
@@ -503,6 +509,9 @@ urlpatterns = [
         perms.ServiceDomainView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/sld-domain', SecondLevelDomainView.as_view(),
         perms.SecondLevelDomainView),
+    # 虚拟机镜像
+    url(r'^teams/(?P<tenantName>[\w\-]+)/virtual_machine_image$', VirtualMachineImageView.as_view()),
+    # gateway api
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch-gateway-http-route$', GatewayRouteBatch.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/gateway-http-route$', GatewayRoute.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/service$', TenantService.as_view()),
@@ -511,6 +520,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain/query$', DomainQueryView.as_view(), perms.DomainQueryView),
     # http操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/httpdomain$', HttpStrategyView.as_view(), perms.HttpStrategyView),
+    # 校验证书
+    url(r'^teams/(?P<tenantName>[\w\-]+)/calibration_certificate$', CalibrationCertificate.as_view()),
     # 查看高级路由信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain/get_senior_url$', GetSeniorUrlView.as_view(), perms.GetSeniorUrlView),
     # 查询tcp/udp策略（含模糊搜索）
@@ -533,6 +544,11 @@ urlpatterns = [
     # 组件操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/start$', StartAppView.as_view(), perms.StartAppView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/stop$', StopAppView.as_view(), perms.StopAppView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pause$', PauseAppView.as_view(), perms.PauseAppView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/unpause$', UNPauseAppView.as_view(),
+        perms.UNPauseAppView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm_web$', UNPauseAppView.as_view(),
+        perms.UNPauseAppView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/restart$', ReStartAppView.as_view(),
         perms.ReStartAppView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/deploy$', DeployAppView.as_view(), perms.DeployAppView),
@@ -776,6 +792,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/visualmonitor$', EnterpriseVisualMonitorView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/alerts$', EnterpriseAlertsView.as_view()),
     url(r'^enterprise/registerstatus$', RegisterStatusView.as_view()),
+    # 获取监控报警信息
+    url(r'^enterprise/monitor_alarm$', MonitorAlarmStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
     # 初始化集群、团队信息
@@ -807,6 +825,7 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/user/(?P<user_id>[\w\-]+)$', AdminUserView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/admin/roles', AdminRolesView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/teams$', EnterpriseTeams.as_view(), perms.EnterpriseTeams),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/team_names$', EnterpriseTeamNames.as_view(), perms.EnterpriseTeams),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/apps$', EnterpriseAppsLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/menu$', EnterpriseMenuManage.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$', EnterpriseRegionsLCView.as_view()),

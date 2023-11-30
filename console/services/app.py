@@ -31,7 +31,7 @@ from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
     service_group_relation_repo
-from console.services.app_config import label_service
+from console.services.app_config import label_service, volume_service
 from console.services.app_config.arch_service import arch_service
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
@@ -299,6 +299,38 @@ class AppService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
+    def __init_vm_image_app(self, region):
+        """
+        初始化vm image创建的组件默认数据,未存入数据库
+        """
+        tenant_service = TenantServiceInfo()
+        tenant_service.service_region = region
+        tenant_service.service_key = "00000"
+        tenant_service.desc = "vm run application"
+        tenant_service.category = "app_publish"
+        tenant_service.setting = ""
+        tenant_service.extend_method = ComponentType.vm.value
+        tenant_service.min_node = 1
+        tenant_service.min_memory = 1024
+        tenant_service.min_cpu = 1000
+        tenant_service.inner_port = 0
+        tenant_service.version = ""
+        tenant_service.namespace = "goodrain"
+        tenant_service.update_version = 1
+        tenant_service.port_type = "multi_outer"
+        tenant_service.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        tenant_service.deploy_version = ""
+        tenant_service.git_project_id = 0
+        tenant_service.service_type = "application"
+        tenant_service.total_memory = 1024
+        tenant_service.volume_mount_path = ""
+        tenant_service.host_path = ""
+        tenant_service.code_from = "image_manual"
+        tenant_service.language = ""
+        tenant_service.create_status = "creating"
+        tenant_service.service_source = "vm_run"
+        return tenant_service
+
     def create_service_alias(self, service_id):
         service_alias = "gr" + service_id[-6:]
         svc = service_repo.get_service_by_service_alias(service_alias)
@@ -343,6 +375,39 @@ class AppService(object):
         logger.debug("service.create", "user:{0} create service from docker run command !".format(user.nick_name))
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
 
+        return 200, "创建成功", ts
+
+    def create_vm_run_app(self,
+                          region,
+                          tenant,
+                          user,
+                          service_cname,
+                          k8s_component_name,
+                          image="",
+                          arch="amd64",
+                          event_id="",
+                          vm_url=""):
+        is_pass, msg = self.check_service_cname(tenant, service_cname, region)
+        if not is_pass:
+            return 412, msg, None
+        new_service = self.__init_vm_image_app(region)
+        new_service.tenant_id = tenant.tenant_id
+        new_service.service_cname = service_cname
+        service_id = make_uuid(tenant.tenant_id)
+        service_alias = self.create_service_alias(service_id)
+        new_service.service_id = service_id
+        new_service.service_alias = service_alias
+        new_service.creater = user.pk
+        new_service.host_path = "/grdata/tenant/" + tenant.tenant_id + "/service/" + service_id
+        new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
+        new_service.image = image
+        new_service.arch = arch
+        if vm_url != "":
+            new_service.git_url = vm_url
+        if event_id != "":
+            new_service.git_url = "/grdata/package_build/temp/events/" + event_id
+        new_service.save()
+        ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, "创建成功", ts
 
     def __init_third_party_app(self, region):
@@ -847,9 +912,22 @@ class AppService(object):
             return probe_service.add_service_probe(tenant, service, data)
         return 200, "success", None
 
-    def update_check_app(self, tenant, service, data):
+    def update_check_app(self, tenant, service, data, user):
 
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
+        if service.extend_method == "vm":
+            volumes = volume_repo.get_service_volumes_with_config_file(service.service_id)
+            disk_cap = data.get("disk_cap")
+            if len(volumes) == 0:
+                settings = {}
+                settings['volume_capacity'] = disk_cap
+                volume_service.add_service_volume(
+                    tenant, service, "/disk", "vm-file", "disk", "", settings, user.nick_name, mode=None)
+            else:
+                volume = volumes.first()
+                volume.volume_capacity = disk_cap
+                volume.save()
+
         service_cname = data.get("service_cname", service.service_cname)
         image = data.get("image", service.image)
         cmd = data.get("cmd", service.cmd)
