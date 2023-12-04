@@ -31,4 +31,4 @@ for image in ${image_list}; do
 done
 
 
-docker save -o rainbond-"${VERSION}".tar ${image_list} rancher/mirrored-coredns-coredns:1.10.11
+docker save -o rainbond-"${VERSION}".tar ${image_list} rancher/mirrored-coredns-coredns:1.10.1
