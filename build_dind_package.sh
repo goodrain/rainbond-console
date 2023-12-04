@@ -19,7 +19,8 @@ ${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rbd-monitor:${VERSION}
 ${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rbd-gateway:${VERSION}
 ${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rbd-api:${VERSION}
 rainbond/mirrored-pause:3.1
-rancher/local-path-provisioner:v0.0.20
+rancher/local-path-provisioner:v0.0.24
+rancher/mirrored-metrics-server:v0.6.3
 rancher/mirrored-library-busybox:1.32.1"
 
 docker pull rainbond/mirrored-metrics-server:v0.5.0
