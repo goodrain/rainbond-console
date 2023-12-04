@@ -21,14 +21,13 @@ ${IMAGE_DOMAIN}/${IMAGE_NAMESPACE}/rbd-api:${VERSION}
 rainbond/mirrored-pause:3.1
 rancher/local-path-provisioner:v0.0.24
 rancher/mirrored-metrics-server:v0.6.3
+rancher/mirrored-coredns-coredns:1.10.1
 rancher/mirrored-library-busybox:1.32.1"
 
-docker pull rainbond/mirrored-coredns-coredns:1.8.4
-docker tag rainbond/mirrored-coredns-coredns:1.8.4 rancher/mirrored-coredns-coredns:1.10.1
 
 for image in ${image_list}; do
     docker pull "${image}"
 done
 
 
-docker save -o rainbond-"${VERSION}".tar ${image_list} rancher/mirrored-coredns-coredns:1.10.1
+docker save -o rainbond-"${VERSION}".tar ${image_list}
