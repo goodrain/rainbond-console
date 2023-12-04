@@ -23,9 +23,7 @@ rancher/local-path-provisioner:v0.0.24
 rancher/mirrored-metrics-server:v0.6.3
 rancher/mirrored-library-busybox:1.32.1"
 
-docker pull rainbond/mirrored-metrics-server:v0.5.0
 docker pull rainbond/mirrored-coredns-coredns:1.8.4
-docker tag rainbond/mirrored-metrics-server:v0.5.0 rancher/mirrored-metrics-server:v0.5.0
 docker tag rainbond/mirrored-coredns-coredns:1.8.4 rancher/mirrored-coredns-coredns:1.8.4
 
 for image in ${image_list}; do
@@ -33,4 +31,4 @@ for image in ${image_list}; do
 done
 
 
-docker save -o rainbond-"${VERSION}".tar ${image_list} rancher/mirrored-metrics-server:v0.5.0 rancher/mirrored-coredns-coredns:1.8.4
+docker save -o rainbond-"${VERSION}".tar ${image_list} rancher/mirrored-coredns-coredns:1.8.4
