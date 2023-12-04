@@ -151,8 +151,8 @@ function start_k3s {
   echo -e "${GREEN}$(date "$TIME") INFO: K3s is starting, please wait ············································${NC}"
   while_num=0
   while true; do
-    K3S_STATUS=$(netstat -nltp | grep k3s | grep -c -E "6443|6444|10248|10249|10250|10251|10256|10257|10258|10259")
-    if [[ "${K3S_STATUS}" == "10" ]]; then
+    K3S_STATUS=$(netstat -nltp | grep k3s | grep -c -E "6443|6444|10248|10249|10250|10256|10257|10258|10259")
+    if [[ "${K3S_STATUS}" == "9" ]]; then
       if k3s kubectl get node | grep Ready >/dev/null 2>&1; then
         echo -e "${GREEN}$(date "$TIME") INFO: K3s Started successfully ${NC}"
         break
