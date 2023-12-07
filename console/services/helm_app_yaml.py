@@ -75,7 +75,9 @@ class HelmAppService(object):
                 app["extend_method"] = "cronjob"
             app_image = cv["basic_management"]["image"].split(":")
             app["version"] = app_image[1] if len(app_image) > 2 else "latest"
-            memory = cv["basic_management"]["memory"]
+            memory = cv["basic_management"].get("memory", 0)
+            cpu = cv["basic_management"].get("cpu", 0)
+            node = cv["basic_management"].get("replicas", 1)
             app["memory"] = memory
             app["service_type"] = "application"
             app["service_source"] = "docker_image"
@@ -113,12 +115,12 @@ class HelmAppService(object):
             app["extend_method_map"] = {
                 "step_node": 1,
                 "min_memory": 64,
-                "init_memory": 512,
+                "init_memory": memory,
                 "max_memory": 65536,
                 "step_memory": 64,
                 "is_restart": 0,
-                "min_node": 1,
-                "container_cpu": 0,
+                "min_node": node,
+                "container_cpu": cpu,
                 "max_node": 64
             }
             app["extend_method_map"]["min_node"] = 1
