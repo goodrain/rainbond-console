@@ -104,7 +104,7 @@ class HelmChart(RegionTenantHeaderView):
             result = general_message(200, "success", "查询成功", bean=ret)
             return Response(result, status=status.HTTP_200_OK)
         chart_information = helm_app_service.get_helm_chart_information(self.region_name, self.tenant_name, data["repo_url"],
-                                                                        chart_name)
+                                                                        chart_name, data["username"], data["password"])
         app = rainbond_app_repo.get_app_helm_overrides(app_id, make_uuid3(repo_name + "/" + chart_name)).last()
         overrides_dict = dict()
         if app:
