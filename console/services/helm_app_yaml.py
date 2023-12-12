@@ -8,7 +8,11 @@ from console.exception.main import AbortRequest, RecordNotFound
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion, AppHelmOverrides
 from console.repositories.helm import helm_repo
 from console.repositories.market_app_repo import app_import_record_repo, rainbond_app_repo
+from console.repositories.region_app import region_app_repo
+from console.services.app_actions import app_manage_service
+from console.services.region_resource_processing import region_resource
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import RegionApp
 from www.utils.crypt import make_uuid3, make_uuid
 
 region_api = RegionInvokeApi()
@@ -389,6 +393,52 @@ class HelmAppService(object):
             RainbondCenterApp(**center_app).save()
             helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(enterprise_id, app_model_id)
         return helm_center_app
+
+    def get_upload_chart_information(self, region, tenant_name, event_id):
+        _, body = region_api.get_upload_chart_information(region, tenant_name, event_id)
+        ret = {"chart_information": body["list"]}
+        return ret
+
+    def check_upload_chart(self, region, tenant, event_id, name, version):
+        data = {
+            "event_id": event_id,
+            "name": name,
+            "version": version,
+            "namespace": tenant.namespace,
+            "overrides": [],
+        }
+        _, body = region_api.check_upload_chart(region, tenant.tenant_name, data)
+        return body["bean"]
+
+    def get_upload_chart_value(self, region, tenant_name, event_id):
+        _, body = region_api.get_upload_chart_value(region, tenant_name, event_id)
+        return body["bean"]
+
+    def get_upload_chart_resource(self, region, tenant, event_id, name, version, overrides):
+        data = {
+            "event_id": event_id,
+            "name": name,
+            "version": version,
+            "namespace": tenant.namespace,
+            "overrides": overrides,
+        }
+        _, body = region_api.get_upload_chart_resource(region, tenant.tenant_name, data)
+        return body["bean"]
+
+    def import_upload_chart_resource(self, region_name, tenant, app_id, data, user):
+        import_data = dict()
+        import_data["tenant_id"] = tenant.tenant_id
+        import_data["namespace"] = tenant.namespace
+        region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+        app = RegionApp.objects.filter(app_id=app_id)
+        import_data["app_id"] = region_app_id
+        import_data["ar"] = data
+        _, body = region_api.import_upload_chart_resource(region_name, tenant.tenant_name, import_data)
+        ac = body["bean"]
+        region_resource.create_k8s_resources(ac["k8s_resources"], app_id)
+        service_ids = region_resource.create_components(app[0], ac["component"], tenant, region_name, user.user_id)
+        app_manage_service.batch_action(region_name, tenant, user, "deploy", service_ids, None, None)
+        return body["bean"]
 
 
 helm_app_service = HelmAppService()

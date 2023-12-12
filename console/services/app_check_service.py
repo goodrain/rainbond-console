@@ -108,6 +108,7 @@ class AppCheckService(object):
         body["username"] = user_name
         body["password"] = password
         body["source_body"] = source_body
+        body["namespace"] = tenant.namespace
         res, body = region_api.service_source_check(service.service_region, tenant.tenant_name, body)
         bean = body["bean"]
         service.check_uuid = bean["check_uuid"]
@@ -420,6 +421,9 @@ class AppCheckService(object):
                 "value": [volume["volume_path"] + "(" + volume["volume_type"] + ")" for volume in service_info["volumes"]]
             }
             service_attr_list.append(service_volume_bean)
+        if service_info.get("tar_images"):
+            tar_images_bean = {"type": "tar_images", "key": "tar包镜像", "value": service_info.get("tar_images")}
+            service_attr_list.append(tar_images_bean)
         service_code_from = {}
         service_language = {}
         if service.service_source == AppConstants.SOURCE_CODE:
@@ -438,7 +442,7 @@ class AppCheckService(object):
             service_language = {"type": "language", "key": "代码语言", "value": service_info["language"]}
         if service_language:
             service_attr_list.append(service_language)
-        if service_code_from:
+        if service_code_from and service_code_from.get("value") != ":":
             service_attr_list.append(service_code_from)
         return service_attr_list
 

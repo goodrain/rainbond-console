@@ -659,3 +659,31 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
             if code != 200:
                 return Response(status=code, data=general_message(code, "failed", "操作失败"))
         return Response(status=200, data=general_message(200, "succeed", "操作成功"))
+
+
+class TarImageView(AppBaseCloudEnterpriseCenterView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        """
+        设置语言和依赖包
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 组件别名
+              required: true
+              type: string
+              paramType: path
+
+        """
+        image_name = request.data.get("image_name", "")
+        # 修改语言和包依赖
+        if image_name:
+            code, msg = app_manage_service.change_image_tool(self.tenant, self.service, image_name)
+            if code != 200:
+                return Response(status=code, data=general_message(code, "failed", "操作失败"))
+        return Response(status=200, data=general_message(200, "succeed", "操作成功"))

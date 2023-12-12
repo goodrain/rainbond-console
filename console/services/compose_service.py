@@ -73,6 +73,7 @@ class ComposeService(object):
         body["source_body"] = group_compose.compose_content
         body["username"] = group_compose.hub_user
         body["password"] = group_compose.hub_pass
+        body["namespace"] = tenant.namespace
         res, body = region_api.service_source_check(region, tenant.tenant_name, body)
         bean = body["bean"]
         group_compose.check_uuid = bean["check_uuid"]

@@ -608,6 +608,41 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data), timeout=20)
         return res, body
 
+    def get_upload_chart_information(self, region, tenant_name, event_id):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        url = uri_prefix + "/v2/helm/get_upload_chart_information?event_id={}".format(event_id)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def check_upload_chart(self, region, tenant_name, data):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        url = uri_prefix + "/v2/helm/check_upload_chart"
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def get_upload_chart_resource(self, region, tenant_name, data):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        url = uri_prefix + "/v2/helm/get_upload_chart_resource"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def import_upload_chart_resource(self, region, tenant_name, data):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        url = uri_prefix + "/v2/helm/import_upload_chart_resource"
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def get_upload_chart_value(self, region, tenant_name, event_id):
+        uri_prefix, token = self.__get_region_access_info(tenant_name, region)
+        url = uri_prefix + "/v2/helm/get_upload_chart_value?event_id={}".format(event_id)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
     def get_service_volumes_status(self, region, tenant_name, service_alias):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
@@ -1293,6 +1328,26 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             if configs:
                 return configs[0]
         return None
+
+    def get_tenant_image_repositories(self, region, tenant_name, namespace):
+        """组件源检测"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/image-repositories?namespace={}".format(namespace)
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region, timeout=20)
+        return res, body
+
+    def get_tenant_image_tags(self, region, tenant_name, repository):
+        """组件源检测"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/image-tags?repository={}".format(repository)
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region, timeout=20)
+        return res, body
 
     def service_source_check(self, region, tenant_name, body):
         """组件源检测"""

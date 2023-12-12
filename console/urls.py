@@ -31,6 +31,7 @@ from console.views.app_create.docker_compose import (ComposeCheckUpdate, Compose
                                                      ComposeDeleteView, ComposeServicesView, DockerComposeCreateView,
                                                      GetComposeCheckUUID)
 from console.views.app_create.docker_run import DockerRunCreateView
+from console.views.app_create.image_repositories import TenantImageRepositories, TenantImageTags
 from console.views.app_create.multi_app import (MultiAppCheckView, MultiAppCreateView)
 from console.views.app_create.source_code import (AppCompileEnvView, SourceCodeCreateView, UploadRecordLastView,
                                                   PackageUploadRecordView, PackageCreateView)
@@ -43,7 +44,7 @@ from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
                                       MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
                                       TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView, PauseAppView,
-                                      UNPauseAppView)
+                                      UNPauseAppView, TarImageView)
 from console.views.app_market import BindableMarketsView
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView)
@@ -83,7 +84,7 @@ from console.views.group import (
     ApplicationParseServicesView, ApplicationReleasesView, ApplicationIngressesView, TenantAppUpgradableNumView,
     AppGovernanceModeCheckView, ApplicationVolumesView, AppGovernanceModeCRView, TenantGroupHandleView, AppComponentNameView)
 from console.views.helm_app import HelmAppView, HelmRepo, HelmCenterApp, HelmChart, CommandInstallHelm, HelmList, \
-    HelmRepoAdd
+    HelmRepoAdd, UploadHelmChart, UploadHelmChartValueResource, UploadHelmChartValue
 from console.views.jwt_token_view import JWTTokenView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
 from console.views.k8s_resource import AppK8sResourceListView, AppK8ResourceView
@@ -261,6 +262,11 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_list$', HelmList.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_cmd_add$', HelmRepoAdd.as_view()),
     url(r'^teams/(?P<team_name>[\w\-]+)/helm_center_app$', HelmCenterApp.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/get_upload_chart_information$', UploadHelmChart.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/check_upload_chart$', UploadHelmChart.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/get_upload_chart_value$', UploadHelmChartValue.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/get_upload_chart_resource$', UploadHelmChartValueResource.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/import_upload_chart_resource$', UploadHelmChartValueResource.as_view()),
 
     # 获取生成令牌
     url(r'^teams/(?P<team_name>[\w\-]+)/access-token/(?P<token_note>[\w\-]+)$', AccessTokenView.as_view()),
@@ -383,6 +389,8 @@ urlpatterns = [
     # 第三方组件健康检测
     url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/3rd-party/health$", ThirdPartyHealthzView.as_view(),
         perms.ThirdPartyHealthzView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/image_repositories$', TenantImageRepositories.as_view(), perms.AppCheck),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/image_tags$', TenantImageTags.as_view(), perms.AppCheck),
     # docker镜像创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_run$', DockerRunCreateView.as_view(), perms.DockerRunCreateView),
     # docker-compose文件创建
@@ -564,7 +572,8 @@ urlpatterns = [
         MarketServiceUpgradeView.as_view(), perms.MarketServiceUpgradeView),
     # 组件设置语言和安装依赖
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/package_tool$', PackageToolView.as_view()),
-
+    # tar包设置镜像
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tar_image$', TarImageView.as_view()),
     # 批量操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch_actions$', BatchActionView.as_view(), perms.BatchActionView),
     # 批量删除应用

@@ -194,3 +194,49 @@ class HelmRepo(JWTAuthApiView):
         helm_repo.delete_helm_repo(repo_name)
         result = general_message(200, "success", "删除成功", "")
         return Response(result, status=status.HTTP_200_OK)
+
+
+class UploadHelmChart(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        event_id = request.GET.get("event_id")
+        data = helm_app_service.get_upload_chart_information(self.region_name, self.tenant_name, event_id)
+        result = general_message(200, "success", "获取成功", data)
+        return Response(result, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        event_id = request.data.get("event_id")
+        name = request.data.get("name")
+        version = request.data.get("version")
+        data = helm_app_service.check_upload_chart(self.region_name, self.tenant, event_id, name, version)
+        result = general_message(200, "success", "检测完成", data)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class UploadHelmChartValue(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        event_id = request.GET.get("event_id")
+        data = helm_app_service.get_upload_chart_value(self.region_name, self.tenant_name, event_id)
+        result = general_message(200, "success", "获取成功", data)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class UploadHelmChartValueResource(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        event_id = request.GET.get("event_id")
+        name = request.GET.get("name")
+        version = request.GET.get("version")
+        overrides = request.GET.get("overrides", {})
+        overrides_list = list()
+        for key, value in overrides.items():
+            overrides_list.append(key + "=" + value)
+        data = helm_app_service.get_upload_chart_resource(self.region_name, self.tenant, event_id, name, version,
+                                                          overrides_list)
+        result = general_message(200, "success", "获取成功", bean=data)
+        return Response(result, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        resource = request.data.get("resource")
+        app_id = request.data.get("app_id")
+        helm_app_service.import_upload_chart_resource(self.region_name, self.tenant, app_id, resource, self.user)
+        result = general_message(200, "success", "安装成功", "")
+        return Response(result, status=status.HTTP_200_OK)

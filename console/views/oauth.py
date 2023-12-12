@@ -560,6 +560,7 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = "sourcecode"
+        body["namespace"] = tenant.namespace
         body["username"] = None
         body["password"] = None
         body["source_body"] = source_body
