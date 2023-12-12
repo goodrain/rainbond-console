@@ -26,7 +26,7 @@ class YamlResourceDetailed(RegionTenantHeaderView):
         region_id = self.region.region_id
         enterprise_id = self.enterprise.enterprise_id
         res = yaml_k8s_resource.yaml_k8s_resource_detailed(event_id, app_id, tenant_id, namespace, region_id, enterprise_id)
-        return Response(general_message(200, "success", "查询成功", list=res), status=200)
+        return Response(general_message(200, "success", "查询成功", bean=res), status=200)
 
     def post(self, request, *args, **kwargs):
         event_id = request.data.get("event_id")

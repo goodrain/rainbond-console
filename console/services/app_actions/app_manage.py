@@ -1397,3 +1397,13 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             return 507, "failed"
         return 200, "success"
+
+    def change_image_tool(self, tenant, service, image_name):
+        tag = image_name.split(":")[-1]
+        service_params = {"version": tag, "image": image_name, "docker_cmd": image_name}
+        try:
+            service_repo.update(tenant.tenant_id, service.service_id, **service_params)
+        except Exception as e:
+            logger.exception(e)
+            return 507, "failed"
+        return 200, "success"
