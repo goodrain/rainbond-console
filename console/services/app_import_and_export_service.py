@@ -548,16 +548,15 @@ class AppImportService(object):
                 if key_and_version in key_and_version_list:
                     continue
                 key_and_version_list.append(key_and_version)
-                rainbond_app = RainbondCenterApp(
-                    enterprise_id=import_record.enterprise_id,
-                    app_id=app_template["group_key"],
-                    app_name=app_template["group_name"],
-                    source="import",
-                    create_team=import_record.team_name,
-                    scope=import_record.scope,
-                    describe=app_describe,
-                    pic=pic_url,
-                    arch=arch)
+                rainbond_app = RainbondCenterApp(enterprise_id=import_record.enterprise_id,
+                                                 app_id=app_template["group_key"],
+                                                 app_name=app_template["group_name"],
+                                                 source="import",
+                                                 create_team=import_record.team_name,
+                                                 scope=import_record.scope,
+                                                 describe=app_describe,
+                                                 pic=pic_url,
+                                                 arch=arch)
                 rainbond_apps.append(rainbond_app)
                 # create a new app version
                 rainbond_app_versions.append(self.create_app_version(rainbond_app, import_record, app_template, arch))
@@ -610,21 +609,20 @@ class AppImportService(object):
             if key_and_version in key_and_version_list:
                 continue
             key_and_version_list.append(key_and_version)
-            rainbond_app = RainbondCenterApp(
-                enterprise_id=tenant.enterprise_id,
-                group_key=app_template["group_key"],
-                group_name=app_template["group_name"],
-                version=app_template['group_version'],
-                share_user=0,
-                record_id=0,
-                share_team=tenant.tenant_name,
-                source="import",
-                scope=scope,
-                describe=app_template.pop("describe", ""),
-                pic=pic_url,
-                app_template=json.dumps(app_template),
-                is_complete=True,
-                template_version=app_template.get("template_version", ""))
+            rainbond_app = RainbondCenterApp(enterprise_id=tenant.enterprise_id,
+                                             group_key=app_template["group_key"],
+                                             group_name=app_template["group_name"],
+                                             version=app_template['group_version'],
+                                             share_user=0,
+                                             record_id=0,
+                                             share_team=tenant.tenant_name,
+                                             source="import",
+                                             scope=scope,
+                                             describe=app_template.pop("describe", ""),
+                                             pic=pic_url,
+                                             app_template=json.dumps(app_template),
+                                             is_complete=True,
+                                             template_version=app_template.get("template_version", ""))
             rainbond_apps.append(rainbond_app)
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
 

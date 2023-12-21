@@ -61,8 +61,9 @@ class TenantService(object):
             return None
 
     def get_access_url(self, tenant, service):
-        tenant_ports = TenantServicesPort.objects.filter(
-            tenant_id=tenant.tenant_id, service_id=service.service_id, is_outer_service=1)
+        tenant_ports = TenantServicesPort.objects.filter(tenant_id=tenant.tenant_id,
+                                                         service_id=service.service_id,
+                                                         is_outer_service=1)
         if not tenant_ports:
             return ''
 
@@ -93,15 +94,16 @@ class TenantService(object):
         memory_pay_method = service_attach_info.memory_pay_method
         disk_pay_method = service_attach_info.disk_pay_method
 
-        service_consume_list = ServiceConsume.objects.filter(
-            tenant_id=tenant.tenant_id, service_id=service.service_id).order_by("-ID")
+        service_consume_list = ServiceConsume.objects.filter(tenant_id=tenant.tenant_id,
+                                                             service_id=service.service_id).order_by("-ID")
         last_hour_cost = None
         if service_consume_list:
             last_hour_cost = service_consume_list[0]
             rt_money = last_hour_cost.pay_money
 
-        service_unpay_bill_list = ServiceFeeBill.objects.filter(
-            service_id=service.service_id, tenant_id=tenant.tenant_id, pay_status="unpayed")
+        service_unpay_bill_list = ServiceFeeBill.objects.filter(service_id=service.service_id,
+                                                                tenant_id=tenant.tenant_id,
+                                                                pay_status="unpayed")
         buy_start_time_str = buy_start_time.strftime("%Y-%m-%d %H:%M:%S")
         diff_minutes = int((buy_start_time - now).total_seconds() / 60)
         if service_current_status == "running":
@@ -347,8 +349,10 @@ class TenantService(object):
         limit_net = 0
 
         now_time = datetime.datetime.now()
-        attch_info_list = ServiceAttachInfo.objects.filter(
-            tenant_id=tenant.tenant_id, region=region, buy_start_time__lt=now_time, buy_end_time__gt=now_time)
+        attch_info_list = ServiceAttachInfo.objects.filter(tenant_id=tenant.tenant_id,
+                                                           region=region,
+                                                           buy_start_time__lt=now_time,
+                                                           buy_end_time__gt=now_time)
         for attch_info in attch_info_list:
             if attch_info.disk_pay_method == 'prepaid':
                 limit_disk += attch_info.disk

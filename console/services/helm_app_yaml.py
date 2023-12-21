@@ -64,8 +64,9 @@ class HelmAppService(object):
             service_id = make_uuid3(chart + "/" + cv["components_name"])
             app["service_id"] = service_id
             app["service_key"] = service_id
-            app["service_share_uuid"] = make_uuid3(chart + "/" + cv["components_name"]) + "+" + make_uuid3(
-                chart + "/" + cv["components_name"])
+            app["service_share_uuid"] = make_uuid3(chart + "/" +
+                                                   cv["components_name"]) + "+" + make_uuid3(chart + "/" +
+                                                                                             cv["components_name"])
             app["need_share"] = True
             app["category"] = "app_publish"
             app["language"] = ""
@@ -341,15 +342,18 @@ class HelmAppService(object):
                 repo_name = chart.split("/")[0]
                 chart_name = chart.split("/")[1]
             else:
-                raise AbortRequest(
-                    "repo_name/chart_name incorrect format", "格式不正确，仓库名称和应用名称之间应用 '/' 划分", status_code=404, error_code=404)
+                raise AbortRequest("repo_name/chart_name incorrect format",
+                                   "格式不正确，仓库名称和应用名称之间应用 '/' 划分",
+                                   status_code=404,
+                                   error_code=404)
             repo = helm_repo.get_helm_repo_by_name(repo_name)
             if not repo:
                 raise AbortRequest("helm repo is not exist", "商店不存在，执行 helm repo add 进行添加", status_code=404, error_code=404)
             repo_url = repo.get("repo_url")
             username = repo.get("username")
             password = repo.get("password")
-            chart_data = self.get_helm_chart_information(region_name, tenant.tenant_name, repo_url, chart_name, username, password)
+            chart_data = self.get_helm_chart_information(region_name, tenant.tenant_name, repo_url, chart_name, username,
+                                                         password)
             if not version:
                 logger.warning("version is not obtained from the command.use the highest version of {}".format(chart_name))
                 version = chart_data[0]["Version"]

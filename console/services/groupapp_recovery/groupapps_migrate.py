@@ -220,16 +220,16 @@ class GroupappsMigrateService(object):
         return migrate_record
 
     def save_data(
-            self,
-            migrate_tenant,
-            migrate_region,
-            user,
-            changed_service_map,
-            metadata,
-            group_id,
-            same_team,
-            same_region,
-            sync_flag=False,
+        self,
+        migrate_tenant,
+        migrate_region,
+        user,
+        changed_service_map,
+        metadata,
+        group_id,
+        same_team,
+        same_region,
+        sync_flag=False,
     ):
         from console.services.groupcopy_service import groupapp_copy_service
         group = group_repo.get_group_by_id(group_id)
@@ -328,8 +328,8 @@ class GroupappsMigrateService(object):
         self.__save_service_relations(migrate_tenant, service_relations_list, old_new_service_id_map, same_team, same_region)
         self.__save_service_mnt_relation(migrate_tenant, service_mnt_list, old_new_service_id_map, same_team, same_region)
         # restore application config group
-        self.__save_app_config_groups(
-            metadata.get("app_config_group_info"), migrate_tenant, migrate_region, group_id, changed_service_map)
+        self.__save_app_config_groups(metadata.get("app_config_group_info"), migrate_tenant, migrate_region, group_id,
+                                      changed_service_map)
 
     def __init_app(self, service_base_info, new_service_id, new_servie_alias, new_k8s_component_name, user, region, tenant):
         service_base_info.pop("ID")

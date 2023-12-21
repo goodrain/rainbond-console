@@ -358,19 +358,18 @@ class AppUpgrade(MarketApp):
 
     def _create_new_app(self):
         # new components
-        new_components = NewComponents(
-            self.tenant,
-            self.region,
-            self.user,
-            self.original_app,
-            self.app_model_key,
-            self.app_template,
-            self.version,
-            self.install_from_cloud,
-            self.component_keys,
-            self.market_name,
-            self.is_deploy,
-            support_labels=self.support_labels).components
+        new_components = NewComponents(self.tenant,
+                                       self.region,
+                                       self.user,
+                                       self.original_app,
+                                       self.app_model_key,
+                                       self.app_template,
+                                       self.version,
+                                       self.install_from_cloud,
+                                       self.component_keys,
+                                       self.market_name,
+                                       self.is_deploy,
+                                       support_labels=self.support_labels).components
         # components that need to be updated
         update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
                                              self.component_keys, self.property_changes).components
@@ -405,23 +404,22 @@ class AppUpgrade(MarketApp):
         new_component_group = copy.deepcopy(self.component_group.component_group)
         new_component_group.group_version = self.version
 
-        return NewApp(
-            self.tenant,
-            self.region_name,
-            self.app,
-            ComponentGroup(self.enterprise_id, new_component_group, need_save=not self.is_upgrade_one),
-            new_components,
-            update_components,
-            component_deps,
-            volume_deps,
-            plugins=self._plugins(),
-            plugin_deps=plugin_deps,
-            plugin_configs=plugin_configs,
-            new_plugins=self.new_plugins,
-            config_groups=config_groups,
-            config_group_items=config_group_items,
-            config_group_components=config_group_components,
-            k8s_resources=k8s_resources)
+        return NewApp(self.tenant,
+                      self.region_name,
+                      self.app,
+                      ComponentGroup(self.enterprise_id, new_component_group, need_save=not self.is_upgrade_one),
+                      new_components,
+                      update_components,
+                      component_deps,
+                      volume_deps,
+                      plugins=self._plugins(),
+                      plugin_deps=plugin_deps,
+                      plugin_configs=plugin_configs,
+                      new_plugins=self.new_plugins,
+                      config_groups=config_groups,
+                      config_group_items=config_group_items,
+                      config_group_components=config_group_components,
+                      k8s_resources=k8s_resources)
 
     def _create_original_plugins(self):
         return self.list_original_plugins()
@@ -785,21 +783,20 @@ class AppUpgrade(MarketApp):
                 else:
                     continue
 
-            plugin = TenantPlugin(
-                tenant_id=self.tenant.tenant_id,
-                region=self.region_name,
-                plugin_id=plugin_id,
-                create_user=self.user.user_id,
-                desc=plugin_tmpl["desc"],
-                plugin_alias=plugin_tmpl["plugin_alias"],
-                category=plugin_tmpl["category"],
-                build_source="image",
-                image=image,
-                code_repo=plugin_tmpl["code_repo"],
-                username=plugin_tmpl["plugin_image"]["hub_user"],
-                password=plugin_tmpl["plugin_image"]["hub_password"],
-                origin="local_market",
-                origin_share_id=plugin_tmpl["plugin_key"])
+            plugin = TenantPlugin(tenant_id=self.tenant.tenant_id,
+                                  region=self.region_name,
+                                  plugin_id=plugin_id,
+                                  create_user=self.user.user_id,
+                                  desc=plugin_tmpl["desc"],
+                                  plugin_alias=plugin_tmpl["plugin_alias"],
+                                  category=plugin_tmpl["category"],
+                                  build_source="image",
+                                  image=image,
+                                  code_repo=plugin_tmpl["code_repo"],
+                                  username=plugin_tmpl["plugin_image"]["hub_user"],
+                                  password=plugin_tmpl["plugin_image"]["hub_password"],
+                                  origin="local_market",
+                                  origin_share_id=plugin_tmpl["plugin_key"])
 
             build_version = self._create_build_version(plugin.plugin_id, plugin_tmpl)
             config_groups, config_items = self._create_config_groups(plugin.plugin_id, build_version,
@@ -839,26 +836,24 @@ class AppUpgrade(MarketApp):
         config_items = []
         for config in config_groups_tmpl:
             options = config["options"]
-            plugin_config_meta = PluginConfigGroup(
-                plugin_id=plugin_id,
-                build_version=build_version.build_version,
-                config_name=config["config_name"],
-                service_meta_type=config["service_meta_type"],
-                injection=config["injection"])
+            plugin_config_meta = PluginConfigGroup(plugin_id=plugin_id,
+                                                   build_version=build_version.build_version,
+                                                   config_name=config["config_name"],
+                                                   service_meta_type=config["service_meta_type"],
+                                                   injection=config["injection"])
             config_groups.append(plugin_config_meta)
 
             for option in options:
-                config_item = PluginConfigItems(
-                    plugin_id=plugin_id,
-                    build_version=build_version.build_version,
-                    service_meta_type=config["service_meta_type"],
-                    attr_name=option.get("attr_name", ""),
-                    attr_alt_value=option.get("attr_alt_value", ""),
-                    attr_type=option.get("attr_type", "string"),
-                    attr_default_value=option.get("attr_default_value", None),
-                    is_change=option.get("is_change", False),
-                    attr_info=option.get("attr_info", ""),
-                    protocol=option.get("protocol", ""))
+                config_item = PluginConfigItems(plugin_id=plugin_id,
+                                                build_version=build_version.build_version,
+                                                service_meta_type=config["service_meta_type"],
+                                                attr_name=option.get("attr_name", ""),
+                                                attr_alt_value=option.get("attr_alt_value", ""),
+                                                attr_type=option.get("attr_type", "string"),
+                                                attr_default_value=option.get("attr_default_value", None),
+                                                is_change=option.get("is_change", False),
+                                                attr_info=option.get("attr_info", ""),
+                                                protocol=option.get("protocol", ""))
                 config_items.append(config_item)
         return config_groups, config_items
 

@@ -58,7 +58,6 @@ class RegionNotFound(ServiceHandleException):
     """
     region not found exception
     """
-
     def __init__(self, msg):
         super(RegionNotFound, self).__init__("region not found", msg)
 
@@ -72,7 +71,6 @@ class RecordNotFound(ServiceHandleException):
     """
     There is no corresponding record in the database
     """
-
     def __init__(self, msg):
         super(RecordNotFound, self).__init__(msg)
 
@@ -147,14 +145,19 @@ class NoPermissionsError(ServiceHandleException):
 
 class StoreNoPermissionsError(ServiceHandleException):
     def __init__(self, bean=None):
-        super(StoreNoPermissionsError, self).__init__(
-            msg="no store permissions", msg_show="没有云应用商店操作权限,去认证", status_code=403, error_code=10407)
+        super(StoreNoPermissionsError, self).__init__(msg="no store permissions",
+                                                      msg_show="没有云应用商店操作权限,去认证",
+                                                      status_code=403,
+                                                      error_code=10407)
         self.bean = bean
 
     @property
     def response(self):
-        return MessageResponse(
-            self.msg, msg_show=self.msg_show, status_code=self.status_code, error_code=self.error_code, bean=self.bean)
+        return MessageResponse(self.msg,
+                               msg_show=self.msg_show,
+                               status_code=self.status_code,
+                               error_code=self.error_code,
+                               bean=self.bean)
 
 
 class ErrVolumePath(ServiceHandleException):

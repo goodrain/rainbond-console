@@ -54,7 +54,6 @@ class AppRestore(MarketApp):
     3. AppRestore will not restore components that were deleted after the upgrade.
     4. AppRestore will not be rolled back that k8s resources under the application
     """
-
     def __init__(self, tenant, region: RegionConfig, user, app: ServiceGroup, component_group: TenantServiceGroup,
                  app_upgrade_record: AppUpgradeRecord):
         self.tenant = tenant
@@ -187,21 +186,20 @@ class AppRestore(MarketApp):
         # plugins
         plugins = self.list_original_plugins()
 
-        return NewApp(
-            tenant=self.tenant,
-            region_name=self.region_name,
-            app=self.app,
-            component_group=self._create_component_group(),
-            new_components=[],
-            update_components=components,
-            component_deps=component_deps,
-            volume_deps=volume_deps,
-            plugins=plugins,
-            plugin_deps=self._create_plugins_deps(),
-            plugin_configs=self._create_plugins_configs(),
-            config_groups=self.original_app.config_groups,
-            config_group_components=self.original_app.config_group_components,
-            config_group_items=self.original_app.config_group_items)
+        return NewApp(tenant=self.tenant,
+                      region_name=self.region_name,
+                      app=self.app,
+                      component_group=self._create_component_group(),
+                      new_components=[],
+                      update_components=components,
+                      component_deps=component_deps,
+                      volume_deps=volume_deps,
+                      plugins=plugins,
+                      plugin_deps=self._create_plugins_deps(),
+                      plugin_configs=self._create_plugins_configs(),
+                      config_groups=self.original_app.config_groups,
+                      config_group_components=self.original_app.config_group_components,
+                      config_group_items=self.original_app.config_group_items)
 
     def _create_component(self, snap, now_volumes):
         # component

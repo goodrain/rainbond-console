@@ -92,14 +92,13 @@ class ConfigService(object):
     def add_config(self, key, default_value, type, enable=True, desc=""):
         if not ConsoleSysConfig.objects.filter(key=key, enterprise_id=self.enterprise_id).exists():
             create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            config = ConsoleSysConfig.objects.create(
-                key=key,
-                type=type,
-                value=default_value,
-                desc=desc,
-                create_time=create_time,
-                enable=enable,
-                enterprise_id=self.enterprise_id)
+            config = ConsoleSysConfig.objects.create(key=key,
+                                                     type=type,
+                                                     value=default_value,
+                                                     desc=desc,
+                                                     create_time=create_time,
+                                                     enable=enable,
+                                                     enterprise_id=self.enterprise_id)
             custom_settings.reload()
             return config
         else:
@@ -125,10 +124,11 @@ class ConfigService(object):
 
     def update_config_enable_status(self, key, enable):
         self.init_base_config_value()
-        config = ConsoleSysConfig.objects.get(key=key, enterprise_id=self.enterprise_id)
-        if config.enable != enable:
-            config.enable = enable
-            config.save()
+        configs = ConsoleSysConfig.objects.filter(key=key)
+        for config in configs:
+            if config.enable != enable:
+                config.enable = enable
+                config.save()
         if key in self.base_cfg_keys:
             return {key.lower(): {"enable": enable, "value": self.base_cfg_keys_value[key]["value"]}}
         return {key.lower(): {"enable": enable, "value": (eval(config.value) if config.type == "json" else config.value)}}
@@ -239,8 +239,10 @@ class EnterpriseConfigService(ConfigService):
         rst = []
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.enterprise_id)
         if enterprise.ID != 1:
-            oauth_services = OAuthServices.objects.filter(
-                ~Q(oauth_type="enterprisecenter"), eid=enterprise.enterprise_id, is_deleted=False, enable=True)
+            oauth_services = OAuthServices.objects.filter(~Q(oauth_type="enterprisecenter"),
+                                                          eid=enterprise.enterprise_id,
+                                                          is_deleted=False,
+                                                          enable=True)
         else:
             oauth_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True)
         if oauth_services:
@@ -408,8 +410,12 @@ class PlatformConfigService(ConfigService):
     def add_config_without_reload(self, key, default_value, type, desc=""):
         if not ConsoleSysConfig.objects.filter(key=key).exists():
             create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            config = ConsoleSysConfig.objects.create(
-                key=key, type=type, value=default_value, desc=desc, create_time=create_time, enterprise_id="")
+            config = ConsoleSysConfig.objects.create(key=key,
+                                                     type=type,
+                                                     value=default_value,
+                                                     desc=desc,
+                                                     create_time=create_time,
+                                                     enterprise_id="")
             return config
         else:
             raise ConfigExistError("配置{}已存在".format(key))

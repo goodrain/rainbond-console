@@ -86,7 +86,6 @@ class ConsoleSysConfig(BaseModel):
 
 class RainbondCenterApp(BaseModel):
     """云市应用包(组)"""
-
     class Meta:
         db_table = "rainbond_center_app"
         unique_together = ('app_id', 'enterprise_id')
@@ -112,7 +111,6 @@ class RainbondCenterApp(BaseModel):
 
 class RainbondCenterAppVersion(BaseModel):
     """云市应用版本"""
-
     class Meta:
         db_table = "rainbond_center_app_version"
 
@@ -156,7 +154,6 @@ class AppHelmOverrides(BaseModel):
 
 class RainbondCenterAppInherit(BaseModel):
     """云市应用组继承关系"""
-
     class Meta:
         db_table = "rainbond_center_app_inherit"
 
@@ -170,7 +167,6 @@ class RainbondCenterAppInherit(BaseModel):
 
 class RainbondCenterAppTagsRelation(BaseModel):
     """云市应用标签关系"""
-
     class Meta:
         db_table = "rainbond_center_app_tag_relation"
 
@@ -181,7 +177,6 @@ class RainbondCenterAppTagsRelation(BaseModel):
 
 class RainbondCenterAppTag(BaseModel):
     """云市应用标签"""
-
     class Meta:
         db_table = "rainbond_center_app_tag"
 
@@ -192,7 +187,6 @@ class RainbondCenterAppTag(BaseModel):
 
 class RainbondCenterPlugin(BaseModel):
     """云市插件"""
-
     class Meta:
         db_table = "rainbond_center_plugin"
 
@@ -222,7 +216,6 @@ class RainbondCenterPlugin(BaseModel):
 
 class ServiceShareRecord(BaseModel):
     """服务分享记录"""
-
     class Meta:
         db_table = "service_share_record"
 
@@ -251,7 +244,6 @@ class ServiceShareRecord(BaseModel):
 
 class ServiceShareRecordEvent(BaseModel):
     """服务分享订单关联发布事件"""
-
     class Meta:
         db_table = "service_share_record_event"
 
@@ -274,7 +266,6 @@ class ServiceShareRecordEvent(BaseModel):
 
 class PluginShareRecordEvent(BaseModel):
     """插件分享订单关联发布事件"""
-
     class Meta:
         db_table = "plugin_share_record_event"
 
@@ -295,7 +286,6 @@ class PluginShareRecordEvent(BaseModel):
 
 class ComposeGroup(BaseModel):
     """compose组"""
-
     class Meta:
         db_table = "compose_group"
 
@@ -304,8 +294,10 @@ class ComposeGroup(BaseModel):
     region = models.CharField(max_length=64, help_text="服务所属数据中心")
     compose_content = models.TextField(null=True, blank=True, help_text="compose文件内容")
     compose_id = models.CharField(max_length=32, unique=True, help_text="compose id")
-    create_status = models.CharField(
-        max_length=15, null=True, blank=True, help_text="compose组创建状态 creating|checking|checked|complete")
+    create_status = models.CharField(max_length=15,
+                                     null=True,
+                                     blank=True,
+                                     help_text="compose组创建状态 creating|checking|checked|complete")
     check_uuid = models.CharField(max_length=36, blank=True, null=True, default="", help_text="compose检测ID")
     check_event_id = models.CharField(max_length=32, blank=True, null=True, default="", help_text="compose检测事件ID")
     hub_user = models.CharField(max_length=256, blank=True, null=True, default="", help_text="镜像仓库用户名称")
@@ -316,7 +308,6 @@ class ComposeGroup(BaseModel):
 
 class ComposeServiceRelation(BaseModel):
     """compose组和服务的关系"""
-
     class Meta:
         db_table = "compose_service_relation"
 
@@ -328,7 +319,6 @@ class ComposeServiceRelation(BaseModel):
 
 class ServiceSourceInfo(BaseModel):
     """服务源信息"""
-
     class Meta:
         db_table = "service_source"
 
@@ -345,8 +335,10 @@ class ServiceSourceInfo(BaseModel):
     password = models.CharField(max_length=255, null=True, blank=True, help_text="密码")
     group_key = models.CharField(max_length=32, null=True, blank=True, help_text="group of service from market")
     version = models.CharField(max_length=32, null=True, blank=True, help_text="version of service from market")
-    service_share_uuid = models.CharField(
-        max_length=65, null=True, blank=True, help_text="unique identification of service from market")
+    service_share_uuid = models.CharField(max_length=65,
+                                          null=True,
+                                          blank=True,
+                                          help_text="unique identification of service from market")
     extend_info = models.CharField(max_length=1024, null=True, blank=True, default="", help_text="扩展信息")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
 
@@ -431,8 +423,11 @@ class ServiceRecycleBin(BaseModel):
     service_origin = models.CharField(max_length=15, default='assistant', help_text="服务创建类型cloud云市服务,assistant云帮服务")
     expired_time = models.DateTimeField(null=True, help_text="过期时间")
     tenant_service_group_id = models.IntegerField(default=0, help_text="应用归属的服务组id")
-    service_source = models.CharField(
-        max_length=15, default="", null=True, blank=True, help_text="应用来源(source_code, market, docker_run, docker_compose)")
+    service_source = models.CharField(max_length=15,
+                                      default="",
+                                      null=True,
+                                      blank=True,
+                                      help_text="应用来源(source_code, market, docker_run, docker_compose)")
     create_status = models.CharField(max_length=15, null=True, blank=True, help_text="应用创建状态 creating|complete")
     update_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="更新时间")
     check_uuid = models.CharField(max_length=36, blank=True, null=True, default="", help_text="应用检测ID")
@@ -454,7 +449,6 @@ class ServiceRelationRecycleBin(BaseModel):
 
 class EnterpriseUserPerm(BaseModel):
     """用户在企业的权限"""
-
     class Meta:
         db_table = 'enterprise_user_perm'
 
@@ -466,7 +460,6 @@ class EnterpriseUserPerm(BaseModel):
 
 class UserAccessKey(BaseModel):
     """企业通信凭证"""
-
     class Meta:
         db_table = 'user_access_key'
         unique_together = (('note', 'user_id'), )
@@ -479,7 +472,6 @@ class UserAccessKey(BaseModel):
 
 class TenantUserRole(BaseModel):
     """用户在一个团队中的角色"""
-
     class Meta:
         db_table = 'tenant_user_role'
         unique_together = (('role_name', 'tenant_id'), )
@@ -494,7 +486,6 @@ class TenantUserRole(BaseModel):
 
 class TenantUserPermission(BaseModel):
     """权限及对应的操作"""
-
     class Meta:
         db_table = 'tenant_user_permission'
         unique_together = (('codename', 'per_info'), )
@@ -511,7 +502,6 @@ class TenantUserPermission(BaseModel):
 
 class TenantUserRolePermission(BaseModel):
     """团队中一个角色与权限的关系对应表"""
-
     class Meta:
         db_table = 'tenant_user_role_permission'
 
@@ -524,7 +514,6 @@ class TenantUserRolePermission(BaseModel):
 
 class PermGroup(BaseModel):
     """权限组，用于给权限分组分类"""
-
     class Meta:
         db_table = 'tenant_permission_group'
 
@@ -536,7 +525,6 @@ class PermGroup(BaseModel):
 
 class ServiceRelPerms(BaseModel):
     """一个用户在一个应用下的权限"""
-
     class Meta:
         db_table = 'service_user_perms'
 
@@ -586,7 +574,6 @@ class RoleInfo(BaseModel):
 
 class AppExportRecord(BaseModel):
     """应用导出"""
-
     class Meta:
         db_table = 'app_export_record'
 
@@ -604,7 +591,6 @@ class AppExportRecord(BaseModel):
 
 class UserMessage(BaseModel):
     """用户站内信"""
-
     class Meta:
         db_table = 'user_message'
 
@@ -740,7 +726,6 @@ class ServiceBuildSource(BaseModel):
     """
     save the build source information of the service
     """
-
     class Meta:
         db_table = "service_build_source"
 
@@ -783,7 +768,6 @@ class AppUpgradeRecordType(Enum):
 
 class AppUpgradeRecord(BaseModel):
     """云市应用升级记录"""
-
     class Meta:
         db_table = "app_upgrade_record"
 
@@ -840,7 +824,6 @@ class AppUpgradeRecord(BaseModel):
 
 class ServiceUpgradeRecord(BaseModel):
     """云市服务升级记录"""
-
     class Meta:
         db_table = "service_upgrade_record"
 

@@ -675,8 +675,8 @@ class AppService(object):
     def get_service_resource_with_plugin(self, tenant, service, status):
         disk = 0
 
-        service_consume = ServiceConsume.objects.filter(
-            tenant_id=tenant.tenant_id, service_id=service.service_id).order_by("-ID")
+        service_consume = ServiceConsume.objects.filter(tenant_id=tenant.tenant_id,
+                                                        service_id=service.service_id).order_by("-ID")
         if service_consume:
             disk = service_consume[0].disk
 
@@ -921,8 +921,15 @@ class AppService(object):
             if len(volumes) == 0:
                 settings = {}
                 settings['volume_capacity'] = disk_cap
-                volume_service.add_service_volume(
-                    tenant, service, "/disk", "vm-file", "disk", "", settings, user.nick_name, mode=None)
+                volume_service.add_service_volume(tenant,
+                                                  service,
+                                                  "/disk",
+                                                  "vm-file",
+                                                  "disk",
+                                                  "",
+                                                  settings,
+                                                  user.nick_name,
+                                                  mode=None)
             else:
                 volume = volumes.first()
                 volume.volume_capacity = disk_cap
@@ -1337,17 +1344,16 @@ class AppMarketService(object):
             if e.status_code != 404:
                 logger.exception(e)
             app_template = None
-        rainbond_app = RainbondCenterApp(
-            app_id=app.app_key_id,
-            app_name=app.name,
-            dev_status=app.dev_status,
-            source="market",
-            scope="goodrain",
-            describe=app.desc,
-            details=app.introduction,
-            pic=app.logo,
-            create_time=app.create_time,
-            update_time=app.update_time)
+        rainbond_app = RainbondCenterApp(app_id=app.app_key_id,
+                                         app_name=app.name,
+                                         dev_status=app.dev_status,
+                                         source="market",
+                                         scope="goodrain",
+                                         describe=app.desc,
+                                         details=app.introduction,
+                                         pic=app.logo,
+                                         create_time=app.create_time,
+                                         update_time=app.update_time)
         rainbond_app.market_name = market.name
         if app_template:
             rainbond_app_version = RainbondCenterAppVersion(
@@ -1418,11 +1424,12 @@ class PackageUploadService(object):
 
     def get_last_upload_record(self, team_name, region, component_id):
         if component_id:
-            return PackageUploadRecord.objects.filter(
-                team_name=team_name, region=region, component_id=component_id,
-                status="unfinished").order_by("-create_time").first()
-        return PackageUploadRecord.objects.filter(
-            team_name=team_name, region=region, status="unfinished").order_by("-create_time").first()
+            return PackageUploadRecord.objects.filter(team_name=team_name,
+                                                      region=region,
+                                                      component_id=component_id,
+                                                      status="unfinished").order_by("-create_time").first()
+        return PackageUploadRecord.objects.filter(team_name=team_name, region=region,
+                                                  status="unfinished").order_by("-create_time").first()
 
     def update_upload_record(self, team_name, event_id, **data):
         return PackageUploadRecord.objects.filter(team_name=team_name, event_id=event_id).update(**data)
@@ -1430,8 +1437,8 @@ class PackageUploadService(object):
     def get_name_by_component_id(self, component_ids):
         package_names = []
         for component_id in component_ids:
-            res = PackageUploadRecord.objects.filter(
-                component_id=component_id, status="finished").order_by("-create_time").first()
+            res = PackageUploadRecord.objects.filter(component_id=component_id,
+                                                     status="finished").order_by("-create_time").first()
             if res:
                 package_name = eval(res.source_dir)
                 package_names += package_name
