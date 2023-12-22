@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 
 # default version, can be overridden by cmd line options
 REGISTRY_MIRROR=${REGISTRY_MIRROR:-"CN"}
-DOCKER_VERSION=${VERSION:-"20.10.9"}
+DOCKER_VERSION=${DOCKER_VERSION:-"24.0.7"}
 
 if [ $(arch) == "x86_64" ] || [ $(arch) == "amd64" ]; then
     DOCKER_VER=${DOCKER_VERSION}
