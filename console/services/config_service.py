@@ -125,10 +125,8 @@ class ConfigService(object):
 
     def update_config_enable_status(self, key, enable):
         self.init_base_config_value()
+        ConsoleSysConfig.objects.filter(key=key).update(enable=enable)
         config = ConsoleSysConfig.objects.get(key=key, enterprise_id=self.enterprise_id)
-        if config.enable != enable:
-            config.enable = enable
-            config.save()
         if key in self.base_cfg_keys:
             return {key.lower(): {"enable": enable, "value": self.base_cfg_keys_value[key]["value"]}}
         return {key.lower(): {"enable": enable, "value": (eval(config.value) if config.type == "json" else config.value)}}

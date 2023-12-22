@@ -349,7 +349,8 @@ class HelmAppService(object):
             repo_url = repo.get("repo_url")
             username = repo.get("username")
             password = repo.get("password")
-            chart_data = self.get_helm_chart_information(region_name, tenant.tenant_name, repo_url, chart_name, username, password)
+            chart_data = self.get_helm_chart_information(region_name, tenant.tenant_name, repo_url, chart_name, username,
+                                                         password)
             if not version:
                 logger.warning("version is not obtained from the command.use the highest version of {}".format(chart_name))
                 version = chart_data[0]["Version"]
