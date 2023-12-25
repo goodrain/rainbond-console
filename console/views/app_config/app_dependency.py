@@ -168,6 +168,7 @@ class AppDependencyReverseView(AppBaseView):
                 dependency_service.add_service_reverse_dependency(self.tenant, self.service.service_id, dep_service_id,
                                                                   self.user.nick_name)
             except Exception as e:
+                logger.error('add dependency error',e)
                 pass
 
         result = general_message(200, "success", "依赖添加成功")
