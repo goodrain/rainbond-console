@@ -115,8 +115,8 @@ class AppDependencyReverseView(AppBaseView):
            paramType: form
         """
         dep_service_id = request.data.get("dep_service_id", None)
-        open_inner = request.data.get("open_inner", False)
-        container_port = request.data.get("container_port", None)
+        # open_inner = request.data.get("open_inner", False)
+        # container_port = request.data.get("container_port", None)
         if not dep_service_id:
             return Response(general_message(400, "dependency service not specify", "请指明被依赖的组件"), status=400)
         if self.service.is_third_party():
@@ -167,7 +167,7 @@ class AppDependencyReverseView(AppBaseView):
             try:
                 dependency_service.add_service_reverse_dependency(self.tenant, self.service.service_id, dep_service_id,
                                                                   self.user.nick_name)
-            except:
+            except Exception as e:
                 pass
 
         result = general_message(200, "success", "依赖添加成功")
