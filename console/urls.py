@@ -494,8 +494,8 @@ urlpatterns = [
     # 组件依赖
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency$', AppDependencyView.as_view(),
         perms.AppDependencyView),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency-reverse$', AppDependencyReverseView.as_view(),
-        perms.AppDependencyView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency-reverse$',
+        AppDependencyReverseView.as_view(), perms.AppDependencyView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency/(?P<dep_service_id>[\w\-]+)$',
         AppDependencyManageView.as_view(), perms.AppDependencyManageView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/un_dependency$', AppNotDependencyView.as_view(),

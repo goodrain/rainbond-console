@@ -58,6 +58,7 @@ class AppServiceRelationService(object):
             if s.service_id not in dep_service_ids:
                 not_dependencies.append(s)
         return not_dependencies
+
     def __is_env_duplicate(self, tenant, service, dep_service):
         dep_ids = self.__get_dep_service_ids(tenant, service)
         attr_names = env_var_repo.get_service_env(tenant.tenant_id, dep_service.service_id).filter(scope="outer").values_list(

@@ -83,7 +83,7 @@ class AppDependencyReverseView(AppBaseView):
                     return Response(result, status=400)
             elif search_key is not None and not condition:
                 if search_key.lower() in service_group_map[
-                    un_dep.service_id]["group_name"].lower() or search_key.lower() in un_dep.service_cname.lower():
+                        un_dep.service_id]["group_name"].lower() or search_key.lower() in un_dep.service_cname.lower():
                     un_dep_list.append(dep_service_info)
             elif search_key is None and not condition:
                 un_dep_list.append(dep_service_info)
@@ -94,7 +94,6 @@ class AppDependencyReverseView(AppBaseView):
 
     @never_cache
     def post(self, request, *args, **kwargs):
-
         """
         反向依赖，让其他的组件来依赖自己
         ---
@@ -121,8 +120,7 @@ class AppDependencyReverseView(AppBaseView):
         if not dep_service_id:
             return Response(general_message(400, "dependency service not specify", "请指明被依赖的组件"), status=400)
         if self.service.is_third_party():
-            raise AbortRequest(msg="third-party components cannot add dependencies",
-                               msg_show="第三方组件不能添加依赖组件")
+            raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖组件")
         if dep_service_id == self.service.service_id:
             raise AbortRequest(msg="components cannot rely on themselves", msg_show="组件不能依赖自己")
         code, msg, data = dependency_service.add_service_reverse_dependency(self.tenant, self.service.service_id,
@@ -163,8 +161,7 @@ class AppDependencyReverseView(AppBaseView):
         if not dep_service_ids:
             return Response(general_message(400, "dependency service not specify", "请指明被依赖的组件"), status=400)
         if self.service.is_third_party():
-            raise AbortRequest(msg="third-party components cannot add dependencies",
-                               msg_show="第三方组件不能添加依赖组件")
+            raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖组件")
         dep_service_list = dep_service_ids.split(",")
         for dep_service_id in dep_service_list:
             try:
@@ -275,12 +272,10 @@ class AppDependencyView(AppBaseView):
         if not dep_service_id:
             return Response(general_message(400, "dependency service not specify", "请指明需要依赖的组件"), status=400)
         if self.service.is_third_party():
-            raise AbortRequest(msg="third-party components cannot add dependencies",
-                               msg_show="第三方组件不能添加依赖组件")
+            raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖组件")
         if dep_service_id == self.service.service_id:
             raise AbortRequest(msg="components cannot rely on themselves", msg_show="组件不能依赖自己")
-        code, msg, data = dependency_service.add_service_dependency(self.tenant, self.service, dep_service_id,
-                                                                    open_inner,
+        code, msg, data = dependency_service.add_service_dependency(self.tenant, self.service, dep_service_id, open_inner,
                                                                     container_port, self.user.nick_name)
         if code == 201:
             result = general_message(code, "add dependency success", msg, list=data, bean={"is_inner": False})
@@ -318,8 +313,7 @@ class AppDependencyView(AppBaseView):
         if not dep_service_ids:
             return Response(general_message(400, "dependency service not specify", "请指明需要依赖的组件"), status=400)
         if self.service.is_third_party():
-            raise AbortRequest(msg="third-party components cannot add dependencies",
-                               msg_show="第三方组件不能添加依赖组件")
+            raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖组件")
         dep_service_list = dep_service_ids.split(",")
         code, msg = dependency_service.patch_add_dependency(
             self.tenant, self.service, dep_service_list, user_name=self.user.nick_name)
@@ -398,7 +392,7 @@ class AppNotDependencyView(AppBaseView):
                     return Response(result, status=400)
             elif search_key is not None and not condition:
                 if search_key.lower() in service_group_map[
-                    un_dep.service_id]["group_name"].lower() or search_key.lower() in un_dep.service_cname.lower():
+                        un_dep.service_id]["group_name"].lower() or search_key.lower() in un_dep.service_cname.lower():
                     un_dep_list.append(dep_service_info)
             elif search_key is None and not condition:
                 un_dep_list.append(dep_service_info)
