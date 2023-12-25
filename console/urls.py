@@ -6,7 +6,8 @@ from console.captcha.captcha_code import CaptchaView
 from console.cloud.views import ProxyView
 from console.views import app_upgrade
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
-from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView)
+from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView,
+                                                     AppDependencyReverseView)
 from console.views.app_config.app_domain import (
     AppServiceDomainQueryView, AppServiceTcpDomainQueryView, DomainQueryView, DomainView, GatewayCustomConfigurationView,
     GetPortView, GetSeniorUrlView, HttpStrategyView, SecondLevelDomainView, ServiceDomainView, ServiceTcpDomainQueryView,
@@ -492,6 +493,8 @@ urlpatterns = [
         AppVolumeManageView.as_view(), perms.AppVolumeManageView),
     # 组件依赖
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency$', AppDependencyView.as_view(),
+        perms.AppDependencyView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency-reverse$', AppDependencyReverseView.as_view(),
         perms.AppDependencyView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/dependency/(?P<dep_service_id>[\w\-]+)$',
         AppDependencyManageView.as_view(), perms.AppDependencyManageView),
