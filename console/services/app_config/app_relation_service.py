@@ -142,19 +142,16 @@ class AppServiceRelationService(object):
         region_api.add_service_dependencys(service.service_region, tenant.tenant_name, service.service_alias, task)
         res = []
         for be_dep_service_id in be_dep_service_ids.split(','):
-            try:
-                tenant_service_relation = {
-                    "tenant_id": tenant.tenant_id,
-                    "service_id": be_dep_service_id,
-                    "dep_service_id": service.service_id,
-                    "dep_service_type": service.service_type,
-                    "dep_order": 0,
-                }
-                res.append(dep_relation_repo.add_service_dependency(**tenant_service_relation).to_dict())
-
-            except Exception as e:
-                logger.exception(e)
-        return 200, "success", res
+            tenant_service_relation = {
+                "tenant_id": tenant.tenant_id,
+                "service_id": be_dep_service_id,
+                "dep_service_id": service.service_id,
+                "dep_service_type": service.service_type,
+                "dep_order": 0,
+            }
+            res.append(tenant_service_relation)
+        data = dep_relation_repo.bulk_add_service_dependency(res)
+        return [item.to_dict() for item in data]
 
     def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None, user_name=''):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
