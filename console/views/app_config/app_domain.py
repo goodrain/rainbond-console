@@ -422,6 +422,13 @@ class HttpStrategyView(RegionTenantHeaderView):
             result = general_message(400, "success", "参数有误")
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
+        domain_heander = request.data.get("domain_heander", None)
+        # 检查设置的请求头对不对
+        header_items = domain_heander.split('=')
+        if not self.check_nginx_header(header_items[0], header_items[1]):
+            result = general_message(400, "success", "请求头配置有误")
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
         container_port = request.data.get("container_port", None)
         domain_name = request.data.get("domain_name", None)
         flag, msg = validate_domain(domain_name)
@@ -432,7 +439,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         service_id = request.data.get("service_id", None)
         do_path = request.data.get("domain_path", "")
         domain_cookie = request.data.get("domain_cookie", None)
-        domain_heander = request.data.get("domain_heander", None)
+
         rule_extensions = request.data.get("rule_extensions", None)
         whether_open = request.data.get("whether_open", False)
         the_weight = request.data.get("the_weight", 100)
@@ -551,18 +558,18 @@ class HttpStrategyView(RegionTenantHeaderView):
             for header in set_headers:
                 if "item_key" not in header or "item_value" not in header:
                     return False
-                # Nginx 标准的正则表达式模式
-                nginx_key_pattern = re.compile(r'^[a-zA-Z0-9_\-]+$')
-                nginx_value_pattern = re.compile(r'^[a-zA-Z0-9_\-.*$()#]+(\s*[a-zA-Z0-9_\-.*$()#]+)*$')
-
-                if not re.match(nginx_key_pattern, header["item_key"]):
-                    return False
-                if not re.match(nginx_value_pattern, header["item_value"]):
+                if not self.check_nginx_header(header["item_key"], header["item_value"]):
                     return False
         except Exception as e:
             logger.exception(e)
             return False
         return True
+
+    def check_nginx_header(self, key, value):
+        # Nginx 标准的正则表达式模式
+        nginx_key_pattern = re.compile(r'^[a-zA-Z0-9_\-]+$')
+        nginx_value_pattern = re.compile(r'^[a-zA-Z0-9_\-.*$()#]+(\s*[a-zA-Z0-9_\-.*$()#]+)*$')
+        return re.match(nginx_key_pattern, key) and re.match(nginx_value_pattern, value)
 
     @never_cache
     def put(self, request, *args, **kwargs):
@@ -575,6 +582,13 @@ class HttpStrategyView(RegionTenantHeaderView):
             result = general_message(400, "success", "参数有误")
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
+        domain_heander = request.data.get("domain_heander", None)
+        # 检查设置的请求头对不对
+        header_items = domain_heander.split('=')
+        if not self.check_nginx_header(header_items[0], header_items[1]):
+            result = general_message(400, "success", "请求头配置有误")
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
         container_port = request.data.get("container_port", None)
         domain_name = request.data.get("domain_name", None)
         flag, msg = validate_domain(domain_name)
@@ -585,7 +599,6 @@ class HttpStrategyView(RegionTenantHeaderView):
         service_id = request.data.get("service_id", None)
         do_path = request.data.get("domain_path", "")
         domain_cookie = request.data.get("domain_cookie", None)
-        domain_heander = request.data.get("domain_heander", None)
         rule_extensions = request.data.get("rule_extensions", None)
         http_rule_id = request.data.get("http_rule_id", None)
         the_weight = request.data.get("the_weight", 100)
