@@ -46,6 +46,19 @@ class AppServiceRelationService(object):
                     not_dependencies.append(s)
         return not_dependencies
 
+    # 查找所有的组件，看谁能依赖自己，要排除掉已经依赖自己的组件
+    def get_reverse_undependencies(self, tenant, service):
+        # 查找到所有的组件信息
+        services = service_repo.get_tenant_region_services(service.service_region,
+                                                           tenant.tenant_id).exclude(service_id=service.service_id)
+        not_dependencies = []
+        dep_services = dep_relation_repo.get_service_reverse_dependencies(tenant.tenant_id, service.service_id)
+        dep_service_ids = [dep.service_id for dep in dep_services]
+        for s in services:
+            if s.service_id not in dep_service_ids:
+                not_dependencies.append(s)
+        return not_dependencies
+
     def __is_env_duplicate(self, tenant, service, dep_service):
         dep_ids = self.__get_dep_service_ids(tenant, service)
         attr_names = env_var_repo.get_service_env(tenant.tenant_id, dep_service.service_id).filter(scope="outer").values_list(
@@ -118,6 +131,27 @@ class AppServiceRelationService(object):
                 logger.exception(e)
                 if e.status_code != 404:
                     raise e
+
+    def patch_add_service_reverse_dependency(self, tenant, service, be_dep_service_ids, user_name=''):
+        task = dict()
+        task["be_dep_service_ids"] = be_dep_service_ids
+        task["tenant_id"] = tenant.tenant_id
+        task["dep_service_type"] = service.service_type
+        task["enterprise_id"] = tenant.enterprise_id
+        task["operator"] = user_name
+        region_api.add_service_dependencys(service.service_region, tenant.tenant_name, service.service_alias, task)
+        res = []
+        for be_dep_service_id in be_dep_service_ids.split(','):
+            tenant_service_relation = {
+                "tenant_id": tenant.tenant_id,
+                "service_id": be_dep_service_id,
+                "dep_service_id": service.service_id,
+                "dep_service_type": service.service_type,
+                "dep_order": 0,
+            }
+            res.append(tenant_service_relation)
+        data = dep_relation_repo.bulk_add_service_dependency(res)
+        return [item.to_dict() for item in data]
 
     def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None, user_name=''):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(

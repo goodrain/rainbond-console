@@ -366,6 +366,9 @@ class TenantServiceRelationRepository(object):
     def get_service_dependencies(self, tenant_id, service_id):
         return TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id)
 
+    def get_service_reverse_dependencies(self, tenant_id, service_id):
+        return TenantServiceRelation.objects.filter(tenant_id=tenant_id, dep_service_id=service_id)
+
     def get_depency_by_serivce_id_and_dep_service_id(self, tenant_id, service_id, dep_service_id):
         deps = TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id, dep_service_id=dep_service_id)
         if deps:
@@ -374,6 +377,9 @@ class TenantServiceRelationRepository(object):
 
     def add_service_dependency(self, **tenant_service_relation):
         return TenantServiceRelation.objects.create(**tenant_service_relation)
+
+    def bulk_add_service_dependency(self, service_dependency_list):
+        return TenantServiceRelation.objects.bulk_create([TenantServiceRelation(**data) for data in service_dependency_list])
 
     def get_dependency_by_dep_service_ids(self, tenant_id, service_id, dep_service_ids):
         return TenantServiceRelation.objects.filter(
