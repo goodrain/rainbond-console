@@ -70,17 +70,17 @@ class AppDependencyReverseView(AppBaseView):
                 "group_name": service_group_map[un_dep.service_id]["group_name"],
                 "group_id": service_group_map[un_dep.service_id]["group_id"]
             }
-            if search_key is not None and condition and condition != "group_name" and condition!="service_name":
+            if search_key and condition and condition != "group_name" and condition!="service_name":
                 result = general_message(400, "error", "condition参数错误")
                 return Response(result, status=400)
 
-            if search_key is not None and condition:
+            if search_key and condition:
                 if condition == "group_name" and search_key.lower() in service_group_map[un_dep.service_id]["group_name"].lower():
                     un_dep_list.append(dep_service_info)
                 if condition == "service_name" and search_key.lower() in un_dep.service_cname.lower():
                     un_dep_list.append(dep_service_info)
 
-            elif search_key is not None and not condition:
+            elif search_key and not condition:
                 if search_key.lower() in service_group_map[
                         un_dep.service_id]["group_name"].lower() or search_key.lower() in un_dep.service_cname.lower():
                     un_dep_list.append(dep_service_info)
@@ -114,8 +114,6 @@ class AppDependencyReverseView(AppBaseView):
            paramType: form
         """
         be_dep_service_ids = request.data.get("be_dep_service_ids", None)
-        # open_inner = request.data.get("open_inner", False)
-        # container_port = request.data.get("container_port", None)
         if not be_dep_service_ids:
             return Response(general_message(400, "dependency service not specify", "请指明谁要依赖你"), status=400)
         if self.service.is_third_party():
