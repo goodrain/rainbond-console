@@ -70,12 +70,13 @@ class AppDependencyReverseView(AppBaseView):
                 "group_name": service_group_map[un_dep.service_id]["group_name"],
                 "group_id": service_group_map[un_dep.service_id]["group_id"]
             }
-            if search_key and condition and condition != "group_name" and condition!="service_name":
+            if search_key and condition and condition != "group_name" and condition != "service_name":
                 result = general_message(400, "error", "condition参数错误")
                 return Response(result, status=400)
 
             if search_key and condition:
-                if condition == "group_name" and search_key.lower() in service_group_map[un_dep.service_id]["group_name"].lower():
+                if condition == "group_name" and search_key.lower() in service_group_map[
+                        un_dep.service_id]["group_name"].lower():
                     un_dep_list.append(dep_service_info)
                 if condition == "service_name" and search_key.lower() in un_dep.service_cname.lower():
                     un_dep_list.append(dep_service_info)
@@ -125,13 +126,12 @@ class AppDependencyReverseView(AppBaseView):
         try:
             data = dependency_service.patch_add_service_reverse_dependency(
                 self.tenant, self.service, be_dep_service_ids=be_dep_service_ids, user_name=self.user.nick_name)
-            result = general_message(200,"success", "依赖添加成功", list=data)
+            result = general_message(200, "success", "依赖添加成功", list=data)
             return Response(result, status=result["code"])
         except Exception as e:
-            logger.error("重复依赖添加失败",e)
+            logger.error("重复依赖添加失败", e)
         result = general_message(400, "error", "依赖添加失败")
         return Response(result, status=result["code"])
-
 
 
 class AppDependencyView(AppBaseView):
