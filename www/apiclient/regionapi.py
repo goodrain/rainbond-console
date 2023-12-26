@@ -203,6 +203,19 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
+    def add_service_dependencys(self, region, tenant_name, service_alias, body):
+        """增加组件依赖"""
+
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        # 更新tenant_id 为数据中心tenant_id
+        body["tenant_id"] = tenant_region.region_tenant_id
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/dependencys"
+
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
+        return body
+
     def delete_service_dependency(self, region, tenant_name, service_alias, body):
         """取消组件依赖"""
 

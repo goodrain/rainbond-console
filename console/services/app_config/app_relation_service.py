@@ -132,30 +132,29 @@ class AppServiceRelationService(object):
                 if e.status_code != 404:
                     raise e
 
-    def add_service_reverse_dependency(self, tenant, service_id, dep_service_id, user_name=''):
-        service = service_repo.get_service_by_service_id(dep_service_id)
-        dep_service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, service_id)
-        dep_service_id = dep_service.service_id
+    def patch_add_service_reverse_dependency(self, tenant, service, be_dep_service_ids, user_name=''):
         task = dict()
-        task["dep_service_id"] = dep_service_id
+        task["be_dep_service_ids"] = be_dep_service_ids
         task["tenant_id"] = tenant.tenant_id
-        task["dep_service_type"] = dep_service.service_type
+        task["dep_service_type"] = service.service_type
         task["enterprise_id"] = tenant.enterprise_id
         task["operator"] = user_name
-        region_api.add_service_dependency(service.service_region, tenant.tenant_name, service.service_alias, task)
-        tenant_service_relation = {
-            "tenant_id": tenant.tenant_id,
-            "service_id": service.service_id,
-            "dep_service_id": dep_service_id,
-            "dep_service_type": dep_service.service_type,
-            "dep_order": 0,
-        }
-        dep_relation = dep_relation_repo.add_service_dependency(**tenant_service_relation)
-        # component dependency change, will change export network governance plugin configuration
-        if service.create_status == "complete":
-            from console.services.plugin import app_plugin_service
-            app_plugin_service.update_config_if_have_export_plugin(tenant, service)
-        return 200, "success", dep_relation
+        region_api.add_service_dependencys(service.service_region, tenant.tenant_name, service.service_alias, task)
+        res = []
+        for be_dep_service_id in be_dep_service_ids.split(','):
+            try:
+                tenant_service_relation = {
+                    "tenant_id": tenant.tenant_id,
+                    "service_id": be_dep_service_id,
+                    "dep_service_id": service.service_id,
+                    "dep_service_type": service.service_type,
+                    "dep_order": 0,
+                }
+                res.append(dep_relation_repo.add_service_dependency(**tenant_service_relation).to_dict())
+
+            except Exception as e:
+                logger.exception(e)
+        return 200, "success", res
 
     def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None, user_name=''):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(

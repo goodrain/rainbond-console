@@ -108,70 +108,32 @@ class AppDependencyReverseView(AppBaseView):
            required: true
            type: string
            paramType: path
-         - name: dep_service_id
-           description: 依赖的组件的id
+         - name: be_dep_service_id
+           description: 被依赖的组件的id
            required: true
            type: string
            paramType: form
         """
-        dep_service_id = request.data.get("dep_service_id", None)
+        be_dep_service_ids = request.data.get("be_dep_service_ids", None)
         # open_inner = request.data.get("open_inner", False)
         # container_port = request.data.get("container_port", None)
-        if not dep_service_id:
-            return Response(general_message(400, "dependency service not specify", "请指明被依赖的组件"), status=400)
+        if not be_dep_service_ids:
+            return Response(general_message(400, "dependency service not specify", "请指明谁要依赖你"), status=400)
         if self.service.is_third_party():
             raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖组件")
-        if dep_service_id == self.service.service_id:
+        if self.service.service_id in be_dep_service_ids:
             raise AbortRequest(msg="components cannot rely on themselves", msg_show="组件不能依赖自己")
-        code, msg, data = dependency_service.add_service_reverse_dependency(self.tenant, self.service.service_id,
-                                                                            dep_service_id, self.user.nick_name)
+
+        # 这一步真的去添加依赖
+        code, msg, data = dependency_service.patch_add_service_reverse_dependency(
+            self.tenant, self.service, be_dep_service_ids=be_dep_service_ids, user_name=self.user.nick_name)
         if code == 201:
             result = general_message(code, "add dependency success", msg, list=data, bean={"is_inner": False})
             return Response(result, status=code)
         if code != 200:
             result = general_message(code, "add dependency error", msg, list=data)
             return Response(result, status=code)
-        result = general_message(code, msg, "依赖添加成功", bean=data.to_dict())
-        return Response(result, status=result["code"])
-
-    @never_cache
-    def patch(self, request, *args, **kwargs):
-        """
-        为组件添加依赖组件
-        ---
-        parameters:
-        - name: tenantName
-          description: 租户名
-          required: true
-          type: string
-          paramType: path
-        - name: serviceAlias
-          description: 组件别名
-          required: true
-          type: string
-          paramType: path
-        - name: dep_service_ids
-          description: 依赖的组件的id,多个依赖的组件id，以英文逗号分隔
-          required: true
-          type: string
-          paramType: form
-        """
-
-        dep_service_ids = request.data.get("dep_service_ids", None)
-        if not dep_service_ids:
-            return Response(general_message(400, "dependency service not specify", "请指明被依赖的组件"), status=400)
-        if self.service.is_third_party():
-            raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖组件")
-        dep_service_list = dep_service_ids.split(",")
-        for dep_service_id in dep_service_list:
-            try:
-                dependency_service.add_service_reverse_dependency(self.tenant, self.service.service_id, dep_service_id,
-                                                                  self.user.nick_name)
-            except Exception as e:
-                logger.error('add dependency error',e)
-                pass
-
-        result = general_message(200, "success", "依赖添加成功")
+        result = general_message(code, msg, "依赖添加成功", list=data)
         return Response(result, status=result["code"])
 
 
