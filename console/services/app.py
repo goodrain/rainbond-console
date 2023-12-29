@@ -650,10 +650,11 @@ class AppService(object):
         }
         region_api.sync_components(tenant_name, region_name, region_app_id, body)
 
-    def get_app_list(self, tenant_id, region, query=""):
+    def get_app_list(self, tenant_id, region, dep_app_name):
         q = Q(tenant_id=tenant_id, service_region=region)
-        if query:
-            q &= Q(service_cname__contains=query)
+        if dep_app_name:
+            q &= Q(service_cname__contains=dep_app_name)
+
         return TenantServiceInfo.objects.filter(q)
 
     def get_service_status(self, tenant, service):
