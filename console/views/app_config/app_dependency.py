@@ -55,7 +55,7 @@ class AppDependencyReverseView(AppBaseView):
         """
         page_num = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 25))
-        search_key = request.GET.get("search_key", None)
+        search_key = request.GET.get("search_key")
         condition = request.GET.get("condition", None)
         un_dependencies = dependency_service.get_reverse_undependencies(self.tenant, self.service)
         service_ids = [s.service_id for s in un_dependencies]
@@ -70,22 +70,20 @@ class AppDependencyReverseView(AppBaseView):
                 "group_name": service_group_map[un_dep.service_id]["group_name"],
                 "group_id": service_group_map[un_dep.service_id]["group_id"]
             }
-            if search_key and condition and condition != "group_name" and condition != "service_name":
-                result = general_message(400, "error", "condition参数错误")
-                return Response(result, status=400)
-
-            if search_key and condition:
+            if search_key is not None and condition:
                 if condition == "group_name" and search_key.lower() in service_group_map[
                         un_dep.service_id]["group_name"].lower():
                     un_dep_list.append(dep_service_info)
-                if condition == "service_name" and search_key.lower() in un_dep.service_cname.lower():
+                elif condition == "service_name" and search_key.lower() in un_dep.service_cname.lower():
                     un_dep_list.append(dep_service_info)
-
-            elif search_key and not condition:
+                else:
+                    result = general_message(400, "error", "condition参数错误")
+                    return Response(result, status=400)
+            if search_key is not None and not condition:
                 if search_key.lower() in service_group_map[
                         un_dep.service_id]["group_name"].lower() or search_key.lower() in un_dep.service_cname.lower():
                     un_dep_list.append(dep_service_info)
-            elif search_key is None and not condition:
+            if search_key is None and not condition:
                 un_dep_list.append(dep_service_info)
 
         rt_list = un_dep_list[(page_num - 1) * page_size:page_num * page_size]

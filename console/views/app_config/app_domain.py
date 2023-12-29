@@ -416,6 +416,19 @@ class HttpStrategyView(RegionTenantHeaderView):
         添加http策略
 
         """
+
+        value = parse_item(request, 'value', required=True, error='value is a required parameter')
+        if not self.check_nginx_syntax(value):
+            result = general_message(400, "success", "参数有误")
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+        domain_heander = request.data.get("domain_heander", None)
+        # 检查设置的请求头对不对
+        header_items = domain_heander.split('=')
+        if not self.check_nginx_header(header_items[0], header_items[1]):
+            result = general_message(400, "success", "请求头配置有误")
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
         container_port = request.data.get("container_port", None)
         domain_name = request.data.get("domain_name", None)
         flag, msg = validate_domain(domain_name)
@@ -426,7 +439,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         service_id = request.data.get("service_id", None)
         do_path = request.data.get("domain_path", "")
         domain_cookie = request.data.get("domain_cookie", None)
-        domain_heander = request.data.get("domain_heander", None)
+
         rule_extensions = request.data.get("rule_extensions", None)
         whether_open = request.data.get("whether_open", False)
         the_weight = request.data.get("the_weight", 100)
@@ -469,7 +482,7 @@ class HttpStrategyView(RegionTenantHeaderView):
                     result = general_message(400, "failed", "未找到该自动分发方式")
                     return Response(result, status=400)
 
-    # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
+        # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
         domains = domain_repo.get_domain_by_name_and_path(domain_name, domain_path)
         domain_protocol_list = []
         is_httptohttps = False
@@ -527,7 +540,7 @@ class HttpStrategyView(RegionTenantHeaderView):
             "rewrites": rewrites
         }
         data = domain_service.bind_httpdomain(self.tenant, self.user, service, httpdomain)
-        value = parse_item(request, 'value', required=True, error='value is a required parameter')
+
         cf_dict = dict()
         cf_dict["rule_id"] = data["http_rule_id"]
         cf_dict["value"] = json.dumps(value)
@@ -535,11 +548,46 @@ class HttpStrategyView(RegionTenantHeaderView):
         result = general_message(201, "success", "策略添加成功", bean=data)
         return Response(result, status=status.HTTP_201_CREATED)
 
+    # 预先检查nginx 的header 值是否正确
+    def check_nginx_syntax(self, config_data):
+        try:
+            if "set_headers" not in config_data:
+                return False
+            set_headers = config_data["set_headers"]
+            # 检查每个项的 item_key 和 item_value
+            for header in set_headers:
+                if "item_key" not in header or "item_value" not in header:
+                    return False
+                if not self.check_nginx_header(header["item_key"], header["item_value"]):
+                    return False
+        except Exception as e:
+            logger.exception(e)
+            return False
+        return True
+
+    def check_nginx_header(self, key, value):
+        # Nginx 标准的正则表达式模式
+        nginx_key_pattern = re.compile(r'^[a-zA-Z0-9_\-]+$')
+        nginx_value_pattern = re.compile(r'^[a-zA-Z0-9_\-.*$()#]+(\s*[a-zA-Z0-9_\-.*$()#]+)*$')
+        return re.match(nginx_key_pattern, key) and re.match(nginx_value_pattern, value)
+
     @never_cache
     def put(self, request, *args, **kwargs):
         """
         编辑http策略
         """
+
+        value = parse_item(request, 'value', required=True, error='value is a required parameter')
+        if not self.check_nginx_syntax(value):
+            result = general_message(400, "success", "参数有误")
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+        domain_heander = request.data.get("domain_heander", None)
+        # 检查设置的请求头对不对
+        header_items = domain_heander.split('=')
+        if not self.check_nginx_header(header_items[0], header_items[1]):
+            result = general_message(400, "success", "请求头配置有误")
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         container_port = request.data.get("container_port", None)
         domain_name = request.data.get("domain_name", None)
@@ -551,7 +599,6 @@ class HttpStrategyView(RegionTenantHeaderView):
         service_id = request.data.get("service_id", None)
         do_path = request.data.get("domain_path", "")
         domain_cookie = request.data.get("domain_cookie", None)
-        domain_heander = request.data.get("domain_heander", None)
         rule_extensions = request.data.get("rule_extensions", None)
         http_rule_id = request.data.get("http_rule_id", None)
         the_weight = request.data.get("the_weight", 100)
@@ -613,7 +660,6 @@ class HttpStrategyView(RegionTenantHeaderView):
             "rewrites": rewrites
         }
         domain_service.update_httpdomain(self.tenant, service, http_rule_id, update_data)
-        value = parse_item(request, 'value', required=True, error='value is a required parameter')
         domain_service.update_http_rule_config(self.tenant, self.response_region, http_rule_id, value)
         result = general_message(200, "success", "策略编辑成功")
         return Response(result, status=200)
