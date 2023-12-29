@@ -98,7 +98,7 @@ class AppMntService(object):
             gs_rel = group_service_relation_repo.get_group_by_service_id(volume.service_id)
             group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region, gs_rel.group_id)
             group_name = group.group_name if group else '未分组'
-            if group_name == "" or dep_app_group == group_name:
+            if dep_app_group == "" or dep_app_group == group_name:
                 un_mount_dependencies.append({
                     "dep_app_name": services.get(service_id=volume.service_id).service_cname,
                     "dep_app_group": group_name,
