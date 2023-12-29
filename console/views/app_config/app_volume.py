@@ -187,7 +187,7 @@ class AppVolumeManageView(AppBaseView):
               paramType: path
 
         """
-        force = request.GET.get("force",None)
+        force = request.GET.get("force", None)
         volume_id = kwargs.get("volume_id", None)
         if not volume_id:
             return Response(general_message(400, "attr_name not specify", "未指定需要删除的持久化路径"), status=400)

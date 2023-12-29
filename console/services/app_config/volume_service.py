@@ -367,8 +367,7 @@ class AppVolumeService(object):
             volume_repo.add_service_config_file(**file_data)
         return volume
 
-
-    def delete_service_volume_by_id(self, tenant, service, volume_id, user_name='', force = None):
+    def delete_service_volume_by_id(self, tenant, service, volume_id, user_name='', force=None):
         # force=0: 预先检查不要删除 force=1: 强制删除
         volume = volume_repo.get_service_volume_by_pk(volume_id)
         if not volume:
