@@ -55,7 +55,7 @@ class AppMntService(object):
                         })
         return mounted_dependencies, total
 
-    def get_service_unmount_volume_list(self, tenant, service, service_ids, page, page_size, is_config=False):
+    def get_service_unmount_volume_list(self, tenant, service, service_ids, page, page_size, is_config, dep_app_group):
         """
         1. 获取租户下其他所有组件列表，方便后续进行名称的冗余
         2. 获取其他组件的所有可共享的存储
@@ -81,10 +81,12 @@ class AppMntService(object):
         service_volumes = []
         # 配置文件无论组件是否是共享存储都可以共享，只需过滤掉已经挂载的存储；其他存储类型则需要考虑排除有状态组件的存储
         if is_config:
-            service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(volume_type=self.CONFIG) \
+            service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(
+                volume_type=self.CONFIG) \
                 .exclude(ID__in=mounted_ids)
         else:
-            service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(volume_type=self.SHARE) \
+            service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(
+                volume_type=self.SHARE) \
                 .exclude(ID__in=mounted_ids).exclude(service_id__in=state_service_ids)
         # TODO 使用函数进行存储的排查，确定哪些存储不可以进行共享，哪些存储可以共享，而不是现在这样简单的提供一个self.SHARE
 
@@ -94,19 +96,19 @@ class AppMntService(object):
         un_mount_dependencies = []
         for volume in page_volumes:
             gs_rel = group_service_relation_repo.get_group_by_service_id(volume.service_id)
-            group = None
-            if gs_rel:
-                group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region, gs_rel.group_id)
-            un_mount_dependencies.append({
-                "dep_app_name": services.get(service_id=volume.service_id).service_cname,
-                "dep_app_group": group.group_name if group else '未分组',
-                "dep_vol_name": volume.volume_name,
-                "dep_vol_path": volume.volume_path,
-                "dep_vol_type": volume.volume_type,
-                "dep_vol_id": volume.ID,
-                "dep_group_id": group.ID if group else -1,
-                "dep_app_alias": services.get(service_id=volume.service_id).service_alias
-            })
+            group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region, gs_rel.group_id)
+            group_name = group.group_name if group else '未分组'
+            if group_name == "" or dep_app_group == group_name:
+                un_mount_dependencies.append({
+                    "dep_app_name": services.get(service_id=volume.service_id).service_cname,
+                    "dep_app_group": group_name,
+                    "dep_vol_name": volume.volume_name,
+                    "dep_vol_path": volume.volume_path,
+                    "dep_vol_type": volume.volume_type,
+                    "dep_vol_id": volume.ID,
+                    "dep_group_id": group.ID if group else -1,
+                    "dep_app_alias": services.get(service_id=volume.service_id).service_alias
+                })
         return un_mount_dependencies, total
 
     def get_service_unmnt_details(self, tenant, service, service_ids, page, page_size, q):

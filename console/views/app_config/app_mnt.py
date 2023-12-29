@@ -51,27 +51,28 @@ class AppMntView(AppBaseView):
               paramType: query
 
         """
-        query = request.GET.get("query", "")
-        if query == "undefined":
-            query = ""
+        dep_app_name = request.GET.get("dep_app_name", "")
+        if dep_app_name == "undefined":
+            dep_app_name = ""
+        dep_app_group = request.GET.get("dep_app_group", "")
+        if dep_app_group == "undefined":
+            dep_app_group = ""
         query_type = request.GET.get("type", "mnt")
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         volume_types = parse_argument(request, 'volume_types', value_type=list)
         is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
 
-        if query == "undefined":
-            query = ""
         if volume_types is not None and ('config-file' in volume_types):
             is_config = True
 
         if query_type == "mnt":
             mnt_list, total = mnt_service.get_service_mnt_details(self.tenant, self.service, volume_types)
         elif query_type == "unmnt":
-            services = app_service.get_app_list(self.tenant.tenant_id, self.service.service_region, query)
+            services = app_service.get_app_list(self.tenant.tenant_id, self.service.service_region, dep_app_name)
             services_ids = [s.service_id for s in services]
             mnt_list, total = mnt_service.get_service_unmount_volume_list(self.tenant, self.service, services_ids, page,
-                                                                          page_size, is_config)
+                                                                          page_size, is_config, dep_app_group)
         else:
             return Response(general_message(400, "param error", "参数错误"), status=400)
         result = general_message(200, "success", "查询成功", list=mnt_list, total=total)

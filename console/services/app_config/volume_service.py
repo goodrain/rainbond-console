@@ -8,6 +8,7 @@ import re
 from console.constants import AppConstants, ServiceLanguageConstants
 from console.enum.component_enum import ComponentType, is_state
 from console.exception.main import ErrVolumePath, ServiceHandleException
+from console.repositories.app import service_repo
 from console.repositories.app_config import mnt_repo, volume_repo
 from console.services.app_config.label_service import LabelService
 from console.services.exception import (ErrVolumeTypeDoNotAllowMultiNode, ErrVolumeTypeNotFound)
@@ -366,15 +367,22 @@ class AppVolumeService(object):
             volume_repo.add_service_config_file(**file_data)
         return volume
 
-    def delete_service_volume_by_id(self, tenant, service, volume_id, user_name=''):
+    def delete_service_volume_by_id(self, tenant, service, volume_id, user_name='', force=False):
         volume = volume_repo.get_service_volume_by_pk(volume_id)
         if not volume:
             return 404, "需要删除的路径不存在", None
         # if volume.volume_type == volume.SHARE:
         # 判断当前共享目录是否被使用
         mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
-        if mnt:
-            return 403, "当前路径被共享,无法删除", None
+        if mnt and not force:
+            list = []
+            for item in mnt:
+                s = service_repo.get_service_by_service_id(item.service_id)
+                list.append({
+                    "service_cname": s.service_cname,
+                    "service_alias": s.service_alias,
+                })
+            return 202, "当前路径被以下组件共享,无法删除,是否要强制删除呢", list
         if service.create_status == "complete":
             data = dict()
             data["operator"] = user_name
