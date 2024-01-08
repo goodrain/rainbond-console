@@ -4,7 +4,7 @@ import re
 
 from openapi.serializer.utils import DateCharField
 from rest_framework import serializers, validators
-from www.models.main import ServiceGroup, TenantServiceInfo
+from www.models.main import ServiceGroup, TenantServiceInfo, TenantServicesPort
 
 ACTION_CHOICE = (
     ("stop", ("stop")),
@@ -29,6 +29,18 @@ COMPONENT_BUILD_TYPE = (
     ("docker_image", ("docker_image")),
     ("market", ("market")),
 )
+
+COMPONENT_PORT_PROTOCOL = (
+    ("http", ("http")),
+    ("tcp", ("tcp")),
+    ("udp", ("udp")),
+    ("mysql", ("msyql")),
+    ("grpc", ("grpc")),
+)
+
+COMPONENT_PORT_ACTION = (("open_outer", ("open_outer")), ("only_open_outer", ("only_open_outer")),
+                         ("close_outer", ("close_outer")), ("open_inner", ("open_inner")), ("close_inner", ("close_inner")),
+                         ("change_protocol", ("change_protocol")), ("change_port_alias", ("change_port_alias")))
 
 COMPONENT_SOURCE_TYPE = (
     ("svn", ("svn")),
@@ -64,6 +76,12 @@ class ServiceBaseInfoSerializer(serializers.ModelSerializer):
     # component status
     status = serializers.CharField(max_length=32, allow_blank=True, default="", help_text="组件状态")
     access_infos = serializers.ListField(required=False, allow_empty=True, default=[], help_text="组件访问地址")
+
+
+class ServicePortSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TenantServicesPort
+        exclude = ["ID", "tenant_id", "service_id", "name"]
 
 
 class AppInfoSerializer(AppBaseInfoSerializer):
@@ -245,6 +263,22 @@ class CreateThirdComponentResponseSerializer(ServiceBaseInfoSerializer):
 
 class ComponentEventSerializers(serializers.Serializer):
     event_id = serializers.CharField(max_length=64, help_text="事件ID")
+
+
+class ComponentUpdatePortReqSerializers(serializers.Serializer):
+    action = serializers.ChoiceField(choices=COMPONENT_PORT_ACTION, required=True, allow_null=False, help_text="端口操作类型")
+    port_alias = serializers.CharField(max_length=255, required=False, allow_null=True, help_text="端口别名")
+    protocol = serializers.ChoiceField(
+        choices=COMPONENT_PORT_PROTOCOL, default='http', required=False, allow_null=True, help_text="端口协议")
+    k8s_service_name = serializers.CharField(max_length=255, required=False, allow_null=True, help_text="内部域名")
+
+
+class ComponentPortReqSerializers(serializers.Serializer):
+    port = serializers.IntegerField(help_text="组件端口", required=True, allow_null=False)
+    protocol = serializers.ChoiceField(
+        choices=COMPONENT_PORT_PROTOCOL, default='http', required=False, allow_null=True, help_text="端口协议")
+    port_alias = serializers.CharField(max_length=255, required=False, allow_null=True, help_text="端口别名")
+    is_inner_service = serializers.BooleanField(help_text="开启对内端口")
 
 
 class ComponentBuildReqSerializers(serializers.Serializer):
