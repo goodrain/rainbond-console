@@ -44,7 +44,8 @@ from openapi.serializer.app_serializer import (
     AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentBuildReqSerializers,
     ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers, CreateThirdComponentResponseSerializer,
     CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
-    TeamAppsCloseSerializers, DeployAppSerializer)
+    TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentPortReqSerializers,
+    ComponentUpdatePortReqSerializers)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
@@ -676,6 +677,118 @@ class ComponentEnvsUView(TeamAppServiceAPIView):
         serializers = ComponentEnvsSerializers(data=rst)
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)
+
+
+class ComponentPortsChangeView(TeamAppServiceAPIView):
+    @swagger_auto_schema(
+        operation_description="删除组件端口",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("service_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_STRING),
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队id", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="集群名称", type=openapi.TYPE_STRING),
+        ],
+        responses={200: ServicePortSerializer()},
+        tags=['openapi-apps'],
+    )
+    def delete(self, request, *args, **kwargs):
+        container_port = kwargs.get("port")
+        if not container_port:
+            raise AbortRequest("container_port not specify", "端口变量名未指定")
+        data = port_service.delete_port_by_container_port(self.team, self.service, int(container_port), self.user.nick_name)
+        re = ServicePortSerializer(data)
+        result = general_message(200, "success", "删除成功", bean=re.data)
+        return Response(result, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="更新组件端口",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("service_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_STRING),
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队id", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="集群名称", type=openapi.TYPE_STRING),
+        ],
+        request_body=ComponentUpdatePortReqSerializers,
+        responses={200: ServicePortSerializer()},
+        tags=['openapi-apps'],
+    )
+    def put(self, request, *args, **kwargs):
+        port_update = ComponentUpdatePortReqSerializers(data=request.data)
+        port_update.is_valid(raise_exception=True)
+        container_port = kwargs.get("port")
+        action = port_update.data.get("action", None)
+        port_alias = port_update.data.get("port_alias", None)
+        protocol = port_update.data.get("protocol", None)
+        k8s_service_name = port_update.data.get("k8s_service_name", "")
+        if not container_port:
+            raise AbortRequest("container_port not specify", "端口变量名未指定")
+
+        if self.service.service_source == "third_party" and ("outer" in action):
+            msg, msg_show, code = port_service.check_domain_thirdpart(self.team, self.service)
+            if code != 200:
+                logger.exception(msg, msg_show)
+                return Response(general_message(code, msg, msg_show), status=code)
+
+        code, msg, data = port_service.manage_port(self.team, self.service, self.region_name, int(container_port), action,
+                                                   protocol, port_alias, k8s_service_name, self.user.nick_name)
+        if code != 200:
+            return Response(general_message(code, "change port fail", msg), status=code)
+
+        re = ServicePortSerializer(data)
+        result = general_message(200, "success", "操作成功", bean=re.data)
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class ComponentPortsShowView(TeamAppServiceAPIView):
+    @swagger_auto_schema(
+        operation_description="获取组件端口列表",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("service_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_STRING),
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队id", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="集群名称", type=openapi.TYPE_STRING),
+        ],
+        responses={200: ServicePortSerializer(many=True)},
+        tags=['openapi-apps'],
+    )
+    def get(self, request, *args, **kwargs):
+        ports = port_repo.get_service_ports(self.team.tenant_id, self.service.service_id)
+        re = ServicePortSerializer(ports, many=True)
+        result = general_message(200, "success", "查询成功", list=re.data)
+        return Response(result, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="新增组件端口",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("service_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_STRING),
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队id", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="集群名称", type=openapi.TYPE_STRING),
+        ],
+        request_body=ComponentPortReqSerializers,
+        responses={200: ServicePortSerializer()},
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+        port_info = ComponentPortReqSerializers(data=request.data)
+        port_info.is_valid(raise_exception=True)
+        port = port_info.data.get("port")
+        protocol = port_info.data.get("protocol")
+        port_alias = port_info.data.get("port_alias", "")
+        is_inner_service = port_info.data.get("is_inner_service", False)
+        if not port:
+            return Response(general_message(400, "params error", "缺少端口参数"), status=400)
+        if not protocol:
+            return Response(general_message(400, "params error", "缺少协议参数"), status=400)
+        if not port_alias:
+            port_alias = self.service.service_alias.upper().replace("-", "_") + str(port)
+        code, msg, port_info = port_service.add_service_port(self.team, self.service, port, protocol, port_alias,
+                                                             is_inner_service, False, None, self.user.nick_name)
+        if code != 200:
+            return Response(general_message(code, "add port error", msg), status=code)
+        re = ServicePortSerializer(port_info)
+        result = general_message(200, "success", "添加成功", bean=re.data)
+        return Response(result, status=status.HTTP_200_OK)
 
 
 class ComponentBuildView(TeamAppServiceAPIView):
