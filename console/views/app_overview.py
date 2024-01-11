@@ -692,8 +692,6 @@ class AppKeywordView(AppBaseView):
         修改组件触发自动部署关键字
         """
         keyword = request.data.get("keyword", "")
-        if keyword == "undefined":
-            return Response(general_message(400, "param error", "参数错误"), status=400)
 
         is_pass, msg = app_service.check_service_cname(self.tenant, self.service.service_region, None)
         if not is_pass:
