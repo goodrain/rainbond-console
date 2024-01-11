@@ -458,8 +458,6 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         return Response(result, status=result.get("code", 200))
 
 
-
-
 class EnterpriseNamespaceResource(JWTAuthApiView):
     def get(self, request, enterprise_id, region_id, *args, **kwargs):
         content = request.GET.get("content", "all")

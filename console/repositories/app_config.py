@@ -816,7 +816,8 @@ class CompileEnvRepository(object):
         if lang == "web_runtime":
             return first_screening.filter(Q(language='static') | Q(language='PHP'))
         if lang == "openJDK":
-            return first_screening.filter(Q(language='Gradle') | Q(language='Java-maven') | Q(language='Java-jar') | Q(language='Java-war'))
+            return first_screening.filter(
+                Q(language='Gradle') | Q(language='Java-maven') | Q(language='Java-jar') | Q(language='Java-war'))
         if lang == "maven":
             return first_screening.filter(language="Java-maven")
         if lang == "python":
@@ -825,6 +826,7 @@ class CompileEnvRepository(object):
             return first_screening.filter(language=".NetCore")
         if lang == "php":
             return first_screening.filter(language="PHP")
+
 
 class ServiceAuthRepository(object):
     def delete_service_auth(self, service_id):
