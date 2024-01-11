@@ -99,7 +99,8 @@ class AppDetailView(AppBaseView):
                 if rainbond_app_version:
                     apps_template = json.loads(rainbond_app_version.app_template)
                     apps_list = apps_template.get("apps")
-                    service_source = service_source_repo.get_service_source(self.service.tenant_id, self.service.service_id)
+                    service_source = service_source_repo.get_service_source(self.service.tenant_id,
+                                                                            self.service.service_id)
                     if service_source and service_source.extend_info:
                         extend_info = json.loads(service_source.extend_info)
                         if extend_info:
@@ -134,7 +135,8 @@ class AppDetailView(AppBaseView):
         bean["is_third"] = False
         if self.service.service_source == "third_party":
             bean["is_third"] = True
-            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id).first()
+            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(
+                self.service.service_id).first()
             if service_endpoints:
                 bean["register_way"] = service_endpoints.endpoints_type
                 bean["endpoints_type"] = service_endpoints.endpoints_type
@@ -274,7 +276,8 @@ class ListAppPodsView(AppBaseView):
               paramType: path
         """
 
-        data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
+        data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name,
+                                           self.service.service_alias,
                                            self.tenant.enterprise_id)
         result = {}
         if data["bean"]:
@@ -307,9 +310,9 @@ class ListAppPodsView(AppBaseView):
                         if self.service.k8s_component_name in key and 'default-tcpmesh' not in key:
                             if len(container_list) > 1:
                                 container_list[0], container_list[len(container_list) - 1] = container_list[
-                                                                                                 len(
-                                                                                                     container_list) - 1], \
-                                                                                             container_list[0]
+                                    len(
+                                        container_list) - 1], \
+                                    container_list[0]
                     bean["container"] = container_list
                     res.append(bean)
                 return res
@@ -627,10 +630,12 @@ class BuildSourceinfo(AppBaseView):
                     if is_oauth:
                         try:
                             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
-                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
+                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id,
+                                                                                   user_id=user_id)
                         except Exception as e:
                             logger.debug(e)
-                            rst = {"data": {"bean": None}, "status": 400, "msg_show": "Oauth服务可能已被删除，请重新配置"}
+                            rst = {"data": {"bean": None}, "status": 400,
+                                   "msg_show": "Oauth服务可能已被删除，请重新配置"}
                             return Response(rst, status=200)
                         try:
                             instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
@@ -691,12 +696,11 @@ class AppKeywordView(AppBaseView):
         """
         修改组件触发自动部署关键字
         """
-
-        keyword = request.data.get("keyword", None)
-        if not keyword:
+        keyword = request.data.get("keyword", "")
+        if keyword == "undefined":
             return Response(general_message(400, "param error", "参数错误"), status=400)
 
-        is_pass, msg = app_service.check_service_cname(self.tenant, keyword, self.service.service_region)
+        is_pass, msg = app_service.check_service_cname(self.tenant, self.service.service_region, None)
         if not is_pass:
             return Response(general_message(400, "param error", msg), status=400)
         service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
@@ -732,6 +736,7 @@ class JobStrategy(AppBaseView):
         }
         params = {'job_strategy': json.dumps(job_strategy)}
         service_repo.update(self.tenant.tenant_id, self.service.service_id, **params)
-        region_api.update_service(self.service.service_region, self.tenant.tenant_name, self.service.service_alias, params)
+        region_api.update_service(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
+                                  params)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
