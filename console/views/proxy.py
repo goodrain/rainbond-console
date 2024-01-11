@@ -12,6 +12,7 @@ from www.utils.return_message import general_message
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
+
 class ProxyPassView(JWTAuthApiView):
     @never_cache
     def post(self, request, *args, **kwargs):
