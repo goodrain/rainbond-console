@@ -5,7 +5,7 @@ import os
 import time
 
 from django.http import StreamingHttpResponse, FileResponse
-
+from django import forms
 from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException, AbortRequest
 from console.models.main import RegionConfig
@@ -21,6 +21,7 @@ from console.services.app_config.component_logs import component_log_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import user_kind_role_service
+from console.services.region_lang_version import region_lang_version
 from console.services.region_resource_processing import region_resource
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -421,6 +422,42 @@ class EnterpriseRegionNamespace(JWTAuthApiView):
         data = region_resource.get_namespaces(enterprise_id, region_id, content)
         result = general_message(200, "success", "获取成功", bean=data["list"])
         return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseRegionLangVersion(JWTAuthApiView):
+    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+        language = request.GET.get("language", "")
+        data = region_lang_version.show_long_version(enterprise_id, region_id, language)
+        result = general_message(200, "success", "获取成功", list=data["list"])
+        return Response(result, status=status.HTTP_200_OK)
+
+    def post(self, request, enterprise_id, region_id, *args, **kwargs):
+        language = request.data.get("language", "")
+        version = request.data.get("version", "")
+        event_id = request.data.get("event_id", "")
+        file_name = request.data.get("file_name", "")
+        region_lang_version.create_long_version(enterprise_id, region_id, language, version, event_id, file_name)
+        result = general_message(200, "success", "添加成功")
+        return Response(result, status=status.HTTP_200_OK)
+
+    def put(self, request, enterprise_id, region_id, *args, **kwargs):
+        language = request.data.get("language", "")
+        version = request.data.get("version", "")
+        region_lang_version.update_long_version(enterprise_id, region_id, language, version)
+        result = general_message(200, "success", "更新成功")
+        return Response(result, status=result.get("code", 200))
+
+    def delete(self, request, enterprise_id, region_id, *args, **kwargs):
+        language = request.data.get("language", "")
+        version = request.data.get("version", "")
+        use_components = region_lang_version.delete_long_version(enterprise_id, region_id, language, version)
+        if use_components:
+            data = {"code": 409, "msg": "version in use", "msg_show": "该版本在使用中，无法删除"}
+            return Response(data, status=409)
+        result = general_message(200, "success", "删除成功")
+        return Response(result, status=result.get("code", 200))
+
+
 
 
 class EnterpriseNamespaceResource(JWTAuthApiView):
