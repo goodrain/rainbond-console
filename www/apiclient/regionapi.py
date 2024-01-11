@@ -1326,14 +1326,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def get_region_info(self, region):
-        configs = RegionConfig.objects.filter(region_name=region)
+    def get_region_info(self, region_name):
+        configs = RegionConfig.objects.filter(region_name=region_name)
         if configs:
             return configs[0]
-        else:
-            configs = RegionConfig.objects.filter(region_id=region)
-            if configs:
-                return configs[0]
         return None
 
     def get_enterprise_region_info(self, eid, region):
@@ -2629,20 +2625,20 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 
-    def post_proxy(self, region, path, data):
-        region_info = self.get_region_info(region)
+    def post_proxy(self, region_name, path, data):
+        region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url + path
         self._set_headers(region_info.token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
         return body
 
-    def get_proxy(self, region, path):
-        region_info = self.get_region_info(region)
+    def get_proxy(self, region_name, path):
+        region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url + path
         self._set_headers(region_info.token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(url, self.default_headers, region=region_name)
         return body

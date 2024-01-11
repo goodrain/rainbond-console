@@ -17,13 +17,13 @@ class ProxyPassView(JWTAuthApiView):
     @never_cache
     def post(self, request, *args, **kwargs):
         path = request.get_full_path().replace("/console", "")
-        resp = region_api.post_proxy(request.GET.get("region"), path, request.data)
+        resp = region_api.post_proxy(request.GET.get("region_name"), path, request.data)
         result = general_message(200, "success", "请求成功", bean=resp['bean'], list=resp['list'])
         return Response(result, status=result["code"])
 
     @never_cache
     def get(self, request, *args, **kwargs):
         path = request.get_full_path().replace("/console", "")
-        resp = region_api.get_proxy(request.GET.get("region"), path)
+        resp = region_api.get_proxy(request.GET.get("region_name"), path)
         result = general_message(200, "success", "请求成功", bean=resp['bean'], list=resp['list'])
         return Response(result, status=result["code"])
