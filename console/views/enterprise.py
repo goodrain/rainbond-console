@@ -5,7 +5,6 @@ import os
 import time
 
 from django.http import StreamingHttpResponse, FileResponse
-from django import forms
 from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException, AbortRequest
 from console.models.main import RegionConfig

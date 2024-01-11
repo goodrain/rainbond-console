@@ -1,20 +1,6 @@
-import datetime
+from console.repositories.app_config import compile_env_repo
 
-from console.enum.app import GovernanceModeEnum
-from console.models.main import AutoscalerRuleMetrics, ComponentK8sAttributes, K8sResource
-from console.repositories.app_config import env_var_repo, volume_repo, port_repo, compile_env_repo
-from console.repositories.autoscaler_repo import autoscaler_rules_repo
-from console.repositories.group import group_repo, group_service_relation_repo
-from console.repositories.k8s_attribute import k8s_attribute_repo
-from console.repositories.k8s_resources import k8s_resources_repo
-from console.repositories.region_app import region_app_repo
-from console.services.app_actions import app_manage_service
-from console.services.app_config import compile_env_service
-from console.services.perm_services import role_kind_services
-from console.services.team_services import team_services
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import Tenants, ServiceGroup, TenantServiceInfo, TenantRegionInfo, TenantServiceVolume, \
-    TenantServiceEnvVar, TenantServicesPort, ServiceProbe
 
 region_api = RegionInvokeApi()
 
