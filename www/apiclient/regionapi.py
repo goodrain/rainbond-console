@@ -1292,7 +1292,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             url, token = client_auth_service.get_region_access_token_by_tenant(tenant_name, region)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
-        region_info = self.get_region_info(region)
+        region_info = self.get_region_info(region_name=region)
         if region_info is None:
             raise err_region_not_found
         url = region_info.url
@@ -1305,7 +1305,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def __get_region_access_info_by_enterprise_id(self, enterprise_id, region):
         url, token = client_auth_service.get_region_access_token_by_enterprise_id(enterprise_id, region)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
-        region_info = self.get_region_info(region)
+        region_info = self.get_region_info(region_name=region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
@@ -2452,7 +2452,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return body
 
     def get_rbd_pod_log(self, region, pod_name, follow=False):
-        """获取rbd logs信息"""
         """获取rbd logs信息"""
         region_info = self.get_region_info(region)
         if not region_info:
