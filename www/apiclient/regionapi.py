@@ -2659,3 +2659,21 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url += "/v2/cluster/langVersion"
         res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
         return body
+
+    def post_proxy(self, region_name, path, data):
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + path
+        self._set_headers(region_info.token)
+        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
+        return body
+
+    def get_proxy(self, region_name, path):
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + path
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body
