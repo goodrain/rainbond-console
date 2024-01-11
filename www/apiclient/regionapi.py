@@ -2623,3 +2623,21 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url + "/v2/cluster/abilities/{ability_id}".format(ability_id=ability_id)
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
+
+    def post_proxy(self, region_name, path, data):
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + path
+        self._set_headers(region_info.token)
+        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
+        return body
+
+    def get_proxy(self, region_name, path):
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + path
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body
