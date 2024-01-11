@@ -5,7 +5,8 @@ from django.conf.urls import url
 from openapi.views.apps.apps import (AppInfoView, APPOperationsView, AppServiceEventsView, AppServicesView,
                                      AppServiceTelescopicHorizontalView, AppServiceTelescopicVerticalView, ComponentBuildView,
                                      ComponentEnvsUView, CreateThirdComponentView, ListAppServicesView, TeamAppsCloseView,
-                                     TeamAppsMonitorQueryRangeView, TeamAppsMonitorQueryView)
+                                     TeamAppsMonitorQueryRangeView, TeamAppsMonitorQueryView, ComponentPortsShowView,
+                                     ComponentPortsChangeView)
 from openapi.views.apps.market import AppInstallView, AppUpgradeView
 from openapi.views.gateway.gateway import (ListAppGatewayHTTPRuleView, ListAppGatewayRuleView, UpdateAppGatewayHTTPRuleView,
                                            UpdateAppGatewayRuleView)
@@ -35,6 +36,8 @@ urlpatterns = [
     url(r'^(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/telescopic/horizontal$',
         AppServiceTelescopicHorizontalView.as_view(), perms.AppServiceTelescopicHorizontalView),
     url(r'^(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/envs$', ComponentEnvsUView.as_view()),
+    url(r'^(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/ports/(?P<port>[\w\-]+)$$', ComponentPortsChangeView.as_view()),
+    url(r'^(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/ports$', ComponentPortsShowView.as_view()),
     url(r'^(?P<app_id>[\d\-]+)/services/(?P<service_id>[\w\-]+)/build$', ComponentBuildView.as_view()),
     url(r'^(?P<app_id>[\d\-]+)/third-components$', CreateThirdComponentView.as_view()),
 ]
