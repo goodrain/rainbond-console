@@ -1292,7 +1292,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             url, token = client_auth_service.get_region_access_token_by_tenant(tenant_name, region)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
-        region_info = self.get_region_info(region_name=region)
+        region_info = self.get_region_info(region)
         if region_info is None:
             raise err_region_not_found
         url = region_info.url
@@ -1305,7 +1305,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def __get_region_access_info_by_enterprise_id(self, enterprise_id, region):
         url, token = client_auth_service.get_region_access_token_by_enterprise_id(enterprise_id, region)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
-        region_info = self.get_region_info(region_name=region)
+        region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
@@ -1326,10 +1326,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def get_region_info(self, region_name):
-        configs = RegionConfig.objects.filter(region_name=region_name)
+    def get_region_info(self, region):
+        configs = RegionConfig.objects.filter(region_name=region)
         if configs:
             return configs[0]
+        else:
+            configs = RegionConfig.objects.filter(region_id=region)
+            if configs:
+                return configs[0]
         return None
 
     def get_enterprise_region_info(self, eid, region):
@@ -2453,6 +2457,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def get_rbd_pod_log(self, region, pod_name, follow=False):
         """获取rbd logs信息"""
+        """获取rbd logs信息"""
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2623,3 +2628,21 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url + "/v2/cluster/abilities/{ability_id}".format(ability_id=ability_id)
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
+
+    def post_proxy(self, region, path, data):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + path
+        self._set_headers(region_info.token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        return body
+
+    def get_proxy(self, region, path):
+        region_info = self.get_region_info(region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + path
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body

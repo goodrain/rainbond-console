@@ -111,11 +111,13 @@ from console.views.plugin.service_plugin import (ServicePluginConfigView, Servic
                                                  ServicePluginsView)
 from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
+from console.views.proxy import ProxyPassView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
                                         GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
+from console.views.registry import HubRegistryView
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import (
@@ -145,6 +147,8 @@ from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPlugin
 from console.views.rbd_ability import RainbondAbilityLView, RainbondAbilityRUDView
 
 urlpatterns = [
+    url(r'^v2/proxy-pass/(.*?)', ProxyPassView.as_view()),
+
     # record error logs
     url(r'^errlog$', ErrLogView.as_view()),
     # 获取云帮Logo、标题、github、gitlab配置信息
@@ -187,6 +191,8 @@ urlpatterns = [
     # 修改密码
     url(r'^users/changepwd$', ChangeLoginPassword.as_view()),
 
+    # 全局镜像仓库配置
+    url(r'^hub/registry$', HubRegistryView.as_view()),
     # 我的详情
     url(r'^users/details$', UserDetailsView.as_view()),
     # 模糊查询用户
