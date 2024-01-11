@@ -6,12 +6,11 @@ from rest_framework.response import Response
 
 from www.apiclient.regionapi import RegionInvokeApi
 
-region_api = RegionInvokeApi()
 from console.views.base import JWTAuthApiView
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
-
+region_api = RegionInvokeApi()
 
 class ProxyPassView(JWTAuthApiView):
     @never_cache

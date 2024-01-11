@@ -1,8 +1,8 @@
 from django.views.decorators.cache import never_cache
 from console.services.team_services import team_services
-from www.utils.return_message import error_message, general_message
+from www.utils.return_message import general_message
 from rest_framework.response import Response
-from console.repositories.team_repo import team_repo, team_registry_auth_repo
+from console.repositories.team_repo import team_registry_auth_repo
 from console.utils.reqparse import parse_item
 
 from console.views.base import JWTAuthApiView
