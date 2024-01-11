@@ -214,7 +214,7 @@ class WebHooksDeploy(AlowAnyApiView):
                     return Response(result, status=400)
                 message = commits_info[0].get("message")
                 keyword = "@" + service_webhook.deploy_keyword
-                if service_webhook.deploy_keyword and  keyword not in message:
+                if service_webhook.deploy_keyword and keyword not in message:
                     result = general_message(200, "commit message not include {0}".format(service_webhook.deploy_keyword),
                                              "提交信息无效")
                     return Response(result, status=200)

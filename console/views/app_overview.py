@@ -99,8 +99,7 @@ class AppDetailView(AppBaseView):
                 if rainbond_app_version:
                     apps_template = json.loads(rainbond_app_version.app_template)
                     apps_list = apps_template.get("apps")
-                    service_source = service_source_repo.get_service_source(self.service.tenant_id,
-                                                                            self.service.service_id)
+                    service_source = service_source_repo.get_service_source(self.service.tenant_id, self.service.service_id)
                     if service_source and service_source.extend_info:
                         extend_info = json.loads(service_source.extend_info)
                         if extend_info:
@@ -135,8 +134,7 @@ class AppDetailView(AppBaseView):
         bean["is_third"] = False
         if self.service.service_source == "third_party":
             bean["is_third"] = True
-            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(
-                self.service.service_id).first()
+            service_endpoints = service_endpoints_repo.get_service_endpoints_by_service_id(self.service.service_id).first()
             if service_endpoints:
                 bean["register_way"] = service_endpoints.endpoints_type
                 bean["endpoints_type"] = service_endpoints.endpoints_type
@@ -276,8 +274,7 @@ class ListAppPodsView(AppBaseView):
               paramType: path
         """
 
-        data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name,
-                                           self.service.service_alias,
+        data = region_api.get_service_pods(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                            self.tenant.enterprise_id)
         result = {}
         if data["bean"]:
@@ -630,12 +627,10 @@ class BuildSourceinfo(AppBaseView):
                     if is_oauth:
                         try:
                             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
-                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id,
-                                                                                   user_id=user_id)
+                            oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
                         except Exception as e:
                             logger.debug(e)
-                            rst = {"data": {"bean": None}, "status": 400,
-                                   "msg_show": "Oauth服务可能已被删除，请重新配置"}
+                            rst = {"data": {"bean": None}, "status": 400, "msg_show": "Oauth服务可能已被删除，请重新配置"}
                             return Response(rst, status=200)
                         try:
                             instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
@@ -736,7 +731,6 @@ class JobStrategy(AppBaseView):
         }
         params = {'job_strategy': json.dumps(job_strategy)}
         service_repo.update(self.tenant.tenant_id, self.service.service_id, **params)
-        region_api.update_service(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
-                                  params)
+        region_api.update_service(self.service.service_region, self.tenant.tenant_name, self.service.service_alias, params)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
