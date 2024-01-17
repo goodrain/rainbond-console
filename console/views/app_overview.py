@@ -307,9 +307,9 @@ class ListAppPodsView(AppBaseView):
                         if self.service.k8s_component_name in key and 'default-tcpmesh' not in key:
                             if len(container_list) > 1:
                                 container_list[0], container_list[len(container_list) - 1] = container_list[
-                                                                                                 len(
-                                                                                                     container_list) - 1], \
-                                                                                             container_list[0]
+                                    len(
+                                        container_list) - 1], \
+                                    container_list[0]
                     bean["container"] = container_list
                     res.append(bean)
                 return res
@@ -691,12 +691,9 @@ class AppKeywordView(AppBaseView):
         """
         修改组件触发自动部署关键字
         """
+        keyword = request.data.get("keyword", "")
 
-        keyword = request.data.get("keyword", None)
-        if not keyword:
-            return Response(general_message(400, "param error", "参数错误"), status=400)
-
-        is_pass, msg = app_service.check_service_cname(self.tenant, keyword, self.service.service_region)
+        is_pass, msg = app_service.check_service_cname(self.tenant, self.service.service_region, None)
         if not is_pass:
             return Response(general_message(400, "param error", msg), status=400)
         service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
