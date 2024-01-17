@@ -187,6 +187,8 @@ class OauthServiceInfo(EnterpriseAdminView):
 class OAuthServiceRedirect(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
+        if not code:
+            return HttpResponseRedirect("/")
         service_id = request.GET.get("service_id")
         service = oauth_repo.get_oauth_services_by_service_id(service_id)
         route_mode = os.getenv("ROUTE_MODE", "hash")
