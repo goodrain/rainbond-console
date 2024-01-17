@@ -57,6 +57,7 @@ class AppMntView(AppBaseView):
         dep_app_group = request.GET.get("dep_app_group", "")
         if dep_app_group == "undefined":
             dep_app_group = ""
+        config_name = request.GET.get("config_name", "")
         query_type = request.GET.get("type", "mnt")
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
@@ -72,7 +73,7 @@ class AppMntView(AppBaseView):
             services = app_service.get_app_list(self.tenant.tenant_id, self.service.service_region, dep_app_name)
             services_ids = [s.service_id for s in services]
             mnt_list, total = mnt_service.get_service_unmount_volume_list(self.tenant, self.service, services_ids, page,
-                                                                          page_size, is_config, dep_app_group)
+                                                                          page_size, is_config, dep_app_group, config_name)
         else:
             return Response(general_message(400, "param error", "参数错误"), status=400)
         result = general_message(200, "success", "查询成功", list=mnt_list, total=total)

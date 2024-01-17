@@ -55,7 +55,8 @@ class AppMntService(object):
                         })
         return mounted_dependencies, total
 
-    def get_service_unmount_volume_list(self, tenant, service, service_ids, page, page_size, is_config, dep_app_group):
+    def get_service_unmount_volume_list(self, tenant, service, service_ids, page, page_size, is_config, dep_app_group,
+                                        config_name):
         """
         1. 获取租户下其他所有组件列表，方便后续进行名称的冗余
         2. 获取其他组件的所有可共享的存储
@@ -98,7 +99,8 @@ class AppMntService(object):
             gs_rel = group_service_relation_repo.get_group_by_service_id(volume.service_id)
             group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region, gs_rel.group_id)
             group_name = group.group_name if group else '未分组'
-            if dep_app_group == "" or dep_app_group == group_name:
+            if (dep_app_group == "" or dep_app_group == group_name) and (config_name == "" or config_name in volume.volume_name
+                                                                         or config_name in volume.volume_path):
                 un_mount_dependencies.append({
                     "dep_app_name": services.get(service_id=volume.service_id).service_cname,
                     "dep_app_group": group_name,
