@@ -27,7 +27,8 @@ class AppMntService(object):
 
     def get_service_mnt_details(self, tenant, service, volume_types, page=1, page_size=20):
 
-        all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(tenant.tenant_id, service.service_id, volume_types)
+        all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(tenant.tenant_id, service.service_id,
+                                                                         volume_types)
         total = len(all_mnt_relations)
         mnt_paginator = JuncheePaginator(all_mnt_relations, int(page_size))
         mnt_relations = mnt_paginator.page(page)
@@ -55,7 +56,8 @@ class AppMntService(object):
                         })
         return mounted_dependencies, total
 
-    def get_service_unmount_volume_list(self, tenant, service, service_ids, page, page_size, is_config, dep_app_group):
+    def get_service_unmount_volume_list(self, tenant, service, service_ids, page, page_size, is_config, dep_app_group,
+                                        config_name):
         """
         1. 获取租户下其他所有组件列表，方便后续进行名称的冗余
         2. 获取其他组件的所有可共享的存储
@@ -98,7 +100,8 @@ class AppMntService(object):
             gs_rel = group_service_relation_repo.get_group_by_service_id(volume.service_id)
             group = group_repo.get_group_by_pk(tenant.tenant_id, service.service_region, gs_rel.group_id)
             group_name = group.group_name if group else '未分组'
-            if dep_app_group == "" or dep_app_group == group_name:
+            if (dep_app_group == "" or dep_app_group == group_name) and (
+                    config_name == "" or config_name == volume.volume_name):
                 un_mount_dependencies.append({
                     "dep_app_name": services.get(service_id=volume.service_id).service_cname,
                     "dep_app_group": group_name,
@@ -208,14 +211,16 @@ class AppMntService(object):
                     "enterprise_id": tenant.enterprise_id
                 }
             data["operator"] = user_name
-            res, body = region_api.add_service_dep_volumes(service.service_region, tenant.tenant_name, service.service_alias,
+            res, body = region_api.add_service_dep_volumes(service.service_region, tenant.tenant_name,
+                                                           service.service_alias,
                                                            data)
             logger.debug("add service mnt info res: {0}, body:{1}".format(res, body))
 
         mnt_relation = mnt_repo.add_service_mnt_relation(tenant.tenant_id, service.service_id, dep_volume.service_id,
                                                          dep_volume.volume_name, source_path)
-        logger.debug("mnt service {0} to service {1} on dir {2}".format(mnt_relation.service_id, mnt_relation.dep_service_id,
-                                                                        mnt_relation.mnt_dir))
+        logger.debug(
+            "mnt service {0} to service {1} on dir {2}".format(mnt_relation.service_id, mnt_relation.dep_service_id,
+                                                               mnt_relation.mnt_dir))
 
     def delete_service_mnt_relation(self, tenant, service, dep_vol_id, user_name=''):
         dep_volume = volume_repo.get_service_volume_by_pk(dep_vol_id)
