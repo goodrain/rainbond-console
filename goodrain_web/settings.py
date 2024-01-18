@@ -13,10 +13,10 @@ import datetime
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 import sys
-import random
-import string
 
 from corsheaders.defaults import default_headers
+
+from goodrain_web.mac_hash import get_hash_mac
 
 # rainbond version
 VERSION = "5.3.0"
@@ -53,8 +53,7 @@ else:
 
 TEMPLATE_DEBUG = os.environ.get('TEMPLATE_DEBUG') or False
 
-SECRET_KEY = ''.join([''.join(random.choices(string.ascii_letters, k=5)) for _ in range(5)])
-
+SECRET_KEY = get_hash_mac()
 DEFAULT_HANDLERS = [os.environ.get('DEFAULT_HANDLERS') or 'file_handler']
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -175,7 +174,6 @@ REGION_RULE = {}
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'hd_279hu4@3^bq&8w5hm_l$+xrip$_r8vh5t%ru(q8#!rauoj1'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
