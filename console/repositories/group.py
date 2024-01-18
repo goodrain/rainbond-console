@@ -8,9 +8,12 @@ from datetime import datetime
 from django.db.models import Q
 
 from console.exception.bcode import ErrComponentGroupNotFound
+from console.repositories.region_app import region_app_repo
+from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import (ServiceGroup, ServiceGroupRelation, TenantServiceGroup)
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class GroupRepository(object):
@@ -26,9 +29,9 @@ class GroupRepository(object):
         return ServiceGroup.objects.filter(
             tenant_id=tenant.tenant_id, region_name=region_name).order_by("-update_time", "-order_index")
 
-    def add_group(self, tenant_id, region_name, group_name, group_note="", is_default=False, username=""):
+    def add_group(self, tenant, region_name, group_name, group_note="", is_default=False, username=""):
         group = ServiceGroup.objects.create(
-            tenant_id=tenant_id,
+            tenant_id=tenant.tenant_id,
             region_name=region_name,
             group_name=group_name,
             note=group_note,
@@ -36,6 +39,7 @@ class GroupRepository(object):
             username=username,
             update_time=datetime.now(),
             create_time=datetime.now())
+        self.create_region_app(tenant, region_name, group, "")
         return group
 
     def update_group_time(self, group_id):
@@ -99,12 +103,36 @@ class GroupRepository(object):
         return ServiceGroup.objects.filter(
             tenant_id=service.tenant_id, region_name=service.service_region, is_default=True).first()
 
-    def get_or_create_default_group(self, tenant_id, region_name):
+    def get_or_create_default_group(self, tenant, region_name):
         # 查询是否有团队在当前数据中心是否有默认应用，没有创建
-        group = ServiceGroup.objects.filter(tenant_id=tenant_id, region_name=region_name, is_default=True).first()
+        group = ServiceGroup.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name).first()
         if not group:
-            return self.add_group(tenant_id=tenant_id, region_name=region_name, group_name="默认应用", is_default=True)
+            return self.add_group(tenant=tenant, region_name=region_name, group_name="默认应用", is_default=True)
         return group
+
+    def create_region_app(self, tenant, region_name, app, eid=""):
+        region_app = region_api.create_application(
+            region_name, tenant.tenant_name, {
+                "eid": eid,
+                "app_name": app.group_name,
+                "app_type": app.app_type,
+                "app_store_name": app.app_store_name,
+                "app_store_url": app.app_store_url,
+                "app_template_name": app.app_template_name,
+                "version": app.version,
+                "k8s_app": app.k8s_app,
+            })
+
+        # record the dependencies between region app and console app
+        data = {
+            "region_name": region_name,
+            "region_app_id": region_app["app_id"],
+            "app_id": app.ID,
+        }
+        region_app_repo.create(**data)
+        # 集群端创建完应用后，再更新控制台的应用名称
+        app.k8s_app = region_app["k8s_app"]
+        app.save()
 
     def get_apps_list(self, team_id=None, region_name=None, query=None):
         q = Q(region_name=region_name) & Q(tenant_id=team_id)
