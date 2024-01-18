@@ -116,11 +116,6 @@ class GroupService(object):
         res['k8s_app'] = app.k8s_app
         return res
 
-    def create_default_app(self, tenant, region_name):
-        app = group_repo.get_or_create_default_group(tenant.tenant_id, region_name)
-        self.create_region_app(tenant, region_name, app)
-        return app.to_dict()
-
     def create_region_app(self, tenant, region_name, app, eid=""):
         region_app = region_api.create_application(
             region_name, tenant.tenant_name, {

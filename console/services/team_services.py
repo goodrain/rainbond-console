@@ -50,7 +50,9 @@ class TeamService(object):
         return Tenants.objects.filter(tenant_alias=team_alias, enterprise_id=enterprise_id).first()
 
     def get_team_by_team_id_and_eid(self, team_id, enterprise_id):
-        return Tenants.objects.filter(tenant_id=team_id, enterprise_id=enterprise_id).first()
+        if enterprise_id:
+            return Tenants.objects.filter(tenant_id=team_id, enterprise_id=enterprise_id).first()
+        return Tenants.objects.filter(tenant_id=team_id).first()
 
     def random_tenant_name(self, enterprise=None, length=8):
         """
