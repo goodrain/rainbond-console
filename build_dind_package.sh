@@ -22,7 +22,7 @@ rainbond/mirrored-pause:3.1
 rancher/local-path-provisioner:v0.0.24
 rancher/mirrored-metrics-server:v0.6.3
 rancher/mirrored-coredns-coredns:1.10.1
-rancher/mirrored-library-busybox:1.32.1"
+rancher/mirrored-library-busybox:1.36.1"
 
 
 for image in ${image_list}; do
