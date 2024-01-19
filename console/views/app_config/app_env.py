@@ -2,8 +2,10 @@
 """
   Created on 18/1/15.
 """
+import json
 import logging
 
+from console.repositories.app_config import compile_env_repo
 from console.services.app_config.env_service import AppEnvVarService
 from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
@@ -421,5 +423,8 @@ class AppBuildEnvView(AppBaseView):
         for build_env in new_build_envs:
             new_build_env_dict[build_env.attr_name] = build_env.attr_value
 
+        compile_env = compile_env_repo.get_service_compile_env(self.service.service_id)
+        compile_env.user_dependency = json.dumps(build_env_dict)
+        compile_env.save()
         result = general_message(200, "success", "环境变量添加成功")
         return Response(result, status=result["code"])

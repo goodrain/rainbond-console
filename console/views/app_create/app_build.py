@@ -184,3 +184,32 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
                     service.save()
             raise e
         return Response(result, status=result["code"])
+
+
+class CodeBuildLangVersionView(AppBaseView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        """
+        源码构建组件获取构建环境版本。
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: group_id
+              description: 组ID
+              required: true
+              type: string
+              paramType: path
+            - name: compose_id
+              description: group_compose ID
+              required: true
+              type: string
+              paramType: path
+        """
+        lang = request.GET.get("lang", "")
+        data = app_service.get_code_long_build_version(self.enterprise.enterprise_id, self.region_name, lang)
+        result = general_message(200, "success", "查询成功", list=data)
+        return Response(result, status=result["code"])

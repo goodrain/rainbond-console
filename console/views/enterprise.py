@@ -5,7 +5,6 @@ import os
 import time
 
 from django.http import StreamingHttpResponse, FileResponse
-
 from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException, AbortRequest
 from console.models.main import RegionConfig
@@ -407,6 +406,52 @@ class EnterpriseRegionNamespace(JWTAuthApiView):
         data = region_resource.get_namespaces(enterprise_id, region_id, content)
         result = general_message(200, "success", "获取成功", bean=data["list"])
         return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseRegionLangVersion(JWTAuthApiView):
+    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+        language = request.GET.get("language", "")
+        data = region_lang_version.show_long_version(enterprise_id, region_id, language)
+        result = general_message(200, "success", "获取成功", list=data["list"])
+        return Response(result, status=status.HTTP_200_OK)
+
+    def post(self, request, enterprise_id, region_id, *args, **kwargs):
+        language = request.data.get("language", "")
+        version = request.data.get("version", "")
+        event_id = request.data.get("event_id", "")
+        file_name = request.data.get("file_name", "")
+        if ' ' in version:
+            data = {"code": 400, "msg": "version format mistake",
+                    "msg_show": "版本号格式不正确"}
+            return Response(data, status=400)
+        extensions = ['zip', 'war', 'jar', 'tar', 'tar.gz', 'rar']
+        if any(file_name.endswith(ext) for ext in extensions) or language == "net_runtime" or language == "net_compiler":
+            data = region_lang_version.create_long_version(enterprise_id, region_id, language, version, event_id, file_name)
+            if data.get("bean") == "exist":
+                data = {"code": 409, "msg": "version is exist", "msg_show": "该版本已存在"}
+                return Response(data, status=409)
+            result = general_message(200, "success", "添加成功")
+            return Response(result, status=status.HTTP_200_OK)
+        else:
+            data = {"code": 400, "msg": "package format mistake", "msg_show": "文件上传格式不正确，支持zip, war, jar, tar, tar.gz, rar"}
+            return Response(data, status=400)
+
+    def put(self, request, enterprise_id, region_id, *args, **kwargs):
+        language = request.data.get("language", "")
+        version = request.data.get("version", "")
+        region_lang_version.update_long_version(enterprise_id, region_id, language, version)
+        result = general_message(200, "success", "更新成功")
+        return Response(result, status=result.get("code", 200))
+
+    def delete(self, request, enterprise_id, region_id, *args, **kwargs):
+        language = request.data.get("language", "")
+        version = request.data.get("version", "")
+        use_components = region_lang_version.delete_long_version(enterprise_id, region_id, language, version)
+        if use_components:
+            data = {"code": 405, "msg": "version in use", "msg_show": "该版本在使用中，无法删除"}
+            return Response(data, status=405)
+        result = general_message(200, "success", "删除成功")
+        return Response(result, status=result.get("code", 200))
 
 
 class EnterpriseNamespaceResource(JWTAuthApiView):

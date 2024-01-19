@@ -29,7 +29,7 @@ from console.views.app_config.service_monitor import (ComponentMetricsView, Comp
                                                       ComponentServiceMonitorView)
 from console.views.app_config.app_log import ComponentLogView
 from console.views.app_config_group import (AppConfigGroupView, ListAppConfigGroupView)
-from console.views.app_create.app_build import AppBuild, ComposeBuildView
+from console.views.app_create.app_build import AppBuild, ComposeBuildView, CodeBuildLangVersionView
 from console.views.app_create.app_check import (AppCheck, AppCheckUpdate, GetCheckUUID)
 from console.views.app_create.docker_compose import (ComposeCheckUpdate, ComposeCheckView, ComposeContentView,
                                                      ComposeDeleteView, ComposeServicesView, DockerComposeCreateView,
@@ -72,7 +72,7 @@ from console.views.code_repo import ServiceCodeBranch
 from console.views.custom_configs import CustomConfigsCLView
 from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
                                       NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage,
-                                      EnterpriseRegionGatewayBatch, EnterpriseTeamNames)
+                                      EnterpriseRegionGatewayBatch, EnterpriseTeamNames, EnterpriseRegionLangVersion)
 from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
                                       RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
 from console.views.enterprise import (
@@ -890,6 +890,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/menu$', EnterpriseMenuManage.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$', EnterpriseRegionsLCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)$', EnterpriseRegionsRUDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/lang_version',
+        EnterpriseRegionLangVersion.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/namespace',
         EnterpriseRegionNamespace.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/resource',
