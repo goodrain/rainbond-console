@@ -2637,8 +2637,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
-        url = 'http://127.0.0.1:8888' + path
-        print(url)
         url = region_info.url + path
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
