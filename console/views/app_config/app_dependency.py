@@ -131,7 +131,48 @@ class AppDependencyReverseView(AppBaseView):
         result = general_message(400, "error", "依赖添加失败")
         return Response(result, status=result["code"])
 
+class AppDependencyViewList(AppBaseView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        page_num = int(request.GET.get("page", 1))
+        if page_num < 1:
+            page_num = 1
+        page_size = int(request.GET.get("page_size", 25))
+        dependencies = dependency_service.get_service_dependencies_reverse(self.service)
+        service_ids = [s.service_id for s in dependencies]
+        service_group_map = group_service.get_services_group_name(service_ids)
+        dep_list = []
+        for dep in dependencies:
+            tenant_service_ports = port_service.get_service_ports(dep)
+            ports_list = []
+            if tenant_service_ports:
+                for port in tenant_service_ports:
+                    ports_list.append(port.container_port)
+            dep_service_info = {
+                "service_cname": dep.service_cname,
+                "service_id": dep.service_id,
+                "service_type": dep.service_type,
+                "service_alias": dep.service_alias,
+                "group_name": service_group_map[dep.service_id]["group_name"],
+                "group_id": service_group_map[dep.service_id]["group_id"],
+                "ports_list": ports_list
+            }
+            dep_list.append(dep_service_info)
+        start = (page_num - 1) * page_size
+        end = page_num * page_size
+        if start >= len(dep_list):
+            start = len(dep_list) - 1
+            end = len(dep_list) - 1
+        rt_list = dep_list[start:end]
 
+        service_ports = port_service.get_service_ports(self.service)
+        port_list = []
+        if service_ports:
+            for port in service_ports:
+                port_list.append(port.container_port)
+        bean = {"port_list": port_list, 'total': len(dep_list)}
+        result = general_message(200, "success", "查询成功", list=rt_list, total=len(dep_list), bean=bean)
+        return Response(result, status=result["code"])
 class AppDependencyView(AppBaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
