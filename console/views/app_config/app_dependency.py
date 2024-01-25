@@ -131,6 +131,7 @@ class AppDependencyReverseView(AppBaseView):
         result = general_message(400, "error", "依赖添加失败")
         return Response(result, status=result["code"])
 
+
 class AppDependencyViewList(AppBaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
@@ -170,9 +171,11 @@ class AppDependencyViewList(AppBaseView):
         if service_ports:
             for port in service_ports:
                 port_list.append(port.container_port)
-        bean = {"service_id":self.service.service_id,"port_list": port_list, 'total': len(dep_list)}
+        bean = {"service_id": self.service.service_id, "port_list": port_list, 'total': len(dep_list)}
         result = general_message(200, "success", "查询成功", list=rt_list, total=len(dep_list), bean=bean)
         return Response(result, status=result["code"])
+
+
 class AppDependencyView(AppBaseView):
     @never_cache
     def get(self, request, *args, **kwargs):

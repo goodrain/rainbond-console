@@ -46,8 +46,7 @@ class AppServiceRelationService(object):
         dep_service_ids = [dep.dep_service_id for dep in dep_services]
         for s in services:
             # 查找打开内部访问的组件
-            open_inner_services = port_repo.get_service_ports(tenant.tenant_id, s.service_id).filter(
-                is_inner_service=True)
+            open_inner_services = port_repo.get_service_ports(tenant.tenant_id, s.service_id).filter(is_inner_service=True)
             if open_inner_services:
                 if s.service_id not in dep_service_ids:
                     not_dependencies.append(s)
@@ -68,11 +67,9 @@ class AppServiceRelationService(object):
 
     def __is_env_duplicate(self, tenant, service, dep_service):
         dep_ids = self.__get_dep_service_ids(tenant, service)
-        attr_names = env_var_repo.get_service_env(tenant.tenant_id, dep_service.service_id).filter(
-            scope="outer").values_list(
+        attr_names = env_var_repo.get_service_env(tenant.tenant_id, dep_service.service_id).filter(scope="outer").values_list(
             "attr_name", flat=True)
-        envs = env_var_repo.get_env_by_ids_and_attr_names(dep_service.tenant_id, dep_ids, attr_names).filter(
-            scope="outer")
+        envs = env_var_repo.get_env_by_ids_and_attr_names(dep_service.tenant_id, dep_ids, attr_names).filter(scope="outer")
         if envs:
             return True
         return False
@@ -162,8 +159,7 @@ class AppServiceRelationService(object):
         data = dep_relation_repo.bulk_add_service_dependency(res)
         return [item.to_dict() for item in data]
 
-    def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None,
-                               user_name=''):
+    def add_service_dependency(self, tenant, service, dep_service_id, open_inner=None, container_port=None, user_name=''):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
             tenant.tenant_id, service.service_id, dep_service_id)
         if dep_service_relation:
@@ -208,8 +204,7 @@ class AppServiceRelationService(object):
         return 200, "success", dep_relation
 
     def patch_add_dependency(self, tenant, service, dep_service_ids, user_name=''):
-        dep_service_relations = dep_relation_repo.get_dependency_by_dep_service_ids(tenant.tenant_id,
-                                                                                    service.service_id,
+        dep_service_relations = dep_relation_repo.get_dependency_by_dep_service_ids(tenant.tenant_id, service.service_id,
                                                                                     dep_service_ids)
         dep_ids = [dep.dep_service_id for dep in dep_service_relations]
         services = service_repo.get_services_by_service_ids(dep_ids)
@@ -223,8 +218,7 @@ class AppServiceRelationService(object):
         return 200, "success"
 
     def delete_service_dependency(self, tenant, service, dep_service_id, user_name=''):
-        dependency = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(tenant.tenant_id,
-                                                                                    service.service_id,
+        dependency = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(tenant.tenant_id, service.service_id,
                                                                                     dep_service_id)
         if not dependency:
             return 404, "需要删除的依赖不存在", None
@@ -236,8 +230,7 @@ class AppServiceRelationService(object):
             task["enterprise_id"] = tenant.enterprise_id
             task["operator"] = user_name
 
-            region_api.delete_service_dependency(service.service_region, tenant.tenant_name, service.service_alias,
-                                                 task)
+            region_api.delete_service_dependency(service.service_region, tenant.tenant_name, service.service_alias, task)
 
         dependency.delete()
         # component dependency change, will change export network governance plugin configuration
@@ -255,8 +248,7 @@ class AppServiceRelationService(object):
             task["dep_service_type"] = "v"
             task["enterprise_id"] = tenant.enterprise_id
             try:
-                region_api.delete_service_dependency(service.service_region, tenant.tenant_name, service.service_alias,
-                                                     task)
+                region_api.delete_service_dependency(service.service_region, tenant.tenant_name, service.service_alias, task)
             except Exception as e:
                 logger.exception(e)
 
