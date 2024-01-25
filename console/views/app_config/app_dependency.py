@@ -76,9 +76,7 @@ class AppDependencyReverseView(AppBaseView):
                     un_dep_list.append(dep_service_info)
                 elif condition == "service_name" and search_key.lower() in un_dep.service_cname.lower():
                     un_dep_list.append(dep_service_info)
-                else:
-                    result = general_message(400, "error", "condition参数错误")
-                    return Response(result, status=400)
+
             if search_key is not None and not condition:
                 if search_key.lower() in service_group_map[
                         un_dep.service_id]["group_name"].lower() or search_key.lower() in un_dep.service_cname.lower():
