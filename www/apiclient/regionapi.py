@@ -2638,5 +2638,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url + path
+        self._set_headers(region_info.token)
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
