@@ -305,5 +305,5 @@ class ChangeDeploySourceSerializer(serializers.Serializer):
 class ServiceVolumeSerializer(serializers.Serializer):
     volume_name = serializers.CharField(max_length=512, required=True, help_text="名称")
     volume_path = serializers.CharField(max_length=512, required=True, help_text="挂载路径")
-    volume_capacity = serializers.CharField(max_length=512, required=True, help_text="存储配额(GB)")
+    volume_capacity = serializers.IntegerField(required=True, help_text="存储配额(GB)")
     volume_type = serializers.CharField(max_length=512, required=True, help_text="储存类型")

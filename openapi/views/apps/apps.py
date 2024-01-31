@@ -807,14 +807,16 @@ class ServiceVolumeView(TeamAppServiceAPIView):
         tags=['openapi-apps'],
     )
     def post(self, request, *args, **kwargs):
-        volume_name = request.data.get("volume_name", None)
+
+        ServiceVolumeSerializerRequest = ServiceVolumeSerializer(data=request.data)
+        ServiceVolumeSerializerRequest.is_valid(raise_exception=True)
+
+        req = ServiceVolumeSerializerRequest.data
         r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')
-        if not r.match(volume_name):
+        if not r.match(req.get("volume_name")):
             raise AbortRequest(msg="volume name illegal", msg_show="持久化名称只支持数字字母下划线")
-        volume_type = request.data.get("volume_type", None)
-        volume_path = request.data.get("volume_path", None)
+
         file_content = request.data.get("file_content", None)
-        volume_capacity = request.data.get("volume_capacity", 0)
         provider_name = request.data.get("volume_provider_name", '')
         access_mode = request.data.get("access_mode", '')
         share_policy = request.data.get('share_policy', '')
@@ -826,7 +828,7 @@ class ServiceVolumeView(TeamAppServiceAPIView):
             mode = ensure_volume_mode(mode)
 
         settings = {}
-        settings['volume_capacity'] = volume_capacity
+        settings['volume_capacity'] = req.get("volume_capacity")
         settings['provider_name'] = provider_name
         settings['access_mode'] = access_mode
         settings['share_policy'] = share_policy
@@ -837,9 +839,9 @@ class ServiceVolumeView(TeamAppServiceAPIView):
         data = volume_service.add_service_volume(
             self.team,
             self.service,
-            volume_path,
-            volume_type,
-            volume_name,
+            req.get("volume_path"),
+            req.get("volume_type"),
+            req.get("volume_name"),
             file_content,
             settings,
             self.user.nick_name,
