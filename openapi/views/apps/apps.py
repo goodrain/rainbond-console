@@ -45,7 +45,7 @@ from openapi.serializer.app_serializer import (
     ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers, CreateThirdComponentResponseSerializer,
     CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
     TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentPortReqSerializers,
-    ComponentUpdatePortReqSerializers)
+    ComponentUpdatePortReqSerializers, ChangeDeploySourceSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
@@ -789,6 +789,31 @@ class ComponentPortsShowView(TeamAppServiceAPIView):
         re = ServicePortSerializer(port_info)
         result = general_message(200, "success", "添加成功", bean=re.data)
         return Response(result, status=status.HTTP_200_OK)
+
+
+class ChangeDeploySourceView(TeamAppServiceAPIView):
+    @swagger_auto_schema(
+        operation_description="更改docker构建方式的镜像地址",
+        manual_parameters=[
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="数据中心名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("service_id", openapi.IN_PATH, description="组件ID", type=openapi.TYPE_STRING)
+        ],
+        request_body=ChangeDeploySourceSerializer,
+        tags=['openapi-apps'],
+    )
+    def put(self, request, *args, **kwargs):
+        image = request.data.get("image", None)
+        if image:
+            version = image.split(':')[-1]
+            if not version:
+                version = "latest"
+                image = image + ":" + version
+            self.service.image = image
+            self.service.version = version
+        self.service.save()
+        return Response(general_message(200, "success", "更改镜像地址成功"), status=200)
 
 
 class ComponentBuildView(TeamAppServiceAPIView):
