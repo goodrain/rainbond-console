@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import pickle
+import re
 import time
 
 from django.db import transaction
@@ -39,13 +40,15 @@ from console.utils.validation import validate_endpoints_info
 from django.forms.models import model_to_dict
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+
+from console.views.app_config.app_volume import ensure_volume_mode
 from openapi.serializer.app_serializer import (
     AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer, AppServiceEventsSerializer,
     AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentBuildReqSerializers,
     ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers, CreateThirdComponentResponseSerializer,
     CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
     TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentPortReqSerializers,
-    ComponentUpdatePortReqSerializers)
+    ComponentUpdatePortReqSerializers, ChangeDeploySourceSerializer, ServiceVolumeSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
@@ -789,6 +792,88 @@ class ComponentPortsShowView(TeamAppServiceAPIView):
         re = ServicePortSerializer(port_info)
         result = general_message(200, "success", "添加成功", bean=re.data)
         return Response(result, status=status.HTTP_200_OK)
+
+
+class ServiceVolumeView(TeamAppServiceAPIView):
+    @swagger_auto_schema(
+        operation_description="挂载组件的储存",
+        manual_parameters=[
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="数据中心名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("service_id", openapi.IN_PATH, description="组件ID", type=openapi.TYPE_STRING)
+        ],
+        request_body=ServiceVolumeSerializer,
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+
+        ServiceVolumeSerializerRequest = ServiceVolumeSerializer(data=request.data)
+        ServiceVolumeSerializerRequest.is_valid(raise_exception=True)
+
+        req = ServiceVolumeSerializerRequest.data
+        r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')
+        if not r.match(req.get("volume_name")):
+            raise AbortRequest(msg="volume name illegal", msg_show="持久化名称只支持数字字母下划线")
+
+        file_content = request.data.get("file_content", None)
+        provider_name = request.data.get("volume_provider_name", '')
+        access_mode = request.data.get("access_mode", '')
+        share_policy = request.data.get('share_policy', '')
+        backup_policy = request.data.get('back_policy', '')
+        reclaim_policy = request.data.get('reclaim_policy', '')
+        allow_expansion = request.data.get('allow_expansion', False)
+        mode = request.data.get("mode")
+        if mode is not None:
+            mode = ensure_volume_mode(mode)
+
+        settings = {}
+        settings['volume_capacity'] = req.get("volume_capacity")
+        settings['provider_name'] = provider_name
+        settings['access_mode'] = access_mode
+        settings['share_policy'] = share_policy
+        settings['backup_policy'] = backup_policy
+        settings['reclaim_policy'] = reclaim_policy
+        settings['allow_expansion'] = allow_expansion
+
+        data = volume_service.add_service_volume(
+            self.team,
+            self.service,
+            req.get("volume_path"),
+            req.get("volume_type"),
+            req.get("volume_name"),
+            file_content,
+            settings,
+            self.user.nick_name,
+            mode=mode)
+        result = general_message(200, "success", "持久化路径添加成功", bean=data.to_dict())
+
+        return Response(result, status=result["code"])
+
+
+class ChangeDeploySourceView(TeamAppServiceAPIView):
+    @swagger_auto_schema(
+        operation_description="更改docker构建方式的镜像地址",
+        manual_parameters=[
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="数据中心名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("service_id", openapi.IN_PATH, description="组件ID", type=openapi.TYPE_STRING)
+        ],
+        request_body=ChangeDeploySourceSerializer,
+        tags=['openapi-apps'],
+    )
+    def put(self, request, *args, **kwargs):
+        image = request.data.get("image", None)
+        if image:
+            version = image.split(':')[-1]
+            if not version:
+                version = "latest"
+                image = image + ":" + version
+            self.service.image = image
+            self.service.version = version
+        self.service.save()
+        return Response(general_message(200, "success", "更改镜像地址成功"), status=200)
 
 
 class ComponentBuildView(TeamAppServiceAPIView):

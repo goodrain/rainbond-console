@@ -296,3 +296,14 @@ class DeployAppSerializer(serializers.Serializer):
     action = serializers.CharField(max_length=255, required=True, help_text="操作类型，如:deploy, update")
     group_key = serializers.CharField(max_length=128, required=False, help_text="生成模型的key")
     group_version = serializers.CharField(max_length=128, required=False, help_text="生成模型的version")
+
+
+class ChangeDeploySourceSerializer(serializers.Serializer):
+    image = serializers.CharField(max_length=512, required=True, help_text="镜像地址")
+
+
+class ServiceVolumeSerializer(serializers.Serializer):
+    volume_name = serializers.CharField(max_length=512, required=True, help_text="名称")
+    volume_path = serializers.CharField(max_length=512, required=True, help_text="挂载路径")
+    volume_capacity = serializers.IntegerField(required=True, help_text="存储配额(GB)")
+    volume_type = serializers.CharField(max_length=512, required=True, help_text="储存类型")
