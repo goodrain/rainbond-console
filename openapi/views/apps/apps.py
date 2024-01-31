@@ -45,10 +45,8 @@ from console.views.app_config.app_volume import ensure_volume_mode
 from openapi.serializer.app_serializer import (
     AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer, AppServiceEventsSerializer,
     AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentBuildReqSerializers,
-    ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers,
-    CreateThirdComponentResponseSerializer,
-    CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer,
-    ServiceGroupOperationsSerializer,
+    ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers, CreateThirdComponentResponseSerializer,
+    CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
     TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentPortReqSerializers,
     ComponentUpdatePortReqSerializers, ChangeDeploySourceSerializer, ServiceVolumeSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
@@ -795,6 +793,7 @@ class ComponentPortsShowView(TeamAppServiceAPIView):
         result = general_message(200, "success", "添加成功", bean=re.data)
         return Response(result, status=status.HTTP_200_OK)
 
+
 class ServiceVolumeView(TeamAppServiceAPIView):
     @swagger_auto_schema(
         operation_description="挂载组件的储存",
@@ -848,6 +847,7 @@ class ServiceVolumeView(TeamAppServiceAPIView):
         result = general_message(200, "success", "持久化路径添加成功", bean=data.to_dict())
 
         return Response(result, status=result["code"])
+
 
 class ChangeDeploySourceView(TeamAppServiceAPIView):
     @swagger_auto_schema(
