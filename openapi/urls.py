@@ -11,7 +11,7 @@ from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
 from openapi.views.apps.apps import ListAppsView, AppModelImportEvent, AppTarballDirView, \
-    AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView
+    AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView, HelmChart
 from openapi.views.enterprise_view import EnterpriseConfigView
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
@@ -86,6 +86,8 @@ urlpatterns = [
     # 删除应用及所有资源
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/delete$',
         DeleteApp.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/helm_chart$',
+        HelmChart.as_view()),
 ]
 if os.environ.get("OPENAPI_V2") == "true":
     urlpatterns += [url(r'^v2', include('openapi.v2.urls'))]

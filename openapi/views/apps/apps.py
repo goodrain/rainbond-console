@@ -48,7 +48,7 @@ from openapi.serializer.app_serializer import (
     ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers, CreateThirdComponentResponseSerializer,
     CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
     TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentPortReqSerializers,
-    ComponentUpdatePortReqSerializers, ChangeDeploySourceSerializer, ServiceVolumeSerializer)
+    ComponentUpdatePortReqSerializers, ChangeDeploySourceSerializer, ServiceVolumeSerializer, HelmChartSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
@@ -57,7 +57,7 @@ from openapi.views.exceptions import ErrAppNotFound
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.crypt import make_uuid
+from www.utils.crypt import make_uuid, make_uuid3
 from www.utils.return_message import general_message, error_message
 
 region_api = RegionInvokeApi()
@@ -1289,4 +1289,71 @@ class DeleteApp(TeamAPIView):
         app = group_service.get_app_by_id(self.team, self.region_name, app_id)
         group_service.delete_app(self.team, self.region_name, app)
         result = general_message(200, "success", "删除成功")
+        return Response(result, status=result["code"])
+
+
+class HelmChart(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="安装helm应用",
+        manual_parameters=[
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="集群名称", type=openapi.TYPE_STRING),
+        ],
+        request_body=HelmChartSerializer,
+        tags=['openapi-apps'],
+    )
+    def get(self, request, app_id, *args, **kwargs):
+        chart_info = HelmChartSerializer(data=request.GET)
+        chart_info.is_valid(raise_exception=True)
+        name = chart_info.data.get("chart_name")
+        repo_name = chart_info.data.get("repo_name")
+        chart_name = chart_info.data.get("chart_name")
+        version = chart_info.data.get("version")
+        overrides = []
+        print(name, chart_name, repo_name, version)
+        _, data = helm_app_service.check_helm_app(name, repo_name, chart_name, version, overrides, self.region_name,
+                                                  self.team.tenant_name, self.team)
+        result = general_message(200, "success", "获取成功", bean=data)
+        return Response(result, status=result["code"])
+
+    def post(self, request, app_id, *args, **kwargs):
+        chart_info = HelmChartSerializer(data=request.data)
+        chart_info.is_valid(raise_exception=True)
+        repo_name = chart_info.data.get("repo_name")
+        overrides = chart_info.data.get("overrides", "")
+        version = chart_info.data.get("version")
+        chart_name = chart_info.data.get("chart_name")
+        name = chart_name
+        app_model_id = make_uuid3(repo_name + "/" + chart_name)
+        helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(self.enterprise.enterprise_id, app_model_id)
+        data = {"exist": True, "app_model_id": app_id}
+        if not helm_center_app:
+            center_app = {
+                "app_id": app_id,
+                "app_name": chart_name,
+                "create_team": "",
+                "source": "helm:" + repo_name,
+                "scope": "enterprise",
+                "pic": "",
+                "describe": "",
+                "enterprise_id": self.enterprise.enterprise_id,
+                "details": "",
+            }
+            helm_app_service.create_helm_center_app(center_app, self.region_name)
+            data["exist"] = False
+            data["app_model_id"] = app_model_id
+        overrides_list = overrides.split(",")
+        cvdata = helm_app_service.yaml_conversion(name, repo_name, chart_name, version, overrides_list, self.region_name,
+                                                  self.team.tenant_name, self.team, self.enterprise.enterprise_id,
+                                                  self.region.region_id)
+        helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(self.enterprise.enterprise_id, app_model_id)
+        chart = repo_name + "/" + chart_name
+        helm_app_service.generate_template(cvdata, helm_center_app, version, self.team, chart, self.region_name,
+                                           self.enterprise.enterprise_id, self.user.user_id, overrides_list, app_id)
+
+        market_app_service.install_app(self.team, self.region, self.user, app_id, app_model_id, version, "localApplication",
+                                       False, True, False)
+
+        result = general_message(200, "success", "成功")
         return Response(result, status=result["code"])
