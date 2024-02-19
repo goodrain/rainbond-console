@@ -5,6 +5,8 @@
 import json
 import logging
 import re
+import threading
+import time
 
 from console.constants import DomainType
 from console.repositories.app import service_repo
@@ -107,12 +109,14 @@ class TenantCertificateView(RegionTenantHeaderView):
         """
         alias = request.data.get("alias", None)
         if len(alias) > 64:
-            return Response(general_message(400, "alias len is not allow more than 64", "证书名称最大长度64位"), status=400)
+            return Response(general_message(400, "alias len is not allow more than 64", "证书名称最大长度64位"),
+                            status=400)
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
         certificate_id = make_uuid()
-        new_c = domain_service.add_certificate(self.region, self.tenant, alias, certificate_id, certificate, private_key,
+        new_c = domain_service.add_certificate(self.region, self.tenant, alias, certificate_id, certificate,
+                                               private_key,
                                                certificate_type)
         bean = {"alias": alias, "id": new_c.ID}
         result = general_message(200, "success", "操作成功", bean=bean)
@@ -181,7 +185,8 @@ class TenantCertificateManageView(RegionTenantHeaderView):
             return Response(400, "no param certificate_id", "缺少未指明具体证书")
         new_alias = request.data.get("alias", None)
         if len(new_alias) > 64:
-            return Response(general_message(400, "alias len is not allow more than 64", "证书名称最大长度64位"), status=400)
+            return Response(general_message(400, "alias len is not allow more than 64", "证书名称最大长度64位"),
+                            status=400)
 
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)
@@ -303,7 +308,8 @@ class ServiceDomainView(AppBaseView):
             result = general_message(400, "failed", "策略已存在")
             return Response(result, status=400)
 
-        domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, protocol, certificate_id,
+        domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, protocol,
+                                   certificate_id,
                                    DomainType.WWW, rule_extensions)
         # htt与https共存的协议需存储两条数据(创建完https数据再创建一条http数据)
         if protocol == "httpandhttps":
@@ -463,7 +469,8 @@ class HttpStrategyView(RegionTenantHeaderView):
         if certificate_id:
             protocol = "https"
         # 判断策略是否存在
-        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name,
+        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port,
+                                                                              domain_name,
                                                                               protocol, domain_path)
         if service_domain:
             result = general_message(400, "failed", "策略已存在")
@@ -520,7 +527,9 @@ class HttpStrategyView(RegionTenantHeaderView):
                 return Response(general_message(code, "change port fail", msg), status=code)
         tenant_service_port = port_service.get_service_port_by_port(service, container_port)
         if not tenant_service_port.is_outer_service:
-            return Response(general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
+            return Response(
+                general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}),
+                status=200)
 
         # 绑定端口(添加策略)
         httpdomain = {
@@ -545,8 +554,17 @@ class HttpStrategyView(RegionTenantHeaderView):
         cf_dict["rule_id"] = data["http_rule_id"]
         cf_dict["value"] = json.dumps(value)
         configuration_repo.add_configuration(**cf_dict)
+
+        # 等待1秒去更新参数，不然首次添加的参数无法及时生效
+        wait_thread = threading.Thread(target=self.wait_update, args=(data["http_rule_id"], value))
+        wait_thread.start()
+
         result = general_message(201, "success", "策略添加成功", bean=data)
         return Response(result, status=status.HTTP_201_CREATED)
+
+    def wait_update(self, rule_id, value):
+        time.sleep(2)
+        domain_service.update_http_rule_config(self.tenant, self.response_region, rule_id, value)
 
     # 预先检查nginx 的header 值是否正确
     def check_nginx_syntax(self, config_data):
@@ -621,7 +639,8 @@ class HttpStrategyView(RegionTenantHeaderView):
         protocol = "http"
         if certificate_id:
             protocol = "https"
-        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port, domain_name,
+        service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(service.service_id, container_port,
+                                                                              domain_name,
                                                                               protocol, domain_path)
         if service_domain and service_domain.http_rule_id != http_rule_id:
             result = general_message(400, "failed", "策略已存在")
@@ -739,7 +758,9 @@ class GatewayRoute(RegionTenantHeaderView):
         namespace = self.tenant.namespace
         region_app_id = region_app_repo.get_region_app_id(self.region_name, app_id)
         if not region_app_id:
-            return Response(general_message(400, "can not find app by region_app_id", "提供的region_app_id查找不到应用"), status=400)
+            return Response(
+                general_message(400, "can not find app by region_app_id", "提供的region_app_id查找不到应用"),
+                status=400)
         ret = gateway_api.update_http_route(self.region_name, self.tenant_name, name, app_id, namespace, gateway_name,
                                             gateway_namespace, hosts, rules, section_name)
         if ret:
@@ -914,7 +935,8 @@ class DomainQueryView(RegionTenantHeaderView):
                         and (sd.domain_name like '%{2}%' \
                             or sd.service_alias like '%{2}%' \
                             or sg.group_name like '%{2}%') \
-                    order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions, start,
+                    order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions,
+                                                              start,
                                                               end))
                 tenant_tuples = cursor.fetchall()
         else:
@@ -939,7 +961,8 @@ class DomainQueryView(RegionTenantHeaderView):
                     service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
                     domain_heander, the_weight, is_outer_service, path_rewrite,
                     rewrites from service_domain where tenant_id='{0}'
-                    and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id, region.region_id, start,
+                    and region_id='{1}' order by type desc LIMIT {2},{3};""".format(tenant.tenant_id, region.region_id,
+                                                                                    start,
                                                                                     end))
                 tenant_tuples = cursor.fetchall()
         # 拼接展示数据
@@ -1008,7 +1031,8 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                     where std.tenant_id='{0}' and std.region_id='{1}' \
                         and (std.end_point like '%{2}%' \
                             or std.service_alias like '%{2}%' \
-                            or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id, search_conditions))
+                            or sg.group_name like '%{2}%');".format(tenant.tenant_id, region.region_id,
+                                                                    search_conditions))
                 domain_count = cursor.fetchall()
 
                 total = domain_count[0][0]
@@ -1028,14 +1052,16 @@ class ServiceTcpDomainQueryView(RegionTenantHeaderView):
                         and (std.end_point like '%{2}%' \
                             or std.service_alias like '%{2}%' \
                             or sg.group_name like '%{2}%') \
-                    order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions, start,
+                    order by type desc LIMIT {3},{4};".format(tenant.tenant_id, region.region_id, search_conditions,
+                                                              start,
                                                               end))
                 tenant_tuples = cursor.fetchall()
             else:
                 # 获取总数
                 cursor = connection.cursor()
-                cursor.execute("select count(1) from service_tcp_domain where tenant_id='{0}' and region_id='{1}';".format(
-                    tenant.tenant_id, region.region_id))
+                cursor.execute(
+                    "select count(1) from service_tcp_domain where tenant_id='{0}' and region_id='{1}';".format(
+                        tenant.tenant_id, region.region_id))
                 domain_count = cursor.fetchall()
 
                 total = domain_count[0][0]
@@ -1104,7 +1130,8 @@ class AppServiceDomainQueryView(RegionTenantHeaderView):
         search_conditions = request.GET.get("search_conditions", None)
         tenant = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id, team_name)
         region = region_repo.get_region_by_region_name(self.response_region)
-        tenant_tuples, total = domain_service.get_app_service_domain_list(region, tenant, app_id, search_conditions, page,
+        tenant_tuples, total = domain_service.get_app_service_domain_list(region, tenant, app_id, search_conditions,
+                                                                          page,
                                                                           page_size)
         # 拼接展示数据
         domain_list = list()
@@ -1162,7 +1189,8 @@ class AppServiceTcpDomainQueryView(RegionTenantHeaderView):
         tenant = team_services.get_enterprise_tenant_by_tenant_name(enterprise_id, team_name)
         region = region_repo.get_region_by_region_name(self.response_region)
 
-        tenant_tuples, total = domain_service.get_app_service_tcp_domain_list(region, tenant, app_id, search_conditions, page,
+        tenant_tuples, total = domain_service.get_app_service_tcp_domain_list(region, tenant, app_id, search_conditions,
+                                                                              page,
                                                                               page_size)
 
         # 拼接展示数据
@@ -1273,7 +1301,9 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
         tenant_service_port = port_service.get_service_port_by_port(service, container_port)
 
         if not tenant_service_port.is_outer_service:
-            return Response(general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}), status=200)
+            return Response(
+                general_message(200, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}),
+                status=200)
 
         # 添加tcp策略
         data = domain_service.bind_tcpdomain(self.tenant, self.user, service, end_point, container_port, default_port,
@@ -1315,7 +1345,8 @@ class ServiceTcpDomainView(RegionTenantHeaderView):
             return Response(result)
 
         # 修改策略
-        code, msg = domain_service.update_tcpdomain(self.tenant, self.user, service, end_point, container_port, tcp_rule_id,
+        code, msg = domain_service.update_tcpdomain(self.tenant, self.user, service, end_point, container_port,
+                                                    tcp_rule_id,
                                                     protocol, type, rule_extensions, default_ip)
 
         if code != 200:
