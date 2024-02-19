@@ -548,7 +548,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         cf_dict["value"] = json.dumps(value)
         configuration_repo.add_configuration(**cf_dict)
 
-        # 等待1秒去更新参数，不然首次添加的参数无法及时生效
+        # 等待2秒去更新参数，不然首次添加的参数无法及时生效
         wait_thread = threading.Thread(target=self.wait_update, args=(data["http_rule_id"], value))
         wait_thread.start()
 
