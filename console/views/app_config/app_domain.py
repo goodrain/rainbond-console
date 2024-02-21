@@ -424,12 +424,14 @@ class HttpStrategyView(RegionTenantHeaderView):
             result = general_message(400, "success", "参数有误")
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
-        domain_heander = request.data.get("domain_heander", None)
+        domain_heander = request.data.get("domain_heander", "")
         # 检查设置的请求头对不对
-        header_items = domain_heander.split('=')
-        if len(header_items) > 1 and not self.check_nginx_header(header_items[0], header_items[1]):
-            result = general_message(400, "success", "请求头配置有误")
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+        header_items = domain_heander.split(',')
+        for header_item in header_items:
+            headers = header_item.split('=')
+            if len(headers) > 1 and not self.check_nginx_header(headers[0], headers[1]):
+                result = general_message(400, "success", "请求头配置有误")
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         container_port = request.data.get("container_port", None)
         domain_name = request.data.get("domain_name", None)
