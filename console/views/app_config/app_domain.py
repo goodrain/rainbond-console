@@ -426,7 +426,7 @@ class HttpStrategyView(RegionTenantHeaderView):
 
         domain_heander = request.data.get("domain_heander", "")
         # 检查设置的请求头对不对
-        header_items = domain_heander.split(',')
+        header_items = domain_heander.split(';')
         for header_item in header_items:
             headers = header_item.split('=')
             if len(headers) > 1 and not self.check_nginx_header(headers[0], headers[1]):
