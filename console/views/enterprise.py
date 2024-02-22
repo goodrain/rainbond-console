@@ -614,6 +614,9 @@ class HelmInstallStatus(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         apiHost = request.GET.get("api_host")
         token = request.GET.get("token")
+        if region_repo.get_region_by_token(self.enterprise.enterprise_id, token):
+            result = general_message(200, "success", "对接成功", bean={"health_status": "installed"})
+            return Response(result, status=status.HTTP_200_OK)
         try:
             response = requests.get("http://{}:6060/helm_install/region_status/{}".format(apiHost, token), timeout=5)
             data = response.json()
