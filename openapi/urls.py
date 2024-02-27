@@ -10,9 +10,12 @@ from drf_yasg.views import get_schema_view
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
-from openapi.views.apps.apps import ListAppsView, AppModelImportEvent, AppTarballDirView, \
-    AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView, HelmChart
-from openapi.views.enterprise_view import EnterpriseConfigView
+from openapi.views.apps.apps import ListAppsView, GetServiceInfoView, AppModelImportEvent, AppTarballDirView, \
+    AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView, YamlAppView
+from openapi.views.enterprise_view import (EnterpriseConfigView, EnterpriseOverview, AppRankOverview, MonitorMessageOverview,
+                                           MonitorQueryOverview, MonitorQueryRangeOverview, MonitorSeriesOverview,
+                                           RegionsMonitorOverview, InstancesMonitorOverview, ResourceOverview, ServiceOverview,
+                                           Performance_overview)
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
 from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
@@ -39,6 +42,7 @@ urlpatterns = [
     url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     # get enterprise regions
     url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
+    url(r'^v1/regions/monitor$', RegionsMonitorOverview.as_view()),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
     url(r'^v1/configs$', EnterpriseConfigView.as_view(), name="ent-configs"),
     url(r'^v1/administrators$', ListAdminsView.as_view(), perms.ListAdminsView),
@@ -64,6 +68,8 @@ urlpatterns = [
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps$', ListAppsView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/', include('openapi.sub_urls.app_url')),
 
+    # list port
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps_port$', AppsPortView.as_view()),
     # list port
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps_port$', AppsPortView.as_view()),
 

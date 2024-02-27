@@ -9,8 +9,10 @@ from console.services.app_config import env_var_service
 from console.services.app_config.promql_service import promql_service
 from console.services.group_service import group_service
 from console.views.app_config.base import AppBaseView
-from console.views.base import RegionTenantHeaderView
+from console.views.base import RegionTenantHeaderView, AlowAnyApiView
 from rest_framework.response import Response
+
+from openapi.serializer.config_serializers import MonitorQueryOverviewSeralizer
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -280,3 +282,17 @@ class AppTraceView(AppBaseView):
             env_var_service.delete_env_by_attr_name(self.tenant, self.service, "ES_TRACE_APP_NAME")
         result = general_message(200, "success", "关闭成功")
         return Response(result, status=result["code"])
+
+#AlowAnyApiView
+#RegionTenantHeaderView
+class MonitorQueryOverConsoleView(AlowAnyApiView):
+    def get(self, req, *args, **kwargs):
+        region_name = req.GET.get("region_name", "")
+        query = req.GET.get("query", "")
+        start = req.GET.get("start", "")
+        end = req.GET.get("end", "")
+        step = req.GET.get("step", "")
+        _, body = region_api.get_query_range_data(region_name, "", "?query={}&start={}&end={}&step={}".format(query,start,end,step))
+        serializer = MonitorQueryOverviewSeralizer(data=body)
+        serializer.is_valid()
+        return Response(body, status=200)

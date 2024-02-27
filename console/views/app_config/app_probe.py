@@ -3,6 +3,7 @@
   Created on 18/1/15.
 """
 import logging
+from console.services.operation_log import Operation, operation_log_service
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -91,5 +92,27 @@ class AppProbeView(AppBaseView):
 
         probe = probe_service.update_service_probea(
             tenant=self.tenant, service=self.service, data=data, user_name=self.user.nick_name)
-        result = general_message(200, "success", "修改成功", bean=(probe.to_dict() if probe else probe))
+        result = general_message(200, u"success", "修改成功", bean=(probe.to_dict() if probe else probe))
+        old_information = probe_service.json_service_probe(**old_probe.__dict__)
+        new_information = probe_service.json_service_probe(**probe.__dict__)
+        op = Operation.UPDATE
+        if old_probe and probe:
+            if old_probe.is_used != probe.is_used:
+                op = Operation.ENABLE if probe.is_used else Operation.DISABLE
+        comment = operation_log_service.generate_component_comment(
+            operation=op,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 的健康检测")
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information,
+            new_information=new_information)
         return Response(result, status=result["code"])

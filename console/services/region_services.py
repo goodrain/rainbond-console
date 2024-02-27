@@ -599,7 +599,10 @@ class RegionService(object):
                     enterprise_id=region.enterprise_id, region=region.region_name)
                 region_services_status = region_repo.get_service_status_count_by_region_name(region)
                 res, body = region_api.get_region_resources(region.enterprise_id, region=region.region_name)
-                rbd_version = rbd_version["raw"]
+                if rbd_version:
+                    rbd_version = rbd_version["raw"]
+                else:
+                    rbd_version = ""
                 if res.get("status") == 200:
                     region_resource["total_memory"] = body["bean"]["cap_mem"]
                     region_resource["used_memory"] = body["bean"]["req_mem"]

@@ -10,7 +10,8 @@ from django.db.models import Q
 from console.exception.bcode import ErrComponentGroupNotFound
 from console.repositories.region_app import region_app_repo
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import (ServiceGroup, ServiceGroupRelation, TenantServiceGroup)
+from django.db.models import Q, Count
+from www.models.main import (ServiceGroup, ServiceGroupRelation, TenantServiceGroup, Users)
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()

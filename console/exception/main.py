@@ -180,3 +180,59 @@ class ErrTenantLackOfMemory(ErrInsufficientResource):
         self.msg_show = "团队使用内存已超过限额，请联系企业管理员增加限额"
         self.status_code = 412
         self.error_code = 10413
+
+
+class ErrClusterAuthLackOfMemory(ErrInsufficientResource):
+    def __init__(self):
+        super(ErrClusterAuthLackOfMemory, self).__init__("cluster lack of memory")
+        self.msg_show = "集群授权内存不足，请联系集群管理员"
+        self.status_code = 412
+        self.error_code = 10414
+
+
+class ErrClusterAuthLackOfNode(ErrInsufficientResource):
+    def __init__(self):
+        super(ErrClusterAuthLackOfNode, self).__init__("cluster lack of node")
+        self.msg_show = "集群授权节点不足，请联系集群管理员"
+        self.status_code = 412
+        self.error_code = 10415
+
+
+class ErrClusterAuthLackOfLicense(ErrInsufficientResource):
+    def __init__(self):
+        super(ErrClusterAuthLackOfLicense, self).__init__("cluster lack of license")
+        self.msg_show = "集群暂未授权，请联系集群管理员"
+        self.status_code = 412
+        self.error_code = 10416
+
+
+class ErrClusterAuthLackOfLicenseExpire(ErrInsufficientResource):
+    def __init__(self):
+        super(ErrClusterAuthLackOfLicenseExpire, self).__init__("cluster lack of license")
+        self.msg_show = "集群授权已过期，请联系集群管理员"
+        self.status_code = 412
+        self.error_code = 10417
+
+
+class ErrTenantLackOfCPU(ErrInsufficientResource):
+    def __init__(self):
+        super(ErrTenantLackOfCPU, self).__init__("tenant lack of cpu")
+        self.msg_show = "团队使用CPU已超过限额，请联系企业管理员增加限额"
+        self.status_code = 412
+        self.error_code = 10418
+
+
+class ErrTenantQuotaCPULack(ErrInsufficientResource):
+    def __init__(self):
+        super(ErrTenantQuotaCPULack, self).__init__("tenant quota lack of cpu")
+        self.msg_show = "组件启动所需的cpu已经超过团队配额，请联系团队管理员增加限额"
+        self.status_code = 412
+        self.error_code = 10419
+
+
+class ErrTenantQuotaMemoryLack(ErrInsufficientResource):
+    def __init__(self):
+        super(ErrTenantQuotaMemoryLack, self).__init__("tenant quota lack of memory")
+        self.msg_show = "组件启动所需的内存已经超过团队配额，请联系团队管理员增加限额"
+        self.status_code = 412
+        self.error_code = 10420

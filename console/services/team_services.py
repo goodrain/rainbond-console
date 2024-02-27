@@ -538,7 +538,11 @@ class TeamService(object):
                         "running_app_internal_num": tenant["running_app_internal_num"],
                         "running_app_third_num": tenant["running_app_third_num"],
                         "set_limit_memory": tenant["LimitMemory"],
-                        "running_applications": tenant["running_applications"]
+                        "set_limit_cpu": tenant["LimitCPU"],
+                        "users": team_users.get(tenant["UUID"], 0),
+                        "components": team_components.get(tenant["UUID"], 0),
+                        "running_applications": tenant.get("running_applications", 0),
+                        "applications": tenant_apps.get(tenant["UUID"], 0),
                     })
         else:
             logger.error(body)

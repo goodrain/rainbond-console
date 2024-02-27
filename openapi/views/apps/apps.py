@@ -11,7 +11,7 @@ import time
 from django.db import transaction
 
 from console.constants import PluginCategoryConstants
-from console.exception.bcode import ErrK8sComponentNameExists, ErrComponentBuildFailed
+from console.exception.bcode import ErrK8sComponentNameExists, ErrComponentBuildFailed, ErrEnterpriseNotFound
 from console.exception.main import ServiceHandleException, AccountOverdueException, RegionNotFound, AbortRequest
 from console.repositories import deploy_repo
 from console.repositories.app import service_repo
@@ -45,15 +45,18 @@ from console.views.app_config.app_volume import ensure_volume_mode
 from openapi.serializer.app_serializer import (
     AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer, AppServiceEventsSerializer,
     AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentBuildReqSerializers,
-    ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers, CreateThirdComponentResponseSerializer,
-    CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
-    TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentPortReqSerializers,
-    ComponentUpdatePortReqSerializers, ChangeDeploySourceSerializer, ServiceVolumeSerializer, HelmChartSerializer)
+    ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers,
+    CreateThirdComponentResponseSerializer,
+    CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer,
+    ServiceGroupOperationsSerializer,
+    TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentUpdatePortReqSerializers,
+    ComponentPortReqSerializers, UpdateAppAuthorizationPolicy, UpdateAppPeerAuthentications)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
-from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView)
-from openapi.views.exceptions import ErrAppNotFound
+from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView,
+                                BaseOpenAPIView)
+from openapi.views.exceptions import ErrAppNotFound, ErrRegionNotFound
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
@@ -1352,8 +1355,18 @@ class HelmChart(TeamAPIView):
         helm_app_service.generate_template(cvdata, helm_center_app, version, self.team, chart, self.region_name,
                                            self.enterprise.enterprise_id, self.user.user_id, overrides_list, app_id)
 
-        market_app_service.install_app(self.team, self.region, self.user, app_id, app_model_id, version, "localApplication",
-                                       False, True, False)
+    @swagger_auto_schema(
+        operation_description="更新授权认证",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
+        ],
+        request_body=UpdateAppAuthorizationPolicy(),
+        tags=['openapi-apps'],
+    )
+    def put(self, request, app_id, *args, **kwargs):
+        ap = UpdateAppAuthorizationPolicy(data=request.data)
+        ap.is_valid(raise_exception=True)
+        operating_mode = ap.data.get("operating_mode", "close")
 
         result = general_message(200, "success", "成功")
         return Response(result, status=result["code"])

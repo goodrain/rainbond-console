@@ -4,7 +4,7 @@ import re
 
 from openapi.serializer.utils import DateCharField
 from rest_framework import serializers, validators
-from www.models.main import ServiceGroup, TenantServiceInfo, TenantServicesPort
+from www.models.main import ServiceGroup, TenantServiceInfo, TenantServicesPort,TenantServiceInfo
 
 ACTION_CHOICE = (
     ("stop", ("stop")),

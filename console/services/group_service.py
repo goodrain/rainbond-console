@@ -116,6 +116,14 @@ class GroupService(object):
         res['k8s_app'] = app.k8s_app
         return res
 
+    def json_app(self, app_name, k8s_app, logo, note):
+        return json.dumps({"应用名称": app_name, "应用英文名称": k8s_app, "Logo": logo, "应用备注": note}, ensure_ascii=False)
+
+    def create_default_app(self, tenant, region_name):
+        app = group_repo.get_or_create_default_group(tenant.tenant_id, region_name)
+        self.create_region_app(tenant, region_name, app)
+        return app.to_dict()
+
     def create_region_app(self, tenant, region_name, app, eid=""):
         region_app = region_api.create_application(
             region_name, tenant.tenant_name, {

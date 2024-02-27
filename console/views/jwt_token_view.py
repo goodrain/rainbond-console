@@ -2,6 +2,7 @@
 import logging
 import datetime
 
+from console.utils.cache import cache
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework_jwt.settings import api_settings
@@ -34,6 +35,42 @@ class JWTTokenView(JSONWebTokenAPIView):
         """
         nick_name = request.POST.get("nick_name", None)
         password = request.POST.get("password", None)
+        captcha_code = request.POST.get("captcha_code", None)
+        real_captcha_code = request.session.get("captcha_code")
+        is_validate = request.POST.get("is_validate", False)
+        times = cache.get(nick_name)
+        pass_error_times = cache.get(nick_name + "pass_error_times")
+        if pass_error_times and int(pass_error_times) >= 4:
+            ten_min = cache.get(nick_name + "freeze")
+            if not ten_min:
+                ten_min = (datetime.datetime.now() + datetime.timedelta(minutes=10)).strftime('%H:%M:%S')
+                cache.set(nick_name + "freeze", ten_min, 600)
+                cache.set(nick_name + "pass_error_times", pass_error_times, 600)
+                freeze_time = ten_min
+            elif type(ten_min) == bytes:
+                freeze_time = str(ten_min, encoding='utf-8')
+            else:
+                freeze_time = str(ten_min)
+            return Response(
+                general_message(400, "captcha code error", "连续登录失败次数过多,{0}后重试".format(freeze_time),
+                                {"is_verification_code": True}),
+                status=400)
+        times = 1 if not times else int(times) + 1
+        if is_validate == "false" and (real_captcha_code is None or captcha_code is None
+                                       or real_captcha_code.lower() != captcha_code.lower()):
+            return Response(general_message(400, "captcha code error", "验证码有误", {"is_verification_code": True}), status=400)
+        if is_validate == "true" and times > 3 and (real_captcha_code is None or captcha_code is None
+                                                    or real_captcha_code.lower() != captcha_code.lower()):
+            cache.set(nick_name, times, 3600)
+            return Response(general_message(400, "captcha code error", "验证码有误", {"is_verification_code": True}), status=400)
+        if not is_validate:
+            is_verification_code = True
+        else:
+            is_verification_code = True if times >= 3 else False
+        cache.set(nick_name, times, 3600)
+        # Invalidate the verification code after verification
+        request.session["captcha_code"] = None
+        request.session.save()
         try:
             if not nick_name:
                 code = 400
