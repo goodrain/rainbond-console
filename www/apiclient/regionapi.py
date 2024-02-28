@@ -149,8 +149,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"
-               + service_alias + "?enterprise_id=" + enterprise_id)
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "?enterprise_id=" +
+               enterprise_id)
 
         self._set_headers(token)
         if not data:
@@ -359,8 +359,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"
-               + service_alias + "/pods?enterprise_id=" + enterprise_id)
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/pods?enterprise_id=" +
+               enterprise_id)
 
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, None, region=region, timeout=15)
@@ -379,8 +379,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"
-               + service_alias + "/pods/" + pod_name + "/detail")
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/pods/" + pod_name +
+               "/detail")
 
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, None, region=region)
@@ -597,8 +597,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"
-               + service_alias + "/status?enterprise_id=" + enterprise_id)
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/status?enterprise_id="
+               + enterprise_id)
 
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
@@ -831,8 +831,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"
-               + service_alias + "/log-instance?enterprise_id=" + enterprise_id)
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias +
+               "/log-instance?enterprise_id=" + enterprise_id)
 
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
@@ -852,8 +852,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" +
-               service_alias + "/log-file?enterprise_id=" + enterprise_id)
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias +
+               "/log-file?enterprise_id=" + enterprise_id)
 
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
@@ -1189,8 +1189,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin/"
-               + plugin_id + "/setenv")
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin/" + plugin_id +
+               "/setenv")
 
         self._set_headers(token)
         return self._post(url, self.default_headers, json.dumps(body), region=region)
@@ -1200,8 +1200,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
 
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"
-               + service_alias + "/plugin/" + plugin_id + "/upenv")
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin/" + plugin_id +
+               "/upenv")
 
         self._set_headers(token)
         return self._put(url, self.default_headers, json.dumps(body), region=region)
@@ -1480,8 +1480,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
 
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"
-               + service_alias + "/plugin/" + plugin_id + "/upenv")
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin/" + plugin_id +
+               "/upenv")
 
         self._set_headers(token)
         return self._put(url, self.default_headers, json.dumps(body), region=region)
@@ -1491,8 +1491,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         service_ids = ",".join(service_id_list)
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/pods?enterprise_id="
-               + enterprise_id + "&service_ids=" + service_ids)
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/pods?enterprise_id=" + enterprise_id +
+               "&service_ids=" + service_ids)
 
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, None, region=region, timeout=10)
@@ -1672,8 +1672,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         """获取迁移结果"""
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups/"
-               + backup_id + "/restore/" + restore_id)
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups/" + backup_id + "/restore/" +
+               restore_id)
 
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
@@ -1694,8 +1694,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"
-               + service_alias + "/build-list")
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/build-list")
 
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
@@ -1706,8 +1705,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"
-               + service_alias + "/build-version/" + version_id)
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/build-version/" +
+               version_id)
 
         self._set_headers(token)
         res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(body))
@@ -1718,8 +1717,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"
-               + service_alias + "/build-version/" + version_id)
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/build-version/" +
+               version_id)
 
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
@@ -1730,8 +1729,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias
-               + "/build-version/" + version_id)
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/build-version/" +
+               version_id)
 
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
@@ -2708,8 +2707,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
-        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/"
-               + service_alias + "/file-manage?path={0}&pod_name={1}&namespace={2}".format(path, pod_name, namespace))
+        url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias +
+               "/file-manage?path={0}&pod_name={1}&namespace={2}".format(path, pod_name, namespace))
 
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
@@ -2720,8 +2719,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url = (url + "/v2/tenants/{0}/services/{1}/pod-volume?pod_name={2}&namespace={3}&volume_path={4}&k8s_component_name={5}"
-               .format(tenant_name, service.service_alias, pod_name, namespace, volume_path, service.k8s_component_name))
+        url = (
+            url +
+            "/v2/tenants/{0}/services/{1}/pod-volume?pod_name={2}&namespace={3}&volume_path={4}&k8s_component_name={5}".format(
+                tenant_name, service.service_alias, pod_name, namespace, volume_path, service.k8s_component_name))
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 

@@ -604,8 +604,8 @@ class AppPortService(object):
                 for service_domain in service_domains:
                     service_domain.is_outer_service = False
                     service_domain.save()
-                    path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias="
-                            + service_domain.service_name)
+                    path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" +
+                            service_domain.service_name)
                     region_api.api_gateway_get_proxy(region.region_name, tenant.tenant_name, path, app.app_id)
 
         else:
