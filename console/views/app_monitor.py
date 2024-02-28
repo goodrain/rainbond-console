@@ -283,8 +283,7 @@ class AppTraceView(AppBaseView):
         result = general_message(200, "success", "关闭成功")
         return Response(result, status=result["code"])
 
-#AlowAnyApiView
-#RegionTenantHeaderView
+
 class MonitorQueryOverConsoleView(AlowAnyApiView):
     def get(self, req, *args, **kwargs):
         region_name = req.GET.get("region_name", "")
@@ -292,7 +291,8 @@ class MonitorQueryOverConsoleView(AlowAnyApiView):
         start = req.GET.get("start", "")
         end = req.GET.get("end", "")
         step = req.GET.get("step", "")
-        _, body = region_api.get_query_range_data(region_name, "", "?query={}&start={}&end={}&step={}".format(query,start,end,step))
+        _, body = region_api.get_query_range_data(region_name, "", "?query={}&start={}&end={}&step={}".format(
+            query, start, end, step))
         serializer = MonitorQueryOverviewSeralizer(data=body)
         serializer.is_valid()
         return Response(body, status=200)

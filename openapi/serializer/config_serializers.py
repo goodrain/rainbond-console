@@ -7,6 +7,11 @@ class ConfigBaseSerializer(serializers.Serializer):
     enable = serializers.BooleanField(required=False, default=False)
 
 
+class MonitorQueryOverviewSeralizer(serializers.Serializer):
+    data = serializers.DictField(help_text="查询数据")
+    status = serializers.CharField(help_text="查询状态", max_length=64)
+
+
 class AppStoreImageHubRespSerializer(serializers.Serializer):
     namespace = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
     hub_password = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)

@@ -63,10 +63,6 @@ class JWTTokenView(JSONWebTokenAPIView):
                                                     or real_captcha_code.lower() != captcha_code.lower()):
             cache.set(nick_name, times, 3600)
             return Response(general_message(400, "captcha code error", "验证码有误", {"is_verification_code": True}), status=400)
-        if not is_validate:
-            is_verification_code = True
-        else:
-            is_verification_code = True if times >= 3 else False
         cache.set(nick_name, times, 3600)
         # Invalidate the verification code after verification
         request.session["captcha_code"] = None

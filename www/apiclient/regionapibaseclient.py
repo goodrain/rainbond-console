@@ -143,7 +143,6 @@ class RegionApiBaseHttpClient(object):
         return connect, red
 
     def _request(self, url, method, headers=None, body=None, *args, **kwargs):
-        # url = url.replace("https://8.130.65.195:8443","http://8.130.65.195:10002")
         region_name = kwargs.get("region")
         retries = kwargs.get("retries", 2)
         d_connect, d_red = self.get_default_timeout_conifg()

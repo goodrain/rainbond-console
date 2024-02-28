@@ -10,12 +10,9 @@ from drf_yasg.views import get_schema_view
 from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
-from openapi.views.apps.apps import ListAppsView, GetServiceInfoView, AppModelImportEvent, AppTarballDirView, \
-    AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView, YamlAppView
-from openapi.views.enterprise_view import (EnterpriseConfigView, EnterpriseOverview, AppRankOverview, MonitorMessageOverview,
-                                           MonitorQueryOverview, MonitorQueryRangeOverview, MonitorSeriesOverview,
-                                           RegionsMonitorOverview, InstancesMonitorOverview, ResourceOverview, ServiceOverview,
-                                           Performance_overview)
+from openapi.views.apps.apps import ListAppsView, AppModelImportEvent, AppTarballDirView, \
+    AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView
+
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
 from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
@@ -42,9 +39,7 @@ urlpatterns = [
     url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     # get enterprise regions
     url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
-    url(r'^v1/regions/monitor$', RegionsMonitorOverview.as_view()),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
-    url(r'^v1/configs$', EnterpriseConfigView.as_view(), name="ent-configs"),
     url(r'^v1/administrators$', ListAdminsView.as_view(), perms.ListAdminsView),
     url(r'^v1/administrators/(?P<user_id>[\w\-]+)$', AdminInfoView.as_view(), perms.AdminInfoView),
     url(r'^v1/changepwd$', ChangePassword.as_view()),
@@ -90,10 +85,7 @@ urlpatterns = [
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)/chart$',
         AppChartInfo.as_view()),
     # 删除应用及所有资源
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/delete$',
-        DeleteApp.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/helm_chart$',
-        HelmChart.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/delete$', DeleteApp.as_view())
 ]
 if os.environ.get("OPENAPI_V2") == "true":
     urlpatterns += [url(r'^v2', include('openapi.v2.urls'))]

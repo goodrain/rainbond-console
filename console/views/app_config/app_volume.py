@@ -192,30 +192,10 @@ class AppVolumeManageView(AppBaseView):
         if not volume_id:
             return Response(general_message(400, "attr_name not specify", "未指定需要删除的持久化路径"), status=400)
         code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id),
-                                                                       self.user.nick_name,force)
-
                                                                        self.user.nick_name, force)
-        result = general_message(200, "success", "删除成功")
         if code != 200:
             result = general_message(code=code, msg="delete volume error", msg_show=msg)
             return Response(result, status=result["code"])
-        src_suffix = " 下的配置文件 {}".format(volume.volume_name) if volume.volume_type == "config-file" else " 下的存储 {}".format(
-            volume.volume_name)
-        comment = operation_log_service.generate_component_comment(
-            operation=Operation.DELETE,
-            module_name=self.service.service_cname,
-            region=self.service.service_region,
-            team_name=self.tenant.tenant_name,
-            service_alias=self.service.service_alias,
-            suffix=src_suffix)
-        operation_log_service.create_component_log(
-            user=self.user,
-            comment=comment,
-            enterprise_id=self.user.enterprise_id,
-            team_name=self.tenant.tenant_name,
-            app_id=self.app.ID,
-            service_alias=self.service.service_alias,
-            old_information=old_information)
         result = general_message(code=code, msg="delete volume error", msg_show=msg, list=volume)
         return Response(result, status=result["code"])
 

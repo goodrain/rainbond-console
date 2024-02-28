@@ -27,7 +27,13 @@ class ComponentK8sResourceService(object):
     def get_k8s_resource(self, enterprise_id, tenant_name, app_id, region_name, name, resource_id):
         namespace, region_app_id = self.get_app_id_and_namespace(app_id, tenant_name, region_name)
         resources = k8s_resources_repo.get_by_id(resource_id)
-        data = {"app_id": region_app_id, "resource_yaml": resources.content, "namespace": namespace, "name": name, "kind": resources.kind}
+        data = {
+            "app_id": region_app_id,
+            "resource_yaml": resources.content,
+            "namespace": namespace,
+            "name": name,
+            "kind": resources.kind
+        }
         res, body = region_api.get_app_resource(enterprise_id, region_name, data)
         k8s_resources_repo.update(app_id, name, resources.kind, content=body["bean"]["content"])
         return body["bean"]

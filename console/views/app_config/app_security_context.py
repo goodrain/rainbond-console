@@ -1,11 +1,9 @@
 import logging
 
-
 from console.services.app_security_context import app_security_context, app_inspect
 from console.views.app_config.base import AppBaseView
 from rest_framework.response import Response
 
-from openapi.serializer.config_serializers import MonitorQueryOverviewSeralizer
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
@@ -62,8 +60,8 @@ class AppInspection(AppBaseView):
     def post(self, request, *args, **kwargs):
         operation_type = request.data.get("operation_type", False)
         inspection_type = request.data.get("inspection_type", "")
-        app_inspect.operation_inspection(self.region_name, self.tenant_name, self.service.service_id,
-                                                   operation_type, self.service.service_alias, inspection_type)
+        app_inspect.operation_inspection(self.region_name, self.tenant_name, self.service.service_id, operation_type,
+                                         self.service.service_alias, inspection_type)
         result = general_message(200, "success", "修改成功", bean="修改成功")
         return Response(result, status=result["code"])
 
@@ -77,6 +75,7 @@ class AppInspectionReport(AppBaseView):
         if scan_type == "code" or scan_type == "normative":
             ret_data = app_inspect.get_inspection_report(self.service.service_id, p, ps, scan_type, url)
         else:
-            ret_data = app_inspect.leak_or_config_inspection(self.tenant_name, self.service.service_alias, scan_type, p, ps, url)
+            ret_data = app_inspect.leak_or_config_inspection(self.tenant_name, self.service.service_alias, scan_type, p, ps,
+                                                             url)
         result = general_message(200, "success", "获取成功", bean=ret_data)
         return Response(result, status=result["code"])

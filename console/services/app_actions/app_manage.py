@@ -16,9 +16,7 @@ from console.repositories.app import (delete_service_repo, recycle_bin_repo, rel
 from console.repositories.app_config import (auth_repo, create_step_repo, dep_relation_repo, domain_repo, env_var_repo,
                                              extend_repo, mnt_repo, port_repo, service_attach_repo, service_payment_repo,
                                              tcp_domain, volume_repo)
-                                             extend_repo, mnt_repo, port_repo, service_attach_repo,
-                                             service_payment_repo,
-                                             tcp_domain, volume_repo, gateway_domain)
+
 from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.event_repo import event_repo
@@ -984,9 +982,6 @@ class AppManageService(AppManageBase):
         component_graph_service.delete_by_component_id(service.service_id)
         app_config_group_service_repo.delete_effective_service(service.service_id)
         service_monitor_repo.delete_by_service_id(service.service_id)
-        sec_context_repo.delete_security_context(service.service_id)
-        report_repo.delete(service.service_id)
-        gateway_domain.delete_service_gateway_domain(service.service_id, "")
         self.__create_service_delete_event(tenant, service, user)
         service.delete()
 

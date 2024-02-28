@@ -11,7 +11,7 @@ import time
 from django.db import transaction
 
 from console.constants import PluginCategoryConstants
-from console.exception.bcode import ErrK8sComponentNameExists, ErrComponentBuildFailed, ErrEnterpriseNotFound
+from console.exception.bcode import ErrK8sComponentNameExists, ErrComponentBuildFailed
 from console.exception.main import ServiceHandleException, AccountOverdueException, RegionNotFound, AbortRequest
 from console.repositories import deploy_repo
 from console.repositories.app import service_repo
@@ -45,18 +45,16 @@ from console.views.app_config.app_volume import ensure_volume_mode
 from openapi.serializer.app_serializer import (
     AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer, AppServiceEventsSerializer,
     AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentBuildReqSerializers,
-    ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers,
-    CreateThirdComponentResponseSerializer,
-    CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer,
-    ServiceGroupOperationsSerializer,
+    ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers, CreateThirdComponentResponseSerializer,
+    CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
     TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentUpdatePortReqSerializers,
-    ComponentPortReqSerializers, UpdateAppAuthorizationPolicy, UpdateAppPeerAuthentications)
+    ComponentPortReqSerializers, UpdateAppAuthorizationPolicy, ServiceVolumeSerializer, ChangeDeploySourceSerializer,
+    HelmChartSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
-from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView,
-                                BaseOpenAPIView)
-from openapi.views.exceptions import ErrAppNotFound, ErrRegionNotFound
+from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView)
+from openapi.views.exceptions import ErrAppNotFound
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
@@ -1366,7 +1364,6 @@ class HelmChart(TeamAPIView):
     def put(self, request, app_id, *args, **kwargs):
         ap = UpdateAppAuthorizationPolicy(data=request.data)
         ap.is_valid(raise_exception=True)
-        operating_mode = ap.data.get("operating_mode", "close")
 
         result = general_message(200, "success", "成功")
         return Response(result, status=result["code"])

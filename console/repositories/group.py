@@ -5,13 +5,12 @@
 import logging
 
 from datetime import datetime
-from django.db.models import Q
 
 from console.exception.bcode import ErrComponentGroupNotFound
 from console.repositories.region_app import region_app_repo
 from www.apiclient.regionapi import RegionInvokeApi
-from django.db.models import Q, Count
-from www.models.main import (ServiceGroup, ServiceGroupRelation, TenantServiceGroup, Users)
+from django.db.models import Q
+from www.models.main import (ServiceGroup, ServiceGroupRelation, TenantServiceGroup)
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()

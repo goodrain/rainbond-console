@@ -4,7 +4,7 @@ import re
 
 from openapi.serializer.utils import DateCharField
 from rest_framework import serializers, validators
-from www.models.main import ServiceGroup, TenantServiceInfo, TenantServicesPort,TenantServiceInfo
+from www.models.main import ServiceGroup, TenantServicesPort, TenantServiceInfo
 
 ACTION_CHOICE = (
     ("stop", ("stop")),
@@ -195,6 +195,14 @@ class AppServiceTelescopicVerticalSerializer(serializers.Serializer):
     new_memory = serializers.IntegerField(help_text="组件内存", allow_null=False, validators=[new_memory_validator])
     new_gpu = serializers.IntegerField(help_text="组件gpu显存申请", allow_null=True, validators=[new_cpu_validator])
     new_cpu = serializers.IntegerField(help_text="组件cpu额度申请", allow_null=True, validators=[new_cpu_validator])
+
+
+class UpdateAppPeerAuthentications(serializers.Serializer):
+    operating_mode = serializers.CharField(max_length=32, help_text="操作类型")
+
+
+class UpdateAppAuthorizationPolicy(serializers.Serializer):
+    operating_mode = serializers.CharField(max_length=32, help_text="操作类型")
 
 
 class AppServiceTelescopicHorizontalSerializer(serializers.Serializer):

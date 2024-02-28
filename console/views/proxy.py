@@ -27,6 +27,7 @@ class ProxyPassView(JWTAuthApiView):
         resp = region_api.get_proxy(request.GET.get("region_name"), path)
         result = general_message(200, "success", "请求成功", bean=resp['bean'], list=resp['list'])
         return Response(result, status=result["code"])
+
     @never_cache
     def delete(self, request, *args, **kwargs):
         path = request.get_full_path().replace("/console", "")

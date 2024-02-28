@@ -31,7 +31,7 @@ class AppApiGatewayView(RegionTenantHeaderView):
     @never_cache
     def delete(self, request, *args, **kwargs):
         path = request.get_full_path().replace("/console", "")
-        app_id = request.query_params.get('appID', "")
+        # app_id = request.query_params.get('appID', "")
         resp = region_api.api_gateway_delete_proxy(self.response_region, self.tenant_name, path)
         result = general_message(200, "success", "删除成功", bean=resp)
         return Response(result, status=result["code"])

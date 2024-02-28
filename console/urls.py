@@ -48,12 +48,11 @@ from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete,
                                       TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView, PauseAppView,
                                       UNPauseAppView, TarImageView)
 from console.views.app_market import BindableMarketsView
-from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView,
-                                       AppTraceView,
+from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView, MonitorQueryOverConsoleView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView, AppGroupVisitView,
                                         AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView, BuildSourceinfo,
-                                        ImageAppView, ListAppPodsView, JobStrategy, ManageFile)
+                                        ImageAppView, ListAppPodsView, JobStrategy)
 from console.views.backup_data import (BackupDataCView, BackupDateDownload, BackupRecoverCView, BackupUploadCView)
 from console.views.center_pool.app_export import CenterAppExportView
 from console.views.center_pool.app_import import (CenterAppImportView, CenterAppTarballDirView, EnterpriseAppImportInitView)
@@ -69,7 +68,7 @@ from console.views.code_repo import ServiceCodeBranch
 from console.views.custom_configs import CustomConfigsCLView
 from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
                                       NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage,
-                                      EnterpriseRegionGatewayBatch, EnterpriseTeamNames, EnterpriseRegionsFileRUDView)
+                                      EnterpriseRegionGatewayBatch, EnterpriseTeamNames)
 from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
                                       RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
 from console.views.enterprise import (
@@ -119,7 +118,7 @@ from console.views.public_areas import (AllServiceInfo, GroupServiceView, Servic
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
                                         GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
 from console.views.rbd_ability import RainbondAbilityRUDView, RainbondAbilityLView
-from console.views.rbd_plugin import RainbondObservablePluginLView, RainbondOfficialPluginLView, RainbondPluginLView
+from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.registry import HubRegistryView
@@ -139,12 +138,12 @@ from console.views.team import UserFuzSerView, TeamUserDetaislView, TeamCheckRes
     TeamRegionInitView, ApplicantsView, RegisterStatusView, MonitorAlarmStatusView, EnterpriseInfoView, \
     InitDefaultInfoView, AdminAddUserView, CertificateView, TeamUserCanJoin, TeamsPermissionCreateApp, JoinTeamView, \
     UserApplyStatusView
-from console.views.user import CheckSourceView, SSOLoginView, UserLogoutView, UserPemTraView, AdministratorJoinTeamView, \
-    EnterPriseUsersCLView, YumcApp, SyncUserListFromSSO, EnterPriseUsersUDView, AdminUserView, AdminUserLCView, \
+from console.views.user import CheckSourceView, UserLogoutView, UserPemTraView, AdministratorJoinTeamView, \
+    EnterPriseUsersCLView, EnterPriseUsersUDView, AdminUserView, AdminUserLCView, \
     AdminRolesView
 from console.views.user_accesstoken import UserAccessTokenCLView, UserAccessTokenRUDView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
-    ResetPassword, UserDetailsView, UserFavoriteLCView, UserFavoriteUDView
+     UserDetailsView, UserFavoriteLCView, UserFavoriteUDView
 from console.views.webhook import WebHooksDeploy, ImageWebHooksDeploy, CustomWebHooksDeploy, GetWebHooksUrl, \
     ImageWebHooksTrigger, WebHooksStatus, UpdateSecretKey
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
@@ -267,7 +266,6 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/overview$', TeamOverView.as_view(), perms.TeamOverView),
     url(r'^teams/(?P<team_name>[\w\-]+)/arch$', TeamArchView.as_view(), perms.TeamOverView),
     # team operation logs
-    url(r'^teams/(?P<team_name>[\w\-]+)/operation-logs$', TeamOperationLogView.as_view(), perms.TeamDynamicView),
     # 总览 获取应用状态
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/services/status$', AllServiceInfo.as_view(), perms.AllServiceInfo),
     # 上传yaml文件
@@ -850,13 +848,6 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/overview/team$', EnterpriseTeamOverView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/monitor$', EnterpriseMonitor.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/users$', EnterPriseUsersCLView.as_view(), perms.EnterPriseUsersCLView),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/users/yumc_app$', YumcApp.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/syncusers$', SyncUserListFromSSO.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/users/internal-messages$', UserInternalMessageView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/users/(?P<user_id>[\d\-]+)/internal-messages/rules$',
-        InternalMessageRuleLView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/users/(?P<user_id>[\d\-]+)/internal-messages/rules/(?P<rule_id>[\d\-]+)$',
-        InternalMessageRuleUView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/(?P<user_id>[\d\-]+)$', EnterPriseUsersUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/user/(?P<user_id>[\d\-]+)/teams$', EnterpriseUserTeams.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/myteams$', EnterpriseMyTeams.as_view()),

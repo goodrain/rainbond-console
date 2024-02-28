@@ -11,7 +11,6 @@ from console.repositories.group import group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
-from console.services.operation_log import (Operation, OperationModule, operation_log_service)
 from console.services.share_services import share_service
 from console.utils.reqparse import parse_argument
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView

@@ -15,8 +15,7 @@ from console.exception.bcode import (ErrComponentPortExists, ErrK8sServiceNameEx
 from console.exception.main import (AbortRequest, CheckThirdpartEndpointFailed, ServiceHandleException)
 # repository
 from console.repositories.app import service_repo
-from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, service_endpoints_repo, tcp_domain,
-                                             gateway_domain, TenantServicePortRepository)
+from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, service_endpoints_repo, tcp_domain)
 from console.repositories.group import group_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
@@ -65,8 +64,7 @@ class AppPortService(object):
             if len(k8s_service_name) > 63:
                 raise AbortRequest("k8s_service_name must be no more than 63 characters")
             if not re.fullmatch("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
-                raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'",
-                                   msg_show="内部域名格式不正确")
+                raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式不正确")
 
         # make a map of k8s services
         new_k8s_services = dict()
@@ -90,8 +88,7 @@ class AppPortService(object):
         if len(k8s_service_name) > 63:
             raise AbortRequest("k8s_service_name must be no more than 63 characters")
         if not re.fullmatch("[a-z]([-a-z0-9]*[a-z0-9])?", k8s_service_name):
-            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'",
-                               msg_show="内部域名格式不正确")
+            raise AbortRequest("regex used for validation is '[a-z]([-a-z0-9]*[a-z0-9])?'", msg_show="内部域名格式不正确")
 
         # make k8s_service_name unique
         port = port_repo.get_by_k8s_service_name(tenant_id, k8s_service_name)
@@ -392,9 +389,8 @@ class AppPortService(object):
                     logger.exception(e)
 
     def __check_params(self, action, container_port, protocol, port_alias, service_id):
-        standard_actions = (
-            "open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol",
-            "change_port_alias")
+        standard_actions = ("open_outer", "only_open_outer", "close_outer", "open_inner", "close_inner", "change_protocol",
+                            "change_port_alias")
         if not action:
             return 400, "操作类型不能为空"
         if action not in standard_actions:
@@ -427,7 +423,8 @@ class AppPortService(object):
                     protocol,
                     port_alias,
                     k8s_service_name="",
-                    user_name=''):
+                    user_name='',
+                    app=None):
         if port_alias:
             port_alias = str(port_alias).strip()
 
@@ -439,23 +436,20 @@ class AppPortService(object):
         code = 200
         deal_port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
         if not deal_port:
-            raise ServiceHandleException(msg="component port does not exist", msg_show="组件端口不存在",
-                                         status_code=404)
+            raise ServiceHandleException(msg="component port does not exist", msg_show="组件端口不存在", status_code=404)
         if action == "open_outer":
             if not deal_port.is_inner_service:
-                raise ServiceHandleException(msg="inner port is not open", msg_show="对内服务未开启，需先开启对内服务",
-                                             status_code=404)
+                raise ServiceHandleException(msg="inner port is not open", msg_show="对内服务未开启，需先开启对内服务", status_code=404)
             code, msg = self.__open_outer(tenant, service, region, deal_port, user_name, app)
         elif action == "only_open_outer":
             code, msg = self.__only_open_outer(tenant, service, region, deal_port, user_name)
         elif action == "close_outer":
-            code, msg = self.__close_outer(tenant, service, deal_port, user_name)
+            code, msg = self.__close_outer(tenant, service, region, deal_port, user_name)
         elif action == "open_inner":
             code, msg = self.__open_inner(tenant, service, deal_port, user_name)
         elif action == "close_inner":
             if deal_port.is_outer_service:
-                raise ServiceHandleException(msg="inner port is not open", msg_show="对外服务开启中，需先关闭对外服务",
-                                             status_code=404)
+                raise ServiceHandleException(msg="inner port is not open", msg_show="对外服务开启中，需先关闭对外服务", status_code=404)
             code, msg = self.__close_inner(tenant, service, deal_port, user_name)
         elif action == "change_protocol":
             code, msg = self.__change_protocol(tenant, service, deal_port, protocol, user_name)
@@ -467,7 +461,7 @@ class AppPortService(object):
             return code, msg, None
         return 200, "操作成功", new_port
 
-    def __open_outer(self, tenant, service, region, deal_port, user_name=''):
+    def __open_outer(self, tenant, service, region, deal_port, user_name='', app=None):
         if deal_port.protocol == "http":
             service_name = service.service_alias
             container_port = deal_port.container_port
@@ -479,58 +473,7 @@ class AppPortService(object):
             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             service_alias = service.service_cname
             region_id = region.region_id
-            if app and app.governance_mode == "istio":
-                route_name = deal_port.k8s_service_name + "-" + str(container_port)
-                gateway_http_domains = gateway_domain.get_service_gateway_domain_by_name(service_id, container_port)
-                region_app_id = region_app_repo.get_region_app_id(region.region_name, app.app_id)
-                if gateway_http_domains and len(gateway_http_domains) > 0:
-                    gateway_http_domain = gateway_http_domains[0]
-                    data = {
-                        "name": route_name,
-                        "app_id": region_app_id,
-                        "service_id": service_id,
-                        "namespace": tenant.namespace,
-                        "route_yaml": gateway_http_domain.route_yaml,
-                        "service_name": deal_port.k8s_service_name,
-                        "port": int(container_port),
-                    }
-                    body = region_api.update_outer_port_gateway_http_route(service.service_region, tenant.tenant_name,
-                                                                           data)
-                    gateway_domain.delete_service_gateway_domain(service_id, container_port)
-                else:
-                    data = dict()
-                    data["name"] = route_name
-                    data["app_id"] = region_app_id
-                    data["service_id"] = service_id
-                    data["namespace"] = tenant.namespace
-                    data["gateway_name"] = "istio"
-                    data["gateway_namespace"] = "istio-system"
-                    data["host"] = domain_name
-                    data["port"] = int(container_port)
-                    data["service_name"] = deal_port.k8s_service_name
-                    body = region_api.create_outer_port_gateway_http_route(service.service_region, tenant.tenant_name,
-                                                                           data)
-                if body["bean"]:
-                    data = {
-                        "app_id": app.app_id,
-                        "name": body["bean"].get("name"),
-                        "kind": body["bean"].get("kind", "HTTPRoute"),
-                        "content": body["bean"].get("content"),
-                        "state": 1,
-                    }
-                    k8s_resources_repo.create(**data)
-                deal_port.is_outer_service = True
-                deal_port.save()
-                if not deal_port.is_inner_service:
-                    region_api.manage_inner_port(service.service_region, tenant.tenant_name, service.service_alias,
-                                                 deal_port.container_port, {
-                                                     "operation": "open",
-                                                     "enterprise_id": tenant.enterprise_id,
-                                                     "operator": user_name
-                                                 })
-                return 200, "success"
-            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
-                                                                               deal_port.container_port)
+            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
 
             if service_domains:
                 svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
@@ -540,16 +483,14 @@ class AppPortService(object):
                     region_api.api_gateway_bind_http_domain(service_name, region.region_name, tenant.tenant_name,
                                                             [service_domain.domain_name], svc, app.app_id)
 
-
-
             else:
                 # 在service_domain表中保存数据
                 service_id = service.service_id
                 service_name = service.service_alias
                 container_port = deal_port.container_port
                 domain_name = str(service_name) + "." + str(region.httpdomain)
-                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port,
-                                                   protocol, http_rule_id, tenant_id, service_alias, region_id)
+                domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol,
+                                                   http_rule_id, tenant_id, service_alias, region_id)
 
                 if service.create_status == "complete":
                     # 给数据中心发请求添加默认域名
@@ -582,10 +523,8 @@ class AppPortService(object):
                         k8s_service_name=svc.k8s_service_name,
                         container_port=svc.container_port,
                         app_id=app.app_id,
-                        ingressPort=int(service_tcp_domain.end_point.split(':')[1])
-                    )
+                        ingressPort=int(service_tcp_domain.end_point.split(':')[1]))
             else:
-                print(service.service_region, tenant.tenant_name, svc.k8s_service_name, svc.container_port)
                 data = region_api.api_gateway_bind_tcp_domain(
                     region=service.service_region,
                     tenant_name=tenant.tenant_name,
@@ -604,8 +543,7 @@ class AppPortService(object):
                 tcp_rule_id = make_uuid(end_point)
                 tenant_id = tenant.tenant_id
                 region_id = region.region_id
-                tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time,
-                                                      container_port,
+                tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time, container_port,
                                                       protocol, service_alias, tcp_rule_id, tenant_id, region_id)
 
         deal_port.is_outer_service = True
@@ -648,36 +586,16 @@ class AppPortService(object):
 
         return 200, "success"
 
-    def close_thirdpart_outer(self, tenant, service, deal_port):
+    def close_thirdpart_outer(self, tenant, service, region, deal_port):
         try:
-            self.__close_outer(tenant, service, deal_port)
+            self.__close_outer(tenant, service, region, deal_port)
         except region_api.CallApiError as e:
             logger.exception(e)
             raise ServiceHandleException(msg="close outer port failed", msg_show="关闭对外服务失败")
 
-    def __close_outer(self, tenant, service, deal_port, user_name=''):
+    def __close_outer(self, tenant, service, region, deal_port, user_name=''):
         deal_port.is_outer_service = False
         app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
-        if service.create_status == "complete":
-
-            if app and app.governance_mode == "istio":
-                region_app_id = region_app_repo.get_region_app_id(service.service_region, app.app_id)
-                route_name = deal_port.k8s_service_name + "-" + str(deal_port.container_port)
-                data = {
-                    "name": route_name,
-                    "app_id": region_app_id,
-                    "service_id": service.service_id,
-                    "namespace": tenant.namespace,
-                    "route_yaml": "",
-                    "service_name": deal_port.k8s_service_name,
-                    "port": int(deal_port.container_port),
-                }
-                body = region_api.delete_outer_port_gateway_http_route(region.region_name, tenant.tenant_name, data)
-                gateway_domain.create_service_gateway_domain(service.service_id, deal_port.container_port,
-                                                             body["bean"].get("protocol"), body["bean"].get("hosts"),
-                                                             body["bean"].get("route_yaml"))
-                k8s_resources_repo.delete_by_name(app.app_id, "HTTPRoute", route_name)
-
         deal_port.save()
         # 改变httpdomain表中端口状态
         if deal_port.protocol == "http":
@@ -686,8 +604,9 @@ class AppPortService(object):
                 for service_domain in service_domains:
                     service_domain.is_outer_service = False
                     service_domain.save()
-                    path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" + service_domain.service_name
-                    region_api.api_gateway_get_proxy(region.region_name, tenant.tenant_name, path, None)
+                    path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias="
+                            + service_domain.service_name)
+                    region_api.api_gateway_get_proxy(region.region_name, tenant.tenant_name, path, app.app_id)
 
         else:
             service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
@@ -697,11 +616,9 @@ class AppPortService(object):
                 for service_tcp_domain in service_tcp_domains:
                     service_tcp_domain.is_outer_service = False
                     service_tcp_domain.save()
-            svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id,
-                                                     deal_port.container_port)
+            svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, deal_port.container_port)
             path = "/v2/proxy-pass/gateway/" + tenant.tenant_name + "/routes/tcp/" + svc.k8s_service_name
             region_api.delete_proxy(region.region_name, path)
-        # component port change, will change entrance network governance plugin configuration
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)
@@ -726,8 +643,7 @@ class AppPortService(object):
         else:
             host_value = "127.0.0.1"
         code, msg, data = env_var_service.add_service_env_var(
-            tenant, service, deal_port.container_port, "连接地址", env_prefix + "_HOST", host_value, False,
-            scope="outer")
+            tenant, service, deal_port.container_port, "连接地址", env_prefix + "_HOST", host_value, False, scope="outer")
         if code != 200 and code != 412:
             return code, msg
         code, msg, data = env_var_service.add_service_env_var(
@@ -1125,7 +1041,7 @@ class EndpointService(object):
             ports = port_service.get_service_ports(service)
             if ports:
                 logger.debug("close third part port: {0}".format(ports[0].container_port))
-                port_service.close_thirdpart_outer(tenant, service, ports[0])
+                port_service.close_thirdpart_outer(tenant, service, service.service_region, ports[0])
 
         data = {"address": address}
 
@@ -1151,8 +1067,7 @@ class EndpointService(object):
                 endpoint = endpoint.rpartition(":")[0]
             is_domain = self.check_endpoint(endpoint)
             if is_domain and len(endpoints) > 1:
-                raise CheckThirdpartEndpointFailed(msg="do not support multi domain endpoint",
-                                                   msg_show="不允许添加多个域名实例地址")
+                raise CheckThirdpartEndpointFailed(msg="do not support multi domain endpoint", msg_show="不允许添加多个域名实例地址")
         return is_domain
 
     # check endpoint do not start with protocol and do not end with port, just hostname or ip

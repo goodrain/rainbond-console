@@ -13,7 +13,6 @@ from urllib import parse
 import os
 from django.conf import settings
 from addict import Dict
-from back_manager.decorator import method_perf_time
 from urllib3.exceptions import MaxRetryError
 
 logger = logging.getLogger('default')
@@ -102,7 +101,6 @@ class RegionApiBaseHttpClient(object):
         else:
             return dict()
 
-    @method_perf_time
     def _request(self, url, method, body=None, *args, **kwargs):
         url = "{0}://{1}{2}".format(self.host.scheme, self.host.netloc, url)
         retry_count = kwargs.get("retry_count", 2)

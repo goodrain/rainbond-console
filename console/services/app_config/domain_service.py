@@ -224,7 +224,6 @@ class DomainService(object):
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
-        #region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
         domain_info = dict()
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
@@ -246,7 +245,7 @@ class DomainService(object):
         domain_info["region_id"] = region.region_id
         return domain_repo.add_service_domain(**domain_info)
 
-    def unbind_domain(self, tenant, service, container_port, domain_name, is_tcp=False,app_id=None):
+    def unbind_domain(self, tenant, service, container_port, domain_name, is_tcp=False, app_id=None):
         if not is_tcp:
             service_domains = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
             if not service_domains:
@@ -259,7 +258,8 @@ class DomainService(object):
                 data["http_rule_id"] = servicer_domain.http_rule_id
                 try:
                     path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/" + servicer_domain.domain_name + "p-ps-s"
-                    path_app_id = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/" + str(app_id) + servicer_domain.domain_name + "p-ps-s"
+                    path_app_id = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/" + str(
+                        app_id) + servicer_domain.domain_name + "p-ps-s"
                     print(path_app_id)
                     region_api.api_gateway_delete_proxy(service.service_region, tenant.tenant_name, path)
                     region_api.api_gateway_delete_proxy(service.service_region, tenant.tenant_name, path_app_id)
