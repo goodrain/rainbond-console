@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import pickle
+import re
 import time
 
 from django.db import transaction
@@ -39,13 +40,15 @@ from console.utils.validation import validate_endpoints_info
 from django.forms.models import model_to_dict
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+
+from console.views.app_config.app_volume import ensure_volume_mode
 from openapi.serializer.app_serializer import (
     AppBaseInfoSerializer, AppInfoSerializer, AppPostInfoSerializer, AppServiceEventsSerializer,
     AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentBuildReqSerializers,
     ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers, CreateThirdComponentResponseSerializer,
     CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
     TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentPortReqSerializers,
-    ComponentUpdatePortReqSerializers)
+    ComponentUpdatePortReqSerializers, ChangeDeploySourceSerializer, ServiceVolumeSerializer, HelmChartSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
@@ -54,7 +57,7 @@ from openapi.views.exceptions import ErrAppNotFound
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
-from www.utils.crypt import make_uuid
+from www.utils.crypt import make_uuid, make_uuid3
 from www.utils.return_message import general_message, error_message
 
 region_api = RegionInvokeApi()
@@ -791,6 +794,88 @@ class ComponentPortsShowView(TeamAppServiceAPIView):
         return Response(result, status=status.HTTP_200_OK)
 
 
+class ServiceVolumeView(TeamAppServiceAPIView):
+    @swagger_auto_schema(
+        operation_description="挂载组件的储存",
+        manual_parameters=[
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="数据中心名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("service_id", openapi.IN_PATH, description="组件ID", type=openapi.TYPE_STRING)
+        ],
+        request_body=ServiceVolumeSerializer,
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+
+        ServiceVolumeSerializerRequest = ServiceVolumeSerializer(data=request.data)
+        ServiceVolumeSerializerRequest.is_valid(raise_exception=True)
+
+        req = ServiceVolumeSerializerRequest.data
+        r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')
+        if not r.match(req.get("volume_name")):
+            raise AbortRequest(msg="volume name illegal", msg_show="持久化名称只支持数字字母下划线")
+
+        file_content = request.data.get("file_content", None)
+        provider_name = request.data.get("volume_provider_name", '')
+        access_mode = request.data.get("access_mode", '')
+        share_policy = request.data.get('share_policy', '')
+        backup_policy = request.data.get('back_policy', '')
+        reclaim_policy = request.data.get('reclaim_policy', '')
+        allow_expansion = request.data.get('allow_expansion', False)
+        mode = request.data.get("mode")
+        if mode is not None:
+            mode = ensure_volume_mode(mode)
+
+        settings = {}
+        settings['volume_capacity'] = req.get("volume_capacity")
+        settings['provider_name'] = provider_name
+        settings['access_mode'] = access_mode
+        settings['share_policy'] = share_policy
+        settings['backup_policy'] = backup_policy
+        settings['reclaim_policy'] = reclaim_policy
+        settings['allow_expansion'] = allow_expansion
+
+        data = volume_service.add_service_volume(
+            self.team,
+            self.service,
+            req.get("volume_path"),
+            req.get("volume_type"),
+            req.get("volume_name"),
+            file_content,
+            settings,
+            self.user.nick_name,
+            mode=mode)
+        result = general_message(200, "success", "持久化路径添加成功", bean=data.to_dict())
+
+        return Response(result, status=result["code"])
+
+
+class ChangeDeploySourceView(TeamAppServiceAPIView):
+    @swagger_auto_schema(
+        operation_description="更改docker构建方式的镜像地址",
+        manual_parameters=[
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="数据中心名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用组id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("service_id", openapi.IN_PATH, description="组件ID", type=openapi.TYPE_STRING)
+        ],
+        request_body=ChangeDeploySourceSerializer,
+        tags=['openapi-apps'],
+    )
+    def put(self, request, *args, **kwargs):
+        image = request.data.get("image", None)
+        if image:
+            version = image.split(':')[-1]
+            if not version:
+                version = "latest"
+                image = image + ":" + version
+            self.service.image = image
+            self.service.version = version
+        self.service.save()
+        return Response(general_message(200, "success", "更改镜像地址成功"), status=200)
+
+
 class ComponentBuildView(TeamAppServiceAPIView):
     @swagger_auto_schema(
         operation_description="构建组件，用于CI/CD工作流调用",
@@ -1204,4 +1289,71 @@ class DeleteApp(TeamAPIView):
         app = group_service.get_app_by_id(self.team, self.region_name, app_id)
         group_service.delete_app(self.team, self.region_name, app)
         result = general_message(200, "success", "删除成功")
+        return Response(result, status=result["code"])
+
+
+class HelmChart(TeamAPIView):
+    @swagger_auto_schema(
+        operation_description="安装helm应用",
+        manual_parameters=[
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID、名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="集群名称", type=openapi.TYPE_STRING),
+        ],
+        request_body=HelmChartSerializer,
+        tags=['openapi-apps'],
+    )
+    def get(self, request, app_id, *args, **kwargs):
+        chart_info = HelmChartSerializer(data=request.GET)
+        chart_info.is_valid(raise_exception=True)
+        name = chart_info.data.get("chart_name")
+        repo_name = chart_info.data.get("repo_name")
+        chart_name = chart_info.data.get("chart_name")
+        version = chart_info.data.get("version")
+        overrides = []
+        print(name, chart_name, repo_name, version)
+        _, data = helm_app_service.check_helm_app(name, repo_name, chart_name, version, overrides, self.region_name,
+                                                  self.team.tenant_name, self.team)
+        result = general_message(200, "success", "获取成功", bean=data)
+        return Response(result, status=result["code"])
+
+    def post(self, request, app_id, *args, **kwargs):
+        chart_info = HelmChartSerializer(data=request.data)
+        chart_info.is_valid(raise_exception=True)
+        repo_name = chart_info.data.get("repo_name")
+        overrides = chart_info.data.get("overrides", "")
+        version = chart_info.data.get("version")
+        chart_name = chart_info.data.get("chart_name")
+        name = chart_name
+        app_model_id = make_uuid3(repo_name + "/" + chart_name)
+        helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(self.enterprise.enterprise_id, app_model_id)
+        data = {"exist": True, "app_model_id": app_id}
+        if not helm_center_app:
+            center_app = {
+                "app_id": app_id,
+                "app_name": chart_name,
+                "create_team": "",
+                "source": "helm:" + repo_name,
+                "scope": "enterprise",
+                "pic": "",
+                "describe": "",
+                "enterprise_id": self.enterprise.enterprise_id,
+                "details": "",
+            }
+            helm_app_service.create_helm_center_app(center_app, self.region_name)
+            data["exist"] = False
+            data["app_model_id"] = app_model_id
+        overrides_list = overrides.split(",")
+        cvdata = helm_app_service.yaml_conversion(name, repo_name, chart_name, version, overrides_list, self.region_name,
+                                                  self.team.tenant_name, self.team, self.enterprise.enterprise_id,
+                                                  self.region.region_id)
+        helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(self.enterprise.enterprise_id, app_model_id)
+        chart = repo_name + "/" + chart_name
+        helm_app_service.generate_template(cvdata, helm_center_app, version, self.team, chart, self.region_name,
+                                           self.enterprise.enterprise_id, self.user.user_id, overrides_list, app_id)
+
+        market_app_service.install_app(self.team, self.region, self.user, app_id, app_model_id, version, "localApplication",
+                                       False, True, False)
+
+        result = general_message(200, "success", "成功")
         return Response(result, status=result["code"])

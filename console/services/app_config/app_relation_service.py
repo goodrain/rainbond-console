@@ -30,6 +30,12 @@ class AppServiceRelationService(object):
         services = service_repo.get_services_by_service_ids(dep_ids)
         return services
 
+    def get_service_dependencies_reverse(self, service):
+        dep_ids = dep_relation_repo.get_service_reverse_dependencies(service.tenant_id, service.service_id).values_list(
+            "service_id", flat=True)
+        services = service_repo.get_services_by_service_ids(dep_ids)
+        return services
+
     def get_undependencies(self, tenant, service):
 
         # 打开对内端口才能被依赖

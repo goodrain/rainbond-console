@@ -119,12 +119,11 @@ class RegionApiBaseHttpClient(object):
             return dict()
 
     def get_default_timeout_conifg(self):
-        connect, red = 2.0, 5.0
         try:
-            connect = float(os.environ.get("REGION_CONNECTION_TIMEOUT", 2.0))
-            red = float(os.environ.get("REGION_RED_TIMEOUT", 5.0))
+            connect = float(os.environ.get("REGION_CONNECTION_TIMEOUT", 5.0))
+            red = float(os.environ.get("REGION_RED_TIMEOUT", 30.0))
         except Exception:
-            connect, red = 2.0, 5.0
+            connect, red = 5.0, 30.0
         return connect, red
 
     def _request(self, url, method, headers=None, body=None, *args, **kwargs):
