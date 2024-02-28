@@ -5,6 +5,8 @@
 import json
 import logging
 import re
+import threading
+import time
 
 from console.constants import DomainType
 from console.repositories.app import service_repo
@@ -422,12 +424,14 @@ class HttpStrategyView(RegionTenantHeaderView):
             result = general_message(400, "success", "参数有误")
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
-        domain_heander = request.data.get("domain_heander", None)
+        domain_heander = request.data.get("domain_heander", "")
         # 检查设置的请求头对不对
-        header_items = domain_heander.split('=')
-        if len(header_items) > 1 and not self.check_nginx_header(header_items[0], header_items[1]):
-            result = general_message(400, "success", "请求头配置有误")
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+        header_items = domain_heander.split(';')
+        for header_item in header_items:
+            headers = header_item.split('=')
+            if len(headers) > 1 and not self.check_nginx_header(headers[0], headers[1]):
+                result = general_message(400, "success", "请求头配置有误")
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         container_port = request.data.get("container_port", None)
         domain_name = request.data.get("domain_name", None)
@@ -545,8 +549,17 @@ class HttpStrategyView(RegionTenantHeaderView):
         cf_dict["rule_id"] = data["http_rule_id"]
         cf_dict["value"] = json.dumps(value)
         configuration_repo.add_configuration(**cf_dict)
+
+        # 等待2秒去更新参数，不然首次添加的参数无法及时生效
+        wait_thread = threading.Thread(target=self.wait_update, args=(data["http_rule_id"], value))
+        wait_thread.start()
+
         result = general_message(201, "success", "策略添加成功", bean=data)
         return Response(result, status=status.HTTP_201_CREATED)
+
+    def wait_update(self, rule_id, value):
+        time.sleep(2)
+        domain_service.update_http_rule_config(self.tenant, self.response_region, rule_id, value)
 
     # 预先检查nginx 的header 值是否正确
     def check_nginx_syntax(self, config_data):
