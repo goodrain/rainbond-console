@@ -496,7 +496,6 @@ class AppPortService(object):
                     # 给数据中心发请求添加默认域名
                     try:
                         svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
-                        print(svc)
                         region_api.api_gateway_bind_http_domain(service_name, region.region_name, tenant.tenant_name,
                                                                 [domain_name], svc, app.app_id)
                     except Exception as e:
@@ -533,7 +532,6 @@ class AppPortService(object):
                     app_id=app.app_id)
 
                 end_point = "0.0.0.0:{0}".format(data["bean"])
-                print(end_point)
                 service_id = service.service_id
                 service_name = service.service_alias
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')

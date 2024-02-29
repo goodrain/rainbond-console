@@ -149,9 +149,6 @@ from console.views.webhook import WebHooksDeploy, ImageWebHooksDeploy, CustomWeb
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
 
 urlpatterns = [
-    # 直接代理到rainbond
-    url(r'^v2/proxy-pass/(.*?)', ProxyPassView.as_view()),
-
     # 直接代理到 普罗米修斯
     url(r'^open/monitor/query$', MonitorQueryOverConsoleView.as_view()),
     url(r'^api-gateway/v1/(?P<tenantName>[\w\-]+)/(.*?)', AppApiGatewayView.as_view()),

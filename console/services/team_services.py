@@ -521,7 +521,25 @@ class TeamService(object):
         tenant_list = []
         total = 0
         if body.get("bean"):
+            tenants = body.get("bean").get("list")
             total = body.get("bean").get("total")
+            if tenants:
+                for tenant in tenants:
+                    tenant_alias = team_maps.get(tenant["UUID"]).tenant_alias if team_maps.get(tenant["UUID"]) else ''
+                    tenant_list.append({
+                        "tenant_id": tenant["UUID"],
+                        "team_name": tenant_alias,
+                        "tenant_name": tenant["Name"],
+                        "memory_request": tenant["memory_request"],
+                        "cpu_request": tenant["cpu_request"],
+                        "memory_limit": tenant["memory_limit"],
+                        "cpu_limit": tenant["cpu_limit"],
+                        "running_app_num": tenant["running_app_num"],
+                        "running_app_internal_num": tenant["running_app_internal_num"],
+                        "running_app_third_num": tenant["running_app_third_num"],
+                        "set_limit_memory": tenant["LimitMemory"],
+                        "running_applications": tenant["running_applications"]
+                    })
         else:
             logger.error(body)
         return tenant_list, total

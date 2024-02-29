@@ -257,15 +257,11 @@ class DomainService(object):
                 data["container_port"] = int(container_port)
                 data["http_rule_id"] = servicer_domain.http_rule_id
                 try:
-                    path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/" + servicer_domain.domain_name + "p-ps-s"
                     path_app_id = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/" + str(
                         app_id) + servicer_domain.domain_name + "p-ps-s"
-                    print(path_app_id)
-                    region_api.api_gateway_delete_proxy(service.service_region, tenant.tenant_name, path)
                     region_api.api_gateway_delete_proxy(service.service_region, tenant.tenant_name, path_app_id)
                     servicer_domain.delete()
                 except region_api.CallApiError as e:
-                    print(e)
                     if e.status != 404:
                         raise e
         else:
