@@ -257,6 +257,7 @@ class DomainService(object):
                 data["container_port"] = int(container_port)
                 data["http_rule_id"] = servicer_domain.http_rule_id
                 try:
+                    # k8s 资源名 不能以 / * 特殊字符命名，故做替换
                     # p-p 对应 /
                     # s-s 对应 *
                     path_app_id = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/" + str(
