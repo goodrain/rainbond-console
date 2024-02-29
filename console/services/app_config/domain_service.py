@@ -257,6 +257,8 @@ class DomainService(object):
                 data["container_port"] = int(container_port)
                 data["http_rule_id"] = servicer_domain.http_rule_id
                 try:
+                    # p-p 对应 /
+                    # s-s 对应 *
                     path_app_id = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/" + str(
                         app_id) + servicer_domain.domain_name + "p-ps-s"
                     region_api.api_gateway_delete_proxy(service.service_region, tenant.tenant_name, path_app_id)
