@@ -82,8 +82,6 @@ urlpatterns = [
     # 获取chart包信息
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)/chart$',
         AppChartInfo.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/delete$',
-        DeleteApp.as_view()),
     # 删除应用及所有资源
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app/(?P<app_id>[\w\-]+)/delete$',
         DeleteApp.as_view()),
