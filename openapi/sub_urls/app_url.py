@@ -5,8 +5,8 @@ from django.conf.urls import url
 from openapi.views.apps.apps import (AppInfoView, APPOperationsView, AppServiceEventsView, AppServicesView,
                                      AppServiceTelescopicHorizontalView, AppServiceTelescopicVerticalView, ComponentBuildView,
                                      ComponentEnvsUView, CreateThirdComponentView, ListAppServicesView, TeamAppsCloseView,
-                                     TeamAppsMonitorQueryRangeView, TeamAppsMonitorQueryView, ComponentPortsShowView,
-                                     ComponentPortsChangeView, ChangeDeploySourceView, ServiceVolumeView)
+                                     TeamAppsMonitorQueryRangeView, TeamAppsMonitorQueryView, ComponentPortsChangeView,
+                                     ComponentPortsShowView, ServiceVolumeView, ChangeDeploySourceView)
 from openapi.views.apps.market import AppInstallView, AppUpgradeView
 from openapi.views.gateway.gateway import (ListAppGatewayHTTPRuleView, ListAppGatewayRuleView, UpdateAppGatewayHTTPRuleView,
                                            UpdateAppGatewayRuleView)

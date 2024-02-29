@@ -307,7 +307,7 @@ class NewComponents(object):
                 lb_mapping_port=0,
                 protocol=port.get("protocol", "tcp"),
                 port_alias=port.get("port_alias", ""),
-                is_inner_service=port.get("is_inner_service", False),
+                is_inner_service=True,
                 is_outer_service=port.get("is_outer_service", False),
                 name=port.get("name", ""),
                 k8s_service_name=k8s_service_name,
@@ -539,7 +539,8 @@ class NewComponents(object):
         return False
 
     def _create_default_domain(self, service_alias: str, port: int):
-        return str(port) + "." + service_alias + "." + self.tenant.tenant_name + "." + self.region.httpdomain
+        return str(service_alias) + "." + str(self.region.httpdomain)
+        # return str(port) + "." + service_alias + "." + self.tenant.tenant_name + "." + self.region.httpdomain
 
     @staticmethod
     def _domain_cookie_or_header(items):

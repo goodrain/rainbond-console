@@ -12,7 +12,7 @@ from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
 from openapi.views.apps.apps import ListAppsView, AppModelImportEvent, AppTarballDirView, \
     AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView, HelmChart
-from openapi.views.enterprise_view import EnterpriseConfigView
+
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
 from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
@@ -40,7 +40,6 @@ urlpatterns = [
     # get enterprise regions
     url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
-    url(r'^v1/configs$', EnterpriseConfigView.as_view(), name="ent-configs"),
     url(r'^v1/administrators$', ListAdminsView.as_view(), perms.ListAdminsView),
     url(r'^v1/administrators/(?P<user_id>[\w\-]+)$', AdminInfoView.as_view(), perms.AdminInfoView),
     url(r'^v1/changepwd$', ChangePassword.as_view()),

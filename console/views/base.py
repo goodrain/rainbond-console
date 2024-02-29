@@ -337,7 +337,11 @@ class TenantHeaderView(JWTAuthApiView):
             self.tenant = Tenants.objects.get(tenant_name=self.tenant_name)
             self.team = self.tenant
         except Tenants.DoesNotExist:
-            raise NotFound("tenant {0} not found".format(self.tenant_name))
+            try:
+                self.tenant = Tenants.objects.get(tenant_id=self.tenant_name)
+                self.team = self.tenant
+            except Tenants.DoesNotExist:
+                raise AbortRequest(msg="tenant {0} not found".format(self.tenant_name), msg_show="团队不存在", status_code=404)
 
         if self.user.user_id == self.tenant.creater:
             self.is_team_owner = True

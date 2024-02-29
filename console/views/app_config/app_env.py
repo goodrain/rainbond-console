@@ -4,14 +4,14 @@
 """
 import logging
 
-from django.db import connection
-from django.forms.models import model_to_dict
-from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
 from console.services.app_config.env_service import AppEnvVarService
 from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.views.app_config.base import AppBaseView
+from django.db import connection
+from django.forms.models import model_to_dict
+from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
 from www.utils.return_message import general_message
 from console.exception.main import AbortRequest
 
@@ -416,6 +416,10 @@ class AppBuildEnvView(AppBaseView):
                                                                         attr_value, is_change)
             if code != 200:
                 continue
+        new_build_env_dict = dict()
+        new_build_envs = env_var_service.get_service_build_envs(self.service)
+        for build_env in new_build_envs:
+            new_build_env_dict[build_env.attr_name] = build_env.attr_value
 
         result = general_message(200, "success", "环境变量添加成功")
         return Response(result, status=result["code"])

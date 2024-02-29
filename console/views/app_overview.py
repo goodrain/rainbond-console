@@ -307,9 +307,8 @@ class ListAppPodsView(AppBaseView):
                         if self.service.k8s_component_name in key and 'default-tcpmesh' not in key:
                             if len(container_list) > 1:
                                 container_list[0], container_list[len(container_list) - 1] = container_list[
-                                    len(
-                                        container_list) - 1], \
-                                    container_list[0]
+                                                                                                 len(container_list) - 1], \
+                                                                                             container_list[0]
                     bean["container"] = container_list
                     res.append(bean)
                 return res

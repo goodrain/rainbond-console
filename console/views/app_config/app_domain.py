@@ -27,6 +27,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
+from www.models.main import ServiceDomain
 from www.utils.crypt import make_uuid
 from www.utils.return_message import general_message
 from console.exception.main import AbortRequest
@@ -186,8 +187,11 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
+        domain_repo.get_certificate_by_pk(int(certificate_id))
+
         domain_service.update_certificate(self.region, self.tenant, certificate_id, new_alias, certificate, private_key,
                                           certificate_type)
+
         result = general_message(200, "success", "证书修改成功")
         return Response(result, status=result["code"])
 
@@ -311,6 +315,10 @@ class ServiceDomainView(AppBaseView):
             domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, protocol,
                                        certificate_id, DomainType.WWW, rule_extensions)
         result = general_message(200, "success", "域名绑定成功")
+        svc = port_repo.get_service_port_by_port(self.tenant.tenant_id, self.service.service_id, container_port)
+
+        region_api.api_gateway_bind_http_domain(self.service.service_alias, self.region.region_name, self.tenant.tenant_name,
+                                                [domain_name], svc, self.app.app_id)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -351,7 +359,21 @@ class ServiceDomainView(AppBaseView):
         is_tcp = request.data.get("is_tcp", False)
         if not container_port or not domain_name:
             return Response(general_message(400, "params error", "参数错误"), status=400)
-        domain_service.unbind_domain(self.tenant, self.service, container_port, domain_name, is_tcp)
+        old_service_domain_list = ServiceDomain.objects.filter(service_id=self.service.service_id, domain_name=domain_name)
+        if len(old_service_domain_list) == 0:
+            result = general_message(200, "success", "域名解绑成功")
+            return Response(result, status=result["code"])
+        old_service_domain = old_service_domain_list[0]
+        protocol = old_service_domain.protocol
+        agreement = "HTTP转HTTPS" if protocol == "httptohttps" \
+            else "HTTP" if protocol == "http" else "HTTPS "\
+            if protocol == "https" else "HTTP和HTTPS"
+        service_domain = {"端口": container_port, "协议": agreement, "域名": domain_name}
+        if protocol != "http":
+            certificate = domain_repo.get_certificate_by_id(old_service_domain.certificate_id)
+            if certificate:
+                service_domain["证书别名"] = certificate.alias
+        domain_service.unbind_domain(self.tenant, self.service, container_port, domain_name, is_tcp, self.app.app_id)
         result = general_message(200, "success", "域名解绑成功")
         return Response(result, status=result["code"])
 
@@ -857,9 +879,8 @@ class SecondLevelDomainView(AppBaseView):
             domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, "http", None,
                                        DomainType.SLD_DOMAIN)
         else:
-            # 先解绑 再绑定
             code, msg = domain_service.unbind_domain(
-                self.tenant, self.service, container_port, sld_domains[0].domain_name, is_tcp=False)
+                self.tenant, self.service, container_port, sld_domains[0].domain_name, is_tcp=False, app_id=self.app.app_id)
             if code != 200:
                 return Response(general_message(code, "unbind domain error", msg), status=code)
             domain_service.bind_domain(self.tenant, self.user, self.service, domain_name, container_port, "http", None,

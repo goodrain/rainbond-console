@@ -79,17 +79,3 @@ class AppProbeView(AppBaseView):
             return Response(general_message(code, "add probe error", msg))
         result = general_message(200, "success", "添加成功", bean=(probe.to_dict() if probe else probe))
         return Response(result, status=result["code"])
-
-    @never_cache
-    def put(self, request, *args, **kwargs):
-        """
-        修改组件探针,包括启用停用 mode参数必填
-        ---
-        serializer: ProbeSerilizer
-        """
-        data = request.data
-
-        probe = probe_service.update_service_probea(
-            tenant=self.tenant, service=self.service, data=data, user_name=self.user.nick_name)
-        result = general_message(200, "success", "修改成功", bean=(probe.to_dict() if probe else probe))
-        return Response(result, status=result["code"])
