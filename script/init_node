@@ -54,7 +54,7 @@ function check_docker() {
 }
 
 function add_user_in_ubuntu() {
-    useradd --create-home -s /bin/bash -g docker "$1"
+    useradd --create-home -s /bin/bash -g root "$1"
     echo "$1":"$2" | chpasswd
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
         echo -e "${GREEN}[INFO] 用户 $1 已经创建.${NC}"
@@ -64,7 +64,7 @@ function add_user_in_ubuntu() {
 }
 
 function add_user_in_redhat() {
-    adduser -g docker "$1"
+    adduser -g root "$1"
     echo "$1":"$2" | chpasswd
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
         echo -e "${GREEN}[INFO] 用户 $1 已经创建.${NC}"
