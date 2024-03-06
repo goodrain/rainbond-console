@@ -192,7 +192,6 @@ class EnterpriseTeams(JWTAuthApiView):
                         tenant["memory_request"] = tenant.get("memory_request", 0) + region_tenant["memory_request"]
                         tenant["cpu_request"] = tenant.get("cpu_request", 0) + region_tenant["cpu_request"]
                         tenant["set_limit_memory"] = tenant.get("set_limit_memory", 0) + region_tenant["set_limit_memory"]
-                        tenant["set_limit_cpu"] = tenant.get("set_limit_cpu", 0) + region_tenant["set_limit_cpu"]
                         ret_team.append(tenant)
             except Exception as e:
                 logger.exception(e)

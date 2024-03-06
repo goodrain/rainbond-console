@@ -38,11 +38,9 @@ class AppPortView(AppBaseView):
               paramType: path
         """
         tenant_service_ports = port_service.get_service_ports(self.service)
-
         port_list = []
         for port in tenant_service_ports:
             port_info = port.to_dict()
-
             variables = port_service.get_port_variables(self.tenant, self.service, port)
             port_info["environment"] = variables["environment"]
             outer_url = ""
@@ -69,35 +67,19 @@ class AppPortView(AppBaseView):
             port_info["bind_domains"] = []
             bind_domains = domain_service.get_port_bind_domains(self.service, port.container_port)
             if bind_domains:
-                if self.app.governance_mode == "istio":
-                    _, gateways_data = region_api.list_gateways(self.enterprise.enterprise_id, self.region_name)
-                    gateways = gateways_data.get("list", {})
-                    istio_gateway_ports = {}
-                    for gateway in gateways:
-                        if gateway.get("name") == "istio":
-                            istio_gateway_ports = gateway.get("protocol_port", {})
-                    gateway_port = ":" + str(istio_gateway_ports.get(port.protocol, "")) if istio_gateway_ports.get(
-                        port.protocol, "") else ""
+                path = "/api-gateway/v1/" + self.tenant_name + "/routes/http/domains?service_alias=" + self.service.service_alias + "&port=" + str(
+                    port.container_port)
+                body = region_api.api_gateway_get_proxy(self.region_name, self.tenant_name, path, None)
+                if body.get("list", []) is not None:
                     port_info["bind_domains"] = [{
-                        "protocol": bind_domains.get("protocol", "http"),
+                        "protocol": "http",
                         "domain_type": "www",
                         "ID": -1,
-                        "domain_name": host + gateway_port
-                    } for host in bind_domains.get("hosts", [])]
-                else:
-                    path = ("/api-gateway/v1/" + self.tenant_name + "/routes/http/domains?service_alias=" +
-                            self.service.service_alias + "&port=" + str(port.container_port))
-                    body = region_api.api_gateway_get_proxy(self.region_name, self.tenant_name, path, None)
-                    if body.get("list", []) is not None:
-                        port_info["bind_domains"] = [{
-                            "protocol": "http",
-                            "domain_type": "www",
-                            "ID": -1,
-                            "domain_name": host,
-                            "container_port": port.container_port
-                        } for host in body.get("list", [])]
-                        port_info["is_outer_service"] = len(port_info["bind_domains"]) > 0
-
+                        "domain_name": host,
+                        "container_port": port.container_port
+                    } for host in body.get("list", [])]
+                    port_info["is_outer_service"] = len(port_info["bind_domains"]) > 0
+            port_info["bind_domains"] = [domain.to_dict() for domain in bind_domains]
             bind_tcp_domains = domain_service.get_tcp_port_bind_domains(self.service, port.container_port)
 
             if bind_tcp_domains:
