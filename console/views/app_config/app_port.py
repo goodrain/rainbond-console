@@ -266,20 +266,16 @@ class AppPortManageView(AppBaseView):
         port_alias = request.data.get("port_alias", None)
         protocol = request.data.get("protocol", None)
         k8s_service_name = parse_item(request, "k8s_service_name", default="")
-
         if not container_port:
             raise AbortRequest("container_port not specify", "端口变量名未指定")
-
         if self.service.service_source == "third_party" and ("outer" in action):
             msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, self.service)
             if code != 200:
                 logger.exception(msg, msg_show)
                 return Response(general_message(code, msg, msg_show), status=code)
-        tenant_service_port = port_service.get_service_port_by_port(self.service, container_port)
-        port_service.json_service_port(tenant_service_port)
+
         code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port), action,
                                                    protocol, port_alias, k8s_service_name, self.user.nick_name, self.app)
-        port_service.json_service_port(tenant_service_port)
         if code != 200:
             return Response(general_message(code, "change port fail", msg), status=code)
         result = general_message(200, "success", "操作成功", bean=model_to_dict(data))
