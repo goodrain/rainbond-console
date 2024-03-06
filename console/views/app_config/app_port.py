@@ -67,8 +67,9 @@ class AppPortView(AppBaseView):
             port_info["bind_domains"] = []
             bind_domains = domain_service.get_port_bind_domains(self.service, port.container_port)
             if bind_domains:
-                path = "/api-gateway/v1/" + self.tenant_name + "/routes/http/domains?service_alias=" + self.service.service_alias + "&port=" + str(
-                    port.container_port)
+                path = ("/api-gateway/v1/" + self.tenant_name + "/routes/http/domains?service_alias="
+                        + self.service.service_alias + "&port=" + str(
+                    port.container_port))
                 body = region_api.api_gateway_get_proxy(self.region_name, self.tenant_name, path, None)
                 if body.get("list", []) is not None:
                     port_info["bind_domains"] = [{
