@@ -274,9 +274,8 @@ class AppPortManageView(AppBaseView):
                 logger.exception(msg, msg_show)
                 return Response(general_message(code, msg, msg_show), status=code)
 
-        code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port),
-                                                   action,
-                                                   protocol, port_alias, k8s_service_name, self.user.nick_name,self.app)
+        code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port), action,
+                                                   protocol, port_alias, k8s_service_name, self.user.nick_name, self.app)
         if code != 200:
             return Response(general_message(code, "change port fail", msg), status=code)
         result = general_message(200, "success", "操作成功", bean=model_to_dict(data))

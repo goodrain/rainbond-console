@@ -63,6 +63,7 @@ class AppBaseView(RegionTenantHeaderView):
         if not self.app:
             raise ServiceHandleException("app not found", "应用不存在", 404, 404)
 
+
 class AppBaseCloudEnterpriseCenterView(AppBaseView, CloudEnterpriseCenterView):
     def __init__(self, *args, **kwargs):
         super(AppBaseCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
