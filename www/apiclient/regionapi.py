@@ -2930,7 +2930,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url + path
         client = self.get_client(region_config=region_info)
         # requests
-        resp = client.request(method="GET",url=url,preload_content = False,timeout=urllib3.Timeout(connect=30, read=60 * 60))
+        resp = client.request(method="GET", url=url, preload_content=False, timeout=urllib3.Timeout(connect=30, read=60 * 60))
+
         def event_stream():
             for chunk in resp.stream(4096):
                 yield str(chunk, encoding="utf-8")
