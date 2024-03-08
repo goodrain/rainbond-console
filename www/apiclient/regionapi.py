@@ -4,7 +4,6 @@ import logging
 import os
 
 import httplib2
-import requests
 import urllib3
 from django.http import StreamingHttpResponse
 
