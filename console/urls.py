@@ -114,7 +114,7 @@ from console.views.plugin.service_plugin import (ServicePluginConfigView, Servic
                                                  ServicePluginsView)
 from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
-from console.views.proxy import ProxyPassView, ProxySSEView, SSEProxyView
+from console.views.proxy import ProxyPassView, ProxySSEView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
                                         GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
