@@ -4,7 +4,7 @@ import logging
 import os
 
 import httplib2
-import requests
+import urllib3
 from django.http import StreamingHttpResponse
 
 from console.exception.main import ServiceHandleException
@@ -2927,13 +2927,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url + path
-        self._set_headers(region_info.token)
-
-        response = requests.get(url, stream=True)
-        response.raw.decode_content = True
+        client = self.get_client(region_config=region_info)
+        # requests
+        resp = client.request(method="GET", url=url, preload_content=False, timeout=urllib3.Timeout(connect=30, read=60 * 60))
 
         def event_stream():
-            for chunk in response.iter_content(chunk_size=100):
+            for chunk in resp.stream(4096):
                 yield str(chunk, encoding="utf-8")
 
         return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
