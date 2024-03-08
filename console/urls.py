@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+
 from django.conf.urls import url
 
 import console.utils.perms_route_config as perms
@@ -113,7 +114,7 @@ from console.views.plugin.service_plugin import (ServicePluginConfigView, Servic
                                                  ServicePluginsView)
 from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
-from console.views.proxy import ProxyPassView
+from console.views.proxy import ProxyPassView, ProxySSEView, SSEProxyView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
                                         GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
@@ -154,6 +155,7 @@ urlpatterns = [
     url(r'^api-gateway/v1/(?P<tenantName>[\w\-]+)/(.*?)', AppApiGatewayView.as_view()),
     url(r'^api-gateway/convert', AppApiGatewayConvertView.as_view()),
     url(r'^v2/proxy-pass/(.*?)', ProxyPassView.as_view()),
+    url(r'^sse/(.*?)', ProxySSEView.as_view()),
 
     # record error logs
     url(r'^errlog$', ErrLogView.as_view()),

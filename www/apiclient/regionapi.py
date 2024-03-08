@@ -4,6 +4,9 @@ import logging
 import os
 
 import httplib2
+import requests
+from django.http import StreamingHttpResponse
+
 from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig
 from django import http
@@ -2918,3 +2921,19 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(region_info.token)
         res, body = self._delete(url, self.default_headers, region=region_name)
         return body
+
+    def sse_proxy(self, region_name, path):
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + path
+        self._set_headers(region_info.token)
+
+        response = requests.get(url, stream=True)
+        response.raw.decode_content = True
+
+        def event_stream():
+            for chunk in response.iter_content(chunk_size=100):
+                yield str(chunk, encoding="utf-8")
+
+        return StreamingHttpResponse(event_stream(), content_type='text/event-stream')

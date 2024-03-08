@@ -1,7 +1,9 @@
 # -*- coding: utf8 -*-
 import logging
 
+from django.views import View
 from django.views.decorators.cache import never_cache
+
 from rest_framework.response import Response
 
 from www.apiclient.regionapi import RegionInvokeApi
@@ -11,6 +13,13 @@ from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
+
+
+class ProxySSEView(View):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        path = request.get_full_path().replace("/console/sse", "")
+        return region_api.sse_proxy(request.GET.get("region_name"), path)
 
 
 class ProxyPassView(JWTAuthApiView):
