@@ -146,8 +146,6 @@ class AppPortView(AppBaseView):
             port_alias = self.service.service_alias.upper().replace("-", "_") + str(port)
         code, msg, port_info = port_service.add_service_port(self.tenant, self.service, port, protocol, port_alias,
                                                              is_inner_service, is_outer_service, None, self.user.nick_name)
-        tenant_service_port = port_service.get_service_port_by_port(self.service, port)
-        port_service.json_service_port(tenant_service_port)
         if code != 200:
             return Response(general_message(code, "add port error", msg), status=code)
 
@@ -217,8 +215,6 @@ class AppPortManageView(AppBaseView):
         container_port = kwargs.get("port", None)
         if not container_port:
             raise AbortRequest("container_port not specify", "端口变量名未指定")
-        tenant_service_port = port_service.get_service_port_by_port(self.service, container_port)
-        port_service.json_service_port(tenant_service_port)
         data = port_service.delete_port_by_container_port(self.tenant, self.service, int(container_port), self.user.nick_name)
         result = general_message(200, "success", "删除成功", bean=model_to_dict(data))
         return Response(result, status=result["code"])
