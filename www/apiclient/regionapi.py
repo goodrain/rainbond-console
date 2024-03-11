@@ -2935,4 +2935,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             for chunk in resp.stream(4096):
                 yield str(chunk, encoding="utf-8")
 
-        return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+        response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+        response['Content-Encoding'] = 'identity'
+        return response
