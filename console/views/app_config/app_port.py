@@ -78,7 +78,8 @@ class AppPortView(AppBaseView):
                         "domain_name": host,
                         "container_port": port.container_port
                     } for host in body.get("list", [])]
-                    port_info["is_outer_service"] = len(port_info["bind_domains"]) > 0
+                    if port_info['protocol'] == 'http':
+                        port_info["is_outer_service"] = len(port_info["bind_domains"]) > 0
             port_info["bind_domains"] = [domain.to_dict() for domain in bind_domains]
             bind_tcp_domains = domain_service.get_tcp_port_bind_domains(self.service, port.container_port)
 
