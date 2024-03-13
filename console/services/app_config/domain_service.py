@@ -916,11 +916,14 @@ class DomainService(object):
             logger.debug("create default gateway http rule for component {0} port {1}".format(
                 service.service_alias, port.container_port))
         else:
-            res, data = region_api.get_port(region_info.region_name, tenant.tenant_name, True)
-            if int(res.status) != 200:
-                logger.warning("can not get stream port from region, ignore {0} port {1}".format(
-                    service.service_alias, port.container_port))
-                return
+            svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, port.container_port)
+            # 默认创建成功一条tcp记录，端口随机
+            data = region_api.api_gateway_bind_tcp_domain(
+                region=service.service_region,
+                tenant_name=tenant.tenant_name,
+                k8s_service_name=svc.k8s_service_name,
+                container_port=svc.container_port,
+                app_id=None)
             end_point = "0.0.0.0:{0}".format(data["bean"])
             service_id = service.service_id
             service_name = service.service_alias
