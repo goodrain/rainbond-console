@@ -74,7 +74,7 @@ class ConsoleSysConfig(BaseModel):
     class Meta:
         db_table = 'console_sys_config'
 
-    key = models.CharField(max_length=32, help_text="key")
+    key = models.CharField(max_length=32, help_text="key", unique=True)
     type = models.CharField(max_length=32, help_text="类型")
     value = models.CharField(max_length=4096, null=True, blank=True, help_text="value")
     desc = models.CharField(max_length=100, null=True, blank=True, default="", help_text="描述")
