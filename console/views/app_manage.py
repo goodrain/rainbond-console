@@ -12,6 +12,7 @@ from console.enum.component_enum import is_state, is_support
 from console.exception.main import (AbortRequest, AccountOverdueException, CallRegionAPIException, RbdAppNotFound,
                                     ResourceNotEnoughException)
 from console.repositories.app import service_repo
+from console.repositories.app_config import port_repo
 from console.repositories.group import group_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_deploy import AppDeployService
@@ -31,6 +32,27 @@ logger = logging.getLogger("default")
 env_var_service = AppEnvVarService()
 app_deploy_service = AppDeployService()
 region_api = RegionInvokeApi()
+
+
+class AppsPorConsoletView(RegionTenantHeaderView):
+    def get(self, req, *args, **kwargs):
+        ports = port_repo.get_tenant_services(self.team.tenant_id)
+        component_list = service_repo.get_tenant_region_services(self.region_name, self.team.tenant_id)
+        component_dict = {component.service_id: component.service_cname for component in component_list}
+        port_list = list()
+        if ports:
+            for port in ports:
+                port_dict = dict()
+                if not port.is_inner_service:
+                    continue
+                port_dict["port"] = port.container_port
+                port_dict["service_name"] = port.k8s_service_name
+                port_dict["namespace"] = self.team.namespace
+                port_dict["component_name"] = component_dict.get(port.service_id)
+                port_list.append(port_dict)
+        ret_data = {"namespace": self.team.namespace, "ports": port_list}
+        result = general_message(200, "success", "查询成功", bean=ret_data)
+        return Response(result, status=result["code"])
 
 
 class StartAppView(AppBaseCloudEnterpriseCenterView):

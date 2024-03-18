@@ -43,11 +43,14 @@ from console.views.app_create.source_outer import (ThirdPartyAppPodsView, ThirdP
 from console.views.app_create.vm_run import VMRunCreateView
 from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEventsView, AppEventView, AppHistoryLogView,
                                      AppLogInstanceView, AppLogView)
-from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete, ChangeServiceNameView, ChangeServiceTypeView,
+from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete, ChangeServiceNameView,
+                                      ChangeServiceTypeView,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
-                                      MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
-                                      TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView, PauseAppView,
-                                      UNPauseAppView, TarImageView)
+                                      MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView,
+                                      StopAppView,
+                                      TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView,
+                                      PauseAppView,
+                                      UNPauseAppView, TarImageView, AppsPorConsoletView)
 from console.views.app_market import BindableMarketsView
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView, MonitorQueryOverConsoleView)
@@ -572,6 +575,7 @@ urlpatterns = [
         perms.GatewayCustomConfigurationView),
 
     # 组件操作
+    url(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps_port$', AppsPorConsoletView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/start$', StartAppView.as_view(), perms.StartAppView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/stop$', StopAppView.as_view(), perms.StopAppView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pause$', PauseAppView.as_view(), perms.PauseAppView),
