@@ -547,7 +547,7 @@ def custom_exception_handler(exc, context):
             "msg": exc.message if hasattr(exc, 'message') else '',
             "msg_show": "{0}".format("请求参数不全")
         }
-        return Response(data, status=status.HTTP_404_NOT_FOUND)
+        return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
         return Response({
