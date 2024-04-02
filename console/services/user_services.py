@@ -557,7 +557,7 @@ class UserService(object):
         if tenant.creater == user.user_id:
             team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
             user_perms.extend(team_perms)
-            user_perms.append(200000)
+            user_perms.append(100001)
         else:
             team_roles = RoleInfo.objects.filter(kind="team", kind_id=tenant.tenant_id)
             if team_roles:

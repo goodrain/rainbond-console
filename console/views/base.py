@@ -289,6 +289,8 @@ class TenantHeaderView(JWTAuthApiView):
         self.report = Dict({"ok": True})
         self.user = None
         self.is_team_owner = False
+        self.perm_app_id = ""
+        self.perm_apps = []
 
     def get_perms(self):
         self.user_perms = []
@@ -297,7 +299,7 @@ class TenantHeaderView(JWTAuthApiView):
         if self.is_team_owner:
             team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
             self.user_perms.extend(team_perms)
-            self.user_perms.append(200000)
+            self.user_perms.append(100001)
         else:
             team_roles = RoleInfo.objects.filter(kind="team", kind_id=self.tenant.tenant_id)
             if team_roles:
@@ -307,7 +309,16 @@ class TenantHeaderView(JWTAuthApiView):
                     team_user_role_ids = team_user_roles.values_list("role_id", flat=True)
                     team_role_perms = RolePerms.objects.filter(role_id__in=team_user_role_ids)
                     if team_role_perms:
-                        self.user_perms.extend(list(team_role_perms.values_list("perm_code", flat=True)))
+                        global_team_role_perms = team_role_perms.filter(app_id=-1)
+                        self.user_perms.extend(list(global_team_role_perms.values_list("perm_code", flat=True)))
+                        if global_team_role_perms.filter(perm_code=300002):
+                            self.perm_apps = [-1]
+                    if self.perm_app_id:
+                        app_role_perms = team_role_perms.filter(app_id=self.perm_app_id)
+                        self.user_perms.extend(list(app_role_perms.values_list("perm_code", flat=True)))
+                    if not self.perm_apps and team_role_perms.filter(perm_code=300002).exclude(app_id=-1):
+                        self.perm_apps = team_role_perms.filter(perm_code=300002).exclude(app_id=-1).values_list(
+                            "app_id", flat=True)
         self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):

@@ -214,22 +214,22 @@ urlpatterns = [
     # 团队中用户详情页
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view()),
     # 团队角色权限管理
-    url(r'^teams/(?P<team_name>[\w\-]+)/roles/perms$', TeamRolesPermsLView.as_view(), perms.TeamRolesPermsLView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/roles/perms$', TeamRolesPermsLView.as_view(), perms.TeamRolesPerms),
     url(r'^teams/(?P<team_name>[\w\-]+)/roles/(?P<role_id>[\w\-]+)/perms$', TeamRolePermsRUDView.as_view(),
-        perms.TeamRolePermsRUDView),
+        perms.TeamRolesPerms),
     # 团队角色管理
-    url(r'^teams/(?P<team_name>[\w\-]+)/roles$', TeamRolesLCView.as_view(), perms.TeamRolesLCView),
-    url(r'^teams/(?P<team_name>[\w\-]+)/roles/(?P<role_id>[\w\-]+)$', TeamRolesRUDView.as_view(), perms.TeamRolesRUDView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/roles$', TeamRolesLCView.as_view(), perms.TeamRolesPerms),
+    url(r'^teams/(?P<team_name>[\w\-]+)/roles/(?P<role_id>[\w\-]+)$', TeamRolesRUDView.as_view(), perms.TeamRolesPerms),
     # 团队成员角色管理
-    url(r'^teams/(?P<team_name>[\w\-]+)/users/roles', TeamUsersRolesLView.as_view(), perms.TeamUsersRolesLView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/users/roles', TeamUsersRolesLView.as_view(), perms.TeamUsersRolesPerms),
     url(r'^teams/(?P<team_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)/roles', TeamUserRolesRUDView.as_view(),
-        perms.TeamUserRolesRUDView),
+        perms.TeamUsersRolesPerms),
     url(r'^teams/(?P<team_name>[\w\-]+)/users/(?P<user_id>[\w\-]+)/perms', TeamUserPermsLView.as_view(),
-        perms.TeamUserPermsLView),
+        perms.TeamUsersRolesPerms),
     # 团队镜像仓库授权管理
-    url(r'^teams/(?P<team_name>[\w\-]+)/registry/auth$', TeamRegistryAuthLView.as_view(), perms.TeamRegistryAuthLView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/registry/auth$', TeamRegistryAuthLView.as_view(), perms.TeamRegistryAuthPerms),
     url(r'^teams/(?P<team_name>[\w\-]+)/registry/auth/(?P<secret_id>[\w\-]+)$', TeamRegistryAuthRUDView.as_view(),
-        perms.TeamRegistryAuthRUDView),
+        perms.TeamRegistryAuthPerms),
 
     # 移交团队管理权
     url(r'^teams/(?P<team_name>[\w\-]+)/pemtransfer$', UserPemTraView.as_view(), perms.UserPemTraView),
@@ -238,9 +238,9 @@ urlpatterns = [
     # 获取团队下所有用户
     url(r'^teams/(?P<team_name>[\w\-]+)/users$', TeamUserView.as_view(), perms.TeamUserView),
     # 获取企业下未加入当前团队的用户列表
-    url(r'^teams/(?P<team_name>[\w\-]+)/notjoinusers$', NotJoinTeamUserView.as_view(), perms.NotJoinTeamUserView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/notjoinusers$', NotJoinTeamUserView.as_view(), perms.TeamUserView),
     # 删除团队成员
-    url(r'^teams/(?P<team_name>[\w\-]+)/users/batch/delete', UserDelView.as_view(), perms.UserDelView),
+    url(r'^teams/(?P<team_name>[\w\-]+)/users/batch/delete', UserDelView.as_view(), perms.TeamUserView),
     # 修改团队名称
     url(r'^teams/(?P<team_name>[\w\-]+)/modifyname$', TeamNameModView.as_view(), perms.TeamNameModView),
     # 删除当前团队
@@ -578,11 +578,9 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps_port$', AppsPorConsoletView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/start$', StartAppView.as_view(), perms.StartAppView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/stop$', StopAppView.as_view(), perms.StopAppView),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pause$', PauseAppView.as_view(), perms.PauseAppView),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/unpause$', UNPauseAppView.as_view(),
-        perms.UNPauseAppView),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm_web$', UNPauseAppView.as_view(),
-        perms.UNPauseAppView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pause$', PauseAppView.as_view(), perms.StartAppView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/unpause$', UNPauseAppView.as_view(), perms.StopAppView),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm_web$', UNPauseAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/restart$', ReStartAppView.as_view(),
         perms.ReStartAppView),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/deploy$', DeployAppView.as_view(), perms.DeployAppView),
