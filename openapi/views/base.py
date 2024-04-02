@@ -40,6 +40,8 @@ class BaseOpenAPIView(APIView):
 
     def check_perms(self, request, *args, **kwargs):
         if kwargs.get("__message"):
+            if kwargs.get("app_id"):
+                pass
             request_perms = kwargs["__message"][request.META.get("REQUEST_METHOD").lower()]["perms"]
             if request_perms and (len(set(request_perms) & set(self.user_perms)) != len(set(request_perms))):
                 raise NoPermissionsError
@@ -101,7 +103,7 @@ class TeamNoRegionAPIView(BaseOpenAPIView):
         if self.is_team_owner:
             team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
             self.user_perms.extend(team_perms)
-            self.user_perms.append(200000)
+            self.user_perms.append(100001)
         else:
             team_roles = RoleInfo.objects.filter(kind="team", kind_id=self.team.tenant_id)
             if team_roles:

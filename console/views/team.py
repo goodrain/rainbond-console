@@ -712,13 +712,18 @@ class TeamUserCanJoin(JWTAuthApiView):
         # 已申请过的团队
         applied_team = [team_name.team_name for team_name in apply_team]
         can_join_team_list = []
+        users = enterprise_repo.get_enterprise_users(enterprise_id)
+        team_creater = {user.user_id: user.get_name() for user in users}
         for join_team in team_list:
             if join_team.tenant_name not in applied_team and join_team.tenant_name not in team_name_list:
                 can_join_team_list.append(join_team.tenant_name)
         join_list = [{
             "team_name": j_team.tenant_name,
             "team_alias": j_team.tenant_alias,
-            "team_id": j_team.tenant_id
+            "team_id": j_team.tenant_id,
+            "team_logo": j_team.logo,
+            "team_owner": j_team.creater,
+            "team_owner_name": team_creater.get(j_team.creater, "")
         } for j_team in team_repo.get_team_by_team_names(can_join_team_list)]
         result = general_message(200, "success", "查询成功", list=join_list)
         return Response(result, status=result["code"])

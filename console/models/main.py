@@ -572,6 +572,8 @@ class RolePerms(BaseModel):
 
     role_id = models.IntegerField(help_text="角色id")
     perm_code = models.IntegerField(help_text='权限编码')
+    app_id = models.IntegerField(help_text="application ID", default=-1)
+
 
 
 class RoleInfo(BaseModel):
