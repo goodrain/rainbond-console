@@ -1,7 +1,7 @@
 TEAM_OVERVIEW_DESCRIBE = {
     "__message": {
         "get": {
-            "perms": [200001]
+            "perms": [100001]
         },
         "post": {
             "perms": [200001]
@@ -36,7 +36,7 @@ TEAM_OVERVIEW_RESOURCE_LIMIT = {
             "perms": [200003]
         },
         "post": {
-            "perms": [200003]
+            "perms": [620002]
         },
         "put": {
             "perms": [200003]
@@ -611,7 +611,7 @@ APP_CONFIG_GROUP = {
 TEAM_GATEWAY_MONITOR = {
     "__message": {
         "get": {
-            "perms": [400001]
+            "perms": [300002]
         },
         "post": {
             "perms": [400001]
