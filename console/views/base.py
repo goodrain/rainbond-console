@@ -322,6 +322,12 @@ class TenantHeaderView(JWTAuthApiView):
         self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):
+        if kwargs.get("app_id"):
+            self.perm_app_id = kwargs.get("app_id")
+        if request.GET.get("group_id"):
+            self.perm_app_id = request.GET.get("group_id")
+        if request.GET.get("app_id"):
+            self.perm_app_id = request.GET.get("group_id")
         self.user = request.user
         self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
         enterprise_user_perms = EnterpriseUserPerm.objects.filter(

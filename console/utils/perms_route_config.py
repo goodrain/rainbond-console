@@ -1,7 +1,7 @@
 TEAM_OVERVIEW_DESCRIBE = {
     "__message": {
         "get": {
-            "perms": [100001]
+            "perms": [200001]
         },
         "post": {
             "perms": [200001]
