@@ -207,6 +207,7 @@ class JWTAuthApiView(APIView):
         if kwargs.get("__message"):
             request_perms = kwargs["__message"][request.META.get("REQUEST_METHOD").lower()]["perms"]
             if request_perms and (len(set(request_perms) & set(self.user_perms)) != len(set(request_perms))):
+                print(request_perms, self.user_perms)
                 logger.info("no permission. request perms: {}. user perms: {}".format(request_perms, self.user_perms))
                 raise NoPermissionsError
 
@@ -354,19 +355,19 @@ class TenantHeaderView(JWTAuthApiView):
                 self.team = self.tenant
             except Tenants.DoesNotExist:
                 raise AbortRequest(msg="tenant {0} not found".format(self.tenant_name), msg_show="团队不存在", status_code=404)
-
         if kwargs.get("app_id"):
             self.perm_app_id = kwargs.get("app_id")
         if request.GET.get("group_id"):
             self.perm_app_id = request.GET.get("group_id")
         if request.GET.get("app_id"):
             self.perm_app_id = request.GET.get("group_id")
+        if kwargs.get("group_id"):
+            self.perm_app_id = kwargs.get("group_id")
         if kwargs.get("serviceAlias"):
             service_alias = kwargs.get("serviceAlias")
             services = TenantServiceInfo.objects.filter(service_alias=service_alias, tenant_id=self.tenant.tenant_id)
             if services:
                 s_groups = group_service.get_service_group_info(services[0].service_id)
-                print()
                 self.perm_app_id = s_groups.ID
 
         if self.user.user_id == self.tenant.creater:
