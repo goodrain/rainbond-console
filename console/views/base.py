@@ -15,6 +15,7 @@ from console.repositories.user_repo import user_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.region_repo import region_repo
 # service
+from console.services.group_service import group_service
 from console.services.user_services import user_services
 from console.utils import perms
 from console.utils.oauth.oauth_types import get_oauth_instance
@@ -35,7 +36,7 @@ from rest_framework.views import APIView, set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantEnterprise, Tenants, Users
+from www.models.main import TenantEnterprise, Tenants, Users, TenantServiceInfo
 from console.login.jwt_manager import JwtManager
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
@@ -322,12 +323,6 @@ class TenantHeaderView(JWTAuthApiView):
         self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):
-        if kwargs.get("app_id"):
-            self.perm_app_id = kwargs.get("app_id")
-        if request.GET.get("group_id"):
-            self.perm_app_id = request.GET.get("group_id")
-        if request.GET.get("app_id"):
-            self.perm_app_id = request.GET.get("group_id")
         self.user = request.user
         self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
         enterprise_user_perms = EnterpriseUserPerm.objects.filter(
@@ -359,6 +354,20 @@ class TenantHeaderView(JWTAuthApiView):
                 self.team = self.tenant
             except Tenants.DoesNotExist:
                 raise AbortRequest(msg="tenant {0} not found".format(self.tenant_name), msg_show="团队不存在", status_code=404)
+
+        if kwargs.get("app_id"):
+            self.perm_app_id = kwargs.get("app_id")
+        if request.GET.get("group_id"):
+            self.perm_app_id = request.GET.get("group_id")
+        if request.GET.get("app_id"):
+            self.perm_app_id = request.GET.get("group_id")
+        if kwargs.get("serviceAlias"):
+            service_alias = kwargs.get("serviceAlias")
+            services = TenantServiceInfo.objects.filter(service_alias=service_alias, tenant_id=self.tenant.tenant_id)
+            if services:
+                s_groups = group_service.get_service_group_info(services[0].service_id)
+                print()
+                self.perm_app_id = s_groups.ID
 
         if self.user.user_id == self.tenant.creater:
             self.is_team_owner = True
