@@ -304,7 +304,7 @@ APP_OVERVIEW_SOURCE = {
         }
     }
 }
-APP_OVERVIEW_DEPLOY_TYPE = {
+APP_OVERVIEW_OTHER_SETTING = {
     "__message": {
         "get": {
             "perms": [300022]
@@ -320,38 +320,7 @@ APP_OVERVIEW_DEPLOY_TYPE = {
         }
     }
 }
-APP_OVERVIEW_CHARACTERISTIC = {
-    "__message": {
-        "get": {
-            "perms": [300023]
-        },
-        "post": {
-            "perms": [300023]
-        },
-        "put": {
-            "perms": [300023]
-        },
-        "delete": {
-            "perms": [300023]
-        }
-    }
-}
-APP_OVERVIEW_HEALTH = {
-    "__message": {
-        "get": {
-            "perms": [300024]
-        },
-        "post": {
-            "perms": [300024]
-        },
-        "put": {
-            "perms": [300024]
-        },
-        "delete": {
-            "perms": [300024]
-        }
-    }
-}
+
 APP_OVERVIEW_MONITOR = {
     "__message": {
         "get": {
@@ -368,22 +337,7 @@ APP_OVERVIEW_MONITOR = {
         }
     }
 }
-APP_OVERVIEW_MAVEN = {
-    "__message": {
-        "get": {
-            "perms": [300026]
-        },
-        "post": {
-            "perms": [300026]
-        },
-        "put": {
-            "perms": [300026]
-        },
-        "delete": {
-            "perms": [300026]
-        }
-    }
-}
+
 APP_OVERVIEW_SAFETY = {
     "__message": {
         "get": {
@@ -400,22 +354,7 @@ APP_OVERVIEW_SAFETY = {
         }
     }
 }
-APP_OVERVIEW_MOVE = {
-    "__message": {
-        "get": {
-            "perms": [300028]
-        },
-        "post": {
-            "perms": [300028]
-        },
-        "put": {
-            "perms": [300028]
-        },
-        "delete": {
-            "perms": [300028]
-        }
-    }
-}
+
 APP_RELEASE_PERMS = {
     "__message": {
         "get": {

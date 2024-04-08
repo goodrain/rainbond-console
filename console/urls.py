@@ -403,7 +403,7 @@ urlpatterns = [
         ThirdPartyUpdateSecretKeyView.as_view()),
     # 第三方组件健康检测
     url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/3rd-party/health$", ThirdPartyHealthzView.as_view(),
-        perms.APP_OVERVIEW_HEALTH),
+        perms.APP_OVERVIEW_OTHER_SETTING),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/image_repositories$', TenantImageRepositories.as_view(), perms.APP_OVERVIEW_CREATE),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/image_tags$', TenantImageTags.as_view(), perms.APP_OVERVIEW_CREATE),
     # docker镜像创建
@@ -528,9 +528,9 @@ urlpatterns = [
 
     # Component k8s attribute
     url(r'^teams/(?P<tenantName>[\w\-]+)/components/(?P<serviceAlias>[\w\-]+)/k8s-attributes$',
-        ComponentK8sAttributeListView.as_view(), perms.APP_OVERVIEW_CHARACTERISTIC),
+        ComponentK8sAttributeListView.as_view(), perms.APP_OVERVIEW_OTHER_SETTING),
     url(r'^teams/(?P<tenantName>[\w\-]+)/components/(?P<serviceAlias>[\w\-]+)/k8s-attributes/(?P<name>[\w\-]+)$',
-        ComponentK8sAttributeView.as_view(), perms.APP_OVERVIEW_CHARACTERISTIC),
+        ComponentK8sAttributeView.as_view(), perms.APP_OVERVIEW_OTHER_SETTING),
 
     # 组件域名操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/domain$', ServiceDomainView.as_view()),
@@ -605,7 +605,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/history_log$', AppHistoryLogView.as_view()),
 
     # 组件探针
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/probe$', AppProbeView.as_view(), perms.APP_OVERVIEW_HEALTH),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/probe$', AppProbeView.as_view(), perms.APP_OVERVIEW_OTHER_SETTING),
 
     # 组件扩容操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/horizontal$', HorizontalExtendAppView.as_view(),
@@ -623,7 +623,7 @@ urlpatterns = [
 
     # 修改组件应用类型标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/deploytype$', ChangeServiceTypeView.as_view(),
-        perms.APP_OVERVIEW_DEPLOY_TYPE),
+        perms.APP_OVERVIEW_OTHER_SETTING),
 
     # 修改组件名称
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/change/service_name$', ChangeServiceNameView.as_view(),
@@ -643,10 +643,10 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/service_monitor/(?P<name>[\w\-]+)$',
         ComponentServiceMonitorEditView.as_view(), perms.APP_OVERVIEW_MONITOR),
     # 组件标签
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view(), perms.APP_OVERVIEW_CHARACTERISTIC),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view(), perms.APP_OVERVIEW_OTHER_SETTING),
     # 添加特性获取可用标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels/available$', AppLabelAvailableView.as_view(),
-        perms.APP_OVERVIEW_CHARACTERISTIC),
+        perms.APP_OVERVIEW_OTHER_SETTING),
     # 应用资源
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/resource$', AppResourceQueryView.as_view(),
         perms.APP_OVERVIEW_PERMS),
