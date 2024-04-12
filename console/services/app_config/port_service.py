@@ -524,8 +524,7 @@ class AppPortService(object):
                         app_id=app.app_id,
                         ingressPort=int(service_tcp_domain.end_point.split(':')[1]),
                         service_id=service.service_id,
-                        service_type=service.namespace
-                    )
+                        service_type=service.namespace)
             else:
                 data = region_api.api_gateway_bind_tcp_domain(
                     region=service.service_region,
@@ -535,8 +534,7 @@ class AppPortService(object):
                     app_id=app.app_id,
                     ingressPort=None,
                     service_id=service.service_id,
-                    service_type=service.namespace
-                )
+                    service_type=service.namespace)
 
                 end_point = "0.0.0.0:{0}".format(data["bean"])
                 service_id = service.service_id
