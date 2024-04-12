@@ -522,14 +522,19 @@ class AppPortService(object):
                         k8s_service_name=svc.k8s_service_name,
                         container_port=svc.container_port,
                         app_id=app.app_id,
-                        ingressPort=int(service_tcp_domain.end_point.split(':')[1]))
+                        ingressPort=int(service_tcp_domain.end_point.split(':')[1]),
+                        service_id=service.service_id,
+                        service_type=service.namespace)
             else:
                 data = region_api.api_gateway_bind_tcp_domain(
                     region=service.service_region,
                     tenant_name=tenant.tenant_name,
                     k8s_service_name=svc.k8s_service_name,
                     container_port=svc.container_port,
-                    app_id=app.app_id)
+                    app_id=app.app_id,
+                    ingressPort=None,
+                    service_id=service.service_id,
+                    service_type=service.namespace)
 
                 end_point = "0.0.0.0:{0}".format(data["bean"])
                 service_id = service.service_id

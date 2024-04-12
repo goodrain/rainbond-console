@@ -2850,7 +2850,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def api_gateway_bind_tcp_domain(self, region, tenant_name, k8s_service_name, container_port, app_id, ingressPort=None):
+    def api_gateway_bind_tcp_domain(self,
+                                    region,
+                                    tenant_name,
+                                    k8s_service_name,
+                                    container_port,
+                                    app_id,
+                                    ingressPort=None,
+                                    service_id="",
+                                    service_type=""):
         """
         根据endpoint 0.0.0.0:10000 来监听，将请求转发到 region 处理，需要绑定k8s的service
         """
@@ -2866,7 +2874,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             }
         }
 
-        path = "/v2/proxy-pass/gateway/" + tenant_name + "/routes/tcp?appID=" + str(app_id)
+        path = "/v2/proxy-pass/gateway/" + tenant_name + "/routes/tcp?appID=" + str(
+            app_id) + "&service_id=" + service_id + "&service_type=" + service_type
         return self.post_proxy(region, path, data)
 
     def api_gateway_bind_http_domain(self, service_name, region, tenant_name, domains, svc, app_id):
