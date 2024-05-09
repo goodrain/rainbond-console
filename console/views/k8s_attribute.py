@@ -22,7 +22,7 @@ class ComponentK8sAttributeView(AppBaseView):
         return Response(general_message(200, "success", "修改成功"))
 
     def delete(self, request, name, *args, **kwargs):
-        k8s_attribute_service.delete_k8s_attribute(self.tenant, self.service, self.region_name, name)
+        k8s_attribute_service.delete_k8s_attribute(self.tenant, self.service, self.region_name, name,self.user.nick_name)
         return Response(general_message(200, "success", "删除成功"))
 
 
@@ -33,6 +33,7 @@ class ComponentK8sAttributeListView(AppBaseView):
 
     def post(self, request, *args, **kwargs):
         attribute = request.data.get("attribute", {})
+        attribute['operator'] = self.user.nick_name
         k8s_attribute_service.create_k8s_attribute(self.tenant, self.service, self.region_name, attribute)
         attribute['operator'] = self.user.nick_name
         return Response(general_message(200, "success", "创建成功"))
