@@ -43,13 +43,10 @@ from console.views.app_create.source_outer import (ThirdPartyAppPodsView, ThirdP
 from console.views.app_create.vm_run import VMRunCreateView
 from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEventsView, AppEventView, AppHistoryLogView,
                                      AppLogInstanceView, AppLogView)
-from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete, ChangeServiceNameView,
-                                      ChangeServiceTypeView,
+from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete, ChangeServiceNameView, ChangeServiceTypeView,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
-                                      MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView,
-                                      StopAppView,
-                                      TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView,
-                                      PauseAppView,
+                                      MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
+                                      TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView, PauseAppView,
                                       UNPauseAppView, TarImageView, AppsPorConsoletView)
 from console.views.app_market import BindableMarketsView
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
@@ -212,7 +209,8 @@ urlpatterns = [
     url(r"^users/access-token/(?P<id>[\w\-]+)$", UserAccessTokenRUDView.as_view()),
 
     # 团队中用户详情页
-    url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view(), perms.TEAM_MEMBER_PERMS),
+    url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view(),
+        perms.TEAM_MEMBER_PERMS),
     # 团队角色权限管理
     url(r'^teams/(?P<team_name>[\w\-]+)/roles/perms$', TeamRolesPermsLView.as_view(), perms.TEAM_ROLE_PERMS),
     url(r'^teams/(?P<team_name>[\w\-]+)/roles/(?P<role_id>[\w\-]+)/perms$', TeamRolePermsRUDView.as_view(),
@@ -252,9 +250,11 @@ urlpatterns = [
     # check kubernetes service name
     url(r'^teams/(?P<team_name>[\w\-]+)/checkK8sServiceName$', TeamCheckKubernetesServiceName.as_view()),
     # 获取团队下域名访问量排序
-    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_domain/query$', TeamSortDomainQueryView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_domain/query$',
+        TeamSortDomainQueryView.as_view()),
     # 获取团队下组件访问量排序
-    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_service/query$', TeamSortServiceQueryView.as_view()),
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/sort_service/query$',
+        TeamSortServiceQueryView.as_view()),
     # 获取当前租户已开通的数据中心(详细)
     url(r'^teams/(?P<team_name>[\w\-]+)/region/query$', RegQuyView.as_view(), perms.TEAM_REGION_DESCRIBE),
     # 获取当前团队未开通的数据中心
@@ -282,8 +282,10 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/get_upload_chart_information$', UploadHelmChart.as_view(), perms.APP_OVERVIEW_CREATE),
     url(r'^teams/(?P<team_name>[\w\-]+)/check_upload_chart$', UploadHelmChart.as_view(), perms.APP_OVERVIEW_CREATE),
     url(r'^teams/(?P<team_name>[\w\-]+)/get_upload_chart_value$', UploadHelmChartValue.as_view(), perms.APP_OVERVIEW_CREATE),
-    url(r'^teams/(?P<team_name>[\w\-]+)/get_upload_chart_resource$', UploadHelmChartValueResource.as_view(), perms.APP_OVERVIEW_CREATE),
-    url(r'^teams/(?P<team_name>[\w\-]+)/import_upload_chart_resource$', UploadHelmChartValueResource.as_view(), perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<team_name>[\w\-]+)/get_upload_chart_resource$', UploadHelmChartValueResource.as_view(),
+        perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<team_name>[\w\-]+)/import_upload_chart_resource$', UploadHelmChartValueResource.as_view(),
+        perms.APP_OVERVIEW_CREATE),
 
     # 获取生成令牌
     url(r'^teams/(?P<team_name>[\w\-]+)/access-token/(?P<token_note>[\w\-]+)$', AccessTokenView.as_view()),
@@ -292,8 +294,10 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/apps$', TeamAppSortViewView.as_view(), perms.TEAM_OVERVIEW_APP_DESCRIBE),
     url(r'^teams/(?P<team_name>[\w\-]+)/app_names$', TeamAppNamesView.as_view(), perms.TEAM_OVERVIEW_APP_DESCRIBE),
     # 团队应用信息
-    url(r'^teams/(?P<team_name>[\w\-]+)/overview/service/over$', TeamServiceOverViewView.as_view(), perms.TEAM_OVERVIEW_APP_DESCRIBE),
-    url(r'^teams/(?P<team_name>[\w\-]+)/check-resource-name$', TeamCheckResourceName.as_view(), perms.TEAM_OVERVIEW_APP_DESCRIBE),
+    url(r'^teams/(?P<team_name>[\w\-]+)/overview/service/over$', TeamServiceOverViewView.as_view(),
+        perms.TEAM_OVERVIEW_APP_DESCRIBE),
+    url(r'^teams/(?P<team_name>[\w\-]+)/check-resource-name$', TeamCheckResourceName.as_view(),
+        perms.TEAM_OVERVIEW_APP_DESCRIBE),
 
     # 应用事件动态
     url(r'teams/(?P<team_name>[\w\-]+)/services/event$', ServiceEventsView.as_view()),
@@ -317,7 +321,8 @@ urlpatterns = [
         perms.APP_OVERVIEW_PERMS),
 
     # 云市分享应用
-    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record$', ServiceShareRecordView.as_view(), perms.APP_RELEASE_PERMS),
+    url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record$', ServiceShareRecordView.as_view(),
+        perms.APP_RELEASE_PERMS),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/record/(?P<record_id>[\w\-]+)$',
         ServiceShareRecordInfoView.as_view(), perms.APP_RELEASE_PERMS),
     url(r'^teams/(?P<team_name>[\w\-]+)/groups/(?P<group_id>[\w\-]+)/share/step$', ShareRecordView.as_view(),
@@ -357,12 +362,15 @@ urlpatterns = [
         perms.APP_OVERVIEW_PERMS),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/governancemode/check', AppGovernanceModeCheckView.as_view(),
         perms.APP_OVERVIEW_PERMS),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/component_names', AppComponentNameView.as_view(), perms.APP_OVERVIEW_PERMS),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/component_names', AppComponentNameView.as_view(),
+        perms.APP_OVERVIEW_PERMS),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8sservices', AppKubernetesServiceView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources$', AppK8sResourceListView.as_view(), perms.APP_RESOURCE_PERMS),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources$', AppK8sResourceListView.as_view(),
+        perms.APP_RESOURCE_PERMS),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/k8s-resources/(?P<name>[\w\-\.]+)$',
         AppK8ResourceView.as_view(), perms.APP_RESOURCE_PERMS),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/status', ApplicationStatusView.as_view(), perms.APP_OVERVIEW_PERMS),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/status', ApplicationStatusView.as_view(),
+        perms.APP_OVERVIEW_PERMS),
     # 应用状态（应用）
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$', GroupStatusView.as_view(), perms.APP_OVERVIEW_PERMS),
     # 应用(组)常见操作
@@ -386,16 +394,17 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/code/branch$', ServiceCodeBranch.as_view(),
         perms.APP_OVERVIEW_CREATE),
     # 文件上传最近一次记录
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/last-record$', UploadRecordLastView.as_view(), perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/last-record$', UploadRecordLastView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     # 本地文件上传记录
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/record$', PackageUploadRecordView.as_view(), perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/record$', PackageUploadRecordView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     # 本地文件创建组件
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build$', PackageCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 源码创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/source_code$', SourceCodeCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 第三方组件创建
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/third_party$', ThirdPartyServiceCreateView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/third_party$', ThirdPartyServiceCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 第三方组件api注册方式回调地址
     url(r'^third_party/(?P<service_id>[\w\-]+)', ThirdPartyServiceApiView.as_view()),
     # 第三方组件api注册方式重置秘钥
@@ -404,13 +413,13 @@ urlpatterns = [
     # 第三方组件健康检测
     url(r"^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/3rd-party/health$", ThirdPartyHealthzView.as_view(),
         perms.APP_OVERVIEW_OTHER_SETTING),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/image_repositories$', TenantImageRepositories.as_view(), perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/image_repositories$', TenantImageRepositories.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/image_tags$', TenantImageTags.as_view(), perms.APP_OVERVIEW_CREATE),
     # docker镜像创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_run$', DockerRunCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # docker-compose文件创建
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_compose$', DockerComposeCreateView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_compose$', DockerComposeCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 虚拟机镜像创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/vm_run$', VMRunCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 应用检测
@@ -445,28 +454,34 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/compose/(?P<compose_id>[\w\-]+)/content$', ComposeContentView.as_view(),
         perms.APP_OVERVIEW_CREATE),
     # 应用构建
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/build$', AppBuild.as_view(), perms.APP_OVERVIEW_CONSTRUCT),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/build$', AppBuild.as_view(),
+        perms.APP_OVERVIEW_CONSTRUCT),
     # 应用编译环境信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/compile_env$', AppCompileEnvView.as_view(),
         perms.APP_OVERVIEW_CREATE),
 
     # 应用删除
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/delete$', DeleteAppView.as_view(), perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/delete$', DeleteAppView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
 
     # 应用详情
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/detail', AppDetailView.as_view(), perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/detail', AppDetailView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     # 是否安装性能分析插件
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/analyze_plugins', AppAnalyzePluginView.as_view()),
     # 应用简要信息
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/brief', AppBriefView.as_view(), perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/brief', AppBriefView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     # 触发应用自动部署关键字
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/keyword$', AppKeywordView.as_view(),
         perms.APP_OVERVIEW_CREATE),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/status', AppStatusView.as_view(), perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/status', AppStatusView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/plugins$', AppPluginsBriefView.as_view(),
         perms.APP_OVERVIEW_PLUGIN),
     # 应用信息修改
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/group', AppGroupView.as_view(), perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/group', AppGroupView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     # 应用pod信息
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pods$', ListAppPodsView.as_view(),
         perms.APP_OVERVIEW_CREATE),
@@ -478,7 +493,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/docker_console', DockerContainerView.as_view(),
         perms.APP_OVERVIEW_CREATE),
     # 应用访问
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/visit', AppVisitView.as_view(), perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/visit', AppVisitView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     # 环境变量配置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs$', AppEnvView.as_view(), perms.APP_OVERVIEW_ENV),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/envs/(?P<env_id>[\w\-]+)$', AppEnvManageView.as_view(),
@@ -487,7 +503,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/build_envs$', AppBuildEnvView.as_view(),
         perms.APP_OVERVIEW_SOURCE),
     # 端口配置
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports$', AppPortView.as_view(), perms.APP_OVERVIEW_PORT),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports$', AppPortView.as_view(),
+        perms.APP_OVERVIEW_PORT),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/ports/(?P<port>[\w\-]+)$', AppPortManageView.as_view(),
         perms.APP_OVERVIEW_PORT),
     # 拓扑图打开对外端口
@@ -518,7 +535,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/un_dependency$', AppNotDependencyView.as_view(),
         perms.APP_OVERVIEW_RELY),
     # 组件挂载
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/mnt$', AppMntView.as_view(), perms.APP_OVERVIEW_STORAGE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/mnt$', AppMntView.as_view(),
+        perms.APP_OVERVIEW_STORAGE),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/mnt/(?P<dep_vol_id>[\w\-]+)$',
         AppMntManageView.as_view(), perms.APP_OVERVIEW_STORAGE),
     # 域名证书
@@ -566,18 +584,21 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/domain/(?P<rule_id>[\w\-]+)/put_gateway$', GatewayCustomConfigurationView.as_view()),
 
     # 组件操作
-    url(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps_port$', AppsPorConsoletView.as_view(), perms.APP_OVERVIEW_PERMS),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/start$', StartAppView.as_view(), perms.APP_OVERVIEW_START),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps_port$', AppsPorConsoletView.as_view(),
+        perms.APP_OVERVIEW_PERMS),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/start$', StartAppView.as_view(),
+        perms.APP_OVERVIEW_START),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/stop$', StopAppView.as_view(), perms.APP_OVERVIEW_STOP),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/pause$', PauseAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/unpause$', UNPauseAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm_web$', UNPauseAppView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/restart$', ReStartAppView.as_view(), perms.APP_OVERVIEW_UPDATE),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/deploy$', DeployAppView.as_view(), perms.APP_OVERVIEW_CONSTRUCT),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/restart$', ReStartAppView.as_view(),
+        perms.APP_OVERVIEW_UPDATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/deploy$', DeployAppView.as_view(),
+        perms.APP_OVERVIEW_CONSTRUCT),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/rollback$', RollBackAppView.as_view(),
         perms.APP_ROLLBACK),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/upgrade$', UpgradeAppView.as_view(),
-        perms.APP_UPGRADE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/upgrade$', UpgradeAppView.as_view(), perms.APP_UPGRADE),
     # 设置组件构建后是否升级属性
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/set/is_upgrade$', ChangeServiceUpgradeView.as_view(),
         perms.APP_OVERVIEW_CONSTRUCT),
@@ -585,9 +606,11 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/market_service/upgrade$',
         MarketServiceUpgradeView.as_view(), perms.APP_UPGRADE),
     # 组件设置语言和安装依赖
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/package_tool$', PackageToolView.as_view(), perms.APP_OVERVIEW_PERMS),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/package_tool$', PackageToolView.as_view(),
+        perms.APP_OVERVIEW_PERMS),
     # tar包设置镜像
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tar_image$', TarImageView.as_view(), perms.APP_OVERVIEW_PERMS),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tar_image$', TarImageView.as_view(),
+        perms.APP_OVERVIEW_PERMS),
     # 批量操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch_actions$', BatchActionView.as_view(), perms.APP_OVERVIEW_PERMS),
     # 批量删除应用
@@ -596,7 +619,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/again_delete$', AgainDelete.as_view(), perms.APP_OVERVIEW_PERMS),
 
     # 某个组件的event
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/events$', AppEventView.as_view(), perms.APP_OVERVIEW_PERMS),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/events$', AppEventView.as_view(),
+        perms.APP_OVERVIEW_PERMS),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/event_log$', AppEventLogView.as_view(),
         perms.APP_OVERVIEW_PERMS),
     # 某个组件的日志
@@ -605,7 +629,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/history_log$', AppHistoryLogView.as_view()),
 
     # 组件探针
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/probe$', AppProbeView.as_view(), perms.APP_OVERVIEW_OTHER_SETTING),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/probe$', AppProbeView.as_view(),
+        perms.APP_OVERVIEW_OTHER_SETTING),
 
     # 组件扩容操作
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/horizontal$', HorizontalExtendAppView.as_view(),
@@ -643,7 +668,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/service_monitor/(?P<name>[\w\-]+)$',
         ComponentServiceMonitorEditView.as_view(), perms.APP_OVERVIEW_MONITOR),
     # 组件标签
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view(), perms.APP_OVERVIEW_OTHER_SETTING),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels$', AppLabelView.as_view(),
+        perms.APP_OVERVIEW_OTHER_SETTING),
     # 添加特性获取可用标签
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/labels/available$', AppLabelAvailableView.as_view(),
         perms.APP_OVERVIEW_OTHER_SETTING),
@@ -773,7 +799,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/migrate/record$', MigrateRecordView.as_view()),
 
     # 应用数据删除
-    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/delete$', GroupAppsView.as_view(), perms.APP_OVERVIEW_PERMS),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/groupapp/(?P<group_id>[\w\-]+)/delete$', GroupAppsView.as_view(),
+        perms.APP_OVERVIEW_PERMS),
 
     # 源码仓库webhooks回调地址
     url(r'^webhooks/(?P<service_id>[\w\-]+)', WebHooksDeploy.as_view()),

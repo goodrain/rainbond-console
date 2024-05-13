@@ -549,17 +549,16 @@ class AppManageService(AppManageBase):
         fail_service_name = []
         for service in services:
             try:
-                # 第三方组件不具备启动，停止，重启操作
-                if action == "start" and service.service_source != "third_party":
+                if action == "start":
                     self.start(tenant, service, user, oauth_instance=oauth_instance)
-                elif action == "stop" and service.service_source != "third_party":
+                elif action == "stop":
                     self.stop(tenant, service, user)
-                elif action == "restart" and service.service_source != "third_party":
+                elif action == "restart":
                     self.restart(tenant, service, user, oauth_instance=oauth_instance)
                 elif action == "move":
                     group_service.sync_app_services(tenant, region_name, move_group_id)
                     self.move(service, move_group_id)
-                elif action == "deploy" and service.service_source != "third_party" and service.service_source != "vm_run":
+                elif action == "deploy" and service.service_source != "vm_run":
                     res, body = region_api.get_cluster_nodes_arch(region_name)
                     chaos_arch = list(set(body.get("list")))
                     service.arch = service.arch if service.arch else "amd64"

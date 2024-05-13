@@ -414,18 +414,6 @@ class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
         move_group_id = request.data.get("move_group_id", None)
         if action not in ("stop", "start", "restart", "move", "upgrade", "deploy"):
             return Response(general_message(400, "param error", "操作类型错误"), status=400)
-        if action == "stop":
-            self.has_perms([400008])
-        if action == "start":
-            self.has_perms([400006])
-        if action == "restart":
-            self.has_perms([400007])
-        if action == "move":
-            self.has_perms([400003])
-        if action == "upgrade":
-            self.has_perms([400009])
-        if action == "deploy":
-            self.has_perms([400010])
         service_id_list = service_ids.split(",")
         code, msg = app_manage_service.batch_action(self.region_name, self.tenant, self.user, action, service_id_list,
                                                     move_group_id, self.oauth_instance)
