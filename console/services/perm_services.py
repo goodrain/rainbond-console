@@ -240,7 +240,8 @@ class RolePermService(object):
                 perm_key, perms_value = perm_items
                 if perms_value:
                     role_perms_list.append(
-                        RolePerms(role_id=role_id, perm_code=perms_name_code_kv["_".join([kind_name, perm_key])], app_id=app_id))
+                        RolePerms(
+                            role_id=role_id, perm_code=perms_name_code_kv["_".join([kind_name, perm_key])], app_id=app_id))
         return role_perms_list
 
     # 角色的权限树降维

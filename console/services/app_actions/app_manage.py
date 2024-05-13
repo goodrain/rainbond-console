@@ -549,10 +549,9 @@ class AppManageService(AppManageBase):
         fail_service_name = []
         for service in services:
             try:
-                # 第三方组件不具备启动，停止，重启操作
-                if action == "start" and service.service_source != "third_party":
+                if action == "start":
                     self.start(tenant, service, user, oauth_instance=oauth_instance)
-                elif action == "stop" and service.service_source != "third_party":
+                elif action == "stop":
                     self.stop(tenant, service, user)
                 elif action == "restart" and service.service_source != "third_party":
                     self.restart(tenant, service, user, oauth_instance=oauth_instance)

@@ -268,21 +268,6 @@ class TenantGroupCommonOperationView(RegionTenantHeaderCloudEnterpriseCenterView
         service_ids = [service.service_id for service in services]
         if action not in ("stop", "start", "upgrade", "deploy"):
             return Response(general_message(400, "param error", "操作类型错误"), status=400)
-        # 去除掉第三方组件
-        for service_id in service_ids:
-            service_obj = service_repo.get_service_by_service_id(service_id)
-            if service_obj and service_obj.service_source == "third_party":
-                service_ids.remove(service_id)
-
-        if action == "stop":
-            self.has_perms([300006, 400008])
-        if action == "start":
-            self.has_perms([300005, 400006])
-        if action == "upgrade":
-            self.has_perms([300007, 400009])
-        if action == "deploy":
-            self.has_perms([300008, 400010])
-            # 批量操作
         app_manage_service.batch_operations(self.tenant, self.region_name, self.user, action, service_ids, self.oauth_instance)
         result = general_message(200, "success", "操作成功")
         return Response(result, status=result["code"])

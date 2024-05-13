@@ -575,7 +575,6 @@ class RolePerms(BaseModel):
     app_id = models.IntegerField(help_text="application ID", default=-1)
 
 
-
 class RoleInfo(BaseModel):
     class Meta:
         db_table = 'role_info'
