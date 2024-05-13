@@ -415,7 +415,7 @@ class GroupService(object):
             if service.create_status == "complete":
                 service_dict["service_id"] = service.service_id
                 stop_infos_list.append(service_dict)
-        body = {"operation": "stop", "stop_infos": stop_infos_list}
+        body = {"operation": "stop", "stop_infos": stop_infos_list,"operator":user.nick_name}
         try:
             region_api.batch_operation_service(region_name, tenant.tenant_name, body)
         except region_api.CallApiError as e:
