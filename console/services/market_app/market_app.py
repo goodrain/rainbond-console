@@ -92,7 +92,7 @@ class MarketApp(object):
 
         return res
 
-    def deploy(self,):
+    def deploy(self):
 
         builds = self._generate_builds()
         upgrades = self._generate_upgrades()
