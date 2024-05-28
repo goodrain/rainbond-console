@@ -72,7 +72,7 @@ class AppRestore(MarketApp):
         self.original_app = OriginalApp(tenant, region, app, component_group.ID, self.support_labels)
         self.snapshot = self._get_snapshot()
         self.new_app = self._create_new_app()
-        super(AppRestore, self).__init__(self.original_app, self.new_app)
+        super(AppRestore, self).__init__(self.original_app, self.new_app,self.user)
 
     def restore(self):
         # Sync the new application to the data center first

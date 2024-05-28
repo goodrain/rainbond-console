@@ -328,6 +328,7 @@ class AppManageService(AppManageBase):
         else:
             logger.warning("service_source is not exist for service {0}".format(service.service_id))
         try:
+            body['operator'] = user.nick_name
             re = region_api.build_service(service.service_region, tenant.tenant_name, service.service_alias, body)
             if re and re.get("bean") and re.get("bean").get("status") != "success":
                 logger.error("deploy component failure {}".format(re))
@@ -600,6 +601,7 @@ class AppManageService(AppManageBase):
         if code != 200:
             raise AbortRequest(415, "failed to get component", "组件信息获取失败")
         # 获取数据中心信息
+        data['operator'] = user.nick_name
         try:
             _, body = region_api.batch_operation_service(region_name, tenant.tenant_name, data)
             events = body["bean"]["batch_result"]

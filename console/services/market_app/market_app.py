@@ -33,9 +33,11 @@ logger = logging.getLogger("default")
 
 
 class MarketApp(object):
-    def __init__(self, original_app: OriginalApp, new_app: NewApp):
+    def __init__(self, original_app: OriginalApp, new_app: NewApp,user):
         self.original_app = original_app
         self.new_app = new_app
+
+        self.user = user
 
         self.tenant_name = self.new_app.tenant.tenant_name
         self.region_name = self.new_app.region_name
@@ -73,6 +75,7 @@ class MarketApp(object):
         builds = self._generate_builds("export_helm_chart")
         res = []
         body = {
+            "operator": self.user.nick_name,
             "operation": "export",
             "build_infos": builds,
             "helm_chart": {
@@ -90,6 +93,7 @@ class MarketApp(object):
         return res
 
     def deploy(self):
+
         builds = self._generate_builds()
         upgrades = self._generate_upgrades()
 
@@ -98,6 +102,7 @@ class MarketApp(object):
         res = []
         if builds:
             body = {
+                "operator": self.user.nick_name,
                 "operation": "build",
                 "build_infos": builds,
             }
@@ -106,6 +111,7 @@ class MarketApp(object):
 
         if upgrades:
             body = {
+                "operator": self.user.nick_name,
                 "operation": "upgrade",
                 "upgrade_infos": upgrades,
             }
