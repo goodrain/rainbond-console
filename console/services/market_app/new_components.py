@@ -539,8 +539,7 @@ class NewComponents(object):
         return False
 
     def _create_default_domain(self, service_alias: str, port: int):
-        return str(service_alias) + "." + str(self.region.httpdomain)
-        # return str(port) + "." + service_alias + "." + self.tenant.tenant_name + "." + self.region.httpdomain
+        return service_alias + "-" + str(port) + "-" + self.tenant.tenant_name + "-" + self.region.httpdomain
 
     @staticmethod
     def _domain_cookie_or_header(items):
