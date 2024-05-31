@@ -465,7 +465,7 @@ class AppPortService(object):
         if deal_port.protocol == "http":
             service_name = service.service_alias
             container_port = deal_port.container_port
-            domain_name = str(service_name) + "." + str(region.httpdomain)
+            domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "-" + str(region.httpdomain)
             protocol = "http"
             service_id = service.service_id
             http_rule_id = make_uuid(domain_name)
@@ -488,7 +488,8 @@ class AppPortService(object):
                 service_id = service.service_id
                 service_name = service.service_alias
                 container_port = deal_port.container_port
-                domain_name = str(service_name) + "." + str(region.httpdomain)
+                domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "-" + str(
+                    region.httpdomain)
                 domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol,
                                                    http_rule_id, tenant_id, service_alias, region_id)
 
