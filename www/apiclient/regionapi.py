@@ -1957,13 +1957,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=30)
         return res, body
 
-    def list_tenants(self, enterprise_id, region, page=1, page_size=10):
+    def list_tenants(self, enterprise_id, region, page=1, page_size=10, tenant_ids=""):
         """list tenants"""
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/tenants?page={0}&pageSize={1}&eid={2}".format(page, page_size, enterprise_id)
+        url += "/v2/tenants?page={0}&pageSize={1}&eid={2}&tenant_ids={3}".format(page, page_size, enterprise_id, tenant_ids)
         try:
             res, body = self._get(url, self.default_headers, region=region_info.region_name)
             return res, body
