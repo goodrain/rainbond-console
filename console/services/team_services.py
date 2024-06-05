@@ -511,13 +511,13 @@ class TeamService(object):
             return data
         return None
 
-    def get_tenant_list_by_region(self, eid, region_id, page=1, page_size=10):
+    def get_tenant_list_by_region(self, eid, region_id, page=1, page_size=10, tenant_ids=""):
         teams = team_repo.get_team_by_enterprise_id(eid)
         team_maps = {}
         if teams:
             for team in teams:
                 team_maps[team.tenant_id] = team
-        res, body = region_api.list_tenants(eid, region_id, page, page_size)
+        res, body = region_api.list_tenants(eid, region_id, page, page_size, tenant_ids)
         tenant_list = []
         total = 0
         if body.get("bean"):
