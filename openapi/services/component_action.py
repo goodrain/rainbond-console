@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+import re
+
 from console.constants import AppConstants
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_source_repo
@@ -25,6 +27,12 @@ class ComponnetActionService(object):
                     or component.service_source == AppConstants.DOCKER_COMPOSE \
                     or component.service_source == AppConstants.DOCKER_IMAGE:
                 component.image = build_info.get("repo_url")
+                version_pattern = r"(?<=:)\d+\.\d+(\.\d+)?"
+                match = re.search(version_pattern, component.image)
+                if match:
+                    component.version = match.group(0)
+                else:
+                    component.version = 'latest'
             service_source = service_source_repo.get_service_source(component.tenant_id, component.service_id)
             if service_source:
                 service_source.user_name = build_info.get("username")
