@@ -2624,6 +2624,42 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 
+    def get_lang_version(self, enterprise_id, region, lang):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/langVersion?language={0}".format(lang)
+        res, body = self._get(url, self.default_headers, region=region_info.region_name)
+        return body
+
+    def create_lang_version(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/langVersion"
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
+        return body
+
+    def update_lang_version(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/langVersion"
+        res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
+        return body
+
+    def delete_lang_version(self, enterprise_id, region, data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/langVersion"
+        res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
+        return body
+
     def post_proxy(self, region_name, path, data):
         region_info = self.get_region_info(region_name)
         if not region_info:
