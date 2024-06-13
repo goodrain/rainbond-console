@@ -33,7 +33,7 @@ logger = logging.getLogger("default")
 
 
 class MarketApp(object):
-    def __init__(self, original_app: OriginalApp, new_app: NewApp,user):
+    def __init__(self, original_app: OriginalApp, new_app: NewApp, user):
         self.original_app = original_app
         self.new_app = new_app
 

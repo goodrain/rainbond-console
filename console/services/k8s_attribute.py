@@ -51,8 +51,10 @@ class ComponentK8sAttributeService(object):
     @transaction.atomic
     def delete_k8s_attribute(self, tenant, component, region_name, name, operator):
         k8s_attribute_repo.delete(component.service_id, name)
-        region_api.delete_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias,
-                                                  {"name": name, "operator": operator})
+        region_api.delete_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, {
+            "name": name,
+            "operator": operator
+        })
 
 
 k8s_attribute_service = ComponentK8sAttributeService()

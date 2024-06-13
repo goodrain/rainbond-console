@@ -115,7 +115,7 @@ class AppUpgrade(MarketApp):
         self.property_changes.ensure_dep_changes(self.new_app, self.original_app)
         self.app_property_changes = self._get_app_property_changes()
 
-        super(AppUpgrade, self).__init__(self.original_app, self.new_app,self.user)
+        super(AppUpgrade, self).__init__(self.original_app, self.new_app, self.user)
 
     def preinstall(self):
         self.pre_install_plugins()
