@@ -2947,3 +2947,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         response['Content-Encoding'] = 'identity'
         return response
+
+    def upgrade_region(self, region_name, data):
+        url, token = self.__get_region_access_info(None, region_name)
+        url = url + "/v2/cluster/rbd-upgrade"
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
+        return body

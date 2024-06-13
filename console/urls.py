@@ -139,6 +139,7 @@ from console.views.team import UserFuzSerView, TeamUserDetaislView, TeamCheckRes
     TeamRegionInitView, ApplicantsView, RegisterStatusView, MonitorAlarmStatusView, EnterpriseInfoView, \
     InitDefaultInfoView, AdminAddUserView, CertificateView, TeamUserCanJoin, TeamsPermissionCreateApp, JoinTeamView, \
     UserApplyStatusView
+from console.views.upgrade import UpgradeView
 from console.views.user import CheckSourceView, UserLogoutView, UserPemTraView, AdministratorJoinTeamView, \
     EnterPriseUsersCLView, EnterPriseUsersUDView, AdminUserView, AdminUserLCView, \
     AdminRolesView
@@ -150,6 +151,8 @@ from console.views.webhook import WebHooksDeploy, ImageWebHooksDeploy, CustomWeb
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
 
 urlpatterns = [
+    # 升级
+    url(r'^update', UpgradeView.as_view()),
     # 直接代理到 普罗米修斯
     url(r'^open/monitor/query$', MonitorQueryOverConsoleView.as_view()),
     url(r'^api-gateway/v1/(?P<tenantName>[\w\-]+)/(.*?)', AppApiGatewayView.as_view()),

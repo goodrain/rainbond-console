@@ -22,7 +22,7 @@ class ComponentK8sAttributeView(AppBaseView):
         return Response(general_message(200, "success", "修改成功"))
 
     def delete(self, request, name, *args, **kwargs):
-        k8s_attribute_service.delete_k8s_attribute(self.tenant, self.service, self.region_name, name,self.user.nick_name)
+        k8s_attribute_service.delete_k8s_attribute(self.tenant, self.service, self.region_name, name, self.user.nick_name)
         return Response(general_message(200, "success", "删除成功"))
 
 
