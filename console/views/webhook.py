@@ -577,13 +577,21 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             # 校验
             repository = request.data.get("repository")
             if not repository:
-                logger.debug("缺少repository信息")
+                event_data = request.data.get("event_data")
+                repository = event_data.get("repository")
+
+            if not repository:
                 result = general_message(400, "failed", "缺少repository信息")
                 return Response(result, status=400)
-
             push_data = request.data.get("push_data")
-            pusher = push_data.get("pusher")
-            tag = push_data.get("tag")
+            if not push_data:
+                pusher = request.data.get("operator")
+                for resource in event_data.get('resources', []):
+                    tag = resource.get('tag')
+            else:
+                pusher = push_data.get("pusher")
+                tag = push_data.get("tag")
+
             repo_name = repository.get("repo_name")
             if not repo_name:
                 repository_namespace = repository.get("namespace")
@@ -592,6 +600,8 @@ class ImageWebHooksDeploy(AlowAnyApiView):
                     # maybe aliyun repo add fake host
                     repo_name = "fake.repo.aliyun.com/" + repository_namespace + "/" + repository_name
                 else:
+                    repo_name = repository.get("repo_full_name")
+                if  event_data:
                     repo_name = repository.get("repo_full_name")
             if not repo_name:
                 result = general_message(400, "failed", "缺少repository名称信息")
@@ -621,6 +631,7 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             # 获取组件状态
             status_map = app_service.get_service_status(tenant_obj, service_obj)
             status = status_map.get("status", None)
+            #在这个地方使用推送人
             user_obj = user_services.init_webhook_user(service_obj, "ImageWebhook", pusher)
             committer_name = pusher
             if status != "closed":
