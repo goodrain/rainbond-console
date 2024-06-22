@@ -384,7 +384,7 @@ class HelmAppService(object):
     def create_center_app_by_chart(self, enterprise_id, chart_name):
         # 创建本地组件库模版
         app_model_id = make_uuid3(chart_name)
-        helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(enterprise_id, app_model_id)
+        helm_center_app = rainbond_app_repo.get_rainbond_app_by_app_id(app_model_id)
         if not helm_center_app:
             center_app = {
                 "app_id": app_model_id,
@@ -398,7 +398,7 @@ class HelmAppService(object):
                 "details": ""
             }
             RainbondCenterApp(**center_app).save()
-            helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(enterprise_id, app_model_id)
+            helm_center_app = rainbond_app_repo.get_rainbond_app_by_app_id(app_model_id)
         return helm_center_app
 
     def get_upload_chart_information(self, region, tenant_name, event_id):

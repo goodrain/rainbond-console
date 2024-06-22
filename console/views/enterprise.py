@@ -151,6 +151,7 @@ class EnterpriseAppOverView(JWTAuthApiView):
         return Response(result, status=status.HTTP_200_OK)
 
 
+# 等待优化
 class EnterpriseOverview(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         users = enterprise_repo.get_enterprise_users(enterprise_id)

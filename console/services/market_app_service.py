@@ -1263,7 +1263,7 @@ class MarketAppService(object):
         return app_versions
 
     def get_rainbond_app(self, eid, app_id):
-        return rainbond_app_repo.get_rainbond_app_qs_by_key(eid, app_id)
+        return rainbond_app_repo.get_rainbond_app_by_app_id(app_id)
 
     def update_rainbond_app_install_num(self, enterprise_id, app_id, app_version):
         rainbond_app_repo.add_rainbond_install_num(enterprise_id, app_id, app_version)
@@ -1484,8 +1484,8 @@ class MarketAppService(object):
         sid = transaction.savepoint()
         try:
             rainbond_app_repo.delete_app_tag_by_id(enterprise_id, app_id)
-            rainbond_app_repo.delete_app_version_by_id(enterprise_id, app_id)
-            rainbond_app_repo.delete_app_by_id(enterprise_id, app_id)
+            rainbond_app_repo.delete_app_version_by_id(app_id)
+            rainbond_app_repo.delete_app_by_id(app_id)
             transaction.savepoint_commit(sid)
         except Exception as e:
             logger.exception(e)
@@ -1494,7 +1494,7 @@ class MarketAppService(object):
 
     @transaction.atomic
     def update_rainbond_app(self, enterprise_id, app_id, app_info):
-        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(app_id)
         if not app:
             raise RbdAppNotFound(msg="app not found")
         app.app_name = app_info.get("name")
@@ -1533,21 +1533,21 @@ class MarketAppService(object):
         if app_info.get("tag_ids"):
             app_tag_repo.create_app_tags_relation(app, app_info.get("tag_ids"))
 
-    def update_rainbond_app_version_info(self, enterprise_id, app_id, version, **body):
-        version = rainbond_app_repo.update_app_version(enterprise_id, app_id, version, **body)
+    def update_rainbond_app_version_info(self, app_id, version, **body):
+        version = rainbond_app_repo.update_app_version(app_id, version, **body)
         if not version:
             raise ServiceHandleException(msg="can't get version", msg_show="应用下无该版本", status_code=404)
         return version
 
     def delete_rainbond_app_version(self, enterprise_id, app_id, version):
         try:
-            rainbond_app_repo.delete_app_version_by_version(enterprise_id, app_id, version)
+            rainbond_app_repo.delete_app_version_by_id(app_id, version)
         except Exception as e:
             logger.exception(e)
             raise e
 
     def get_rainbond_app_and_versions(self, enterprise_id, app_id, page, page_size):
-        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(app_id)
         if not app:
             raise RbdAppNotFound("未找到该应用")
         app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(

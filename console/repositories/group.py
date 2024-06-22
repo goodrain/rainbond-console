@@ -82,12 +82,14 @@ class GroupRepository(object):
         return group_count
 
     def get_tenant_region_groups(self, team_id, region, query="", app_type="", app_ids=[]):
-        q = Q(tenant_id=team_id, region_name=region, group_name__icontains=query)
+        q = Q(tenant_id=team_id, region_name=region)
         if app_type:
             q &= Q(app_type=app_type)
         if app_ids and app_ids[0] != -1:
             q &= Q(ID__in=app_ids)
-        return ServiceGroup.objects.filter(q).order_by("-update_time", "-order_index")
+        if query:
+            q &= Q(group_name__icontains=query)
+        return ServiceGroup.objects.filter(q).order_by("-update_time")
 
     def get_tenant_region_groups_count(self, team_id, region):
         return ServiceGroup.objects.filter(tenant_id=team_id, region_name=region).count()

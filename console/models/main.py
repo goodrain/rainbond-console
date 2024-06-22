@@ -88,7 +88,11 @@ class RainbondCenterApp(BaseModel):
 
     class Meta:
         db_table = "rainbond_center_app"
-        unique_together = ('app_id', 'enterprise_id')
+        indexes = [
+            models.Index(fields=['scope', 'arch', 'is_version', 'create_team', 'app_name'],
+                         name='rainbond_center_app_filter_IDX'),
+            models.Index(fields=['update_time'], name='update_time_IDX'),
+        ]
 
     app_id = models.CharField(max_length=32, help_text="应用包")
     app_name = models.CharField(max_length=64, help_text="应用包名")
@@ -107,6 +111,7 @@ class RainbondCenterApp(BaseModel):
     is_official = models.BooleanField(default=False, help_text='是否官方认证')
     details = models.TextField(null=True, blank=True, help_text="应用详情")
     arch = models.CharField(max_length=32, help_text="架构")
+    is_version = models.BooleanField(default=False, help_text="是否存在版本")
 
 
 class RainbondCenterAppVersion(BaseModel):

@@ -14,20 +14,69 @@ logger = logging.getLogger("default")
 
 
 class RainbondCenterAppRepository(object):
-    def get_all_rainbond_apps(self):
-        return RainbondCenterApp.objects.all()
+    def base_filter_rainbond_app_by_app_id(self, app_id):
+        return RainbondCenterApp.objects.filter(app_id=app_id)
 
-    def get_rainbond_app_by_id(self, id):
-        return RainbondCenterApp.objects.filter(ID=id)
+    def get_rainbond_app_by_app_id(self, app_id):
+        return self.base_filter_rainbond_app_by_app_id(app_id).first()
 
-    def get_rainbond_app_by_key_and_version_eid(self, eid, app_id, dev_status):
-        rcapps = RainbondCenterApp.objects.filter(enterprise_id=eid, app_id=app_id, dev_status=dev_status)
-        if rcapps:
-            return rcapps[0]
-        rcapps = RainbondCenterApp.objects.filter(enterprise_id=eid, app_id=app_id, dev_status=dev_status)
-        if rcapps:
-            return rcapps[0]
-        return None
+    def get_rainbond_app_by_app_id_team(self, app_ids):
+        return RainbondCenterApp.objects.filter(app_id__in=app_ids)
+
+    def get_enterprise_team_apps(self, enterprise_id, team_name):
+        return RainbondCenterApp.objects.filter(create_team=team_name, source="local").order_by("-create_time")
+
+    def delete_helm_shared_apps(self, source):
+        return RainbondCenterApp.objects.filter(source=source).delete()
+
+    def delete_app_by_id(self, app_id):
+        self.base_filter_rainbond_app_by_app_id(app_id=app_id).delete()
+
+    def bulk_create_rainbond_apps(self, rainbond_apps):
+        RainbondCenterApp.objects.bulk_create(rainbond_apps)
+
+    def get_rainbond_app_versions(self, eid, app_id):
+        return RainbondCenterAppVersion.objects.filter(app_id=app_id)
+
+    def filter_rainbond_app_version_by_app_id_and_version(self, app_id, version):
+        return self.get_rainbond_app_versions(app_id=app_id).filter(version=version)
+
+    def delete_app_version_by_id(self, app_id, version=""):
+        ver = self.get_rainbond_app_versions(app_id)
+        if version:
+            ver = self.filter_rainbond_app_version_by_app_id_and_version(app_id, version)
+        return ver.delete()
+
+    def bulk_create_rainbond_app_versions(self, rainbond_app_versions):
+        RainbondCenterAppVersion.objects.bulk_create(rainbond_app_versions)
+
+    def get_app_versions_by_app_id(self, app_id, is_complete):
+        return self.get_rainbond_app_versions(app_id=app_id).filter(is_complete=is_complete)
+
+    def add_basic_app_info(self, **kwargs):
+        app = RainbondCenterApp(**kwargs)
+        app.save()
+        return app
+
+
+    def get_rainbond_app_version_by_app_id_and_version(self, app_id, version):
+        return self.get_rainbond_app_versions(app_id).filter(version=version).first()
+
+    def get_app_version(self, app_id, version):
+        return self.filter_rainbond_app_version_by_app_id_and_version(app_id, version).order_by("-create_time").first()
+
+    def get_rainbond_app_version_by_app_ids(self, app_ids, is_complete=None):
+        q = Q(app_id__in=app_ids)
+        if is_complete:
+            q = q & Q(is_complete=is_complete)
+        return RainbondCenterAppVersion.objects.filter(q)
+
+    def get_rainbond_app_version_by_record_id(self, record_id):
+        return RainbondCenterAppVersion.objects.filter(record_id=record_id).first()
+
+    def get_rainbond_app_version_by_id(self, eid, group_id):
+        return RainbondCenterAppVersion.objects.filter(group_id=group_id, scope="team")
+
 
     def get_rainbond_app_in_enterprise_by_query(self,
                                                 eid,
@@ -163,301 +212,27 @@ class RainbondCenterAppRepository(object):
         count = conn.query(sql)
         return count
 
-    def get_rainbond_app_version_by_app_ids(self, eid, app_ids, is_complete=None, rm_template_field=False):
-        q = Q(enterprise_id=eid, app_id__in=app_ids)
-        if is_complete:
-            q = q & Q(is_complete=is_complete)
-        if rm_template_field:
-            return RainbondCenterAppVersion.objects.defer("app_template").filter(q)
-        return RainbondCenterAppVersion.objects.filter(q)
-
-    def get_rainbond_app_by_app_id(self, eid, app_id):
-        return RainbondCenterApp.objects.filter(app_id=app_id, enterprise_id=eid).first()
-
-    def get_rainbond_app_by_eid(self, eid):
-        return RainbondCenterApp.objects.filter(enterprise_id=eid)
+    def get_rainbond_app_and_version(self, enterprise_id, app_id, app_version):
+        app = self.get_rainbond_app_by_app_id(app_id)
+        if not app_version:
+            return app, None
+        app_version = self.filter_rainbond_app_version_by_app_id_and_version(app_id, app_version
+                                                                             ).order_by("-upgrade_time").first()
+        return app, app_version
 
     def get_app_helm_overrides(self, app_id, app_model_id):
         return AppHelmOverrides.objects.filter(app_id=app_id, app_model_id=app_model_id)
 
-    def delete_app_helm_overrides(self, app_id):
-        return AppHelmOverrides.objects.filter(app_id=app_id).delete()
-
-    def get_rainbond_app_version_by_record_id(self, record_id):
-        return RainbondCenterAppVersion.objects.filter(record_id=record_id).first()
-
-    def get_rainbond_app_version_by_id(self, eid, app_id):
-        return RainbondCenterAppVersion.objects.filter(enterprise_id=eid, app_id=app_id)
-
-    def get_rainbond_apps_versions_by_eid(self,
-                                          eid,
-                                          name=None,
-                                          tags=None,
-                                          scope=None,
-                                          team_names=None,
-                                          is_complete=None,
-                                          page=1,
-                                          page_size=10):
-        page = (page - 1) * page_size
-        limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
-        where = 'WHERE BB.enterprise_id="{eid}" '.format(eid=eid)
-        group = """GROUP BY BB.enterprise_id, BB.app_id {}) CC
-        LEFT JOIN rainbond_center_app_tag_relation D
-        ON D.app_id=CC.app_id AND D.enterprise_id=CC.enterprise_id
-        LEFT JOIN rainbond_center_app_tag E
-        ON D.tag_id=E.ID """.format(limit)
-        if name:
-            where += 'AND BB.app_name LIKE"{}%" '.format(name)
-        if scope:
-            where += 'AND BB.scope="{}" '.format(scope)
-        if team_names:
-            team_names_count = len(team_names)
-            if team_names_count == 1:
-                where += 'AND (BB.create_team="{}" OR BB.create_team is NULL) '.format(team_names[0])
-            else:
-                where += 'AND (BB.create_team="{}" '.format(team_names[0])
-                for team_name in team_names[1]:
-                    where += 'OR BB.create_team="{}" '.format(team_name)
-                where += 'OR BB.create_team is NULL") '
-        if is_complete:
-            where += 'AND C.is_complete={} '.format(is_complete)
-        if tags:
-            group += 'WHERE E.name="{}" '.format(tags[0])
-            for tag in tags[1:]:
-                group += 'OR E.name="{}" '.format(tag)
-        order_by = "GROUP BY CC.enterprise_id, CC.app_id ORDER BY CC.install_number DESC, CC.update_time DESC;"
-        # sql1 = """SET GLOBAL group_concat_max_len = 40960000;"""
-        # sql2 = """SET SESSION group_concat_max_len = 40960000;"""
-        sql = """
-                SELECT CC.*,
-                CONCAT('[',
-                    GROUP_CONCAT(
-                        CONCAT('{"tag_id":"',E.ID,'"'),',',
-                        CONCAT('"name":"',E.name),'"}')
-                        ,']') as tags
-                FROM
-                (SELECT
-                    BB.ID,
-                    BB.app_id,
-                    BB.app_name,
-                    BB.create_user,
-                    BB.create_team,
-                    BB.pic,
-                    BB.dev_status,
-                    BB.describe,
-                    BB.details,
-                    BB.enterprise_id,
-                    BB.create_time,
-                    BB.update_time,
-                    BB.is_ingerit,
-                    BB.is_official,
-                    BB.install_number,
-                    BB.source,
-                    BB.scope,
-                    CONCAT('[',
-                    GROUP_CONCAT(
-                        CONCAT('"',C.version,'"'))
-                    ,']') as versions,
-                    CONCAT('[',
-                    GROUP_CONCAT(
-                        CONCAT('{"version":"',C.version,'"'),',',
-                        CONCAT('"is_complete":',C.is_complete),',',
-                        CONCAT('"version_alas":"',C.version_alias),'"}')
-                    ,']') as versions_info
-                FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
-                      FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
-                LEFT JOIN rainbond_center_app_version C
-                ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND
-                C.version=B.version AND C.update_time=B.update_time
-                RIGHT JOIN (SELECT * FROM rainbond_center_app RCA GROUP BY RCA.enterprise_id, RCA.app_id) BB
-                ON C.enterprise_id=BB.enterprise_id AND C.app_id=BB.app_id
-            """
-        sql += where
-        sql += group
-        sql += order_by
-        conn = BaseConnection()
-        # conn.query(sql1)
-        # conn.query(sql2)
-        result = conn.query(sql)
-        return result
-
-    def get_rainbond_apps_versions_with_template_by_eid(self, eid, name=None, tags=None, scope=None, page=1, page_size=10):
-        page = (page - 1) * page_size
-        limit = "LIMIT {page}, {page_size}".format(page=page, page_size=page_size)
-        where = 'WHERE BB.enterprise_id="{eid}" '.format(eid=eid)
-        group = """GROUP BY BB.enterprise_id, BB.app_id {}) CC
-        LEFT JOIN rainbond_center_app_tag_relation D
-        ON D.app_id=CC.app_id AND D.enterprise_id=CC.enterprise_id
-        LEFT JOIN rainbond_center_app_tag E
-        ON D.tag_id=E.ID """.format(limit)
-        if name:
-            where += 'AND BB.app_name LIKE"{}%" '.format(name)
-        if scope:
-            where += 'AND BB.scope="{}" '.format(scope)
-        if tags:
-            group += 'WHERE E.name="{}" '.format(tags[0])
-            for tag in tags[1:]:
-                group += 'OR E.name="{}" '.format(tag)
-        order_by = "GROUP BY CC.enterprise_id, CC.app_id ORDER BY CC.install_number DESC, CC.update_time DESC;"
-        sql1 = """SET GLOBAL group_concat_max_len = 40960000;"""
-        sql2 = """SET SESSION group_concat_max_len = 40960000;"""
-        sql = """
-                SELECT CC.*,
-                CONCAT('[',
-                    GROUP_CONCAT(
-                        CONCAT('{"tag_id":"',E.ID,'"'),',',
-                        CONCAT('"name":"',E.name),'"}')
-                        ,']') as tags
-                FROM
-                (SELECT
-                    BB.ID,
-                    BB.app_id,
-                    BB.app_name,
-                    BB.create_user,
-                    BB.create_team,
-                    BB.pic,
-                    BB.dev_status,
-                    BB.describe,
-                    BB.details,
-                    BB.enterprise_id,
-                    BB.create_time,
-                    BB.update_time,
-                    BB.is_ingerit,
-                    BB.is_official,
-                    BB.install_number,
-                    BB.source,
-                    BB.scope,
-                    CONCAT('[',
-                    GROUP_CONCAT(
-                        CONCAT('"',C.version,'"'))
-                    ,']') as versions,
-                    CONCAT('[',
-                    GROUP_CONCAT(
-                        CONCAT('{"version":"',C.version,'"'),',',
-                        CONCAT('"is_complete":',C.is_complete),',',
-                        CONCAT('"version_alias":"',C.version_alias),'",',
-                        CONCAT('"app_template":',C.app_template),'}')
-                    ,']') as versions_info
-                FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
-                      FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
-                LEFT JOIN rainbond_center_app_version C
-                ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND
-                C.version=B.version AND C.update_time=B.update_time
-                RIGHT JOIN (SELECT * FROM rainbond_center_app RCA GROUP BY RCA.enterprise_id, RCA.app_id) BB
-                ON C.enterprise_id=BB.enterprise_id AND C.app_id=BB.app_id
-            """
-        sql += where
-        sql += group
-        sql += order_by
-        conn = BaseConnection()
-        conn.query(sql1)
-        conn.query(sql2)
-        result = conn.query(sql)
-        return result
-
-    def get_rainbond_app_version_by_app_id(self, eid, app_id, version):
-        where = """
-            WHERE (BB.enterprise_id="{eid}" OR BB.enterprise_id="public") AND
-             BB.app_id="{app_id}" AND C.version="{version}";
-            """.format(
-            eid=eid, app_id=app_id, version=version)
-        sql = """
-                SELECT
-                    BB.ID,
-                    BB.app_id,
-                    BB.app_name,
-                    BB.create_user,
-                    BB.create_team,
-                    BB.pic,
-                    BB.dev_status,
-                    BB.describe,
-                    BB.details,
-                    BB.enterprise_id,
-                    BB.create_time,
-                    BB.update_time,
-                    BB.is_ingerit,
-                    BB.is_official,
-                    BB.install_number,
-                    BB.source,
-                    BB.scope,
-                    C.app_template,
-                    C.version,
-                    C.is_complete,
-                    C.version_alias,
-                    C.update_time,
-                    C.create_time
-                FROM (SELECT A.enterprise_id, A.app_id, A.version, MAX(A.update_time) update_time
-                      FROM rainbond_center_app_version A GROUP BY A.enterprise_id, A.app_id, A.version) B
-                LEFT JOIN rainbond_center_app_version C
-                ON C.enterprise_id=B.enterprise_id AND C.app_id=B.app_id AND
-                C.version=B.version AND C.update_time=B.update_time
-                RIGHT JOIN (SELECT * FROM rainbond_center_app RCA GROUP BY RCA.enterprise_id, RCA.app_id) BB
-                ON C.enterprise_id=BB.enterprise_id AND C.app_id=BB.app_id
-            """
-        sql += where
-        conn = BaseConnection()
-        result = conn.query(sql)
-        return result
-
-    def get_rainbond_app_by_key(self, group_key):
-        rcapps = RainbondCenterApp.objects.filter(group_key=group_key).all()
-        if rcapps:
-            return rcapps
-        return None
-
-    def add_rainbond_install_num(self, enterprise_id, app_id, app_version):
-        app = RainbondCenterApp.objects.get(enterprise_id=enterprise_id, app_id=app_id)
-        app.install_number += 1
-        app.save()
-
-        app_version = RainbondCenterAppVersion.objects.filter(
-            enterprise_id=enterprise_id, app_id=app_id, version=app_version).order_by("-upgrade_time").first()
-        app_version.install_number += 1
-        app_version.save()
-
-    def get_rainbond_app_and_version(self, enterprise_id, app_id, app_version):
-        app = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=app_id).first()
-        if not app_version:
-            return app, None
-        app_version = RainbondCenterAppVersion.objects.filter(
-            enterprise_id=enterprise_id,
-            app_id=app_id,
-            version=app_version,
-            scope__in=["gooodrain", "team", "enterprise"],
-        ).order_by("-upgrade_time").first()
-        if app_version and app:
-            return app, app_version
-        app_version = RainbondCenterAppVersion.objects.filter(
-            enterprise_id="public",
-            app_id=app_id,
-            version=app_version,
-            scope__in=["gooodrain", "team", "enterprise"],
-        ).order_by("-upgrade_time").first()
-        return app, app_version
-
-    def list_by_key_time(self, group_key, time):
-        rcapps = RainbondCenterAppVersion.objects.filter(app_id=group_key, update_time__gte=time, is_complete=True).all()
-        if rcapps:
-            return rcapps
-        return None
-
-    def get_rainbond_app_qs_by_key(self, eid, app_id):
-        """使用group_key获取一个云市应用的所有版本查询集合"""
-        return RainbondCenterApp.objects.filter(enterprise_id=eid, app_id=app_id).first()
-
     def get_rainbond_app_by_key_version(self, group_key, version):
         """使用group_key 和 version 获取一个云市应用"""
-        app = RainbondCenterApp.objects.filter(app_id=group_key).first()
-        app_version = RainbondCenterAppVersion.objects.filter(
-            app_id=group_key, version=version, scope__in=["team", "enterprise", "goodrain"]).order_by("-upgrade_time").first()
+        app, app_version = self.get_rainbond_app_and_version(group_key, version)
         if app and app_version:
             app_version.app_name = app.app_name
         return app_version
 
     def get_enterpirse_app_by_key_and_version(self, enterprise_id, group_key, group_version):
-        app = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=group_key).first()
-        rcapps = RainbondCenterAppVersion.objects.filter(
-            app_id=group_key, version=group_version, enterprise_id__in=["public", enterprise_id]).order_by("-update_time")
+        app = self.get_rainbond_app_by_app_id(group_key)
+        rcapps = self.filter_rainbond_app_version_by_app_id_and_version(group_key, group_version).order_by("-update_time")
         if rcapps and app:
             rcapp = rcapps.filter(enterprise_id=enterprise_id)
             # 优先获取企业下的应用
@@ -475,47 +250,14 @@ class RainbondCenterAppRepository(object):
         logger.warning("Enterprise ID: {0}; Group Key: {1}; Version: {2}".format(enterprise_id, group_key, group_version))
         return None
 
-    def get_enterpirse_app_by_key(self, enterprise_id, group_key):
-        rcapps = RainbondCenterApp.objects.filter(app_id=group_key, enterprise_id__in=["public", enterprise_id])
-        if rcapps:
-            rcapp = rcapps.filter(enterprise_id=enterprise_id)
-            # 优先获取企业下的应用
-            if rcapp:
-                return rcapp[0]
-            else:
-                return rcapps[0]
-        logger.warning("Enterprise ID: {0}; Group Key: {1};".format(enterprise_id, group_key))
-        return None
-
-    def bulk_create_rainbond_apps(self, rainbond_apps):
-        RainbondCenterApp.objects.bulk_create(rainbond_apps)
-
-    def bulk_create_rainbond_app_versions(self, rainbond_app_versions):
-        RainbondCenterAppVersion.objects.bulk_create(rainbond_app_versions)
-
-    def get_rainbond_app_version_by_app_id_and_version(self, app_id, version):
-        return RainbondCenterAppVersion.objects.filter(app_id=app_id, version=version).first()
-
-    def get_rainbond_app_versions(self, eid, app_id):
-        return RainbondCenterAppVersion.objects.filter(enterprise_id=eid, app_id=app_id)
-
-    def get_rainbond_app_by_record_id(self, record_id):
-        rcapps = RainbondCenterApp.objects.filter(record_id=record_id)
-        if rcapps:
-            return rcapps[0]
-        return None
+    def get_app_tag_by_id(self, enterprise_id, app_id):
+        return RainbondCenterAppTagsRelation.objects.filter(enterprise_id=enterprise_id, app_id=app_id)
 
     def delete_app_tag_by_id(self, enterprise_id, app_id):
         RainbondCenterAppTagsRelation.objects.filter(enterprise_id=enterprise_id, app_id=app_id).delete()
 
-    def delete_app_version_by_id(self, enterprise_id, app_id):
-        RainbondCenterAppVersion.objects.filter(enterprise_id=enterprise_id, app_id=app_id).delete()
-
-    def delete_app_by_id(self, enterprise_id, app_id):
-        RainbondCenterApp.objects.filter(enterprise_id=enterprise_id, app_id=app_id).delete()
-
-    def update_app_version(self, enterprise_id, app_id, version, **data):
-        version = RainbondCenterAppVersion.objects.filter(enterprise_id=enterprise_id, app_id=app_id, version=version).last()
+    def update_app_version(self, app_id, version, **data):
+        version = self.filter_rainbond_app_version_by_app_id_and_version(app_id, version).last()
         if version is not None:
             if data["version_alias"] is not None:
                 version.version_alias = data["version_alias"]
@@ -529,8 +271,6 @@ class RainbondCenterAppRepository(object):
             return version
         return None
 
-    def delete_app_version_by_version(self, enterprise_id, app_id, version):
-        RainbondCenterAppVersion.objects.filter(enterprise_id=enterprise_id, app_id=app_id, version=version).delete()
 
 
 class AppExportRepository(object):

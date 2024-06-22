@@ -504,7 +504,7 @@ class AppImportService(object):
             apps = app_template.get("apps")
             if annotations.get("describe", ""):
                 app_describe = annotations.pop("describe", "")
-            app = rainbond_app_repo.get_rainbond_app_by_app_id(import_record.enterprise_id, app_template["group_key"])
+            app = rainbond_app_repo.get_rainbond_app_by_app_id(app_template["group_key"])
             if not arch:
                 arch_map = {a.get("arch", "amd64"): 1 for a in apps}
                 arch = "&".join(list(arch_map.keys()))
@@ -589,8 +589,7 @@ class AppImportService(object):
         metadata = json.loads(metadata)
         key_and_version_list = []
         for app_template in metadata:
-            app = rainbond_app_repo.get_rainbond_app_by_key_and_version_eid(tenant.enterprise_id, app_template["group_key"],
-                                                                            app_template["group_version"])
+            app = rainbond_app_repo.get_rainbond_app_by_app_id(app_template["group_key"])
             if app:
                 # 覆盖原有应用数据
                 app.share_team = tenant.tenant_name  # 分享团队名暂时为那个团队将应用导入进来的

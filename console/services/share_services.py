@@ -56,9 +56,6 @@ class ShareService(object):
             data = {"code": 400, "success": False, "msg_show": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
         return data
 
-    def check_whether_have_share_history(self, group_id):
-        return share_repo.get_rainbond_cent_app_by_tenant_service_group_id(group_id=group_id)
-
     def get_service_ports_by_ids(self, service_ids):
         """
         根据多个组件ID查询组件的端口信息
@@ -419,13 +416,6 @@ class ShareService(object):
                             continue
         return service_info
 
-    def query_service_last_share_info(self, group_id):
-        service_share = share_repo.get_shared_app_versions_by_groupid(group_id).first()
-        if service_share:
-            return json.loads(service_share.app_template)["apps"]
-        else:
-            return None
-
     # 查询应用内使用的插件列表
     def query_group_service_plugin_list(self, team, group_id):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
@@ -474,7 +464,7 @@ class ShareService(object):
         return service_plugin_config_list
 
     def create_basic_app_info(self, **kwargs):
-        return share_repo.add_basic_app_info(**kwargs)
+        return rainbond_app_repo.add_basic_app_info(**kwargs)
 
     def create_publish_event(self, record_event, user_name, event_type):
         import datetime
@@ -636,22 +626,15 @@ class ShareService(object):
             record_event.save()
         return record_event
 
-    def get_app_by_app_id(self, app_id):
-        app = share_repo.get_app_by_app_id(app_id=app_id)
-        if app:
-            return 200, "应用包获取成功", app[0]
-        else:
-            return 400, '应用包不存在', None
+    @staticmethod
+    def get_app_by_app_id(app_id):
+        return rainbond_app_repo.get_rainbond_app_by_app_id(app_id=app_id)
 
     def get_app_version_by_app_id(self, app_id, is_complete):
-        return share_repo.get_app_versions_by_app_id(app_id, is_complete)
+        return rainbond_app_repo.get_app_versions_by_app_id(app_id, is_complete)
 
     def get_app_by_key(self, key):
-        app = share_repo.get_app_by_key(key)
-        if app:
-            return app
-        else:
-            return None
+        return rainbond_app_repo.get_rainbond_app_by_app_id(key)
 
     def delete_app(self, app):
         app.delete()
@@ -1020,8 +1003,8 @@ class ShareService(object):
             service['dep_service_map_list'] = list(filter(filter_dep, service['dep_service_map_list']))
 
     def complete(self, tenant, user, share_record, is_plugin):
-        # app = rainbond_app_repo.get_app_version_by_record_id(share_record.ID)
-        app = share_repo.get_app_version_by_record_id(share_record.ID)
+        app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(app_version.app_id)
         app_market_url = None
         if app:
             # 分享到云市
@@ -1035,6 +1018,7 @@ class ShareService(object):
             app.is_complete = True
             app.update_time = datetime.datetime.now()
             app.is_plugin = is_plugin
+            app.is_version = True
             app.save()
             RainbondCenterAppVersion.objects.filter(
                 app_id=app.app_id, source="local", scope="goodrain", is_complete=True).delete()
@@ -1109,27 +1093,9 @@ class ShareService(object):
         }
         return data
 
-    def get_local_apps_versions(self):
-        app_list = []
-        apps = share_repo.get_local_apps()
-        if apps:
-            for app in apps:
-                app_versions = list(
-                    set(share_repo.get_app_versions_by_app_id(app.app_id, True).values_list("version", flat=True)))
-                app_list.append({
-                    "app_name": app.app_name,
-                    "app_id": app.app_id,
-                    "pic": app.pic,
-                    "app_describe": app.describe,
-                    "dev_status": app.dev_status,
-                    "version": app_versions,
-                    "scope": app.scope,
-                })
-        return app_list
-
     def get_team_local_apps_versions(self, enterprise_id, team_name):
         app_list = []
-        apps = share_repo.get_enterprise_team_apps(enterprise_id, team_name)
+        apps = rainbond_app_repo.get_enterprise_team_apps(enterprise_id, team_name)
         if apps:
             for app in apps:
                 app_versions = list(share_repo.get_last_app_versions_by_app_id(app.app_id))
@@ -1204,7 +1170,7 @@ class ShareService(object):
                         }
         else:
             if last_shared:
-                last_shared_app_info = share_repo.get_app_by_app_id(last_shared.app_id)
+                last_shared_app_info = rainbond_app_repo.get_rainbond_app_by_app_id(last_shared.app_id)
                 if last_shared_app_info:
                     self._patch_rainbond_app_tag(last_shared_app_info)
                     dt["last_shared_app"] = {
@@ -1261,7 +1227,7 @@ class ShareService(object):
                 return None, None
             dt = (json.loads(app_version.template), app_version.app_version_info)
         else:
-            app_version = share_repo.get_app_version(last_shared.app_id, last_shared.share_version)
+            app_version = rainbond_app_repo.get_app_version(last_shared.app_id, last_shared.share_version)
             if not app_version:
                 return None, None
             dt = (json.loads(app_version.app_template), app_version.app_version_info)

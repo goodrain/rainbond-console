@@ -347,7 +347,7 @@ class AppTagCDView(JWTAuthApiView):
         result = general_message(200, "success", "创建成功")
         if not tag_id:
             result = general_message(400, "fail", "请求参数错误")
-        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(app_id)
         if not app:
             result = general_message(404, "fail", "该应用不存在")
         try:
@@ -362,7 +362,7 @@ class AppTagCDView(JWTAuthApiView):
         result = general_message(200, "success", "删除成功")
         if not tag_id:
             result = general_message(400, "fail", "请求参数错误")
-        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(app_id)
         if not app:
             result = general_message(404, "fail", "该应用不存在")
         try:
@@ -385,7 +385,7 @@ class AppVersionUDView(JWTAuthApiView):
             "version_alias": version_alias,
             "app_version_info": app_version_info
         }
-        version = market_app_service.update_rainbond_app_version_info(enterprise_id, app_id, version, **body)
+        version = market_app_service.update_rainbond_app_version_info(app_id, version, **body)
         result = general_message(200, "success", "更新成功", bean=version.to_dict())
         return Response(result, status=result.get("code", 200))
 

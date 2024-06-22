@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.db.models import Q
-from console.models.main import RainbondCenterApp, ServiceShareRecord, RainbondCenterPlugin, RainbondCenterAppVersion
+from console.models.main import ServiceShareRecord, RainbondCenterPlugin
 from www.models.main import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
     TenantServiceEnvVar, TenantServiceVolume, ServiceProbe
 from www.models.plugin import ServicePluginConfigVar, TenantServicePluginRelation, TenantServicePluginAttr
@@ -16,10 +16,6 @@ class ShareRepo(object):
         svc_ids = [svc_rel.service_id for svc_rel in svc_relations]
         return TenantServiceInfo.objects.filter(service_id__in=svc_ids).exclude(service_source="third_party").exclude(
             service_source="vm_run")
-
-    def get_rainbond_cent_app_by_tenant_service_group_id(self, group_id):
-        rainbond_cent_app = RainbondCenterApp.objects.filter(tenant_service_group_id=group_id).order_by("-create_time").first()
-        return rainbond_cent_app
 
     def get_port_list_by_service_ids(self, service_ids):
         port_list = TenantServicesPort.objects.filter(service_id__in=service_ids)
@@ -60,42 +56,6 @@ class ShareRepo(object):
         probes = ServiceProbe.objects.filter(service_id__in=service_ids).all()
         return probes or []
 
-    def add_basic_app_info(self, **kwargs):
-        app = RainbondCenterApp(**kwargs)
-        app.save()
-        return app
-
-    def get_app_by_key(self, key):
-        app = RainbondCenterApp.objects.filter(app_id=key)
-        if app:
-            return app[0]
-        else:
-            return None
-
-    def get_shared_apps_by_team(self, team_name):
-        return RainbondCenterApp.objects.filter(
-            share_team=team_name, is_complete=True, scope__in=["team", "enterprise", "goodrain"]).values(
-                "group_key", "group_name", "version").order_by("group_key")
-
-    def delete_helm_shared_apps(self, source):
-        return RainbondCenterApp.objects.filter(source=source).delete()
-
-    def get_helm_shared_apps_by_source(self, source):
-        return RainbondCenterApp.objects.filter(source=source)
-
-    def get_shared_app_by_group_key(self, group_key, version, team_name):
-        if version:
-            return RainbondCenterApp.objects.filter(
-                group_key=group_key, share_team=team_name, version=version, is_complete=True).order_by("-create_time").first()
-        return RainbondCenterApp.objects.filter(
-            group_key=group_key, share_team=team_name, is_complete=True).order_by("-create_time").first()
-
-    def get_shared_app_versions_by_group_key(self, group_key, team_name):
-        return RainbondCenterApp.objects.filter(group_key=group_key, share_team=team_name, is_complete=True)
-
-    def get_shared_app_versions_by_groupid(self, group_id):
-        return RainbondCenterApp.objects.filter(tenant_service_group_id=group_id, is_complete=True).order_by("-create_time")
-
     def get_last_shared_app_version_by_group_id(self, group_id, team_name=None, scope=None):
         if scope == "goodrain":
             return ServiceShareRecord.objects.filter(
@@ -104,21 +64,6 @@ class ShareRepo(object):
             return ServiceShareRecord.objects.filter(
                 group_id=group_id, scope__in=["team", "enterprise"], team_name=team_name,
                 is_success=True).order_by("-create_time").first()
-
-    def get_local_apps(self):
-        return RainbondCenterApp.objects.all().order_by("-create_time")
-
-    def get_enterprise_team_apps(self, enterprise_id, team_name):
-        return RainbondCenterApp.objects.filter(
-            Q(enterprise_id=enterprise_id, create_team=team_name, source="local")
-            | Q(enterprise_id=enterprise_id, scope="enterprise", source="local")
-            | Q(enterprise_id=enterprise_id, scope="team", source="local")).order_by("-create_time")
-
-    def get_app_by_app_id(self, app_id):
-        return RainbondCenterApp.objects.filter(app_id=app_id).first()
-
-    def get_app_versions_by_app_id(self, app_id, is_complete):
-        return RainbondCenterAppVersion.objects.filter(app_id=app_id, is_complete=is_complete)
 
     def get_last_app_versions_by_app_id(self, app_id):
         conn = BaseConnection()
@@ -135,16 +80,10 @@ class ShareRepo(object):
         result = conn.query(sql)
         return result
 
-    def get_app_version(self, app_id, version):
-        return RainbondCenterAppVersion.objects.filter(app_id=app_id, version=version).order_by("-create_time").first()
-
-    def get_app_version_by_record_id(self, record_id):
-        return RainbondCenterAppVersion.objects.filter(record_id=record_id).first()
-
-    def create_app(self, data):
-        app_model = RainbondCenterApp(**data)
-        app_model.save()
-        return app_model
+    def create_service(self, **kwargs):
+        service = ServiceInfo(**kwargs)
+        service.save()
+        return service
 
     def create_tenant_service(self, **kwargs):
         tenant_service = TenantServiceInfo(**kwargs)

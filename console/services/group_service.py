@@ -599,7 +599,7 @@ class GroupService(object):
     def get_region_app_statuses(tenant_name, region_name, app_ids):
         # Obtain the application ID of the cluster and
         # record the corresponding relationship of the console application ID
-        region_apps = region_app_repo.list_by_app_ids(region_name, app_ids)
+        region_apps = region_app_repo.list_by_region_and_app_ids(region_name, app_ids)
         region_app_ids = []
         app_id_rels = dict()
         for region_app in region_apps:
@@ -623,7 +623,11 @@ class GroupService(object):
         for app_id in app_ids:
             if not app_id_rels.get(app_id):
                 continue
-            app_id_status_rels[app_id] = region_app_id_status_rels.get(app_id_rels[app_id])
+            region_app_id_status = region_app_id_status_rels.get(app_id_rels[app_id])
+            if not region_app_id_status:
+                continue
+            region_app_id_status["group_id"] = app_id
+            app_id_status_rels[app_id] = region_app_id_status
         return app_id_status_rels
 
     @staticmethod

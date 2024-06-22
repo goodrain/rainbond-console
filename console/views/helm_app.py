@@ -45,7 +45,7 @@ class HelmAppView(RegionTenantHeaderView):
         cvdata = helm_app_service.yaml_conversion(name, repo_name, chart_name, version, overrides_list, self.region_name,
                                                   self.tenant_name, self.tenant, self.enterprise.enterprise_id,
                                                   self.region.region_id)
-        helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(self.enterprise.enterprise_id, app_model_id)
+        helm_center_app = rainbond_app_repo.get_rainbond_app_by_app_id(app_model_id)
         chart = repo_name + "/" + chart_name
         helm_app_service.generate_template(cvdata, helm_center_app, version, self.tenant, chart, self.region_name,
                                            self.enterprise.enterprise_id, self.user.user_id, overrides_list, app_id)
@@ -64,7 +64,7 @@ class HelmCenterApp(RegionTenantHeaderView):
         describe = request.data.get("describe", "")
         details = request.data.get("details", "This is a helm application from {}".format(repo_name))
         app_id = make_uuid3(repo_name + "/" + chart_name)
-        helm_center_app = rainbond_app_repo.get_rainbond_app_qs_by_key(self.enterprise.enterprise_id, app_id)
+        helm_center_app = rainbond_app_repo.get_rainbond_app_by_app_id(app_id)
         data = {"exist": True, "app_model_id": app_id}
         if not helm_center_app:
             center_app = {
@@ -190,7 +190,7 @@ class HelmRepo(JWTAuthApiView):
         删除helm仓库
         """
         repo_name = request.data.get("repo_name")
-        share_repo.delete_helm_shared_apps("helm:" + repo_name)
+        rainbond_app_repo.delete_helm_shared_apps("helm:" + repo_name)
         helm_repo.delete_helm_repo(repo_name)
         result = general_message(200, "success", "删除成功", "")
         return Response(result, status=status.HTTP_200_OK)

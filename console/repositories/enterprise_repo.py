@@ -107,10 +107,7 @@ class TenantEnterpriseRepo(object):
             return Tenants.objects.filter(enterprise_id=enterprise_id, is_active=True).order_by("-create_time")
 
     def get_enterprise_shared_app_nums(self, enterprise_id):
-        apps = RainbondCenterApp.objects.filter(enterprise_id=enterprise_id)
-        if not apps:
-            return 0
-        return len(set(apps.values_list("app_id", flat=True)))
+        return RainbondCenterApp.objects.filter().count()
 
     def get_enterprise_user_active_teams(self, enterprise_id, user_id):
         tenants = self.get_enterprise_user_teams(enterprise_id, user_id)

@@ -27,6 +27,7 @@ from console.repositories.app import (app_market_repo, service_repo, service_sou
 from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import domain_repo as http_rule_repo
 from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo)
+from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
@@ -1305,7 +1306,7 @@ class AppMarketService(object):
     def get_market_app_model_version(self, market, app_id, version, for_install=False, extend=False, get_template=False):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
-        results = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=get_template)
+        results = rainbond_app_repo.get_app_version(market, app_id, version, for_install=for_install, get_template=get_template)
         data = self.app_model_version_serializers(market, results, extend=extend)
         return data
 
