@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
-from console.utils import perms_route_config as perms
+
 from django.conf.urls import url
 from openapi.views.apps.apps import (AppInfoView, APPOperationsView, AppServiceEventsView, AppServicesView,
                                      AppServiceTelescopicHorizontalView, AppServiceTelescopicVerticalView, ComponentBuildView,
