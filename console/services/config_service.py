@@ -90,7 +90,7 @@ class ConfigService(object):
         return self.delete_config_by_key(key)
 
     def add_config(self, key, default_value, type, enable=True, desc=""):
-        if not ConsoleSysConfig.objects.filter(key=key, enterprise_id=self.enterprise_id).exists():
+        if not ConsoleSysConfig.objects.filter(key=key).exists():
             create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             config = ConsoleSysConfig.objects.create(
                 key=key,
@@ -98,8 +98,7 @@ class ConfigService(object):
                 value=default_value,
                 desc=desc,
                 create_time=create_time,
-                enable=enable,
-                enterprise_id=self.enterprise_id)
+                enable=enable)
             custom_settings.reload()
             return config
         else:
@@ -126,13 +125,13 @@ class ConfigService(object):
     def update_config_enable_status(self, key, enable):
         self.init_base_config_value()
         ConsoleSysConfig.objects.filter(key=key).update(enable=enable)
-        config = ConsoleSysConfig.objects.get(key=key, enterprise_id=self.enterprise_id)
+        config = ConsoleSysConfig.objects.get(key=key)
         if key in self.base_cfg_keys:
             return {key.lower(): {"enable": enable, "value": self.base_cfg_keys_value[key]["value"]}}
         return {key.lower(): {"enable": enable, "value": (eval(config.value) if config.type == "json" else config.value)}}
 
     def update_config_value(self, key, value):
-        config = ConsoleSysConfig.objects.get(key=key, enterprise_id=self.enterprise_id)
+        config = ConsoleSysConfig.objects.get(key=key)
         config.value = value
         if isinstance(value, (dict, list)):
             type = "json"
@@ -143,7 +142,7 @@ class ConfigService(object):
         return {key.lower(): {"enable": True, "value": config.value}}
 
     def delete_config_by_key(self, key):
-        rst = ConsoleSysConfig.objects.get(key=key, enterprise_id=self.enterprise_id)
+        rst = ConsoleSysConfig.objects.get(key=key)
         rst.enable = self.cfg_keys_value[key]["enable"]
         rst.value = self.cfg_keys_value[key]["value"]
         rst.desc = self.cfg_keys_value[key]["desc"]
@@ -407,7 +406,7 @@ class PlatformConfigService(ConfigService):
         if not ConsoleSysConfig.objects.filter(key=key).exists():
             create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             config = ConsoleSysConfig.objects.create(
-                key=key, type=type, value=default_value, desc=desc, create_time=create_time, enterprise_id="")
+                key=key, type=type, value=default_value, desc=desc, create_time=create_time)
             return config
         else:
             raise ConfigExistError("配置{}已存在".format(key))

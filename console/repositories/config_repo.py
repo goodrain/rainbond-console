@@ -52,7 +52,6 @@ class ConfigRepository(object):
             type="string",
             desc="helm对接集群唯一标识",
             enable=True,
-            enterprise_id=eid,
             create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 
