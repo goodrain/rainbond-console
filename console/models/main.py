@@ -80,8 +80,6 @@ class ConsoleSysConfig(BaseModel):
     desc = models.CharField(max_length=100, null=True, blank=True, default="", help_text="描述")
     enable = models.BooleanField(default=True, help_text="是否生效")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-    enterprise_id = models.CharField(max_length=32, help_text="eid", default="")
-
 
 class RainbondCenterApp(BaseModel):
     """云市应用包(组)"""
