@@ -24,6 +24,7 @@ from www.utils.return_message import general_message
 logger = logging.getLogger("default")
 
 class ConfigOSSView(JWTTokenView):
+
     def get(self, request, *args, **kwargs):
         oss_config = ConsoleSysConfig.objects.filter(key='OSS_CONFIG').first()
         if oss_config:
@@ -53,8 +54,6 @@ class ConfigOSSView(JWTTokenView):
             data = {'message': '配置创建成功', 'config_id': new_config.ID}
 
         return Response(data=data, status=200)
-
-
 
 class ConfigRUDView(AlowAnyApiView):
     """
