@@ -1,11 +1,14 @@
 # -*- coding: utf8 -*-
+import json
 import logging
 import os
+from datetime import datetime
 
 from django.db import transaction
 from rest_framework.response import Response
 
 from console.exception.main import ServiceHandleException
+from console.models.main import ConsoleSysConfig
 from console.repositories.perm_repo import perms_repo
 from console.repositories.team_repo import team_repo
 from console.services.config_service import platform_config_service
@@ -13,11 +16,44 @@ from console.services.perm_services import role_kind_services
 from console.services.perm_services import user_kind_role_service
 from console.views.base import AlowAnyApiView
 from console.views.base import BaseApiView
+from console.views.jwt_token_view import JWTTokenView
 from www.models.main import Tenants
 from www.utils.return_message import error_message
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
+
+class ConfigOSSView(JWTTokenView):
+    def get(self, request, *args, **kwargs):
+        oss_config = ConsoleSysConfig.objects.filter(key='OSS_CONFIG').first()
+        if oss_config:
+            data = json.loads(oss_config.value)
+            return Response(data=data, status=200)
+        return Response(data={}, status=200)
+
+    def put(self, request, *args, **kwargs):
+        oss_config = ConsoleSysConfig.objects.filter(key='OSS_CONFIG').first()
+
+        # 如果已存在，则更新；如果不存在，则创建
+        if oss_config:
+            oss_config.value = json.dumps(request.data)
+            oss_config.desc = 'OSS 配置'
+            oss_config.create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            oss_config.save()
+            data = {'message': '配置更新成功'}
+        else:
+            new_config = ConsoleSysConfig.objects.create(
+                key='OSS_CONFIG',
+                type='json',
+                value=json.dumps(request.data),
+                desc='OSS 配置',
+                create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                enterprise_id=""
+            )
+            data = {'message': '配置创建成功', 'config_id': new_config.ID}
+
+        return Response(data=data, status=200)
+
 
 
 class ConfigRUDView(AlowAnyApiView):
