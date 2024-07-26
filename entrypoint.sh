@@ -67,7 +67,7 @@ if [ "$1" = "debug" -o "$1" = "bash" ]; then
     exec /bin/bash
 elif [ "$1" = "version" ]; then
     echo "${RELEASE_DESC}"
-else
+elif [ "$1" = "init" ]; then
     if ! (init_database); then
       exit 1
     fi
@@ -77,6 +77,10 @@ else
       else
         use_mysql
       fi
+    fi
+else
+    if ! (init_database); then
+      exit 1
     fi
     # python upgrade.py
     exec gunicorn goodrain_web.wsgi -b 0.0.0.0:${PORT:-7070} --max-requests=5000 -k gevent --reload --workers=2 --timeout=75 --log-file - --access-logfile - --error-logfile -
