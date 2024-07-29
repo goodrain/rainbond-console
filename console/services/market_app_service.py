@@ -90,7 +90,7 @@ class MarketAppService(object):
         chaos_arch = list(set(body.get("list")))
         template_arch = app_template.get("arch", "amd64")
         template_arch = template_arch if template_arch else "amd64"
-        if template_arch not in chaos_arch and len(chaos_arch) < 2:
+        if template_arch not in chaos_arch and len(chaos_arch) < 2 and not dry_run:
             raise AbortRequest("app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
         if not app_template.get("goavernance_mode"):
             app_template["governance_mode"] = GovernanceModeEnum.KUBERNETES_NATIVE_SERVICE.name
