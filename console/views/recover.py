@@ -7,7 +7,6 @@ from www.utils.return_message import general_message
 from rest_framework.response import Response
 
 
-
 class RegionRecover(BaseApiView):
     def post(self, request, *args, **kwargs):
         recover_range = request.data.get("recover_range", "all")
