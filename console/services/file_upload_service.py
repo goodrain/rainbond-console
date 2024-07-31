@@ -58,7 +58,8 @@ class FileUploadService(object):
         oss_config = ConsoleSysConfig.objects.filter(key='OSS_CONFIG').first()
         if oss_config:
             data = json.loads(oss_config.value)
-            return len(data) == 4
+            enable = data.get('enable', False)
+            return enable
         return False
 
     def upload_file_to_local(self, upload_file, suffix):
