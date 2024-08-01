@@ -401,7 +401,7 @@ class AppVolumeService(object):
         volume_repo.delete_volume_by_id(volume_id)
         volume_repo.delete_file_by_volume(volume)
 
-        return 200, "success", volume
+        return 200, "success", volume.to_dict()
 
     def delete_service_volumes(self, service):
         volume_repo.delete_service_volumes(service.service_id)
