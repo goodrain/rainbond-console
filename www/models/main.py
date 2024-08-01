@@ -309,7 +309,6 @@ class BaseModel(models.Model):
         return ""
 
     def parse_kind(self, a):
-        # print(a.name, type(a))
         if type(a) == CharField:
             return "string"
         if type(a) == AutoField:

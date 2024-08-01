@@ -12,7 +12,9 @@ import ssl
 import certifi
 import urllib3
 from addict import Dict
-from console.exception.main import ServiceHandleException, ErrClusterLackOfMemory, ErrTenantLackOfMemory
+from console.exception.main import ServiceHandleException, ErrClusterLackOfMemory, ErrTenantLackOfMemory, \
+    ErrClusterAuthLackOfMemory, ErrClusterAuthLackOfNode, ErrClusterAuthLackOfLicense, \
+    ErrClusterAuthLackOfLicenseExpire, ErrTenantLackOfCPU, ErrTenantQuotaCPULack, ErrTenantQuotaMemoryLack
 from console.repositories.region_repo import region_repo
 from django.conf import settings
 from django.http import HttpResponse, QueryDict
@@ -102,6 +104,20 @@ class RegionApiBaseHttpClient(object):
                     raise ErrClusterLackOfMemory()
                 if body.get("msg") == "tenant_lack_of_memory":
                     raise ErrTenantLackOfMemory()
+                if body.get("msg") == "tenant_lack_of_cpu":
+                    raise ErrTenantLackOfCPU()
+                if body.get("msg") == "tenant_quota_cpu_lack":
+                    raise ErrTenantQuotaCPULack()
+                if body.get("msg") == "tenant_quota_memory_lack":
+                    raise ErrTenantQuotaMemoryLack()
+                if body.get("msg") == "authorize_cluster_lack_of_memory":
+                    raise ErrClusterAuthLackOfMemory()
+                if body.get("msg") == "authorize_cluster_lack_of_node":
+                    raise ErrClusterAuthLackOfNode()
+                if body.get("msg") == "authorize_cluster_lack_of_license":
+                    raise ErrClusterAuthLackOfLicense()
+                if body.get("msg") == "authorize_expiration_of_authorization":
+                    raise ErrClusterAuthLackOfLicenseExpire()
             raise self.CallApiError(self.apitype, url, method, res, body)
         else:
             return res, body

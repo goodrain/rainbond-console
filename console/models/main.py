@@ -55,7 +55,6 @@ class BaseModel(models.Model):
         return ""
 
     def parse_kind(self, a):
-        # print(a.name, type(a))
         if type(a) == CharField:
             return "string"
         if type(a) == AutoField:
@@ -75,7 +74,7 @@ class ConsoleSysConfig(BaseModel):
     class Meta:
         db_table = 'console_sys_config'
 
-    key = models.CharField(max_length=32, help_text="key")
+    key = models.CharField(max_length=32, help_text="key", unique=True)
     type = models.CharField(max_length=32, help_text="类型")
     value = models.CharField(max_length=4096, null=True, blank=True, help_text="value")
     desc = models.CharField(max_length=100, null=True, blank=True, default="", help_text="描述")
@@ -573,6 +572,7 @@ class RolePerms(BaseModel):
 
     role_id = models.IntegerField(help_text="角色id")
     perm_code = models.IntegerField(help_text='权限编码')
+    app_id = models.IntegerField(help_text="application ID", default=-1)
 
 
 class RoleInfo(BaseModel):

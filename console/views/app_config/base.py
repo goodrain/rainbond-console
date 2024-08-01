@@ -6,7 +6,7 @@ import logging
 
 from rest_framework.response import Response
 
-from console.exception.main import BusinessException, AbortRequest
+from console.exception.main import BusinessException, AbortRequest, ServiceHandleException
 from console.services.group_service import group_service
 from console.views.base import RegionTenantHeaderView
 from www.models.main import Tenants, TenantServiceInfo
@@ -21,6 +21,8 @@ class AppBaseView(RegionTenantHeaderView):
     def __init__(self, *args, **kwargs):
         super(AppBaseView, self).__init__(*args, **kwargs)
         self.service = None
+        self.app = None
+        self.component = None
 
     def initial(self, request, *args, **kwargs):
         super(AppBaseView, self).initial(request, *args, **kwargs)
@@ -54,6 +56,12 @@ class AppBaseView(RegionTenantHeaderView):
         else:
             raise BusinessException(
                 Response(general_message(404, "service not found", "组件{0}不存在".format(service_alias)), status=404))
+        app = group_service.get_service_group_info(self.service.service_id)
+        if not app:
+            raise ServiceHandleException("app not found", "应用不存在", 404, 404)
+        self.app = group_service.get_app_by_id(self.tenant, self.region_name, app.ID)
+        if not self.app:
+            raise ServiceHandleException("app not found", "应用不存在", 404, 404)
 
 
 class AppBaseCloudEnterpriseCenterView(AppBaseView, CloudEnterpriseCenterView):

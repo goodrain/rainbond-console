@@ -48,6 +48,21 @@ function init_database() {
     return 0
 }
 
+use_sqlite() {
+    # shellcheck disable=SC1035
+    if !(python default_region_sqlite.py 2> /dev/null); then
+      echo -e "${RED}failed to default_region${NC}"
+      exit 1
+    fi
+}
+
+use_mysql() {
+    if !(python default_region.py 2> /dev/null); then
+      echo -e "${RED}failed to default_region${NC}"
+      exit 1
+    fi
+}
+
 if [ "$1" = "debug" -o "$1" = "bash" ]; then
     exec /bin/bash
 elif [ "$1" = "version" ]; then
@@ -56,9 +71,12 @@ elif [ "$1" = "init" ]; then
     if ! (init_database); then
       exit 1
     fi
-    if !(python default_region.py 2> /dev/null); then
-        echo -e "${RED}failed to default_region${NC}"
-        exit 1
+    if [ "${INSTALL_TYPE}" != "allinone" ]; then
+      if [ "$DB_TYPE" != "mysql" ]; then
+        use_sqlite
+      else
+        use_mysql
+      fi
     fi
 else
     if ! (init_database); then

@@ -3,6 +3,7 @@ import copy
 from collections import Counter
 
 from console.enum.enterprise_enum import EnterpriseRolesEnum
+from www.models.main import ServiceGroup
 """
 - enterprise 100
     sub1 -- 101
@@ -20,12 +21,11 @@ from console.enum.enterprise_enum import EnterpriseRolesEnum
 ENTERPRISE = {
     "admin": {
         "perms": [
-            # what is What is 10000 and 20000?
-            ["", "", 100000],
-            ["", "", 200000],
-            ["users", "企业用户查询和创建", 800003],
-            ["query", "用户模糊查询", 800002],
-            ["upload", "上传", 800001],
+            ["enterprise_info", "企业视图的功能", 100000],
+            ["team_info", "团队相关操作", 100001],
+            ["users", "企业用户查询和创建", 100002],
+            ["query", "用户模糊查询", 100003],
+            ["upload", "上传", 100004],
         ]
     },
     "app_store": {
@@ -55,146 +55,319 @@ common_perms = [
     ["get_ent_teams", "获取企业的团队列表", 120000],
 ]
 
-TEAM = {
-    "perms": [
-        ["describe", "查看团队信息", 200001],
-        ["dynamic_describe", "查看团队动态", 200009],
-        ["maven_setting", "管理Maven配置", 200014],
-    ],
-    "teamRegion": {
-        "perms": [["describe", "查看", 200002], ["install", "开通", 200003], ["uninstall", "卸载", 200004]]
-    },
-    "teamMember": {
+APP = {
+    "perms": [],
+    "app_overview": {
         "perms": [
-            ["describe", "查看", 200005],
-            ["create", "创建", 200006],
-            ["edit", "编辑", 200007],
-            ["delete", "删除", 200008],
-        ]
-    },
-    "teamRole": {
-        "perms": [
-            ["describe", "查看", 200010],
-            ["create", "创建", 200011],
-            ["edit", "编辑", 200012],
-            ["delete", "删除", 200013],
-        ]
-    },
-    "teamRegistryAuth": {
-        "perms": [
-            ["describe", "查看", 200015],
-            ["create", "创建", 200016],
-            ["edit", "编辑", 200017],
-            ["delete", "删除", 200018],
-        ]
-    },
-    "app": {
-        "perms": [
-            ["describe", "查看", 300001],
-            ["create", "创建", 300002],
+            ["describe", "查看", 300002],
             ["edit", "编辑", 300003],
             ["delete", "删除", 300004],
             ["start", "启动", 300005],
             ["stop", "停用", 300006],
             ["update", "更新", 300007],
             ["construct", "构建", 300008],
-            ["backup", "备份", 300009],
-            ["migrate", "迁移", 300010],
-            ["share", "发布", 300012],
-            ["upgrade", "升级", 300013],
-            ["copy", "复制", 300014],
-            ["import", "导入", 300015],
-            ["export", "导出", 300016],
+            ["create", "组件创建", 300013],
+            ["copy", "快速复制", 300009],
+            ["visit_web_terminal", "组件访问web终端", 300010],
+            ["service_monitor", "组件监控", 300025],
+            ["telescopic", "组件伸缩", 300011],
+            ["env", "组件环境配置", 300016],
+            ["rely", "组件依赖", 300017],
+            ["storage", "组件存储", 300018],
+            ["port", "组件端口", 300019],
+            ["plugin", "组件插件", 300020],
+            ["source", "组件构建源", 300021],
+            ["safety", "组件安全", 300027],
+            ["other_setting", "组件其他设置", 300022],
         ]
     },
+    "app_release": {
+        "perms": [["describe", "查看", 310004], ["share", "发布", 310001], ["export", "导出", 310002], ["delete", "删除", 310003]]
+    },
+    "app_gateway_manage": {
+        "perms": [],
+        "app_gateway_monitor": {
+            "perms": [
+                ["describe", "查看", 320001],
+            ],
+        },
+        "app_route_manage": {
+            "perms": [
+                ["describe", "查看", 321001],
+                ["create", "创建", 321002],
+                ["edit", "编辑", 321003],
+                ["delete", "删除", 321004],
+            ],
+        },
+        "app_target_services": {
+            "perms": [
+                ["describe", "查看", 322001],
+                ["create", "创建", 322002],
+                ["edit", "编辑", 322003],
+                ["delete", "删除", 322004],
+            ],
+        },
+        "app_certificate": {
+            "perms": [
+                ["describe", "查看", 323001],
+                ["create", "创建", 323002],
+                ["edit", "编辑", 323003],
+                ["delete", "删除", 323004],
+            ]
+        },
+    },
+    "app_upgrade": {
+        "perms": [["app_model_list", "应用模型列表", 330001], ["upgrade_record", "升级记录", 330002], ["upgrade", "升级", 330003],
+                  ["rollback", "回滚", 330004]]
+    },
+    "app_resources": {
+        "perms": [
+            ["describe", "查看", 340001],
+            ["create", "创建", 340002],
+            ["edit", "编辑", 340003],
+            ["delete", "删除", 340004],
+        ],
+    },
+    # "app_backup": {
+    #     "perms": [
+    #         ["backup", "新增备份", 350001],
+    #         ["backup", "导入备份", 350002],
+    #         ["backup", "恢复", 350003],
+    #         ["backup", "迁移", 350004],
+    #         ["backup", "导出", 350005],
+    #         ["backup", "删除", 350006],
+    #     ]
+    # },
     "app_config_group": {
         "perms": [
-            ["describe", "查看", 300017],
-            ["create", "创建", 300018],
-            ["edit", "编辑", 300019],
-            ["delete", "删除", 300020],
+            ["describe", "查看", 360001],
+            ["create", "创建", 360002],
+            ["edit", "编辑", 360003],
+            ["delete", "删除", 360004],
         ]
-    },
-    "component": {
+    }
+}
+'''
+注意：以下注释部分是企业版功能，新增权限的时候需要避免冲突！
+'''
+TEAM = {
+    "perms": [],
+    "team_overview": {
         "perms": [
-            ["describe", "查看", 400001],
-            ["create", "创建", 400002],
-            ["edit", "编辑", 400003],
-            ["delete", "删除", 400004],
-            ["visit_web_terminal", "访问web终端", 400005],
-            ["start", "启动", 400006],
-            ["restart", "重启", 400007],
-            ["stop", "关闭", 400008],
-            ["update", "更新", 400009],
-            ["construct", "构建", 400010],
-            ["rollback", "回滚", 400011],
-            ["telescopic", "伸缩管理", 400012],
-            ["env", "环境管理", 400013],
-            ["rely", "依赖管理", 400014],
-            ["storage", "存储管理", 400015],
-            ["port", "端口管理", 400016],
-            ["plugin", "插件管理", 400017],
-            ["source", "构建源管理", 400018],
-            ["deploy_type", "部署类型", 400019],
-            ["characteristic", "特性", 400020],
-            ["health", "健康检测", 400021],
-            ["service_monitor", "业务监控管理", 400022],
-            ["paused", "暂停", 400023],
-            ["unpaused", "恢复", 400024],
-        ]
+            ["describe", "查看团队信息", 200001],
+            ["app_list", "查看应用信息", 200002],
+            ["resource_limit", "申请资源限额", 200003],
+        ],
     },
-    "gatewayRule": {
+    "team_app_create": {
+        "perms": [
+            ["describe", "新建应用", 300001],
+        ],
+    },
+    "team_app_manage": {
+        "perms": [],
+        "app_overview": {
+            "perms": [
+                ["describe", "查看", 300002],
+                ["edit", "编辑", 300003],
+                ["delete", "删除", 300004],
+                ["start", "启动", 300005],
+                ["stop", "停用", 300006],
+                ["update", "更新", 300007],
+                ["construct", "构建", 300008],
+                ["create", "组件创建", 300013],
+                ["copy", "快速复制", 300009],
+                ["visit_web_terminal", "组件访问web终端", 300010],
+                ["service_monitor", "组件监控", 300025],
+                ["telescopic", "组件伸缩", 300011],
+                ["env", "组件环境配置", 300016],
+                ["rely", "组件依赖", 300017],
+                ["storage", "组件存储", 300018],
+                ["port", "组件端口", 300019],
+                ["plugin", "组件插件", 300020],
+                ["source", "组件构建源", 300021],
+                ["safety", "组件安全", 300027],
+                ["other_setting", "组件其他设置", 300022],
+            ]
+        },
+        "app_release": {
+            "perms": [
+                ["describe", "查看", 310004],
+                ["share", "发布", 310001],
+                ["export", "导出", 310002],
+                ["delete", "删除", 310003],
+            ]
+        },
+        "app_gateway_manage": {
+            "perms": [],
+            "app_gateway_monitor": {
+                "perms": [
+                    ["describe", "查看", 320001],
+                ],
+            },
+            "app_route_manage": {
+                "perms": [
+                    ["describe", "查看", 321001],
+                    ["create", "创建", 321002],
+                    ["edit", "编辑", 321003],
+                    ["delete", "删除", 321004],
+                ],
+            },
+            "app_target_services": {
+                "perms": [
+                    ["describe", "查看", 322001],
+                    ["create", "创建", 322002],
+                    ["edit", "编辑", 322003],
+                    ["delete", "删除", 322004],
+                ],
+            },
+            "app_certificate": {
+                "perms": [
+                    ["describe", "查看", 323001],
+                    ["create", "创建", 323002],
+                    ["edit", "编辑", 323003],
+                    ["delete", "删除", 323004],
+                ]
+            },
+        },
+        "app_upgrade": {
+            "perms": [["app_model_list", "应用模型列表", 330001], ["upgrade_record", "升级记录", 330002], ["upgrade", "升级", 330003],
+                      ["rollback", "回滚", 330004]]
+        },
+        "app_resources": {
+            "perms": [
+                ["describe", "查看", 340001],
+                ["create", "创建", 340002],
+                ["edit", "编辑", 340003],
+                ["delete", "删除", 340004],
+            ],
+        },
+        # "app_backup": {
+        #     "perms": [
+        #         ["backup", "新增备份", 350001],
+        #         ["backup", "导入备份", 350002],
+        #         ["backup", "恢复", 350003],
+        #         ["backup", "迁移", 350004],
+        #         ["backup", "导出", 350005],
+        #         ["backup", "删除", 350006],
+        #     ]
+        # },
+        "app_config_group": {
+            "perms": [
+                ["describe", "查看", 360001],
+                ["create", "创建", 360002],
+                ["edit", "编辑", 360003],
+                ["delete", "删除", 360004],
+            ]
+        }
+    },
+    "team_gateway_manage": {
+        "perms": [],
+        "team_gateway_monitor": {
+            "perms": [
+                ["describe", "查看", 400001],
+            ],
+        },
+        "team_route_manage": {
+            "perms": [
+                ["describe", "查看", 410001],
+                ["create", "创建", 410002],
+                ["edit", "编辑", 410003],
+                ["delete", "删除", 410004],
+            ],
+        },
+        "team_target_services": {
+            "perms": [
+                ["describe", "查看", 420001],
+                ["create", "创建", 420002],
+                ["edit", "编辑", 420003],
+                ["delete", "删除", 420004],
+            ],
+        },
+        "team_certificate": {
+            "perms": [
+                ["describe", "查看", 430001],
+                ["create", "创建", 430002],
+                ["edit", "编辑", 430003],
+                ["delete", "删除", 430004],
+            ]
+        },
+    },
+    "team_plugin_manage": {
         "perms": [
             ["describe", "查看", 500001],
             ["create", "创建", 500002],
             ["edit", "编辑", 500003],
             ["delete", "删除", 500004],
-        ]
+        ],
     },
-    "certificate": {
-        "perms": [
-            ["describe", "查看", 600001],
-            ["create", "创建", 600002],
-            ["edit", "编辑", 600003],
-            ["delete", "删除", 600004],
-        ]
+    "team_manage": {
+        "perms": [],
+        "team_dynamic": {
+            "perms": [
+                ["describe", "查看", 600001],
+            ]
+        },
+        "team_member": {
+            "perms": [
+                ["describe", "查看", 610001],
+                ["create", "创建", 610002],
+                ["edit", "编辑", 610003],
+                ["delete", "删除", 610004],
+            ]
+        },
+        "team_region": {
+            "perms": [["describe", "查看", 620001], ["install", "开通", 620002], ["uninstall", "卸载", 620003]]
+        },
+        "team_role": {
+            "perms": [
+                ["describe", "查看", 630001],
+                ["create", "创建", 630002],
+                ["edit", "编辑", 630003],
+                ["delete", "删除", 630004],
+            ]
+        },
+        "team_registry_auth": {
+            "perms": [
+                ["describe", "查看", 640001],
+                ["create", "创建", 640002],
+                ["edit", "编辑", 640003],
+                ["delete", "删除", 640004],
+            ]
+        },
     },
-    "plugin": {
-        "perms": [
-            ["describe", "查看", 700001],
-            ["create", "创建", 700002],
-            ["edit", "编辑", 700003],
-            ["delete", "删除", 700004],
-        ]
-    }
+    # "listed_manage": {
+    #     "perms": [
+    #         ["describe", "查看", 700001],
+    #         ["create", "创建", 700002],
+    #         ["edit", "编辑", 700003],
+    #         ["delete", "删除", 700004],
+    #     ],
+    # },
+    # "application_records": {
+    #     "perms": [
+    #         ["describe", "查看", 800001],
+    #     ],
+    # },
 }
 
 DEFAULT_ENTERPRISE_ROLE_PERMS = {
-    "管理员": [800001, 800002, 800003],
-    "开发者": [800001, 800002, 800003],
+    "管理员": [100000, 100001, 100002, 100003, 100004],
+    "开发者": [100000, 100001, 100002, 100003, 100004],
     "观察者": [],
 }
 
 DEFAULT_TEAM_ROLE_PERMS = {
     "管理员": [
-        200001,
-        200002,
-        200003,
-        200004,
-        200005,
-        200006,
-        200007,
-        200008,
-        200009,
-        200010,
-        200011,
-        200012,
-        200013,
-        200014,
-        200015,
-        200016,
-        200017,
-        200018,
+        200001, 200002, 300001, 300002, 300003, 300004, 300005, 300006, 300007, 300008, 300009, 300010, 300011, 300012, 300013,
+        300014, 300015, 300016, 300017, 300018, 300019, 300020, 300021, 300022, 300023, 300024, 300025, 300026, 310001, 310002,
+        310003, 320001, 321001, 321002, 321003, 321004, 322001, 322002, 322003, 322004, 323001, 323002, 323003, 323004, 330001,
+        330002, 330003, 330004, 340001, 340002, 340003, 340004, 350001, 350002, 350003, 350004, 350005, 350006, 360001, 360002,
+        360003, 360004, 400001, 410001, 410002, 410003, 410004, 420001, 420002, 420003, 420004, 430001, 430002, 430003, 430004,
+        500001, 500002, 500003, 500004, 600001, 610001, 610002, 610003, 610004, 620001, 620002, 620003, 620004, 630001, 630002,
+        630003, 630004, 640001, 640002, 640003, 640004, 700001, 700002, 700003, 700004, 800001
+    ],
+    "开发者": [
         300001,
         300002,
         300003,
@@ -215,101 +388,48 @@ DEFAULT_TEAM_ROLE_PERMS = {
         300018,
         300019,
         300020,
-        400001,
-        400002,
-        400003,
-        400004,
-        400005,
-        400006,
-        400007,
-        400008,
-        400009,
-        400010,
-        400011,
-        400012,
-        400013,
-        400014,
-        400015,
-        400016,
-        400017,
-        400018,
-        400019,
-        400020,
-        400021,
-        400022,
-        500001,
-        500002,
-        500003,
-        500004,
-        600001,
-        600002,
-        600003,
-        600004,
-        700001,
-        700002,
-        700003,
-        700004,
-        400023,
-        400024,
+        300021,
+        300022,
+        300023,
+        300024,
+        300025,
+        300026,
+        310001,
+        310002,
+        310003,
+        320001,
+        321001,
+        321002,
+        321003,
+        321004,
+        322001,
+        322002,
+        322003,
+        322004,
+        323001,
+        323002,
+        323003,
+        323004,
+        330001,
+        330002,
+        330003,
+        330004,
+        340001,
+        340002,
+        340003,
+        340004,
+        350001,
+        350002,
+        350003,
+        350004,
+        350005,
+        350006,
+        360001,
+        360002,
+        360003,
+        360004,
     ],
-    "开发者": [
-        200001,
-        200002,
-        200005,
-        200010,
-        200014,
-        200015,
-        300001,
-        300002,
-        300003,
-        300005,
-        300006,
-        300007,
-        300008,
-        300009,
-        300010,
-        300011,
-        300012,
-        300013,
-        300014,
-        300017,
-        300018,
-        300019,
-        300020,
-        400001,
-        400002,
-        400003,
-        400005,
-        400006,
-        400007,
-        400008,
-        400009,
-        400010,
-        400011,
-        400012,
-        400013,
-        400014,
-        400015,
-        400016,
-        400017,
-        400022,
-        400018,
-        400019,
-        400020,
-        400021,
-        500001,
-        500002,
-        500003,
-        600001,
-        600002,
-        600003,
-        700001,
-        700002,
-        700003,
-        400023,
-        400024,
-    ],
-    "观察者": [200001, 200002, 200005, 200010, 300001, 400001, 500001, 600001, 700001],
+    "观察者": [],
 }
 
 
@@ -352,6 +472,10 @@ def get_team_perms_model():
     return get_model(copy.deepcopy(TEAM), "team")
 
 
+def get_app_perms_model():
+    return get_model(copy.deepcopy(APP), "app")
+
+
 def get_enterprise_perms_model():
     return get_model(copy.deepcopy(ENTERPRISE), "enterprise")
 
@@ -365,12 +489,24 @@ def get_perms_model():
     return perms_model
 
 
-def get_perms_structure():
+def get_perms_structure(tenant_id):
     perms_structure = {}
-    team = get_structure(copy.deepcopy(TEAM), "team")
+    app_ids = ServiceGroup.objects.filter(tenant_id=tenant_id).values_list("ID", flat=True)
+    if not app_ids:
+        app_ids = []
+    team = copy.deepcopy(TEAM)
+    removed_value = team.get("team_app_manage")
+    app_perms = dict()
+    for app_id in app_ids:
+        key = "app_" + str(app_id)
+        app_perms[key] = removed_value
+    team = get_structure(team, "team")
     enterprise = get_structure(copy.deepcopy(ENTERPRISE), "enterprise")
+    app = get_structure(app_perms, "app")
+    team.get("team").get("sub_models")[2]["team_app_manage"] = app.get("app")
     perms_structure.update(team)
     perms_structure.update(enterprise)
+    # perms_structure.update(app)
     return perms_structure
 
 

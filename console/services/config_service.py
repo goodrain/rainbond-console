@@ -107,7 +107,7 @@ class ConfigService(object):
 
     def get_config_by_key(self, key):
         try:
-            return ConsoleSysConfig.objects.get(key=key, enterprise_id=self.enterprise_id)
+            return ConsoleSysConfig.objects.get(key=key)
         except ConsoleSysConfig.DoesNotExist:
             return None
 

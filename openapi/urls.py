@@ -2,7 +2,6 @@
 # creater by: barnett
 import os
 
-from console.utils import perms_route_config as perms
 from django.conf.urls import include, url
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
@@ -12,7 +11,7 @@ from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
 from openapi.views.apps.apps import ListAppsView, AppModelImportEvent, AppTarballDirView, \
     AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView, HelmChart
-from openapi.views.enterprise_view import EnterpriseConfigView
+
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
 from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
@@ -40,21 +39,19 @@ urlpatterns = [
     # get enterprise regions
     url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
-    url(r'^v1/configs$', EnterpriseConfigView.as_view(), name="ent-configs"),
-    url(r'^v1/administrators$', ListAdminsView.as_view(), perms.ListAdminsView),
-    url(r'^v1/administrators/(?P<user_id>[\w\-]+)$', AdminInfoView.as_view(), perms.AdminInfoView),
+    url(r'^v1/administrators$', ListAdminsView.as_view()),
+    url(r'^v1/administrators/(?P<user_id>[\w\-]+)$', AdminInfoView.as_view()),
     url(r'^v1/changepwd$', ChangePassword.as_view()),
-    url(r'^v1/users$', ListUsersView.as_view(), perms.ListUsersView),
+    url(r'^v1/users$', ListUsersView.as_view()),
     url(r'^v1/currentuser$', CurrentUsersView.as_view()),
-    url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view(), perms.UserInfoView),
-    url(r'^v1/users/(?P<user_id>[\w\-]+)/changepwd$', ChangeUserPassword.as_view(), perms.ChangeUserPassword),
+    url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
+    url(r'^v1/users/(?P<user_id>[\w\-]+)/changepwd$', ChangeUserPassword.as_view()),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/teams/resource$', TeamsResourceView.as_view()),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view(), perms.TeamInfo),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view(), perms.ListRegionsView),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view(), perms.TeamCertificatesLCView),
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view(),
-        perms.TeamCertificatesRUDView),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates$', TeamCertificatesLCView.as_view()),
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/certificates/(?P<certificate_id>[\d\-]+)$', TeamCertificatesRUDView.as_view()),
     url(r'^v1/httpdomains', ListEnterpriseAppGatewayHTTPRuleView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/resource', TeamAppsResourceView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/overview', TeamOverviewView.as_view()),
@@ -79,7 +76,7 @@ urlpatterns = [
         AppTarballDirView.as_view()),
     # 应用包生成本地组件库模版
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)$',
-        AppImportView.as_view(), perms.CenterAppImportView),
+        AppImportView.as_view()),
     # 获取chart包信息
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import/(?P<event_id>[\w\-]+)/chart$',
         AppChartInfo.as_view()),

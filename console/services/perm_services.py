@@ -10,14 +10,15 @@ from console.repositories.perm_repo import role_kind_repo
 from console.repositories.perm_repo import role_perm_relation_repo
 from console.repositories.perm_repo import user_kind_role_repo
 from console.utils.perms import get_perms_structure, get_perms_model, get_team_perms_model, get_enterprise_perms_model, \
-    get_perms_name_code_kv, DEFAULT_TEAM_ROLE_PERMS, DEFAULT_ENTERPRISE_ROLE_PERMS
+    get_perms_name_code_kv, DEFAULT_TEAM_ROLE_PERMS, DEFAULT_ENTERPRISE_ROLE_PERMS, get_app_perms_model
+from www.models.main import ServiceGroup
 
 logger = logging.getLogger("default")
 
 
 class PermService(object):
-    def get_all_perms(self):
-        perms_structure = get_perms_structure()
+    def get_all_perms(self, tenant_id):
+        perms_structure = get_perms_structure(tenant_id)
         return perms_structure
 
     def add_user_tenant_perm(self, perm_info):
@@ -123,35 +124,56 @@ class RolePermService(object):
             data.append(role_perms_info)
         return data
 
-    def get_roles_union_perms(self, roles, kind=None, is_owner=False):
+    def get_roles_union_perms(self, roles, kind=None, is_owner=False, tenant_id=""):
         union_role_perms = []
+        app_perms = dict()
         if roles:
             role_ids = roles.values_list("role_id", flat=True)
             roles_perm_relation_mode = role_perm_relation_repo.get_roles_perm_relation(role_ids)
             if roles_perm_relation_mode:
-                roles_perm_relations = roles_perm_relation_mode.values("role_id", "perm_code")
+                roles_perm_relations = roles_perm_relation_mode.values("role_id", "perm_code", "app_id")
                 for roles_perm_relation in roles_perm_relations:
-                    union_role_perms.append(roles_perm_relation["perm_code"])
+                    if roles_perm_relation.get("app_id") != -1:
+                        if str(roles_perm_relation["app_id"]) not in app_perms:
+                            app_perms[str(roles_perm_relation["app_id"])] = []
+                        app_perms[str(roles_perm_relation["app_id"])].append(roles_perm_relation["perm_code"])
+                    else:
+                        union_role_perms.append(roles_perm_relation["perm_code"])
         if kind == "team":
             permissions = self.pack_role_perms_tree(get_team_perms_model(), union_role_perms, is_owner)
         elif kind == "enterprise":
             permissions = self.pack_role_perms_tree(get_enterprise_perms_model(), union_role_perms, is_owner)
         else:
             permissions = self.pack_role_perms_tree(get_perms_model(), union_role_perms, is_owner)
+        app_ids = ServiceGroup.objects.filter(tenant_id=tenant_id).values_list("ID", flat=True)
+        app = {"sub_models": [], "perms": {}}
+        for app_id in app_ids:
+            if str(app_id) not in app_perms:
+                app_permissions = permissions.get("team").get("sub_models")[2].get("team_app_manage")
+            else:
+                models = self.pack_role_perms_tree(get_app_perms_model(), app_perms.get(str(app_id)))
+                app_permissions = models.get("app")
+            app["sub_models"].append({"app_" + str(app_id): app_permissions})
+        permissions.get("team").get("sub_models")[2]["team_app_manage"] = app
         return {"permissions": permissions}
 
-    def get_role_perms(self, role, kind=None):
+    def get_role_perms(self, role, kind=None, tenant_id=""):
         if not role:
             return None
         roles_perms = {str(role.ID): []}
+        app_perms = dict()
         role_perm_relation_mode = role_perm_relation_repo.get_role_perm_relation(role.ID)
         if role_perm_relation_mode:
-            roles_perm_relations = role_perm_relation_mode.values("role_id", "perm_code")
+            roles_perm_relations = role_perm_relation_mode.values("role_id", "perm_code", "app_id")
             for roles_perm_relation in roles_perm_relations:
-                if str(roles_perm_relation["role_id"]) not in roles_perms:
-                    roles_perms[str(roles_perm_relation["role_id"])] = []
-                roles_perms[str(roles_perm_relation["role_id"])].append(roles_perm_relation["perm_code"])
+                if roles_perm_relation.get("app_id") != -1:
+                    if str(roles_perm_relation["app_id"]) not in app_perms:
+                        app_perms[str(roles_perm_relation["app_id"])] = []
+                    app_perms[str(roles_perm_relation["app_id"])].append(roles_perm_relation["perm_code"])
+                else:
+                    roles_perms[str(roles_perm_relation["role_id"])].append(roles_perm_relation["perm_code"])
         data = []
+        app_ids = ServiceGroup.objects.filter(tenant_id=tenant_id).values_list("ID", flat=True)
         for role_id, rule_perms in list(roles_perms.items()):
             role_perms_info = {"role_id": role_id}
             if kind == "team":
@@ -160,6 +182,15 @@ class RolePermService(object):
                 permissions = self.pack_role_perms_tree(get_enterprise_perms_model(), rule_perms)
             else:
                 permissions = self.pack_role_perms_tree(get_perms_model(), rule_perms)
+            app = {"sub_models": [], "perms": {}}
+            for app_id in app_ids:
+                if str(app_id) not in app_perms:
+                    app_permissions = permissions.get("team").get("sub_models")[2].get("team_app_manage")
+                else:
+                    models = self.pack_role_perms_tree(get_app_perms_model(), app_perms.get(str(app_id)))
+                    app_permissions = models.get("app")
+                app["sub_models"].append({"app_" + str(app_id): app_permissions})
+            permissions.get("team").get("sub_models")[2]["team_app_manage"] = app
             role_perms_info.update({"permissions": permissions})
             data.append(role_perms_info)
         return data[0]
@@ -192,20 +223,25 @@ class RolePermService(object):
             models[kind_name]["perms"] = self.__build_perms_list(body["perms"], role_codes, is_owner)
         return models
 
-    def __unpack_to_build_perms_list(self, perms_model, role_id, perms_name_code_kv):
+    def __unpack_to_build_perms_list(self, perms_model, role_id, perms_name_code_kv, app_id=-1):
         role_perms_list = []
         items_list = list(perms_model.items())
         for items in items_list:
             kind_name, body = items
+            if kind_name.startswith("app_"):
+                kind_name_app = kind_name.split('_')
+                if kind_name_app[1].isdigit():
+                    app_id = int(kind_name_app[1])
             if body["sub_models"]:
                 for sub in body["sub_models"]:
-                    role_perms_list.extend(self.__unpack_to_build_perms_list(sub, role_id, perms_name_code_kv))
+                    role_perms_list.extend(self.__unpack_to_build_perms_list(sub, role_id, perms_name_code_kv, app_id=app_id))
             for perm in body["perms"]:
                 perm_items = list(perm.items())[0]
                 perm_key, perms_value = perm_items
                 if perms_value:
                     role_perms_list.append(
-                        RolePerms(role_id=role_id, perm_code=perms_name_code_kv["_".join([kind_name, perm_key])]))
+                        RolePerms(
+                            role_id=role_id, perm_code=perms_name_code_kv["_".join([kind_name, perm_key])], app_id=app_id))
         return role_perms_list
 
     # 角色的权限树降维
@@ -242,7 +278,7 @@ class UserKindPermService(object):
         if is_owner or is_ent_admin:
             is_owner = True
         user_roles = user_kind_role_repo.get_user_roles_model(kind, kind_id, user)
-        perms = role_perm_service.get_roles_union_perms(user_roles, kind, is_owner)
+        perms = role_perm_service.get_roles_union_perms(user_roles, kind, is_owner, tenant_id=kind_id)
         data = {"user_id": user.user_id}
         data.update(perms)
         return data

@@ -115,7 +115,7 @@ class AppUpgrade(MarketApp):
         self.property_changes.ensure_dep_changes(self.new_app, self.original_app)
         self.app_property_changes = self._get_app_property_changes()
 
-        super(AppUpgrade, self).__init__(self.original_app, self.new_app)
+        super(AppUpgrade, self).__init__(self.original_app, self.new_app, self.user)
 
     def preinstall(self):
         self.pre_install_plugins()
@@ -264,6 +264,7 @@ class AppUpgrade(MarketApp):
         region_api.sync_plugins(self.tenant_name, self.region_name, body)
 
     def _install_predeploy(self):
+
         try:
             helm_chart_parameter = dict()
             helm_chart_parameter["app_name"] = self.app_template["group_name"]

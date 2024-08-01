@@ -17,7 +17,8 @@ logger = logging.getLogger("default")
 
 class PermsInfoLView(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
-        perms = perm_services.get_all_perms()
+        tenant_id = request.GET.get("tenant_id", None)
+        perms = perm_services.get_all_perms(tenant_id)
         result = general_message(200, None, None, bean=perms)
         return Response(result, status=200)
 
@@ -70,7 +71,7 @@ class TeamRolesPermsLView(RegionTenantHeaderView):
 class TeamRolePermsRUDView(RegionTenantHeaderView):
     def get(self, request, team_name, role_id, *args, **kwargs):
         role = role_kind_services.get_role_by_id("team", self.tenant.tenant_id, role_id, with_default=True)
-        data = role_perm_service.get_role_perms(role, kind="team")
+        data = role_perm_service.get_role_perms(role, kind="team", tenant_id=self.tenant.tenant_id)
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=200)
 
@@ -78,7 +79,7 @@ class TeamRolePermsRUDView(RegionTenantHeaderView):
         perms_model = request.data.get("permissions")
         role = role_kind_services.get_role_by_id("team", self.tenant.tenant_id, role_id, with_default=True)
         role_perm_service.update_role_perms(role.ID, perms_model, kind="team")
-        data = role_perm_service.get_role_perms(role, kind="team")
+        data = role_perm_service.get_role_perms(role, kind="team", tenant_id=self.tenant.tenant_id)
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=200)
 

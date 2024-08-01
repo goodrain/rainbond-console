@@ -67,10 +67,19 @@ class AppPortView(AppBaseView):
             port_info["bind_domains"] = []
             bind_domains = domain_service.get_port_bind_domains(self.service, port.container_port)
             if bind_domains:
-                for bind_domain in bind_domains:
-                    if not bind_domain.domain_path:
-                        bind_domain.domain_path = '/'
-                        bind_domain.save()
+                path = ("/api-gateway/v1/" + self.tenant_name + "/routes/http/domains?service_alias=" +
+                        self.service.service_alias + "&port=" + str(port.container_port))
+                body = region_api.api_gateway_get_proxy(self.region_name, self.tenant_name, path, None)
+                if body.get("list", []) is not None:
+                    port_info["bind_domains"] = [{
+                        "protocol": "http",
+                        "domain_type": "www",
+                        "ID": -1,
+                        "domain_name": host,
+                        "container_port": port.container_port
+                    } for host in body.get("list", [])]
+                    if port_info['protocol'] == 'http':
+                        port_info["is_outer_service"] = len(port_info["bind_domains"]) > 0
             port_info["bind_domains"] = [domain.to_dict() for domain in bind_domains]
             bind_tcp_domains = domain_service.get_tcp_port_bind_domains(self.service, port.container_port)
 
@@ -256,7 +265,6 @@ class AppPortManageView(AppBaseView):
         k8s_service_name = parse_item(request, "k8s_service_name", default="")
         if not container_port:
             raise AbortRequest("container_port not specify", "端口变量名未指定")
-
         if self.service.service_source == "third_party" and ("outer" in action):
             msg, msg_show, code = port_service.check_domain_thirdpart(self.tenant, self.service)
             if code != 200:
@@ -264,7 +272,7 @@ class AppPortManageView(AppBaseView):
                 return Response(general_message(code, msg, msg_show), status=code)
 
         code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port), action,
-                                                   protocol, port_alias, k8s_service_name, self.user.nick_name)
+                                                   protocol, port_alias, k8s_service_name, self.user.nick_name, self.app)
         if code != 200:
             return Response(general_message(code, "change port fail", msg), status=code)
         result = general_message(200, "success", "操作成功", bean=model_to_dict(data))
@@ -335,9 +343,9 @@ class TopologicalPortView(AppBaseView):
         if close_outer:
             tenant_service_ports = port_service.get_service_ports(self.service)
             for tenant_service_port in tenant_service_ports:
-                code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region,
-                                                           tenant_service_port.container_port, "close_outer",
-                                                           tenant_service_port.protocol, tenant_service_port.port_alias)
+                code, msg, data = port_service.manage_port(
+                    self.tenant, self.service, self.response_region, tenant_service_port.container_port, "close_outer",
+                    tenant_service_port.protocol, tenant_service_port.port_alias, self.app)
                 if code != 200:
                     return Response(general_message(412, "open outer fail", "关闭对外端口失败"), status=412)
             return Response(general_message(200, "close outer success", "关闭对外端口成功"), status=200)

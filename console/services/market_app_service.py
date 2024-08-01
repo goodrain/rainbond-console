@@ -715,6 +715,7 @@ class MarketAppService(object):
             body = dict()
             code, data = app_manage_service.deploy_services_info(
                 body, service_list, tenant, user, oauth_instance=None, template_apps=app_templates, upgrade=False)
+            data['operator'] = user.nick_name
             if code == 200:
                 # 获取数据中心信息
                 one_service = service_list[0]

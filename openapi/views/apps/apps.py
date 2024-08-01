@@ -47,8 +47,9 @@ from openapi.serializer.app_serializer import (
     AppServiceTelescopicHorizontalSerializer, AppServiceTelescopicVerticalSerializer, ComponentBuildReqSerializers,
     ComponentEnvsSerializers, ComponentEventSerializers, ComponentMonitorSerializers, CreateThirdComponentResponseSerializer,
     CreateThirdComponentSerializer, ListServiceEventsResponse, ServiceBaseInfoSerializer, ServiceGroupOperationsSerializer,
-    TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentPortReqSerializers,
-    ComponentUpdatePortReqSerializers, ChangeDeploySourceSerializer, ServiceVolumeSerializer, HelmChartSerializer)
+    TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentUpdatePortReqSerializers,
+    ComponentPortReqSerializers, UpdateAppAuthorizationPolicy, ServiceVolumeSerializer, ChangeDeploySourceSerializer,
+    HelmChartSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
@@ -1352,8 +1353,17 @@ class HelmChart(TeamAPIView):
         helm_app_service.generate_template(cvdata, helm_center_app, version, self.team, chart, self.region_name,
                                            self.enterprise.enterprise_id, self.user.user_id, overrides_list, app_id)
 
-        market_app_service.install_app(self.team, self.region, self.user, app_id, app_model_id, version, "localApplication",
-                                       False, True, False)
+    @swagger_auto_schema(
+        operation_description="更新授权认证",
+        manual_parameters=[
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用id", type=openapi.TYPE_INTEGER),
+        ],
+        request_body=UpdateAppAuthorizationPolicy(),
+        tags=['openapi-apps'],
+    )
+    def put(self, request, app_id, *args, **kwargs):
+        ap = UpdateAppAuthorizationPolicy(data=request.data)
+        ap.is_valid(raise_exception=True)
 
         result = general_message(200, "success", "成功")
         return Response(result, status=result["code"])

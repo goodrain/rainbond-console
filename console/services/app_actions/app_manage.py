@@ -16,6 +16,7 @@ from console.repositories.app import (delete_service_repo, recycle_bin_repo, rel
 from console.repositories.app_config import (auth_repo, create_step_repo, dep_relation_repo, domain_repo, env_var_repo,
                                              extend_repo, mnt_repo, port_repo, service_attach_repo, service_payment_repo,
                                              tcp_domain, volume_repo)
+
 from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.event_repo import event_repo
@@ -327,6 +328,7 @@ class AppManageService(AppManageBase):
         else:
             logger.warning("service_source is not exist for service {0}".format(service.service_id))
         try:
+            body['operator'] = user.nick_name
             re = region_api.build_service(service.service_region, tenant.tenant_name, service.service_alias, body)
             if re and re.get("bean") and re.get("bean").get("status") != "success":
                 logger.error("deploy component failure {}".format(re))
@@ -548,10 +550,9 @@ class AppManageService(AppManageBase):
         fail_service_name = []
         for service in services:
             try:
-                # 第三方组件不具备启动，停止，重启操作
-                if action == "start" and service.service_source != "third_party":
+                if action == "start":
                     self.start(tenant, service, user, oauth_instance=oauth_instance)
-                elif action == "stop" and service.service_source != "third_party":
+                elif action == "stop":
                     self.stop(tenant, service, user)
                 elif action == "restart" and service.service_source != "third_party":
                     self.restart(tenant, service, user, oauth_instance=oauth_instance)
@@ -600,6 +601,7 @@ class AppManageService(AppManageBase):
         if code != 200:
             raise AbortRequest(415, "failed to get component", "组件信息获取失败")
         # 获取数据中心信息
+        data['operator'] = user.nick_name
         try:
             _, body = region_api.batch_operation_service(region_name, tenant.tenant_name, data)
             events = body["bean"]["batch_result"]

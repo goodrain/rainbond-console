@@ -16,6 +16,15 @@ class AppK8sResourceRepo(object):
     def delete_by_name(self, app_id, kind, name):
         return K8sResource.objects.filter(app_id=app_id, kind=kind, name=name).delete()
 
+    def delete_route_by_name(self, name):
+        return K8sResource.objects.filter(name=name).delete()
+
+    def get_route_by_name(self, app_id, name):
+        return K8sResource.objects.filter(app_id=app_id, name=name)
+
+    def delete_by_kind(self, app_id, kind):
+        return K8sResource.objects.filter(app_id=app_id, kind=kind).delete()
+
     def delete_by_id(self, id):
         return K8sResource.objects.filter(ID=id).delete()
 

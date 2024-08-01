@@ -64,6 +64,12 @@ class RegionInfoRSerializer(serializers.Serializer):
     total_cpu = serializers.FloatField(required=False, help_text="全部cpu")
     health_status = serializers.CharField(required=False, help_text="集群状态")
     status = serializers.CharField(required=False, help_text="状态")
+    manage_node = serializers.IntegerField(required=False, help_text="管理节点总数")
+    notready_manage_node = serializers.IntegerField(required=False, help_text="不健康管理节点数")
+    compute_node = serializers.IntegerField(required=False, help_text="计算节点总数")
+    notready_compute_node = serializers.IntegerField(required=False, help_text="不健康计算节点数")
+    etcd_node = serializers.IntegerField(required=False, help_text="etcd节点总数")
+    notready_etcd_node = serializers.IntegerField(required=False, help_text="不健康etcd节点数")
 
 
 class UpdateRegionReqSerializer(serializers.ModelSerializer, RegionReqValidate):

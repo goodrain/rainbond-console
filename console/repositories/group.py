@@ -5,11 +5,11 @@
 import logging
 
 from datetime import datetime
-from django.db.models import Q
 
 from console.exception.bcode import ErrComponentGroupNotFound
 from console.repositories.region_app import region_app_repo
 from www.apiclient.regionapi import RegionInvokeApi
+from django.db.models import Q
 from www.models.main import (ServiceGroup, ServiceGroupRelation, TenantServiceGroup)
 
 logger = logging.getLogger("default")
@@ -81,10 +81,12 @@ class GroupRepository(object):
         group_count = ServiceGroup.objects.filter(tenant_id=team_id, ID=group_id).count()
         return group_count
 
-    def get_tenant_region_groups(self, team_id, region, query="", app_type=""):
+    def get_tenant_region_groups(self, team_id, region, query="", app_type="", app_ids=[]):
         q = Q(tenant_id=team_id, region_name=region, group_name__icontains=query)
         if app_type:
             q &= Q(app_type=app_type)
+        if app_ids and app_ids[0] != -1:
+            q &= Q(ID__in=app_ids)
         return ServiceGroup.objects.filter(q).order_by("-update_time", "-order_index")
 
     def get_tenant_region_groups_count(self, team_id, region):

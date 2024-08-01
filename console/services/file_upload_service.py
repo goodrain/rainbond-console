@@ -2,12 +2,14 @@
 """
   Created on 18/3/13.
 """
+import json
 import logging
 import os
 
 import oss2
 from django.conf import settings
 
+from console.models.main import ConsoleSysConfig
 from goodrain_web.custom_config import custom_config as custom_settings
 from www.utils.crypt import make_uuid
 
@@ -53,7 +55,12 @@ class FileUploadService(object):
         return bucket
 
     def is_upload_to_oss(self):
-        return settings.MODULES.get('SSO_LOGIN')
+        oss_config = ConsoleSysConfig.objects.filter(key='OSS_CONFIG').first()
+        if oss_config:
+            data = json.loads(oss_config.value)
+            enable = data.get('enable', False)
+            return enable
+        return False
 
     def upload_file_to_local(self, upload_file, suffix):
         try:

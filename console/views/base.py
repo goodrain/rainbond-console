@@ -15,6 +15,7 @@ from console.repositories.user_repo import user_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.region_repo import region_repo
 # service
+from console.services.group_service import group_service
 from console.services.user_services import user_services
 from console.utils import perms
 from console.utils.oauth.oauth_types import get_oauth_instance
@@ -35,7 +36,7 @@ from rest_framework.views import APIView, set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantEnterprise, Tenants, Users
+from www.models.main import TenantEnterprise, Tenants, Users, TenantServiceInfo
 from console.login.jwt_manager import JwtManager
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
@@ -206,6 +207,7 @@ class JWTAuthApiView(APIView):
         if kwargs.get("__message"):
             request_perms = kwargs["__message"][request.META.get("REQUEST_METHOD").lower()]["perms"]
             if request_perms and (len(set(request_perms) & set(self.user_perms)) != len(set(request_perms))):
+                print(request_perms, self.user_perms)
                 logger.info("no permission. request perms: {}. user perms: {}".format(request_perms, self.user_perms))
                 raise NoPermissionsError
 
@@ -289,6 +291,8 @@ class TenantHeaderView(JWTAuthApiView):
         self.report = Dict({"ok": True})
         self.user = None
         self.is_team_owner = False
+        self.perm_app_id = ""
+        self.perm_apps = []
 
     def get_perms(self):
         self.user_perms = []
@@ -297,7 +301,7 @@ class TenantHeaderView(JWTAuthApiView):
         if self.is_team_owner:
             team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
             self.user_perms.extend(team_perms)
-            self.user_perms.append(200000)
+            self.user_perms.append(100001)
         else:
             team_roles = RoleInfo.objects.filter(kind="team", kind_id=self.tenant.tenant_id)
             if team_roles:
@@ -307,7 +311,16 @@ class TenantHeaderView(JWTAuthApiView):
                     team_user_role_ids = team_user_roles.values_list("role_id", flat=True)
                     team_role_perms = RolePerms.objects.filter(role_id__in=team_user_role_ids)
                     if team_role_perms:
-                        self.user_perms.extend(list(team_role_perms.values_list("perm_code", flat=True)))
+                        global_team_role_perms = team_role_perms.filter(app_id=-1)
+                        self.user_perms.extend(list(global_team_role_perms.values_list("perm_code", flat=True)))
+                        if global_team_role_perms.filter(perm_code=300002):
+                            self.perm_apps = [-1]
+                    if self.perm_app_id:
+                        app_role_perms = team_role_perms.filter(app_id=self.perm_app_id)
+                        self.user_perms.extend(list(app_role_perms.values_list("perm_code", flat=True)))
+                    if not self.perm_apps and team_role_perms.filter(perm_code=300002).exclude(app_id=-1):
+                        self.perm_apps = team_role_perms.filter(perm_code=300002).exclude(app_id=-1).values_list(
+                            "app_id", flat=True)
         self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):
@@ -337,7 +350,25 @@ class TenantHeaderView(JWTAuthApiView):
             self.tenant = Tenants.objects.get(tenant_name=self.tenant_name)
             self.team = self.tenant
         except Tenants.DoesNotExist:
-            raise NotFound("tenant {0} not found".format(self.tenant_name))
+            try:
+                self.tenant = Tenants.objects.get(tenant_id=self.tenant_name)
+                self.team = self.tenant
+            except Tenants.DoesNotExist:
+                raise AbortRequest(msg="tenant {0} not found".format(self.tenant_name), msg_show="团队不存在", status_code=404)
+        if kwargs.get("app_id"):
+            self.perm_app_id = kwargs.get("app_id")
+        if request.GET.get("group_id"):
+            self.perm_app_id = request.GET.get("group_id")
+        if request.GET.get("app_id"):
+            self.perm_app_id = request.GET.get("group_id")
+        if kwargs.get("group_id"):
+            self.perm_app_id = kwargs.get("group_id")
+        if kwargs.get("serviceAlias"):
+            service_alias = kwargs.get("serviceAlias")
+            services = TenantServiceInfo.objects.filter(service_alias=service_alias, tenant_id=self.tenant.tenant_id)
+            if services:
+                s_groups = group_service.get_service_group_info(services[0].service_id)
+                self.perm_app_id = s_groups.ID
 
         if self.user.user_id == self.tenant.creater:
             self.is_team_owner = True

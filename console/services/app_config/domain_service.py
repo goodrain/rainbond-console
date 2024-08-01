@@ -224,7 +224,6 @@ class DomainService(object):
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
-        region_api.bind_http_domain(service.service_region, tenant.tenant_name, data)
         domain_info = dict()
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
@@ -246,7 +245,7 @@ class DomainService(object):
         domain_info["region_id"] = region.region_id
         return domain_repo.add_service_domain(**domain_info)
 
-    def unbind_domain(self, tenant, service, container_port, domain_name, is_tcp=False):
+    def unbind_domain(self, tenant, service, container_port, domain_name, is_tcp=False, app_id=None):
         if not is_tcp:
             service_domains = domain_repo.get_domain_by_name_and_port(service.service_id, container_port, domain_name)
             if not service_domains:
@@ -258,7 +257,12 @@ class DomainService(object):
                 data["container_port"] = int(container_port)
                 data["http_rule_id"] = servicer_domain.http_rule_id
                 try:
-                    region_api.delete_http_domain(service.service_region, tenant.tenant_name, data)
+                    # k8s 资源名 不能以 / * 特殊字符命名，故做替换
+                    # p-p 对应 /
+                    # s-s 对应 *
+                    path_app_id = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/" + str(
+                        app_id) + servicer_domain.domain_name + "p-ps-s"
+                    region_api.api_gateway_delete_proxy(service.service_region, tenant.tenant_name, path_app_id)
                     servicer_domain.delete()
                 except region_api.CallApiError as e:
                     if e.status != 404:
@@ -900,7 +904,7 @@ class DomainService(object):
             service_id = service.service_id
             service_name = service.service_alias
             container_port = port.container_port
-            domain_name = str(container_port) + "." + str(service_name) + "." + str(tenant.tenant_name) + "." + str(
+            domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "-" + str(
                 region_info.httpdomain)
             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             protocol = "http"
@@ -913,11 +917,14 @@ class DomainService(object):
             logger.debug("create default gateway http rule for component {0} port {1}".format(
                 service.service_alias, port.container_port))
         else:
-            res, data = region_api.get_port(region_info.region_name, tenant.tenant_name, True)
-            if int(res.status) != 200:
-                logger.warning("can not get stream port from region, ignore {0} port {1}".format(
-                    service.service_alias, port.container_port))
-                return
+            svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, port.container_port)
+            # 默认创建成功一条tcp记录，端口随机
+            data = region_api.api_gateway_bind_tcp_domain(
+                region=service.service_region,
+                tenant_name=tenant.tenant_name,
+                k8s_service_name=svc.k8s_service_name,
+                container_port=svc.container_port,
+                app_id=None)
             end_point = "0.0.0.0:{0}".format(data["bean"])
             service_id = service.service_id
             service_name = service.service_alias
