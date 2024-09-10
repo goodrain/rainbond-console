@@ -129,7 +129,8 @@ parse_args() {
             shift 1
             ;;
         "--external-ip")
-            RKE2_NODE_EXTERNAL_IP="node-external-ip: $2"
+            RKE2_NODE_EXTERNAL_IP="$2"
+            RKE2_NODE_EXTERNAL_IP_CONF="node-external-ip: $2"
             shift 2
             ;;
         "--internal-ip")
@@ -249,7 +250,7 @@ node-ip: ${RKE2_NODE_INTERNAL_IP:-${RKE2_NODE_IPS}}
 token: ${RKE2_TOKEN}
 disable:
   - rke2-ingress-nginx
-${RKE2_NODE_EXTERNAL_IP}
+${RKE2_NODE_EXTERNAL_IP_CONF}
 ${RKE2_SERVER_URL}
 ${INSTALL_RKE2_IMAGE_REPOSITORY}
 EOL
