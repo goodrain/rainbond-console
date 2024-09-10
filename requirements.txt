@@ -1,21 +1,21 @@
-Django==1.11.29
+Django==2.2
 mysqlclient==2.0.1
-django-crispy-forms==1.6.0
+django-crispy-forms==1.12.0
 addict==0.4.0
 gunicorn==19.10.0
 httplib2==0.18.0
 simplejson==3.8.0
 urllib3==1.25.10
-certifi
+certifi~=2023.5.7
 whitenoise==2.0.3
 pillow==8.1.0
 djangorestframework==3.8
 markdown==2.6.2
 django-filter==0.11.0
 requests==2.25.1
-python-dateutil==2.4.2
+python-dateutil~=2.9.0.post0
 rsa==3.4.2
-django-oauth-toolkit==0.10.0
+django-oauth-toolkit==2.3.0
 docker-compose==1.27.4
 pycrypto==2.6.1
 fuzzyfinder==1.0.0
@@ -37,4 +37,6 @@ validators==0.14.2
 deprecated==1.2.10
 redis==3.5.3
 cryptography==3.3
+kubernetes==30.1.0
+django-postgrespool2==2.0.5
 -e git+https://gitee.com/rainbond/appstore-sdk-python.git@python3#egg=openapi_client

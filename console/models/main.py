@@ -1118,6 +1118,34 @@ class TeamRegistryAuth(BaseModel):
     region_name = models.CharField(max_length=255, help_text="region_name")
 
 
+class RKECluster(BaseModel):
+    class Meta:
+        db_table = "rke_cluster"
+
+    config = models.TextField("config")
+    event_id = models.CharField(max_length=32, help_text="install event id")
+    cluster_name = models.CharField(max_length=64, help_text="cluster_name")
+    server_host = models.CharField(max_length=64, help_text="server_host")
+    create_status = models.CharField(max_length=32, help_text="create status:"
+                                                              "初始化完成: initialized"
+                                                              "集群安装中: installing"
+                                                              "集群安装完成: installed"
+                                                              "平台安装中: integrating"
+                                                              "平台安装完成: integrated"
+                                                              "平台对接完成: interconnected")
+
+
+class RKEClusterNode(BaseModel):
+    class Meta:
+        db_table = "rke_cluster_node"
+
+    cluster_name = models.CharField(max_length=64, help_text="cluster_name")
+    node_name = models.CharField(max_length=64, help_text="node_name")
+    node_role = models.CharField(max_length=64, help_text="node_role")
+    node_ip = models.CharField(max_length=64, help_text="node_ip")
+    is_server = models.BooleanField(help_text="是否是 server 节点")
+
+
 class K8sResource(BaseModel):
     class Meta:
         db_table = "k8s_resources"

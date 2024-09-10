@@ -1,5 +1,6 @@
 from django import http
 from django.conf import settings
+from django.utils.deprecation import MiddlewareMixin
 from rest_framework.response import Response
 
 import logging
@@ -7,7 +8,7 @@ import logging
 logger = logging.getLogger('default')
 
 
-class ErrorPage(object):
+class ErrorPage(MiddlewareMixin):
     def process_exception(self, request, exception):
         logger.exception("uncaught_exception", exception)
         if request.path.startswith('/api/') or request.path.startswith('/marketapi/') \

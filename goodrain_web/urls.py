@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 import re
 
-from console.views.index import IndexTemplateView
+from console.views.index import IndexTemplateView, RKE2Install
 from django.conf.urls import include, url
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.generic.base import RedirectView
@@ -25,6 +25,7 @@ urlpatterns = [
     # url(r'^$', views.Index.as_view()),
     url(r'^favicon\.ico$', RedirectView.as_view(url='/static/www/favicon.ico')),
     url(r'^$', IndexTemplateView.as_view()),
+    url(r'^install-cluster.sh$', RKE2Install.as_view()),
     url(r'^console/', include('console.urls')),
 ]
 if settings.IS_OPEN_API:

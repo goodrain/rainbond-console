@@ -123,6 +123,8 @@ from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPlugin
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.registry import HubRegistryView
+from console.views.rke2 import ClusterRKE, ClusterRKENode, ClusterNodeIP, ClusterRKEInstallRB, \
+    ClusterRKERBStatus, ClusterRKERBEvent, ClusterRKEUNInstallInstallRB, InstallRKECluster, RKERegionConfig
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import ServiceShareRecordView, ShareRecordView, ServiceGroupSharedApps, \
@@ -188,6 +190,16 @@ urlpatterns = [
 
     # php环境配置
     url(r'^php$', PhpConfigView.as_view()),
+    # 注册rke集群
+    url(r'^install_cluster$', InstallRKECluster.as_view()),
+    url(r'^cluster$', ClusterRKE.as_view()),
+    url(r'^cluster_node$', ClusterRKENode.as_view()),
+    url(r'^cluster_node_ip$', ClusterNodeIP.as_view()),
+    url(r'^cluster_install$', ClusterRKEInstallRB.as_view()),
+    url(r'^cluster_uninstall$', ClusterRKEUNInstallInstallRB.as_view()),
+    url(r'^rb_components_status$', ClusterRKERBStatus.as_view()),
+    url(r'^rb_component_event$', ClusterRKERBEvent.as_view()),
+    url(r'^region_config$', RKERegionConfig.as_view()),
     # 判断是sso还是私有云
     url(r'^checksource$', CheckSourceView.as_view()),
     # 用户登录

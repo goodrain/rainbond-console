@@ -11,6 +11,7 @@ from console.exception.main import ServiceHandleException
 from console.models.main import ConsoleSysConfig, RegionConfig
 from console.repositories.app import service_repo
 from console.repositories.group import group_repo
+from console.repositories.init_cluster import rke_cluster
 from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
@@ -386,7 +387,6 @@ class RegionService(object):
         if region:
             raise ServiceHandleException(status_code=400, msg="", msg_show="集群ID{0}已存在".format(region_data["region_name"]))
         try:
-
             region_api.test_region_api(region_data)
         except ServiceHandleException:
             raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
@@ -394,6 +394,7 @@ class RegionService(object):
         # 根据当前企业查询是否有region
         exist_region = region_repo.get_region_by_enterprise_id(ent.enterprise_id)
         region = region_repo.create_region(region_data)
+        rke_cluster.update_cluster("", "interconnected")
 
         if exist_region:
             return region

@@ -210,7 +210,7 @@ if IS_OPEN_API:
             'groups': 'Access to your groups'
         },
     }
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'goodrain_web.middleware.ErrorPage',
     'django.middleware.gzip.GZipMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -218,7 +218,6 @@ MIDDLEWARE_CLASSES = (
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
