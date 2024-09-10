@@ -245,7 +245,6 @@ class K8sClient:
                     else:
                         raise
             logger.info("Successfully deleted CRDs.")
-            return "Rainbond uninstalled successfully."
         except Exception as e:
             return str(e)
 

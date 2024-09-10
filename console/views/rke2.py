@@ -41,9 +41,11 @@ class ClusterRKE(BaseClusterView):
 
         try:
             kubeconfig_content = kubeconfig_file.read().decode('utf-8')
-            server_node = rke_cluster_node.get_server_node()
-            kubeconfig_content.replace("127.0.0.1", server_node.node_name)
-            cluster = rke_cluster.update_cluster(kubeconfig_content, "installing")
+            cluster = rke_cluster.get_rke_cluster_exclude_integrated()
+            server_node = rke_cluster_node.get_server_node(cluster.cluster_name)
+            kubeconfig_content = kubeconfig_content.replace("127.0.0.1", server_node.node_name)
+            cluster.config = kubeconfig_content
+            cluster.save()
             nodes = rke_cluster_node.get_worker_node(cluster.cluster_name)
             k8s_api = K8sClient(cluster.config)
             k8s_api.nodes_add_worker_rule(nodes)
@@ -68,7 +70,7 @@ class InstallRKECluster(BaseClusterView):
             else:
                 cluster = rke_cluster.get_rke_cluster_exclude_integrated()
             if cluster.server_host:
-                node = rke_cluster_node.create_node(cluster.cluster_name, cluster.server_host, node_name, node_role, node_ip)
+                node = rke_cluster_node.create_node(cluster.cluster_name, node_name, node_role, node_ip, is_server)
 
             if cluster.config and "worker" in node_role_list and node:
                 k8s_api = K8sClient(cluster.config)

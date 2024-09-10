@@ -50,7 +50,7 @@ class Cluster(object):
 
 
 class ClusterNode(object):
-    def create_node(self, cluster_name, server_host, node_name, node_role, node_ip):
+    def create_node(self, cluster_name, node_name, node_role, node_ip, is_server):
         node = RKEClusterNode.objects.filter(cluster_name=cluster_name, node_name=node_name)
         if node.exists():
             return node[0]
@@ -59,6 +59,7 @@ class ClusterNode(object):
             node_name=node_name,
             node_role=node_role,
             node_ip=node_ip,
+            is_server=is_server,
         )
         return cluster_node
 
