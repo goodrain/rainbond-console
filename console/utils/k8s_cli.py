@@ -253,7 +253,7 @@ class K8sClient:
         try:
             pod_list = self.core_v1_api.list_namespaced_pod(namespace="rbd-system")
             services = [
-                "nfs-provisioner", "rainbond-operator", "rbd-gateway", "metrics-server",
+                "nfs-provisioner", "rainbond-operator", "rbd-gateway",
                 "rbd-api", "rbd-chaos", "rbd-db", "rbd-eventlog",
                 "kubernetes-dashboard", "rbd-hub", "rbd-monitor", "rbd-mq",
                 "rbd-resource-proxy", "rbd-worker", "dashboard-metrics-scraper"
