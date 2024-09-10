@@ -78,9 +78,6 @@ warn() {
 # fatal logs the given argument at fatal log level.
 fatal() {
     echo "[ERROR] " "$@" >&2
-    if [ -n "${SUFFIX}" ]; then
-        echo "[ALT] Please visit 'https://github.com/rancher/rke2/releases' directly and download the latest rke2.${SUFFIX}.tar.gz" >&2
-    fi
     exit 1
 }
 
@@ -132,7 +129,7 @@ parse_args() {
             shift 1
             ;;
         "--external-ip")
-            RKE2_NODE_EXTERNAL_IP="$2"
+            RKE2_NODE_EXTERNAL_IP="node-external-ip: $2"
             shift 2
             ;;
         "--internal-ip")
@@ -141,6 +138,15 @@ parse_args() {
             ;;
         "--token")
             RKE2_TOKEN="$2"
+            shift 2
+            ;;
+        "--rbd-url")
+            RBD_URL="$2"
+            shift 2
+            ;;
+        "--mirror")
+            INSTALL_RKE2_MIRROR="$2"
+            INSTALL_RKE2_IMAGE_REPOSITORY="system-default-registry: registry.cn-hangzhou.aliyuncs.com"
             shift 2
             ;;
         *)
@@ -153,7 +159,6 @@ parse_args() {
 # setup_env defines needed environment variables.
 setup_env() {
     RKE2_NODE_IPS=$(ip -4 addr show scope global | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n 1)
-    INSTALL_RKE2_MIRROR=cn
     INSTALL_RKE2_METHOD=tar
     INSTALL_RKE2_VERSION=v1.29.7+rke2r1
     STORAGE_URL="https://rke2-ci-builds.s3.amazonaws.com"
@@ -199,9 +204,13 @@ setup_env() {
 
 # register node to the cluster
 register_node() {
+    if ! command -v jq >/dev/null 2>&1; then
+        fatal "can not find jq tool for parsing JSON. Use commands to install jq: 'yum install jq', 'apt install jq'."
+    fi
+
     while true; do
         # Re-acquire registration information
-        REGISTER_NODE_INFO=$(curl -sfSL --connect-timeout 5 "$1/console/install_cluster?node_name=${RKE2_NODE_EXTERNAL_IP:-${RKE2_NODE_INTERNAL_IP:-${RKE2_NODE_IPS}}}&node_ip=${RKE2_NODE_INTERNAL_IP:-${RKE2_NODE_IPS}}&node_role=$NODE_ROLES")
+        REGISTER_NODE_INFO=$(curl -sfSL --connect-timeout 5 "$RBD_URL/console/install_cluster?node_name=${RKE2_NODE_EXTERNAL_IP:-${RKE2_NODE_INTERNAL_IP:-${RKE2_NODE_IPS}}}&node_ip=${RKE2_NODE_INTERNAL_IP:-${RKE2_NODE_IPS}}&node_role=$NODE_ROLES")
 
         # Get server_ip and is_server information
         SERVER_IP=$(echo "$REGISTER_NODE_INFO" | jq -r '.data.bean.server_ip')
@@ -214,7 +223,7 @@ register_node() {
 
         # If server_ip is not empty, set RKE2_SERVER_URL and exit the loop
         if [ -n "$SERVER_IP" ]; then
-            RKE2_SERVER_URL=https://$SERVER_IP:9345
+            RKE2_SERVER_URL="server: https://$SERVER_IP:9345"
             break
         fi
 
@@ -237,12 +246,12 @@ disable-scheduler: ${RKE2_DISABLE_ROLE_CONTROLPLANE:-true}
 disable-etcd: ${RKE2_DISABLE_ROLE_ETCD:-true}
 node-name: ${RKE2_NODE_EXTERNAL_IP:-${RKE2_NODE_INTERNAL_IP:-${RKE2_NODE_IPS}}}
 node-ip: ${RKE2_NODE_INTERNAL_IP:-${RKE2_NODE_IPS}}
-node-external-ip: ${RKE2_NODE_EXTERNAL_IP}
-server: ${RKE2_SERVER_URL}
 token: ${RKE2_TOKEN}
 disable:
   - rke2-ingress-nginx
-system-default-registry: registry.cn-hangzhou.aliyuncs.com
+${RKE2_NODE_EXTERNAL_IP}
+${RKE2_SERVER_URL}
+${INSTALL_RKE2_IMAGE_REPOSITORY}
 EOL
   fi
 }
@@ -797,16 +806,16 @@ start_rke2_systemd() {
 
     if [ "${INSTALL_RKE2_TYPE}" = "agent" ]; then
         systemctl enable rke2-agent.service
-        info "Starting RKE2 agent, Please wait about 10 minutes. You can open new terminal to check the status with 'systemctl status rke2-agent' and logs with 'journalctl -u rke2-agent'"
+        info "Starting RKE2 agent, Please wait about 10 minutes. You can open new terminal to check the status with 'systemctl status rke2-agent' and logs with 'journalctl -fu rke2-agent'"
         systemctl start rke2-agent.service
     fi
 
     if [ "${INSTALL_RKE2_TYPE}" = "server" ]; then
         systemctl enable rke2-server.service
-        info "Starting RKE2 server, Please wait about 10 minutes. You can open new terminal to check the status with 'systemctl status rke2-server' and logs with 'journalctl -u rke2-server'"
+        info "Starting RKE2 server, Please wait about 10 minutes. You can open new terminal to check the status with 'systemctl status rke2-server' and logs with 'journalctl -fu rke2-server'"
         systemctl start rke2-server.service
         if [ "$IS_SERVER" = "true" ]; then
-            curl -sfSL --connect-timeout 5 "$1/console/cluster --form kubeconfig=/etc/rancher/rke2/rke2.yaml"
+            curl -sfSL --connect-timeout 5 --request PUT "$RBD_URL/console/cluster" --form 'kubeconfig=@"/etc/rancher/rke2/rke2.yaml"'
         fi
         
     fi
@@ -820,8 +829,7 @@ do_install() {
     if [ -z "${INSTALL_RKE2_ARTIFACT_PATH}" ]; then
         verify_downloader curl || verify_downloader wget || fatal "can not find curl or wget for downloading files"
     fi
-    verify_downloader jq || fatal "can not find jq tool for parsing json"
-    register_node "$1"
+    register_node
     setup_config
 
     case ${INSTALL_RKE2_METHOD} in
@@ -835,7 +843,7 @@ do_install() {
     if [ -z "${INSTALL_RKE2_SKIP_FAPOLICY}" ]; then
         setup_fapolicy_rules
     fi
-    start_rke2_systemd "$1"
+    start_rke2_systemd
 }
 
 do_install "$@"
