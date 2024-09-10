@@ -63,9 +63,9 @@ RUN mkdir -p /app/logs /app/data /root/.ssh && \
     mv /app/ui/rainbond.conf /etc/supervisor/conf.d/rainbond.conf && \
     apt-get update && apt-get install wget -y && \
     if [ ${ARCH} = "arm64" ] || [ ${ARCH} = "aarch64" ]; then \
-        wget -O /app/ui/helm "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm-arm64" && chmod +x /app/ui/helm && mv /app/ui/helm /usr/local/bin; \
+        wget -O /usr/local/bin/helm "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm-arm64" && chmod +x /usr/local/bin/helm; \
     else \
-        wget https://goodrain-pkg.oss-cn-shanghai.aliyuncs.com/pkg/helm && chmod +x helm && mv helm /usr/local/bin; \
+        wget -O /usr/local/bin/helm "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm" && chmod +x /usr/local/bin/helm; \
     fi && \
     rm -rf /var/lib/apt/lists/*
 
