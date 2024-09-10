@@ -87,7 +87,7 @@ class ClusterRKENode(BaseClusterView):
         try:
             cluster = rke_cluster.get_rke_cluster_exclude_integrated()
             if not cluster.config:
-                result = general_message(200, "No cluster config available.", "无可用的集群配置", bean=[])
+                result = general_message(200, "No cluster config available.", "无可用的集群配置", list=[])
                 return Response(result, status=200)
 
             k8s_api = K8sClient(cluster.config)
@@ -97,7 +97,7 @@ class ClusterRKENode(BaseClusterView):
                 rke_cluster.update_cluster("", "installed")
             else:
                 rke_cluster.update_cluster("", "installing")
-            result = general_message(200, "Nodes retrieved successfully.", "节点获取成功", bean=nodes)
+            result = general_message(200, "Nodes retrieved successfully.", "节点获取成功", list=nodes)
             return Response(result, status=200)
         except Exception as e:
             return self.handle_exception(e, "Failed to retrieve nodes", "获取节点失败")
