@@ -164,7 +164,9 @@ class K8sClient:
                                                             field_selector=f"spec.nodeName={node_name}")
             no_run_pods = [pod.metadata.name for pod in pod_list.items if pod.status.phase != "Running" and pod.status.phase != "Succeeded"]
             if no_run_pods:
-                return "Waiting for pods: {}".format(",".join(no_run_pods))
+                if len(no_run_pods) > 2:
+                    return "Waiting for pod start: {}".format(",".join(no_run_pods[:2]))
+                return "Waiting for pod start: {}".format(",".join(no_run_pods))
             else:
                 return ""
         except Exception as e:
