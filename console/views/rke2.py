@@ -108,28 +108,30 @@ class ClusterRKENode(BaseClusterView):
         try:
             cluster_id = request.GET.get("cluster_id", "")
             cluster = rke_cluster.get_rke_cluster(cluster_id=cluster_id)
-            if not cluster.config:
-                nodes = rke_cluster_node.get_cluster_nodes(cluster.cluster_name)
-                nodes_info = []
-                for node in nodes:
-                    nodes_info.append({
-                        'status': "NotReady",
-                        'name': node.node_name,
-                        'internal_ip': node.node_ip,
-                        'external_ip': "" if node.node_name == node.node_ip else node.node_name,
-                        'os_image': "",
-                        'roles': node.node_role,
-                        'uptime': "",
-                        'installation_status': "wait for the master node to start"
-                    })
-            else:
+            nodes_dict = {}
+            if cluster.config:
                 k8s_api = K8sClient(cluster.config)
-                nodes_info = k8s_api.get_nodes()
-                node_ready = all(node.get("status") == "Ready" for node in nodes_info)
-                if node_ready and nodes_info:
-                    rke_cluster.update_cluster(create_status="installed")
-                else:
-                    rke_cluster.update_cluster(create_status="installing")
+                nodes_dict = k8s_api.get_nodes()
+
+            nodes = rke_cluster_node.get_cluster_nodes(cluster.cluster_name)
+            nodes_info = []
+            for node in nodes:
+                nodes_info.append(nodes_dict.get(node.node_name, {
+                    'status': "NotReady",
+                    'name': node.node_name,
+                    'internal_ip': node.node_ip,
+                    'external_ip': "" if node.node_name == node.node_ip else node.node_name,
+                    'os_image': "",
+                    'roles': node.node_role,
+                    'uptime': "",
+                    'installation_status': "wait for the node to start"
+                }))
+
+            node_ready = all(node.get("status") == "Ready" for node in nodes_info)
+            if node_ready and nodes_info:
+                rke_cluster.update_cluster(create_status="installed")
+            else:
+                rke_cluster.update_cluster(create_status="installing")
             result = general_message(200, "Nodes retrieved successfully.", "节点获取成功", list=nodes_info)
             return Response(result, status=200)
         except Exception as e:

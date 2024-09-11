@@ -60,8 +60,7 @@ class K8sClient:
         """获取所有节点的信息"""
         try:
             node_list = self.core_v1_api.list_node()
-            nodes_info = []
-
+            nodes_dict = {}
             for node in node_list.items:
                 status = self._get_node_status(node)
                 name = node.metadata.name
@@ -71,7 +70,7 @@ class K8sClient:
                 uptime = self._calculate_uptime(node.metadata.creation_timestamp)
                 installation_status = self._get_installation_status(name)
 
-                nodes_info.append({
+                nodes_dict[name] = {
                     'status': status,
                     'name': name,
                     'internal_ip': internal_ip,
@@ -80,9 +79,9 @@ class K8sClient:
                     'roles': ", ".join(roles),
                     'uptime': uptime,
                     'installation_status': installation_status
-                })
+                }
 
-            return nodes_info
+            return nodes_dict
 
         except Exception as e:
             logger.error(f"Failed to retrieve nodes info: {str(e)}")
