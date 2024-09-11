@@ -117,7 +117,7 @@ class ClusterRKENode(BaseClusterView):
             nodes_info = []
             for node in nodes:
                 nodes_info.append(nodes_dict.get(node.node_name, {
-                    'status': "NotReady",
+                    'status': "Registering",
                     'name': node.node_name,
                     'internal_ip': node.node_ip,
                     'external_ip': "" if node.node_name == node.node_ip else node.node_name,

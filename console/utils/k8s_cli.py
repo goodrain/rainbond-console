@@ -69,7 +69,8 @@ class K8sClient:
                 roles = self._get_node_roles(node)
                 uptime = self._calculate_uptime(node.metadata.creation_timestamp)
                 installation_status = self._get_installation_status(name)
-
+                if installation_status:
+                    status = "NotReady"
                 nodes_dict[name] = {
                     'status': status,
                     'name': name,
@@ -161,9 +162,11 @@ class K8sClient:
         try:
             pod_list = self.core_v1_api.list_namespaced_pod(namespace="kube-system",
                                                             field_selector=f"spec.nodeName={node_name}")
-            installation_progress = [f"{pod.metadata.name} is {pod.status.phase}" for pod in pod_list.items if
-                                     pod.status.phase != "Running"]
-            return "Installation complete" if not installation_progress else "; ".join(installation_progress)
+            no_run_pods = [pod.metadata.name for pod in pod_list.items if pod.status.phase != "Running"]
+            if no_run_pods:
+                return "Waiting for pods: {}".format(",".join(no_run_pods))
+            else:
+                return ""
         except Exception as e:
             return f"Error retrieving installation status: {str(e)}"
 
