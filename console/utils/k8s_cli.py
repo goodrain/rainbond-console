@@ -162,7 +162,7 @@ class K8sClient:
         try:
             pod_list = self.core_v1_api.list_namespaced_pod(namespace="kube-system",
                                                             field_selector=f"spec.nodeName={node_name}")
-            no_run_pods = [pod.metadata.name for pod in pod_list.items if pod.status.phase != "Running"]
+            no_run_pods = [pod.metadata.name for pod in pod_list.items if pod.status.phase != "Running" and pod.status.phase != "Succeeded"]
             if no_run_pods:
                 return "Waiting for pods: {}".format(",".join(no_run_pods))
             else:
