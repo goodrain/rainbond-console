@@ -13,9 +13,18 @@ class Cluster(object):
             return clusters[0]
         return self.init_cluster()
 
-    def only_server(self, node_ip):
+    def get_rke_cluster(self, event_id="", cluster_id="", cluster_name=""):
+        if event_id:
+            return RKECluster.objects.filter(event_id=event_id).first()
+        if cluster_id:
+            return RKECluster.objects.filter(cluster_id=cluster_id).first()
+        if cluster_name:
+            return RKECluster.objects.filter(cluster_name=cluster_name).first()
+        return self.get_rke_cluster_exclude_integrated()
+
+    def only_server(self, node_ip, event_id):
         with transaction.atomic():
-            cluster = self.get_rke_cluster_exclude_integrated()
+            cluster = self.get_rke_cluster(event_id=event_id)
             if not cluster.server_host:
                 cluster.server_host = node_ip
                 cluster.save()
@@ -25,26 +34,23 @@ class Cluster(object):
             return cluster, False
 
     def init_cluster(self):
-        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        # 生成一个随机的UUID
-        random_uuid = uuid.uuid4().hex[:8]  # 截取UUID的前8位
         # 合并时间戳和随机UUID作为名称
-        cluster_name = f"{timestamp}-{random_uuid}"
         event_id = uuid.uuid4().hex
         cluster = RKECluster.objects.create(
             event_id=event_id,
-            cluster_name=cluster_name,
-            create_status="initialized",
+            create_status="initializing",
             server_host="",
         )
         return cluster
 
-    def update_cluster(self, config, create_status):
+    def update_cluster(self, create_status="", cluster_name="", cluster_id=""):
         cluster = self.get_rke_cluster_exclude_integrated()
-        if config:
-            cluster.config = config
         if create_status:
             cluster.create_status = create_status
+        if cluster_name:
+            cluster.cluster_name = cluster_name
+        if cluster_id:
+            cluster.cluster_id = cluster_id
         cluster.save()
         return cluster
 

@@ -394,7 +394,7 @@ class RegionService(object):
         # 根据当前企业查询是否有region
         exist_region = region_repo.get_region_by_enterprise_id(ent.enterprise_id)
         region = region_repo.create_region(region_data)
-        rke_cluster.update_cluster("", "interconnected")
+        rke_cluster.update_cluster(create_status="interconnected")
 
         if exist_region:
             return region

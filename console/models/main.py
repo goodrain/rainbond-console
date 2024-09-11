@@ -1124,9 +1124,11 @@ class RKECluster(BaseModel):
 
     config = models.TextField("config")
     event_id = models.CharField(max_length=32, help_text="install event id")
-    cluster_name = models.CharField(max_length=64, help_text="cluster_name")
-    server_host = models.CharField(max_length=64, help_text="server_host")
+    cluster_name = models.CharField(max_length=32, help_text="cluster_name", unique=True)
+    cluster_id = models.CharField(max_length=32, help_text="cluster_id", unique=True)
+    server_host = models.CharField(max_length=32, help_text="server_host")
     create_status = models.CharField(max_length=32, help_text="create status:"
+                                                              "初始化中: initializing"
                                                               "初始化完成: initialized"
                                                               "集群安装中: installing"
                                                               "集群安装完成: installed"

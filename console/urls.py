@@ -191,8 +191,8 @@ urlpatterns = [
     # php环境配置
     url(r'^php$', PhpConfigView.as_view()),
     # 注册rke集群
-    url(r'^install_cluster$', InstallRKECluster.as_view()),
     url(r'^cluster$', ClusterRKE.as_view()),
+    url(r'^install_cluster$', InstallRKECluster.as_view()),
     url(r'^cluster_node$', ClusterRKENode.as_view()),
     url(r'^cluster_node_ip$', ClusterNodeIP.as_view()),
     url(r'^cluster_install$', ClusterRKEInstallRB.as_view()),

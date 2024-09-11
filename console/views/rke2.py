@@ -23,7 +23,25 @@ class ClusterRKE(BaseClusterView):
     # get 接口用于获取集群安装状态以及初始化安装集群。
     def get(self, request):
         try:
-            cluster = rke_cluster.get_rke_cluster_exclude_integrated()
+            cluster_id = request.GET.get("cluster_id", "")
+            cluster = rke_cluster.get_rke_cluster(cluster_id=cluster_id)
+            result = general_message(200, "Get cluster successful.", "获取集群成功", bean={
+                "event_id": cluster.event_id,
+                "create_status": cluster.create_status,
+                "cluster_name": cluster.cluster_name,
+                "cluster_id": cluster.cluster_id,
+                "server_host": cluster.server_host,
+            })
+            return Response(result, status=200)
+        except Exception as e:
+            return self.handle_exception(e, "Failed to get cluster", "获取集群失败")
+
+    # 更新集群名称和集群ID
+    def post(self, request):
+        try:
+            cluster_name = request.data.get('cluster_name')
+            cluster_id = request.data.get('cluster_id')
+            cluster = rke_cluster.update_cluster(create_status="initialized", cluster_name=cluster_name, cluster_id=cluster_id)
             result = general_message(200, "Get cluster successful.", "获取集群成功", bean={
                 "event_id": cluster.event_id,
                 "create_status": cluster.create_status,
@@ -62,13 +80,14 @@ class InstallRKECluster(BaseClusterView):
             node_ip = request.GET.get("node_ip", "")
             node_role = request.GET.get("node_role", "")
             node_name = request.GET.get("node_name", "")
+            event_id = request.GET.get("event_id", "")
             node_role_list = node_role.split(",")
             is_server = False
             node = None
             if "controlplane" in node_role_list:
-                cluster, is_server = rke_cluster.only_server(node_ip)
+                cluster, is_server = rke_cluster.only_server(node_ip, event_id)
             else:
-                cluster = rke_cluster.get_rke_cluster_exclude_integrated()
+                cluster = rke_cluster.get_rke_cluster(event_id=event_id)
             if cluster.server_host:
                 node = rke_cluster_node.create_node(cluster.cluster_name, node_name, node_role, node_ip, is_server)
 
@@ -87,19 +106,31 @@ class InstallRKECluster(BaseClusterView):
 class ClusterRKENode(BaseClusterView):
     def get(self, request):
         try:
-            cluster = rke_cluster.get_rke_cluster_exclude_integrated()
+            cluster_id = request.GET.get("cluster_id", "")
+            cluster = rke_cluster.get_rke_cluster(cluster_id=cluster_id)
             if not cluster.config:
-                result = general_message(200, "No cluster config available.", "无可用的集群配置", list=[])
-                return Response(result, status=200)
-
-            k8s_api = K8sClient(cluster.config)
-            nodes = k8s_api.get_nodes()
-            nodeReady = all(node.get("status") == "Ready" for node in nodes)
-            if nodeReady and nodes:
-                rke_cluster.update_cluster("", "installed")
+                nodes = rke_cluster_node.get_cluster_nodes(cluster.cluster_name)
+                nodes_info = []
+                for node in nodes:
+                    nodes_info.append({
+                        'status': "NotReady",
+                        'name': node.node_name,
+                        'internal_ip': node.node_ip,
+                        'external_ip': "" if node.node_name == node.node_ip else node.node_name,
+                        'os_image': "",
+                        'roles': node.node_role,
+                        'uptime': "",
+                        'installation_status': "wait for the master node to start"
+                    })
             else:
-                rke_cluster.update_cluster("", "installing")
-            result = general_message(200, "Nodes retrieved successfully.", "节点获取成功", list=nodes)
+                k8s_api = K8sClient(cluster.config)
+                nodes_info = k8s_api.get_nodes()
+                node_ready = all(node.get("status") == "Ready" for node in nodes_info)
+                if node_ready and nodes_info:
+                    rke_cluster.update_cluster(create_status="installed")
+                else:
+                    rke_cluster.update_cluster(create_status="installing")
+            result = general_message(200, "Nodes retrieved successfully.", "节点获取成功", list=nodes_info)
             return Response(result, status=200)
         except Exception as e:
             return self.handle_exception(e, "Failed to retrieve nodes", "获取节点失败")
@@ -109,7 +140,8 @@ class ClusterRKENode(BaseClusterView):
 class ClusterNodeIP(BaseClusterView):
     def get(self, request):
         try:
-            cluster = rke_cluster.get_rke_cluster_exclude_integrated()
+
+            cluster = rke_cluster.get_rke_cluster()
             if not cluster.config:
                 result = general_message(200, "No cluster config available.", "无可用的集群配置", bean=[])
                 return Response(result, status=200)
@@ -173,7 +205,8 @@ class ClusterRKEUNInstallInstallRB(BaseClusterView):
 class ClusterRKERBStatus(BaseClusterView):
     def get(self, request):
         try:
-            cluster = rke_cluster.get_rke_cluster_exclude_integrated()
+            cluster_id = request.GET.get("cluster_id", "")
+            cluster = rke_cluster.get_rke_cluster(cluster_id=cluster_id)
             if not cluster.config:
                 result = general_message(200, "No cluster config available.", "无可用的集群配置", bean=[])
                 return Response(result, status=200)
@@ -193,8 +226,9 @@ class ClusterRKERBStatus(BaseClusterView):
 class ClusterRKERBEvent(BaseClusterView):
     def get(self, request):
         try:
+            cluster_id = request.GET.get("cluster_id", "")
             pod_name = request.GET.get('pod_name')
-            cluster = rke_cluster.get_rke_cluster_exclude_integrated()
+            cluster = rke_cluster.get_rke_cluster(cluster_id=cluster_id)
             if not cluster.config:
                 result = general_message(200, "No cluster config available.", "无可用的集群配置", bean=[])
                 return Response(result, status=200)
