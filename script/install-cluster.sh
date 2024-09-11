@@ -813,7 +813,7 @@ start_rke2_systemd() {
         info "Starting RKE2 server, Please wait about 10 minutes. You can open new terminal to check the status with 'systemctl status rke2-server' and logs with 'journalctl -fu rke2-server'"
         systemctl start rke2-server.service
         if [ "$IS_SERVER" = "true" ]; then
-            curl -sfSL --connect-timeout 5 --request PUT "$RBD_URL/console/cluster" --form 'kubeconfig=@"/etc/rancher/rke2/rke2.yaml"'
+            curl -sfSL --connect-timeout 5 --request PUT "$RBD_URL/console/cluster" --form 'kubeconfig=@"/etc/rancher/rke2/rke2.yaml"' > /dev/null
         fi
         
     fi
