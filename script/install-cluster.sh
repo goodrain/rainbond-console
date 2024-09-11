@@ -205,17 +205,14 @@ setup_env() {
 
 # register node to the cluster
 register_node() {
-    if ! command -v jq >/dev/null 2>&1; then
-        fatal "can not find jq tool for parsing JSON. Use commands to install jq: 'yum install jq', 'apt install jq'."
-    fi
 
     while true; do
         # Re-acquire registration information
-        REGISTER_NODE_INFO=$(curl -sfSL --connect-timeout 5 "$RBD_URL/console/install_cluster?node_name=${RKE2_NODE_EXTERNAL_IP:-${RKE2_NODE_INTERNAL_IP:-${RKE2_NODE_IPS}}}&node_ip=${RKE2_NODE_INTERNAL_IP:-${RKE2_NODE_IPS}}&node_role=$NODE_ROLES")
+        REGISTER_NODE_INFO=$(curl -sfSL --connect-timeout 5 "$RBD_URL/console/install_cluster?node_name=${RKE2_NODE_EXTERNAL_IP:-${RKE2_NODE_INTERNAL_IP:-${RKE2_NODE_IPS}}}&node_ip=${RKE2_NODE_INTERNAL_IP:-${RKE2_NODE_IPS}}&node_role=$NODE_ROLES&event_id=$RKE2_TOKEN")
 
         # Get server_ip and is_server information
-        SERVER_IP=$(echo "$REGISTER_NODE_INFO" | jq -r '.data.bean.server_ip')
-        IS_SERVER=$(echo "$REGISTER_NODE_INFO" | jq -r '.data.bean.is_server')
+        SERVER_IP=$(echo "$REGISTER_NODE_INFO" | grep -o '"server_ip":"[^"]*"' | sed 's/"server_ip":"\([^"]*\)".*/\1/')
+        IS_SERVER=$(echo "$REGISTER_NODE_INFO" | grep -o '"is_server":[^,]*' | sed 's/"is_server":\([^}]*\).*/\1/')
 
         # If it is server, return directly
         if [ "$IS_SERVER" = "true" ]; then
@@ -236,11 +233,11 @@ register_node() {
 # node-label:
 #   - "kubernetes.io/role=worker"
 setup_config() {
-  if [ ! -d "/etc/rancher/rke2" ]; then
-    mkdir -p /etc/rancher/rke2
+  if [ ! -d "/etc/rancher/rke2/config.yaml.d" ]; then
+    mkdir -p /etc/rancher/rke2/config.yaml.d
   fi
-  if [ ! -f "/etc/rancher/rke2/config.yaml" ]; then
-    cat >/etc/rancher/rke2/config.yaml <<EOL
+  if [ ! -f "/etc/rancher/rke2/config.yaml.d/00-rbd.yaml" ]; then
+    cat >/etc/rancher/rke2/config.yaml.d/00-rbd.yaml <<EOL
 disable-apiserver: ${RKE2_DISABLE_ROLE_CONTROLPLANE:-true}
 disable-controller-manager: ${RKE2_DISABLE_ROLE_CONTROLPLANE:-true}
 disable-scheduler: ${RKE2_DISABLE_ROLE_CONTROLPLANE:-true}
