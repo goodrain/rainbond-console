@@ -181,7 +181,7 @@ class K8sClient:
             self._run_subprocess([
                 "helm", "install", "rainbond",
                 # "rainbond/rainbond-cluster",
-                "./rainbond-cluster-6.0.0.tgz",
+                "./rainbond-chart",
                 "-n", "rbd-system",
                 "--create-namespace",
                 "--kubeconfig", "kube.config",
