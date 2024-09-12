@@ -56,12 +56,12 @@ class Cluster(object):
 
 
 class ClusterNode(object):
-    def create_node(self, cluster_name, node_name, node_role, node_ip, is_server):
-        node = RKEClusterNode.objects.filter(cluster_name=cluster_name, node_name=node_name)
+    def create_node(self, cluster_id, node_name, node_role, node_ip, is_server):
+        node = RKEClusterNode.objects.filter(cluster_id=cluster_id, node_name=node_name)
         if node.exists():
             return node[0]
         cluster_node = RKEClusterNode.objects.create(
-            cluster_name=cluster_name,
+            cluster_id=cluster_id,
             node_name=node_name,
             node_role=node_role,
             node_ip=node_ip,
@@ -69,23 +69,23 @@ class ClusterNode(object):
         )
         return cluster_node
 
-    def get_worker_node(self, cluster_name):
+    def get_worker_node(self, cluster_id):
         cluster_node = RKEClusterNode.objects.filter(
-            cluster_name=cluster_name,
+            cluster_id=cluster_id,
             node_role__contains="worker",
         )
         return cluster_node
 
-    def get_server_node(self, cluster_name):
+    def get_server_node(self, cluster_id):
         cluster_node = RKEClusterNode.objects.filter(
-            cluster_name=cluster_name,
+            cluster_id=cluster_id,
             is_server=True,
         ).first()
         return cluster_node
 
-    def get_cluster_nodes(self, cluster_name):
+    def get_cluster_nodes(self, cluster_id):
         cluster_nodes = RKEClusterNode.objects.filter(
-            cluster_name=cluster_name,
+            cluster_id=cluster_id,
         )
         return cluster_nodes
 

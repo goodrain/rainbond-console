@@ -1141,7 +1141,7 @@ class RKEClusterNode(BaseModel):
     class Meta:
         db_table = "rke_cluster_node"
 
-    cluster_name = models.CharField(max_length=64, help_text="cluster_name")
+    cluster_id = models.CharField(max_length=64, help_text="cluster_id")
     node_name = models.CharField(max_length=64, help_text="node_name")
     node_role = models.CharField(max_length=64, help_text="node_role")
     node_ip = models.CharField(max_length=64, help_text="node_ip")

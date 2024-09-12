@@ -60,11 +60,11 @@ class ClusterRKE(BaseClusterView):
         try:
             kubeconfig_content = kubeconfig_file.read().decode('utf-8')
             cluster = rke_cluster.get_rke_cluster_exclude_integrated()
-            server_node = rke_cluster_node.get_server_node(cluster.cluster_name)
+            server_node = rke_cluster_node.get_server_node(cluster.cluster_id)
             kubeconfig_content = kubeconfig_content.replace("127.0.0.1", server_node.node_name)
             cluster.config = kubeconfig_content
             cluster.save()
-            nodes = rke_cluster_node.get_worker_node(cluster.cluster_name)
+            nodes = rke_cluster_node.get_worker_node(cluster.cluster_id)
             k8s_api = K8sClient(cluster.config)
             k8s_api.nodes_add_worker_rule(nodes)
             result = general_message(200, "Cluster updated successfully.", "集群更新成功")
@@ -89,7 +89,7 @@ class InstallRKECluster(BaseClusterView):
             else:
                 cluster = rke_cluster.get_rke_cluster(event_id=event_id)
             if cluster.server_host:
-                node = rke_cluster_node.create_node(cluster.cluster_name, node_name, node_role, node_ip, is_server)
+                node = rke_cluster_node.create_node(cluster.cluster_id, node_name, node_role, node_ip, is_server)
 
             if cluster.config and "worker" in node_role_list and node:
                 k8s_api = K8sClient(cluster.config)
@@ -113,7 +113,7 @@ class ClusterRKENode(BaseClusterView):
                 k8s_api = K8sClient(cluster.config)
                 nodes_dict = k8s_api.get_nodes()
 
-            nodes = rke_cluster_node.get_cluster_nodes(cluster.cluster_name)
+            nodes = rke_cluster_node.get_cluster_nodes(cluster.cluster_id)
             nodes_info = []
             for node in nodes:
                 nodes_info.append(nodes_dict.get(node.node_name, {
@@ -147,7 +147,7 @@ class ClusterNodeIP(BaseClusterView):
             if not cluster.config:
                 result = general_message(200, "No cluster config available.", "无可用的集群配置", bean=[])
                 return Response(result, status=200)
-            nodes = rke_cluster_node.get_cluster_nodes(cluster.cluster_name)
+            nodes = rke_cluster_node.get_cluster_nodes(cluster.cluster_id)
             ips = [node.node_name for node in nodes]
             result = general_message(200, "Nodes retrieved successfully.", "节点 ip 获取成功", list=ips)
             return Response(result, status=200)

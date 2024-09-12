@@ -765,7 +765,8 @@ class ServiceAlarm(EnterpriseAdminView):
 
 class GetNodes(EnterpriseAdminView):
     def get(self, request, region_name, *args, **kwargs):
-        nodes, cluster_role_count = enterprise_services.get_nodes(region_name)
+        cluster_id = request.GET.get("cluster_id", "")
+        nodes, cluster_role_count = enterprise_services.get_nodes(region_name, cluster_id)
         result = general_message(200, "success", "获取成功", bean=cluster_role_count, list=nodes)
         return Response(result, status=status.HTTP_200_OK)
 
