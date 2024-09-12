@@ -417,7 +417,7 @@ class EnterpriseServices(object):
         res["status"] = node_status
         return res
 
-    def get_nodes(self, region_name, cluster_id):
+    def get_nodes(self, region_name):
         res, body = region_api.get_cluster_nodes(region_name)
         nodes = body["list"]
         node_list = []
@@ -425,7 +425,7 @@ class EnterpriseServices(object):
         cluster_role_count = {}
         node_status = "NotReady"
         node_dict = {node["name"]: node for node in nodes}
-        rke_nodes = rke_cluster_node.get_cluster_nodes(cluster_id)
+        rke_nodes = rke_cluster_node.get_cluster_nodes(region_name)
         for rke_node in rke_nodes:
             node = node_dict.get(rke_node.node_name)
             if node:
