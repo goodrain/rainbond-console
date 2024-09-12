@@ -116,17 +116,29 @@ class ClusterRKENode(BaseClusterView):
             nodes = rke_cluster_node.get_cluster_nodes(cluster.cluster_id)
             nodes_info = []
             for node in nodes:
-                nodes_info.append(nodes_dict.get(node.node_name, {
-                    'status': "Registering",
-                    'name': node.node_name,
-                    'internal_ip': node.node_ip,
-                    'external_ip': "" if node.node_name == node.node_ip else node.node_name,
-                    'os_image': "",
-                    'roles': node.node_role,
-                    'uptime': "",
-                    'installation_status': "wait for the node to start"
-                }))
-
+                node_info = nodes_dict.get(node.node_name)
+                if node_info:
+                    rke_node_rule = node_info.get("roles").split(",")
+                    node_rule = node.node_role.split(",")
+                    missing_labels = node_rule - rke_node_rule
+                    # 输出结果
+                    if "worker" in missing_labels:
+                        k8s_api = K8sClient(cluster.config)
+                        k8s_api.nodes_add_worker_rule([node])
+                    nodes_info.append(node_info)
+                else:
+                    nodes_info.append(
+                        {
+                            'status': "Registering",
+                            'name': node.node_name,
+                            'internal_ip': node.node_ip,
+                            'external_ip': "" if node.node_name == node.node_ip else node.node_name,
+                            'os_image': "",
+                            'roles': node.node_role,
+                            'uptime': "",
+                            'installation_status': "wait for the node to start"
+                        }
+                    )
             node_ready = all(node.get("status") == "Ready" for node in nodes_info)
             if node_ready and nodes_info:
                 rke_cluster.update_cluster(create_status="installed")
