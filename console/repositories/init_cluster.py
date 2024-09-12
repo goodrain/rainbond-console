@@ -69,13 +69,6 @@ class ClusterNode(object):
         )
         return cluster_node
 
-    def get_worker_node(self, cluster_id):
-        cluster_node = RKEClusterNode.objects.filter(
-            cluster_id=cluster_id,
-            node_role__contains="worker",
-        )
-        return cluster_node
-
     def get_server_node(self, cluster_id):
         cluster_node = RKEClusterNode.objects.filter(
             cluster_id=cluster_id,

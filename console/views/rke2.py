@@ -64,9 +64,6 @@ class ClusterRKE(BaseClusterView):
             kubeconfig_content = kubeconfig_content.replace("127.0.0.1", server_node.node_name)
             cluster.config = kubeconfig_content
             cluster.save()
-            nodes = rke_cluster_node.get_worker_node(cluster.cluster_id)
-            k8s_api = K8sClient(cluster.config)
-            k8s_api.nodes_add_worker_rule(nodes)
             result = general_message(200, "Cluster updated successfully.", "集群更新成功")
             return Response(result, status=200)
         except Exception as e:
@@ -83,17 +80,12 @@ class InstallRKECluster(BaseClusterView):
             event_id = request.GET.get("event_id", "")
             node_role_list = node_role.split(",")
             is_server = False
-            node = None
             if "controlplane" in node_role_list:
                 cluster, is_server = rke_cluster.only_server(node_ip, event_id)
             else:
                 cluster = rke_cluster.get_rke_cluster(event_id=event_id)
             if cluster.server_host:
-                node = rke_cluster_node.create_node(cluster.cluster_id, node_name, node_role, node_ip, is_server)
-
-            if cluster.config and "worker" in node_role_list and node:
-                k8s_api = K8sClient(cluster.config)
-                k8s_api.nodes_add_worker_rule([node])
+                rke_cluster_node.create_node(cluster.cluster_id, node_name, node_role, node_ip, is_server)
 
             result = general_message(200, "Nodes init successfully.", "节点注册成功",
                                      bean={"server_ip": cluster.server_host, "is_server": is_server})
@@ -120,9 +112,8 @@ class ClusterRKENode(BaseClusterView):
                 if node_info:
                     rke_node_rule = node_info.get("roles").split(",")
                     node_rule = node.node_role.split(",")
-                    missing_labels = node_rule - rke_node_rule
                     # 输出结果
-                    if "worker" in missing_labels:
+                    if "worker" in node_rule and "worker" not in rke_node_rule:
                         k8s_api = K8sClient(cluster.config)
                         k8s_api.nodes_add_worker_rule([node])
                     nodes_info.append(node_info)
