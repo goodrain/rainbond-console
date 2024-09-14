@@ -20,7 +20,7 @@ class K8sClient:
 
         # 将配置加载到 Configuration 对象中
         loader.load_and_set(client_configuration=configuration)
-
+        configuration.timeout = 10
         # 跳过证书验证
         configuration.verify_ssl = False
 

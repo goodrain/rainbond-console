@@ -85,8 +85,10 @@ class InstallRKECluster(BaseClusterView):
             else:
                 cluster = rke_cluster.get_rke_cluster(event_id=event_id)
             if cluster.server_host:
-                rke_cluster_node.create_node(cluster.cluster_id, node_name, node_role, node_ip, is_server)
-
+                node = rke_cluster_node.create_node(cluster.cluster_id, node_name, node_role, node_ip, is_server)
+                if cluster.config:
+                    k8s_api = K8sClient(cluster.config)
+                    k8s_api.nodes_add_worker_rule([node])
             result = general_message(200, "Nodes init successfully.", "节点注册成功",
                                      bean={"server_ip": cluster.server_host, "is_server": is_server})
             return Response(result, status=200)
