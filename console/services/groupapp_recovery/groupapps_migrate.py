@@ -34,7 +34,7 @@ from console.services.group_service import group_service
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.label import ServiceLabels
-from www.models.main import (ImageServiceRelation, ServiceDomain, ServiceEvent, ServiceProbe, TenantServiceAuth,
+from www.models.main import (ServiceDomain, ServiceEvent, ServiceProbe, TenantServiceAuth,
                              TenantServiceConfigurationFile, TenantServiceEnv, TenantServiceEnvVar, TenantServiceInfo,
                              TenantServiceMountRelation, TenantServiceRelation, TenantServicesPort, TenantServiceVolume,
                              ThirdPartyServiceEndpoints)
@@ -628,14 +628,6 @@ class GroupappsMigrateService(object):
             service_auth_list.append(new_service_auth)
         if service_auth_list:
             TenantServiceAuth.objects.bulk_create(service_auth_list)
-
-    def __save_service_image_relation(self, tenant, service, service_image_relation):
-        if service_image_relation:
-            service_image_relation.pop("ID")
-            new_image_relation = ImageServiceRelation(**service_image_relation)
-            new_image_relation.tenant_id = tenant.tenant_id
-            new_image_relation.service_id = service.service_id
-            new_image_relation.save()
 
     def __save_service_relations(self, tenant, service_relations_list, old_new_service_id_map, same_team, same_region):
         new_service_relation_list = []

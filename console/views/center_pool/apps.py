@@ -297,59 +297,6 @@ class CenterAppUDView(JWTAuthApiView):
         return MessageResponse("success", msg_show="查询成功", list=versions, bean=app, total=total)
 
 
-class CenterAppManageView(JWTAuthApiView):
-    @never_cache
-    def post(self, request, enterprise_id, *args, **kwargs):
-        """
-        应用上下线
-        ---
-        parameters:
-            - name: app_id
-              description: rainbond app id
-              required: true
-              type: string
-              paramType: form
-            - name: action
-              description: 操作类型 online|offline
-              required: true
-              type: string
-              paramType: form
-        """
-        try:
-            if not self.user.is_sys_admin and not user_services.is_user_admin_in_current_enterprise(
-                    self.user, self.tenant.enterprise_id):
-                return Response(general_message(403, "current user is not enterprise admin", "非企业管理员无法进行此操作"), status=403)
-            app_id = request.data.get("app_id", None)
-            app_version_list = request.data.get("app_versions", [])
-            action = request.data.get("action", None)
-            if not app_id:
-                return Response(general_message(400, "group_key is null", "请指明需要安装应用的app_id"), status=400)
-            if not app_version_list:
-                return Response(general_message(400, "group_version_list is null", "请指明需要安装应用的版本"), status=400)
-            if not action:
-                return Response(general_message(400, "action is not specified", "操作类型未指定"), status=400)
-            if action not in ("online", "offline"):
-                return Response(general_message(400, "action is not allow", "不允许的操作类型"), status=400)
-            for app_version in app_version_list:
-                app, version = market_app_service.get_rainbond_app_and_version(self.user.enterprise_id, app_id, app_version)
-                if not version:
-                    return Response(general_message(404, "not found", "云市应用不存在"), status=404)
-
-                if action == "online":
-                    version.is_complete = True
-                else:
-                    version.is_complete = False
-                app.update_time = datetime.datetime.now()
-                app.save()
-                version.update_time = datetime.datetime.now()
-                version.save()
-            result = general_message(200, "success", "操作成功")
-        except Exception as e:
-            logger.exception(e)
-            result = error_message(e.message)
-        return Response(result, status=result["code"])
-
-
 class TagCLView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         data = []

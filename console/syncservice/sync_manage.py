@@ -6,8 +6,6 @@ from console.repositories.app import service_repo
 import logging
 from console.constants import AppConstants
 from console.repositories.team_repo import team_gitlab_repo
-from console.repositories.app_config import image_service_relation_repo
-from www.models.main import ServiceCreateStep
 
 logger = logging.getLogger("default")
 
@@ -72,19 +70,7 @@ class SyncTenantServiceManager(object):
                     "code_version": "master"
                 }
                 team_gitlab_repo.create_team_gitlab_info(**params)
-        if service.service_source == AppConstants.DOCKER_IMAGE:
-            isr = image_service_relation_repo.get_image_service_relation(service.tenant_id, service.service_id)
-            if isr:
-                service.docker_cmd = isr.image_url
-        # 只处理源码的状态
-        if service.service_source == AppConstants.SOURCE_CODE:
-            # 创建状态
-            if ServiceCreateStep.objects.filter(service_id=service.service_id, tenant_id=service.tenant_id).count() > 0:
-                service.create_status = "checking"
-            else:
-                service.create_status = "complete"
-        else:
-            service.create_status = "complete"
+        service.create_status = "complete"
         service.save()
 
     def get_limited_services(self, start_index, number_of_services):

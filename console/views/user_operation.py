@@ -125,7 +125,6 @@ class TenantServiceView(BaseApiView):
                 user_info = dict()
                 user_info["email"] = email
                 user_info["nick_name"] = nick_name
-                user_info["client_ip"] = client_ip
                 user_info["is_active"] = 1
                 user_info["phone"] = register_form.cleaned_data["phone"]
                 user_info["real_name"] = register_form.cleaned_data["real_name"]
@@ -142,7 +141,8 @@ class TenantServiceView(BaseApiView):
                 user.save()
 
                 if Users.objects.count() == 1:
-                    SuperAdminUser.objects.create(user_id=user.user_id)
+                    user.sys_admin = True
+                    user.save()
                 enterprise = enterprise_services.get_enterprise_first()
                 register_type = request.data.get("register_type", None)
                 value = request.data.get("value", None)
@@ -363,7 +363,6 @@ class UserDetailsView(JWTAuthApiView):
             tenant_info["team_name"] = tenant.tenant_name
             tenant_info["team_alias"] = tenant.tenant_alias
             tenant_info["limit_memory"] = tenant.limit_memory
-            tenant_info["pay_level"] = tenant.pay_level
             tenant_info["region"] = team_region_list
             tenant_info["creater"] = tenant.creater
             tenant_info["create_time"] = tenant.create_time

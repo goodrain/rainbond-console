@@ -76,102 +76,6 @@ class AnonymousUser(object):
         return False
 
 
-class WeChatConfig(models.Model):
-    """微信的accesstoken"""
-
-    class Meta:
-        db_table = "wechat_config"
-
-    MOBILE = "mobile"
-    WEB = "web"
-    BIZ = "biz"
-    BIZPLUGIN = "bizplugin"
-
-    OPEN_TYPE = ((MOBILE, "移动应用"), (WEB, "网站应用"), (BIZ, "公众帐号"), (BIZPLUGIN, "公众号第三方平台"))
-
-    config = models.CharField(unique=True, max_length=100, help_text='微信应用的名称')
-    app_id = models.CharField(max_length=200, help_text='app_id')
-    app_secret = models.CharField(max_length=200, help_text='app_secret')
-    token = models.CharField(max_length=200, help_text='token')
-    encrypt_mode = models.CharField(max_length=200, help_text='encrypt_mode')
-    encoding_aes_key = models.CharField(max_length=200, help_text='aes_key')
-    access_token = models.CharField(max_length=200, help_text='access_token')
-    access_token_expires_at = models.IntegerField(help_text="token过期时间")
-    refresh_token = models.CharField(max_length=200, help_text='refresh_token,只对网页授权有效')
-    app_type = models.CharField(max_length=200, choices=OPEN_TYPE, help_text='公众平台or网站')
-
-
-class WeChatUser(models.Model):
-    """微信用户表格"""
-
-    class Meta:
-        db_table = "wechat_user_info"
-
-    open_id = models.CharField(primary_key=True, max_length=200, help_text='微信用户open_id')
-    nick_name = models.CharField(max_length=100, help_text="微信用户昵称")
-    sex = models.IntegerField(help_text='性别')
-    city = models.CharField(max_length=100, help_text='城市')
-    province = models.CharField(max_length=100, help_text='省地区')
-    country = models.CharField(max_length=100, help_text='国家')
-    headimgurl = models.CharField(max_length=200, help_text='头像')
-    union_id = models.CharField(max_length=200, help_text='微信用户union_id')
-    config = models.CharField(max_length=100, help_text='所属的微信应用')
-
-    def is_authenticated(self):
-        return True
-
-    @property
-    def is_sys_admin(self):
-        admins = ('ertyuiofghjklasdfas', )
-        return bool(self.unionid in admins)
-
-    def get_session_auth_hash(self):
-        key_salt = "goodrain.com.models.get_session_auth_hash"
-        return salted_hmac(key_salt, self.user_id).hexdigest()
-
-    def to_dict(self):
-        opts = self._meta
-        data = {}
-        for f in opts.concrete_fields:
-            value = f.value_from_object(self)
-            if isinstance(value, datetime):
-                value = value.strftime('%Y-%m-%d %H:%M:%S')
-            data[f.name] = value
-        return data
-
-
-class WeChatUnBind(models.Model):
-    """解绑用户的映射关系"""
-
-    class Meta:
-        db_table = 'wechat_unbind'
-
-    user_id = models.IntegerField(help_text="用户的user_id")
-    union_id = models.CharField(max_length=200, help_text='微信用户union_id')
-    status = models.IntegerField(help_text='用户解绑的状态')
-
-
-class WeChatState(models.Model):
-    """微信state过长存储表格"""
-
-    class Meta:
-        db_table = 'wechat_state'
-
-    ID = models.AutoField(primary_key=True, max_length=10)
-    state = models.CharField(max_length=5000, help_text='微信登录state')
-    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-    update_time = models.DateTimeField(auto_now=True, help_text="更新时间")
-
-    def to_dict(self):
-        opts = self._meta
-        data = {}
-        for f in opts.concrete_fields:
-            value = f.value_from_object(self)
-            if isinstance(value, datetime):
-                value = value.strftime('%Y-%m-%d %H:%M:%S')
-            data[f.name] = value
-        return data
-
 
 class SuperAdminUser(models.Model):
     """超级管理员"""
@@ -196,23 +100,9 @@ class Users(models.Model):
     password = models.CharField(max_length=64, help_text="密码")
     phone = models.CharField(max_length=15, null=True, blank=True, help_text="手机号码")
     is_active = models.BooleanField(default=False, help_text="激活状态")
-    origion = models.CharField(max_length=12, choices=user_origion, help_text="用户来源")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-    git_user_id = models.IntegerField(help_text="gitlab 用户id", default=0)
-    github_token = models.CharField(max_length=60, help_text="github token")
-    client_ip = models.CharField(max_length=20, help_text="注册ip")
-    rf = models.CharField(max_length=60, help_text="register from")
-    # 0:普通注册,未绑定微信
-    # 1:普通注册,绑定微信
-    # 2:微信注册,绑定微信,未补充信息
-    # 3:微信注册,绑定微信,已补充信息
-    # 4:微信注册,解除微信绑定,已补充信息
-    status = models.IntegerField(default=0, help_text='用户类型 0:普通注册,未绑定微信')
-    union_id = models.CharField(max_length=100, help_text='绑定微信的union_id')
-    sso_user_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text="统一认证中心的user_id")
-    sso_user_token = models.CharField(max_length=256, null=True, blank=True, default='', help_text="统一认证中心的user_id")
+    sys_admin = models.BooleanField(default=False, help_text="超级管理员")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text="统一认证中心的enterprise_id")
-    enterprise_center_user_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text="统一认证中心的user id")
 
     def set_password(self, raw_password):
         self.password = encrypt_passwd(self.email + raw_password)
@@ -237,12 +127,8 @@ class Users(models.Model):
         是否是系统管理员
         :return: True/False
         """
-        if self.user_id:
-            try:
-                SuperAdminUser.objects.get(user_id=self.user_id)
-                return True
-            except SuperAdminUser.DoesNotExist:
-                pass
+        if self.sys_admin:
+            return True
         return False
 
     def get_session_auth_hash(self):
@@ -251,10 +137,6 @@ class Users(models.Model):
         """
         key_salt = "goodrain.com.models.get_session_auth_hash"
         return salted_hmac(key_salt, self.password).hexdigest()
-
-    @property
-    def safe_email(self):
-        return re.sub(r'(?<=\w{2}).*(?=\w@.*)', 'xxxx', self.email)
 
     def __unicode__(self):
         return self.nick_name or self.email
@@ -334,17 +216,11 @@ class Tenants(BaseModel):
 
     tenant_id = models.CharField(max_length=33, unique=True, default=make_tenant_id, help_text="租户id")
     tenant_name = models.CharField(max_length=64, unique=True, help_text="租户名称")
-    # This property is deprecated
-    # region = models.CharField(max_length=64, default='', help_text="区域中心,弃用")
     is_active = models.BooleanField(default=True, help_text="激活状态")
-    pay_type = models.CharField(max_length=5, choices=tenant_type, help_text="付费状态")
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="账户余额")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
     creater = models.IntegerField(help_text="租户创建者", default=0)
     limit_memory = models.IntegerField(help_text="内存大小单位（M）", default=1024)
     update_time = models.DateTimeField(auto_now=True, help_text="更新时间")
-    pay_level = models.CharField(max_length=30, default='free', help_text="付费级别:free,personal,company")
-    expired_time = models.DateTimeField(null=True, help_text="过期时间")
     tenant_alias = models.CharField(max_length=64, null=True, blank=True, default='', help_text="团队别名")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text="企业id")
     namespace = models.CharField(max_length=33, unique=True, help_text="团队的命名空间")
@@ -383,77 +259,12 @@ class TenantRegionInfo(BaseModel):
     enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text="企业id")
 
 
-class TenantRegionResource(BaseModel):
-    class Meta:
-        db_table = 'tenant_region_resource'
-        unique_together = (('tenant_id', 'region_name'), )
-
-    enterprise_id = models.CharField(max_length=32, help_text="企业id")
-    tenant_id = models.CharField(max_length=33, help_text="租户id")
-    region_name = models.CharField(max_length=64, help_text="区域中心名称")
-    memory_limit = models.IntegerField(help_text="内存使用上限(M)", default=0)
-    memory_expire_date = models.DateTimeField(null=True, blank=True, help_text="内存有效期时间")
-    disk_limit = models.IntegerField(help_text="磁盘使用上限(M)", default=0)
-    disk_expire_date = models.DateTimeField(null=True, blank=True, help_text="磁盘有效期时间")
-    net_limit = models.IntegerField(help_text="磁盘使用上限(M)", default=0)
-    net_stock = models.IntegerField(help_text="磁盘使用余量(M)", default=0)
-    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-    update_time = models.DateTimeField(auto_now=True, help_text="更新时间")
-
-
 service_status = (
     ("已发布", 'published'),
     ("测试中", "test"),
 )
 
-service_category = (("应用", 'application'), ("缓存", 'cache'), ("存储", 'store'))
-
 extend_method = (("不伸缩", 'stateless'), ("垂直伸缩", 'vertical'))
-
-
-class ServiceInfo(BaseModel):
-    """ 组件发布表格 """
-
-    class Meta:
-        db_table = 'service'
-        unique_together = ('service_key', 'version')
-
-    service_key = models.CharField(max_length=32, help_text="组件key")
-    publisher = models.EmailField(max_length=35, help_text="邮件地址")
-    service_name = models.CharField(max_length=100, help_text="组件发布名称")
-    pic = models.CharField(max_length=100, null=True, blank=True, help_text="logo")
-    info = models.CharField(max_length=100, null=True, blank=True, help_text="简介")
-    desc = models.CharField(max_length=400, null=True, blank=True, help_text="描述")
-    status = models.CharField(max_length=15, choices=service_status, help_text="组件状态：发布后显示还是隐藏")
-    category = models.CharField(max_length=15, help_text="组件分类：application,cache,store")
-    is_service = models.BooleanField(default=False, blank=True, help_text="是否inner组件")
-    is_web_service = models.BooleanField(default=False, blank=True, help_text="是否web组件")
-    version = models.CharField(max_length=20, null=False, help_text="当前最新版本")
-    update_version = models.IntegerField(default=1, help_text="内部发布次数")
-    image = models.CharField(max_length=200, help_text="镜像")
-    namespace = models.CharField(max_length=100, default='', help_text="镜像发布云帮的区间")
-    slug = models.CharField(max_length=200, help_text="slug包路径", default="")
-    extend_method = models.CharField(max_length=15, default='stateless', help_text="伸缩方式")
-    cmd = models.CharField(max_length=2048, null=True, blank=True, help_text="启动参数")
-    setting = models.CharField(max_length=200, null=True, blank=True, help_text="设置项")
-    env = models.CharField(max_length=200, null=True, blank=True, help_text="环境变量")
-    dependecy = models.CharField(max_length=100, default="", help_text="依赖组件--service_key待确认")
-    min_node = models.IntegerField(help_text="启动个数", default=1)
-    min_cpu = models.IntegerField(help_text="cpu个数", default=500)
-    min_memory = models.IntegerField(help_text="内存大小单位（M）", default=256)
-    inner_port = models.IntegerField(help_text="内部端口", default=0)
-    publish_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-    volume_mount_path = models.CharField(max_length=200, null=True, blank=True, help_text="mount目录")
-    service_type = models.CharField(max_length=50, null=True, blank=True, help_text="组件类型:web,mysql,redis,mongodb,phpadmin")
-    is_init_accout = models.BooleanField(default=False, blank=True, help_text="是否初始化账户")
-    creater = models.IntegerField(null=True, help_text="创建人")
-    publish_type = models.CharField(max_length=10, default="single", help_text="判断组件是否属于组")
-
-    def is_slug(self):
-        return bool(runner_util.is_runner(self.image))
-
-    def is_image(self):
-        return not self.is_slug()
 
 
 class TenantServiceInfo(BaseModel):
@@ -651,18 +462,6 @@ class TenantServiceInfoDelete(BaseModel):
     app_id = models.IntegerField(default=0, help_text="应用id")
 
 
-class TenantServiceLog(BaseModel):
-    class Meta:
-        db_table = 'tenant_service_log'
-
-    user_id = models.IntegerField(help_text="用户id")
-    user_name = models.CharField(max_length=40, help_text="用户名")
-    service_id = models.CharField(max_length=32, help_text="组件id")
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    action = models.CharField(max_length=15, help_text="分类：deploy,stop,restart")
-    create_time = models.DateTimeField(auto_now=True, help_text="创建时间")
-
-
 class TenantServiceRelation(BaseModel):
     class Meta:
         db_table = 'tenant_service_relation'
@@ -694,31 +493,6 @@ class TenantServiceAuth(BaseModel):
     user = models.CharField(max_length=64, null=True, blank=True, help_text="用户")
     password = models.CharField(max_length=200, null=True, blank=True, help_text="密码")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-
-
-class TenantServiceExtendMethod(BaseModel):
-    class Meta:
-        db_table = 'tenant_service_extend_method'
-
-    service_key = models.CharField(max_length=32, help_text="组件key")
-    version = models.CharField(max_length=20, null=False, help_text="当前最新版本")
-    min_node = models.IntegerField(default=1, help_text="最小节点")
-    max_node = models.IntegerField(default=20, help_text="最大节点")
-    step_node = models.IntegerField(default=1, help_text="节点步长")
-    min_memory = models.IntegerField(default=1, help_text="最小内存")
-    max_memory = models.IntegerField(default=20, help_text="最大内存")
-    step_memory = models.IntegerField(default=1, help_text="内存步长")
-    is_restart = models.BooleanField(default=False, blank=True, help_text="是否重启")
-
-    def to_dict(self):
-        opts = self._meta
-        data = {}
-        for f in opts.concrete_fields:
-            value = f.value_from_object(self)
-            if isinstance(value, datetime):
-                value = value.strftime('%Y-%m-%d %H:%M:%S')
-            data[f.name] = value
-        return data
 
 
 class ServiceDomain(BaseModel):
@@ -809,150 +583,6 @@ class PermRelTenant(BaseModel):
     identity = models.CharField(max_length=15, choices=tenant_identity, help_text="租户身份", null=True, blank=True)
     enterprise_id = models.IntegerField(help_text="关联企业")
     role_id = models.IntegerField(help_text='角色', null=True, blank=True)
-
-
-class TenantRecharge(BaseModel):
-    class Meta:
-        db_table = 'tenant_recharge'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    user_id = models.IntegerField(help_text="充值用户")
-    user_name = models.CharField(max_length=40, help_text="用户名")
-    order_no = models.CharField(max_length=60, help_text="订单号")
-    recharge_type = models.CharField(max_length=40, help_text="充值类型")
-    money = models.DecimalField(max_digits=9, decimal_places=2, help_text="充值金额")
-    subject = models.CharField(max_length=40, help_text="主题")
-    body = models.CharField(max_length=80, help_text="详情")
-    show_url = models.CharField(max_length=100, help_text="详情url")
-    status = models.CharField(max_length=30, help_text="充值状态")
-    trade_no = models.CharField(max_length=64, help_text="支付宝交易号")
-    time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-
-
-class TenantServiceStatics(BaseModel):
-    class Meta:
-        db_table = 'tenant_service_statics'
-        unique_together = ('service_id', 'time_stamp')
-        get_latest_by = 'ID'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    service_id = models.CharField(max_length=32, help_text="组件id")
-    pod_id = models.CharField(max_length=32, help_text="组件id")
-    node_num = models.IntegerField(help_text="节点个数", default=0)
-    node_memory = models.IntegerField(help_text="节点内存k", default=0)
-    container_cpu = models.IntegerField(help_text="cpu使用", default=0)
-    container_memory = models.IntegerField(help_text="内存使用K", default=0)
-    container_memory_working = models.IntegerField(help_text="正在使用内存K", default=0)
-    pod_cpu = models.IntegerField(help_text="cpu使用", default=0)
-    pod_memory = models.IntegerField(help_text="内存使用K", default=0)
-    pod_memory_working = models.IntegerField(help_text="正在使用内存K", default=0)
-    container_disk = models.IntegerField(help_text="磁盘使用K", default=0)
-    storage_disk = models.IntegerField(help_text="磁盘使用K", default=0)
-    net_in = models.IntegerField(help_text="网络使用K", default=0)
-    net_out = models.IntegerField(help_text="网络使用K", default=0)
-    flow = models.IntegerField(help_text="网络下载量", default=0)
-    time_stamp = models.IntegerField(help_text="时间戳", default=0)
-    status = models.IntegerField(default=0, help_text="0:无效；1:有效；2:操作中")
-    region = models.CharField(max_length=64, help_text="组件所属区")
-    time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-
-
-class TenantConsumeDetail(BaseModel):
-    class Meta:
-        db_table = 'tenant_consume_detail'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    service_id = models.CharField(max_length=32, help_text="组件id")
-    service_alias = models.CharField(max_length=100, help_text="组件别名")
-    node_num = models.IntegerField(help_text="节点个数", default=0)
-    cpu = models.IntegerField(help_text="cpu使用", default=0)
-    memory = models.IntegerField(help_text="内存使用K", default=0)
-    disk = models.IntegerField(help_text="磁盘使用K", default=0)
-    net = models.IntegerField(help_text="网络使用K", default=0)
-    money = models.DecimalField(max_digits=9, decimal_places=2, help_text="消费金额", default=0)
-    total_memory = models.IntegerField(help_text="内存使用K", default=0)
-    fee_rule = models.CharField(max_length=60, help_text="计费规则")
-    pay_status = models.CharField(max_length=10, help_text="扣费状态；payed,unpayed")
-    region = models.CharField(max_length=15, help_text="组件所属区")
-    status = models.IntegerField(help_text="组件状态", default=1)
-    time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-
-
-class TenantConsume(BaseModel):
-    class Meta:
-        db_table = 'tenant_consume'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    total_memory = models.IntegerField(help_text="内存使用K", default=0)
-    cost_money = models.DecimalField(max_digits=9, decimal_places=2, help_text="消费金额", default=0)
-    payed_money = models.DecimalField(max_digits=9, decimal_places=2, help_text="消费金额", default=0)
-    pay_status = models.CharField(max_length=10, help_text="扣费状态；payed,unpayed")
-    time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-
-
-class TenantFeeBill(BaseModel):
-    class Meta:
-        db_table = 'tenant_fee_bill'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    bill_title = models.CharField(max_length=100, help_text="发票标题")
-    bill_type = models.CharField(max_length=10, help_text="公司或个人")
-    bill_address = models.CharField(max_length=100, help_text="邮寄地址")
-    bill_phone = models.CharField(max_length=100, help_text="邮寄电话")
-    money = models.DecimalField(max_digits=9, decimal_places=2, help_text="发票金额")
-    status = models.CharField(max_length=10, help_text="审核状态:已审核(approved)，未审核(unapproved)")
-    time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-
-
-class TenantPaymentNotify(BaseModel):
-    class Meta:
-        db_table = 'tenant_payment_notify'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    notify_type = models.CharField(max_length=10, help_text="通知类型：余额不足，欠费,资源已超限")
-    notify_content = models.CharField(max_length=200, help_text="通知类容")
-    send_person = models.CharField(max_length=20, help_text="通知人")
-    time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-    status = models.CharField(max_length=10, help_text="有效(valid),无效(unvalid)")
-
-
-class PhoneCode(BaseModel):
-    class Meta:
-        db_table = 'phone_code'
-
-    phone = models.CharField(max_length=11, help_text="手机号码")
-    type = models.CharField(max_length=10, help_text="类型")
-    code = models.CharField(max_length=10, help_text="类型")
-    message_id = models.CharField(max_length=100, help_text="aliyun发送的message_id")
-    status = models.IntegerField(help_text='发送状态0已发送1发送成功2发送失败', default=0)
-    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-
-
-class TenantRegionPayModel(BaseModel):
-    class Meta:
-        db_table = 'tenant_region_pay_model'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    region_name = models.CharField(max_length=20, help_text="区域中心名称")
-    pay_model = models.CharField(max_length=10, default='hour', help_text="付费模式:hour,month,year")
-    buy_period = models.IntegerField(help_text="购买周期", default=0)
-    buy_memory = models.IntegerField(help_text="购买内存", default=0)
-    buy_disk = models.IntegerField(help_text="购买磁盘", default=0)
-    buy_net = models.IntegerField(help_text="购买流量", default=0)
-    buy_start_time = models.DateTimeField(help_text="购买开始时间")
-    buy_end_time = models.DateTimeField(help_text="购买结束时间")
-    buy_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="购买金额")
-    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-
-
-class TenantServiceL7Info(BaseModel):
-    class Meta:
-        db_table = 'tenant_l7_info'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    service_id = models.CharField(max_length=32, db_index=True, help_text="组件id")
-    dep_service_id = models.CharField(max_length=32, help_text="依赖组件id")
-    l7_json = models.CharField(max_length=255, help_text="高级组件特性信息")
 
 
 class TenantServiceEnvVar(BaseModel):
@@ -1118,145 +748,10 @@ class RegionApp(BaseModel):
     app_id = models.IntegerField()
 
 
-class ImageServiceRelation(BaseModel):
-    """image_url拉取的service的对应关系"""
-
-    class Meta:
-        db_table = 'tenant_service_image_relation'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    service_id = models.CharField(max_length=32, help_text="组件id")
-    image_url = models.CharField(max_length=200, help_text="镜像地址")
-    service_cname = models.CharField(max_length=100, default='', help_text="组件名")
-
-
-class ComposeServiceRelation(BaseModel):
-    """docker compose 文件"""
-
-    class Meta:
-        db_table = 'tenant_compose_file'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    compose_file_id = models.CharField(max_length=32, help_text="compose文件id")
-    compose_file = models.FileField(upload_to=compose_file_path, null=True, blank=True, help_text="compose file")
-
-
-class ServiceRule(BaseModel):
-    """用户组件自动伸缩规则 """
-
-    class Meta:
-        db_table = 'tenant_service_rule'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    tenant_name = models.CharField(max_length=40, unique=True, help_text="租户名称")
-    service_id = models.CharField(max_length=32, help_text="组件id")
-    service_alias = models.CharField(max_length=100, help_text="组件别名")
-    service_region = models.CharField(max_length=64, help_text="数据中心")
-    item = models.CharField(max_length=50, help_text="规则项目")
-    maxvalue = models.IntegerField(default=0)
-    minvalue = models.IntegerField(default=0)
-    status = models.BooleanField(default=False, blank=True, help_text="是否生效；0:停止；1:生效")
-    count = models.IntegerField(default=0)
-    node_number = models.IntegerField(help_text="实例启动个数", default=1)
-    port = models.CharField(max_length=10)
-    port_type = models.CharField(max_length=15, default='multi_outer', help_text="端口类型，one_outer;dif_protocol;multi_outer")
-
-
-class ServiceRuleHistory(BaseModel):
-    """用户组件自动伸缩规则触发历史 """
-
-    class Meta:
-        db_table = 'tenant_service_rule_history'
-
-    rule_id = models.CharField(max_length=32, help_text="规则id")
-    trigger_time = models.CharField(max_length=100, help_text="触发时间")
-    action = models.CharField(max_length=10, help_text="触发动作")
-    message = models.CharField(max_length=1024, help_text="描述")
-
-
-class ServiceAttachInfo(BaseModel):
-    """组件配套信息"""
-
-    class Meta:
-        db_table = 'service_attach_info'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    service_id = models.CharField(max_length=32, help_text="组件id")
-    memory_pay_method = models.CharField(max_length=32, choices=pay_method)
-    disk_pay_method = models.CharField(max_length=32, choices=pay_method)
-    min_memory = models.IntegerField(help_text="内存大小单位（M）", default=128)
-    min_node = models.IntegerField(help_text="节点个数", default=1)
-    disk = models.IntegerField(help_text='磁盘大小')
-    pre_paid_period = models.IntegerField(help_text="预付费项目购买时长(单位:月)", default=0)
-    pre_paid_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="预付费金额")
-    buy_start_time = models.DateTimeField(help_text="购买开始时间")
-    buy_end_time = models.DateTimeField(help_text="购买结束时间")
-    create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
-    region = models.CharField(max_length=64, help_text="数据中心")
-
-    def toJSON(self):
-        data = {}
-        for f in self._meta.fields:
-            obj = getattr(self, f.name)
-            if type(f.name) == DateTimeField:
-                data[f.name] = obj.strftime('%Y-%m-%d %H:%M:%S')
-            else:
-                data[f.name] = obj
-        return data
-
-
-class ServiceCreateStep(BaseModel):
-    class Meta:
-        db_table = 'service_create_step'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    service_id = models.CharField(max_length=32, help_text="组件id")
-    app_step = models.IntegerField(default=1, help_text="创建组件的步数")
-
-
 pay_status = (
     ("已发布", 'payed'),
     ("测试中", "unpayed"),
 )
-
-
-class ServiceFeeBill(BaseModel):
-    class Meta:
-        db_table = 'service_fee_bill'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    service_id = models.CharField(max_length=32, help_text="组件id")
-    prepaid_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="付费金额")
-    pay_status = models.CharField(max_length=15, choices=pay_status, help_text="付费状态")
-    cost_type = models.CharField(max_length=15, help_text="消费类型")
-    node_memory = models.IntegerField(help_text="内存大小单位（M）", default=128)
-    node_num = models.IntegerField(help_text="节点个数", default=1)
-    disk = models.IntegerField(help_text='磁盘大小')
-    buy_period = models.IntegerField(help_text="预付费时长(单位:小时)", default=0)
-    create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
-    pay_time = models.DateTimeField(auto_now_add=True, help_text="支付时间")
-
-
-class ServiceConsume(BaseModel):
-    class Meta:
-        db_table = 'service_consume'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    service_id = models.CharField(max_length=32, help_text="组件id")
-    memory = models.IntegerField(help_text="内存大小单位（M）", default=0)
-    node_num = models.IntegerField(help_text="节点个数", default=1)
-    disk = models.IntegerField(help_text='磁盘大小', default=0)
-    net = models.IntegerField(help_text="网络使用K", default=0)
-    memory_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="内存金额")
-    disk_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="磁盘金额")
-    net_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="网络金额")
-    pay_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="实际付费金额")
-    pay_status = models.CharField(max_length=15, choices=pay_status, help_text="付费状态")
-    region = models.CharField(max_length=64, help_text="数据中心")
-    status = models.IntegerField(default=0, help_text="0:无效；1:有效；2:操作中")
-    time = models.DateTimeField(help_text="创建时间")
-    real_memory_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="内存按需金额")
-    real_disk_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="磁盘按需金额")
 
 
 class ServiceEvent(BaseModel):
@@ -1278,28 +773,6 @@ class ServiceEvent(BaseModel):
     code_version = models.CharField(max_length=200, help_text="部署代码版本")
     old_code_version = models.CharField(max_length=200, help_text="历史部署代码版本")
     region = models.CharField(max_length=64, default="", help_text="组件所属数据中心")
-
-
-class GroupCreateTemp(BaseModel):
-    class Meta:
-        db_table = 'group_create_temp'
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    service_id = models.CharField(max_length=32, help_text="组件id")
-    service_key = models.CharField(max_length=32, help_text="组件key")
-    share_group_id = models.IntegerField(help_text="组件组发布id")
-    service_group_id = models.IntegerField(help_text="组件所属组")
-    service_cname = models.CharField(max_length=100, default='', help_text="组件名")
-
-
-class BackServiceInstallTemp(BaseModel):
-    class Meta:
-        db_table = "back_service_install_temp"
-
-    group_share_id = models.CharField(max_length=32, unique=True, help_text="组件组发布id")
-    share_pk = models.IntegerField(help_text="发布的组件组PK 对应app_service_group中的ID")
-    group_pk = models.IntegerField(help_text="组件所在组ID")
-    success = models.BooleanField(default=True, help_text="成功安装")
 
 
 class ServiceProbe(BaseModel):
@@ -1330,20 +803,6 @@ class ConsoleConfig(BaseModel):
     value = models.CharField(max_length=1000, help_text="配置值")
     description = models.TextField(null=True, blank=True, default="", help_text="说明")
     update_time = models.DateTimeField(help_text="更新时间", null=True)
-
-
-class ServicePaymentNotify(BaseModel):
-    class Meta:
-        db_table = "service_payment_notify"
-
-    tenant_id = models.CharField(max_length=32, help_text="租户id")
-    service_id = models.CharField(max_length=32, help_text="组件id")
-    notify_type = models.CharField(max_length=10, help_text="通知类型")
-    notify_content = models.CharField(max_length=200, help_text="通知内容")
-    send_person = models.CharField(max_length=20, help_text="通知内容")
-    time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
-    end_time = models.DateTimeField(blank=True, help_text="删除截止时间")
-    status = models.CharField(max_length=10, help_text="状态")
 
 
 class TenantEnterprise(BaseModel):

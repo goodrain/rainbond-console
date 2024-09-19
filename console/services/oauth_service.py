@@ -33,7 +33,6 @@ class OAuthUserService(object):
             user_info = dict()
             user_info["email"] = oauth_user.email
             user_info["nick_name"] = oauth_user.name
-            user_info["client_ip"] = oauth_user.client_ip
             user_info["phone"] = oauth_user.phone
             user_info["real_name"] = oauth_user.real_name
             user_info["is_active"] = 1

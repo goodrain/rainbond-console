@@ -38,19 +38,6 @@ class PartnerModelBackend(ModelBackend):
             pass
 
 
-class WeChatModelBackend(ModelBackend):
-    """微信用户登录拦截"""
-
-    def authenticate(self, request, union_id=None, **kwargs):
-        # user登录失败,微信登录
-        if union_id is None or union_id == "":
-            return None
-        try:
-            return Users.objects.get(union_id=union_id)
-        except Users.DoesNotExist:
-            pass
-
-
 class GoodRainSSOModelBackend(ModelBackend):
     """SSO用户登陆认证"""
 

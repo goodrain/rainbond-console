@@ -13,8 +13,8 @@ from console.exception.main import AbortRequest, ServiceHandleException
 from console.models.main import ServiceShareRecordEvent
 from console.repositories.app import (delete_service_repo, recycle_bin_repo, relation_recycle_bin_repo, service_repo,
                                       service_source_repo)
-from console.repositories.app_config import (auth_repo, create_step_repo, dep_relation_repo, domain_repo, env_var_repo,
-                                             extend_repo, mnt_repo, port_repo, service_attach_repo, service_payment_repo,
+from console.repositories.app_config import (auth_repo, dep_relation_repo, domain_repo, env_var_repo,
+                                             extend_repo, mnt_repo, port_repo,
                                              tcp_domain, volume_repo)
 
 from console.repositories.app_config_group import app_config_group_service_repo
@@ -49,10 +49,9 @@ from django.conf import settings
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroupRelation
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
+from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 
-tenantUsedResource = TenantUsedResource()
 event_service = AppEventService()
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -79,31 +78,6 @@ class AppManageBase(object):
         self.HORIZONTAL_UPGRADE = "HorizontalUpgrade"
         self.TRUNCATE = "truncate"
 
-    def isOwnedMoney(self, tenant):
-        if self.MODULES["Owned_Fee"]:
-            if tenant.balance < 0 and tenant.pay_type == "payed":
-                return True
-        return False
-
-    def isExpired(self, tenant, service):
-        if service.expired_time is not None:
-            if tenant.pay_type == "free" and service.expired_time < datetime.datetime.now():
-                if self.MODULES["Owned_Fee"]:
-                    return True
-        else:
-            # 将原有免费用户的组件设置为7天后
-            service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
-        return False
-
-    def is_over_resource(self, tenant, service):
-        tenant_cur_used_resource = tenantUsedResource.calculate_real_used_resource(tenant)
-        if tenant.pay_type == "free":
-            # 免费用户使用上限
-            new_add_memory = service.min_node * service.min_memory
-            if new_add_memory + tenant_cur_used_resource > tenant.limit_memory:
-                return True
-        return False
-
     def cur_service_memory(self, tenant, cur_service):
         """查询当前组件占用的内存"""
         memory = 0
@@ -122,34 +96,7 @@ class AppManageBase(object):
             pass
         return memory
 
-    def is_operate_over_resource(self, tenant, service, new_add_memory, is_check_status):
-        """
 
-        :param tenant: 租户
-        :param service: 组件
-        :param new_add_memory: 新添加的内存
-        :param is_check_status: 是否检测当前组件状态
-        :return:
-        """
-        if self.MODULES["Memory_Limit"]:
-            if is_check_status:
-                new_add_memory = new_add_memory + \
-                    self.cur_service_memory(tenant, service)
-            if tenant.pay_type == "free":
-                tm = tenantUsedResource.calculate_real_used_resource(tenant) + new_add_memory
-                logger.debug(tenant.tenant_id + " used memory " + str(tm))
-                if tm > tenant.limit_memory:
-                    return True
-
-        return False
-
-    def check_resource(self, tenant, service, new_add_memory=0, is_check_status=False):
-        if self.isExpired(tenant, service):
-            return 400, "该应用试用已到期"
-        # if self.is_over_resource(tenant, service):
-        if self.is_operate_over_resource(tenant, service, new_add_memory, is_check_status):
-            return 400, "资源已达上限，您最多使用{0}G内存".format(tenant.limit_memory / 1024)
-        return 200, "pass"
 
 
 class AppManageService(AppManageBase):
@@ -971,11 +918,8 @@ class AppManageService(AppManageBase):
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
         volume_repo.delete_service_volumes(service.service_id)
         group_service_relation_repo.delete_relation_by_service_id(service.service_id)
-        service_attach_repo.delete_service_attach(service.service_id)
-        create_step_repo.delete_create_step(service.service_id)
         event_service.delete_service_events(service)
         probe_repo.delete_service_probe(service.service_id)
-        service_payment_repo.delete_service_payment(service.service_id)
         service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)
@@ -1307,11 +1251,8 @@ class AppManageService(AppManageBase):
         port_repo.delete_service_port(tenant.tenant_id, service.service_id)
         volume_repo.delete_service_volumes(service.service_id)
         group_service_relation_repo.delete_relation_by_service_id(service.service_id)
-        service_attach_repo.delete_service_attach(service.service_id)
-        create_step_repo.delete_create_step(service.service_id)
         event_service.delete_service_events(service)
         probe_repo.delete_service_probe(service.service_id)
-        service_payment_repo.delete_service_payment(service.service_id)
         service_source_repo.delete_service_source(tenant.tenant_id, service.service_id)
         compose_relation_repo.delete_relation_by_service_id(service.service_id)
         service_label_repo.delete_service_all_labels(service.service_id)

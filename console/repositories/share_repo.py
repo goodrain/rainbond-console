@@ -2,8 +2,7 @@
 from django.db.models import Q
 from console.models.main import RainbondCenterApp, ServiceShareRecord, RainbondCenterPlugin, RainbondCenterAppVersion
 from www.models.main import ServiceGroupRelation, TenantServiceInfo, TenantServicesPort, TenantServiceRelation, \
-    TenantServiceEnvVar, TenantServiceVolume, ServiceInfo, \
-    TenantServiceExtendMethod, ServiceProbe
+    TenantServiceEnvVar, TenantServiceVolume, ServiceProbe
 from www.models.plugin import ServicePluginConfigVar, TenantServicePluginRelation, TenantServicePluginAttr
 from www.db.base import BaseConnection
 from django.core.paginator import Paginator
@@ -43,20 +42,6 @@ class ShareRepo(object):
         volume_list = TenantServiceVolume.objects.filter(service_id__in=service_ids)
         if volume_list:
             return volume_list
-        else:
-            return []
-
-    def get_service_extend_method_by_keys(self, service_keys):
-        extend_method_list = TenantServiceExtendMethod.objects.filter(service_key__in=service_keys)
-        if extend_method_list:
-            return extend_method_list
-        else:
-            return []
-
-    def get_service_extend_method_by_key(self, service_key):
-        extend_method_list = TenantServiceExtendMethod.objects.filter(service_key=service_key)
-        if extend_method_list:
-            return extend_method_list
         else:
             return []
 
@@ -161,11 +146,6 @@ class ShareRepo(object):
         app_model.save()
         return app_model
 
-    def create_service(self, **kwargs):
-        service = ServiceInfo(**kwargs)
-        service.save()
-        return service
-
     def create_tenant_service(self, **kwargs):
         tenant_service = TenantServiceInfo(**kwargs)
         tenant_service.save()
@@ -203,10 +183,6 @@ class ShareRepo(object):
 
     def delete_tenant_service_plugin_relation(self, service_id):
         TenantServicePluginRelation.objects.filter(service_id=service_id).delete()
-
-    def create_tenant_service_extend_method(self, **kwargs):
-        tenant_service_extend_method = TenantServiceExtendMethod(**kwargs).save()
-        return tenant_service_extend_method
 
     def create_service_share_record(self, **kwargs):
         service_share_record = ServiceShareRecord(**kwargs)

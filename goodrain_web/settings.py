@@ -179,7 +179,7 @@ REGION_RULE = {}
 
 AUTHENTICATION_BACKENDS = ('console.services.auth.backends.GoodRainSSOModelBackend',
                            'console.services.auth.backends.ModelBackend', 'console.services.auth.backends.PartnerModelBackend',
-                           'console.services.auth.backends.WeChatModelBackend', 'django.contrib.auth.backends.ModelBackend')
+                           'django.contrib.auth.backends.ModelBackend')
 
 LOGIN_URL = '/login'
 INSTALLED_APPS = ('django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages',

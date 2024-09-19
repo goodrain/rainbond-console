@@ -232,8 +232,6 @@ class OAuthServerAuthorize(AlowAnyApiView):
             if oauth_user.enterprise_domain != domain.split(".")[0] and \
                     domain.split(".")[0] != home_split_url.netloc.split(".")[0]:
                 raise ServiceHandleException(msg="Domain Inconsistent", msg_show="登录失败", status_code=401, error_code=10405)
-            client_ip = request.META.get("REMOTE_ADDR", None)
-            oauth_user.client_ip = client_ip
             oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)
         return oauth_sev_user_service.set_oauth_user_relation(api, oauth_service, oauth_user, access_token, refresh_token, code)
 

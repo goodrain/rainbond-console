@@ -11,8 +11,8 @@ from console.exception.main import AbortRequest
 from console.utils.shortcuts import get_object_or_404
 from django.db.models import Q
 from www.db.base import BaseConnection
-from www.models.main import (GatewayCustomConfiguration, ImageServiceRelation, ServiceAttachInfo, ServiceCreateStep,
-                             ServiceDomain, ServiceDomainCertificate, ServicePaymentNotify, ServiceTcpDomain, TenantServiceAuth,
+from www.models.main import (GatewayCustomConfiguration,
+                             ServiceDomain, ServiceDomainCertificate, ServiceTcpDomain, TenantServiceAuth,
                              TenantServiceConfigurationFile, TenantServiceEnv, TenantServiceEnvVar, TenantServiceMountRelation,
                              TenantServiceRelation, TenantServicesPort, TenantServiceVolume, ThirdPartyServiceEndpoints)
 from www.models.service_publish import ServiceExtendMethod
@@ -530,20 +530,6 @@ class TenantServiceMntRelationRepository(object):
         TenantServiceMountRelation.objects.filter(service_id__in=component_ids).delete()
         self.bulk_create(volume_deps)
 
-
-class ImageServiceRelationRepository(object):
-    def create_image_service_relation(self, tenant_id, service_id, image_url, service_cname):
-        isr = ImageServiceRelation.objects.create(
-            tenant_id=tenant_id, service_id=service_id, image_url=image_url, service_cname=service_cname)
-        return isr
-
-    def get_image_service_relation(self, tenant_id, service_id):
-        isrs = ImageServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id)
-        if isrs:
-            return isrs[0]
-        return None
-
-
 class ServiceDomainRepository(object):
     def get_service_domain_by_container_port(self, service_id, container_port):
         return ServiceDomain.objects.filter(service_id=service_id, container_port=container_port)
@@ -814,21 +800,6 @@ class ServiceAuthRepository(object):
         return TenantServiceAuth.objects.filter(service_id=service_id)
 
 
-class ServiceAttachInfoRepository(object):
-    def delete_service_attach(self, service_id):
-        ServiceAttachInfo.objects.filter(service_id=service_id).delete()
-
-
-class ServiceStepRepository(object):
-    def delete_create_step(self, service_id):
-        ServiceCreateStep.objects.filter(service_id=service_id).delete()
-
-
-class ServicePaymentRepository(object):
-    def delete_service_payment(self, service_id):
-        ServicePaymentNotify.objects.filter(service_id=service_id).delete()
-
-
 class ServiceTcpDomainRepository(object):
     def get_service_tcp_domain_by_service_id(self, service_id):
 
@@ -1013,7 +984,6 @@ class GatewayCustom(object):
 tcp_domain = ServiceTcpDomainRepository()
 env_var_repo = TenantServiceEnvVarRepository()
 port_repo = TenantServicePortRepository()
-image_service_relation_repo = ImageServiceRelationRepository()
 domain_repo = ServiceDomainRepository()
 volume_repo = TenantServiceVolumnRepository()
 config_file_repo = ComponentConfigurationFileRepository()
@@ -1023,9 +993,6 @@ extend_repo = ServiceExtendRepository()
 compile_env_repo = CompileEnvRepository()
 # 其他
 auth_repo = ServiceAuthRepository()
-service_attach_repo = ServiceAttachInfoRepository()
-create_step_repo = ServiceStepRepository()
-service_payment_repo = ServicePaymentRepository()
 # endpoints
 service_endpoints_repo = TenantServiceEndpoints()
 configuration_repo = GatewayCustom()

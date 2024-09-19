@@ -65,27 +65,6 @@ class UserService(object):
             u.save()
             return True, "password update success"
 
-    def add_user(self, request, tenant_name):
-        phone = request.data.get("phone", None)
-        user_name = request.data.get("user_name", None)
-        email = request.data.get("email", None)
-        password = request.data.get("password", None)
-        tenant = team_services.get_tenant(tenant_name)
-        if Users.objects.filter(nick_name=user_name).exists():
-            raise UserExistError("用户名已存在")
-        if Users.objects.filter(email=email).exists():
-            raise EmailExistError("邮箱已存在")
-        if Users.objects.filter(phone=phone).exists():
-            raise PhoneExistError("手机号已存在")
-
-        user = Users(email=email, nick_name=user_name, phone=phone, client_ip=self.get_client_ip(request), rf="backend")
-        user.set_password(password)
-        user.save()
-
-        PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity='admin')
-
-        codeRepositoriesService.createUser(user, email, password, user_name, user_name)
-
     # delete user and delete user of tenant perm
     def delete_user(self, user_id):
         user = Users.objects.get(user_id=user_id)
@@ -99,23 +78,10 @@ class UserService(object):
             pass
         user.delete()
 
-    def update_user_password(self, user_id, new_password):
-        user = Users.objects.get(user_id=user_id)
-        if len(new_password) < 8:
-            raise PasswordTooShortError("密码不能小于8位")
-        user.set_password(new_password)
-        user.save()
-        # 同时修改git的密码
-        codeRepositoriesService.modifyUser(user, new_password)
-
     def get_user_tenants(self, user_id):
         tenant_id_list = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
         tenant_list = Tenants.objects.filter(pk__in=tenant_id_list).values_list("tenant_name", flat=True)
         return tenant_list
-
-    def get_users_count(self):
-        user_count = Users.objects.all().count()
-        return user_count
 
     def get_user_by_filter(self, args=None, kwargs=None):
         return user_repo.get_user_by_filter(args=args, kwargs=kwargs)
@@ -127,26 +93,6 @@ class UserService(object):
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
-
-    def get_fuzzy_users(self, user_name, tenant_name):
-        # 如果租户名存在
-        if tenant_name:
-            tenants = Tenants.objects.filter(tenant_name=tenant_name)
-            if not tenants:
-                raise TenantNotExistError
-            tenant = tenants[0]
-            user_id_list = PermRelTenant.objects.filter(tenant_id=tenant.ID).values_list("user_id", flat=True)
-            user_list = Users.objects.filter(user_id__in=user_id_list)
-            user_name_list = [x.nick_name.lower() for x in user_list]
-
-        else:
-            user_name_map = list(Users.objects.values("nick_name"))
-            user_name_list = [x.get("nick_name").lower() for x in user_name_map]
-
-        find_user_name = list(fuzzyfinder(user_name.lower(), user_name_list))
-        user_query = Q(nick_name__in=find_user_name)
-        user_list = Users.objects.filter(user_query)
-        return user_list
 
     def batch_delete_users(self, tenant_name, user_id_list):
         try:
@@ -386,9 +332,7 @@ class UserService(object):
                 "nick_name": user.nick_name,
                 "phone": user.phone,
                 "is_active": user.is_active,
-                "origion": user.origion,
                 "create_time": user.create_time,
-                "client_ip": user.client_ip,
                 "enterprise_id": user.enterprise_id,
             })
         return users, uall.count()
@@ -434,9 +378,7 @@ class UserService(object):
                     "nick_name": user.nick_name,
                     "phone": user.phone,
                     "is_active": user.is_active,
-                    "origion": user.origion,
                     "create_time": user.create_time,
-                    "client_ip": user.client_ip,
                     "enterprise_id": user.enterprise_id,
                 })
             except UserNotExistError:
@@ -457,9 +399,7 @@ class UserService(object):
                     "real_name": user.real_name,
                     "phone": user.phone,
                     "is_active": user.is_active,
-                    "origion": user.origion,
                     "create_time": user.create_time,
-                    "client_ip": user.client_ip,
                     "enterprise_id": user.enterprise_id,
                     "roles": item.identity.split(","),
                 })

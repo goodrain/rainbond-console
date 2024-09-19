@@ -198,24 +198,6 @@ class ShareService(object):
         else:
             return {}
 
-    def get_service_extend_method_by_keys(self, service_keys):
-        """
-        获取组件伸缩状态
-        """
-        extend_method_list = share_repo.get_service_extend_method_by_keys(service_keys=service_keys)
-        if extend_method_list:
-            extend_method_map = {}
-            for extend_method in extend_method_list:
-                service_key = extend_method.service_key
-                tmp_list = []
-                if service_key in extend_method_map.get(service_key):
-                    tmp_list = extend_method_map.get(service_key)
-                tmp_list.append(extend_method)
-                extend_method_map[service_key] = tmp_list
-            return extend_method_map
-        else:
-            return {}
-
     def get_service_probes(self, service_ids):
         """
         获取组件健康检测探针
@@ -677,9 +659,6 @@ class ShareService(object):
     def delete_record(self, record):
         record.delete()
 
-    def create_service(self, **kwargs):
-        return share_repo.create_service(**kwargs)
-
     def create_tenant_service(self, **kwargs):
         return share_repo.create_tenant_service(**kwargs)
 
@@ -700,9 +679,6 @@ class ShareService(object):
 
     def create_tenant_service_plugin_relation(self, **kwargs):
         return share_repo.create_tenant_service_plugin_relation(**kwargs)
-
-    def create_tenant_service_extend_method(self, **kwargs):
-        return share_repo.create_tenant_service_extend_method(**kwargs)
 
     def create_service_share_record(self, **kwargs):
         return share_repo.create_service_share_record(**kwargs)

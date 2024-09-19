@@ -971,14 +971,6 @@ class MarketAppService(object):
         tenant_service.save()
         return tenant_service
 
-    def save_max_node_in_extend_method(self, service_key, app):
-        extend_method_obj = share_repo.get_service_extend_method_by_key(service_key)
-        if extend_method_obj:
-            for ex_me in extend_method_obj:
-                if app["extend_method_map"]["max_node"]:
-                    ex_me.max_node = app["extend_method_map"]["max_node"]
-                    ex_me.save()
-
     def __init_service_source(self, ts, component, app_id, version, install_from_cloud=False, market_name=None):
         slug = component.get("service_slug", None)
         extend_info = {}

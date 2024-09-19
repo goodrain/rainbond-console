@@ -42,16 +42,14 @@ from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
 # model
 from www.models.main import ServiceGroupRelation
-from www.models.main import ServiceConsume, TenantServiceInfo
+from www.models.main import TenantServiceInfo
 from www.models.main import ThirdPartyServiceEndpoints
 from www.models.main import TenantServicesPort
 from www.models.main import ServiceGroup
-from www.tenantservice.baseservice import (BaseTenantService, CodeRepositoriesService, ServicePluginResource,
-                                           TenantUsedResource)
+from www.tenantservice.baseservice import (BaseTenantService, CodeRepositoriesService, ServicePluginResource)
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
 
-tenantUsedResource = TenantUsedResource()
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 codeRepositoriesService = CodeRepositoriesService()
@@ -672,22 +670,6 @@ class AppService(object):
         status_info_map = get_status_info_map(status)
         status_info_map["start_time"] = start_time
         return status_info_map
-
-    def get_service_resource_with_plugin(self, tenant, service, status):
-        disk = 0
-
-        service_consume = ServiceConsume.objects.filter(
-            tenant_id=tenant.tenant_id, service_id=service.service_id).order_by("-ID")
-        if service_consume:
-            disk = service_consume[0].disk
-
-        if status != "running":
-            return {"disk": disk, "total_memory": 0}
-
-        plugin_memory = servicePluginResource.get_service_plugin_resource(service.service_id)
-
-        total_memory = service.min_node * (service.min_memory + plugin_memory)
-        return {"disk": disk, "total_memory": total_memory}
 
     def create_region_service(self, tenant, service, user_name, do_deploy=True, dep_sids=None):
         data = self.__init_create_data(tenant, service, user_name, do_deploy, dep_sids)
