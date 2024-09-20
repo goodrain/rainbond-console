@@ -25,6 +25,7 @@ from console.services.compose_service import compose_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.plugin import app_plugin_service
+from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
@@ -731,3 +732,27 @@ class JobStrategy(AppBaseView):
         region_api.update_service(self.service.service_region, self.tenant.tenant_name, self.service.service_alias, params)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
+
+# 存储文件管理
+class ManageFile(AppBaseView):
+    def get(self, request, *args, **kwargs):
+        host_path = request.GET.get("host_path", "")
+        pod_name = request.GET.get("pod_name", "")
+        region_name = request.GET.get("region_name", "")
+        container_name = request.GET.get("container_name", "")
+        try:
+            res = group_service.get_file_and_dir(region_name, self.tenant_name, self.service.service_alias, host_path, pod_name,
+                                                 self.tenant.namespace, container_name)
+            region = region_services.get_region_by_region_name(region_name)
+        except Exception as e:
+            logger.exception(e)
+            raise e
+        bean = {
+            "host_path": host_path,
+            "ws_url": region.wsurl,
+            "namespace": self.tenant.namespace,
+            "container_name": self.service.k8s_component_name
+        }
+        result = general_message(200, "success", "获取成功", list=res, bean=bean)
+        return Response(result, status=result["code"])
+
