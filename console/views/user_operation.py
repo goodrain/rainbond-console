@@ -345,7 +345,6 @@ class UserDetailsView(JWTAuthApiView):
         user_detail["email"] = user.email
         user_detail["enterprise_id"] = user.enterprise_id
         user_detail["phone"] = user.phone
-        user_detail["git_user_id"] = user.git_user_id
         user_detail["is_sys_admin"] = user.is_sys_admin
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(user.enterprise_id)
         user_detail["is_enterprise_active"] = enterprise.is_active
