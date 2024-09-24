@@ -66,19 +66,6 @@ class CodeRepositoriesService(object):
             return gitClient.getProjectBranches(project_id)
         return ""
 
-    def createUser(self, user, email, password, username, name):
-        if custom_config.GITLAB:
-            if user.git_user_id == 0:
-                logger.info("account.login", "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
-                git_user_id = gitClient.createUser(email, password, username, name)
-                if git_user_id == 0:
-                    logger.info("account.gituser",
-                                "create gitlab user for {0} failed, reason: got uid 0".format(user.nick_name))
-                else:
-                    user.git_user_id = git_user_id
-                    user.save()
-                    logger.info("account.gituser", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
-
     def modifyUser(self, user, password):
         if custom_config.GITLAB:
             gitClient.modifyUser(user.git_user_id, password=password)
