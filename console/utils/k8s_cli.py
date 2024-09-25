@@ -206,51 +206,59 @@ class K8sClient:
                 "--kubeconfig", "kube.config"
             ])
             logger.info("Successfully uninstalled Rainbond.")
-            # Step 2: Delete PVCs in rbd-system namespace using CoreV1Api
-            logger.info("Deleting PVCs in rbd-system namespace...")
+        except Exception as e:
+            logger.error(f"Failed to uninstall Rainbond: {str(e)}")
+
+        # Step 2: Delete PVCs in rbd-system namespace using CoreV1Api
+        logger.info("Deleting PVCs in rbd-system namespace...")
+        try:
             pvcs = self.core_v1_api.list_namespaced_persistent_volume_claim(namespace="rbd-system")
             for pvc in pvcs.items:
                 self.core_v1_api.delete_namespaced_persistent_volume_claim(name=pvc.metadata.name,
                                                                            namespace="rbd-system")
             logger.info("Successfully deleted PVCs.")
+        except Exception as e:
+            logger.error(f"Failed to delete PVCs: {str(e)}")
 
-            # Step 3: Delete PVs related to rbd-system using CoreV1Api
-            logger.info("Deleting PVs related to rbd-system...")
+        # Step 3: Delete PVs related to rbd-system using CoreV1Api
+        logger.info("Deleting PVs related to rbd-system...")
+        try:
             pvs = self.core_v1_api.list_persistent_volume()
             for pv in pvs.items:
                 if pv.spec.claim_ref and pv.spec.claim_ref.namespace == "rbd-system":
                     self.core_v1_api.delete_persistent_volume(name=pv.metadata.name)
             logger.info("Successfully deleted PVs.")
-
-            # Step 4: Delete CRDs related to Rainbond using CustomObjectsApi
-            logger.info("Deleting Rainbond-related CRDs...")
-            crds = [
-                "componentdefinitions.rainbond.io",
-                "helmapps.rainbond.io",
-                "rainbondclusters.rainbond.io",
-                "rainbondpackages.rainbond.io",
-                "rainbondvolumes.rainbond.io",
-                "rbdcomponents.rainbond.io",
-                "servicemonitors.monitoring.coreos.com",
-                "thirdcomponents.rainbond.io",
-                "rbdabilities.rainbond.io",
-                "rbdplugins.rainbond.io",
-                "servicemeshclasses.rainbond.io",
-                "servicemeshes.rainbond.io"
-            ]
-            for crd in crds:
-                try:
-                    self.custom_api.delete_cluster_custom_object(
-                        group="apiextensions.k8s.io", version="v1", plural="customresourcedefinitions", name=crd
-                    )
-                except client.exceptions.ApiException as e:
-                    if e.status == 404:
-                        logger.warning(f"CRD {crd} not found.")
-                    else:
-                        raise
-            logger.info("Successfully deleted CRDs.")
         except Exception as e:
-            return str(e)
+            logger.error(f"Failed to delete PVs: {str(e)}")
+
+        # Step 4: Delete CRDs related to Rainbond using CustomObjectsApi
+        logger.info("Deleting Rainbond-related CRDs...")
+        crds = [
+            "componentdefinitions.rainbond.io",
+            "helmapps.rainbond.io",
+            "rainbondclusters.rainbond.io",
+            "rainbondpackages.rainbond.io",
+            "rainbondvolumes.rainbond.io",
+            "rbdcomponents.rainbond.io",
+            "servicemonitors.monitoring.coreos.com",
+            "thirdcomponents.rainbond.io",
+            "rbdabilities.rainbond.io",
+            "rbdplugins.rainbond.io",
+            "servicemeshclasses.rainbond.io",
+            "servicemeshes.rainbond.io"
+        ]
+        for crd in crds:
+            try:
+                self.custom_api.delete_cluster_custom_object(
+                    group="apiextensions.k8s.io", version="v1", plural="customresourcedefinitions", name=crd
+                )
+            except client.exceptions.ApiException as e:
+                if e.status == 404:
+                    logger.warning(f"CRD {crd} not found.")
+                else:
+                    logger.error(f"Failed to delete CRD {crd}: {str(e)}")
+
+        logger.info("Successfully deleted CRDs.")
 
     def rb_components_status(self):
         """获取命名空间 `rbd-system` 中所有相关服务的状态"""

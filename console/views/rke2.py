@@ -199,10 +199,10 @@ class ClusterRKEUNInstallInstallRB(BaseClusterView):
             k8s_api = K8sClient(cluster.config)
             error_message = k8s_api.uninstall_rainbond()
             if error_message:
-                return self.handle_exception(error_message, "Failed to install Rainbond", "卸载Rainbond失败")
+                return self.handle_exception(error_message, "Failed to uninstall Rainbond", "卸载Rainbond失败")
             cluster.create_status = "installed"
             cluster.save()
-            result = general_message(200, "Rainbond installed successfully.", "Rainbond卸载成功", bean={})
+            result = general_message(200, "Rainbond uninstalled successfully.", "Rainbond卸载成功", bean={})
             return Response(result, status=200)
         except Exception as e:
             return self.handle_exception(e, "Failed to install Rainbond", "安装Rainbond失败")
