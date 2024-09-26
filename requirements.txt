@@ -1,5 +1,5 @@
 Django==2.2
-mysqlclient==2.0.1
+mysqlclient==2.1.1
 django-crispy-forms==1.12.0
 addict==0.4.0
 gunicorn==19.10.0
@@ -39,4 +39,5 @@ redis==3.5.3
 cryptography==3.3
 kubernetes==30.1.0
 django-postgrespool2==2.0.5
+ruamel.yaml==0.15.100
 -e git+https://gitee.com/rainbond/appstore-sdk-python.git@python3#egg=openapi_client
