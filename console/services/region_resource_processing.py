@@ -34,13 +34,9 @@ class RegionResource(object):
     def create_tenant(self, tenant, enterprise_id, namespace, user_id, region_name):
         if Tenants.objects.filter(tenant_alias=tenant["Namespace"], enterprise_id=enterprise_id).exists():
             return
-        expire_time = datetime.datetime.now() + datetime.timedelta(days=7)
         params = {
             "tenant_name": tenant["Name"],
-            "pay_type": "payed",
-            "pay_level": "company",
             "creater": user_id,
-            "expired_time": expire_time,
             "tenant_alias": tenant["Namespace"],
             "enterprise_id": enterprise_id,
             "limit_memory": tenant["LimitMemory"],
