@@ -9,14 +9,79 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from console.exception.main import AbortRequest
-from console.services.config_service import EnterpriseConfigService
+from console.services.config_service import EnterpriseConfigService, ConfigService
 from console.services.enterprise_services import enterprise_services
 from www.utils.return_message import general_message
 from console.utils.reqparse import bool_argument
 from console.utils.reqparse import parse_item
 from console.views.base import EnterpriseAdminView, JWTAuthApiView
+from console.enum.system_config import ConfigKeyEnum
 
 logger = logging.getLogger("default")
+
+
+class EnterpriseConfigView(EnterpriseAdminView):
+    @never_cache
+    def put(self, request, enterprise_id, *args, **kwargs):
+        title = parse_item(request, "title")
+        logo = parse_item(request, "logo")
+        favicon = parse_item(request, "favicon")
+        enterprise_alias = parse_item(request, "enterprise_alias")
+        doc_url = parse_item(request, "doc_url")
+        enable_official_demo = parse_item(request, "enable_official_demo", default=True)
+        login_image = parse_item(request, "login_image")
+        header_color = request.data.get("header_color", "")
+        header_writing_color = request.data.get("header_writing_color", "")
+        sidebar_color = request.data.get("sidebar_color", "")
+        sidebar_writing_color = request.data.get("sidebar_writing_color", "")
+        footer = request.data.get("footer", "")
+        shadow = parse_item(request, "shadow", default=True)
+        # 是否显示k8s集群相关
+        show_k8s = parse_item(request, "show_k8s")
+        # 是否显示切换语言
+        show_langue = parse_item(request, "show_langue")
+
+        config_service = ConfigService()
+        ent_config_service = EnterpriseConfigService(enterprise_id)
+
+        if title:
+            config_service.update_config_value(ConfigKeyEnum.TITLE.name, title)
+        if logo:
+            config_service.update_config_value(ConfigKeyEnum.LOGO.name, logo)
+        if enterprise_alias:
+            enterprise_services.update_alias(enterprise_id, enterprise_alias)
+        if favicon:
+            config_service.update_config_value(ConfigKeyEnum.FAVICON.name, favicon)
+        if login_image:
+            config_service.update_config_value(ConfigKeyEnum.LOGIN_IMAGE.name, login_image)
+        if type(show_k8s) == bool:
+            ent_config_service.update_config_enable_status(ConfigKeyEnum.SHOW_K8S.name, show_k8s)
+        if type(show_langue) == bool:
+            ent_config_service.update_config_enable_status(ConfigKeyEnum.SHOW_LANGUE.name, show_langue)
+
+        config_service.update_config_value(ConfigKeyEnum.HEADER_COLOR.name, header_color)
+        config_service.update_config_value(ConfigKeyEnum.HEADER_WRITING_COLOR.name, header_writing_color)
+
+        config_service.update_config_value(ConfigKeyEnum.SIDEBAR_COLOR.name, sidebar_color)
+
+        config_service.update_config_value(ConfigKeyEnum.SIDEBAR_WRITING_COLOR.name, sidebar_writing_color)
+
+        config_service.update_config_value(ConfigKeyEnum.FOOTER.name, footer)
+
+        config_service.update_config_value(ConfigKeyEnum.SHADOW.name, shadow)
+
+        doc_url_value = dict()
+        doc_url_value["platform_url"] = ""
+        if doc_url:
+            if not doc_url.startswith(('http://', 'https://')):
+                doc_url = "http://{}".format(doc_url)
+            if not doc_url.endswith('/'):
+                doc_url = doc_url + '/'
+            doc_url_value["platform_url"] = doc_url
+        config_service.update_config_value(ConfigKeyEnum.DOCUMENT.name, doc_url_value)
+        config_service.update_config_enable_status(ConfigKeyEnum.OFFICIAL_DEMO.name, enable_official_demo)
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class EnterpriseObjectStorageView(EnterpriseAdminView):
