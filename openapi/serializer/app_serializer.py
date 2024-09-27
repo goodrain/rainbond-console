@@ -143,22 +143,21 @@ class ServiceGroupOperationsSerializer(serializers.Serializer):
 
 
 class AppServiceEventsSerializer(serializers.Serializer):
-    EventID = serializers.CharField(max_length=64, help_text="事件id")
-    UserName = serializers.CharField(max_length=64, help_text="操作人")
-    EndTime = serializers.CharField(max_length=64, help_text="结束事件")
-    Target = serializers.CharField(max_length=64, help_text="操作目标类型")
-    OptType = serializers.CharField(max_length=64, help_text="事件类型")
-    TargetID = serializers.CharField(max_length=64, help_text="操作目标id")
-    ServiceID = serializers.CharField(max_length=64, help_text="服务id")
-    Status = serializers.CharField(max_length=64, help_text="状态")
-    RequestBody = serializers.CharField(max_length=64, help_text="请求参数")
+    event_id = serializers.CharField(max_length=64, help_text="事件id")
+    user_name = serializers.CharField(max_length=64, help_text="操作人")
+    end_time = serializers.CharField(max_length=64, help_text="结束事件")
+    target = serializers.CharField(max_length=64, help_text="操作目标类型")
+    opt_type = serializers.CharField(max_length=64, help_text="事件类型")
+    target_id = serializers.CharField(max_length=64, help_text="操作目标id")
+    service_id = serializers.CharField(max_length=64, help_text="服务id")
+    status = serializers.CharField(max_length=64, help_text="状态")
+    request_body = serializers.CharField(max_length=64, help_text="请求参数")
     create_time = DateCharField(max_length=64, help_text="创建时间")
-    FinalStatus = serializers.CharField(max_length=64, help_text="最终状态")
-    StartTime = serializers.CharField(max_length=64, help_text="开始时间")
-    SynType = serializers.CharField(max_length=64, help_text="同步状态")
-    Message = serializers.CharField(max_length=64, help_text="日志")
-    TenantID = serializers.CharField(max_length=64, help_text="团队id")
-    ID = serializers.CharField(max_length=64, help_text="记录id")
+    final_status = serializers.CharField(max_length=64, help_text="最终状态")
+    start_time = serializers.CharField(max_length=64, help_text="开始时间")
+    syn_type = serializers.CharField(max_length=64, help_text="同步状态")
+    message = serializers.CharField(max_length=64, help_text="日志")
+    tenant_id = serializers.CharField(max_length=64, help_text="团队id")
 
 
 class ListServiceEventsResponse(serializers.Serializer):
