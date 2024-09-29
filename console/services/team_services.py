@@ -281,25 +281,11 @@ class TeamService(object):
             team_name = "default"
         else:
             team_name = self.random_tenant_name(enterprise=user.enterprise_id, length=8)
-        is_public = settings.MODULES.get('SSO_LOGIN')
-        if not is_public:
-            pay_type = 'payed'
-            pay_level = 'company'
-        else:
-            pay_type = 'free'
-            pay_level = 'company'
-        expired_day = 7
-        if hasattr(settings, "TENANT_VALID_TIME"):
-            expired_day = int(settings.TENANT_VALID_TIME)
-        expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
         if not team_alias:
             team_alias = "{0}的团队".format(user.nick_name)
         params = {
             "tenant_name": team_name,
-            "pay_type": pay_type,
-            "pay_level": pay_level,
             "creater": user.user_id,
-            "expired_time": expire_time,
             "tenant_alias": team_alias,
             "enterprise_id": enterprise.enterprise_id,
             "limit_memory": 0,
