@@ -21,6 +21,7 @@ from console.services.app_config.component_logs import component_log_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import user_kind_role_service
+from console.services.region_lang_version import region_lang_version
 from console.services.region_resource_processing import region_resource
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -40,6 +41,12 @@ from www.utils.return_message import general_message
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
+LANGUAGE = "language"
+VERSION = "version"
+CONTENT = "content"
+NAMESPACE = "namespace"
+EVENT_ID = "event_id"
+FILE_NAME = "file_name"
 
 class Enterprises(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
@@ -883,3 +890,71 @@ class EnterpriseMenuManage(JWTAuthApiView):
         enterprise_services.delete_enterprise_menu(enterprise_id, id)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseRegionLangVersion(JWTAuthApiView):
+    """
+        企业区域语言版本视图。
+
+        处理企业区域语言版本的相关请求。
+
+        Args:
+            request: HTTP 请求对象。
+            enterprise_id: 企业 ID。
+            region_id: 区域 ID。
+            *args: 可变长度参数。
+            **kwargs: 关键字参数。
+
+        Returns:
+            Response: 包含企业区域语言版本信息的 HTTP 响应。
+        """
+    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+        language = request.GET.get(LANGUAGE, "")
+        data = region_lang_version.show_long_version(enterprise_id, region_id, language)
+        result = general_message(200, "success", "获取成功", list=data["list"])
+        return Response(result, status=status.HTTP_200_OK)
+
+    def post(self, request, enterprise_id, region_id, *args, **kwargs):
+        language = request.data.get(LANGUAGE, "")
+        version = request.data.get(VERSION, "")
+        event_id = request.data.get(EVENT_ID, "")
+        file_name = request.data.get(FILE_NAME, "")
+        # 检查版本号格式是否正确
+        if not region_lang_version.is_valid_version(version):
+            data = general_message(400,"version format mistake","版本号格式不正确")
+            return Response(data, status=200)
+        # 检查镜像格式是否正确
+        if (language == "net_runtime" or language == "net_sdk") and not region_lang_version.is_valid_image(file_name):
+            data = general_message(400,"image name format mistake","镜像格式不正确")
+            return Response(data, status=200)
+        # 检查文件上传格式是否正确
+        extensions = ['jar', 'tar.gz']
+        if any(file_name.endswith(ext) for ext in extensions) or language == "net_runtime" or language == "net_sdk":
+            data = region_lang_version.create_long_version(enterprise_id, region_id, language, version, event_id, file_name)
+            if data.get("bean") == "exist":
+                data = general_message(409,"version is exist","该版本已存在")
+                return Response(data, status=409)
+            result = general_message(200, "success", "添加成功")
+            return Response(result, status=status.HTTP_200_OK)
+        else:
+            data = general_message(400,"package format mistake","文件上传格式不正确，支持jar, tar.gz")
+            return Response(data, status=400)
+
+    def put(self, request, enterprise_id, region_id, *args, **kwargs):
+        language = request.data.get(LANGUAGE, "")
+        version = request.data.get(VERSION, "")
+        first_choice = request.data.get("first_choice", True)
+        show = request.data.get("show", True)
+        region_lang_version.update_long_version(enterprise_id, region_id, language, version, show,first_choice)
+        result = general_message(200, "success", "更新成功")
+        return Response(result, status=result.get("code", 200))
+
+    def delete(self, request, enterprise_id, region_id, *args, **kwargs):
+        language = request.data.get(LANGUAGE, "")
+        version = request.data.get(VERSION, "")
+        use_components = region_lang_version.delete_long_version(enterprise_id, region_id, language, version)
+        if use_components:
+            data = general_message(405,"version in use","该版本在使用中，无法删除")
+            return Response(data, status=405)
+        result = general_message(200, "success", "删除成功")
+        return Response(result, status=result.get("code", 200))

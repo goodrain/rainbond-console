@@ -2954,3 +2954,83 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
         return body
+
+    def get_lang_version(self, enterprise_id, region, lang, show):
+        """
+        获取语言版本信息。
+
+        Args:
+            enterprise_id (str): 企业 ID。
+            region (str): 区域名称。
+            lang (str): 语言名称。
+
+        Returns:
+            dict: 包含语言版本信息的字典。
+        """
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/langVersion?language={0}&show={1}".format(lang, show)
+        res, body = self._get(url, self.default_headers, region=region_info.region_name)
+        return body
+
+    def create_lang_version(self, enterprise_id, region, data):
+        """
+        创建语言版本。
+
+        Args:
+            enterprise_id (str): 企业 ID。
+            region (str): 区域名称。
+            data (dict): 请求体，包含要创建的语言版本信息。
+
+        Returns:
+            dict: 包含创建的语言版本信息的字典。
+        """
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/langVersion"
+        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
+        return body
+
+    def update_lang_version(self, enterprise_id, region, data):
+        """
+           更新语言版本。
+
+           Args:
+               enterprise_id (str): 企业 ID。
+               region (str): 区域名称。
+               data (dict): 请求体，包含要更新的语言版本信息。
+
+           Returns:
+               dict: 包含更新的语言版本信息的字典。
+           """
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/langVersion"
+        res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
+        return body
+
+    def delete_lang_version(self, enterprise_id, region, data):
+        """
+        删除语言版本。
+
+        Args:
+            enterprise_id (str): 企业 ID。
+            region (str): 区域名称。
+            data (dict): 请求体，包含要删除的语言版本信息。
+
+        Returns:
+            dict: 包含删除的语言版本信息的字典。
+        """
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/langVersion"
+        res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
+        return body
