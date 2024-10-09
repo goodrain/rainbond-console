@@ -5,6 +5,9 @@ class HelmRepo(object):
     def create_helm_repo(self, **params):
         return HelmRepoInfo.objects.create(**params)
 
+    def get_all_repo(self):
+        return HelmRepoInfo.objects.filter()
+
     def delete_helm_repo(self, repo_name):
         data = HelmRepoInfo.objects.filter(repo_name=repo_name)
         if not data:

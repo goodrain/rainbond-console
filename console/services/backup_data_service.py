@@ -38,7 +38,6 @@ class PlatformDataBackupServices(object):
         if not os.path.exists(backup_path):
             os.makedirs(backup_path, 0o777)
         self.export_console_data(backup_path)
-        self.export_adaptor_data(backup_path)
         self.write_version(backup_path)
         tarname = "rainbond-console-backup-data-{0}.tar.gz".format(time.strftime("%Y%m%d%H%M%S", time.localtime()))
         full_tarname = os.path.join(settings.DATA_DIR, "backups", tarname)
@@ -76,8 +75,6 @@ class PlatformDataBackupServices(object):
         for file in files:
             if "console_data" in file:
                 self.recover_console_data(os.path.join(recover_path, file))
-            if "adaptor_data" in file:
-                self.recover_adaptor_data(os.path.join(recover_path, file))
         shutil.rmtree(recover_path)
 
     def recover_console_data(self, file_name):
@@ -104,19 +101,6 @@ class PlatformDataBackupServices(object):
             logger.error(msg=dump_resp.stderr)
             raise ServiceHandleException(msg="export console data failed", msg_show="导出控制台数据失败")
         return console_data_name
-
-    def export_adaptor_data(self, data_path):
-        remoteurl = "http://{0}:{1}/{2}".format(
-            os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8080"), "enterprise-server/api/v1/backup")
-        local_filename = os.path.join(data_path, "adaptor_data.tar.gz")
-        r = requests.get(remoteurl)
-        f = open(local_filename, 'wb')
-        for chunk in r.iter_content(chunk_size=512 * 1024):
-            if chunk:  # filter out keep-alive new chunks
-                f.write(chunk)
-        f.close()
-        if r.status_code != 200:
-            raise ServiceHandleException(msg="export adaptor data failed", msg_show="备份adaptor数据失败")
 
     def compressed_file_by_tar(self, backup_path, tarname):
 

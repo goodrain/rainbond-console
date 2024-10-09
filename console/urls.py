@@ -6,6 +6,7 @@ import console.utils.perms_route_config as perms
 from console.captcha.captcha_code import CaptchaView
 from console.cloud.views import ProxyView
 from console.views import app_upgrade
+from console.views.adaptor import Appstore, Appstores, AppstoreCharts, AppstoreChart
 from console.views.api_gateway import AppApiGatewayView, AppApiGatewayConvertView
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
 from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView,
@@ -1048,5 +1049,12 @@ urlpatterns += [
         app_upgrade.AppUpgradeDeployView.as_view())
 ]
 
-# ONLINE 业务相关接口
-urlpatterns += [url(r"proxy/(?P<path>.*)", ProxyView.as_view())]
+urlpatterns += [
+    url(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/appstores$", Appstores.as_view()),
+    url(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/appstores/(?P<name>[\w\-]+)$",
+        Appstore.as_view()),
+    url(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/appstores/(?P<name>[\w\-]+)/apps$",
+        AppstoreCharts.as_view()),
+    url(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/appstores/(?P<name>[\w\-]+)/templates/(?P<chart_name>[\w\-]+)/versions/(?P<version>[\d\.]+)$",
+        AppstoreChart.as_view())
+]
