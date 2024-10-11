@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+import json
 import logging
 import random
 import string
@@ -319,6 +320,79 @@ class TeamService(object):
         region_api.delete_tenant(region_name, tenant.tenant_name)
 
         tenant_region.delete()
+
+    def get_enterprise_teams_fenye(self, enterprise_id, query=None, page=None, page_size=None):
+        tall = team_repo.get_teams_by_enterprise_id(enterprise_id, query=query)
+        total = tall.count()
+        if page is not None and page_size is not None:
+            try:
+                start = (page - 1) * page_size
+                end = page * page_size
+                raw_tenants = tall[start:end]
+            except EmptyPage:
+                raw_tenants = []
+        else:
+            raw_tenants = tall
+        return raw_tenants, total
+
+    def jg_teams(self, eid, teams):
+        tenants = dict()
+        creaters = [team.creater for team in teams]
+        users = user_repo.get_by_user_ids(creaters)
+        user_list = {user.user_id: user.get_name() for user in users}
+        tenant_ids = [team.tenant_id for team in teams]
+        region_dict = dict()
+        tenant_IDs = {ten.ID: ten.tenant_id for ten in teams}
+        user_id_list = PermRelTenant.objects.filter().values("tenant_id", "user_id")
+        user_id_dict = dict()
+        for user_id in user_id_list:
+            user_id_dict[tenant_IDs.get(user_id["tenant_id"])] = user_id_dict.get(tenant_IDs.get(user_id["tenant_id"]), 0) + 1
+        for team in teams:
+            region_info_map = []
+            region_name_list = team_repo.get_team_region_names(team.tenant_id)
+            if region_name_list:
+                region_infos = region_repo.get_region_by_region_names(region_name_list)
+                if region_infos:
+                    for region in region_infos:
+                        region_dict[region.region_name] = 1
+                        region_info_map.append({"region_name": region.region_name, "region_alias": region.region_alias, "region_id": region.region_id})
+            tenant = team.to_dict()
+            # 获取团队的集群信息
+            tenant["region"] = region_info_map[0]["region_name"] if len(region_info_map) > 0 else ""
+            tenant["region_list"] = region_info_map
+            tenant["team_alias"] = team.tenant_alias
+            tenant["team_name"] = team.tenant_name
+            tenant["user_number"] = user_id_dict.get(team.tenant_id, 0)
+            tenant["namespace"] = team.namespace
+            tenant["owner_name"] = user_list.get(team.creater)
+            tenant["set_limit_memory"] = 0
+            tenant["set_limit_cpu"] = 0
+            tenant["set_limit_storage"] = 0
+            tenant["running_apps"] = 0
+            tenant["memory_request"] = 0
+            tenant["cpu_request"] = 0
+            tenants[team.tenant_id] = tenant
+        if region_dict:
+            region_tenants = list()
+            for region_id in region_dict.keys():
+                region_tenants += self.get_region_tenant(eid, region_id, tenant_ids)
+            for region_tenant in region_tenants:
+                tenant_id = region_tenant.get("UUID")
+                tenants.get(tenant_id)["set_limit_memory"] = region_tenant.get("LimitMemory", 0)
+                tenants.get(tenant_id)["set_limit_cpu"] = region_tenant.get("LimitCPU", 0)
+                tenants.get(tenant_id)["set_limit_storage"] = region_tenant.get("LimitStorage", 0)
+                tenants.get(tenant_id)["running_apps"] = region_tenant.get("running_applications", 0),
+                tenants.get(tenant_id)["memory_request"] = region_tenant.get("memory_request", 0)
+                tenants.get(tenant_id)["cpu_request"] = region_tenant.get("cpu_request", 0)
+        return tenants.values()
+
+    def get_region_tenant(self, eid, region_id, tenant_ids):
+        res, body = region_api.list_tenants(eid, region_id, json.dumps(tenant_ids))
+        if body.get("list"):
+            tenants = body.get("list")
+            if tenants:
+                return tenants
+        return []
 
     def get_enterprise_teams(self, enterprise_id, query=None, page=None, page_size=None, user=None):
         tall = team_repo.get_teams_by_enterprise_id(enterprise_id, query=query)

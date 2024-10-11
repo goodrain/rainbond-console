@@ -177,32 +177,10 @@ class EnterpriseTeams(JWTAuthApiView):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         name = request.GET.get("name", None)
-        teams, total = team_services.get_enterprise_teams(enterprise_id, query=name, user=self.user)
-        tenant_names = {tenant["team_name"]: tenant for tenant in teams}
-        usable_regions = region_repo.get_usable_regions(enterprise_id)
-        user_id_list = PermRelTenant.objects.filter().values("tenant_id", "user_id")
-        user_id_dict = dict()
-        tenants = Tenants.objects.filter()
-        tenant_ids = {tenant_id.ID: tenant_id.tenant_id for tenant_id in tenants}
-        for user_id in user_id_list:
-            user_id_dict[tenant_ids.get(user_id["tenant_id"])] = user_id_dict.get(tenant_ids.get(user_id["tenant_id"]), 0) + 1
-        ret_team = list()
-        for usable_region in usable_regions:
-            try:
-                region_tenants, _ = team_services.get_tenant_list_by_region(
-                    enterprise_id, usable_region.region_id, page=page, page_size=page_size)
-                for region_tenant in region_tenants:
-                    tenant = tenant_names.get(region_tenant["tenant_name"])
-                    if tenant:
-                        tenant["user_number"] = user_id_dict.get(region_tenant["tenant_id"])
-                        tenant["running_apps"] = tenant.get("running_apps", 0) + region_tenant["running_applications"]
-                        tenant["memory_request"] = tenant.get("memory_request", 0) + region_tenant["memory_request"]
-                        tenant["cpu_request"] = tenant.get("cpu_request", 0) + region_tenant["cpu_request"]
-                        tenant["set_limit_memory"] = tenant.get("set_limit_memory", 0) + region_tenant["set_limit_memory"]
-                        ret_team.append(tenant)
-            except Exception as e:
-                logger.exception(e)
-        data = {"total_count": total, "page": page, "page_size": page_size, "list": ret_team}
+        teams, total = team_services.get_enterprise_teams_fenye(
+            enterprise_id, query=name, page=page, page_size=page_size)
+        jg_teams = team_services.jg_teams(enterprise_id, teams)
+        data = {"total_count": total, "page": page, "page_size": page_size, "list": jg_teams}
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=status.HTTP_200_OK)
 
