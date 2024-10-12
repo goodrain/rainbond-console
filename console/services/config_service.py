@@ -19,7 +19,7 @@ logger = logging.getLogger("default")
 
 class ConfigService(object):
     def __init__(self):
-        self.base_cfg_keys = None
+        self.base_cfg_keys = []
         self.cfg_keys = None
         self.cfg_keys_value = None
         self.base_cfg_keys_value = None
@@ -50,7 +50,7 @@ class ConfigService(object):
                 rst_datas.update(rst_data)
             else:
                 if tar_key.type == "json":
-                    rst_value = eval(tar_key.value)
+                    rst_value = eval(repr(tar_key.value))
                 else:
                     rst_value = tar_key.value
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
@@ -80,7 +80,11 @@ class ConfigService(object):
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
                 rst_datas.update(rst_data)
 
-        rst_datas["default_market_url"] = os.getenv("DEFAULT_APP_MARKET_URL", "https://hub.grapps.cn")
+        if os.getenv("IS_ENTERPRISE_EDITION", False):
+            rst_datas["enterprise_edition"] = {"enable": True, "value": "true"}
+
+        rst_datas["default_market_url"] = os.getenv("DEFAULT_APP_MARKET_URL", "")
+        rst_datas["disable_logo"] = True if os.getenv("DISABLE_LOGO") == "true" else False
         return rst_datas
 
     def update_config(self, key, value):
@@ -161,13 +165,9 @@ class EnterpriseConfigService(ConfigService):
         self.enterprise_id = eid
         self.base_cfg_keys = ["OAUTH_SERVICES"]
         self.cfg_keys = [
-            "APPSTORE_IMAGE_HUB",
-            "NEWBIE_GUIDE",
-            "EXPORT_APP",
-            "CLOUD_MARKET",
-            "OBJECT_STORAGE",
-            "AUTO_SSL",
-            "VISUAL_MONITOR",
+            "APPSTORE_IMAGE_HUB", "NEWBIE_GUIDE", "EXPORT_APP", "CLOUD_MARKET", "OBJECT_STORAGE", "AUTO_SSL", "TITLE", "LOGO",
+            "FAVICON", "LOGIN_IMAGE", "DOCUMENT", "OFFICIAL_DEMO", "VISUAL_MONITOR", "CAPTCHA_CODE", "HEADER_COLOR",
+            "HEADER_WRITING_COLOR", "SIDEBAR_COLOR", "SIDEBAR_WRITING_COLOR", "FOOTER", "SHADOW", "SHOW_K8S", "SHOW_LANGUE"
         ]
         self.cfg_keys_value = {
             "APPSTORE_IMAGE_HUB": {
@@ -211,6 +211,48 @@ class EnterpriseConfigService(ConfigService):
                 "desc": "证书自动签发",
                 "enable": False
             },
+            "TITLE": {
+                "value": "",
+                "desc": "Rainbond web tile",
+                "enable": True
+            },
+            "SHOW_K8S": {
+                "value": "",
+                "desc": "是否显示k8s",
+                "enable": True
+            },
+            "SHOW_LANGUE": {
+                "value": "",
+                "desc": "是否显示语言",
+                "enable": True
+            },
+            "LOGO": {
+                "value": None,
+                "desc": "Rainbond Logo url",
+                "enable": True
+            },
+            "FAVICON": {
+                "value": None,
+                "desc": "Rainbond web favicon url",
+                "enable": True
+            },
+            "LOGIN_IMAGE": {
+                "value": None,
+                "desc": "Rainbond web login_image url",
+                "enable": True
+            },
+            "DOCUMENT": {
+                "value": {
+                    "platform_url": "https://www.rainbond.com/",
+                },
+                "desc": "开启/关闭文档",
+                "enable": True if os.getenv("DISABLE_LOGO") != "true" else False
+            },
+            "OFFICIAL_DEMO": {
+                "value": None,
+                "desc": "开启/关闭官方Demo",
+                "enable": True
+            },
             "VISUAL_MONITOR": {
                 "value": {
                     "home_url": "",
@@ -218,9 +260,46 @@ class EnterpriseConfigService(ConfigService):
                     "node_monitor_suffix": "/d/node/jie-dian-jian-kong-ke-shi-hua",
                     "component_monitor_suffix": "/d/component/zu-jian-jian-kong-ke-shi-hua",
                     "slo_monitor_suffix": "/d/service/fu-wu-jian-kong-ke-shi-hua",
+                    "application_monitor": "",
+                    "system_monitor": "",
                 },
                 "desc": "可视化监控配置(链接外部监控)",
                 "enable": False
+            },
+            "CAPTCHA_CODE": {
+                "value": None,
+                "desc": "开启/关闭登录验证码",
+                "enable": False
+            },
+            "HEADER_COLOR": {
+                "value": "",
+                "desc": "头部颜色配置",
+                "enable": True
+            },
+            "HEADER_WRITING_COLOR": {
+                "value": "",
+                "desc": "头部文字颜色配置",
+                "enable": True
+            },
+            "SIDEBAR_COLOR": {
+                "value": "",
+                "desc": "侧边栏颜色配置",
+                "enable": True
+            },
+            "SIDEBAR_WRITING_COLOR": {
+                "value": "",
+                "desc": "侧边栏文字颜色配置",
+                "enable": True
+            },
+            "FOOTER": {
+                "value": "",
+                "desc": "footer",
+                "enable": True
+            },
+            "SHADOW": {
+                "value": None,
+                "desc": "控制阴影",
+                "enable": True
             },
         }
 
@@ -285,16 +364,24 @@ class PlatformConfigService(ConfigService):
         self.cfg_keys = [
             "TITLE",
             "LOGO",
+            "LOGIN_IMAGE",
             "FAVICON",
             "IS_REGIST",
             "IS_ALARM",
             "DOCUMENT",
             "OFFICIAL_DEMO",
+            "CAPTCHA_CODE",
+            "HEADER_COLOR",
+            "HEADER_WRITING_COLOR",
+            "SIDEBAR_COLOR",
+            "SIDEBAR_WRITING_COLOR",
+            "FOOTER",
+            "SHADOW",
             ConfigKeyEnum.ENTERPRISE_EDITION.name,
         ]
         self.cfg_keys_value = {
             "TITLE": {
-                "value": "Rainbond",
+                "value": "",
                 "desc": "Rainbond web tile",
                 "enable": True
             },
@@ -308,12 +395,17 @@ class PlatformConfigService(ConfigService):
                 "desc": "Rainbond web favicon url",
                 "enable": True
             },
+            "LOGIN_IMAGE": {
+                "value": None,
+                "desc": "Rainbond web login_image url",
+                "enable": True
+            },
             "DOCUMENT": {
                 "value": {
                     "platform_url": "https://www.rainbond.com/",
                 },
                 "desc": "开启/关闭文档",
-                "enable": True
+                "enable": True if os.getenv("DISABLE_LOGO") != "true" else False
             },
             "OFFICIAL_DEMO": {
                 "value": None,
@@ -331,8 +423,43 @@ class PlatformConfigService(ConfigService):
                 "enable": True
             },
             ConfigKeyEnum.ENTERPRISE_EDITION.name: {
-                "value": "false",
+                "value": "true",
                 "desc": "是否是企业版",
+                "enable": True
+            },
+            "CAPTCHA_CODE": {
+                "value": None,
+                "desc": "开启/关闭登录验证码",
+                "enable": False
+            },
+            "HEADER_COLOR": {
+                "value": "",
+                "desc": "头部颜色配置",
+                "enable": True
+            },
+            "HEADER_WRITING_COLOR": {
+                "value": "",
+                "desc": "头部文字颜色配置",
+                "enable": True
+            },
+            "SIDEBAR_COLOR": {
+                "value": "",
+                "desc": "侧边栏颜色配置",
+                "enable": True
+            },
+            "SIDEBAR_WRITING_COLOR": {
+                "value": "",
+                "desc": "侧边栏文字颜色配置",
+                "enable": True
+            },
+            "FOOTER": {
+                "value": "",
+                "desc": "footer",
+                "enable": True
+            },
+            "SHADOW": {
+                "value": None,
+                "desc": "控制阴影",
                 "enable": True
             },
         }

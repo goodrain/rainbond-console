@@ -2755,13 +2755,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
         return body
 
-    def get_proxy(self, region_name, path):
+    def get_proxy(self, region_name, path, check_status=True):
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url + path
         self._set_headers(region_info.token)
-        res, body = self._get(url, self.default_headers, region=region_name)
+        res, body = self._get(url, self.default_headers, region=region_name, check_status=check_status)
         return body
 
     def get_files(self, region_name, tenant_name, service_alias, path, pod_name, namespace):

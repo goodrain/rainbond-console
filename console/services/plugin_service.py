@@ -18,11 +18,14 @@ class RainbondPluginService(object):
         team_names, team_ids, region_app_ids, app_ids, component_ids = [], [], [], [], []
         region_apps_map = {}
 
+        need_authz = False
         _, body = region_api.list_plugins(enterprise_id, region_name, official)
         plugins = body["list"] if body.get("list") else []
         for plugin in plugins:
             region_app_ids.append(plugin["region_app_id"])
             team_names.append(plugin["team_name"])
+            if "rainbond-enterprise-base" in plugin["name"]:
+                need_authz = True
 
         teams = team_services.list_by_team_names(team_names)
         team_ids = [team.tenant_id for team in teams]
@@ -55,13 +58,16 @@ class RainbondPluginService(object):
             plugin["team_name"] = plugin["team_name"]
             plugin["app_id"] = app_id
             plugin["urls"] = []
+            plugin["fronted_relative_path"] = plugin["fronted_relative_path"]
+            plugin["plugin_type"] = plugin["plugin_type"]
+            plugin["plugin_views"] = plugin["plugin_views"]
             if official and plugin["access_urls"] and len(plugin["access_urls"]) > 0:
                 plugin["urls"] = plugin["access_urls"]
             elif app_component_rels.get(app_id):
                 for component_id in app_component_rels[app_id]:
                     if component_url_rels.get(component_id):
                         plugin["urls"].extend(component_url_rels[component_id])
-        return plugins
+        return plugins, need_authz
 
 
 rbd_plugin_service = RainbondPluginService()

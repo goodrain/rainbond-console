@@ -32,7 +32,7 @@ from console.services.group_service import group_service
 from console.repositories.app import service_repo
 
 from default_region import make_uuid
-from goodrain_web.settings import LOG_PATH
+from goodrain_web.settings import LOG_PATH, DATA_DIR
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import PermRelTenant, Tenants
 from www.utils.return_message import general_message
@@ -914,6 +914,36 @@ class EnterpriseMenuManage(JWTAuthApiView):
         enterprise_services.delete_enterprise_menu(enterprise_id, id)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=status.HTTP_200_OK)
+
+
+class EnterpriseInfoFileView(AlowAnyApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        data = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
+        ent = {
+            "enterprise_id": data.enterprise_id,
+            "enterprise_name": data.enterprise_name,
+            "enterprise_alias": data.enterprise_alias,
+        }
+        json_dir = "{0}/{1}.json".format(DATA_DIR, data.enterprise_alias)
+        file = os.path.exists(json_dir)
+        if file:
+            os.remove(json_dir)
+        with open(json_dir, "w") as f:
+            json.dump(ent, f)
+
+        def file_iterator(fn, chunk_size=512):
+            while True:
+                c = fn.read(chunk_size)
+                if c:
+                    yield c
+                else:
+                    break
+
+        fn = open(json_dir, 'rb')
+        response = FileResponse(file_iterator(fn))
+        response['Content-Type'] = 'application/octet-stream'
+        response['Content-Disposition'] = 'attachment;filename={}.json'.format(data.enterprise_alias)
+        return response
 
 
 class EnterpriseRegionLangVersion(JWTAuthApiView):

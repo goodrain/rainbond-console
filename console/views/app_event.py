@@ -245,7 +245,7 @@ class AppEventsView(RegionTenantHeaderView):
                                                                           int(page_size))
                 relys = []
                 for event in events:
-                    if event["OptType"] == "INITIATING":
+                    if event["opt_type"] == "INITIATING":
                         msg = event["Message"]
                         alias = msg.split(",")
                         for ali in alias:

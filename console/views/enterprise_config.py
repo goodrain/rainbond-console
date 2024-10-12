@@ -16,6 +16,7 @@ from www.utils.return_message import general_message
 from console.utils.reqparse import bool_argument
 from console.utils.reqparse import parse_item
 from console.views.base import EnterpriseAdminView, JWTAuthApiView
+from console.enum.system_config import ConfigKeyEnum
 
 logger = logging.getLogger("default")
 
