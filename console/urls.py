@@ -78,7 +78,7 @@ from console.views.enterprise import (
     EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView, EnterpriseMonitor, EnterpriseMyTeams,
     EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView,
     EnterpriseRegionTenantLimitView, EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView,
-    EnterpriseTeams, EnterpriseUserTeamRoleView, EnterpriseUserTeams, HelmTokenView, HelmAddReginInfo, HelmInstallStatus)
+    EnterpriseTeams, EnterpriseUserTeamRoleView, EnterpriseUserTeams, HelmTokenView, HelmAddReginInfo, HelmInstallStatus, EnterpriseInfoFileView)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView,
                                              EnterpriseVisualMonitorView, EnterpriseAlertsView, EnterpriseConfigView)
@@ -92,6 +92,7 @@ from console.views.group import (
 from console.views.helm_app import HelmAppView, HelmRepo, HelmCenterApp, HelmChart, CommandInstallHelm, HelmList, \
     HelmRepoAdd, UploadHelmChart, UploadHelmChartValueResource, UploadHelmChartValue
 from console.views.jwt_token_view import JWTTokenView
+from console.views.license import LicenseLView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
 from console.views.k8s_resource import AppK8sResourceListView, AppK8ResourceView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigOSSView
@@ -173,6 +174,7 @@ urlpatterns = [
     # 获取权限列表
     url(r'^perms$', PermsInfoLView.as_view()),
     url(r'^custom_configs$', CustomConfigsCLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/licenses$', LicenseLView.as_view()),
     # OAuth
     url(r"^oauth/oauth-config$", OauthConfig.as_view()),
     url(r"^oauth/oauth-services$", OauthService.as_view()),
@@ -864,6 +866,7 @@ urlpatterns = [
     url(r'^enterprise/admin/join-team$', AdministratorJoinTeamView.as_view()),
     # get basic task guided information
     url(r'^enterprises$', Enterprises.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/platform-info$', EnterpriseInfoFileView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/backups$', BackupDataCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/backups/(?P<backup_name>[\w\-\.]+)$', BackupDateDownload.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/recover$', BackupRecoverCView.as_view()),
