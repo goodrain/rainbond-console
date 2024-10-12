@@ -275,6 +275,8 @@ class RegionApiBaseHttpClient(object):
         preload_content = kwargs.get("preload_content")
         if preload_content is False:
             return response, None
+        if kwargs.get("check_status") is False:
+            return response, content
         res, body = self._check_status(url, 'GET', response, content)
         return res, body
 

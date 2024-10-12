@@ -121,7 +121,7 @@ from console.views.public_areas import (AllServiceInfo, GroupServiceView, Servic
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
                                         GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
 from console.views.rbd_ability import RainbondAbilityRUDView, RainbondAbilityLView
-from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView
+from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView, RainbondPluginStaticView, RainbondPluginBackendView
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.registry import HubRegistryView
@@ -904,6 +904,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/batch-gateway',
         EnterpriseRegionGatewayBatch.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/plugins$', RainbondPluginLView.as_view()),
+    url(r'^regions/(?P<region_name>[\w\-]+)/static/plugins/(?P<plugin_name>[\w\-]+)$', RainbondPluginStaticView.as_view()),
+    url(r'^regions/(?P<region_name>[\w\-]+)/backend/plugins/(?P<plugin_name>[\w\-]+)/(?P<file_path>.*)$', RainbondPluginBackendView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities$', RainbondAbilityLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities/(?P<ability_id>.*)$',
         RainbondAbilityRUDView.as_view()),
