@@ -528,7 +528,7 @@ class EnterpriseRegionTenantRUDView(EnterpriseAdminView):
 
 class EnterpriseRegionTenantLimitView(EnterpriseAdminView):
     def post(self, request, enterprise_id, region_id, tenant_name, *args, **kwargs):
-        team_services.set_tenant_memory_limit(enterprise_id, region_id, tenant_name, request.data)
+        team_services.set_tenant_resource_limit(enterprise_id, region_id, tenant_name, request.data)
         return Response({}, status=status.HTTP_200_OK)
 
 

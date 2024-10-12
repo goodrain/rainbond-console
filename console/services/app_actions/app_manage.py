@@ -14,9 +14,8 @@ from console.models.main import ServiceShareRecordEvent
 from console.repositories.app import (delete_service_repo, recycle_bin_repo, relation_recycle_bin_repo, service_repo,
                                       service_source_repo)
 
-from console.repositories.app_config import (auth_repo, create_step_repo, dep_relation_repo, domain_repo, env_var_repo,
-                                             extend_repo, mnt_repo, port_repo, service_attach_repo, service_payment_repo,
-                                             tcp_domain, volume_repo, compile_env_repo)
+from console.repositories.app_config import (auth_repo, dep_relation_repo, domain_repo, env_var_repo,
+                                             extend_repo, mnt_repo, port_repo, tcp_domain, volume_repo, compile_env_repo)
 from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.event_repo import event_repo

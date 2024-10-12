@@ -2025,12 +2025,24 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         except RegionApiBaseHttpClient.CallApiError as e:
             return {'status': e.message['httpcode']}, e.message['body']
 
-    def set_tenant_limit_memory(self, enterprise_id, tenant_name, region, body):
+    def set_tenant_resource_limit(self, enterprise_id, tenant_name, region, body):
+        """
+        设置租户资源限制。
+
+        Args:
+            enterprise_id (str): 企业 ID。
+            tenant_name (str): 租户名称。
+            region (str): 区域名称。
+            body (dict): 请求体，包含设置的资源限制信息。
+
+        Returns:
+            tuple: HTTP 响应元组，包含响应状态码和响应体。
+        """
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/tenants/{0}/limit_memory".format(tenant_name)
+        url += "/v2/tenants/{0}/limit_resource".format(tenant_name)
         res, body = self._post(url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
         return res, body
 
@@ -2687,12 +2699,23 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 
-    def get_lang_version(self, enterprise_id, region, lang):
+    def get_lang_version(self, enterprise_id, region, lang, show):
+        """
+        获取语言版本信息。
+
+        Args:
+            enterprise_id (str): 企业 ID。
+            region (str): 区域名称。
+            lang (str): 语言名称。
+
+        Returns:
+            dict: 包含语言版本信息的字典。
+        """
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/cluster/langVersion?language={0}".format(lang)
+        url += "/v2/cluster/langVersion?language={0}&show={1}".format(lang, show)
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return body
 
