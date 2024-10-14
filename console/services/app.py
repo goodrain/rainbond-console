@@ -1034,8 +1034,8 @@ class AppService(object):
             return None
         return dep_services[0]
 
-    def get_code_long_build_version(self, eid, region, lang):
-        return region_api.get_lang_version(eid, region, lang).get("list", [])
+    def get_code_long_build_version(self, eid, region, lang, show):
+        return region_api.get_lang_version(eid, region, lang, show).get("list", [])
 
 
 class AppMarketService(object):
