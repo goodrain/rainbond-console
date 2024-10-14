@@ -475,6 +475,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/compose/(?P<compose_id>[\w\-]+)/content$', ComposeContentView.as_view(),
         perms.APP_OVERVIEW_CREATE),
     # 应用构建
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/lang_version$',
+        CodeBuildLangVersionView.as_view(), perms.APP_OVERVIEW_CONSTRUCT),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/build$', AppBuild.as_view(),
         perms.APP_OVERVIEW_CONSTRUCT),
     # 应用编译环境信息

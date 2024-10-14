@@ -579,7 +579,6 @@ class TeamAppSortViewView(RegionTenantHeaderView):
                 groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, query, app_ids=list(group_id_dict.keys()))
             else:
                 groups = all_group[start:end]
-            print(groups)
             for app in groups:
                 group_id_dict[app.ID] = {
                     "group_id": app.ID,
