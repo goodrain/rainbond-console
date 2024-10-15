@@ -28,6 +28,12 @@ class RainbondPluginBackendView(JWTAuthApiView):
         resp = region_api.get_proxy(region_name, path)
         return Response(resp)
 
+class RainbondPluginStatusView(JWTAuthApiView):
+    def post(self, request, region_name, plugin_name, *args, **kwargs):
+        path = "/v2/platform/plugins/" + plugin_name + "/status"
+        resp = region_api.post_proxy(region_name, path, request.data)
+        result = general_message(200, "success", "更新成功", bean=resp['bean'], list=resp['list'])
+        return Response(result, status=result["code"])
 
 class RainbondOfficialPluginLView(JWTAuthApiView):
     def get(self, request, enterprise_id, region_name, *args, **kwargs):

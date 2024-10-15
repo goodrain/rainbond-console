@@ -4,7 +4,6 @@ from django.conf.urls import url
 
 import console.utils.perms_route_config as perms
 from console.captcha.captcha_code import CaptchaView
-from console.cloud.views import ProxyView
 from console.views import app_upgrade
 from console.views.adaptor import Appstore, Appstores, AppstoreCharts, AppstoreChart
 from console.views.api_gateway import AppApiGatewayView, AppApiGatewayConvertView
@@ -123,7 +122,7 @@ from console.views.public_areas import (AllServiceInfo, GroupServiceView, Servic
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
                                         GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
 from console.views.rbd_ability import RainbondAbilityRUDView, RainbondAbilityLView
-from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView, RainbondPluginStaticView, RainbondPluginBackendView
+from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView, RainbondPluginStaticView, RainbondPluginBackendView, RainbondPluginStatusView
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
 from console.views.registry import HubRegistryView
@@ -912,6 +911,7 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/batch-gateway',
         EnterpriseRegionGatewayBatch.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/plugins$', RainbondPluginLView.as_view()),
+    url(r'^regions/(?P<region_name>[\w\-]+)/plugins/(?P<plugin_name>[\w\-]+)/status$', RainbondPluginStatusView.as_view()),
     url(r'^regions/(?P<region_name>[\w\-]+)/static/plugins/(?P<plugin_name>[\w\-]+)$', RainbondPluginStaticView.as_view()),
     url(r'^regions/(?P<region_name>[\w\-]+)/backend/plugins/(?P<plugin_name>[\w\-]+)/(?P<file_path>.*)$', RainbondPluginBackendView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities$', RainbondAbilityLView.as_view()),
