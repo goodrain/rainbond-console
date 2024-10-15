@@ -265,7 +265,7 @@ class K8sClient:
         try:
             pod_list = self.core_v1_api.list_namespaced_pod(namespace="rbd-system")
             services = [
-                "minio", "local-path-provisioner", "rainbond-operator", "rbd-gateway", "rbd-api", "rbd-chaos", "rbd-db", "rbd-eventlog",
+                "minio", "local-path-provisioner", "rainbond-operator", "rbd-gateway", "rbd-api", "rbd-chaos", "rbd-db",
                 "rbd-hub", "rbd-monitor", "rbd-mq", "rbd-worker"
             ]
 
