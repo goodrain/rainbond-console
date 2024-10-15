@@ -36,15 +36,3 @@ class PartnerModelBackend(ModelBackend):
                 return user
         except Users.DoesNotExist:
             pass
-
-
-class GoodRainSSOModelBackend(ModelBackend):
-    """SSO用户登陆认证"""
-
-    def authenticate(self, request, user_id=None, sso_user_id=None, **kwargs):
-        if not sso_user_id or not user_id:
-            return None
-        try:
-            return Users.objects.get(user_id=user_id, sso_user_id=sso_user_id)
-        except Users.DoesNotExist:
-            pass

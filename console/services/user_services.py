@@ -172,7 +172,6 @@ class UserService(object):
             nick_name=nick_name,
             password=password,
             email=email,
-            sso_user_id="",
             enterprise_id=enterprise_id,
             is_active=False,
             rf=rf)
@@ -182,11 +181,8 @@ class UserService(object):
         user = Users.objects.create(
             nick_name=user_name,
             email=email,
-            sso_user_id="",
             enterprise_id=enterprise.enterprise_id,
             is_active=True,
-            rf=rf,
-            client_ip=client_ip,
             phone=phone,
             real_name=real_name,
         )
@@ -234,9 +230,6 @@ class UserService(object):
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name)
         perms = team_repo.get_tenant_perms(tenant_id=tenant.ID, user_id=u.user_id)
         return u, perms
-
-    def get_user_by_sso_user_id(self, sso_user_id):
-        return user_repo.get_by_sso_user_id(sso_user_id)
 
     def make_user_as_admin_for_enterprise(self, user_id, enterprise_id):
         user_perm = enterprise_user_perm_repo.get_user_enterprise_perm(user_id, enterprise_id)

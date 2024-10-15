@@ -87,8 +87,6 @@ class UserService(object):
             password=sso_user.get('pwd'),
             email=sso_user.get('email', ''),
             phone=sso_user.get('mobile', ''),
-            sso_user_id=sso_user.get('uid', ''),
-            sso_user_token=sso_user.get('sso_user_token', ''),
             is_active=False,
             rf='sso')
         return user

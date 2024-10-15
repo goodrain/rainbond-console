@@ -177,8 +177,7 @@ REGION_RULE = {}
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
-AUTHENTICATION_BACKENDS = ('console.services.auth.backends.GoodRainSSOModelBackend',
-                           'console.services.auth.backends.ModelBackend', 'console.services.auth.backends.PartnerModelBackend',
+AUTHENTICATION_BACKENDS = ('console.services.auth.backends.ModelBackend', 'console.services.auth.backends.PartnerModelBackend',
                            'django.contrib.auth.backends.ModelBackend')
 
 LOGIN_URL = '/login'
@@ -333,8 +332,7 @@ CORS_ORIGIN_WHITELIST = ('*')
 
 CORS_ALLOW_METHODS = ('DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'VIEW', 'TRACE', 'CONNECT', 'HEAD')
 
-CORS_ALLOW_HEADERS = default_headers + ('csrftoken', 'user_id', 'csrftoken', 'user_id', 'X_SSO_USER_ID', 'X_SSO_USER_TOKEN',
-                                        'X_REGION_NAME', 'X_TEAM_NAME')
+CORS_ALLOW_HEADERS = default_headers + ('csrftoken', 'user_id', 'csrftoken', 'user_id', 'X_REGION_NAME', 'X_TEAM_NAME')
 SWAGGER_SETTINGS = {'SECURITY_DEFINITIONS': {'Bearer': {'type': 'apiKey', 'name': 'Authorization', 'in': 'header'}}}
 
 DEF_IMAGE_REPO = "goodrain.me"

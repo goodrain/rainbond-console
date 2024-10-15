@@ -92,40 +92,21 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         if not jwt_manager.exists(jwt_value):
             raise AuthenticationInfoHasExpiredError("token expired")
 
-        # if have SSO login modules
-        if settings.MODULES.get('SSO_LOGIN', None):
-            sso_user_id = request.COOKIES.get('uid')
-            sso_user_token = jwt_value
+        try:
+            payload = jwt_decode_handler(jwt_value)
+        except jwt.ExpiredSignature:
+            msg = _('认证信息已过期')
+            raise AuthenticationInfoHasExpiredError(msg)
+        except jwt.DecodeError:
+            msg = _('认证信息错误')
+            raise AuthenticationInfoHasExpiredError(msg)
+        except jwt.InvalidTokenError:
+            msg = _('认证信息错误,请求Token不合法')
+            raise AuthenticationInfoHasExpiredError(msg)
 
-            if not sso_user_id or not sso_user_token:
-                msg = _("Cookie信息里面应该包含Token和用户uid")
-                raise AuthenticationInfoHasExpiredError(msg)
-
-            if sso_user_id == 'null' or sso_user_token == 'null':
-                msg = _("Cookie信息里面应该包含Token和用户uid")
-                raise AuthenticationInfoHasExpiredError(msg)
-            try:
-                user = Users.objects.get(sso_user_id=sso_user_id)
-                return user, None
-            except Users.DoesNotExist:
-                msg = _('认证信息错误')
-                raise AuthenticationInfoHasExpiredError(msg)
-        else:
-            try:
-                payload = jwt_decode_handler(jwt_value)
-            except jwt.ExpiredSignature:
-                msg = _('认证信息已过期')
-                raise AuthenticationInfoHasExpiredError(msg)
-            except jwt.DecodeError:
-                msg = _('认证信息错误')
-                raise AuthenticationInfoHasExpiredError(msg)
-            except jwt.InvalidTokenError:
-                msg = _('认证信息错误,请求Token不合法')
-                raise AuthenticationInfoHasExpiredError(msg)
-
-            user = self.authenticate_credentials(payload)
-            jwt_manager.set(jwt_value, user.user_id)
-            return user, jwt_value
+        user = self.authenticate_credentials(payload)
+        jwt_manager.set(jwt_value, user.user_id)
+        return user, jwt_value
 
     def authenticate_credentials(self, payload):
         """
