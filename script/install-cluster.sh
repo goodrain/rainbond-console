@@ -230,8 +230,6 @@ register_node() {
     done
 }
 
-# node-label:
-#   - "kubernetes.io/role=worker"
 setup_config() {
   if [ ! -d "/etc/rancher/rke2/config.yaml.d" ]; then
     mkdir -p /etc/rancher/rke2/config.yaml.d
@@ -250,6 +248,25 @@ disable:
 ${RKE2_NODE_EXTERNAL_IP_CONF}
 ${RKE2_SERVER_URL}
 ${INSTALL_RKE2_IMAGE_REPOSITORY}
+EOL
+  fi
+
+  if [ ! -f "/etc/rancher/rke2/registries.yaml" ]; then
+    cat >/etc/rancher/rke2/registries.yaml <<EOL
+mirrors:
+  "docker.io":
+    endpoint:
+      - "https://docker.rainbond.cc"
+  "goodrain.me":
+    endpoint:
+      - "https://goodrain.me"
+configs:
+  "goodrain.me":
+    auth:
+      username: admin
+      password: admin1234
+    tls:
+      insecure_skip_verify: true
 EOL
   fi
 }
