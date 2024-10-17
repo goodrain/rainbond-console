@@ -8,7 +8,7 @@ import urllib3
 from django.http import StreamingHttpResponse
 
 from console.exception.main import ServiceHandleException
-from console.models.main import RegionConfig
+from console.models.main import RegionConfig, ConsoleSysConfig
 from django import http
 from django.conf import settings
 from www.apiclient.baseclient import client_auth_service
@@ -38,7 +38,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         client = httplib2.Http(proxy_info=proxy, timeout=25)
         return client
 
-    def _set_headers(self, token):
+    def _set_headers(self, token, **kwargs):
         if settings.MODULES["RegionToken"]:
             if not token:
                 if os.environ.get('REGION_TOKEN'):
@@ -47,7 +47,30 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                     self.default_headers.update({"Authorization": ""})
             else:
                 self.default_headers.update({"Authorization": token})
-        # logger.debug('Default headers: {0}'.format(self.default_headers))
+        if kwargs.get("resource_validation") == "true":
+            authz = ConsoleSysConfig.objects.filter(key="AUTHZ_CODE").first()
+            if not authz or not authz.value:
+                return
+            regions = RegionConfig.objects.all()
+            actual_cluster = len(regions)
+            actual_node = 0
+            actual_memory = 0
+            enterprise_id = ""
+            for region in regions:
+                enterprise_id = region.enterprise_id
+                res, body = self.get_region_resources(enterprise_id, region=region.region_name)
+                if res.get("status") == 200:
+                    actual_node += body["bean"]["all_node"]
+                    actual_memory += body["bean"]["cap_mem"]
+            actual_memory_gb = int(actual_memory / 1024)
+            self.default_headers.update({
+                "enterprise_id": enterprise_id,
+                "info_body": authz.value,
+                "actual_cluster": actual_cluster,
+                "actual_node": actual_node,
+                "actual_memory": actual_memory_gb,
+            })
+            logger.debug("default_headers: %s" % self.default_headers)
 
     def __get_tenant_region_info(self, tenant_name, region):
         if type(tenant_name) == Tenants:
@@ -121,7 +144,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         body["tenant_id"] = tenant_region.region_tenant_id
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
@@ -143,7 +166,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
@@ -168,7 +191,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/build"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
@@ -277,7 +300,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/horizontal"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
@@ -288,7 +311,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/vertical"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
@@ -525,7 +548,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/restart"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
@@ -536,7 +559,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/rollback"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
@@ -547,7 +570,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/start"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
@@ -558,7 +581,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/pause"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
@@ -569,7 +592,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/un_pause"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
@@ -580,7 +603,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/stop"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
@@ -591,7 +614,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/upgrade"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
         return body
 
@@ -1774,7 +1797,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/endpoints"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
@@ -1785,7 +1808,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/endpoints"
 
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
@@ -1837,8 +1860,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/batchoperation"
-
-        self._set_headers(token)
+        self._set_headers(token, resource_validation="true")
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body), timeout=10)
         return res, body
 
@@ -2370,6 +2392,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/{tenant_name}/batch-build-plugins".format(tenant_name=tenant_name)
         self._set_headers(token)
         self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+
+    def get_region_license(self, region: RegionConfig):
+        url = region.url + "/license"
+        self._set_headers(region.token, resource_validation="true")
+        res, body = self._get(url, self.default_headers, region=region.region_name, timeout=10, check_status=False)
+        content = self._jsondecode(body)
+        return res, content
 
     def get_region_license_feature(self, tenant: Tenants, region_name):
         url, token = self.__get_region_access_info(tenant.tenant_name, region_name)

@@ -13,30 +13,30 @@ region_api = RegionInvokeApi()
 
 
 class LicenseService(object):
-    def get_licenses(self):
+    def get_licenses(self, enterprise_id):
         authz = ConsoleSysConfig.objects.filter(key="AUTHZ_CODE").first()
-        end_time = os.getenv("END_TIME", "2024-12-13 11:01:15")
-        company = os.getenv("COMPANY", "好雨科技")
-        contact = os.getenv("CONTACT", "020-12345678")
-        expect_cluster = int(os.getenv("EXPECT_CLUSTER", 3))
-        actual_cluster = int(os.getenv("ACTUAL_CLUSTER", 2))
-        expect_node = int(os.getenv("EXPECT_NODE", -1))
-        actual_node = int(os.getenv("ACTUAL_NODE", 3))
-        expect_memory = int(os.getenv("EXPECT_MEMORY", -1))
-        actual_memory = int(os.getenv("ACTUAL_MEMORY", 54))
+        if not authz or not authz.value:
+            return "", None
+        region = region_repo.get_usable_regions(enterprise_id)
+        code, resp = region_api.get_region_license(region=region.first())
+        if code != 200:
+            return authz.value, None
+        if not resp.get("bean"):
+            return authz.value, None
+        bean = resp["bean"]
         resp = {
-            "authz_code": authz.value if authz else "",
-            "end_time": end_time,
-            "company": company,
-            "contact": contact,
-            "expect_cluster": expect_cluster,
-            "actual_cluster": actual_cluster,
-            "expect_node": expect_node,
-            "actual_node": actual_node,
-            "expect_memory": expect_memory,
-            "actual_memory": actual_memory,
+            "authz_code": authz.value,
+            "end_time": bean.get("end_time", ""),
+            "company": bean.get("company", ""),
+            "contact": bean.get("contact", ""),
+            "expect_cluster": bean.get("expect_cluster", 0),
+            "actual_cluster": bean.get("actual_cluster", 0),
+            "expect_node": bean.get("expect_node", 0),
+            "actual_node": bean.get("actual_node", 0),
+            "expect_memory": bean.get("expect_memory", 0),
+            "actual_memory": bean.get("actual_memory", 0),
         }
-        return resp
+        return authz.value, resp
 
     def update_license(self, enterprise_id, authz_code):
         config = ConsoleSysConfig.objects.update_or_create(key="AUTHZ_CODE", enterprise_id=enterprise_id, defaults={"value": authz_code})
