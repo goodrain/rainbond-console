@@ -534,53 +534,22 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         """
         总览 团队应用信息
         """
+        sort = int(request.GET.get("sort", 1))
         query = request.GET.get("query", "")
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
-        sort = int(request.GET.get("sort", 2))
-        apps = list()
-        all_group = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, query,
-                                                        app_ids=self.perm_apps)
+        groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, query)
+        total = len(groups)
+        app_num_dict = {"total": total}
         start = (page - 1) * page_size
         end = page * page_size
-
-        if sort == 2:
-            groups = all_group[start:end]
-            for app in groups:
-                apps.append({
-                    "group_id": app.ID,
-                    "update_time": app.update_time,
-                    "create_time": app.create_time,
-                    "group_name": app.group_name,
-                    "service_list": [],
-                })
-        if sort == 1:
-            status_order = {
-                'RUNNING': 1,
-                'ABNORMAL': 2,
-                'STARTING': 3,
-                'CLOSED': 4,
-                'NIL': 5,
-            }
-            group_ids = all_group.values_list("ID", flat=True)
-            re_app_dict = group_service.get_region_app_statuses(self.tenant_name, self.region_name, group_ids)
-            sorted_app_list = sorted(re_app_dict.values(), key=lambda x: status_order.get(x['status'], 5))
-            sorted_app_list = sorted_app_list[start:end]
-            group_id_dict = {sorted_app.get("group_id"): {} for sorted_app in sorted_app_list}
-            if group_ids:
-                groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, query, app_ids=list(group_id_dict.keys()))
-            else:
-                groups = all_group[start:end]
-            for app in groups:
-                group_id_dict[app.ID] = {
-                    "group_id": app.ID,
-                    "update_time": app.update_time,
-                    "create_time": app.create_time,
-                    "group_name": app.group_name,
-                    "service_list": [],
-                }
-            apps = list(group_id_dict.values())
-        return Response(general_message(200, "success", "查询成功", list=apps), status=200)
+        apps = []
+        if groups:
+            group_ids = [group.ID for group in groups]
+            group_ids = group_ids[start:end]
+            apps = group_service.get_multi_apps_all_info(sort, groups, group_ids, self.response_region, self.team_name,
+                                                         self.team.enterprise_id, self.team)
+        return Response(general_message(200, "success", "查询成功", list=apps, bean=app_num_dict), status=200)
 
 
 # 团队下应用环境变量模糊查询
