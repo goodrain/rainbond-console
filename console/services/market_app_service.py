@@ -1012,43 +1012,26 @@ class MarketAppService(object):
         service_source_repo.create_service_source(**service_source_params)
 
     def get_visiable_apps(self,
-                          user,
-                          eid,
                           scope,
                           app_name,
-                          tag_names=None,
                           is_complete=True,
                           page=1,
                           page_size=10,
-                          need_install="false",
-                          is_plugin="false",
-                          arch=""):
+                          need_install="",
+                          arch="amd64",
+                          tenant_name=""):
+        teams = None
         if scope == "team":
-            # prepare teams
-            is_admin = user_services.is_user_admin_in_current_enterprise(user, eid)
-            if is_admin:
-                teams = None
-            else:
-                teams = team_repo.get_tenants_by_user_id(user.user_id)
-            if teams:
-                teams = [team.tenant_name for team in teams]
-            apps = rainbond_app_repo.get_rainbond_app_in_teams_by_querey(eid, scope, teams, app_name, tag_names, page,
-                                                                         page_size, need_install, is_plugin, arch)
-            count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, teams, app_name, tag_names, need_install,
-                                                                   is_plugin)
-        else:
-            # default scope is enterprise
-            apps = rainbond_app_repo.get_rainbond_app_in_enterprise_by_query(eid, scope, app_name, tag_names, page, page_size,
-                                                                             need_install, is_plugin, arch)
-            count = rainbond_app_repo.get_rainbond_app_total_count(eid, scope, None, app_name, tag_names, need_install,
-                                                                   is_plugin)
+            teams = [tenant_name]
+        apps, count = rainbond_app_repo.get_rainbond_ceneter_app_by(scope, app_name, teams, page, page_size,
+                                                                    need_install, arch)
         if not apps:
-            return [], count[0].total
+            return [], count, []
         for app in apps:
             app.arch = str.split(app.arch, ",")
-        self._patch_rainbond_app_tag(eid, apps)
-        self._patch_rainbond_app_versions(eid, apps, is_complete)
-        return apps, count[0].total
+        app_ids = [app.app_id for app in apps]
+        self._patch_rainbond_app_versions(apps, is_complete, app_ids)
+        return apps, count, app_ids
 
     # patch rainbond app tag
     def _patch_rainbond_app_tag(self, eid, apps):
@@ -1091,11 +1074,11 @@ class MarketAppService(object):
         return apps_min_memory
 
     # patch rainbond app versions
-    def _patch_rainbond_app_versions(self, eid, apps, is_complete):
-        app_ids = [app.app_id for app in apps]
-        versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(eid, app_ids, is_complete, rm_template_field=True)
+    def _patch_rainbond_app_versions(self, apps, is_complete, app_ids):
+        versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(app_ids, is_complete)
         if not versions:
-            return
+            for app in apps:
+                app.versions_info = list()
 
         app_with_versions = dict()
         # Save the version numbers of release and normal versions for sorting
@@ -1551,7 +1534,7 @@ class MarketAppService(object):
         if not app:
             raise RbdAppNotFound("未找到该应用")
         app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(
-            enterprise_id, [app_id], rm_template_field=True).values()
+            enterprise_id, [app_id]).values()
 
         apv_ver_nums = []
         app_release = False

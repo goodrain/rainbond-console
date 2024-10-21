@@ -192,20 +192,22 @@ class CenterAppCLView(JWTAuthApiView):
               type: string
               paramType: query
         """
-        is_plugin = request.GET.get("is_plugin", False)
         scope = request.GET.get("scope", None)
         app_name = request.GET.get("app_name", None)
-        tags = request.GET.get("tags", [])
         is_complete = request.GET.get("is_complete", None)
-        need_install = request.GET.get("need_install", "false")
-        arch = request.GET.get("arch", "")
-        if tags:
-            tags = json.loads(tags)
+        need_install = request.GET.get("need_install", "")
+        tenant_name = request.GET.get("tenant_name")
+        arch = request.GET.get("arch", "amd64") if request.GET.get("arch", "amd64") else "amd64"
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
-        apps, count = market_app_service.get_visiable_apps(self.user, enterprise_id, scope, app_name, tags, is_complete, page,
-                                                           page_size, need_install, is_plugin, arch)
-        return MessageResponse("success", msg_show="查询成功", list=apps, total=count, next_page=int(page) + 1)
+        apps, count, app_ids = market_app_service.get_visiable_apps(scope, app_name, is_complete, page,
+                                                           page_size, need_install, arch, tenant_name)
+        list = []
+        for a in apps:
+            app = a.to_dict()
+            app["versions_info"] = a.versions_info
+            list.append(app)
+        return MessageResponse("success", msg_show="查询成功", list=list, total=count, next_page=int(page) + 1)
 
     @never_cache
     def post(self, request, enterprise_id, *args, **kwargs):
@@ -215,7 +217,7 @@ class CenterAppCLView(JWTAuthApiView):
         details = request.data.get("details")
         dev_status = request.data.get("dev_status")
         tag_ids = request.data.get("tag_ids")
-        scope = request.data.get("scope", "enterprise")
+        scope = request.data.get("scope", "team")
         scope_target = request.data.get("scope_target")
         source = request.data.get("source", "local")
         create_team = request.data.get("create_team", request.data.get("team_name", None))
