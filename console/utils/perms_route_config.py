@@ -237,6 +237,9 @@ APP_OVERVIEW_RELY = {
         },
         "delete": {
             "perms": [300017]
+        },
+        "patch": {
+            "perms": [300017]
         }
     }
 }

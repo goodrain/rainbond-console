@@ -7,6 +7,7 @@ import logging
 from console.exception.main import (InnerPortNotFound, ServiceHandleException, ServiceRelationAlreadyExist)
 from console.repositories.app import service_repo
 from console.repositories.app_config import (dep_relation_repo, env_var_repo, port_repo)
+from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.services.app_config.port_service import AppPortService
 from console.services.exception import ErrDepServiceNotFound
 from www.apiclient.regionapi import RegionInvokeApi
@@ -181,6 +182,7 @@ class AppServiceRelationService(object):
         is_duplicate = self.__is_env_duplicate(tenant, service, dep_service)
         if is_duplicate:
             return 412, "要关联的组件的变量与已关联的组件变量重复，请修改后再试", None
+        dep_sa_name = k8s_attribute_repo.get_by_component_id_name(service.service_id, "serviceAccountName")
         if service.create_status == "complete":
             task = dict()
             task["dep_service_id"] = dep_service_id
@@ -188,6 +190,8 @@ class AppServiceRelationService(object):
             task["dep_service_type"] = dep_service.service_type
             task["enterprise_id"] = tenant.enterprise_id
             task["operator"] = user_name
+            task["namespace"] = tenant.namespace
+            task["dep_sa_name"] = dep_sa_name[0].attribute_value if len(dep_sa_name) > 0 else ""
             region_api.add_service_dependency(service.service_region, tenant.tenant_name, service.service_alias, task)
         tenant_service_relation = {
             "tenant_id": tenant.tenant_id,
