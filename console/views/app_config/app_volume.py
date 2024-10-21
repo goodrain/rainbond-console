@@ -196,7 +196,7 @@ class AppVolumeManageView(AppBaseView):
         if code != 200:
             result = general_message(code=code, msg="delete volume error", msg_show=msg)
             return Response(result, status=result["code"])
-        result = general_message(code=code, msg="delete volume error", msg_show=msg, list=volume)
+        result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 
     @never_cache
