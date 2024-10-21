@@ -1006,29 +1006,31 @@ class ShareService(object):
         app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
         app = rainbond_app_repo.get_rainbond_app_by_app_id(app_version.app_id)
         app_market_url = None
-        if app:
+        if app_version:
             # 分享到云市
-            if app.scope.startswith("goodrain"):
+            if app_version.scope.startswith("goodrain"):
                 share_type = "private"
-                info = app.scope.split(":")
+                info = app_version.scope.split(":")
                 if len(info) > 1:
                     share_type = info[1]
-                app_market_url = self.publish_app_to_public_market(tenant, share_record, user.nick_name, app, is_plugin,
-                                                                   share_type)
-            app.is_complete = True
-            app.update_time = datetime.datetime.now()
-            app.is_plugin = is_plugin
+                app_market_url = self.publish_app_to_public_market(tenant, share_record, user.nick_name, app_version,
+                                                                   is_plugin, share_type)
+            app_version.is_complete = True
+            app_version.update_time = datetime.datetime.now()
+            app_version.is_plugin = is_plugin
+            app_version.save()
             app.is_version = True
+            app.update_time = datetime.datetime.now()
             app.save()
             RainbondCenterAppVersion.objects.filter(
-                app_id=app.app_id, source="local", scope="goodrain", is_complete=True).delete()
+                app_id=app_version.app_id, source="local", scope="goodrain", is_complete=True).delete()
             share_record.is_success = True
             share_record.step = 3
             share_record.status = 1
             share_record.update_time = datetime.datetime.now()
             share_record.save()
         # 应用有更新，删除导出记录
-        app_export_record_repo.delete_by_key_and_version(app.app_id, app.version)
+        app_export_record_repo.delete_by_key_and_version(app_version.app_id, app_version.version)
         return app_market_url
 
     def publish_app_to_public_market(self, tenant, share_record, user_name, app, is_plugin, share_type="private"):
