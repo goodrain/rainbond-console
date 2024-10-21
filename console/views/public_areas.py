@@ -349,14 +349,7 @@ class ServiceEventsView(RegionTenantHeaderView):
             return 1
         if event1_start_time > event2_start_time:
             return -1
-        if event1_start_time == event2_start_time:
-            event1_ID = event1.get("ID") if isinstance(event1, dict) else event1.ID
-            event2_ID = event2.get("ID") if isinstance(event2, dict) else event2.ID
-            if event1_ID < event2_ID:
-                return 1
-            if event1_ID > event2_ID:
-                return -1
-            return 0
+        return 1
 
     def get(self, request, *args, **kwargs):
         """
@@ -394,8 +387,6 @@ class ServiceEventsView(RegionTenantHeaderView):
                     total = total + event_count
                 except Exception as e:
                     logger.error("Region api return error {0}, ignore it".format(e))
-
-        print(event_service_dynamic_list)
         event_service_dynamic_list = sorted(event_service_dynamic_list, key=cmp_to_key(self.__sort_events))
 
         service_ids = []
