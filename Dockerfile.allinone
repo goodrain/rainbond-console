@@ -15,7 +15,6 @@ RUN mv /dist/index.html /app/ui/www/templates/index.html && \
 # build console
 FROM python:3.6-stretch AS build-console
 ARG PYTHONPROXY
-ARG ARCH=amd64
 
 COPY --from=ui /app/ui /app/ui
 WORKDIR /app/ui
@@ -33,8 +32,7 @@ FROM python:3.6-slim-stretch
 
 ARG RELEASE_DESC=
 ARG VERSION
-ARG ARCH=amd64
-ARG INSTALL_VERSION
+ARG TARGETARCH
 
 COPY --from=build-console /app/ui /app/ui
 WORKDIR /app/ui
@@ -45,7 +43,7 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
 	echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
 	apt-get update && apt-get --no-install-recommends install -y \
 	curl mysql-client sqlite3 default-libmysqlclient-dev && \
-    if [ ${ARCH} = "arm64" ] || [ ${ARCH} = "aarch64" ]; then \
+    if [ "$TARGETARCH" = "arm64" ]; then \
         curl "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm-arm64" -o /usr/local/bin/helm && chmod +x /usr/local/bin/helm; \
     else \
         curl "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm" -o /usr/local/bin/helm && chmod +x /usr/local/bin/helm; \
