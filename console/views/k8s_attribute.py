@@ -33,6 +33,5 @@ class ComponentK8sAttributeListView(AppBaseView):
 
     def post(self, request, *args, **kwargs):
         attribute = request.data.get("attribute", {})
-        attribute['operator'] = self.user.nick_name
-        k8s_attribute_service.create_k8s_attribute(self.tenant, self.service, self.region_name, attribute)
+        k8s_attribute_service.create_k8s_attribute(self.tenant, self.service, self.region_name, attribute, self.user.nick_name)
         return Response(general_message(200, "success", "创建成功"))

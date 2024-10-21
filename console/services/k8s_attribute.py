@@ -29,12 +29,13 @@ class ComponentK8sAttributeService(object):
         return result
 
     @transaction.atomic
-    def create_k8s_attribute(self, tenant, component, region_name, attribute):
+    def create_k8s_attribute(self, tenant, component, region_name, attribute, user_name):
         if attribute["save_type"] == "json":
             attribute_value = attribute.get("attribute_value", [])
             attribute_value_json = json.dumps({value["key"]: value["value"] for value in attribute_value})
             attribute["attribute_value"] = attribute_value_json
         k8s_attribute_repo.create(tenant_id=tenant.tenant_id, component_id=component.service_id, **attribute)
+        attribute['operator'] = user_name
         region_api.create_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
 
     @transaction.atomic
