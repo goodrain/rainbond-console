@@ -465,13 +465,15 @@ download_tarball() {
     info "downloading tarball at ${TARBALL_URL}"
     download "${TMP_TARBALL}" "${TARBALL_URL}"
     
-    mkdir -p "${INSTALL_RKE2_AGENT_IMAGES_DIR}"
-    RKE2_IMAGES_URL="https://pkg.rainbond.com/rke2"
-    RKE2_IMAGES_NAME="rke2-images-v1.30.4-rke2r1-${ARCH}.tar"
-    if [ ! -f "${INSTALL_RKE2_AGENT_IMAGES_DIR}/${RKE2_IMAGES_NAME}" ]; then
-      info "downloading images at ${RKE2_IMAGES_URL}/${RKE2_IMAGES_NAME}"
-      download "${INSTALL_RKE2_AGENT_IMAGES_DIR}/${RKE2_IMAGES_NAME}" "${RKE2_IMAGES_URL}/${RKE2_IMAGES_NAME}"
-    fi
+    if [ "${INSTALL_RKE2_MIRROR}" = cn ]; then
+      mkdir -p "${INSTALL_RKE2_AGENT_IMAGES_DIR}"
+      RKE2_IMAGES_URL="https://pkg.rainbond.com/rke2"
+      RKE2_IMAGES_NAME="rke2-images-v1.30.4-rke2r1-${ARCH}.tar"
+      if [ ! -f "${INSTALL_RKE2_AGENT_IMAGES_DIR}/${RKE2_IMAGES_NAME}" ]; then
+        info "downloading images at ${RKE2_IMAGES_URL}/${RKE2_IMAGES_NAME}"
+        download "${INSTALL_RKE2_AGENT_IMAGES_DIR}/${RKE2_IMAGES_NAME}" "${RKE2_IMAGES_URL}/${RKE2_IMAGES_NAME}"
+      fi
+    fi 
 }
 
 # download_dev_rpm downloads dev rpm from remote repository
