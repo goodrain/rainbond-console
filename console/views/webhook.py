@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import ast
 import base64
 import logging
 import os
@@ -370,7 +371,7 @@ class GetWebHooksUrl(AppBaseView):
             if deployment_way == "api_webhooks":
                 # 生成秘钥
                 deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
-                secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
+                secret_key = pickle.loads(base64.b64decode(ast.literal_eval(deploy))).get("secret_key")
                 url = host + "/console/" + "custom/deploy/" + service_obj.service_id
                 result = general_message(
                     200,
@@ -416,7 +417,7 @@ class GetWebHooksUrl(AppBaseView):
             return Response(result, status=200)
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message("")
         return Response(result, status=500)
 
 
