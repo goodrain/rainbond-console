@@ -226,12 +226,15 @@ class AppServiceRelationService(object):
                                                                                     dep_service_id)
         if not dependency:
             return 404, "需要删除的依赖不存在", None
+        dep_sa_name = k8s_attribute_repo.get_by_component_id_name(service.service_id, "serviceAccountName")
         if service.create_status == "complete":
             task = dict()
             task["dep_service_id"] = dep_service_id
             task["tenant_id"] = tenant.tenant_id
             task["dep_service_type"] = "v"
             task["enterprise_id"] = tenant.enterprise_id
+            task["namespace"] = tenant.namespace
+            task["dep_sa_name"] = dep_sa_name[0].attribute_value if len(dep_sa_name) > 0 else ""
             task["operator"] = user_name
 
             region_api.delete_service_dependency(service.service_region, tenant.tenant_name, service.service_alias, task)
