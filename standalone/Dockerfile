@@ -16,9 +16,9 @@ RUN git clone --depth=1 -b V6.0 https://github.com/goodrain/rainbond-chart.git &
 
 FROM alpine:3
 
-COPY entrypoint.sh /entrypoint.sh
-COPY config.yaml /etc/rancher/k3s/config.yaml
-COPY registries.yaml /etc/rancher/k3s/registries.yaml
+COPY standalone/entrypoint.sh /entrypoint.sh
+COPY standalone/config.yaml /etc/rancher/k3s/config.yaml
+COPY standalone/registries.yaml /etc/rancher/k3s/registries.yaml
 COPY rbd-images.tar /tmp/rbd-images.tar
 
 COPY --from=base /tmp/k3s /bin/k3s
