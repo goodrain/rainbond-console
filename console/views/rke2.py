@@ -80,7 +80,7 @@ class InstallRKECluster(BaseClusterView):
             event_id = request.GET.get("event_id", "")
             node_role_list = node_role.split(",")
             is_server = False
-            if "controlplane" in node_role_list:
+            if "control-plane" in node_role_list:
                 cluster, is_server = rke_cluster.only_server(node_ip, event_id)
             else:
                 cluster = rke_cluster.get_rke_cluster(event_id=event_id)
