@@ -605,7 +605,7 @@ class HelmAddReginInfo(AlowAnyApiView):
         token = request.data.get("token")
         enterprise_id = request.data.get("enterpriseId", "")
         try:
-            token_item = cfg_repo.get_by_value_eid(token, enterprise_id)
+            token_item = cfg_repo.get_by_value_eid(token)
             region_alias = request.data.get("regionAlias", "")
             region_id = make_uuid()
             region_data = {

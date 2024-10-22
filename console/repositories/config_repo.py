@@ -42,8 +42,8 @@ class ConfigRepository(object):
     def get_by_key(self, key):
         return ConsoleSysConfig.objects.get(key=key, enable=True)
 
-    def get_by_value_eid(self, value, eid):
-        return ConsoleSysConfig.objects.get(value=value, enable=True, enterprise_id=eid)
+    def get_by_value_eid(self, value):
+        return ConsoleSysConfig.objects.get(value=value, enable=True)
 
     def create_token_record(self, key, value, eid):
         return ConsoleSysConfig.objects.create(
