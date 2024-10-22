@@ -509,7 +509,7 @@ class CustomWebHooksDeploy(AlowAnyApiView):
         secret_key = request.data.get("secret_key")
         # 加密
         deploy_key = deploy_repo.get_secret_key_by_service_id(service_id=service_id)
-        deploy_key_decode = pickle.loads(base64.b64decode(deploy_key)).get("secret_key")
+        deploy_key_decode = pickle.loads(base64.b64decode(ast.literal_eval(deploy_key))).get("secret_key")
         if secret_key != deploy_key_decode:
             result = general_message(400, "failed", "密钥错误")
             return Response(result, status=400)
