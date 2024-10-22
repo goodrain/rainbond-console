@@ -1533,8 +1533,7 @@ class MarketAppService(object):
         app = rainbond_app_repo.get_rainbond_app_by_app_id(app_id)
         if not app:
             raise RbdAppNotFound("未找到该应用")
-        app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(
-            enterprise_id, [app_id]).values()
+        app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids([app_id]).values()
 
         apv_ver_nums = []
         app_release = False
