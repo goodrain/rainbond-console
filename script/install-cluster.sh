@@ -147,7 +147,6 @@ parse_args() {
             ;;
         "--mirror")
             INSTALL_RKE2_MIRROR="$2"
-            INSTALL_RKE2_IMAGE_REPOSITORY="system-default-registry: registry.cn-hangzhou.aliyuncs.com"
             shift 2
             ;;
         *)
@@ -161,11 +160,12 @@ parse_args() {
 setup_env() {
     RKE2_NODE_IPS=$(ip -4 addr show scope global | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n 1)
     INSTALL_RKE2_METHOD=tar
-    INSTALL_RKE2_VERSION=v1.29.7+rke2r1
+    INSTALL_RKE2_VERSION=v1.30.4+rke2r1
     STORAGE_URL="https://rke2-ci-builds.s3.amazonaws.com"
     INSTALL_RKE2_GITHUB_URL="https://github.com/rancher/rke2"
     if [ "${INSTALL_RKE2_MIRROR}" = cn ]; then
         INSTALL_RKE2_GITHUB_URL="https://rancher-mirror.rancher.cn/rke2"
+        INSTALL_RKE2_IMAGE_REPOSITORY="system-default-registry: registry.cn-hangzhou.aliyuncs.com"
     fi
     DEFAULT_TAR_PREFIX="/usr/local"
     # --- bail if we are not root ---
@@ -427,10 +427,10 @@ download() {
 
     case ${DOWNLOADER} in
     *curl)
-        curl -o "$1" -fsSL "$2"
+        curl -o "$1" -# -L "$2"
         ;;
     *wget)
-        wget -qO "$1" "$2"
+        wget -O "$1" "$2"
         ;;
     *)
         fatal "downloader executable not supported: '${DOWNLOADER}'"
@@ -464,6 +464,16 @@ download_tarball() {
     fi
     info "downloading tarball at ${TARBALL_URL}"
     download "${TMP_TARBALL}" "${TARBALL_URL}"
+    
+    if [ "${INSTALL_RKE2_MIRROR}" = cn ]; then
+      mkdir -p "${INSTALL_RKE2_AGENT_IMAGES_DIR}"
+      RKE2_IMAGES_URL="https://pkg.rainbond.com/rke2"
+      RKE2_IMAGES_NAME="rke2-images-v1.30.4-rke2r1-${ARCH}.tar"
+      if [ ! -f "${INSTALL_RKE2_AGENT_IMAGES_DIR}/${RKE2_IMAGES_NAME}" ]; then
+        info "downloading images at ${RKE2_IMAGES_URL}/${RKE2_IMAGES_NAME}"
+        download "${INSTALL_RKE2_AGENT_IMAGES_DIR}/${RKE2_IMAGES_NAME}" "${RKE2_IMAGES_URL}/${RKE2_IMAGES_NAME}"
+      fi
+    fi 
 }
 
 # download_dev_rpm downloads dev rpm from remote repository
@@ -821,18 +831,19 @@ start_rke2_systemd() {
 
     if [ "${INSTALL_RKE2_TYPE}" = "agent" ]; then
         systemctl enable rke2-agent.service
-        info "Starting RKE2 agent, Please wait about 10 minutes. You can open new terminal to check the status with 'systemctl status rke2-agent' and logs with 'journalctl -fu rke2-agent'"
-        systemctl start rke2-agent.service
+        systemctl start --no-block rke2-agent.service
+        info "Starting RKE2 agent. You can use 'journalctl -fu rke2-agent' to view startup logs"
     fi
 
     if [ "${INSTALL_RKE2_TYPE}" = "server" ]; then
         systemctl enable rke2-server.service
-        info "Starting RKE2 server, Please wait about 10 minutes. You can open new terminal to check the status with 'systemctl status rke2-server' and logs with 'journalctl -fu rke2-server'"
-        systemctl start rke2-server.service
+        systemctl start --no-block rke2-server.service
         if [ "$IS_SERVER" = "true" ]; then
+            # wait for rke2-server to start
+            sleep 5
             curl -sfSL --connect-timeout 5 --request PUT "$RBD_URL/console/cluster" --form 'kubeconfig=@"/etc/rancher/rke2/rke2.yaml"' > /dev/null
         fi
-        
+        info "Starting RKE2 server. You can use 'journalctl -fu rke2-server' to view startup logs"
     fi
 }
 
