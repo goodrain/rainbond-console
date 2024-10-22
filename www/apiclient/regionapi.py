@@ -3043,6 +3043,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
         return body
 
+    def list_upgrade_status(self, region_name):
+        url, token = self.__get_region_access_info(None, region_name)
+        url = url + "/v2/cluster/rbd-upgrade/status"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body
+
     def get_lang_version(self, enterprise_id, region, lang, show):
         """
         获取语言版本信息。

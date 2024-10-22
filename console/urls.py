@@ -157,7 +157,8 @@ from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
 
 urlpatterns = [
     # 升级
-    url(r'^update', UpgradeView.as_view()),
+    url(r'^update$', UpgradeView.as_view()),
+    url(r'^update/regions/(?P<region_name>[\w\-]+)/status$', UpgradeView.as_view()),
     # 直接代理到 普罗米修斯
     url(r'^open/monitor/query$', MonitorQueryOverConsoleView.as_view()),
     url(r'^api-gateway/v1/(?P<tenantName>[\w\-]+)/(.*?)', AppApiGatewayView.as_view()),

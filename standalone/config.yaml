@@ -1,0 +1,5 @@
+disable:
+- servicelb
+- traefik
+- local-storage
+node-name: node 
