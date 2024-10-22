@@ -19,3 +19,8 @@ class UpgradeView(JWTAuthApiView):
             body[region.region_name] = resp
         result = general_message(200, "success", "请求成功", bean=body)
         return Response(result, status=200)
+
+    def get(self, request, region_name, *args, **kwargs):
+        resp = region_api.list_upgrade_status(region_name)
+        result = general_message(200, "success", "请求成功", list=resp.get("list", []))
+        return Response(result, status=200)
