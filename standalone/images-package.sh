@@ -1,0 +1,31 @@
+#!/bin/sh
+
+VERSION=${VERSION:-'v6.0.0-release'}
+
+image_list="rainbond/registry:2.6.2
+rainbond/rbd-init-probe:${VERSION}
+rainbond/rbd-chaos:${VERSION}
+rainbond/rbd-mq:${VERSION}
+rainbond/rainbond-operator:${VERSION}
+rainbond/rbd-worker:${VERSION}
+rainbond/rbd-api:${VERSION}
+rainbond/rainbond:${VERSION}-allinone
+rainbond/alpine:latest
+rainbond/apisix-ingress-controller:1.8.0
+rainbond/apisix:3.8.0-debian
+rainbond/minio:RELEASE.2024-09-22T00-33-43Z
+rainbond/rbd-monitor:v2.20.0
+rainbond/local-path-provisioner:v0.0.29
+rancher/klipper-helm:v0.9.2-build20240828
+rancher/mirrored-coredns-coredns:1.11.3
+rancher/mirrored-metrics-server:v0.7.2
+rancher/mirrored-pause:3.6
+busybox:latest"
+
+
+for image in ${image_list}; do
+    docker pull "${image}"
+done
+
+
+docker save -o rbd-images.tar ${image_list}
