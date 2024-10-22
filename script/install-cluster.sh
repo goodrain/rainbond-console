@@ -96,13 +96,13 @@ parse_args() {
     NODE_ROLES=""
     while [ $# -gt 0 ]; do
         case "$1" in
-        "--controlplane")
-            info "Role requested: controlplane"
+        "--control-plane")
+            info "Role requested: control-plane"
             RKE2_DISABLE_ROLE_CONTROLPLANE=false
             if [ -z "$NODE_ROLES" ]; then
-                NODE_ROLES="controlplane"
+                NODE_ROLES="control-plane"
             else
-                NODE_ROLES="${NODE_ROLES},controlplane"
+                NODE_ROLES="${NODE_ROLES},control-plane"
             fi
             shift 1
             ;;
