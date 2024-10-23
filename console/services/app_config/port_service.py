@@ -440,7 +440,7 @@ class AppPortService(object):
         if action == "open_outer":
             if not deal_port.is_inner_service:
                 raise ServiceHandleException(msg="inner port is not open", msg_show="对内服务未开启，需先开启对内服务", status_code=404)
-            code, msg = self.__open_outer(tenant, service, region, deal_port, user_name, app)
+            code, msg = self.__open_outer(tenant, service, region, deal_port, app)
         elif action == "only_open_outer":
             code, msg = self.__only_open_outer(tenant, service, region, deal_port, user_name)
         elif action == "close_outer":
@@ -461,12 +461,11 @@ class AppPortService(object):
             return code, msg, None
         return 200, "操作成功", new_port
 
-    def __open_outer(self, tenant, service, region, deal_port, user_name='', app=None):
+    def __open_outer(self, tenant, service, region, deal_port, app=None):
         if deal_port.protocol == "http":
             service_name = service.service_alias
             container_port = deal_port.container_port
-            domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "-" + str(
-                region.httpdomain)
+            domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "-" + str(region.httpdomain)
             protocol = "http"
             service_id = service.service_id
             http_rule_id = make_uuid(domain_name)
@@ -478,18 +477,17 @@ class AppPortService(object):
 
             if service_domains:
                 svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
+
                 for service_domain in service_domains:
                     service_domain.is_outer_service = True
-                    service_domain.save()
-                    region_api.api_gateway_bind_http_domain(service_name, region.region_name, tenant.tenant_name,
+                    region_api.api_gateway_bind_http_domain(service_name, region, tenant.tenant_name,
                                                             [service_domain.domain_name], svc, app.app_id)
-
+                    service_domain.save()
             else:
                 # 在service_domain表中保存数据
-                service_id = service.service_id
                 service_name = service.service_alias
                 container_port = deal_port.container_port
-                domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "-" + str(
+                domain_name = str(service_name) + "-" +str(container_port) + "-" + str(tenant.tenant_name) + "-" + str(
                     region.httpdomain)
                 domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol,
                                                    http_rule_id, tenant_id, service_alias, region_id)
@@ -498,16 +496,15 @@ class AppPortService(object):
                     # 给数据中心发请求添加默认域名
                     try:
                         svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
-                        region_api.api_gateway_bind_http_domain(service_name, region.region_name, tenant.tenant_name,
+                        region_api.api_gateway_bind_http_domain(service_name, region, tenant.tenant_name,
                                                                 [domain_name], svc, app.app_id)
                     except Exception as e:
                         logger.exception(e)
                         domain_repo.delete_http_domains(http_rule_id)
                         return 412, "数据中心添加策略失败"
 
-            path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=opeo&service_alias=" + service.service_alias
-
-            region_api.api_gateway_get_proxy(region.region_name, tenant.tenant_name, path, None)
+            path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=opeo&service_alias=" + service.service_alias +"&port="+str(container_port)
+            region_api.api_gateway_get_proxy(region, tenant.tenant_name, path, None)
 
         else:
             svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, deal_port.container_port)
@@ -516,27 +513,32 @@ class AppPortService(object):
             if service_tcp_domains:
                 for service_tcp_domain in service_tcp_domains:
                     # 改变tcpdomain表中状态
+                    service_tcp_domain.protocol = svc.protocol
                     service_tcp_domain.is_outer_service = True
                     service_tcp_domain.save()
                     region_api.api_gateway_bind_tcp_domain(
                         region=service.service_region,
                         tenant_name=tenant.tenant_name,
-                        k8s_service_name=svc.k8s_service_name,
+                        k8s_service_name=service.service_alias,
                         container_port=svc.container_port,
                         app_id=app.app_id,
                         ingressPort=int(service_tcp_domain.end_point.split(':')[1]),
                         service_id=service.service_id,
-                        service_type=service.namespace)
+                        service_type=service.namespace,
+                        protocol=service_tcp_domain.protocol,
+                    )
             else:
                 data = region_api.api_gateway_bind_tcp_domain(
                     region=service.service_region,
                     tenant_name=tenant.tenant_name,
-                    k8s_service_name=svc.k8s_service_name,
+                    k8s_service_name=service.service_alias,
                     container_port=svc.container_port,
                     app_id=app.app_id,
                     ingressPort=None,
                     service_id=service.service_id,
-                    service_type=service.namespace)
+                    service_type=service.namespace,
+                    protocol=deal_port.protocol,
+                )
 
                 end_point = "0.0.0.0:{0}".format(data["bean"])
                 service_id = service.service_id

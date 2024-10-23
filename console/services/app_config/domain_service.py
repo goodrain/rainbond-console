@@ -906,6 +906,7 @@ class DomainService(object):
             container_port = port.container_port
             domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "-" + str(
                 region_info.httpdomain)
+
             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             protocol = "http"
             http_rule_id = make_uuid(domain_name)
@@ -922,9 +923,10 @@ class DomainService(object):
             data = region_api.api_gateway_bind_tcp_domain(
                 region=service.service_region,
                 tenant_name=tenant.tenant_name,
-                k8s_service_name=svc.k8s_service_name,
+                k8s_service_name=service.service_alias,
                 container_port=svc.container_port,
-                app_id=None)
+                app_id=None,
+                protocol=svc.protocol)
             end_point = "0.0.0.0:{0}".format(data["bean"])
             service_id = service.service_id
             service_name = service.service_alias

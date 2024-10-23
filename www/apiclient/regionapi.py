@@ -2938,20 +2938,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def api_gateway_bind_tcp_domain(self,
-                                    region,
-                                    tenant_name,
-                                    k8s_service_name,
-                                    container_port,
-                                    app_id,
-                                    ingressPort=None,
-                                    service_id="",
-                                    service_type=""):
+    def api_gateway_bind_tcp_domain(self, region, tenant_name, k8s_service_name, container_port, app_id,
+                                    ingressPort=None, service_id="", service_type="", protocol="tcp"):
         """
         根据endpoint 0.0.0.0:10000 来监听，将请求转发到 region 处理，需要绑定k8s的service
         """
         data = {
-            "protocol": "TCP",
+            "protocol": protocol,
             "match": {
                 "host": "0.0.0.0",
                 "ingressPort": ingressPort
@@ -2963,7 +2956,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         }
 
         path = "/v2/proxy-pass/gateway/" + tenant_name + "/routes/tcp?appID=" + str(
-            app_id) + "&service_id=" + service_id + "&service_type=" + service_type
+            app_id) + "&service_id=" + service_id + "&service_type=" + service_type + "&port=" + str(container_port)
         return self.post_proxy(region, path, data)
 
     def api_gateway_bind_http_domain(self, service_name, region, tenant_name, domains, svc, app_id):
@@ -2985,7 +2978,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 "keyAuth": {}
             }
         }
-        path = "/api-gateway/v1/" + tenant_name + "/routes/http?appID=" + str(app_id) + "&service_alias=" + service_name
+        path = "/api-gateway/v1/" + tenant_name + "/routes/http?appID=" + str(
+            app_id) + "&service_alias=" + service_name + "&port=" + str(svc.container_port)
         return self.api_gateway_post_proxy(region, tenant_name, path, body, app_id)
 
     def api_gateway_bind_http_domain_convert(self, service_name, region, tenant_name, domains, svc, app_id):
