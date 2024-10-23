@@ -221,6 +221,9 @@ APP_OVERVIEW_ENV = {
         },
         "delete": {
             "perms": [300016]
+        },
+        "patch": {
+            "perms": [300016]
         }
     }
 }
