@@ -2901,24 +2901,20 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def api_gateway_post_proxy(self, region, tenant_name, path, data, app_id):
         if app_id:
-            region_app_id = region_app_repo.get_region_app_id(region, app_id)
+            region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
             path = path.replace("appID=" + str(app_id), "appID=" + region_app_id) + "&intID=" + str(app_id)
 
-        url, token = self.__get_region_access_info(tenant_name, region)
-        # url = "http://127.0.0.1:8888"
-        url = url + path
-        self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
-        self.save_yaml(app_id, body)
+        url = region.url + path
+        self._set_headers(region.token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data), region_config=region)
         return body["bean"]
 
     def api_gateway_get_proxy(self, region, tenant_name, path, app_id):
         if app_id:
-            region_app_id = region_app_repo.get_region_app_id(region, app_id)
+            region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
             path = path.replace("appID=" + str(app_id), "appID=" + region_app_id) + "&intID=" + str(app_id)
-        url, token = self.__get_region_access_info(tenant_name, region)
-        self._set_headers(token)
-        res, body = self._get(url + path, self.default_headers, region=region)
+        self._set_headers(region.token)
+        res, body = self._get(region.url + path, self.default_headers, region=region, region_config=region)
         return body
 
     def api_gateway_delete_proxy(self, region, tenant_name, path):

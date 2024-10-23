@@ -273,14 +273,17 @@ class GroupService(object):
             status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
             app.k8s_app = status["k8s_app"] if status.get("k8s_app") else ""
             app.save()
+        return region_app_id
 
     def get_app_detail(self, tenant, region_name, app_id):
         # app metadata
         app = group_repo.get_group_by_pk(tenant.tenant_id, region_name, app_id)
 
-        self.sync_app_services(tenant, region_name, app_id)
+        region_app_id = self.sync_app_services(tenant, region_name, app_id)
 
         res = app.to_dict()
+        res['region_app_id'] = region_app_id
+        res['namespace'] = tenant.namespace
         res['app_id'] = app.ID
         res['app_name'] = app.group_name
         res['app_type'] = app.app_type

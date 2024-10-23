@@ -151,6 +151,8 @@ class RegionApiBaseHttpClient(object):
         if kwargs.get("for_test"):
             region = region_name
             region_name = region.region_name
+        if kwargs.get("region_config"):
+            region = kwargs.get("region_config")
         else:
             region = region_repo.get_region_by_region_name(region_name)
         if not region:
