@@ -9,8 +9,8 @@ from console.repositories.perm_repo import perms_repo
 from console.repositories.perm_repo import role_kind_repo
 from console.repositories.perm_repo import role_perm_relation_repo
 from console.repositories.perm_repo import user_kind_role_repo
-from console.utils.perms import get_perms_structure, get_perms_model, get_team_perms_model, get_enterprise_perms_model, \
-    get_perms_name_code_kv, DEFAULT_TEAM_ROLE_PERMS, DEFAULT_ENTERPRISE_ROLE_PERMS, get_app_perms_model
+from console.utils.perms import get_perms_structure, get_perms_model, get_team_perms_model, \
+    get_perms_name_code_kv, DEFAULT_TEAM_ROLE_PERMS, get_app_perms_model
 from www.models.main import ServiceGroup
 
 logger = logging.getLogger("default")
@@ -85,8 +85,6 @@ class RoleKindService(object):
     def init_default_roles(self, kind, kind_id):
         if kind == "team":
             DEFAULT_ROLES = list(DEFAULT_TEAM_ROLE_PERMS.keys())
-        elif kind == "enterprise":
-            DEFAULT_ROLES = list(DEFAULT_ENTERPRISE_ROLE_PERMS.keys())
         else:
             DEFAULT_ROLES = []
         if DEFAULT_ROLES == []:
@@ -116,8 +114,6 @@ class RolePermService(object):
             role_perms_info = {"role_id": int(role_id)}
             if kind == "team":
                 permissions = self.pack_role_perms_tree(get_team_perms_model(), rule_perms)
-            elif kind == "enterprise":
-                permissions = self.pack_role_perms_tree(get_enterprise_perms_model(), rule_perms)
             else:
                 permissions = self.pack_role_perms_tree(get_perms_model(), rule_perms)
             role_perms_info.update({"permissions": permissions})
@@ -141,8 +137,6 @@ class RolePermService(object):
                         union_role_perms.append(roles_perm_relation["perm_code"])
         if kind == "team":
             permissions = self.pack_role_perms_tree(get_team_perms_model(), union_role_perms, is_owner)
-        elif kind == "enterprise":
-            permissions = self.pack_role_perms_tree(get_enterprise_perms_model(), union_role_perms, is_owner)
         else:
             permissions = self.pack_role_perms_tree(get_perms_model(), union_role_perms, is_owner)
         app_ids = ServiceGroup.objects.filter(tenant_id=tenant_id).values_list("ID", flat=True)
@@ -178,8 +172,6 @@ class RolePermService(object):
             role_perms_info = {"role_id": role_id}
             if kind == "team":
                 permissions = self.pack_role_perms_tree(get_team_perms_model(), rule_perms)
-            elif kind == "enterprise":
-                permissions = self.pack_role_perms_tree(get_enterprise_perms_model(), rule_perms)
             else:
                 permissions = self.pack_role_perms_tree(get_perms_model(), rule_perms)
             app = {"sub_models": [], "perms": {}}

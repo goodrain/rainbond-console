@@ -65,24 +65,20 @@ class AppPortView(AppBaseView):
                 outer_url = "{0}:{1}".format(variables["outer_service"]["domain"], variables["outer_service"]["port"])
             port_info["outer_url"] = outer_url
             port_info["bind_domains"] = []
-            bind_domains = domain_service.get_port_bind_domains(self.service, port.container_port)
-            if bind_domains:
-                path = ("/api-gateway/v1/" + self.tenant_name + "/routes/http/domains?service_alias=" +
-                        self.service.service_alias + "&port=" + str(port.container_port))
-                body = region_api.api_gateway_get_proxy(self.region_name, self.tenant_name, path, None)
-                if body.get("list", []) is not None:
-                    port_info["bind_domains"] = [{
-                        "protocol": "http",
-                        "domain_type": "www",
-                        "ID": -1,
-                        "domain_name": host,
-                        "container_port": port.container_port
-                    } for host in body.get("list", [])]
-                    if port_info['protocol'] == 'http':
-                        port_info["is_outer_service"] = len(port_info["bind_domains"]) > 0
-            port_info["bind_domains"] = [domain.to_dict() for domain in bind_domains]
+            path = ("/api-gateway/v1/" + self.tenant_name + "/routes/http/domains?service_alias=" +
+                    self.service.service_alias + "&port=" + str(port.container_port))
+            body = region_api.api_gateway_get_proxy(self.region, self.tenant_name, path, None)
+            if body.get("list", []) is not None:
+                port_info["bind_domains"] = [{
+                    "protocol": "http",
+                    "domain_type": "www",
+                    "ID": -1,
+                    "domain_name": host,
+                    "container_port": port.container_port
+                } for host in body.get("list", [])]
+                if port_info['protocol'] == 'http':
+                    port_info["is_outer_service"] = len(port_info["bind_domains"]) > 0
             bind_tcp_domains = domain_service.get_tcp_port_bind_domains(self.service, port.container_port)
-
             if bind_tcp_domains:
                 port_info["bind_tcp_domains"] = [domain.to_dict() for domain in bind_tcp_domains]
             else:
