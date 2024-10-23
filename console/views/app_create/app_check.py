@@ -18,6 +18,20 @@ from www.utils.return_message import general_message
 logger = logging.getLogger("default")
 
 
+class LangUpdate(AppBaseView):
+    @never_cache
+    def put(self, request, *args, **kwargs):
+        lang = request.GET.get('lang', None)
+        if lang:
+            self.service.language = lang
+            if lang == 'dockerfile':
+                self.service.cmd = ''
+            self.service.save()
+            return Response(general_message(200, "更新检测语言成功", "更新检测语言成功"), status=200)
+        else:
+            return Response(general_message(400, "params error", "参数错误，请求参数应该包含请求的lang"), status=400)
+
+
 class AppCheck(AppBaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
