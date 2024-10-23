@@ -43,9 +43,9 @@ spec:
       rainbondImageRepository: rainbond
     Component:
       sqlite_mode:
-        enabled: true
+        enable: true
       rbd_db:
-        enabled: false
+        enable: false
 EOF
     echo "ERROR: Failed to create rainbond-cluster.yaml"
     exit 1
