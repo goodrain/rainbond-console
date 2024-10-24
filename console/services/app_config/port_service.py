@@ -606,15 +606,14 @@ class AppPortService(object):
         deal_port.save()
         # 改变httpdomain表中端口状态
         if deal_port.protocol == "http":
-            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, deal_port.container_port)
+            service_domains = domain_repo.get_service_domain_by_container_port(service.service_id,
+                                                                               deal_port.container_port)
             if service_domains:
                 for service_domain in service_domains:
                     service_domain.is_outer_service = False
                     service_domain.save()
-                    path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" +
-                            service_domain.service_name)
-                    region_api.api_gateway_get_proxy(region.region_name, tenant.tenant_name, path, app.app_id)
-
+                    path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" + service_domain.service_name+"&port="+str(deal_port.container_port)
+                    region_api.api_gateway_get_proxy(region, tenant.tenant_name, path, app.app_id)
         else:
             service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
                 service.service_id, deal_port.container_port)
@@ -624,7 +623,7 @@ class AppPortService(object):
                     service_tcp_domain.is_outer_service = False
                     service_tcp_domain.save()
             svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, deal_port.container_port)
-            path = "/v2/proxy-pass/gateway/" + tenant.tenant_name + "/routes/tcp/" + svc.k8s_service_name
+            path = f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/{svc.k8s_service_name}-{svc.protocol}-{deal_port.container_port}"
             region_api.delete_proxy(region.region_name, path)
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service

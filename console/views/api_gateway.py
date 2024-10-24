@@ -45,7 +45,7 @@ class AppApiGatewayConvertView(RegionTenantHeaderView):
         for e in all:
             svc = port_repo.get_service_port_by_port(e.tenant_id, e.service_id, e.container_port)
             app_id = service_group_relation_repo.get_group_id_by_service_tenant(svc)
-            region_api.api_gateway_bind_http_domain_convert(e.service_name, self.region.region_name, self.tenant_name,
+            region_api.api_gateway_bind_http_domain_convert(e.service_name, self.region, self.tenant_name,
                                                             [e.domain_name], svc, app_id)
             list.append(e.domain_name)
 
