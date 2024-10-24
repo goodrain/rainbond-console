@@ -16,9 +16,9 @@ rainbond/apisix:3.8.0-debian
 rainbond/minio:RELEASE.2024-09-22T00-33-43Z
 rainbond/rbd-monitor:v2.20.0
 rainbond/local-path-provisioner:v0.0.29
-rancher/klipper-helm:v0.9.2-build20240828
-rancher/mirrored-coredns-coredns:1.11.3
-rancher/mirrored-metrics-server:v0.7.2
+rancher/klipper-helm:v0.8.4-build20240523
+rancher/mirrored-coredns-coredns:1.10.1
+rancher/mirrored-metrics-server:v0.7.0
 rancher/mirrored-pause:3.6
 busybox:latest"
 
