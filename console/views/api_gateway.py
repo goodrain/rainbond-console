@@ -16,7 +16,7 @@ class AppApiGatewayView(RegionTenantHeaderView):
     def post(self, request, *args, **kwargs):
         app_id = request.query_params.get('appID', "")
         path = request.get_full_path().replace("/console", "")
-        resp = region_api.api_gateway_post_proxy(self.response_region, self.tenant_name, path, request.data, app_id)
+        resp = region_api.api_gateway_post_proxy(self.region, self.tenant_name, path, request.data, app_id)
         result = general_message(200, "success", "创建成功", bean=resp)
         return Response(result, status=result["code"])
 
@@ -24,7 +24,7 @@ class AppApiGatewayView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
         app_id = request.query_params.get('appID', "")
         path = request.get_full_path().replace("/console", "")
-        resp = region_api.api_gateway_get_proxy(self.response_region, self.tenant_name, path, app_id)
+        resp = region_api.api_gateway_get_proxy(self.region, self.tenant_name, path, app_id)
         result = general_message(200, "success", "查询成功", bean=resp['bean'], list=resp['list'])
         return Response(result, status=result["code"])
 
