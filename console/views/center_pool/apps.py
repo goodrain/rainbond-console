@@ -245,8 +245,9 @@ class CenterAppCLView(JWTAuthApiView):
             "source": source,
             "create_team": create_team,
         }
-        market_app_service.create_rainbond_app(enterprise_id, app_info, make_uuid())
-
+        market_app = market_app_service.create_rainbond_app(enterprise_id, app_info, make_uuid())
+        if not market_app:
+            return Response(general_message(400, "创建失败：应用已存在", None), status=400)
         result = general_message(200, "success", None)
         return Response(result, status=200)
 

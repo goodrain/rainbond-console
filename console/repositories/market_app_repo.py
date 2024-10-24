@@ -23,7 +23,7 @@ class RainbondCenterAppRepository(object):
         return RainbondCenterApp.objects.filter(app_id__in=app_ids, scope="team")
 
     def get_enterprise_team_apps(self, enterprise_id, team_name):
-        return RainbondCenterApp.objects.filter(create_team=team_name, source="local", scope="team").order_by("-create_time")
+        return RainbondCenterApp.objects.filter(create_team=team_name, source="local").order_by("-create_time")
 
     def delete_helm_shared_apps(self, source):
         return RainbondCenterApp.objects.filter(source=source).delete()

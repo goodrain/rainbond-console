@@ -1498,6 +1498,8 @@ class MarketAppService(object):
 
     @transaction.atomic
     def create_rainbond_app(self, enterprise_id, app_info, app_id):
+        if RainbondCenterApp.objects.filter(app_name=app_info.get("app_name")).first():
+            return None
         app = RainbondCenterApp(
             app_id=app_id,
             app_name=app_info.get("app_name"),
@@ -1515,6 +1517,7 @@ class MarketAppService(object):
         # save app and tag relation
         if app_info.get("tag_ids"):
             app_tag_repo.create_app_tags_relation(app, app_info.get("tag_ids"))
+        return app
 
     def update_rainbond_app_version_info(self, app_id, version, **body):
         version = rainbond_app_repo.update_app_version(app_id, version, **body)
