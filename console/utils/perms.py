@@ -140,12 +140,13 @@ APP = {
     },
     "app_backup": {
         "perms": [
-            ["backup", "新增备份", 350001],
-            ["backup", "导入备份", 350002],
-            ["backup", "恢复", 350003],
-            ["backup", "迁移", 350004],
-            ["backup", "导出", 350005],
-            ["backup", "删除", 350006],
+            ["describe", "查看", 350007],
+            ["add", "新增备份", 350001],
+            ["import", "导入备份", 350002],
+            ["recover", "恢复", 350003],
+            ["move", "迁移", 350004],
+            ["export", "导出", 350005],
+            ["delete", "删除", 350006],
         ]
     },
     "app_config_group": {
@@ -259,12 +260,13 @@ TEAM = {
         },
         "app_backup": {
             "perms": [
-                ["backup", "新增备份", 350001],
-                ["backup", "导入备份", 350002],
-                ["backup", "恢复", 350003],
-                ["backup", "迁移", 350004],
-                ["backup", "导出", 350005],
-                ["backup", "删除", 350006],
+                ["describe", "查看", 350007],
+                ["add", "新增备份", 350001],
+                ["import", "导入备份", 350002],
+                ["recover", "恢复", 350003],
+                ["move", "迁移", 350004],
+                ["export", "导出", 350005],
+                ["delete", "删除", 350006],
             ]
         },
         "app_config_group": {
@@ -479,10 +481,11 @@ def assemble_perms(perm, group, kind_name):
 
 
 def get_perms(kind, group, kind_name):
-    if isinstance(kind, dict) and kind and kind.get("perms"):
+    if isinstance(kind, dict) and kind:
         perms_list = []
-        perms_list.extend(
-            list(map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"]))))
+        if kind.get("perms"):
+            perms_list.extend(
+                list(map(assemble_perms, kind["perms"], [group] * len(kind["perms"]), [kind_name] * len(kind["perms"]))))
         kind_elements = list(kind.keys())
         if "perms" in kind_elements:
             kind_elements.remove("perms")

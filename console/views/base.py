@@ -188,15 +188,31 @@ class JWTAuthApiView(APIView):
         self.user_perms = None
 
     def check_perms(self, request, *args, **kwargs):
+        """
+        校验用户是否具有指定的权限。
+        Args:
+            request: 请求对象。
+            args: 位置参数。
+            kwargs: 关键字参数。
+        Raises:
+            NoPermissionsError: 如果用户缺少权限，则引发此异常。
+        """
         if kwargs.get("__message"):
+            # 如果消息中没有当前请求方法对应的权限，则抛出权限错误
+            if kwargs["__message"].get(request.META.get("REQUEST_METHOD").lower()) is None:
+                raise NoPermissionsError
+            # 获取当前请求方法需要的权限
             request_perms = kwargs["__message"][request.META.get("REQUEST_METHOD").lower()]["perms"]
+            if kwargs.get("app_id"):
+                pass
+            # 检查用户是否具有请求所需的所有权限
             if request_perms and (len(set(request_perms) & set(self.user_perms)) != len(set(request_perms))):
-                print(request_perms, self.user_perms)
                 logger.info("no permission. request perms: {}. user perms: {}".format(request_perms, self.user_perms))
                 raise NoPermissionsError
 
     def has_perms(self, request_perms):
         if request_perms and (len(set(request_perms) & set(self.user_perms)) != len(set(request_perms))):
+            print("---------------")
             logger.info("no permission. request perms: {}. user perms: {}".format(request_perms, self.user_perms))
             raise NoPermissionsError
 
