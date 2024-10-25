@@ -5,11 +5,12 @@ import re
 
 from console.exception.bcode import ErrK8sServiceNameExists, ErrQualifiedName, ErrNamespaceExists
 from console.exception.exceptions import (NoEnableRegionError, TenantExistError, UserNotExistError)
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, AbortRequest
 from console.models.main import UserMessage
 from console.repositories.app import service_repo
 from console.repositories.apply_repo import apply_repo
 from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
+from console.repositories.message_repo import msg_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
@@ -19,6 +20,7 @@ from console.services.config_service import platform_config_service
 from console.services.enterprise_services import \
     enterprise_services as console_enterprise_service
 from console.services.enterprise_services import make_uuid
+from console.services.message_service import MessageType
 from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -635,13 +637,25 @@ class JoinTeamView(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         """查看指定用户加入的团队的状态"""
         user_id = request.GET.get("user_id", None)
+        users = enterprise_repo.get_enterprise_users(self.enterprise.enterprise_id)
+        team_creater = {user.user_id: user.get_name() for user in users}
         if user_id:
             apply_user = apply_repo.get_applicants_team(user_id=user_id)
+            apply_team_ids = [apply.team_id for apply in apply_user]
+            apply_teams = team_repo.get_team_by_team_ids(apply_team_ids)
+            apply_teams_creater = {apply_team.tenant_id: apply_team.creater for apply_team in apply_teams}
             team_list = [team.to_dict() for team in apply_user]
+            for team in team_list:
+                team["team_owner"] = team_creater[apply_teams_creater[team["team_id"]]]
             result = general_message(200, "success", "查询成功", list=team_list)
         else:
             apply_user = apply_repo.get_applicants_team(user_id=self.user.user_id)
+            apply_team_ids = [apply.team_id for apply in apply_user]
+            apply_teams = team_repo.get_team_by_team_ids(apply_team_ids)
+            apply_teams_creater = {apply_team.tenant_id: apply_team.creater for apply_team in apply_teams}
             team_list = [team.to_dict() for team in apply_user]
+            for team in team_list:
+                team["team_owner"] = team_creater[apply_teams_creater[team["team_id"]]]
             result = general_message(200, "success", "查询成功", list=team_list)
         return Response(result, status=result["code"])
 
@@ -660,6 +674,13 @@ class JoinTeamView(JWTAuthApiView):
     def put(self, request, *args, **kwargs):
         user_id = self.user.user_id
         team_name = request.data.get("team_name")
+        applicant = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
+        if not applicant:
+            raise AbortRequest(msg="not found applicant", msg_show="该申请不存在", status_code=404)
+        if applicant and applicant[0].is_pass == 1:
+            result = general_message(409, "joined the team, applicant cannot be cancelled",
+                                     "您已加入该团队，无法撤销申请")
+            return Response(result, status=409)
         apply_service.delete_applicants(user_id=user_id, team_name=team_name)
         result = general_message(200, "success", None)
         return Response(result, status=200)
