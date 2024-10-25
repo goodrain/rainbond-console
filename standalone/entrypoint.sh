@@ -31,7 +31,6 @@ spec:
   chart: https://%{KUBERNETES_API}%/static/rainbond-cluster.tgz
   targetNamespace: rbd-system
   valuesContent: |-
-    useK3sContainerd: true
     Cluster:
       gatewayIngressIPs: ${EIP:-$(hostname -i)}
       nodesForChaos:
@@ -41,6 +40,12 @@ spec:
         internalIP: $(hostname -i)
         externalIP: $(hostname -i)
       rainbondImageRepository: rainbond
+    containerd:
+      volumes:
+      - name: containerdsock
+        hostPath:
+          path: /run/k3s/containerd
+          type: Directory
     Component:
       sqlite_mode:
         enable: true
