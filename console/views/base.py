@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+import copy
 import logging
 import os
 
@@ -26,6 +27,8 @@ from django.utils import six
 from django.utils.encoding import smart_text
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as trans
+
+from console.utils.perms import get_perms, APP
 from goodrain_web import errors
 from rest_framework import exceptions, status
 from rest_framework.authentication import get_authorization_header
@@ -36,7 +39,7 @@ from rest_framework.views import APIView, set_rollback
 from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
 from rest_framework_jwt.settings import api_settings
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantEnterprise, Tenants, Users, TenantServiceInfo
+from www.models.main import TenantEnterprise, Tenants, Users, TenantServiceInfo, ServiceGroup
 from console.login.jwt_manager import JwtManager
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
@@ -276,14 +279,34 @@ class TenantHeaderView(JWTAuthApiView):
         self.perm_apps = []
 
     def get_perms(self):
+        """
+        获取用户的权限列表。
+
+        用户权限由以下几部分组成：
+        1. 用户拥有的管理员角色的权限；
+        2. 如果用户是团队所有者，则包含团队权限和团队所有者权限；
+        3. 如果用户是团队成员，则根据其角色获取相应的权限；
+        4. 如果用户有指定的应用权限，则添加该应用的权限；
+        5. 如果用户有指定的应用组权限，则添加该应用组的权限。
+
+        Returns:
+            list: 用户的权限列表。
+        """
+        # 初始化用户权限列表
         self.user_perms = []
+
+        # 获取用户拥有的管理员角色
         admin_roles = user_services.list_roles(self.user.enterprise_id, self.user.user_id)
         self.user_perms = list(perms.list_enterprise_perm_codes_by_roles(admin_roles))
+
+        # 如果用户是团队所有者，添加团队权限和团队所有者权限
         if self.is_team_owner:
             team_perms = list(PermsInfo.objects.filter(kind="team").values_list("code", flat=True))
             self.user_perms.extend(team_perms)
             self.user_perms.append(100001)
+            self.perm_apps = [-1]
         else:
+            # 获取团队角色
             team_roles = RoleInfo.objects.filter(kind="team", kind_id=self.tenant.tenant_id)
             if team_roles:
                 role_ids = team_roles.values_list("ID", flat=True)
@@ -296,23 +319,51 @@ class TenantHeaderView(JWTAuthApiView):
                         self.user_perms.extend(list(global_team_role_perms.values_list("perm_code", flat=True)))
                         if global_team_role_perms.filter(perm_code=300002):
                             self.perm_apps = [-1]
-                    if self.perm_app_id:
-                        app_role_perms = team_role_perms.filter(app_id=self.perm_app_id)
-                        self.user_perms.extend(list(app_role_perms.values_list("perm_code", flat=True)))
-                    if not self.perm_apps and team_role_perms.filter(perm_code=300002).exclude(app_id=-1):
-                        self.perm_apps = team_role_perms.filter(perm_code=300002).exclude(app_id=-1).values_list(
-                            "app_id", flat=True)
+                    if self.perm_app_id or self.perm_app_id == 0:
+                        app = ServiceGroup.objects.filter(ID=self.perm_app_id)
+                        if self.perm_app_id == 0 or (app and app[0].username == self.user.username):
+                            app_perms = get_perms(copy.deepcopy(APP), "app", "app")
+                            code = [a[2] for a in app_perms]
+                            self.user_perms.extend(code)
+                        else:
+                            app_role_perms = team_role_perms.filter(app_id=self.perm_app_id)
+                            self.user_perms.extend(list(app_role_perms.values_list("perm_code", flat=True)))
+                    if not self.perm_apps:
+                        self.perm_apps = list(
+                            team_role_perms.filter(perm_code=300002).exclude(app_id=-1).values_list("app_id",
+                                                                                                    flat=True))
+                        app = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                          username=self.user.username).values_list("ID", flat=True)
+                        self.perm_apps.extend(app)
+                        self.perm_apps = list(set(self.perm_apps))
         self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):
+        """
+        初始化请求相关的实例变量，包括用户信息、企业信息、团队信息和权限信息。
+
+        Args:
+            request (Request): 请求对象。
+            *args: 其他位置参数。
+            **kwargs: 其他关键字参数。
+
+        Raises:
+            AbortRequest: 如果无法找到team_name或tenant，则抛出请求中止异常。
+        """
+        # 设置当前用户
         self.user = request.user
+
+        # 根据用户的enterprise_id获取企业信息
         self.enterprise = TenantEnterprise.objects.filter(enterprise_id=self.user.enterprise_id).first()
+
+        # 根据企业ID和用户ID获取用户权限信息，设置企业管理员标识
         enterprise_user_perms = EnterpriseUserPerm.objects.filter(
             enterprise_id=self.user.enterprise_id, user_id=self.user.user_id).first()
         if enterprise_user_perms:
             self.is_enterprise_admin = True
-        self.tenant_name = kwargs.get("tenantName", None)
 
+        # 获取租户名称
+        self.tenant_name = kwargs.get("tenantName", None)
         if not self.tenant_name:
             self.tenant_name = kwargs.get("team_name", None)
         if not self.tenant_name:
@@ -325,31 +376,65 @@ class TenantHeaderView(JWTAuthApiView):
             self.tenant_name = self.request.GET.get('team_name', None)
         self.team_name = self.tenant_name
 
+        # 如果租户名称不存在，抛出异常
         if not self.tenant_name:
-            raise AbortRequest("team_name not found !")
+            raise AbortRequest(msg="team_name not found!", msg_show="请求参数缺少team_name", status_code=404)
+
         try:
+            # 尝试根据租户名称获取租户信息
             self.tenant = Tenants.objects.get(tenant_name=self.tenant_name)
             self.team = self.tenant
         except Tenants.DoesNotExist:
             try:
+                # 如果根据租户名称获取失败，尝试根据租户ID获取租户信息
                 self.tenant = Tenants.objects.get(tenant_id=self.tenant_name)
                 self.team = self.tenant
             except Tenants.DoesNotExist:
-                raise AbortRequest(msg="tenant {0} not found".format(self.tenant_name), msg_show="团队不存在", status_code=404)
+                raise AbortRequest(msg="tenant {0} not found".format(self.tenant_name), msg_show="团队不存在",
+                                   status_code=404)
+
+        # 获取权限应用ID
         if kwargs.get("app_id"):
-            self.perm_app_id = kwargs.get("app_id")
+            try:
+                self.perm_app_id = int(kwargs.get("app_id"))
+            except Exception as e:
+                self.perm_app_id = -1
         if request.GET.get("group_id"):
-            self.perm_app_id = request.GET.get("group_id")
+            try:
+                self.perm_app_id = int(request.GET.get("group_id"))
+            except Exception as e:
+                self.perm_app_id = -1
         if request.GET.get("app_id"):
-            self.perm_app_id = request.GET.get("group_id")
+            try:
+                self.perm_app_id = int(request.GET.get("app_id"))
+            except Exception as e:
+                self.perm_app_id = -1
         if kwargs.get("group_id"):
-            self.perm_app_id = kwargs.get("group_id")
+            try:
+                self.perm_app_id = int(kwargs.get("group_id"))
+            except Exception as e:
+                self.perm_app_id = -1
+        if request.data.get("group_id"):
+            if request.data.get("is_demo"):
+                self.perm_app_id = -1
+            else:
+                try:
+                    self.perm_app_id = int(request.data.get("group_id"))
+                except Exception as e:
+                    self.perm_app_id = -1
+        if request.data.get("app_id"):
+            try:
+                self.perm_app_id = int(request.data.get("app_id"))
+            except Exception as e:
+                self.perm_app_id = -1
+        # 根据服务别名获取服务信息，并设置权限应用ID
         if kwargs.get("serviceAlias"):
             service_alias = kwargs.get("serviceAlias")
             services = TenantServiceInfo.objects.filter(service_alias=service_alias, tenant_id=self.tenant.tenant_id)
             if services:
                 s_groups = group_service.get_service_group_info(services[0].service_id)
-                self.perm_app_id = s_groups.ID
+                if s_groups:
+                    self.perm_app_id = s_groups.ID
 
         if self.user.user_id == self.tenant.creater:
             self.is_team_owner = True
