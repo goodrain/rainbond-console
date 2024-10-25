@@ -1021,7 +1021,7 @@ class MarketAppService(object):
                           arch="amd64",
                           tenant_name=""):
         teams = None
-        if scope == "team":
+        if scope == "team" and tenant_name:
             teams = [tenant_name]
         apps, count = rainbond_app_repo.get_rainbond_ceneter_app_by(scope, app_name, teams, page, page_size,
                                                                     need_install, arch)
