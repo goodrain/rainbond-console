@@ -2,6 +2,7 @@
 """
   Created on 18/1/23.
 """
+import ast
 import base64
 import datetime
 import json
@@ -44,7 +45,7 @@ class DomainService(object):
         certificate, nums = domain_repo.get_tenant_certificate_page(tenant.tenant_id, start, end)
         c_list = []
         for c in certificate:
-            cert = base64.b64decode(c.certificate)
+            cert = base64.b64decode(ast.literal_eval(c.certificate))
             data = dict()
             data["alias"] = c.alias
             data["certificate_type"] = c.certificate_type
