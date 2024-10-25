@@ -1939,7 +1939,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def test_region_api(self, region_data):
         region = RegionConfig(**region_data)
         url = region.url + "/v2/show"
-        return self._get(url, self.default_headers, region=region, for_test=True, retries=1, timeout=1)
+        return self._get(url, self.default_headers, region=region, for_test=True, retries=1, timeout=1, region_config=region)
 
     def check_region_api(self, enterprise_id, region):
         region_info = self.get_enterprise_region_info(enterprise_id, region)
