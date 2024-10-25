@@ -337,7 +337,7 @@ class TenantHeaderView(JWTAuthApiView):
                             self.perm_apps = [-1]
                     if self.perm_app_id or self.perm_app_id == 0:
                         app = ServiceGroup.objects.filter(ID=self.perm_app_id)
-                        if self.perm_app_id == 0 or (app and app[0].username == self.user.username):
+                        if self.perm_app_id == 0 or (app and app[0].username == self.user.nick_name):
                             app_perms = get_perms(copy.deepcopy(APP), "app", "app")
                             code = [a[2] for a in app_perms]
                             self.user_perms.extend(code)
