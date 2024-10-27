@@ -4,7 +4,7 @@ WORKDIR /tmp
 
 RUN apk add --no-cache wget && \
     wget https://cdn.dl.k8s.io/release/v1.30.4/bin/linux/$TARGETARCH/kubectl -O /tmp/kubectl && chmod +x /tmp/kubectl && \
-    git clone --depth=1 -b V6.0 https://github.com/goodrain/rainbond-chart.git && \
+    git clone --depth=1 -b V6-dind https://github.com/goodrain/rainbond-chart.git && \
     helm package rainbond-chart && \
     mv rainbond-*.tgz rainbond-cluster.tgz
 

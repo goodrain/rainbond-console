@@ -32,25 +32,14 @@ spec:
   targetNamespace: rbd-system
   valuesContent: |-
     Cluster:
-      gatewayIngressIPs: ${EIP:-$(hostname -i)}
+      gatewayIngressIPs: $(hostname -i)
       nodesForChaos:
       - name: node
       nodesForGateway:
       - name: node
         internalIP: $(hostname -i)
         externalIP: $(hostname -i)
-      rainbondImageRepository: rainbond
-    containerd:
-      volumes:
-      - name: containerdsock
-        hostPath:
-          path: /run/k3s/containerd
-          type: Directory
-    Component:
-      sqlite_mode:
-        enable: true
-      rbd_db:
-        enable: false
+      installVersion: ${VERSION:-v6.0.0-release}
 EOF
     echo "ERROR: Failed to create rainbond-cluster.yaml"
     exit 1
