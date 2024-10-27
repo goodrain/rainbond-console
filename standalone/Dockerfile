@@ -15,7 +15,7 @@ COPY standalone/config.yaml /etc/rancher/k3s/config.yaml
 COPY standalone/registries.yaml /etc/rancher/k3s/registries.yaml
 COPY rbd-images.tar /tmp/rbd-images.tar
 
-COPY --from=base /tmp/kubectl /bin/kubectl
+# COPY --from=base /tmp/kubectl /bin/kubectl
 COPY --from=base /tmp/rainbond-cluster.tgz /tmp/rainbond-cluster.tgz
 
 ENV CRI_CONFIG_FILE="/var/lib/rancher/k3s/agent/etc/crictl.yaml"
