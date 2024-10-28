@@ -1404,7 +1404,7 @@ class MarketAppService(object):
         if install_from_cloud and market:
             app_version_list = app_market_service.get_market_app_model_versions(market, app_model_key)
         else:
-            app_version_list = rainbond_app_repo.get_rainbond_app_versions(enterprise_id, app_model_key)
+            app_version_list = rainbond_app_repo.get_rainbond_app_versions(app_model_key)
         if not app_version_list:
             return None
         for version in app_version_list:
@@ -1721,7 +1721,7 @@ class MarketAppService(object):
             market = app_market_repo.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
             versions = app_market_service.get_market_app_model_versions(market, component_source.group_key)
         else:
-            versions = rainbond_app_repo.get_rainbond_app_versions(enterprise_id, component_source.group_key)
+            versions = rainbond_app_repo.get_rainbond_app_versions(component_source.group_key)
         return versions
 
 
