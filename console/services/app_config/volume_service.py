@@ -376,14 +376,14 @@ class AppVolumeService(object):
         if force != "1":
             mnt = mnt_repo.get_mnt_by_dep_id_and_mntname(service.service_id, volume.volume_name)
             if mnt:
-                list = []
+                ret_list = []
                 for item in mnt:
                     s = service_repo.get_service_by_service_id(item.service_id)
-                    list.append({
+                    ret_list.append({
                         "service_cname": s.service_cname,
                         "service_alias": s.service_alias,
                     })
-                return 202, "当前路径被以下组件共享,无法删除,是否要强制删除呢", list
+                return 202, "当前路径被以下组件共享,无法删除,是否要强制删除呢", ret_list
         if force == "0":
             return 202, "没有任何组件依赖，可以直接删除", []
         if service.create_status == "complete":

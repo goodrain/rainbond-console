@@ -194,7 +194,7 @@ class AppVolumeManageView(AppBaseView):
         code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id),
                                                                        self.user.nick_name, force)
         if code != 200:
-            result = general_message(code=code, msg="delete volume error", msg_show=msg)
+            result = general_message(code=code, msg="delete volume error", msg_show=msg, list=volume)
             return Response(result, status=result["code"])
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
