@@ -11,8 +11,8 @@ rainbond/rbd-worker:${VERSION}
 rainbond/rbd-api:${VERSION}
 rainbond/rainbond:${VERSION}-allinone
 rainbond/alpine:latest
-rainbond/apisix-ingress-controller:1.8.0
-rainbond/apisix:3.8.0-debian
+rainbond/apisix-ingress-controller:1.8.2
+rainbond/apisix:3.9.1-debian
 rainbond/minio:RELEASE.2024-09-22T00-33-43Z
 rainbond/rbd-monitor:v2.20.0
 rainbond/local-path-provisioner:v0.0.29
