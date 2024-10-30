@@ -303,10 +303,15 @@ class K8sClient:
                 container_detailed_status = state.terminated.reason
                 break
             elif state.running:
-                container_detailed_status = "Running"
+                # 检查 ready 状态
+                if container_status.ready:
+                    container_detailed_status = "Running"
+                else:
+                    container_detailed_status = "NotReady"  # 当 ready 为 0/1 时设置状态为 Not Ready
 
-        if pod.status.container_statuses:
-            container_status = pod.status.container_statuses[0]
+        # 获取镜像状态
+        if container_statuses:
+            container_status = container_statuses[0]
             image = container_status.image
             image_status = "正常" if image else "镜像缺失"
         else:
@@ -318,7 +323,7 @@ class K8sClient:
             "status": container_detailed_status,
             "node": pod.spec.node_name,
             "start_time": str(pod.status.start_time) if pod.status.start_time else "",
-            "restarts": pod.status.container_statuses[0].restart_count if pod.status.container_statuses else 0,
+            "restarts": container_statuses[0].restart_count if container_statuses else 0,
             "image": image,
             "image_status": image_status
         }
