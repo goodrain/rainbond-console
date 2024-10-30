@@ -144,7 +144,7 @@ from console.views.team import UserFuzSerView, TeamUserDetaislView, TeamCheckRes
     TeamRegionInitView, ApplicantsView, RegisterStatusView, MonitorAlarmStatusView, EnterpriseInfoView, \
     InitDefaultInfoView, AdminAddUserView, CertificateView, TeamUserCanJoin, TeamsPermissionCreateApp, JoinTeamView, \
     UserApplyStatusView
-from console.views.upgrade import UpgradeView
+from console.views.upgrade import UpgradeView, UpgradeVersionLView, UpgradeVersionRView, UpgradeVersionImagesView
 from console.views.user import CheckSourceView, UserLogoutView, UserPemTraView, AdministratorJoinTeamView, \
     EnterPriseUsersCLView, EnterPriseUsersUDView, AdminUserView, AdminUserLCView, \
     AdminRolesView
@@ -159,6 +159,9 @@ urlpatterns = [
     # 升级
     url(r'^update$', UpgradeView.as_view()),
     url(r'^update/regions/(?P<region_name>[\w\-]+)/status$', UpgradeView.as_view()),
+    url(r'^update/versions$', UpgradeVersionLView.as_view()),
+    url(r'^update/versions/(?P<version>[\w\-.]+)$', UpgradeVersionRView.as_view()),
+    url(r'^update/versions/(?P<version>[\w\-.]+)/images$', UpgradeVersionImagesView.as_view()),
     # 直接代理到 普罗米修斯
     url(r'^open/monitor/query$', MonitorQueryOverConsoleView.as_view()),
     url(r'^api-gateway/v1/(?P<tenantName>[\w\-]+)/(.*?)', AppApiGatewayView.as_view()),
