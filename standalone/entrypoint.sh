@@ -6,17 +6,17 @@
 ########################################
 init_configuration() {
   
-  if ! mkdir -p /var/lib/rancher/k3s/server/manifests /var/lib/rancher/k3s/server/static /var/lib/rancher/k3s/agent/images; then
+  if ! mkdir -p /opt/rainbond/k3s/server/manifests /opt/rainbond/k3s/server/static /opt/rainbond/k3s/agent/images; then
     echo "ERROR: Failed to create directory"
     exit 1
   fi
   
-  if ! cp /tmp/rainbond-cluster.tgz /var/lib/rancher/k3s/server/static/rainbond-cluster.tgz; then
+  if ! cp /tmp/rainbond-cluster.tgz /opt/rainbond/k3s/server/static/rainbond-cluster.tgz; then
     echo "ERROR: Failed to copy rainbond-cluster.tgz"
     exit 1
   fi
 
-  if ! cat > /var/lib/rancher/k3s/server/manifests/rainbond-cluster.yaml << EOF ; then
+  if ! cat > /opt/rainbond/k3s/server/manifests/rainbond-cluster.yaml << EOF ; then
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -45,14 +45,14 @@ EOF
     exit 1
   fi
 
-  if [ ! -f "/var/lib/rancher/k3s/agent/images/rbd-images.tar" ]; then
-    cp /tmp/rbd-images.tar /var/lib/rancher/k3s/agent/images/rbd-images.tar
+  if [ ! -f "/opt/rainbond/k3s/agent/images/rbd-images.tar" ]; then
+    cp /tmp/rbd-images.tar /opt/rainbond/k3s/agent/images/rbd-images.tar
   fi
 }
 
-if [ ! -f "/var/lib/rancher/k3s/server/static/rainbond-cluster.tgz" ] || \
-   [ ! -f "/var/lib/rancher/k3s/server/manifests/rainbond-cluster.yaml" ]; \
-   [ ! -f "/var/lib/rancher/k3s/agent/images/rbd-images.tar" ]; then
+if [ ! -f "/opt/rainbond/k3s/server/static/rainbond-cluster.tgz" ] || \
+   [ ! -f "/opt/rainbond/k3s/server/manifests/rainbond-cluster.yaml" ]; \
+   [ ! -f "/opt/rainbond/k3s/agent/images/rbd-images.tar" ]; then
     init_configuration
 fi
 

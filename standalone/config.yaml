@@ -3,3 +3,4 @@ disable:
 - traefik
 - local-storage
 node-name: node 
+data-dir: /opt/rainbond/k3s
