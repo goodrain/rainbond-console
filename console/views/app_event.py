@@ -246,7 +246,7 @@ class AppEventsView(RegionTenantHeaderView):
                 relys = []
                 for event in events:
                     if event["opt_type"] == "INITIATING":
-                        msg = event["Message"]
+                        msg = event["message"]
                         alias = msg.split(",")
                         for ali in alias:
                             service = TenantServiceInfo.objects.filter(
