@@ -63,18 +63,10 @@ class AppVolumeService(object):
 
     def get_service_support_volume_options(self, tenant, service):
         base_opts = [{"volume_type": "memoryfs", "name_show": "临时存储"}]
-        state = False
-        # state service
-        if is_state(service.extend_method):
-            state = True
         body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
         if body and hasattr(body, 'list') and body.list:
             for opt in body.list:
-                if len(opt["access_mode"]) > 0 and opt["access_mode"][0] == "RWO":
-                    if state:
-                        base_opts.append(opt)
-                else:
-                    base_opts.append(opt)
+                base_opts.append(opt)
         return base_opts
 
     def get_best_suitable_volume_settings(self,
