@@ -193,7 +193,12 @@ class AppPortService(object):
                          is_outer_service=False,
                          k8s_service_name=None,
                          user_name=''):
-        k8s_service_name = k8s_service_name if k8s_service_name else service.service_alias
+
+        ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
+        if ports:
+            k8s_service_name = ports[0].k8s_service_name
+        else:
+            k8s_service_name = k8s_service_name if k8s_service_name else service.service_alias
         try:
             self.check_k8s_service_name(tenant.tenant_id, k8s_service_name, service.service_id)
         except ErrK8sServiceNameExists:
