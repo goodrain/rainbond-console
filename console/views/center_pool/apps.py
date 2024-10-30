@@ -206,6 +206,7 @@ class CenterAppCLView(JWTAuthApiView):
         for a in apps:
             app = a.to_dict()
             app["versions_info"] = a.versions_info
+            app["min_memory"] = a.min_memory
             list.append(app)
         return MessageResponse("success", msg_show="查询成功", list=list, total=count, next_page=int(page) + 1)
 
