@@ -32,7 +32,7 @@ spec:
   targetNamespace: rbd-system
   valuesContent: |-
     Cluster:
-      gatewayIngressIPs: $(hostname -i)
+      gatewayIngressIPs: ${EIP:-$(hostname -i)}
       nodesForChaos:
       - name: node
       nodesForGateway:
