@@ -228,10 +228,10 @@ class UpgradeService(object):
         events = body.get("list", [])
 
         for event in events:
-            component_record = unfinished.get(event["EventID"])
+            component_record = unfinished.get(event["event_id"])
             if not component_record:
                 continue
-            self._update_component_record_status(component_record, event["Status"])
+            self._update_component_record_status(component_record, event["status"])
 
         self._update_app_record_status(record, component_records)
 
