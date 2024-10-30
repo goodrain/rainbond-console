@@ -317,7 +317,7 @@ class ServiceDomainView(AppBaseView):
         result = general_message(200, "success", "域名绑定成功")
         svc = port_repo.get_service_port_by_port(self.tenant.tenant_id, self.service.service_id, container_port)
 
-        region_api.api_gateway_bind_http_domain(self.service.service_alias, self.region.region_name, self.tenant.tenant_name,
+        region_api.api_gateway_bind_http_domain(self.service.service_alias, self.region, self.tenant.tenant_name,
                                                 [domain_name], svc, self.app.app_id)
         return Response(result, status=result["code"])
 
