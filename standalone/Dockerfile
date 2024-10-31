@@ -3,11 +3,10 @@ ARG TARGETARCH
 WORKDIR /tmp
 
 RUN apk add --no-cache wget && \
-    wget https://cdn.dl.k8s.io/release/v1.30.4/bin/linux/$TARGETARCH/kubectl -O /tmp/kubectl && chmod +x /tmp/kubectl && \
     if [ "$TARGETARCH" = "amd64" ]; then \
-      wget https://github.com/k3s-io/k3s/releases/download/v1.30.4%2Bk3s1/k3s -O /tmp/k3s; \
+      wget https://github.com/k3s-io/k3s/releases/download/v1.30.4%2Bk3s1/k3s -O /tmp/k3s && chmod +x /tmp/k3s; \
     else \
-      wget https://github.com/k3s-io/k3s/releases/download/v1.30.4%2Bk3s1/k3s-arm64 -O /tmp/k3s; \
+      wget https://github.com/k3s-io/k3s/releases/download/v1.30.4%2Bk3s1/k3s-arm64 -O /tmp/k3s && chmod +x /tmp/k3s; \
     fi && \
     git clone --depth=1 -b V6-dind https://github.com/goodrain/rainbond-chart.git && \
     helm package rainbond-chart && \
@@ -24,6 +23,7 @@ COPY --from=base /tmp/rainbond-cluster.tgz /tmp/rainbond-cluster.tgz
 COPY --from=base /tmp/k3s /bin/k3s
 
 ENV KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+ENV CRI_CONFIG_FILE="/opt/rainbond/k3s/agent/etc/crictl.yaml"
 
 VOLUME /opt/rainbond
 

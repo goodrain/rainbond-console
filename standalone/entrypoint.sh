@@ -56,4 +56,10 @@ if [ ! -f "/opt/rainbond/k3s/server/static/rainbond-cluster.tgz" ] || \
     init_configuration
 fi
 
+if ! grep -q "alias kubectl='k3s kubectl'" /root/.bashrc; then
+  echo "alias kubectl='k3s kubectl'" >> /root/.bashrc
+  echo "alias crictl='k3s crictl'" >> /root/.bashrc
+  . /root/.bashrc
+fi
+
 exec "$@"
