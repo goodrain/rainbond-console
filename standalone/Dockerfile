@@ -13,6 +13,7 @@ RUN apk add --no-cache wget && \
     mv rainbond-*.tgz rainbond-cluster.tgz
 
 FROM ubuntu:24.04
+ARG VERSION
 
 COPY standalone/entrypoint.sh /entrypoint.sh
 COPY standalone/config.yaml /etc/rancher/k3s/config.yaml
@@ -22,6 +23,7 @@ COPY rbd-images.tar /tmp/rbd-images.tar
 COPY --from=base /tmp/rainbond-cluster.tgz /tmp/rainbond-cluster.tgz
 COPY --from=base /tmp/k3s /bin/k3s
 
+ENV VERSION=${VERSION}
 ENV KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 ENV CRI_CONFIG_FILE="/opt/rainbond/k3s/agent/etc/crictl.yaml"
 
