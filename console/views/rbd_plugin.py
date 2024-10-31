@@ -10,7 +10,7 @@ from www.apiclient.regionapi import RegionInvokeApi
 region_api = RegionInvokeApi()
 
 
-class RainbondPluginLView(EnterpriseAdminView):
+class RainbondPluginLView(JWTAuthApiView):
     def get(self, request, enterprise_id, region_name, *args, **kwargs):
         plugins, _ = rbd_plugin_service.list_plugins(enterprise_id, region_name)
         return Response(general_message(200, "success", "查询成功", list=plugins))
@@ -28,7 +28,7 @@ class RainbondPluginBackendView(JWTAuthApiView):
         resp = region_api.get_proxy(region_name, path)
         return Response(resp)
 
-class RainbondPluginStatusView(JWTAuthApiView):
+class RainbondPluginStatusView(EnterpriseAdminView):
     def post(self, request, region_name, plugin_name, *args, **kwargs):
         path = "/v2/platform/plugins/" + plugin_name + "/status"
         resp = region_api.post_proxy(region_name, path, request.data)
