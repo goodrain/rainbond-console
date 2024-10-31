@@ -1,5 +1,5 @@
 ARG IMAGE_NAMESPACE=rainbond
-ARG VERSION=V5.4-dev
+ARG VERSION=v6.0.0-release
 
 # build ui
 FROM ${IMAGE_NAMESPACE}/rainbond-ui:${VERSION} AS ui
@@ -15,6 +15,7 @@ RUN mv /dist/index.html /app/ui/www/templates/index.html && \
 # build console
 FROM python:3.6-stretch AS build-console
 ARG PYTHONPROXY
+ARG TARGETARCH
 
 COPY --from=ui /app/ui /app/ui
 WORKDIR /app/ui
@@ -25,16 +26,20 @@ RUN python -m venv --copies /app/ui/py_venv && \
     pip install -r requirements.txt $PYTHONPROXY && \
     python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework
 
-RUN git clone --depth=1 -b V6.0 https://github.com/goodrain/rainbond-chart /app/ui/rainbond-chart
+RUN git clone --depth=1 -b main https://github.com/goodrain/rainbond-chart /app/ui/rainbond-chart && \
+    wget https://get.helm.sh/helm-v3.16.2-linux-$TARGETARCH.tar.gz -O /tmp/helm.tar.gz && \
+    tar -zxvf /tmp/helm.tar.gz -C /tmp && \
+    mv /tmp/linux-$TARGETARCH/helm /tmp && \
+    chmod +x /tmp/helm
 
 # build console image
 FROM python:3.6-slim-stretch
 
 ARG RELEASE_DESC=
 ARG VERSION
-ARG TARGETARCH
 
 COPY --from=build-console /app/ui /app/ui
+COPY --from=build-console /tmp/helm /usr/local/bin/helm
 WORKDIR /app/ui
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
@@ -43,12 +48,7 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
 	echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
 	apt-get update && apt-get --no-install-recommends install -y \
 	curl mysql-client sqlite3 default-libmysqlclient-dev && \
-    if [ "$TARGETARCH" = "arm64" ]; then \
-        curl "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm-arm64" -o /usr/local/bin/helm && chmod +x /usr/local/bin/helm; \
-    else \
-        curl "https://pkg.goodrain.com/pkg/helm/v3.10.1/helm" -o /usr/local/bin/helm && chmod +x /usr/local/bin/helm; \
-    fi && \
-    mkdir -p /app/logs /app/data && \
+  mkdir -p /app/logs /app/data && \
 	rm -rf /var/lib/apt/lists/*
 
 ENV PATH=/app/ui/py_venv/bin:$PATH

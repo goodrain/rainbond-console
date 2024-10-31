@@ -5,31 +5,18 @@ on:
     types: [opened, edited, synchronize, labeled, unlabeled]
 
 jobs:
-  build:
-    # https://github.com/actions/setup-python/issues/544
-    runs-on: ubuntu-20.04
+  rainbond-allinone:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 3.6
-        uses: actions/setup-python@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
         with:
-          python-version: 3.6
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8 yapf==0.26.0
-
-      - name: check-code
-        run: ./check_code.sh
-
-#      - name: SonarQube Scan
-#        uses: kitabisa/sonarqube-action@v1.1.0
-#        with:
-#          host: ${{ secrets.SONARQUBE_HOST }}
-#          login: ${{ secrets.SONARQUBE_TOKEN }}
-#          projectName: rainbond-console
-
-      - name: Build the Docker image
-        env:
-          TRAVIS_PULL_REQUEST: true
-        run: VERSION=${{ github.base_ref }}-dev ./release.sh
+          platforms: linux/amd64
+          context: .
+          file: ./Dockerfile.allinone
+          push: false
+          tags: |
+            rainbond/rainbond:dev-allinone
