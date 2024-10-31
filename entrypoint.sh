@@ -2,6 +2,7 @@
 
 RED='\033[0;31m'
 GREEN='\033[32;1m'
+YELLOW='\033[33;1m'
 NC='\033[0m' # No Color
 
 function database_empty() {
@@ -60,8 +61,7 @@ function init_database() {
     fi
   else
     if ! (python default_region_sqlite.py 2> /dev/null); then
-      echo -e "${RED}ERROR: failed to default_region${NC}"
-      exit 1
+      echo -e "${YELLOW}WARN: failed to default_region${NC}"
     fi
   fi
 }
