@@ -192,7 +192,8 @@ class AppPortService(object):
                          is_inner_service=False,
                          is_outer_service=False,
                          k8s_service_name=None,
-                         user_name=''):
+                         user_name='',
+                         app=None):
 
         ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
         if ports:
@@ -215,8 +216,8 @@ class AppPortService(object):
         if code != 200:
             return code, msg, None
         env_prefix = port_alias.upper() if bool(port_alias) else service.service_key.upper()
-
-        app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
+        if not app:
+            app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
 
         mapping_port = container_port
         if is_inner_service:

@@ -11,7 +11,9 @@ from console.exception.bcode import ErrComponentPortExists
 from console.exception.main import ErrVolumePath, ServiceHandleException
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import service_endpoints_repo
+from console.repositories.group import group_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
+from console.repositories.region_repo import region_repo
 from console.services.app_config import (compile_env_service, domain_service, env_var_service, label_service, port_service,
                                          volume_service)
 from console.services.region_services import region_services
@@ -337,6 +339,7 @@ class AppCheckService(object):
                         logger.error("save service check info env error {0}".format(msg))
 
     def __save_port(self, tenant, service, ports):
+        app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
         if not tenant or not service:
             return
         if ports:
@@ -351,6 +354,7 @@ class AppCheckService(object):
                     logger.error("save service check info port error {0}".format(msg))
                 if region_info:
                     domain_service.create_default_gateway_rule(tenant, region_info, service, port_data)
+                port_service.defalut_open_outer(tenant, service, region_info, int(port["container_port"]), app)
         else:
             if service.service_source in [AppConstants.SOURCE_CODE, AppConstants.PACKAGE_BUILD]:
                 port_service.delete_service_port(tenant, service)
@@ -362,6 +366,7 @@ class AppCheckService(object):
                 else:
                     logger.error("get region {0} from enterprise {1} failure".format(tenant.enterprise_id,
                                                                                      service.service_region))
+                port_service.defalut_open_outer(tenant, service, region_info, 5000, app)
 
         return 200, "success"
 
