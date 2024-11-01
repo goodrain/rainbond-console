@@ -349,12 +349,12 @@ class AppCheckService(object):
             for port in ports:
                 code, msg, port_data = port_service.add_service_port(
                     tenant, service, int(port["container_port"]), port["protocol"],
-                    service.service_alias.upper() + str(port["container_port"]), False, False)
+                    service.service_alias.upper() + str(port["container_port"]), True, True)
                 if code != 200:
                     logger.error("save service check info port error {0}".format(msg))
                 if region_info:
                     domain_service.create_default_gateway_rule(tenant, region_info, service, port_data)
-                port_service.defalut_open_outer(tenant, service, region_info, int(port["container_port"]), app)
+                port_service.defalut_open_outer(tenant, service, region_info, port_data, app)
         else:
             if service.service_source in [AppConstants.SOURCE_CODE, AppConstants.PACKAGE_BUILD]:
                 port_service.delete_service_port(tenant, service)
@@ -366,7 +366,7 @@ class AppCheckService(object):
                 else:
                     logger.error("get region {0} from enterprise {1} failure".format(tenant.enterprise_id,
                                                                                      service.service_region))
-                port_service.defalut_open_outer(tenant, service, region_info, 5000, app)
+                port_service.defalut_open_outer(tenant, service, region_info, t_port, app)
 
         return 200, "success"
 
