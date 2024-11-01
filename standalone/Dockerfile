@@ -14,11 +14,12 @@ RUN apk add --no-cache wget && \
 
 FROM ubuntu:24.04
 ARG VERSION
+ARG TARGETARCH
 
 COPY standalone/entrypoint.sh /entrypoint.sh
 COPY standalone/config.yaml /etc/rancher/k3s/config.yaml
 COPY standalone/registries.yaml /etc/rancher/k3s/registries.yaml
-COPY rbd-images.tar /tmp/rbd-images.tar
+COPY rbd-images-$TARGETARCH.tar /tmp/rbd-images.tar
 
 COPY --from=base /tmp/rainbond-cluster.tgz /tmp/rainbond-cluster.tgz
 COPY --from=base /tmp/k3s /bin/k3s

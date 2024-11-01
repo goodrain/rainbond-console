@@ -28,4 +28,4 @@ for image in ${image_list}; do
 done
 
 
-docker save -o rbd-images.tar ${image_list}
+docker save -o rbd-images-${ARCH}.tar ${image_list}
