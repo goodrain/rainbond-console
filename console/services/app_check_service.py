@@ -346,7 +346,7 @@ class AppCheckService(object):
             for port in ports:
                 code, msg, port_data = port_service.add_service_port(
                     tenant, service, int(port["container_port"]), port["protocol"],
-                    service.service_alias.upper() + str(port["container_port"]), False, True)
+                    service.service_alias.upper() + str(port["container_port"]), False, False)
                 if code != 200:
                     logger.error("save service check info port error {0}".format(msg))
                 if region_info:
@@ -355,7 +355,7 @@ class AppCheckService(object):
             if service.service_source in [AppConstants.SOURCE_CODE, AppConstants.PACKAGE_BUILD]:
                 port_service.delete_service_port(tenant, service)
                 _, _, t_port = port_service.add_service_port(tenant, service, 5000, "http",
-                                                             service.service_alias.upper() + str(5000), False, True)
+                                                             service.service_alias.upper() + str(5000), True, True)
                 region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, service.service_region)
                 if region_info:
                     domain_service.create_default_gateway_rule(tenant, region_info, service, t_port)

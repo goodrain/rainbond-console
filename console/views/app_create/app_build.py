@@ -63,6 +63,8 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 try:
                     arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)
                     app_manage_service.deploy(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
+                    port_service.defalut_open_outer(self.tenant, self.service, self.region, 5000, self.app)
+
                 except ErrInsufficientResource as e:
                     result = general_message(e.error_code, e.msg, e.msg_show)
                     return Response(result, status=e.status_code)
