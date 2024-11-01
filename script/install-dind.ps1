@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 ################################################################################
 
-param($IMAGE_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain", $RAINBOND_VERSION="v5.15.0")
+param($IMAGE_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain", $RAINBOND_VERSION="v6.0.0-release")
 $DATE=Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
 function Write-ColoredText($Text,$Color) {
@@ -151,8 +151,8 @@ function start_rainbond {
     Write-Host "##############################################" -ForegroundColor green
     Write-Host "Generating the installation command:" -ForegroundColor green
 
-    $RBD_IMAGE = "$IMAGE_MIRROR/rainbond:$($RAINBOND_VERSION)-dind-allinone"
-    $docker_run_cmd = "docker run --privileged -d --name=rainbond-allinone --restart=on-failure -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 10000-10010:10000-10010 -v rainbond-data:/app/data -v rainbond-opt:/opt/rainbond -e EIP=$EIP -e uuid=$UUID $RBD_IMAGE"
+    $RBD_IMAGE = "$IMAGE_MIRROR/rainbond:$($RAINBOND_VERSION)-dind"
+    $docker_run_cmd = "docker run --privileged -d --name=rainbond-allinone --restart=on-failure -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -v rainbond-opt:/opt/rainbond -e EIP=$EIP -e uuid=$UUID $RBD_IMAGE"
     Write-Host $docker_run_cmd
     send_msg $docker_run_cmd
 

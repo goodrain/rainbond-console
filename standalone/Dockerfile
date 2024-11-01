@@ -23,6 +23,9 @@ COPY rbd-images.tar /tmp/rbd-images.tar
 COPY --from=base /tmp/rainbond-cluster.tgz /tmp/rainbond-cluster.tgz
 COPY --from=base /tmp/k3s /bin/k3s
 
+RUN apt-get update && apt -y install ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 ENV VERSION=${VERSION}
 ENV KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 ENV CRI_CONFIG_FILE="/opt/rainbond/k3s/agent/etc/crictl.yaml"

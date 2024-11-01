@@ -24,7 +24,7 @@ busybox:latest"
 
 
 for image in ${image_list}; do
-    docker pull "${image}"
+    docker pull --platform="${ARCH}" "${image}"
 done
 
 
