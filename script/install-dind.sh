@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v5.15.0'}
+RAINBOND_VERSION=${VERSION:-'v6.0.0-release'}
 IMGHUB_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain"
 
 # Define colorful stdout
@@ -110,27 +110,18 @@ if ! (docker info &>/dev/null); then
         fi
     elif [ "${OS_TYPE}" = "Linux" ]; then
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_warn "未检测到 Docker 环境, 即将自动安装 Docker...\n"
+            send_error "未检测到 Docker 环境, 请自行安装 Docker 或者使用此命令 'curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun'"
+            exit 1
         else
-            send_warn "Ops! Docker has not been installed.\nDocker is going to be automatically installed...\n"
-        fi
-        sleep 3
-        curl -sfL https://get.rainbond.com/install_docker | bash
-        if [ "$?" != "0" ]; then
-            if [ "$LANG" == "zh_CN.UTF-8" ]; then
-                send_error "自动安装 Docker 失败！请自行手动安装 Docker 后重新执行本脚本."
-                exit 1
-            else
-                send_error "Ops! Automatic docker installation failed."
-                exit 1
-            fi
+            send_error "Ops! Docker has not been installed.\nPlease install Docker yourself or use the command 'curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun'"
+            exit 1
         fi
     elif [ "${OS_TYPE}" = "Darwin" ]; then
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_warn "未检测到 Docker 环境, 请先安装 Docker Desktop APP, 然后重新执行本脚本."
+            send_error "未检测到 Docker 环境, 请先安装 Docker Desktop APP, 然后重新执行本脚本."
             exit 1
         else
-            send_warn "Ops! Docker has not been installed.\nPlease visit the following website to get the latest Docker Desktop APP.\n\thttps://www.docker.com/products/docker-desktop/"
+            send_error "Ops! Docker has not been installed.\nPlease visit the following website to get the latest Docker Desktop APP.\n\thttps://www.docker.com/products/docker-desktop/"
             exit 1
         fi
     fi
@@ -397,25 +388,15 @@ fi
 
 # Generate the installation command based on the detect results
 if [ "$OS_TYPE" = "Linux" ]; then
-    if [ "$ARCH_TYPE" = "amd64" ]; then
-        VOLUME_OPTS="-v ~/.ssh:/root/.ssh -v ~/rainbonddata:/app/data -v /opt/rainbond:/opt/rainbond"
-        RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-dind-allinone"
-    elif [ "$ARCH_TYPE" = "arm64" ]; then
-        VOLUME_OPTS="-v ~/.ssh:/root/.ssh -v ~/rainbonddata:/app/data -v /opt/rainbond:/opt/rainbond"
-        RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-arm64-dind-allinone"
-    fi
+  VOLUME_OPTS="-v /opt/rainbond:/opt/rainbond"
+  RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-dind"
 elif [ "$OS_TYPE" = "Darwin" ]; then
-    if [ "$ARCH_TYPE" = "amd64" ]; then
-        VOLUME_OPTS="-v ~/.ssh:/root/.ssh -v rainbond-data:/app/data -v rainbond-opt:/opt/rainbond"
-        RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-dind-allinone"
-    elif [ "$ARCH_TYPE" = "arm64" ]; then
-        VOLUME_OPTS="-v ~/.ssh:/root/.ssh -v rainbond-data:/app/data -v rainbond-opt:/opt/rainbond"
-        RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-arm64-dind-allinone"
-    fi
+  VOLUME_OPTS="-v rainbond-opt:/opt/rainbond"
+  RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-dind"
 fi
 
 # Generate cmd
-docker_run_cmd="docker run --privileged -d -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 10000-10010:10000-10010 --name=rainbond-allinone --restart=on-failure \
+docker_run_cmd="docker run --privileged -d -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 --name=rainbond-allinone --restart=always \
 ${VOLUME_OPTS} -e EIP=$EIP -e UUID=${UUID} ${RBD_IMAGE}"
 send_info "$docker_run_cmd"
 

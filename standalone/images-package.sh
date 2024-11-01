@@ -24,8 +24,8 @@ busybox:latest"
 
 
 for image in ${image_list}; do
-    docker pull "${image}"
+    docker pull --platform="${ARCH}" "${image}"
 done
 
 
-docker save -o rbd-images.tar ${image_list}
+docker save -o rbd-images-${ARCH}.tar ${image_list}
