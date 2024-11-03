@@ -29,3 +29,7 @@ done
 
 
 docker save -o rbd-images-${ARCH}.tar ${image_list}
+
+for image in ${image_list}; do
+  docker rmi -f "${image}"
+done
