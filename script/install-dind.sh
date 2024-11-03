@@ -137,18 +137,6 @@ else
     fi
 fi
 
-ports=(80 443 6060 7070)
-for port in ${ports[@]}; do
-    if (curl -s 127.0.0.1:$port >/dev/null); then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "$port 端口已被占用."
-            exit 1
-        else
-            send_error "Ops! Port $port has been used."
-            exit 1
-        fi
-    fi
-done
 
 ########################################
 # Arch Detect
