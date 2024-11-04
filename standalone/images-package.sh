@@ -9,7 +9,7 @@ rainbond/rbd-mq:${VERSION}
 rainbond/rainbond-operator:${VERSION}
 rainbond/rbd-worker:${VERSION}
 rainbond/rbd-api:${VERSION}
-rainbond/rainbond:${VERSION}-allinone
+rainbond/rainbond:${VERSION}
 rainbond/alpine:latest
 rainbond/apisix-ingress-controller:1.8.2
 rainbond/apisix:3.9.1-debian
