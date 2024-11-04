@@ -16,7 +16,7 @@ jobs:
         with:
           platforms: linux/amd64
           context: .
-          file: ./Dockerfile.allinone
+          file: ./Dockerfile
           push: false
           tags: |
             rainbond/rainbond:dev-allinone
