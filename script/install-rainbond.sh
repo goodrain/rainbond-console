@@ -328,7 +328,7 @@ EOF
 fi
 
 ################## Main ################
-# Start install rainbond-dind-allinone
+# Start install rainbond standalone
 # Automatically generate install cmd with envs
 ########################################
 
@@ -352,7 +352,7 @@ else
     echo -e ${GREEN}
     cat <<EOF
 ###############################################
-# Rainbond dind allinone will be installed with:
+# Rainbond standalone will be installed with:
 # Rainbond Version: $RAINBOND_VERSION
 # Arch: $ARCH_TYPE
 # OS: $OS_TYPE
@@ -377,10 +377,10 @@ fi
 # Generate the installation command based on the detect results
 if [ "$OS_TYPE" = "Linux" ]; then
   VOLUME_OPTS="-v /opt/rainbond:/opt/rainbond"
-  RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-dind"
+  RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-k3s"
 elif [ "$OS_TYPE" = "Darwin" ]; then
   VOLUME_OPTS="-v rainbond-opt:/opt/rainbond"
-  RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-dind"
+  RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-k3s"
 fi
 
 # Generate cmd
@@ -395,7 +395,7 @@ else
     send_info "Pulling image ${RBD_IMAGE}..."
 fi
 if docker pull ${RBD_IMAGE}; then
-    rbd_image_id=$(docker images | grep dind-allinone | grep ${RAINBOND_VERSION} | awk '{print $3}')
+    rbd_image_id=$(docker images | grep k3s | grep ${RAINBOND_VERSION} | awk '{print $3}')
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
         send_info "Rainbond 容器 ID 为: ${rbd_image_id}"
     else
@@ -412,9 +412,9 @@ sleep 3
 
 # Run container
 if [ "$LANG" == "zh_CN.UTF-8" ]; then
-    send_info "Rainbond dind allinone 正在安装中...\n"
+    send_info "Rainbond 正在安装中...\n"
 else
-    send_info "Rainbond dind allinone distribution is installing...\n"
+    send_info "Rainbond distribution is installing...\n"
 fi
 docker_run_meg=$(bash -c "$docker_run_cmd" 2>&1)
 send_info "$docker_run_meg"
@@ -424,19 +424,15 @@ sleep 3
 container_id=$(docker ps -a | grep rainbond-allinone | awk '{print $1}')
 if docker ps | grep rainbond-allinone 2>&1 >/dev/null; then
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_info "Rainbond dind allinone 启动成功，容器 ID 为: $container_id. 请观察 rainbond-allinone 容器启动日志.\n"
+        send_info "Rainbond 启动成功，容器 ID 为: $container_id. 请观察 rainbond-allinone 容器启动日志.\n"
     else
-        send_info "Rainbond dind allinone container startup succeeded with $container_id. Please observe rainbond-allinone container startup logs.\n"
+        send_info "Rainbond container startup succeeded with $container_id. Please observe rainbond-allinone container startup logs.\n"
     fi
 else
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_warn "Rainbond dind allinone 容器启动失败. 请查看 rainbond-allinone 容器启动日志.\n"
+        send_warn "Rainbond 容器启动失败. 请查看 rainbond-allinone 容器启动日志.\n"
     else
-        send_warn "Ops! Rainbond dind allinone container startup failed. please observe rainbond-allinone container startup logs.\n"
+        send_warn "Ops! Rainbond container startup failed. please observe rainbond-allinone container startup logs.\n"
     fi
     send_msg "$(docker logs rainbond-allinone)" # Msg maybe too lang
 fi
-
-sleep 3
-# Follow logs stdout
-docker logs -f rainbond-allinone

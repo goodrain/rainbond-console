@@ -8,7 +8,7 @@ RUN apk add --no-cache wget && \
     else \
       wget https://github.com/k3s-io/k3s/releases/download/v1.30.4%2Bk3s1/k3s-arm64 -O /tmp/k3s && chmod +x /tmp/k3s; \
     fi && \
-    git clone --depth=1 -b V6-dind https://github.com/goodrain/rainbond-chart.git && \
+    git clone --depth=1 -b V6-k3s https://github.com/goodrain/rainbond-chart.git && \
     helm package rainbond-chart && \
     mv rainbond-*.tgz rainbond-cluster.tgz
 
