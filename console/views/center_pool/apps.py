@@ -197,7 +197,7 @@ class CenterAppCLView(JWTAuthApiView):
         is_complete = request.GET.get("is_complete", None)
         need_install = request.GET.get("need_install", "")
         tenant_name = request.GET.get("tenant_name")
-        arch = request.GET.get("arch", "amd64") if request.GET.get("arch", "amd64") else "amd64"
+        arch = request.GET.get("arch", "")
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         apps, count, app_ids = market_app_service.get_visiable_apps(scope, app_name, is_complete, page,

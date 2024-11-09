@@ -84,11 +84,13 @@ class RainbondCenterAppRepository(object):
                                     page=1,
                                     page_size=10,
                                     need_install="",
-                                    arch="amd64"):
+                                    arch=""):
 
         app = RainbondCenterApp.objects.filter(scope=scope)
         if need_install:
-            app = app.filter(is_version=True, arch=arch)
+            app = app.filter(is_version=True)
+        if arch:
+            app = app.filter(arch=arch)
         if teams:
             app = app.filter(create_team__in=teams)
         if app_name:
