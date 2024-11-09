@@ -1018,7 +1018,7 @@ class MarketAppService(object):
                           page=1,
                           page_size=10,
                           need_install="",
-                          arch="amd64",
+                          arch="",
                           tenant_name=""):
         teams = None
         if scope == "team" and tenant_name:
