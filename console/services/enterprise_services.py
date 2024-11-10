@@ -424,45 +424,27 @@ class EnterpriseServices(object):
         all_node_roles = []
         cluster_role_count = {}
         node_status = "NotReady"
-        node_dict = {node["name"]: node for node in nodes}
-        rke_nodes = rke_cluster_node.get_cluster_nodes(region_name)
-        for rke_node in rke_nodes:
-            node = node_dict.get(rke_node.node_name)
-            if node:
-                for cond in node["conditions"]:
-                    if cond["type"] == "Ready" and cond["status"] == "True":
-                        node_status = "Ready"
-                schedulable = node["unschedulable"]
-                if schedulable:
-                    node_status = node_status + ",SchedulingDisabled"
+        for node in nodes:
+            for cond in node["conditions"]:
+                if cond["type"] == "Ready" and cond["status"] == "True":
+                    node_status = "Ready"
+            schedulable = node["unschedulable"]
+            if schedulable:
+                node_status = node_status + ",SchedulingDisabled"
 
-                node_list.append({
-                    "name": node["name"],
-                    "status": node_status,
-                    "role": node["roles"],
-                    "unschedulable": schedulable,
-                    "arch": node["architecture"],
-                    "req_cpu": node["resource"]["req_cpu"],
-                    "cap_cpu": node["resource"]["cap_cpu"],
-                    "req_memory": node["resource"]["req_memory"] / 1000,
-                    "cap_memory": node["resource"]["cap_memory"] / 1000
-                })
-                if node["roles"]:
-                    all_node_roles += node["roles"]
-            else:
-                roles = rke_node.node_role.split(",")
-                node_list.append({
-                    "name": rke_node.node_name,
-                    "status": "NotReady",
-                    "role": roles,
-                    "unschedulable": True,
-                    "arch": "UNKnow",
-                    "req_cpu": 0,
-                    "cap_cpu": 0,
-                    "req_memory": 0,
-                    "cap_memory": 0
-                })
-                all_node_roles += roles
+            node_list.append({
+                "name": node["name"],
+                "status": node_status,
+                "role": node["roles"],
+                "unschedulable": schedulable,
+                "arch": node["architecture"],
+                "req_cpu": node["resource"]["req_cpu"],
+                "cap_cpu": node["resource"]["cap_cpu"],
+                "req_memory": node["resource"]["req_memory"] / 1000,
+                "cap_memory": node["resource"]["cap_memory"] / 1000
+            })
+            if node["roles"]:
+                all_node_roles += node["roles"]
         for node_role in all_node_roles:
             cluster_role_count[node_role] = all_node_roles.count(node_role)
         return node_list, cluster_role_count
