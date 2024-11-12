@@ -260,14 +260,18 @@ class K8sClient:
 
         logger.info("Successfully deleted CRDs.")
 
-    def rb_components_status(self):
+    def rb_components_status(self, third_db=False, third_hub=False):
         """获取命名空间 `rbd-system` 中所有相关服务的状态"""
         try:
             pod_list = self.core_v1_api.list_namespaced_pod(namespace="rbd-system")
             services = [
-                "minio", "local-path-provisioner", "rainbond-operator", "rbd-gateway", "rbd-api", "rbd-chaos", "rbd-db",
-                "rbd-hub", "rbd-monitor", "rbd-mq", "rbd-worker"
+                "minio", "local-path-provisioner", "rainbond-operator", "rbd-gateway", "rbd-api", "rbd-chaos",
+                "rbd-monitor", "rbd-mq", "rbd-worker"
             ]
+            if not third_db:
+                services = services.append("rbd-db")
+            if not third_hub:
+                services = services.append("rbd-hub")
 
             service_status = {service: [] for service in services}
             rb_installed = True
