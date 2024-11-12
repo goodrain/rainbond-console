@@ -213,12 +213,14 @@ class ClusterRKERBStatus(BaseClusterView):
     def get(self, request):
         try:
             cluster_id = request.GET.get("cluster_id", "")
+            third_db = request.GET.get("third_db", False)
+            third_hub = request.GET.get("third_hub", False)
             cluster = rke_cluster.get_rke_cluster(cluster_id=cluster_id)
             if not cluster.config:
                 result = general_message(200, "No cluster config available.", "无可用的集群配置", bean=[])
                 return Response(result, status=200)
             k8s_api = K8sClient(cluster.config)
-            rb_components_status, rb_installed = k8s_api.rb_components_status()
+            rb_components_status, rb_installed = k8s_api.rb_components_status(third_db, third_hub)
             if rb_installed:
                 cluster.create_status = "integrated"
                 cluster.save()
