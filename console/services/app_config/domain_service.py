@@ -2,7 +2,6 @@
 """
   Created on 18/1/23.
 """
-import ast
 import base64
 import datetime
 import json
@@ -45,7 +44,7 @@ class DomainService(object):
         certificate, nums = domain_repo.get_tenant_certificate_page(tenant.tenant_id, start, end)
         c_list = []
         for c in certificate:
-            cert = base64.b64decode(ast.literal_eval(c.certificate))
+            cert = base64.b64decode(c.certificate).decode('utf-8')
             data = dict()
             data["alias"] = c.alias
             data["certificate_type"] = c.certificate_type
@@ -64,7 +63,7 @@ class DomainService(object):
         if certificate_type == "gateway":
             gateway_api.create_gateway_tls(region.region_name, tenant.tenant_name, tenant.namespace, alias, private_key,
                                            certificate)
-        certificate = base64.b64encode(bytes(certificate, 'utf-8'))
+        certificate = base64.b64encode(certificate.encode('utf-8')).decode('utf-8')
         certificate = domain_repo.add_certificate(tenant.tenant_id, alias, certificate_id, certificate, private_key,
                                                   certificate_type)
         return certificate
@@ -86,7 +85,7 @@ class DomainService(object):
         data["certificate_type"] = certificate.certificate_type
         data["id"] = certificate.ID
         data["tenant_id"] = certificate.tenant_id
-        data["certificate"] = base64.b64decode(certificate.certificate).decode()
+        data["certificate"] = base64.b64decode(certificate.certificate).decode('utf-8')
         data["private_key"] = certificate.private_key
         return 200, "success", data
 
@@ -106,7 +105,7 @@ class DomainService(object):
     @transaction.atomic
     def check_certificate(self, certificate_id, domain_name):
         certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
-        cert = base64.b64decode(certificate_info.certificate).decode()
+        cert = base64.b64decode(certificate_info.certificate).decode('utf-8')
         data = analyze_cert(cert)
         sans = data["issued_to"]
         for certificat_domain_name in sans:
@@ -128,7 +127,7 @@ class DomainService(object):
             self.__check_certificate_alias(tenant, alias)
             cert.alias = alias
         if certificate:
-            cert.certificate = base64.b64encode(bytes(certificate, 'utf-8'))
+            cert.certificate = base64.b64encode(certificate.encode('utf-8')).decode('utf-8')
         if certificate_type and certificate_type != cert.certificate_type:
             if certificate_type == "服务端证书":
                 gateway_api.delete_gateway_tls(region.region_name, tenant.tenant_name, tenant.namespace, alias)
@@ -144,7 +143,7 @@ class DomainService(object):
         body = {
             "certificate_id": cert.certificate_id,
             "certificate_name": "foobar",
-            "certificate": base64.b64decode(cert.certificate).decode(),
+            "certificate": base64.b64decode(cert.certificate).decode('utf-8'),
             "private_key": cert.private_key,
         }
         team_regions = region_services.get_team_usable_regions(tenant.tenant_name, tenant.enterprise_id)
@@ -221,7 +220,7 @@ class DomainService(object):
         if rule_extensions:
             data["rule_extensions"] = rule_extensions
         if certificate_info:
-            data["certificate"] = base64.b64decode(certificate_info.certificate).decode()
+            data["certificate"] = base64.b64decode(certificate_info.certificate).decode('utf-8')
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
@@ -350,7 +349,7 @@ class DomainService(object):
         data["certificate_name"] = ""
         data["certificate_id"] = ""
         if certificate_info:
-            data["certificate"] = base64.b64decode(certificate_info.certificate).decode()
+            data["certificate"] = base64.b64decode(certificate_info.certificate).decode('utf-8')
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
@@ -461,7 +460,7 @@ class DomainService(object):
         data["certificate_name"] = ""
         data["certificate_id"] = ""
         if certificate_info:
-            data["certificate"] = base64.b64decode(certificate_info.certificate).decode()
+            data["certificate"] = base64.b64decode(certificate_info.certificate).decode('utf-8')
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
