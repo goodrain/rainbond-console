@@ -2978,6 +2978,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             app_id) + "&service_alias=" + service_name + "&port=" + str(svc.container_port)
         return self.api_gateway_post_proxy(region, tenant_name, path, body, app_id)
 
+    def get_api_gateway(self, region, tenant_name, app_id):
+        path = "/api-gateway/v1/" + tenant_name + "/routes/http?appID=" + str(app_id)
+        return self.api_gateway_get_proxy(region, tenant_name, path, app_id)
+
     def api_gateway_bind_http_domain_convert(self, service_name, region, tenant_name, domains, svc, app_id):
         """
         根据域名，k8s的service生成 http 路由规则，默认全部转发。/*

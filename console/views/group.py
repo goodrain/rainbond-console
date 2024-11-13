@@ -184,7 +184,7 @@ class TenantGroupOperationView(ApplicationView):
                 type: string
                 paramType: path
         """
-        app = group_service.get_app_detail(self.tenant, self.region_name, app_id)
+        app = group_service.get_app_detail(self.tenant, self.region, app_id)
         result = general_message(200, "success", "success", bean=app)
         return Response(result, status=result["code"])
 
