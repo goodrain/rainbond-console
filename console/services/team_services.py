@@ -574,10 +574,12 @@ class TeamService(object):
     def get_tenant_list_by_region(self, eid, region_id, page=1, page_size=10):
         teams = team_repo.get_team_by_enterprise_id(eid)
         team_maps = {}
+        tenant_ids = []
         if teams:
             for team in teams:
                 team_maps[team.tenant_id] = team
-        res, body = region_api.list_tenants(eid, region_id, page, page_size)
+                tenant_ids.append(team.tenant_id)
+        res, body = region_api.list_tenants(eid, region_id, tenant_ids)
         tenant_list = []
         total = 0
         if body.get("bean"):
