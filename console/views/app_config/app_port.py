@@ -68,7 +68,7 @@ class AppPortView(AppBaseView):
             path = ("/api-gateway/v1/" + self.tenant_name + "/routes/http/domains?service_alias=" +
                     self.service.service_alias + "&port=" + str(port.container_port))
             body = region_api.api_gateway_get_proxy(self.region, self.tenant_name, path, None)
-            if body.get("list", []) is not None:
+            if body.get("list", []):
                 port_info["bind_domains"] = [{
                     "protocol": "http",
                     "domain_type": "www",
@@ -78,6 +78,11 @@ class AppPortView(AppBaseView):
                 } for host in body.get("list", [])]
                 if port_info['protocol'] == 'http':
                     port_info["is_outer_service"] = len(port_info["bind_domains"]) > 0
+                port.is_outer_service = True
+            else:
+                port.is_outer_service = False
+                port_info["is_outer_service"] = False
+            port.save()
             bind_tcp_domains = domain_service.get_tcp_port_bind_domains(self.service, port.container_port)
             if bind_tcp_domains:
                 port_info["bind_tcp_domains"] = [domain.to_dict() for domain in bind_tcp_domains]
