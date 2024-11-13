@@ -598,7 +598,6 @@ class RegionService(object):
             try:
                 _, rbd_version = region_api.get_enterprise_api_version_v2(
                     enterprise_id=region.enterprise_id, region=region.region_name)
-                region_services_status = region_repo.get_service_status_count_by_region_name(region)
                 res, body = region_api.get_region_resources(region.enterprise_id, region=region.region_name)
                 if rbd_version:
                     rbd_version = rbd_version["raw"]
@@ -615,7 +614,7 @@ class RegionService(object):
                     region_resource["resource_proxy_status"] = body["bean"]["resource_proxy_status"]
                     region_resource["k8s_version"] = body["bean"]["k8s_version"]
                     region_resource["all_nodes"] = body["bean"]["all_node"]
-                    region_resource["services_status"] = region_services_status
+                    region_resource["run_pod_number"] = body["bean"]["run_pod_number"]
                     region_resource["node_ready"] = body["bean"]["node_ready"]
                     res, body = region_api.get_cluster_nodes(region.region_name)
                     nodes = body["list"]
