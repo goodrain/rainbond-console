@@ -85,8 +85,10 @@ class RainbondCenterAppRepository(object):
                                     page_size=10,
                                     need_install="",
                                     arch=""):
-
-        app = RainbondCenterApp.objects.filter(scope=scope)
+        if scope:
+            app = RainbondCenterApp.objects.filter(scope=scope)
+        else:
+            app = RainbondCenterApp.objects.filter()
         if need_install:
             app = app.filter(is_version=True)
         if arch:
