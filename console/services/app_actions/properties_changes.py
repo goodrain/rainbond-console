@@ -452,12 +452,12 @@ def get_upgrade_app_template(tenant, version, pc):
         data = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, pc.service_source.group_key,
                                                                        version)
         if not data:
-            raise ServiceHandleException(msg="app version {} can not exist".format(version), msg_show="应用模版版本不存在")
+            raise ServiceHandleException(msg="app version {} can not exist".format(version), msg_show="版本已被删除")
         template = json.loads(data.app_template)
         pc.template_updatetime = data.update_time
     if template:
         return template
-    raise ServiceHandleException(msg="app version {} can not exist".format(version), msg_show="应用模版版本不存在")
+    raise ServiceHandleException(msg="app version {} can not exist".format(version), msg_show="版本已被删除")
 
 
 def get_template_component(template, service_source):
