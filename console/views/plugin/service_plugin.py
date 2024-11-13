@@ -247,7 +247,7 @@ class ServicePluginConfigView(AppBaseView):
               paramType: body
 
         """
-        config = json.loads(request.body)
+        config = request.data
         if not config:
             return Response(general_message(400, "params error", "参数配置不可为空"), status=400)
         pbv = plugin_version_service.get_newest_usable_plugin_version(self.tenant.tenant_id, plugin_id)
