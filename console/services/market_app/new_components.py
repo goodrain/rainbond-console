@@ -299,13 +299,16 @@ class NewComponents(object):
                     k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
                 except AbortRequest:
                     k8s_service_name = component.service_alias + "-" + str(component_port)
+            port_protocol = port.get("protocol", "tcp")
+            if port_protocol not in ["tcp", "udp", "http"]:
+                port_protocol = "tcp"
             port = TenantServicesPort(
                 tenant_id=component.tenant_id,
                 service_id=component.service_id,
                 container_port=int(component_port),
                 mapping_port=int(component_port),
                 lb_mapping_port=0,
-                protocol=port.get("protocol", "tcp"),
+                protocol=port_protocol,
                 port_alias=port.get("port_alias", ""),
                 is_inner_service=True,
                 is_outer_service=port.get("is_outer_service", False),
