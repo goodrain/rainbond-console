@@ -78,16 +78,21 @@ class AppPortView(AppBaseView):
                 } for host in body.get("list", [])]
                 if port_info['protocol'] == 'http':
                     port_info["is_outer_service"] = len(port_info["bind_domains"]) > 0
+                port_info["is_outer_service"] = True
                 port.is_outer_service = True
             else:
                 port.is_outer_service = False
                 port_info["is_outer_service"] = False
-            port.save()
             bind_tcp_domains = domain_service.get_tcp_port_bind_domains(self.service, port.container_port)
             if bind_tcp_domains:
                 port_info["bind_tcp_domains"] = [domain.to_dict() for domain in bind_tcp_domains]
+                port_info["is_outer_service"] = True
+                port.is_outer_service = True
             else:
                 port_info["bind_tcp_domains"] = []
+                port_info["is_outer_service"] = False
+                port.is_outer_service = False
+            port.save()
             port_list.append(port_info)
         result = general_message(200, "success", "查询成功", list=port_list)
         return Response(result, status=result["code"])
