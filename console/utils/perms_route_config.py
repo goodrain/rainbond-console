@@ -692,6 +692,9 @@ TEAM_REGION_INSTALL = {
         "put": {
             "perms": [620002]
         },
+        "patch": {
+            "perms": [620002]
+        },
         "delete": {
             "perms": [620002]
         }
