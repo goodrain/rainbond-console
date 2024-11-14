@@ -87,26 +87,20 @@ class RainbondCenterAppRepository(object):
                                     arch=""):
         if scope:
             app = RainbondCenterApp.objects.filter(scope=scope)
+            if scope == "team" and teams:
+                app = app.filter(create_team__in=teams)
         else:
-            app = RainbondCenterApp.objects.filter()
+            app = RainbondCenterApp.objects.filter(Q(scope="enterprise") | Q(scope="team", create_team__in=teams))
         if need_install:
             app = app.filter(is_version=True)
         if arch:
             app = app.filter(arch=arch)
-        if teams:
-            app = app.filter(create_team__in=teams)
         if app_name:
             app = app.filter(app_name__icontains=app_name)
         start_row = (page - 1) * page_size
         end_row = page * page_size
-        counts = 0
         apps = app.order_by('-update_time')[start_row:end_row]
-        if len(apps) > 0:
-            count_app = RainbondCenterApp.objects.filter(update_time__lt=apps[len(apps)-1].update_time, scope=scope, arch=arch)
-            if teams:
-                count_app = count_app.filter(create_team__in=teams)
-            counts = count_app[:page_size*10].count()
-        return apps, counts
+        return apps, app.count()
 
     def get_rainbond_app_and_version(self, enterprise_id, app_id, app_version):
         app = self.get_rainbond_app_by_app_id(app_id)
