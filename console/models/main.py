@@ -1140,6 +1140,8 @@ class RKECluster(BaseModel):
                                                               "平台安装中: integrating"
                                                               "平台安装完成: integrated"
                                                               "平台对接完成: interconnected")
+    third_db = models.BooleanField(help_text="third_db")
+    third_hub = models.BooleanField(help_text="third_hub")
 
 
 class RKEClusterNode(BaseModel):

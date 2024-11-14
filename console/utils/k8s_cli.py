@@ -269,9 +269,9 @@ class K8sClient:
                 "rbd-monitor", "rbd-mq", "rbd-worker"
             ]
             if not third_db:
-                services = services.append("rbd-db")
+                services.append("rbd-db")
             if not third_hub:
-                services = services.append("rbd-hub")
+                services.append("rbd-hub")
 
             service_status = {service: [] for service in services}
             rb_installed = True
