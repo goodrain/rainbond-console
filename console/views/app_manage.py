@@ -19,6 +19,7 @@ from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.market_app_service import market_app_service
+from console.services.region_services import region_services
 from console.services.upgrade_services import upgrade_service
 from console.views.app_config.base import (AppBaseCloudEnterpriseCenterView, AppBaseView)
 from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderCloudEnterpriseCenterView,
@@ -47,6 +48,8 @@ class AppsPorConsoletView(RegionTenantHeaderView):
                 port_dict = dict()
                 if not port.is_inner_service:
                     continue
+                tcp_domain = region_services.get_region_tcpdomain(region_name=self.region_name)
+                port_dict["outer_url"] = tcp_domain
                 port_dict["port"] = port.container_port
                 port_dict["service_name"] = port.k8s_service_name
                 port_dict["namespace"] = self.team.namespace
