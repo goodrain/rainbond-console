@@ -62,19 +62,9 @@ function check_docker {
         Write-ColoredText "Ops! Docker daemon is not running. Start docker first please.`n`t- For Windows, start the Docker Desktop for Windwos.`n`t- And re-exec this script." red
         Exit
     }
-    if (docker ps -a | Select-String "rainbond-allinone") {
-        Write-ColoredText "Ops! rainbond-allinone container already exists.`n`t- Ensure if rainbond-allinone is running.`n`t- Try to exec 'docker start rainbond-allinone' to start it.`n`t- Or you can remove it by 'docker rm -f rainbond-allinone'" red
+    if (docker ps -a | Select-String "rainbond") {
+        Write-ColoredText "Ops! rainbond container already exists.`n`t- Ensure if rainbond is running.`n`t- Try to exec 'docker start rainbond' to start it.`n`t- Or you can remove it by 'docker rm -f rainbond'" red
         Exit
-    }
-}
-
-function check_ports {  
-    $ports = @(80, 443, 6060, 7070)
-    foreach ($port in $ports) {
-        if (netstat -ano | Select-String -Pattern "LISTENING" | Select-String -Pattern ":$port\s") {
-            Write-ColoredText "Port $port is already in use" red
-            Exit
-        }
     }
 }
 
@@ -152,7 +142,7 @@ function start_rainbond {
     Write-Host "Generating the installation command:" -ForegroundColor green
 
     $RBD_IMAGE = "$IMAGE_MIRROR/rainbond:$($RAINBOND_VERSION)-k3s"
-    $docker_run_cmd = "docker run --privileged -d --name=rainbond-allinone --restart=on-failure -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -v rainbond-opt:/opt/rainbond -e EIP=$EIP -e uuid=$UUID $RBD_IMAGE"
+    $docker_run_cmd = "docker run --privileged -d --name=rainbond --restart=always -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 30000-30010:30000-30010 -v rainbond-opt:/opt/rainbond -e EIP=$EIP -e uuid=$UUID $RBD_IMAGE"
     Write-Host $docker_run_cmd
     send_msg $docker_run_cmd
 
@@ -164,19 +154,16 @@ function start_rainbond {
 
     $container_id = Invoke-Expression $docker_run_cmd
     if ($container_id) {
-        Write-ColoredText "Rainbond container startup succeeded with $container_id. Please observe rainbond-allinone container startup logs." green
+        Write-ColoredText "Rainbond container startup succeeded, Execute the 'docker logs -f rainbond' command to view startup logs." green
     } else {
-        Write-ColoredText "Ops! Rainbond container startup failed. please observe rainbond-allinone container startup logs." red
+        Write-ColoredText "Ops! Rainbond container startup failed, Execute the 'docker logs -f rainbond' command to view startup logs." red
         Exit
     }
-    docker logs -f rainbond-allinone
 }
 
 MD5
 
 check_docker
-
-check_ports
 
 select_eip
 

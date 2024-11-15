@@ -64,12 +64,6 @@ trap send_msg SIGINT
 OS_TYPE=$(uname -s)
 if [ "${OS_TYPE}" == "Linux" ]; then
     MD5_CMD="md5sum"
-    if find /lib/modules/$(uname -r) -type f -name '*.ko*' | grep iptable_raw; then
-        if ! lsmod | grep iptable_raw; then
-            echo iptable_raw >/etc/modules-load.d/iptable_raw.conf
-            modprobe iptable_raw
-        fi
-    fi
 elif [ "${OS_TYPE}" == "Darwin" ]; then
     MD5_CMD="md5"
 else
@@ -126,12 +120,12 @@ if ! (docker info &>/dev/null); then
         fi
     fi
 else
-    if docker ps -a | grep rainbond-allinone 2>&1 >/dev/null; then
+    if docker ps -a | grep rainbond 2>&1 >/dev/null; then
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "rainbond-allinone 容器已存在.\n\t- 确保 rainbond-allinone 是否在运行.\n\t- 尝试执行 'docker start rainbond-allinone' 命令启动.\n\t- 或者你可以选择删除该容器 'docker rm -f rainbond-allinone'"
+            send_error "rainbond 容器已存在.\n\t- 确保 rainbond 是否在运行.\n\t- 尝试执行 'docker start rainbond' 命令启动.\n\t- 或者你可以选择删除该容器 'docker rm -f rainbond'"
             exit 1
         else
-            send_error "Ops! rainbond-allinone container already exists.\n\t- Ensure if rainbond-allinone is running.\n\t- Try to exec 'docker start rainbond-allinone' to start it.\n\t- Or you can remove it by 'docker rm -f rainbond-allinone'"
+            send_error "Ops! rainbond container already exists.\n\t- Ensure if rainbond is running.\n\t- Try to exec 'docker start rainbond' to start it.\n\t- Or you can remove it by 'docker rm -f rainbond'"
             exit 1
         fi
     fi
@@ -384,7 +378,7 @@ elif [ "$OS_TYPE" = "Darwin" ]; then
 fi
 
 # Generate cmd
-docker_run_cmd="docker run --privileged -d -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 --name=rainbond-allinone --restart=always \
+docker_run_cmd="docker run --privileged -d -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 30000-30010:30000-30010 --name=rainbond --restart=always \
 ${VOLUME_OPTS} -e EIP=$EIP -e UUID=${UUID} ${RBD_IMAGE}"
 send_info "$docker_run_cmd"
 
@@ -410,29 +404,21 @@ else
 fi
 sleep 3
 
-# Run container
-if [ "$LANG" == "zh_CN.UTF-8" ]; then
-    send_info "Rainbond 正在安装中...\n"
-else
-    send_info "Rainbond distribution is installing...\n"
-fi
 docker_run_meg=$(bash -c "$docker_run_cmd" 2>&1)
 send_info "$docker_run_meg"
 sleep 3
 
 # Verify startup
-container_id=$(docker ps -a | grep rainbond-allinone | awk '{print $1}')
-if docker ps | grep rainbond-allinone 2>&1 >/dev/null; then
+if docker ps | grep rainbond 2>&1 >/dev/null; then
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_info "Rainbond 启动成功，容器 ID 为: $container_id. 请观察 rainbond-allinone 容器启动日志.\n"
+        send_info "Rainbond 启动成功, 执行 'docker logs -f rainbond' 查看启动日志."
     else
-        send_info "Rainbond container startup succeeded with $container_id. Please observe rainbond-allinone container startup logs.\n"
+        send_info "Rainbond container startup succeeded, Execute the 'docker logs -f rainbond' command to view startup logs."
     fi
 else
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_warn "Rainbond 容器启动失败. 请查看 rainbond-allinone 容器启动日志.\n"
+        send_warn "Rainbond 容器启动失败, 执行 'docker logs -f rainbond' 命令查看启动日志."
     else
-        send_warn "Ops! Rainbond container startup failed. please observe rainbond-allinone container startup logs.\n"
+        send_warn "Ops! Rainbond container startup failed, Execute the 'docker logs -f rainbond' command to view startup logs."
     fi
-    send_msg "$(docker logs rainbond-allinone)" # Msg maybe too lang
 fi
