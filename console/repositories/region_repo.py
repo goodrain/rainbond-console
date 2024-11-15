@@ -2,6 +2,7 @@
 from console.exception.main import RegionNotFound
 from console.models.main import RegionConfig
 from console.repositories.base import BaseConnection
+from console.repositories.init_cluster import rke_cluster
 from console.repositories.team_repo import team_repo
 from django.db.models import Q
 from www.models.main import TenantRegionInfo
@@ -167,6 +168,7 @@ class RegionRepo(object):
     def del_by_enterprise_region_id(self, enterprise_id, region_id):
         region = RegionConfig.objects.get(region_id=region_id, enterprise_id=enterprise_id)
         region.delete()
+        rke_cluster.delete_cluster(cluster_id=region.region_id)
         return region
 
     def del_by_region_id(self, region_id):
