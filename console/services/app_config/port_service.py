@@ -718,7 +718,7 @@ class AppPortService(object):
                 for service_domain in service_domains:
                     service_domain.is_outer_service = False
                     service_domain.save()
-                    path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" + service_domain.service_name+"&port="+str(deal_port.container_port)
+                    path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" + service.service_alias + "&port="+str(deal_port.container_port)
                     region_api.api_gateway_get_proxy(region, tenant.tenant_name, path, app.app_id)
         else:
             service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
