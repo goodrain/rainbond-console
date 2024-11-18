@@ -43,13 +43,12 @@ class AppsPorConsoletView(RegionTenantHeaderView):
         component_list = service_repo.get_tenant_region_services(self.region_name, self.team.tenant_id)
         component_dict = {component.service_id: component.service_cname for component in component_list}
         port_list = list()
+        tcp_domain = region_services.get_region_tcpdomain(region_name=self.region_name)
         if ports:
             for port in ports:
                 port_dict = dict()
                 if not port.is_inner_service:
                     continue
-                tcp_domain = region_services.get_region_tcpdomain(region_name=self.region_name)
-                port_dict["outer_url"] = tcp_domain
                 port_dict["port"] = port.container_port
                 port_dict["service_name"] = port.k8s_service_name
                 port_dict["namespace"] = self.team.namespace
@@ -64,7 +63,7 @@ class AppsPorConsoletView(RegionTenantHeaderView):
                 group_port = group_service_relation_repo.get_group_by_service_id(port.service_id)
                 if group_port.group_id == int(app_id):
                     port_list.append(port_dict)
-        ret_data = {"namespace": self.team.namespace, "ports": port_list}
+        ret_data = {"outer_url": tcp_domain, "namespace": self.team.namespace, "ports": port_list}
         result = general_message(200, "success", "查询成功", bean=ret_data)
         return Response(result, status=result["code"])
 
