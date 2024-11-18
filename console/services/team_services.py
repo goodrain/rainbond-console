@@ -378,10 +378,11 @@ class TeamService(object):
                 region_tenants += self.get_region_tenant(eid, region_id, tenant_ids)
             for region_tenant in region_tenants:
                 tenant_id = region_tenant.get("UUID")
+                running_apps = tenants.get(tenant_id).get("running_apps")
                 tenants.get(tenant_id)["set_limit_memory"] = region_tenant.get("LimitMemory", 0)
                 tenants.get(tenant_id)["set_limit_cpu"] = region_tenant.get("LimitCPU", 0)
                 tenants.get(tenant_id)["set_limit_storage"] = region_tenant.get("LimitStorage", 0)
-                tenants.get(tenant_id)["running_apps"] = region_tenant.get("running_applications", 0),
+                tenants.get(tenant_id)["running_apps"] = running_apps + region_tenant.get("running_applications", 0),
                 tenants.get(tenant_id)["memory_request"] = region_tenant.get("memory_request", 0)
                 tenants.get(tenant_id)["cpu_request"] = region_tenant.get("cpu_request", 0)
         return tenants.values()
