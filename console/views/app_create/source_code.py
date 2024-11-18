@@ -427,7 +427,7 @@ class PackageUploadRecordView(JWTAuthApiView):
         event_id = request.GET.get("event_id", None)
         try:
             res, body = region_api.get_upload_file_dir(region, tenantName, event_id)
-            packages = body["bean"]["packages"]
+            packages = body["bean"].get("packages", [])
             bean = dict()
             packages_name = []
             for package in packages:
