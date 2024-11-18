@@ -1064,15 +1064,13 @@ class AppPortService(object):
 
     def __get_port_access_url(self, tenant, service, port):
         urls = []
-        domains = domain_repo.get_service_domain_by_container_port(service.service_id, port)
+        path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/domains?service_alias=" +
+                service.service_alias + "&port=" + str(port.container_port))
+        body = region_api.api_gateway_get_proxy(service.region, tenant.tenant_name, path, None)
+        domains = body.get("list", [])
         if domains:
-            for d in domains:
-                domain_path = d.domain_path if d.domain_path else "/"
-                if d.protocol != "http":
-                    urls.insert(0, "https://{0}{1}".format(d.domain_name, domain_path))
-                else:
-                    urls.insert(0, "http://{0}{1}".format(d.domain_name, domain_path))
-
+            for domain in domains:
+                urls.insert(0, "http://{0}/".format(domain))
         return urls
 
     def __list_component_access_urls(self, domain_all, component):
