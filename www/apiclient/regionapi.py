@@ -653,21 +653,21 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         url = uri_prefix + "/v2/helm/get_chart_information"
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data))
+        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data), timeout=300)
         return res, body
 
     def check_helm_app(self, region, tenant_name, data):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         url = uri_prefix + "/v2/helm/check_helm_app"
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data), timeout=20)
+        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data), timeout=300)
         return res, body
 
     def get_yaml_by_chart(self, region, tenant_name, data):
         uri_prefix, token = self.__get_region_access_info(tenant_name, region)
         url = uri_prefix + "/v2/helm/get_chart_yaml"
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data), timeout=20)
+        res, body = self._get(url, self.default_headers, region=region, body=json.dumps(data), timeout=300)
         return res, body
 
     def get_upload_chart_information(self, region, tenant_name, event_id):
