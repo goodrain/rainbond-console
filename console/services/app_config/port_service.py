@@ -1065,7 +1065,7 @@ class AppPortService(object):
     def __get_port_access_url(self, tenant, service, port):
         urls = []
         path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/domains?service_alias=" +
-                service.service_alias + "&port=" + str(port.container_port))
+                service.service_alias + "&port=" + str(port))
         body = region_api.api_gateway_get_proxy(service.region, tenant.tenant_name, path, None)
         domains = body.get("list", [])
         if domains:

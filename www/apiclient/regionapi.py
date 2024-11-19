@@ -2967,7 +2967,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             "backends": [{
                 "serviceName": svc.k8s_service_name,
                 "servicePort": svc.container_port,
-                "weight": 1,
+                "weight": 100,
             }],
             "authentication": {
                 "enable": False,
