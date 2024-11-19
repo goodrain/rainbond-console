@@ -56,6 +56,7 @@ class AppsPorConsoletView(RegionTenantHeaderView):
                     if port.service_id == component.service_id:
                         port_dict["service_id"] =component.service_id
                         port_dict["service_type"] = component.namespace
+                        port_dict["service_alias"] = component.service_alias
                 port_dict["component_name"] = component_dict.get(port.service_id)
                 if app_id is None or app_id == "":
                     port_list.append(port_dict)
