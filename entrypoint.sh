@@ -4,6 +4,7 @@ RED='\033[0;31m'
 GREEN='\033[32;1m'
 YELLOW='\033[33;1m'
 NC='\033[0m' # No Color
+AUTO_INIT=${AUTO_INIT:-true}
 
 function database_empty() {
   # Check if database is empty
@@ -71,8 +72,10 @@ if [ "$1" = "debug" -o "$1" = "bash" ]; then
 elif [ "$1" = "version" ]; then
   echo "${RELEASE_DESC}"
 else
-  if (database_empty); then
-    init_database
+  if [ "$AUTO_INIT" == "true" ]; then
+    if (database_empty); then
+      init_database
+    fi
   fi
   # python upgrade.py
   exec gunicorn goodrain_web.wsgi -b 0.0.0.0:${PORT:-7070} --max-requests=5000 -k gevent --reload --workers=2 --timeout=75 --log-file - --access-logfile - --error-logfile -
