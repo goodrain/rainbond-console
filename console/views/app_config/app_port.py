@@ -41,6 +41,7 @@ class AppPortView(AppBaseView):
         port_list = []
         for port in tenant_service_ports:
             port_info = port.to_dict()
+            port_info["service_alias"] = self.service.service_alias
             variables = port_service.get_port_variables(self.tenant, self.service, port)
             port_info["environment"] = variables["environment"]
             outer_url = ""
