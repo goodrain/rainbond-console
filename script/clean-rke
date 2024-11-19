@@ -71,6 +71,7 @@ docker0
 eth
 ens
 bond
+enp1s0
 '
   network_interface=$(ls /sys/class/net)
   echo -e "${GREEN}[INFO] Start cleaning up network interface.......... ${NC}"
