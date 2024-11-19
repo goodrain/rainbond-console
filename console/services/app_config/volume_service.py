@@ -293,6 +293,7 @@ class AppVolumeService(object):
             check_results = self.check_volume_options(tenant, service, volume_type, settings)
             if not check_results:
                 volume_type = "local-path"
+                volume_data["volume_type"] = volume_type
             settings = self.setting_volume_properties(tenant, service, volume_type, settings)
 
             volume_data['volume_capacity'] = settings['volume_capacity']
