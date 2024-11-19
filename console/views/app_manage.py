@@ -40,7 +40,7 @@ class AppsPorConsoletView(RegionTenantHeaderView):
     def get(self, req, *args, **kwargs):
         app_id = req.GET.get('appID')
         ports = port_repo.get_tenant_services(self.team.tenant_id)
-        component_list = service_repo.get_service_by_tenant(self.region_name, self.team.tenant_id)
+        component_list = service_repo.get_service_by_tenant(self.team.tenant_id)
         component_dict = {component.service_id: component.service_cname for component in component_list}
         port_list = list()
         tcp_domain = region_services.get_region_tcpdomain(region_name=self.region_name)
