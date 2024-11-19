@@ -2976,7 +2976,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             }
         }
         path = "/api-gateway/v1/" + tenant_name + "/routes/http?appID=" + str(
-            app_id) + "&service_alias=" + service_name + "&port=" + str(svc.container_port)
+            app_id) + "&service_alias=" + service_name + "&port=" + str(svc.container_port)+"&default=true"
         return self.api_gateway_post_proxy(region, tenant_name, path, body, app_id)
 
     def get_api_gateway(self, region, tenant_name, app_id):
