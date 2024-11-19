@@ -257,15 +257,14 @@ class AppVolumeService(object):
 
     def check_volume_options(self, tenant, service, volume_type, settings):
         if volume_type in self.simple_volume_type:
-            return
+            return True
         options = self.get_service_support_volume_options(tenant, service)
         exists = False
         for opt in options:
             if opt["volume_type"] == volume_type:
                 exists = True
                 break
-        if exists is False:
-            raise ErrVolumeTypeNotFound
+        return exists
 
     def check_service_multi_node(self, service, settings):
         if service.extend_method == ComponentType.state_singleton.value and service.min_node > 1:
@@ -291,7 +290,9 @@ class AppVolumeService(object):
         }
 
         if settings:
-            self.check_volume_options(tenant, service, volume_type, settings)
+            check_results = self.check_volume_options(tenant, service, volume_type, settings)
+            if not check_results:
+                volume_type = "local-path"
             settings = self.setting_volume_properties(tenant, service, volume_type, settings)
 
             volume_data['volume_capacity'] = settings['volume_capacity']
