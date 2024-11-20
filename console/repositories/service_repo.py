@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from console.repositories.app_config import port_repo
 from console.repositories.base import BaseConnection
 from console.services.service_services import base_service
 from www.models.main import ServiceEvent
@@ -81,7 +82,10 @@ class ServiceRepo(object):
             status_cache[status["service_id"]] = status["status"]
             statuscn_cache[status["service_id"]] = status["status_cn"]
         result = []
+        component_ports = port_repo.list_by_service_ids(team_id, [component.get("service_id") for component in group_services_list])
+        component_port_map = {component_port.service_id: component_port.k8s_service_name for component_port in component_ports}
         for service in group_services_list:
+            service["k8s_service_name"] = component_port_map.get(service["service_id"])
             service_obj = TenantServiceInfo.objects.filter(service_id=service["service_id"]).first()
             if service_obj:
                 service["service_source"] = service_obj.service_source
