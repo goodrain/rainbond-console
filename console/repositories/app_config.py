@@ -805,6 +805,28 @@ class CompileEnvRepository(object):
     def update_service_compile_env(self, service_id, **update_params):
         TenantServiceEnv.objects.filter(service_id=service_id).update(**update_params)
 
+    def get_lang_version_in_use(self, lang, version):
+        first_screening = TenantServiceEnv.objects.filter(user_dependency__icontains=version)
+        if lang == "golang":
+            return first_screening.filter(language="Go")
+        if lang == "node":
+            return first_screening.filter(language="Node.js")
+        if lang == "web_compiler":
+            return first_screening.filter(Q(language='Java-maven') | Q(language='Java-war'))
+        if lang == "web_runtime":
+            return first_screening.filter(Q(language='static') | Q(language='PHP'))
+        if lang == "openJDK":
+            return first_screening.filter(
+                Q(language='Gradle') | Q(language='Java-maven') | Q(language='Java-jar') | Q(language='Java-war'))
+        if lang == "maven":
+            return first_screening.filter(language="Java-maven")
+        if lang == "python":
+            return first_screening.filter(language="Python")
+        if lang == "net_runtime" or lang == "net_compiler":
+            return first_screening.filter(language=".NetCore")
+        if lang == "php":
+            return first_screening.filter(language="PHP")
+
 
 class ServiceAuthRepository(object):
     def delete_service_auth(self, service_id):
