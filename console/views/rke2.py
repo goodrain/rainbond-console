@@ -2,6 +2,7 @@
 import logging
 
 import yaml
+from django.db import IntegrityError
 from rest_framework.response import Response
 from console.repositories.init_cluster import rke_cluster, rke_cluster_node
 from console.utils.k8s_cli import K8sClient
@@ -47,6 +48,14 @@ class ClusterRKE(BaseClusterView):
                 "create_status": cluster.create_status,
             })
             return Response(result, status=200)
+        except IntegrityError as e:
+            # 检查是否是 UNIQUE 约束错误
+            if "UNIQUE constraint failed" in str(e):
+                result = general_message(400, "Cluster ID already exists.", "集群 ID 已存在")
+                return Response(result, status=400)
+            else:
+                # 处理其他类型的 IntegrityError
+                return self.handle_exception(e, "Failed to get cluster", "获取集群失败")
         except Exception as e:
             return self.handle_exception(e, "Failed to get cluster", "获取集群失败")
 

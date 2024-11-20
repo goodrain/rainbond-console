@@ -168,7 +168,7 @@ class RegionRepo(object):
     def del_by_enterprise_region_id(self, enterprise_id, region_id):
         region = RegionConfig.objects.get(region_id=region_id, enterprise_id=enterprise_id)
         region.delete()
-        rke_cluster.delete_cluster(cluster_id=region.region_id)
+        rke_cluster.delete_cluster(cluster_id=region.region_name)
         return region
 
     def del_by_region_id(self, region_id):
