@@ -137,7 +137,7 @@ class TenantServiceView(BaseApiView):
                     enterprise = enterprise_services.create_enterprise(enterprise_name=None, enterprise_alias=enter_name)
                     # 创建用户在企业的权限
                     user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
-                    team = team_services.create_team(user, enterprise, ["rainbond"], "默认团队", "default", "")
+                    team = team_services.create_team(user, enterprise, ["rainbond"], "", "default", "")
                     region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, "rainbond",
                                                                 team.namespace)
                 user.enterprise_id = enterprise.enterprise_id
