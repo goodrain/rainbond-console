@@ -154,7 +154,7 @@ function start_rainbond {
 
     $container_id = Invoke-Expression $docker_run_cmd
     if ($container_id) {
-        Write-ColoredText "Rainbond container startup succeeded, Execute the 'docker logs -f rainbond' command to view startup logs." green
+        Write-ColoredText "Please waiting 5 minutes and enter http://${EIP}:7070 the browser to access the Rainbond." green
     } else {
         Write-ColoredText "Ops! Rainbond container startup failed, Execute the 'docker logs -f rainbond' command to view startup logs." red
         Exit

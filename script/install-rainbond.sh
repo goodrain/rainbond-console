@@ -411,9 +411,9 @@ sleep 3
 # Verify startup
 if docker ps | grep rainbond 2>&1 >/dev/null; then
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_info "Rainbond 启动成功, 执行 'docker logs -f rainbond' 查看启动日志."
+        send_info "请等待 5 分钟左右, 然后在浏览器中输入 http://$EIP:7070 访问 Rainbond."
     else
-        send_info "Rainbond container startup succeeded, Execute the 'docker logs -f rainbond' command to view startup logs."
+        send_info "Please waiting 5 minutes and enter http://$EIP:7070 the browser to access the Rainbond."
     fi
 else
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
