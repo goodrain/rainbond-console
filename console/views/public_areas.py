@@ -139,6 +139,8 @@ class TeamOverView(RegionTenantHeaderView):
                 resp = region_api.list_app_statuses_by_app_ids(self.tenant_name, self.response_region,
                                                                {"app_ids": region_app_ids})
                 app_statuses = resp.get("list", [])
+                if app_statuses is None:
+                    app_statuses = []
                 for app_status in app_statuses:
                     if app_status.get("status") == "RUNNING":
                         running_app_num += 1
