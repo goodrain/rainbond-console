@@ -69,7 +69,7 @@ class AppPortView(AppBaseView):
             if port.protocol == "http":
                 path = ("/api-gateway/v1/" + self.tenant_name + "/routes/http/domains?service_alias=" +
                         self.service.service_alias + "&port=" + str(port.container_port))
-                body = region_api.api_gateway_get_proxy(self.region, self.tenant_name, path, None)
+                body = region_api.api_gateway_get_proxy(self.region, self.tenant.tenant_id, path, None)
                 if body.get("list", []):
                     port_info["bind_domains"] = [{
                         "protocol": "http",
