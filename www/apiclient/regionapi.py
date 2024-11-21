@@ -2915,7 +2915,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             path = path.replace("appID=" + str(app_id), "appID=" + region_app_id) + "&intID=" + str(app_id)
         self._set_headers(region.token)
         res, body = self._get(region.url + path, self.default_headers, region=region, region_config=region)
-        if "routes/http" in path:
+        if "routes/http?" in path:
             app_ids = [app_id]
             if not app_id:
                 app_ids = ServiceGroup.objects.filter(tenant_id=tenant_id).values_list("ID", flat=True)
@@ -2927,7 +2927,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 name_split = name.split('|', 1)
                 region_app_id = name_split[0]
                 app_id = region_app_map[region_app_id]
-                domain["name"] = app_id+name_split[1]
+                domain["name"] = str(app_id)+name_split[1]
                 domains.append(domain)
             body["list"] = domains
         return body
