@@ -510,7 +510,7 @@ class AppPortService(object):
                         return 412, "数据中心添加策略失败"
 
             path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=opeo&service_alias=" + service.service_alias +"&port="+str(container_port)
-            region_api.api_gateway_get_proxy(region, tenant.tenant_name, path, None)
+            region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, None)
 
         else:
             svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, deal_port.container_port)
@@ -610,7 +610,7 @@ class AppPortService(object):
                         return 412, "数据中心添加策略失败"
 
             path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=opeo&service_alias=" + service.service_alias +"&port="+str(container_port)
-            region_api.api_gateway_get_proxy(region, tenant.tenant_name, path, None)
+            region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, None)
 
         else:
             svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, deal_port.container_port)
@@ -719,7 +719,7 @@ class AppPortService(object):
                     service_domain.is_outer_service = False
                     service_domain.save()
                     path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" + service.service_alias + "&port="+str(deal_port.container_port)
-                    region_api.api_gateway_get_proxy(region, tenant.tenant_name, path, app.app_id)
+                    region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
         else:
             service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
                 service.service_id, deal_port.container_port)
@@ -1067,7 +1067,7 @@ class AppPortService(object):
         region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, service.service_region)
         path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/domains?service_alias=" +
                 service.service_alias + "&port=" + str(port))
-        body = region_api.api_gateway_get_proxy(region_info, tenant.tenant_name, path, None)
+        body = region_api.api_gateway_get_proxy(region_info, tenant.tenant_id, path, None)
         domains = body.get("list", [])
         if domains:
             for domain in domains:

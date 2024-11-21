@@ -292,7 +292,7 @@ class GroupService(object):
         res['share_num'] = share_repo.count_by_app_id(app_id)
         res['resources_num'] = k8s_resources_repo.list_by_app_id(app_id).count()
         res['ingress_num'] = 0
-        body = region_api.get_api_gateway(region, tenant.tenant_name, app_id)
+        body = region_api.get_api_gateway(region, tenant, app_id)
         if body and body["list"]:
             res['ingress_num'] = len(body["list"])
         res['config_group_num'] = app_config_group_service.count_by_app_id(region_name, app_id)

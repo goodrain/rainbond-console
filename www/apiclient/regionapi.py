@@ -14,7 +14,7 @@ from django.conf import settings
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantRegionInfo, Tenants
+from www.models.main import TenantRegionInfo, Tenants, ServiceGroup
 from console.exception.bcode import ErrNamespaceExists
 from console.repositories.k8s_resources import k8s_resources_repo
 from console.repositories.region_app import region_app_repo
@@ -2909,12 +2909,27 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data), region_config=region)
         return body["bean"]
 
-    def api_gateway_get_proxy(self, region, tenant_name, path, app_id):
+    def api_gateway_get_proxy(self, region, tenant_id, path, app_id):
         if app_id:
             region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
             path = path.replace("appID=" + str(app_id), "appID=" + region_app_id) + "&intID=" + str(app_id)
         self._set_headers(region.token)
         res, body = self._get(region.url + path, self.default_headers, region=region, region_config=region)
+        if "routes/http" in path:
+            app_ids = [app_id]
+            if not app_id:
+                app_ids = ServiceGroup.objects.filter(tenant_id=tenant_id).values_list("ID", flat=True)
+            r_apps = region_app_repo.list_by_app_ids(region.region_name, app_ids)
+            region_app_map = {r_app.region_app_id: r_app.app_id for r_app in r_apps}
+            domains = []
+            for domain in body.get("list"):
+                name = domain.get("name")
+                name_split = name.split('|', 1)
+                region_app_id = name_split[0]
+                app_id = region_app_map[region_app_id]
+                domain["name"] = app_id+name_split[1]
+                domains.append(domain)
+            body["list"] = domains
         return body
 
     def api_gateway_delete_proxy(self, region, tenant_name, path):
@@ -2979,9 +2994,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             app_id) + "&service_alias=" + service_name + "&port=" + str(svc.container_port)+"&default=true"
         return self.api_gateway_post_proxy(region, tenant_name, path, body, app_id)
 
-    def get_api_gateway(self, region, tenant_name, app_id):
-        path = "/api-gateway/v1/" + tenant_name + "/routes/http?appID=" + str(app_id)
-        return self.api_gateway_get_proxy(region, tenant_name, path, app_id)
+    def get_api_gateway(self, region, tenant, app_id):
+        path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http?appID=" + str(app_id)
+        return self.api_gateway_get_proxy(region, tenant.tenant_id, path, app_id)
 
     def api_gateway_bind_http_domain_convert(self, service_name, region, tenant_name, domains, svc, app_id):
         """
