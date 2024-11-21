@@ -208,6 +208,7 @@ class ComposeCheckView(ComposeGroupBaseView):
         try:
             check_uuid = request.GET.get("check_uuid", None)
             compose_id = request.GET.get("compose_id", None)
+            arch = request.GET.get("compose_id", None)
             if not check_uuid:
                 return Response(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status=400)
             if not compose_id:
@@ -216,7 +217,7 @@ class ComposeCheckView(ComposeGroupBaseView):
             code, msg, data = app_check_service.get_service_check_info(self.tenant, self.response_region, check_uuid)
             logger.debug("start save compose info ! {0}".format(group_compose.create_status))
             save_code, save_msg, service_list = compose_service.save_compose_services(self.tenant, self.user,
-                                                                                      self.response_region, group_compose, data)
+                                                                                      self.response_region, group_compose, data, arch)
             if save_code != 200:
                 data["check_status"] = "failure"
                 save_error = {

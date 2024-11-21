@@ -93,7 +93,7 @@ class ComposeService(object):
         return compose_repo.get_group_compose_by_group_id(group_id)
 
     @transaction.atomic
-    def save_compose_services(self, tenant, user, region, group_compose, data):
+    def save_compose_services(self, tenant, user, region, group_compose, data, arch="amd64"):
         # 开启保存点
         sid = transaction.savepoint()
         service_list = []
@@ -121,9 +121,6 @@ class ComposeService(object):
                         group_service.add_service_to_group(tenant, region, group_compose.group_id, service.service_id)
 
                         app_check_service.save_service_info(tenant, service, service_info)
-                        res, body = region_api.get_cluster_nodes_arch(region)
-                        chaos_arch = list(set(body.get("list")))
-                        arch = chaos_arch[0] if chaos_arch else "amd64"
                         service.arch = arch
                         # save service info
                         service.save()
