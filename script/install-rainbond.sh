@@ -64,6 +64,12 @@ trap send_msg SIGINT
 OS_TYPE=$(uname -s)
 if [ "${OS_TYPE}" == "Linux" ]; then
     MD5_CMD="md5sum"
+    if find /lib/modules/$(uname -r) -type f -name '*.ko*' | grep iptable_raw; then
+        if ! lsmod | grep iptable_raw; then
+            echo iptable_raw >/etc/modules-load.d/iptable_raw.conf
+            modprobe iptable_raw
+        fi
+    fi
 elif [ "${OS_TYPE}" == "Darwin" ]; then
     MD5_CMD="md5"
 else
