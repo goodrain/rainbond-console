@@ -54,6 +54,11 @@ function init_database() {
   fi
   echo -e "${GREEN}INFO: Database initialization completed${NC}"
   
+  # Skip cluster initialization if AUTO_INIT is false
+  if [ "$AUTO_INIT" == "false" ]; then
+    return 0
+  fi
+
   # Initialize default region data
   if [ "${DB_TYPE}" == "mysql" ]; then
     if ! (python default_region.py 2> /dev/null); then
@@ -72,10 +77,8 @@ if [ "$1" = "debug" -o "$1" = "bash" ]; then
 elif [ "$1" = "version" ]; then
   echo "${RELEASE_DESC}"
 else
-  if [ "$AUTO_INIT" == "true" ]; then
-    if (database_empty); then
-      init_database
-    fi
+  if (database_empty); then
+    init_database
   fi
   # python upgrade.py
   exec gunicorn goodrain_web.wsgi -b 0.0.0.0:${PORT:-7070} --max-requests=5000 -k gevent --reload --workers=2 --timeout=75 --log-file - --access-logfile - --error-logfile -
