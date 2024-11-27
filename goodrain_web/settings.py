@@ -53,7 +53,7 @@ else:
 
 TEMPLATE_DEBUG = os.environ.get('TEMPLATE_DEBUG') or False
 
-SECRET_KEY = get_hash_mac()
+SECRET_KEY = os.environ.get('SECRET_KEY') or get_hash_mac()
 DEFAULT_HANDLERS = [os.environ.get('DEFAULT_HANDLERS') or 'file_handler']
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
