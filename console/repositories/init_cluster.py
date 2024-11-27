@@ -88,6 +88,12 @@ class ClusterNode(object):
         )
         return cluster_nodes
 
+    def delete_cluster_nodes(self, cluster_id, node_name):
+        logger = logging.getLogger('default')
+
+        logger
+        RKEClusterNode.objects.filter(cluster_id=cluster_id, node_name=node_name).delete()
+
 
 rke_cluster = Cluster()
 rke_cluster_node = ClusterNode()
