@@ -71,7 +71,7 @@ class RainbondCenterAppRepository(object):
         return RainbondCenterAppVersion.objects.filter(q)
 
     def get_rainbond_app_version_by_record_id(self, record_id):
-        return RainbondCenterAppVersion.objects.filter(record_id=record_id).first()
+        return RainbondCenterAppVersion.objects.filter(record_id=record_id).last()
 
     def get_rainbond_app_version_by_id(self, eid, group_id):
         return RainbondCenterAppVersion.objects.filter(group_id=group_id, scope="team")
