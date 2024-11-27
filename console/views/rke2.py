@@ -151,6 +151,17 @@ class ClusterRKENode(BaseClusterView):
         except Exception as e:
             return self.handle_exception(e, "Failed to retrieve nodes", "获取节点失败")
 
+    def delete(self, request):
+        try:
+            cluster_id = request.data.get('cluster_id')
+            node_name = request.data.get('node_name')
+            cluster = rke_cluster.get_rke_cluster(cluster_id=cluster_id)
+            rke_cluster_node.delete_cluster_nodes(cluster.cluster_id, node_name)
+            result = general_message(200, "node delete successfully.", "节点删除成功")
+            return Response(result, status=200)
+        except Exception as e:
+            return self.handle_exception(e, "failed to delete nodes", "节点删除失败")
+
 
 # 获取节点IP接口
 class ClusterNodeIP(BaseClusterView):
