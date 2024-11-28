@@ -472,6 +472,12 @@ download_tarball() {
       if [ ! -f "${INSTALL_RKE2_AGENT_IMAGES_DIR}/${RKE2_IMAGES_NAME}" ]; then
         info "downloading images at ${RKE2_IMAGES_URL}/${RKE2_IMAGES_NAME}"
         download "${INSTALL_RKE2_AGENT_IMAGES_DIR}/${RKE2_IMAGES_NAME}" "${RKE2_IMAGES_URL}/${RKE2_IMAGES_NAME}"
+      else
+        if [ "$(stat -c %s "${INSTALL_RKE2_AGENT_IMAGES_DIR}/${RKE2_IMAGES_NAME}")" != \
+          "$(curl -sI "${RKE2_IMAGES_URL}/${RKE2_IMAGES_NAME}" | grep -i Content-Length | awk '{print $2}' | tr -d '\r')" ]; then
+          info "downloading images at ${RKE2_IMAGES_URL}/${RKE2_IMAGES_NAME}"
+          download "${INSTALL_RKE2_AGENT_IMAGES_DIR}/${RKE2_IMAGES_NAME}" "${RKE2_IMAGES_URL}/${RKE2_IMAGES_NAME}"
+        fi
       fi
     fi 
 }
