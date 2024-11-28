@@ -53,11 +53,6 @@ function init_database() {
     exit 1
   fi
   echo -e "${GREEN}INFO: Database initialization completed${NC}"
-  
-  # Skip cluster initialization if AUTO_INIT is false
-  if [ "$AUTO_INIT" == "false" ]; then
-    return 0
-  fi
 
   # Initialize default region data
   if [ "${DB_TYPE}" == "mysql" ]; then
