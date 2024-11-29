@@ -4,7 +4,6 @@ RED='\033[0;31m'
 GREEN='\033[32;1m'
 YELLOW='\033[33;1m'
 NC='\033[0m' # No Color
-AUTO_INIT=${AUTO_INIT:-true}
 
 function database_empty() {
   # Check if database is empty
