@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 import tarfile
 import tempfile
@@ -6,8 +7,9 @@ import tempfile
 import requests
 import yaml
 from requests.auth import HTTPBasicAuth
+from rest_framework import status
 
-from console.repositories.helm import helm_repo
+from console.repositories.helm import helm_repo, region_event
 from console.views.base import JWTAuthApiView
 from rest_framework.response import Response
 
@@ -138,3 +140,68 @@ class AppstoreChart(JWTAuthApiView):
         except tarfile.TarError:
             return Response({"code": 500, "msg": "invalid tgz", "msg_show": "无法解析 tgz 文件"}, status=500)
 
+
+class HelmRegionInstall(JWTAuthApiView):
+    def get(self, request, enterprise_id, *args, **kwargs):
+        """
+        获取 Helm 安装区域事件信息
+        """
+        try:
+            # 根据企业ID和任务类型查询事件
+            events = region_event.list_event(eid=enterprise_id, task_id="helm_install_region")
+
+            if events.exists():
+                event = events.first()
+                try:
+                    # 反序列化事件消息
+                    event_data = json.loads(event.message)
+                    response_data = {
+                        "create_status": True,
+                        "token": event_data.get("token"),
+                        "api_host": event_data.get("api_host")
+                    }
+                except json.JSONDecodeError as e:
+                    return Response({"detail": "Error decoding event message"}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                response_data = {"create_status": False}
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def post(self, request, enterprise_id, *args, **kwargs):
+        """
+        初始化 Helm 安装区域事件
+        """
+        try:
+            token = request.data.get('token', "")
+            api_host = request.data.get('api_host', "")
+            event_data = {
+                "token": token,
+                "api_host": api_host,
+            }
+            # 创建新的事件
+            message = json.dumps(event_data)
+            event = {
+                "task_id": "helm_install_region",
+                "enterprise_id": enterprise_id,
+                "message": message,
+            }
+            region_event.create_region_event(**event)
+
+            response_data = {"create_status": True}
+            return Response(response_data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def delete(self, request, enterprise_id, *args, **kwargs):
+        """
+        删除 Helm 安装区域事件
+        """
+        try:
+            # 删除事件
+            region_event.delete_event(enterprise_id=enterprise_id, task_id="helm_install_region")
+            return Response({"detail": "Event deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
