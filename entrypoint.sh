@@ -52,7 +52,10 @@ function init_database() {
     exit 1
   fi
   echo -e "${GREEN}INFO: Database initialization completed${NC}"
+}
 
+function init_region() {
+  init_database
   # Initialize default region data
   if [ "${DB_TYPE}" == "mysql" ]; then
     if ! (python default_region.py 2> /dev/null); then
@@ -72,6 +75,8 @@ elif [ "$1" = "version" ]; then
   echo "${RELEASE_DESC}"
 else
   if (database_empty); then
+    init_region
+  else
     init_database
   fi
   # python upgrade.py
