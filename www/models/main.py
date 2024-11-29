@@ -946,3 +946,16 @@ class VirtualMachineImage(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text="租户id")
     name = models.CharField(max_length=64, help_text="镜像名称")
     image_url = models.CharField(max_length=200, help_text="镜像地址")
+
+
+class TaskEvent(BaseModel):
+    class Meta:
+        db_table = 'task_event'
+
+    task_id = models.CharField(max_length=255)  # 对应 TaskID
+    enterprise_id = models.CharField(max_length=255)  # 对应 EnterpriseID
+    step_type = models.CharField(max_length=255)  # 对应 StepType
+    message = models.CharField(max_length=512)  # 对应 Message
+    status = models.CharField(max_length=255)  # 对应 Status
+    event_id = models.CharField(max_length=255)  # 对应 EventID
+    reason = models.CharField(max_length=255)  # 对应 Reason

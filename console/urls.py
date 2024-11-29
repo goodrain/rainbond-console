@@ -5,7 +5,7 @@ from django.conf.urls import url
 import console.utils.perms_route_config as perms
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
-from console.views.adaptor import Appstore, Appstores, AppstoreCharts, AppstoreChart
+from console.views.adaptor import Appstore, Appstores, AppstoreCharts, AppstoreChart, HelmRegionInstall
 from console.views.api_gateway import AppApiGatewayView, AppApiGatewayConvertView
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
 from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView,
@@ -1071,5 +1071,7 @@ urlpatterns += [
     url(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/appstores/(?P<name>[\w\-]+)/apps$",
         AppstoreCharts.as_view()),
     url(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/appstores/(?P<name>[\w\-]+)/templates/(?P<chart_name>[\w\-]+)/versions/(?P<version>[\d\.]+)$",
-        AppstoreChart.as_view())
+        AppstoreChart.as_view()),
+    url(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/tasks/helm_region_install$",
+        HelmRegionInstall.as_view()),
 ]
