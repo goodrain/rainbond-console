@@ -4,6 +4,7 @@ import logging
 import os
 import time
 
+import requests
 from django.http import StreamingHttpResponse, FileResponse
 from console.exception.exceptions import (ExterpriseNotExistError, TenantNotExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException, AbortRequest
@@ -642,17 +643,42 @@ class HelmAddReginInfo(AlowAnyApiView):
 
 class HelmInstallStatus(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
-        eid = request.GET.get("eid", "")
-        token = request.GET.get("token", "")
+        apiHost = request.GET.get("api_host")
+        token = request.GET.get("token")
         try:
-            region = region_repo.get_region_by_token(eid=eid, token=token)
+            response = requests.get("http://{}:6060/helm_install/region_status/{}".format(apiHost, token), timeout=5)
+            data = response.json()
+            region_info = data.get("bean")
+            enterprise_id = self.enterprise.enterprise_id
+            region_alias = region_info.get("regionAlias", "")
+            region_id = make_uuid()
+            region_data = {
+                "region_alias": region_alias,
+                "region_name": region_info.get("regionName", ""),
+                "region_type": json.dumps(region_info.get("regionType", [])),
+                "ssl_ca_cert": region_info.get("sslCaCert", ""),
+                "key_file": region_info.get("keyFile", ""),
+                "cert_file": region_info.get("certFile", ""),
+                "url": region_info.get("url", ""),
+                "wsurl": region_info.get("wsUrl", ""),
+                "httpdomain": region_info.get("httpDomain", ""),
+                "tcpdomain": region_info.get("tcpDomain", ""),
+                "enterprise_id": enterprise_id,
+                "desc": region_info.get("desc", ""),
+                "provider": region_info.get("provider", ""),
+                "provider_cluster_id": region_info.get("providerClusterId", ""),
+                "region_id": region_id,
+                "token": token,
+            }
+            region_data["status"] = "1"
+            region = region_repo.create_region(region_data)
             region_resource = region_services.conver_region_info(region, "yes")
             if region_resource["health_status"] == "ok":
-                result = general_message(200, "success", "对接成功")
+                result = general_message(200, "success", "对接成功", bean={"health_status": "installed"})
                 return Response(result, status=status.HTTP_200_OK)
         except Exception as e:
             logger.exception(e)
-        result = general_message(200, "failed", "对接失败")
+        result = general_message(200, "failed", "等待对接", bean={"health_status": "installing"})
         return Response(result, status=status.HTTP_200_OK)
 
 

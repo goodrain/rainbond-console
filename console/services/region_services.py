@@ -596,6 +596,7 @@ class RegionService(object):
         region_resource = self.__init_region_resource_data(region, level)
         if check_status == "yes":
             try:
+                region.region_name = str(region.region_name)
                 _, rbd_version = region_api.get_enterprise_api_version_v2(
                     enterprise_id=region.enterprise_id, region=region.region_name)
                 res, body = region_api.get_region_resources(region.enterprise_id, region=region.region_name)
