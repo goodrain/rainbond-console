@@ -201,7 +201,7 @@ class HelmRegionInstall(JWTAuthApiView):
         """
         try:
             # 删除事件
-            region_event.delete_event(enterprise_id=enterprise_id, task_id="helm_install_region")
+            region_event.delete_event(eid=enterprise_id, task_id="helm_install_region")
             return Response({"detail": "Event deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
