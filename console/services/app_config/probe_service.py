@@ -57,26 +57,26 @@ class ProbeService(object):
         initial_delay_second = data.get("initial_delay_second", 1)
         if initial_delay_second is not None:
             if initial_delay_second < 1:
-                return 400, "初始等候时间不能小于1秒"
+                data["initial_delay_second"] = 1
 
         period_second = data.get("period_second", 1)
         if period_second is not None:
             if period_second < 1:
-                return 400, "检测间隔不能小于1秒"
+                data["period_second"] = 1
 
         timeout_second = data.get("timeout_second", 1)
         if timeout_second < 1:
-            return 400, "超时时间不能小于1秒"
+            data["timeout_second"] = 1
 
         failure_threshold = data.get("failure_threshold", 3)
         if failure_threshold is not None:
             if failure_threshold < 1:
-                return 400, "标志为失败的检测次数不能少于1"
+                data["failure_threshold"] = 3
 
         success_threshold = data.get("success_threshold", 3)
         if success_threshold is not None:
             if success_threshold < 1:
-                return 400, "标志为成功的检测次数不能少于1"
+                data["success_threshold"] = 3
 
         return 200, "success"
 
