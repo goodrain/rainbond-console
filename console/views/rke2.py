@@ -157,6 +157,9 @@ class ClusterRKENode(BaseClusterView):
             node_name = request.data.get('node_name')
             cluster = rke_cluster.get_rke_cluster(cluster_id=cluster_id)
             rke_cluster_node.delete_cluster_nodes(cluster.cluster_id, node_name)
+            if not rke_cluster_node.get_cluster_nodes(cluster.cluster_id):
+                cluster.server_host = ""
+                cluster.save()
             result = general_message(200, "node delete successfully.", "节点删除成功")
             return Response(result, status=200)
         except Exception as e:
