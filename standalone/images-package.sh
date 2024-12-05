@@ -13,7 +13,7 @@ rainbond/rainbond:${VERSION}
 rainbond/alpine:latest
 rainbond/apisix-ingress-controller:1.8.2
 rainbond/apisix:3.9.1-debian
-rainbond/minio:RELEASE.2024-09-22T00-33-43Z
+rainbond/minio:RELEASE.2023-10-24T04-42-36Z
 rainbond/rbd-monitor:v2.20.0
 rainbond/local-path-provisioner:v0.0.29
 rancher/klipper-helm:v0.8.4-build20240523
