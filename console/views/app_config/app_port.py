@@ -359,7 +359,7 @@ class TopologicalPortView(AppBaseView):
             for tenant_service_port in tenant_service_ports:
                 code, msg, data = port_service.manage_port(
                     self.tenant, self.service, self.response_region, tenant_service_port.container_port, "close_outer",
-                    tenant_service_port.protocol, tenant_service_port.port_alias, self.app)
+                    tenant_service_port.protocol, tenant_service_port.port_alias, user_name=self.user.nick_name, app=self.app)
                 if code != 200:
                     return Response(general_message(412, "open outer fail", "关闭对外端口失败"), status=412)
             return Response(general_message(200, "close outer success", "关闭对外端口成功"), status=200)
@@ -379,7 +379,7 @@ class TopologicalPortView(AppBaseView):
                 # 一个端口直接开启
                 tenant_service_port = port_service.get_service_port_by_port(self.service, int(port_list[0]))
                 code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(
-                    port_list[0]), "open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
+                    port_list[0]), "open_outer", tenant_service_port.protocol, tenant_service_port.port_alias, user_name=self.user.nick_name, app=self.app)
                 if code != 200:
                     return Response(general_message(412, "open outer fail", "打开对外端口失败"), status=412)
                 return Response(general_message(200, "open outer success", "开启成功"), status=200)
