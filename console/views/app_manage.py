@@ -45,6 +45,8 @@ class AppsPorConsoletView(RegionTenantHeaderView):
         port_list = list()
         tcp_domain = region_services.get_region_tcpdomain(region_name=self.region_name)
         if ports:
+            tenant_groups = group_service_relation_repo.get_relation_by_tenant_id(self.team.tenant_id)
+            component_groups_dict = {tg.service_id: tg.group_id for tg in tenant_groups}
             for port in ports:
                 port_dict = dict()
                 if not port.is_inner_service:
@@ -54,9 +56,10 @@ class AppsPorConsoletView(RegionTenantHeaderView):
                 port_dict["namespace"] = self.team.namespace
                 for component in component_list:
                     if port.service_id == component.service_id:
-                        port_dict["service_id"] =component.service_id
+                        port_dict["service_id"] = component.service_id
                         port_dict["service_type"] = component.namespace
                         port_dict["service_alias"] = component.service_alias
+                        port_dict["app_id"] = component_groups_dict.get(component.service_id)
                 port_dict["component_name"] = component_dict.get(port.service_id)
                 if app_id is None or app_id == "":
                     port_list.append(port_dict)
