@@ -11,6 +11,8 @@ from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig, ConsoleSysConfig
 from django import http
 from django.conf import settings
+
+from console.repositories.app import service_repo
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
@@ -2909,26 +2911,52 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data), region_config=region)
         return body["bean"]
 
-    def api_gateway_get_proxy(self, region, tenant_id, path, app_id):
+    def api_gateway_get_proxy(self, region, tenant_id, path, app_id, query=""):
+        # 如果指定了 app_id，则转换为区域特定的 app_id，并追加 intID 参数
         if app_id:
             region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
-            path = path.replace("appID=" + str(app_id), "appID=" + region_app_id) + "&intID=" + str(app_id)
+            path = path.replace(f"appID={app_id}", f"appID={region_app_id}") + f"&intID={app_id}"
+        # 设置请求头并发送 GET 请求
         self._set_headers(region.token)
         res, body = self._get(region.url + path, self.default_headers, region=region, region_config=region)
+        # 如果路径中包含特定的路由信息，需要进一步处理返回结果
         if "routes/http?" in path:
-            app_ids = [app_id]
-            if not app_id:
-                app_ids = ServiceGroup.objects.filter(tenant_id=tenant_id).values_list("ID", flat=True)
+            # 获取所有应用 ID，单个或多个
+            app_ids = [app_id] if app_id else ServiceGroup.objects.filter(tenant_id=tenant_id).values_list("ID",
+                                                                                                           flat=True)
+            # 获取区域应用映射关系
             r_apps = region_app_repo.list_by_app_ids(region.region_name, app_ids)
             region_app_map = {r_app.region_app_id: r_app.app_id for r_app in r_apps}
+            # 获取服务与组件的映射
+            from console.repositories.group import group_service_relation_repo
+            if app_id:
+                svc_ids = group_service_relation_repo.list_serivce_ids_by_app_id(tenant_id, region.region_name, app_id)
+                components = service_repo.get_services_by_service_ids(svc_ids)
+            else:
+                components = service_repo.get_service_by_tenant(tenant_id)
+            component_dict = {f"-{cpt.service_alias}": cpt.service_cname for cpt in components}
+            # 处理域名列表
             domains = []
-            for domain in body.get("list"):
-                name = domain.get("name")
-                name_split = name.split('|', 1)
+            for domain in body.get("list", []):
+                name = domain.get("name", "")
+                name_split = name.split('|')
+                # 跳过不符合预期的 name 格式
+                if len(name_split) < 3:
+                    continue
+                # 解析域名和组件名
+                domain_name = name_split[1].split('p-p')[0]
+                component_name = component_dict.get(name_split[2], "")
+                # 如果提供了 query，但 domain_name 和 component_name 都不包含 query，则跳过
+                if query and (query in domain_name or query in component_name):
+                    continue
+                # 构造域名对象
                 region_app_id = name_split[0]
-                app_id = region_app_map[region_app_id]
-                domain["name"] = str(app_id)+name_split[1]
+                app_id = region_app_map.get(region_app_id)
+                domain["component_name"] = component_name
+                domain["name"] = f"{app_id}{name_split[1]}{name_split[2]}"
+                # 添加到结果集
                 domains.append(domain)
+            # 更新返回数据的域名列表
             body["list"] = domains
         return body
 

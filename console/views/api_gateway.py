@@ -23,8 +23,9 @@ class AppApiGatewayView(RegionTenantHeaderView):
     @never_cache
     def get(self, request, *args, **kwargs):
         app_id = request.query_params.get('appID', "")
+        query = request.query_params.get('query', "")
         path = request.get_full_path().replace("/console", "")
-        resp = region_api.api_gateway_get_proxy(self.region, self.tenant.tenant_id, path, app_id)
+        resp = region_api.api_gateway_get_proxy(self.region, self.tenant.tenant_id, path, app_id, query)
         result = general_message(200, "success", "查询成功", bean=resp['bean'], list=resp['list'])
         return Response(result, status=result["code"])
 
