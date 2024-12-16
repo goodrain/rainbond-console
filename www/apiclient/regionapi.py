@@ -2947,7 +2947,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 domain_name = name_split[1].split('p-p')[0]
                 component_name = component_dict.get(name_split[2], "")
                 # 如果提供了 query，但 domain_name 和 component_name 都不包含 query，则跳过
-                if query and (query in domain_name or query in component_name):
+                if query and (query not in domain_name and query not in component_name):
                     continue
                 # 构造域名对象
                 region_app_id = name_split[0]

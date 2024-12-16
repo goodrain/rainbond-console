@@ -557,7 +557,9 @@ class AppImportService(object):
                     scope=import_record.scope,
                     describe=app_describe,
                     pic=pic_url,
-                    arch=arch)
+                    arch=arch,
+                    is_version=True,
+                )
                 rainbond_apps.append(rainbond_app)
                 # create a new app version
                 rainbond_app_versions.append(self.create_app_version(rainbond_app, import_record, app_template, arch))
@@ -623,6 +625,7 @@ class AppImportService(object):
                 pic=pic_url,
                 app_template=json.dumps(app_template),
                 is_complete=True,
+                is_version=True,
                 template_version=app_template.get("template_version", ""))
             rainbond_apps.append(rainbond_app)
         rainbond_app_repo.bulk_create_rainbond_apps(rainbond_apps)
