@@ -163,6 +163,9 @@ class GroupServiceRelationRepository(object):
     def delete_relation_by_group_id(self, group_id):
         ServiceGroupRelation.objects.filter(group_id=group_id).delete()
 
+    def get_relation_by_tenant_id(self, tenant_id):
+        return ServiceGroupRelation.objects.filter(tenant_id=tenant_id)
+
     def delete_relation_by_service_id(self, service_id):
         ServiceGroupRelation.objects.filter(service_id=service_id).delete()
 
