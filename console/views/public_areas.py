@@ -3,6 +3,7 @@ import logging
 from functools import cmp_to_key
 
 from console.exception.exceptions import GroupNotExistError
+from console.repositories.app_config import volume_repo
 from console.repositories.group import group_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
@@ -162,6 +163,14 @@ class TeamOverView(RegionTenantHeaderView):
             overview_detail["running_component_num"] = 0
             overview_detail["team_alias"] = self.tenant.tenant_alias
             overview_detail["region_id"] = self.region.region_id
+            components = service_repo.list_svc_by_tenant(self.team)
+            volumes = volume_repo.get_services_volumes(components.values_list("service_id", flat=True))
+            use_disk = 0
+            for volume in volumes:
+                if volume.volume_type != "config-file":
+                    volume.volume_capacity = 10 if volume.volume_capacity == 0 else volume.volume_capacity
+                    use_disk += volume.volume_capacity
+            overview_detail["disk_usage"] = use_disk
             if source:
                 try:
                     overview_detail["region_health"] = True
