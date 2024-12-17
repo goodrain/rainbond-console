@@ -13,7 +13,8 @@ from console.enum.app import GovernanceModeEnum, AppType
 from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound, ErrK8sAppExists
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
-from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain, dep_relation_repo)
+from console.repositories.app_config import (domain_repo, env_var_repo, port_repo, tcp_domain, dep_relation_repo,
+                                             volume_repo)
 from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.backup_repo import backup_record_repo
 from console.repositories.compose_repo import compose_repo
@@ -552,6 +553,12 @@ class GroupService(object):
 
         app_id_statuses = self.get_region_app_statuses(tenant_name, region, app_ids)
         apps = dict()
+        volumes = volume_repo.get_services_volumes(service_ids)
+        service_volume = dict()
+        for volume in volumes:
+            if volume.volume_type != "config-file":
+                volume.volume_capacity = 10 if volume.volume_capacity == 0 else volume.volume_capacity
+                service_volume[volume.service_id] = service_volume.get(volume.service_id, 0) + volume.volume_capacity
         for app in app_list:
             app_status = app_id_statuses.get(app.ID)
             apps[app.ID] = {
@@ -562,6 +569,8 @@ class GroupService(object):
                 "group_note": app.note,
                 "service_list": [],
                 "used_mem": app_status.get("memory", 0) if app_status else 0,
+                "used_cpu": app_status.get("cpu", 0) if app_status else 0,
+                "used_disk": 0,
                 "status": app_status.get("status", "UNKNOWN") if app_status else "UNKNOWN",
                 "logo": app.logo,
                 "accesses": [],
@@ -573,6 +582,7 @@ class GroupService(object):
             svc_sas = service_status.get(service.service_id, {"status": "failure", "used_mem": 0})
             service.status = svc_sas["status"]
             service.used_mem = svc_sas["used_mem"]
+            apps[service.group_id]["used_disk"] = apps[service.group_id]["used_disk"] + service_volume.get(service.service_id, 0)
             apps[service.group_id]["service_list"].append(service)
             apps[service.group_id]["accesses"].append(accesses[service.service_id])
 

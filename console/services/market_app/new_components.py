@@ -302,7 +302,9 @@ class NewComponents(object):
             port_protocol = port.get("protocol", "tcp")
             if port_protocol not in ["tcp", "udp", "http"]:
                 port_protocol = "tcp"
-            port = TenantServicesPort(
+            if port_protocol == "tcp":
+                port["is_outer_service"] = False
+            t_port = TenantServicesPort(
                 tenant_id=component.tenant_id,
                 service_id=component.service_id,
                 container_port=int(component_port),
@@ -315,7 +317,7 @@ class NewComponents(object):
                 name=port.get("name", ""),
                 k8s_service_name=k8s_service_name,
             )
-            new_ports.append(port)
+            new_ports.append(t_port)
         return new_ports
 
     @staticmethod

@@ -174,20 +174,12 @@ class TeamOverView(RegionTenantHeaderView):
             if source:
                 try:
                     overview_detail["region_health"] = True
-                    overview_detail["team_service_memory_count"] = int(source["memory"])
+                    overview_detail["memory_usage"] = int(source["memory"])
                     overview_detail["team_service_total_disk"] = int(source["disk"])
                     overview_detail["team_service_total_cpu"] = int(source["limit_cpu"])
                     overview_detail["team_service_total_memory"] = int(source["limit_memory"])
-                    overview_detail["team_service_use_cpu"] = int(source["cpu"])
+                    overview_detail["cpu_usage"] = int(source["cpu"])
                     overview_detail["running_component_num"] = int(source.get("service_running_num", 0))
-                    cpu_usage = 0
-                    memory_usage = 0
-                    if int(source["limit_cpu"]) != 0:
-                        cpu_usage = float(int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
-                    if int(source["limit_memory"]) != 0:
-                        memory_usage = float(int(source["memory"])) / float(int(source["limit_memory"])) * 100
-                    overview_detail["cpu_usage"] = round(cpu_usage, 2)
-                    overview_detail["memory_usage"] = round(memory_usage, 2)
                 except Exception as e:
                     logger.debug(source)
                     logger.exception(e)
