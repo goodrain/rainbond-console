@@ -62,3 +62,72 @@ class HubRegistryView(JWTAuthApiView):
         team_registry_auth_repo.delete_team_registry_auth('', '', secret_id, self.user.user_id)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
+
+
+class HubRegistryImageView(JWTAuthApiView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        """
+        获取镜像仓库的命名空间、镜像名称、标签列表或完整镜像地址
+        """
+        secret_id = request.GET.get("secret_id")
+        namespace = request.GET.get("namespace")
+        name = request.GET.get("name")
+        tag = request.GET.get("tag")
+        
+        if not secret_id:
+            result = general_message(400, "error", "缺少secret_id参数")
+            return Response(result, status=result["code"])
+            
+        auths = team_registry_auth_repo.get_by_secret_id(secret_id)
+        if not auths:
+            result = general_message(404, "error", "镜像仓库不存在")
+            return Response(result, status=result["code"])
+            
+        try:
+            auth = auths[0]
+            if not namespace:
+                # 获取命名空间列表
+                namespaces = team_services.get_registry_namespaces(
+                    domain=auth.domain,
+                    username=auth.username,
+                    password=auth.password,
+                    hub_type=auth.hub_type
+                )
+                result = general_message(200, "success", "查询成功", list=namespaces)
+            elif not name:
+                # 获取指定命名空间下的镜像列表
+                images = team_services.get_registry_images(
+                    domain=auth.domain,
+                    username=auth.username,
+                    password=auth.password,
+                    hub_type=auth.hub_type,
+                    namespace=namespace
+                )
+                result = general_message(200, "success", "查询成功", list=images)
+            elif not tag:
+                # 获取指定镜像的标签列表
+                tags = team_services.get_registry_tags(
+                    domain=auth.domain,
+                    username=auth.username,
+                    password=auth.password,
+                    hub_type=auth.hub_type,
+                    namespace=namespace,
+                    name=name
+                )
+                result = general_message(200, "success", "查询成功", list=tags)
+            else:
+                # 获取完整的镜像地址
+                full_image = team_services.get_full_image_name(
+                    domain=auth.domain,
+                    hub_type=auth.hub_type,
+                    namespace=namespace,
+                    name=name,
+                    tag=tag
+                )
+                result = general_message(200, "success", "查询成功", bean={"image": full_image})
+
+            return Response(result, status=result["code"])
+        except Exception as e:
+            result = general_message(500, "error", "查询失败: {}".format(str(e)))
+            return Response(result, status=result["code"])

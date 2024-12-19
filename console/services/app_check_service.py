@@ -196,7 +196,7 @@ class AppCheckService(object):
                 transaction.savepoint_rollback(sid)
             raise ServiceHandleException(status_code=400, msg="handle check service code info failure", msg_show="处理检测结果失败")
 
-    def save_service_check_info(self, tenant, service, data):
+    def save_service_check_info(self, tenant, app_id, service, data):
         # save the detection properties but does not throw any exception.
         if data["check_status"] == "success" and service.create_status == "checking":
             logger.debug("checking service info install,save info into database")
@@ -353,7 +353,7 @@ class AppCheckService(object):
                 if code != 200:
                     logger.error("save service check info port error {0}".format(msg))
                 if region_info:
-                    domain_service.create_default_gateway_rule(tenant, region_info, service, port_data)
+                    domain_service.create_default_gateway_rule(tenant, region_info, service, port_data, app.app_id)
                 port_service.defalut_open_outer(tenant, service, region_info, port_data, app)
         else:
             if service.service_source in [AppConstants.SOURCE_CODE, AppConstants.PACKAGE_BUILD]:
@@ -362,7 +362,7 @@ class AppCheckService(object):
                                                              service.service_alias.upper() + str(5000), True, True)
                 region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, service.service_region)
                 if region_info:
-                    domain_service.create_default_gateway_rule(tenant, region_info, service, t_port)
+                    domain_service.create_default_gateway_rule(tenant, region_info, service, t_port, app.app_id)
                 else:
                     logger.error("get region {0} from enterprise {1} failure".format(tenant.enterprise_id,
                                                                                      service.service_region))

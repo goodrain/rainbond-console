@@ -440,7 +440,7 @@ class MarketAppService(object):
         # first save env before save port
         self.__save_env(tenant, ts, app.get("service_env_map_list", []), app.get("service_connect_info_map_list", []))
         # save port
-        self.__save_port(tenant, region, ts, app.get("port_map_list", []), port_k8s_svc_name)
+        self.__save_port(tenant, region, ts, app.get("port_map_list", []), port_k8s_svc_name, application_id)
         # save volume
         self.__save_volume(tenant, ts, app["service_volume_map_list"])
 
@@ -830,7 +830,7 @@ class MarketAppService(object):
             k8s_service_name = service.service_alias + "-" + str(component_port)
         return k8s_service_name
 
-    def __save_port(self, tenant, region, service, ports, port_k8s_svc_name):
+    def __save_port(self, tenant, region, service, ports, port_k8s_svc_name, application_id):
         if not ports:
             return
         create_ports = []
@@ -852,7 +852,7 @@ class MarketAppService(object):
             )
             create_ports.append(t_port)
             if port.get("is_outer_service", False):
-                domain_service.create_default_gateway_rule(tenant, region, service, t_port)
+                domain_service.create_default_gateway_rule(tenant, region, service, t_port, application_id)
         if len(create_ports) > 0:
             port_repo.bulk_create(create_ports)
 

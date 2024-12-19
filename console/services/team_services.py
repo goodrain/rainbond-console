@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-import datetime
 import json
 import logging
 import random
 import string
+from urllib.parse import urlparse
+
+import requests
 
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
@@ -656,6 +658,207 @@ class TeamService(object):
             "secret_id": secret_id,
             "tenant_id": tenant.tenant_id
         })
+
+    def get_registry_namespaces(self, domain, username, password, hub_type):
+        """直接请求镜像仓库获取命名空间列表
+        
+        Args:
+            domain (str): 镜像仓库域名 
+            username (str): 用户名
+            password (str): 密码
+            hub_type (str): 仓库类型,如 "docker", "harbor" 等
+            
+        Returns:
+            list: 命名空间列表
+            
+        Raises:
+            ServiceHandleException: 获取命名空间失败时抛出异常
+        """
+        try:
+            # 解析域名
+            parsed_url = urlparse(domain)
+            base_url = parsed_url.scheme + "://" + parsed_url.netloc
+            
+            if hub_type == "Harbor":
+                # Harbor API
+                api_url = "{}/api/v2.0/projects".format(base_url)
+                response = requests.get(
+                    api_url,
+                    auth=(username, password),
+                    verify=False,
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    projects = response.json()
+                    return [project["name"] for project in projects]
+                    
+            elif hub_type == "Docker":
+                # Docker Hub API 
+                api_url = "https://hub.docker.com/v2/repositories/{}/".format(username)
+                response = requests.get(
+                    api_url,
+                    headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    namespaces = response.json().get("namespaces", [])
+                    # 确保包含用户自己的命名空间
+                    if username not in namespaces:
+                        namespaces.append(username)
+                    return namespaces
+                    
+            raise ServiceHandleException(
+                msg="failed to get registry namespaces, status:{}".format(response.status_code),
+                msg_show="获取镜像仓库命名空间失败",
+                status_code=response.status_code)
+            
+        except requests.exceptions.RequestException as e:
+            logger.exception(e)
+            raise ServiceHandleException(
+                msg="failed to connect registry: {}".format(e),
+                msg_show="连接镜像仓库失败",
+                status_code=500)
+
+    def _get_dockerhub_token(self, username, password):
+        """获取Docker Hub的JWT token"""
+        try:
+            response = requests.post(
+                "https://hub.docker.com/v2/users/login/",
+                json={
+                    "username": username,
+                    "password": password
+                },
+                timeout=10
+            )
+            if response.status_code == 200:
+                return response.json().get("token")
+            raise ServiceHandleException(
+                msg="failed to get docker hub token",
+                msg_show="Docker Hub认证失败",
+                status_code=response.status_code)
+        except requests.exceptions.RequestException as e:
+            logger.exception(e)
+            raise ServiceHandleException(
+                msg="failed to connect docker hub: {}".format(e),
+                msg_show="连接Docker Hub失败", 
+                status_code=500)
+
+    def get_registry_images(self, domain, username, password, hub_type, namespace):
+        """获取指定命名空间下的镜像列表
+        """
+        try:
+            parsed_url = urlparse(domain)
+            base_url = parsed_url.scheme + "://" + parsed_url.netloc
+            
+            if hub_type == "Harbor":
+                api_url = "{}/api/v2.0/projects/{}/repositories".format(base_url, namespace)
+                response = requests.get(
+                    api_url,
+                    auth=(username, password),
+                    verify=False,
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    repositories = response.json()
+                    return [repo["name"].split("/")[-1] for repo in repositories]
+                    
+            elif hub_type == "Docker":
+                api_url = "https://hub.docker.com/v2/repositories/{}/".format(namespace)
+                response = requests.get(
+                    api_url,
+                    headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    repositories = response.json().get("results", [])
+                    return [repo["name"] for repo in repositories]
+                    
+            raise ServiceHandleException(
+                msg="failed to get registry images, status:{}".format(response.status_code),
+                msg_show="获取镜像列表失败",
+                status_code=response.status_code)
+            
+        except requests.exceptions.RequestException as e:
+            logger.exception(e)
+            raise ServiceHandleException(
+                msg="failed to connect registry: {}".format(e),
+                msg_show="连接镜像仓库失败",
+                status_code=500)
+
+    def get_registry_tags(self, domain, username, password, hub_type, namespace, name):
+        """获取指定镜像的标签列表
+        """
+        try:
+            parsed_url = urlparse(domain)
+            base_url = parsed_url.scheme + "://" + parsed_url.netloc
+            
+            if hub_type == "Harbor":
+                api_url = "{}/api/v2.0/projects/{}/repositories/{}/artifacts".format(base_url, namespace, name)
+                response = requests.get(
+                    api_url,
+                    auth=(username, password),
+                    verify=False,
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    artifacts = response.json()
+                    return [tag for artifact in artifacts for tag in artifact.get("tags", [])]
+                    
+            elif hub_type == "Docker":
+                api_url = "https://hub.docker.com/v2/repositories/{}/{}/tags".format(namespace, name)
+                response = requests.get(
+                    api_url,
+                    headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    tags = response.json().get("results", [])
+                    return [tag["name"] for tag in tags]
+                    
+            raise ServiceHandleException(
+                msg="failed to get registry tags, status:{}".format(response.status_code),
+                msg_show="获取镜像标签失败",
+                status_code=response.status_code)
+            
+        except requests.exceptions.RequestException as e:
+            logger.exception(e)
+            raise ServiceHandleException(
+                msg="failed to connect registry: {}".format(e),
+                msg_show="连接镜像仓库失败",
+                status_code=500)
+
+    def get_full_image_name(self, domain, hub_type, namespace, name, tag):
+        """获取完整的镜像地址
+        
+        Args:
+            domain: 镜像仓库域名
+            hub_type: 仓库类型
+            namespace: 命名空间
+            name: 镜像名称
+            tag: 标签
+            
+        Returns:
+            str: 完整的镜像地址
+        """
+        try:
+            parsed_url = urlparse(domain)
+            registry = parsed_url.netloc
+            
+            if hub_type == "Docker" and registry == "hub.docker.com":
+                # Docker Hub的特殊处理
+                if namespace == "library":
+                    return "{}/{}:{}".format(name, tag)
+                return "{}/{}:{}".format(namespace, name, tag)
+            
+            # 其他类型仓库
+            return "{}/{}/{}:{}".format(registry, namespace, name, tag)
+            
+        except Exception as e:
+            logger.exception(e)
+            raise ServiceHandleException(
+                msg="failed to generate full image name: {}".format(e),
+                msg_show="生成完整镜像地址失败",
+                status_code=500)
 
 
 team_services = TeamService()

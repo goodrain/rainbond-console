@@ -899,7 +899,7 @@ class DomainService(object):
         # delete tcp rules
         tcp_domain.delete_by_component_port(component_id, port)
 
-    def create_default_gateway_rule(self, tenant, region_info, service, port):
+    def create_default_gateway_rule(self, tenant, region_info, service, port, app_id):
         if port.protocol == "http":
             service_id = service.service_id
             service_name = service.service_alias
@@ -925,7 +925,7 @@ class DomainService(object):
                 tenant_name=tenant.tenant_name,
                 k8s_service_name=service.service_alias,
                 container_port=svc.container_port,
-                app_id=None,
+                app_id=app_id,
                 protocol=svc.protocol)
             end_point = "0.0.0.0:{0}".format(data["bean"])
             service_id = service.service_id
