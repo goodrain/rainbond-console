@@ -392,7 +392,7 @@ class UserDetailsView(JWTAuthApiView):
     def post(self, request, *args, **kwargs):
         self.user.real_name = request.data.get("real_name")
         self.user.email = request.data.get("email")
-        self.user.log = request.data.get("log")
+        self.user.logo = request.data.get("logo")
         self.user.save()
         result = general_message(200, "success", "用户信息更新成功")
         return Response(result, status=status.HTTP_200_OK)
