@@ -6,7 +6,7 @@ from console.exception.main import ServiceHandleException
 from console.models.main import RegionConfig, TeamGitlabInfo, TeamRegistryAuth
 from console.repositories.base import BaseConnection
 from django.db.models import Q
-from www.models.main import (PermRelTenant, TenantEnterprise, TenantRegionInfo, Tenants, Users)
+from www.models.main import (PermRelTenant, TenantEnterprise, TenantRegionInfo, Tenants, Users, TeamInvitation)
 from www.utils.crypt import make_tenant_id
 
 logger = logging.getLogger("default")
@@ -371,6 +371,33 @@ class TeamRegistryAuthRepo(object):
         return TeamRegistryAuth.objects.filter(tenant_id=tenant_id, region_name=region_name, domain=domain)
 
 
+class TeamInvitationRepo(object):
+    def list_by_user_id(self, user_id):
+        """获取用户收到的所有邀请"""
+        return TeamInvitation.objects.filter(user_id=user_id)
+    
+    def get_invitation_by_id(self, invitation_id):
+        """通过ID获取邀请信息"""
+        return TeamInvitation.objects.filter(invitation_id=invitation_id).first()
+    
+    def list_by_team_id(self, team_id):
+        """获取团队所有邀请记录"""
+        return TeamInvitation.objects.filter(tenant_id=team_id)
+    
+    def create_invitation(self, **params):
+        """创建新的团队邀请"""
+        return TeamInvitation.objects.create(**params)
+    
+    def delete_invitation(self, invitation_id):
+        """删除团队邀请"""
+        return TeamInvitation.objects.filter(invitation_id=invitation_id).delete()
+    
+    def update_invitation(self, invitation_id, **params):
+        """更新邀请信息"""
+        return TeamInvitation.objects.filter(invitation_id=invitation_id).update(**params)
+
+
 team_repo = TeamRepo()
 team_gitlab_repo = TeamGitlabRepo()
 team_registry_auth_repo = TeamRegistryAuthRepo()
+team_invitation_repo = TeamInvitationRepo()

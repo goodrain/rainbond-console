@@ -138,13 +138,15 @@ class EnterpriseOauthService(EnterpriseAdminView):
                     "is_git": l_service.is_git,
                     "authorize_url": authorize_url,
                     "enterprise_id": l_service.eid,
+                    "system": l_service.system,
                 })
         rst = {"data": {"list": all_services_list}}
         return Response(rst, status=status.HTTP_200_OK)
 
     def post(self, request, enterprise_id, *args, **kwargs):
         values = request.data.get("oauth_services")
-        services = oauth_repo.create_or_update_oauth_services(values, enterprise_id, self.user.user_id)
+        system = request.data.get("system")
+        services = oauth_repo.create_or_update_oauth_services(values, enterprise_id, self.user.user_id, system)
 
         data = []
         for service in services:
@@ -184,7 +186,7 @@ class OauthServiceInfo(EnterpriseAdminView):
             return Response(rst, status=status.HTTP_200_OK)
 
 
-class OAuthServiceRedirect(AlowAnyApiView):
+class OAuthServiceRedirect(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
         if not code:
@@ -198,7 +200,7 @@ class OAuthServiceRedirect(AlowAnyApiView):
         return HttpResponseRedirect(path.format(service.ID, code))
 
 
-class OAuthServerAuthorize(AlowAnyApiView):
+class OAuthServerAuthorize(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")

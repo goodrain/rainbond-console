@@ -150,7 +150,7 @@ from console.views.user import CheckSourceView, UserLogoutView, UserPemTraView, 
     AdminRolesView
 from console.views.user_accesstoken import UserAccessTokenCLView, UserAccessTokenRUDView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
-     UserDetailsView, UserFavoriteLCView, UserFavoriteUDView
+    UserDetailsView, UserFavoriteLCView, UserFavoriteUDView, UserInviteView, UserInviteJoinView
 from console.views.webhook import WebHooksDeploy, ImageWebHooksDeploy, CustomWebHooksDeploy, GetWebHooksUrl, \
     ImageWebHooksTrigger, WebHooksStatus, UpdateSecretKey
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
@@ -231,6 +231,9 @@ urlpatterns = [
     url(r'^users/query$', UserFuzSerView.as_view()),
     url(r"^users/access-token$", UserAccessTokenCLView.as_view()),
     url(r"^users/access-token/(?P<id>[\w\-]+)$", UserAccessTokenRUDView.as_view()),
+    # 用户邀请
+    url(r'^users/invite$', UserInviteView.as_view()),
+    url(r'^users/invite/(?P<invitation_id>[\w\-]+)$', UserInviteJoinView.as_view()),
 
     # 团队中用户详情页
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view(),

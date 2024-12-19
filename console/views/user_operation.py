@@ -3,11 +3,14 @@ import json
 import logging
 import re
 import time
+from datetime import datetime, timedelta
 
 from console.exception.exceptions import UserFavoriteNotExistError
 from console.forms.users_operation import RegisterForm
+from console.models.main import UserRole
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.perm_repo import perms_repo
+from console.repositories.team_repo import team_invitation_repo, team_repo
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.services.perm_services import (user_kind_perm_service, user_kind_role_service)
@@ -21,7 +24,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework_jwt.settings import api_settings
 from www.models.main import SuperAdminUser, Users
-from www.utils.crypt import AuthCode
+from www.utils.crypt import AuthCode, make_uuid
 from www.utils.mail import send_reset_pass_mail
 from www.utils.return_message import error_message, general_message
 from console.login.jwt_manager import JwtManager
@@ -391,6 +394,8 @@ class UserDetailsView(JWTAuthApiView):
         self.user.email = request.data.get("email")
         self.user.log = request.data.get("log")
         self.user.save()
+        result = general_message(200, "success", "用户信息更新成功")
+        return Response(result, status=status.HTTP_200_OK)
 
 class UserFavoriteLCView(JWTAuthApiView):
     def get(self, request, enterprise_id):
@@ -463,3 +468,134 @@ class UserFavoriteUDView(JWTAuthApiView):
             logger.debug(e)
             result = general_message(404, "fail", "收藏视图不存在")
         return Response(result, status=status.HTTP_200_OK)
+
+
+class UserInviteView(JWTAuthApiView):
+    def post(self, request, *args, **kwargs):
+        try:
+            team_id = request.data.get("team_id")
+            role_id = request.data.get("role_id", "")  
+            expired_days = request.data.get("expired_days", 7)
+            
+            if not team_id:
+                result = general_message(400, "params error", "参数错误")
+                return Response(result, status=400)
+                
+            # 验证团队是否存在
+            team = team_repo.get_team_by_team_id(team_id)
+            if not team:
+                result = general_message(404, "team not found", "团队不存在")
+                return Response(result, status=404)
+                
+            # 创建邀请时保存role_id
+            invite = team_invitation_repo.create_invitation(
+                team_id=team_id,
+                inviter_id=self.user.user_id,
+                invitation_id=make_uuid(),
+                role_id=role_id,  # 添加role_id
+                expired_time=datetime.now() + timedelta(days=expired_days)
+            )
+
+            result = general_message(200, "success", "邀请创建成功", 
+                                  bean={"invite_id": invite.invitation_id})
+            return Response(result, status=200)
+            
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
+
+
+class UserInviteJoinView(JWTAuthApiView):
+    def get(self, request, invitation_id, *args, **kwargs):
+        """
+        获取用户邀请信息
+        ---
+        """
+        try:
+            invite = team_invitation_repo.get_invitation_by_id(invitation_id)
+            
+            # 检查邀请是否过期
+            if invite.expired_time < datetime.now():
+                result = general_message(400, "invitation expired", "邀请已过期")
+                return Response(result, status=400)
+            
+            team = team_repo.get_team_by_team_id(invite.tenant_id)
+            inviter = user_repo.get_user_by_user_id(invite.inviter_id)
+            invite_info = {
+                "invite_id": invite.invitation_id,
+                "team_name": team.tenant_name, 
+                "team_alias": team.tenant_alias,
+                "invite_time": invite.create_time,
+                "inviter": inviter.real_name if inviter.real_name else inviter.nick_name,
+                "expired_time": invite.expired_time  # 添加过期时间
+            }
+            result = general_message(200, "success", "获取邀请信息成功", bean=invite_info)
+            return Response(result, status=200)
+        
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)
+
+    def post(self, request, *args, **kwargs):
+        """
+        处理用户邀请
+        ---
+        parameters:
+            - name: invite_id
+              description: 邀请ID
+              required: true
+              type: string
+              paramType: form
+            - name: action
+              description: 操作(accept/reject)
+              required: true
+              type: string
+              paramType: form
+        """
+        try:
+            invite_id = request.data.get("invite_id") 
+            action = request.data.get("action")
+
+            if not invite_id or not action:
+                result = general_message(400, "params error", "参数错误")
+                return Response(result, status=400)
+
+            if action not in ["accept", "reject"]:
+                result = general_message(400, "params error", "无效的操作类型")
+                return Response(result, status=400)
+
+            # 获取邀请信息
+            invite = team_invitation_repo.get_invitation_by_id(invite_id)
+            if not invite:
+                result = general_message(404, "not found", "邀请不存在")
+                return Response(result, status=404)
+
+            # 处理邀请
+            if action == "accept":
+                # 使用邀请中的role_id添加用户到团队
+                perm = team_repo.create_team_perms(
+                    user_id=self.user.user_id,
+                    tenant_id=invite.tenant_id,
+                    enterprise_id=self.enterprise.enterprise_id
+                )
+                if not perm:
+                    result = general_message(400, "failed", "加入团队失败")
+                    return Response(result, status=400)
+                ur = UserRole(user_id=self.user.user_id, role_id=invite.role_id)
+                ur.save()
+                msg = "已接受邀请"
+            else:
+                msg = "已拒绝邀请"
+
+            # 更新邀请状态
+            team_invitation_repo.update_invitation(invite_id, is_accepted=(action == "accept"))
+
+            result = general_message(200, "success", msg)
+            return Response(result, status=200)
+
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
+            return Response(result, status=500)

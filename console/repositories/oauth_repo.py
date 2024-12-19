@@ -44,7 +44,7 @@ class OAuthRepo(object):
     def get_by_name(name, user_id):
         return OAuthServices.objects.get(name=name, user_id=user_id)
 
-    def create_or_update_oauth_services(self, values, eid=None, user_id=""):
+    def create_or_update_oauth_services(self, values, eid=None, user_id="", system=""):
         querysetlist = []
         for value in values:
             instance = get_oauth_instance(value["oauth_type"])
@@ -78,6 +78,7 @@ class OAuthRepo(object):
                         is_deleted=value.get("is_deleted", False),
                         is_git=is_git,
                         user_id=user_id,
+                        system=system,
                     )
                 )
             else:

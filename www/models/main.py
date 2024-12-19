@@ -960,3 +960,18 @@ class TaskEvent(BaseModel):
     status = models.CharField(max_length=255)  # 对应 Status
     event_id = models.CharField(max_length=255)  # 对应 EventID
     reason = models.CharField(max_length=255)  # 对应 Reason
+
+
+class TeamInvitation(BaseModel):
+    """团队邀请信息"""
+    
+    class Meta:
+        db_table = 'team_invitation'
+        
+    invitation_id = models.CharField(max_length=32, unique=True, help_text="邀请ID")
+    tenant_id = models.CharField(max_length=32, help_text="团队ID") 
+    inviter_id = models.IntegerField(help_text="邀请人ID")
+    role_id = models.IntegerField(help_text="角色ID", null=True, blank=True)
+    expired_time = models.DateTimeField(help_text="过期时间")
+    is_accepted = models.BooleanField(default=False, help_text="是否已接受邀请")
+    create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
