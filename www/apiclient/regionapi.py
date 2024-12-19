@@ -2786,10 +2786,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
         return body
 
-    def get_proxy(self, region_name, path, check_status=True):
+    def get_proxy(self, region_name, path, check_status=True, app_id=""):
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
+        if app_id:
+            region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
+            path = path.replace("appID=" + str(app_id), "appID=" + region_app_id) + "&intID=" + str(app_id)
         url = region_info.url + path
         self._set_headers(region_info.token)
         res, body = self._get(url, self.default_headers, region=region_name, check_status=check_status)
@@ -2993,9 +2996,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 "servicePort": container_port
             }
         }
+        region_app_id = region_app_repo.get_region_app_id(region, app_id)
 
         path = "/v2/proxy-pass/gateway/" + tenant_name + "/routes/tcp?appID=" + str(
-            app_id) + "&service_id=" + service_id + "&service_type=" + service_type + "&port=" + str(container_port)
+            region_app_id) + "&service_id=" + service_id + "&service_type=" + service_type + "&port=" + str(container_port)
         return self.post_proxy(region, path, data)
 
     def api_gateway_bind_http_domain(self, service_name, region, tenant_name, domains, svc, app_id):
