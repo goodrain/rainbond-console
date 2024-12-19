@@ -347,6 +347,8 @@ class AppCheckService(object):
             port_service.delete_service_port(tenant, service)
             region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, service.service_region)
             for port in ports:
+                if port["protocol"] not in ["tcp", "udp", "http"]:
+                    port["protocol"] = "tcp"
                 code, msg, port_data = port_service.add_service_port(
                     tenant, service, int(port["container_port"]), port["protocol"],
                     service.service_alias.upper() + str(port["container_port"]), True, True)
