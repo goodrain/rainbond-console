@@ -91,7 +91,7 @@ class EnterpriseRUDView(JWTAuthApiView):
                         region_services.create_sample_application(enter, region, request.user)
                 default_region = region.to_dict()
             ent["default_region"] = default_region
-            ent.update(EnterpriseConfigService(enterprise_id).initialization_or_get_config)
+            ent.update(EnterpriseConfigService(enterprise_id, self.user.user_id).initialization_or_get_config)
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 

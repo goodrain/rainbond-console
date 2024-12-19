@@ -51,8 +51,8 @@ class OauthService(EnterpriseAdminView):
     def get(self, request, *args, **kwargs):
         all_services_list = []
         eid = request.user.enterprise_id
-        service = oauth_repo.get_conosle_oauth_service(eid)
-        all_services = oauth_repo.get_all_oauth_services(eid)
+        service = oauth_repo.get_conosle_oauth_service(eid, self.user.user_id)
+        all_services = oauth_repo.get_all_oauth_services(eid, self.user.user_id)
         if all_services is not None:
             for l_service in all_services:
                 api = get_oauth_instance(l_service.oauth_type, service, None)
@@ -82,11 +82,11 @@ class OauthService(EnterpriseAdminView):
         values = request.data.get("oauth_services")
         eid = request.user.enterprise_id
         try:
-            services = oauth_repo.create_or_update_console_oauth_services(values, eid)
+            services = oauth_repo.create_or_update_console_oauth_services(values, eid, self.user.user_id)
         except Exception as e:
             logger.exception(e)
             return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
-        service = oauth_repo.get_conosle_oauth_service(eid)
+        service = oauth_repo.get_conosle_oauth_service(eid, self.user.user_id)
         api = get_oauth_instance(service.oauth_type, service, None)
         authorize_url = api.get_authorize_url()
         data = []
@@ -115,8 +115,8 @@ class OauthService(EnterpriseAdminView):
 class EnterpriseOauthService(EnterpriseAdminView):
     def get(self, request, enterprise_id, *args, **kwargs):
         all_services_list = []
-        service = oauth_repo.get_conosle_oauth_service(enterprise_id)
-        all_services = oauth_repo.get_all_oauth_services(enterprise_id)
+        service = oauth_repo.get_conosle_oauth_service(enterprise_id, self.user.user_id)
+        all_services = oauth_repo.get_all_oauth_services(enterprise_id, self.user.user_id)
         if all_services is not None:
             for l_service in all_services:
                 api = get_oauth_instance(l_service.oauth_type, service, None)
@@ -144,7 +144,7 @@ class EnterpriseOauthService(EnterpriseAdminView):
 
     def post(self, request, enterprise_id, *args, **kwargs):
         values = request.data.get("oauth_services")
-        services = oauth_repo.create_or_update_oauth_services(values, enterprise_id)
+        services = oauth_repo.create_or_update_oauth_services(values, enterprise_id, self.user.user_id)
 
         data = []
         for service in services:
@@ -190,7 +190,7 @@ class OAuthServiceRedirect(AlowAnyApiView):
         if not code:
             return HttpResponseRedirect("/")
         service_id = request.GET.get("service_id")
-        service = oauth_repo.get_oauth_services_by_service_id(service_id)
+        service = oauth_repo.get_oauth_services_by_service_id(self.user.user_id, service_id)
         route_mode = os.getenv("ROUTE_MODE", "hash")
         path = "/#/oauth/callback?service_id={}&code={}"
         if route_mode == "history":
@@ -205,7 +205,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
         domain = request.GET.get("domain")
         home_split_url = None
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(self.user.user_id, service_id)
             if oauth_service.oauth_type == "enterprisecenter" and domain:
                 home_split_url = urlsplit(oauth_service.home_url)
                 oauth_service.proxy_home_url = home_split_url.scheme + "://" + domain + home_split_url.path
@@ -242,7 +242,7 @@ class OauthUserLogoutView(AlowAnyApiView):
         client_secret = parse_item(request, "client_secret", required=True)
         user_id = parse_item(request, "user_id", required=True)
 
-        oauth_service = oauth_repo.get_by_client_id(client_id)
+        oauth_service = oauth_repo.get_by_client_id(client_id, user_id)
         if oauth_service.oauth_type != "dbox":
             raise AbortRequest("unsupported oauth type {} for oauth user logout".format(oauth_service.oauth_type))
         if oauth_service.client_secret != client_secret:
@@ -296,7 +296,7 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
         code = request.data.get("code")
         service_id = request.data.get("service_id")
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(self.user.user_id, service_id)
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
@@ -357,7 +357,7 @@ class UserOAuthLink(JWTAuthApiView):
         oauth_user_id = str(request.data.get("oauth_user_id"))
         service_id = request.data.get("service_id")
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(self.user.user_id, service_id=service_id)
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
@@ -394,7 +394,7 @@ class OAuthGitUserRepositories(JWTAuthApiView):
         page = request.GET.get("page", 1)
         search = request.GET.get("search", '')
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(user_id, service_id=service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.debug(e)
@@ -437,7 +437,7 @@ class OAuthGitUserRepository(JWTAuthApiView):
         full_name = '/'.join([path, name])
         user_id = request.user.user_id
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(user_id, service_id=service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.debug(e)
@@ -486,7 +486,7 @@ class OAuthGitUserRepositoryBranches(JWTAuthApiView):
         type = request.GET.get("type")
         full_name = request.GET.get("full_name")
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(user_id, service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.debug(e)
@@ -522,7 +522,7 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         version = request.data.get("version")
         user_id = request.user.user_id
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(user_id, service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.exception(e)

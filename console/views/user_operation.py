@@ -345,6 +345,7 @@ class UserDetailsView(JWTAuthApiView):
         user_detail["user_id"] = user.user_id
         user_detail["user_name"] = user.nick_name
         user_detail["real_name"] = user.real_name
+        user_detail["logo"] = user.logo
         user_detail["email"] = user.email
         user_detail["enterprise_id"] = user.enterprise_id
         user_detail["phone"] = user.phone
@@ -385,6 +386,13 @@ class UserDetailsView(JWTAuthApiView):
         result = general_message(code, "Obtain my details to be successful.", "获取我的详情成功", bean=user_detail)
         return Response(result, status=code)
 
+    def post(self, request, *args, **kwargs):
+        self.user.real_name = request.data.get("real_name")
+        self.user.email = request.data.get("email")
+        self.user.log = request.data.get("log")
+        password = request.data.get("password")
+        self.user.set_password(password)
+        self.user.save()
 
 class UserFavoriteLCView(JWTAuthApiView):
     def get(self, request, enterprise_id):

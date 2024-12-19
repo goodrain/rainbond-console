@@ -210,10 +210,10 @@ class EnterpriseServiceOauthView(APIView):
     def initial(self, request, *args, **kwargs):
         super(EnterpriseServiceOauthView, self).initial(request, *args, **kwargs)
         try:
-            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
+            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1, user_id=request.user.user_id)
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
             if pre_enterprise_center:
-                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
+                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter", user_id=request.user.user_id)
             oauth_user = UserOAuthServices.objects.get(service_id=oauth_service.ID, user_id=request.user.user_id)
         except OAuthServices.DoesNotExist:
             raise ServiceHandleException(

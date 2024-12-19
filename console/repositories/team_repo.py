@@ -348,8 +348,11 @@ class TeamGitlabRepo(object):
 
 
 class TeamRegistryAuthRepo(object):
-    def list_by_team_id(self, tenant_id, region_name):
-        return TeamRegistryAuth.objects.filter(tenant_id=tenant_id, region_name=region_name)
+    def list_by_team_id(self, tenant_id, region_name, user_id):
+        return TeamRegistryAuth.objects.filter(tenant_id=tenant_id, region_name=region_name, user_id=user_id)
+
+    def check_exist_registry_auth(self, secret_id, user_id):
+        return TeamRegistryAuth.objects.filter(secret_id=secret_id, user_id=user_id)
 
     def create_team_registry_auth(self, **params):
         return TeamRegistryAuth.objects.create(**params)
@@ -358,8 +361,8 @@ class TeamRegistryAuthRepo(object):
         return TeamRegistryAuth.objects.filter(
             tenant_id=tenant_id, region_name=region_name, secret_id=secret_id).update(**params)
 
-    def delete_team_registry_auth(self, tenant_id, region_name, secret_id):
-        return TeamRegistryAuth.objects.filter(tenant_id=tenant_id, region_name=region_name, secret_id=secret_id).delete()
+    def delete_team_registry_auth(self, tenant_id, region_name, secret_id, user_id):
+        return TeamRegistryAuth.objects.filter(tenant_id=tenant_id, region_name=region_name, secret_id=secret_id, user_id=user_id).delete()
 
     def get_by_secret_id(self, secret_id):
         return TeamRegistryAuth.objects.filter(secret_id=secret_id)

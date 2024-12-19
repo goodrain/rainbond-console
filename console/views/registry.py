@@ -11,7 +11,7 @@ from console.views.base import JWTAuthApiView
 class HubRegistryView(JWTAuthApiView):
     @never_cache
     def get(self, request, *args, **kwargs):
-        result = team_services.list_registry_auths('', '')
+        result = team_services.list_registry_auths('', '', self.user.user_id)
         auths = [auth.to_dict() for auth in result]
         result = general_message(200, "success", "查询成功", list=auths)
         return Response(result, status=result["code"])
@@ -20,7 +20,12 @@ class HubRegistryView(JWTAuthApiView):
         domain = parse_item(request, "domain", required=True)
         username = parse_item(request, "username", required=True)
         password = parse_item(request, "password", required=True)
+        hub_type = parse_item(request, "hub_type", required=True)
         secret_id = parse_item(request, "secret_id", required=True)
+        ra = team_registry_auth_repo.check_exist_registry_auth(secret_id, self.user.user_id)
+        if ra.exists():
+            result = general_message(400, "error", "资源已存在")
+            return Response(result, status=result["code"])
         params = {
             "tenant_id": '',
             "region_name": '',
@@ -28,6 +33,8 @@ class HubRegistryView(JWTAuthApiView):
             "domain": domain,
             "username": username,
             "password": password,
+            "hub_type": hub_type,
+            "user_id": self.user.user_id,
         }
         team_registry_auth_repo.create_team_registry_auth(**params)
 
@@ -38,7 +45,8 @@ class HubRegistryView(JWTAuthApiView):
         secret_id = request.GET.get("secret_id")
         data = {
             "username": parse_item(request, "username", required=True),
-            "password": parse_item(request, "password", required=True)
+            "password": parse_item(request, "password", required=True),
+            "hub_type": parse_item(request, "hub_type", required=True),
         }
         auth = team_registry_auth_repo.get_by_secret_id(secret_id)
         if not auth:
@@ -51,6 +59,6 @@ class HubRegistryView(JWTAuthApiView):
 
     def delete(self, request, *args, **kwargs):
         secret_id = request.GET.get("secret_id")
-        team_registry_auth_repo.delete_team_registry_auth('', '', secret_id)
+        team_registry_auth_repo.delete_team_registry_auth('', '', secret_id, self.user.user_id)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])

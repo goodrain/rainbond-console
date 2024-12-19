@@ -103,6 +103,7 @@ class Users(models.Model):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
     sys_admin = models.BooleanField(default=False, help_text="超级管理员")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text="统一认证中心的enterprise_id")
+    logo = models.CharField(max_length=2048, null=True, help_text="用户头像")
 
     def set_password(self, raw_password):
         self.password = encrypt_passwd(self.email + raw_password)

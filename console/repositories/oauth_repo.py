@@ -10,41 +10,41 @@ logger = logging.getLogger('default')
 
 
 class OAuthRepo(object):
-    def get_conosle_oauth_service(self, eid):
-        return OAuthServices.objects.filter(eid=eid, is_deleted=False, is_console=True).first()
+    def get_conosle_oauth_service(self, eid, user_id):
+        return OAuthServices.objects.filter(eid=eid, is_deleted=False, is_console=True, user_id=user_id).first()
 
-    def get_all_oauth_services(self, eid):
-        return OAuthServices.objects.filter(eid=eid, is_deleted=False)
+    def get_all_oauth_services(self, eid, user_id):
+        return OAuthServices.objects.filter(eid=eid, is_deleted=False, user_id=user_id)
 
-    def get_oauth_services(self, eid):
-        return OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True)
+    def get_oauth_services(self, eid, user_id):
+        return OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True, user_id=user_id)
 
-    def get_oauth_services_by_type(self, oauth_type, eid):
-        return OAuthServices.objects.filter(oauth_type=oauth_type, eid=eid, enable=True, is_deleted=False)
+    def get_oauth_services_by_type(self, oauth_type, eid, user_id):
+        return OAuthServices.objects.filter(oauth_type=oauth_type, eid=eid, enable=True, is_deleted=False, user_id=user_id)
 
-    def get_oauth_services_by_service_id(self, service_id=None):
+    def get_oauth_services_by_service_id(self, user_id, service_id=None):
         if not service_id:
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
             if pre_enterprise_center:
-                return OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
-            return OAuthServices.objects.filter(oauth_type="enterprisecenter", enable=True, is_deleted=False).first()
-        return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
+                return OAuthServices.objects.get(user_id=user_id, name=pre_enterprise_center, oauth_type="enterprisecenter")
+            return OAuthServices.objects.filter(user_id=user_id, oauth_type="enterprisecenter", enable=True, is_deleted=False).first()
+        return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False, user_id=user_id)
 
     @staticmethod
-    def get_by_client_id(client_id):
+    def get_by_client_id(client_id, user_id):
         try:
-            return OAuthServices.objects.get(client_id=client_id, enable=True, is_deleted=False)
+            return OAuthServices.objects.get(client_id=client_id, enable=True, is_deleted=False, user_id=user_id)
         except OAuthServices.DoesNotExist:
             raise ErrOauthServiceNotFound
 
-    def open_get_oauth_services_by_service_id(self, service_id):
-        return OAuthServices.objects.filter(ID=service_id, is_deleted=False).first()
+    def open_get_oauth_services_by_service_id(self, service_id, user_id):
+        return OAuthServices.objects.filter(ID=service_id, is_deleted=False, user_id=user_id).first()
 
     @staticmethod
-    def get_by_name(name):
-        return OAuthServices.objects.get(name=name)
+    def get_by_name(name, user_id):
+        return OAuthServices.objects.get(name=name, user_id=user_id)
 
-    def create_or_update_oauth_services(self, values, eid=None):
+    def create_or_update_oauth_services(self, values, eid=None, user_id=""):
         querysetlist = []
         for value in values:
             instance = get_oauth_instance(value["oauth_type"])
@@ -56,7 +56,7 @@ class OAuthRepo(object):
             if value.get("service_id") is None:
                 # check if the name exists
                 try:
-                    self.get_by_name(value["name"])
+                    self.get_by_name(value["name"], user_id)
                     raise ErrOauthServiceExists
                 except OAuthServices.DoesNotExist:
                     pass
@@ -76,15 +76,18 @@ class OAuthRepo(object):
                         is_auto_login=value["is_auto_login"],
                         is_console=value["is_console"],
                         is_deleted=value.get("is_deleted", False),
-                        is_git=is_git))
+                        is_git=is_git,
+                        user_id=user_id,
+                    )
+                )
             else:
                 if value.get("is_deleted"):
-                    self.delete_oauth_service(service_id=value.get("service_id"))
+                    self.delete_oauth_service(service_id=value.get("service_id"), user_id=user_id)
                 else:
-                    old_service = self.open_get_oauth_services_by_service_id(service_id=value.get("service_id"))
+                    old_service = self.open_get_oauth_services_by_service_id(service_id=value.get("service_id"), user_id=user_id)
                     if old_service.home_url != value["home_url"]:
                         UserOAuthServices.objects.filter(service_id=value.get("service_id")).delete()
-                    OAuthServices.objects.filter(ID=value["service_id"]).update(
+                    OAuthServices.objects.filter(ID=value["service_id"], user_id=user_id).update(
                         name=value["name"],
                         eid=value["eid"],
                         redirect_uri=value["redirect_uri"],
@@ -98,11 +101,11 @@ class OAuthRepo(object):
             if eid is None:
                 eid = value["eid"]
         OAuthServices.objects.bulk_create(querysetlist)
-        rst = OAuthServices.objects.filter(eid=eid)
+        rst = OAuthServices.objects.filter(eid=eid, user_id=user_id)
         return rst
 
-    def create_or_update_console_oauth_services(self, values, eid):
-        old_oauth_service = OAuthServices.objects.filter(eid=eid, is_console=True).first()
+    def create_or_update_console_oauth_services(self, values, eid, user_id):
+        old_oauth_service = OAuthServices.objects.filter(eid=eid, is_console=True, user_id=user_id).first()
         for value in values[:1]:
             if value["oauth_type"] in list(support_oauth_type.keys()):
                 instance = get_oauth_instance(value["oauth_type"])
@@ -125,9 +128,11 @@ class OAuthRepo(object):
                         enable=value["enable"],
                         is_auto_login=value["is_auto_login"],
                         is_console=value["is_console"],
-                        is_git=is_git)
+                        is_git=is_git,
+                        user_id=user_id,
+                    )
                 elif old_oauth_service is not None and value.get("service_id") == old_oauth_service.ID:
-                    OAuthServices.objects.filter(ID=value["service_id"]).update(
+                    OAuthServices.objects.filter(ID=value["service_id"], user_id=user_id).update(
                         name=value["name"],
                         eid=value["eid"],
                         redirect_uri=value["redirect_uri"],
@@ -140,11 +145,11 @@ class OAuthRepo(object):
                         is_console=value["is_console"])
             else:
                 raise Exception("未找到该OAuth类型")
-            rst = OAuthServices.objects.filter(eid=eid, is_console=True)
+            rst = OAuthServices.objects.filter(eid=eid, is_console=True, user_id=user_id)
             return rst
 
-    def delete_oauth_service(self, service_id):
-        OAuthServices.objects.filter(ID=service_id).delete()
+    def delete_oauth_service(self, service_id, user_id):
+        OAuthServices.objects.filter(ID=service_id, user_id=user_id).delete()
 
 
 class UserOAuthRepo(object):
@@ -252,7 +257,7 @@ class UserOAuthRepo(object):
 
     def get_user_oauth_services_info(self, eid, user_id):
         oauth_services = []
-        services = OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True)
+        services = OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True, user_id=user_id)
         for service in services:
             user_service = self.get_user_oauth_by_user_id(service_id=service.ID, user_id=user_id)
             api = get_oauth_instance(service.oauth_type, service, None)

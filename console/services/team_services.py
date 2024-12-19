@@ -621,11 +621,11 @@ class TeamService(object):
     def check_resource_name(tenant_name: str, region_name: str, rtype: string, name: str):
         return region_api.check_resource_name(tenant_name, region_name, rtype, name)
 
-    def list_registry_auths(self, tenant_id, region_name):
-        return team_registry_auth_repo.list_by_team_id(tenant_id, region_name)
+    def list_registry_auths(self, tenant_id, region_name, user_id):
+        return team_registry_auth_repo.list_by_team_id(tenant_id, region_name, user_id)
 
     @transaction.atomic()
-    def create_registry_auth(self, tenant, region_name, domain, username, password):
+    def create_registry_auth(self, tenant, region_name, domain, username, password, hub_type, user_id):
         auth = team_registry_auth_repo.get_by_team_id_domain(tenant.tenant_id, region_name, domain)
         if auth:
             raise ServiceHandleException(
@@ -650,8 +650,8 @@ class TeamService(object):
         region_api.update_registry_auth(tenant.tenant_name, region_name, auth[0].to_dict())
 
     @transaction.atomic()
-    def delete_registry_auth(self, tenant, region_name, secret_id):
-        team_registry_auth_repo.delete_team_registry_auth(tenant.tenant_id, region_name, secret_id)
+    def delete_registry_auth(self, tenant, region_name, secret_id, user_id):
+        team_registry_auth_repo.delete_team_registry_auth(tenant.tenant_id, region_name, secret_id, user_id)
         region_api.delete_registry_auth(tenant.tenant_name, region_name, {
             "secret_id": secret_id,
             "tenant_id": tenant.tenant_id

@@ -223,7 +223,7 @@ urlpatterns = [
     # 修改密码
     url(r'^users/changepwd$', ChangeLoginPassword.as_view()),
 
-    # 全局镜像仓库配置
+    # 镜像仓库配置
     url(r'^hub/registry$', HubRegistryView.as_view()),
     # 我的详情
     url(r'^users/details$', UserDetailsView.as_view()),

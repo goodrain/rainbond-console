@@ -160,9 +160,10 @@ class ConfigService(object):
 
 
 class EnterpriseConfigService(ConfigService):
-    def __init__(self, eid):
+    def __init__(self, eid, user_id):
         super(EnterpriseConfigService, self).__init__()
         self.enterprise_id = eid
+        self.user_id = user_id
         self.base_cfg_keys = ["OAUTH_SERVICES"]
         self.cfg_keys = [
             "APPSTORE_IMAGE_HUB", "NEWBIE_GUIDE", "EXPORT_APP", "CLOUD_MARKET", "OBJECT_STORAGE", "AUTO_SSL", "TITLE", "LOGO",
@@ -317,9 +318,9 @@ class EnterpriseConfigService(ConfigService):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.enterprise_id)
         if enterprise.ID != 1:
             oauth_services = OAuthServices.objects.filter(
-                ~Q(oauth_type="enterprisecenter"), eid=enterprise.enterprise_id, is_deleted=False, enable=True)
+                ~Q(oauth_type="enterprisecenter"), eid=enterprise.enterprise_id, is_deleted=False, enable=True, user_id=self.user_id)
         else:
-            oauth_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True)
+            oauth_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True, user_id=self.user_id)
         if oauth_services:
             for oauth_service in oauth_services:
                 try:
