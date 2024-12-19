@@ -104,7 +104,7 @@ class EnterpriseRUDView(JWTAuthApiView):
         if not value:
             result = general_message(404, "no found config value", "更新失败")
             return Response(result, status=result.get("code", 200))
-        ent_config_servier = EnterpriseConfigService(enterprise_id)
+        ent_config_servier = EnterpriseConfigService(enterprise_id, self.user.user_id)
         key = key.upper()
         if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
             try:
@@ -126,7 +126,7 @@ class EnterpriseRUDView(JWTAuthApiView):
         if not value:
             result = general_message(404, "no found config value", "重置失败")
             return Response(result, status=result.get("code", 200))
-        ent_config_servier = EnterpriseConfigService(enterprise_id)
+        ent_config_servier = EnterpriseConfigService(enterprise_id, self.user.user_id)
         key = key.upper()
         if key in ent_config_servier.cfg_keys:
             data = ent_config_servier.delete_config(key)

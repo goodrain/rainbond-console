@@ -390,8 +390,6 @@ class UserDetailsView(JWTAuthApiView):
         self.user.real_name = request.data.get("real_name")
         self.user.email = request.data.get("email")
         self.user.log = request.data.get("log")
-        password = request.data.get("password")
-        self.user.set_password(password)
         self.user.save()
 
 class UserFavoriteLCView(JWTAuthApiView):
