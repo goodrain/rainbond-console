@@ -302,8 +302,6 @@ class NewComponents(object):
             port_protocol = port.get("protocol", "tcp")
             if port_protocol not in ["tcp", "udp", "http"]:
                 port_protocol = "tcp"
-            if port_protocol == "tcp":
-                port["is_outer_service"] = False
             t_port = TenantServicesPort(
                 tenant_id=component.tenant_id,
                 service_id=component.service_id,
