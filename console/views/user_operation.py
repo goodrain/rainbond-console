@@ -538,7 +538,7 @@ class UserInviteJoinView(JWTAuthApiView):
             result = error_message(e.message)
             return Response(result, status=500)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request, invitation_id, *args, **kwargs):
         """
         处理用户邀请
         ---
@@ -555,10 +555,9 @@ class UserInviteJoinView(JWTAuthApiView):
               paramType: form
         """
         try:
-            invite_id = request.data.get("invite_id") 
             action = request.data.get("action")
 
-            if not invite_id or not action:
+            if not invitation_id or not action:
                 result = general_message(400, "params error", "参数错误")
                 return Response(result, status=400)
 
@@ -567,7 +566,7 @@ class UserInviteJoinView(JWTAuthApiView):
                 return Response(result, status=400)
 
             # 获取邀请信息
-            invite = team_invitation_repo.get_invitation_by_id(invite_id)
+            invite = team_invitation_repo.get_invitation_by_id(invitation_id)
             if not invite:
                 result = general_message(404, "not found", "邀请不存在")
                 return Response(result, status=404)
@@ -590,7 +589,7 @@ class UserInviteJoinView(JWTAuthApiView):
                 msg = "已拒绝邀请"
 
             # 更新邀请状态
-            team_invitation_repo.update_invitation(invite_id, is_accepted=(action == "accept"))
+            team_invitation_repo.update_invitation(invitation_id, is_accepted=(action == "accept"))
 
             result = general_message(200, "success", msg)
             return Response(result, status=200)

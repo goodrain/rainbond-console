@@ -74,6 +74,8 @@ class HubRegistryImageView(JWTAuthApiView):
         namespace = request.GET.get("namespace")
         name = request.GET.get("name")
         tag = request.GET.get("tag")
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
         
         if not secret_id:
             result = general_message(400, "error", "缺少secret_id参数")
@@ -96,26 +98,38 @@ class HubRegistryImageView(JWTAuthApiView):
                 )
                 result = general_message(200, "success", "查询成功", list=namespaces)
             elif not name:
-                # 获取指定命名空间下的镜像列表
-                images = team_services.get_registry_images(
-                    domain=auth.domain,
-                    username=auth.username,
-                    password=auth.password,
-                    hub_type=auth.hub_type,
-                    namespace=namespace
-                )
-                result = general_message(200, "success", "查询成功", list=images)
-            elif not tag:
-                # 获取指定镜像的标签列表
-                tags = team_services.get_registry_tags(
+                # 获取指定命名空间下的镜像列表(分页)
+                data = team_services.get_registry_images(
                     domain=auth.domain,
                     username=auth.username,
                     password=auth.password,
                     hub_type=auth.hub_type,
                     namespace=namespace,
-                    name=name
+                    page=page,
+                    page_size=page_size
                 )
-                result = general_message(200, "success", "查询成功", list=tags)
+                result = general_message(200, "success", "查询成功", 
+                                      list=data["images"],
+                                      total=data["total"],
+                                      page=data["page"],
+                                      page_size=data["page_size"])
+            elif not tag:
+                # 获取指定镜像的标签列表(分页)
+                data = team_services.get_registry_tags(
+                    domain=auth.domain,
+                    username=auth.username,
+                    password=auth.password,
+                    hub_type=auth.hub_type,
+                    namespace=namespace,
+                    name=name,
+                    page=page,
+                    page_size=page_size
+                )
+                result = general_message(200, "success", "查询成功", 
+                                      list=data["tags"],
+                                      total=data["total"],
+                                      page=data["page"],
+                                      page_size=data["page_size"])
             else:
                 # 获取完整的镜像地址
                 full_image = team_services.get_full_image_name(

@@ -24,7 +24,6 @@ from console.services.enterprise_services import enterprise_services
 from console.services.exception import ErrTenantRegionNotFound
 from console.services.perm_services import (role_kind_services, user_kind_role_service)
 from console.services.region_services import region_services
-from django.conf import settings
 from django.core.paginator import Paginator, EmptyPage
 from django.db import transaction
 from django.db.models import Q
@@ -743,15 +742,37 @@ class TeamService(object):
                 msg_show="连接Docker Hub失败", 
                 status_code=500)
 
-    def get_registry_images(self, domain, username, password, hub_type, namespace):
-        """获取指定命名空间下的镜像列表
+    def get_registry_images(self, domain, username, password, hub_type, namespace, page=1, page_size=10):
+        """获取指定命名空间下的镜像列表,支持分页并返回详细信息
+        
+        Returns:
+            dict: 包含镜像详细信息的字典,格式如下:
+            {
+                "images": [{
+                    "name": str,                # 镜像名称
+                    "namespace": str,           # 命名空间
+                    "description": str,         # 描述
+                    "is_public": bool,          # 是否公开
+                    "pull_count": int,          # 拉取次数  
+                    "star_count": int,          # 星标数
+                    "created_at": str,          # 创建时间
+                    "updated_at": str,          # 更新时间
+                    "size": int,                # 镜像大小(bytes)
+                    "status": str,              # 状态
+                }],
+                "total": int,                   # 总数
+                "page": int,                    # 当前页
+                "page_size": int                # 每页大小
+            }
         """
         try:
             parsed_url = urlparse(domain)
             base_url = parsed_url.scheme + "://" + parsed_url.netloc
             
             if hub_type == "Harbor":
-                api_url = "{}/api/v2.0/projects/{}/repositories".format(base_url, namespace)
+                # Harbor API
+                api_url = "{}/api/v2.0/projects/{}/repositories?page={}&page_size={}".format(
+                    base_url, namespace, page, page_size)
                 response = requests.get(
                     api_url,
                     auth=(username, password),
@@ -760,18 +781,65 @@ class TeamService(object):
                 )
                 if response.status_code == 200:
                     repositories = response.json()
-                    return [repo["name"].split("/")[-1] for repo in repositories]
+                    total = int(response.headers.get('X-Total-Count', 0))
+                    
+                    images = []
+                    for repo in repositories:
+                        # 统一返回字段
+                        images.append({
+                            "name": repo["name"].split("/")[-1],
+                            "namespace": namespace,
+                            "description": repo.get("description", ""),
+                            "is_public": not repo.get("private", True),
+                            "pull_count": repo.get("pull_count", 0), 
+                            "star_count": 0,  # Harbor没有star功能,默认为0
+                            "created_at": repo.get("creation_time", ""),
+                            "updated_at": repo.get("update_time", ""),
+                            "status": "active" if repo.get("status", "") == "active" else "inactive",
+                            "registry_type": "Harbor"
+                        })
+                    
+                    return {
+                        "images": images,
+                        "total": total,
+                        "page": page,
+                        "page_size": page_size
+                    }
                     
             elif hub_type == "Docker":
-                api_url = "https://hub.docker.com/v2/repositories/{}/".format(namespace)
+                # Docker Hub API
+                api_url = "https://hub.docker.com/v2/repositories/{}/?page={}&page_size={}&include_tags_count=1".format(
+                    namespace, page, page_size)
                 response = requests.get(
                     api_url,
                     headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
                     timeout=10
                 )
                 if response.status_code == 200:
-                    repositories = response.json().get("results", [])
-                    return [repo["name"] for repo in repositories]
+                    data = response.json()
+                    repositories = data.get("results", [])
+                    images = []
+                    for repo in repositories:
+                        # 统一返回字段
+                        images.append({
+                            "name": repo["name"],
+                            "namespace": namespace,
+                            "description": repo.get("description", ""),
+                            "is_public": not repo.get("is_private", False),
+                            "pull_count": repo.get("pull_count", 0),
+                            "star_count": repo.get("star_count", 0),
+                            "created_at": repo.get("date_registered", ""),
+                            "updated_at": repo.get("last_updated", ""),
+                            "status": repo.get("status", "active"),
+                            "registry_type": "Docker"
+                        })
+                    
+                    return {
+                        "images": images,
+                        "total": data.get("count", 0),
+                        "page": page,
+                        "page_size": page_size
+                    }
                     
             raise ServiceHandleException(
                 msg="failed to get registry images, status:{}".format(response.status_code),
@@ -785,15 +853,35 @@ class TeamService(object):
                 msg_show="连接镜像仓库失败",
                 status_code=500)
 
-    def get_registry_tags(self, domain, username, password, hub_type, namespace, name):
-        """获取指定镜像的标签列表
+    def get_registry_tags(self, domain, username, password, hub_type, namespace, name, page=1, page_size=10):
+        """获取指定镜像的标签列表,支持分页并返回详细信息
+        
+        Returns:
+            dict: 包含标签详细信息的字典,格式如下:
+            {
+                "tags": [{
+                    "name": str,           # 标签名
+                    "size": int,           # 大小(bytes)
+                    "digest": str,         # 摘要
+                    "created_at": str,     # 创建时间
+                    "updated_at": str,     # 更新时间
+                    "os": str,             # 操作系统
+                    "architecture": str,    # 架构
+                    "author": str,         # 作者
+                    "docker_version": str  # Docker版本
+                }],
+                "total": int,             # 总数
+                "page": int,              # 当前页
+                "page_size": int          # 每页大小
+            }
         """
         try:
             parsed_url = urlparse(domain)
             base_url = parsed_url.scheme + "://" + parsed_url.netloc
             
             if hub_type == "Harbor":
-                api_url = "{}/api/v2.0/projects/{}/repositories/{}/artifacts".format(base_url, namespace, name)
+                api_url = "{}/api/v2.0/projects/{}/repositories/{}/artifacts?page={}&page_size={}".format(
+                    base_url, namespace, name, page, page_size)
                 response = requests.get(
                     api_url,
                     auth=(username, password),
@@ -802,18 +890,61 @@ class TeamService(object):
                 )
                 if response.status_code == 200:
                     artifacts = response.json()
-                    return [tag for artifact in artifacts for tag in artifact.get("tags", [])]
+                    total = int(response.headers.get('X-Total-Count', 0))
+                    
+                    tags = []
+                    for artifact in artifacts:
+                        for tag in artifact.get("tags", []):
+                            tags.append({
+                                "name": tag.get("name"),
+                                "size": artifact.get("size", 0),
+                                "digest": artifact.get("digest", ""),
+                                "created_at": tag.get("push_time", ""),
+                                "updated_at": tag.get("push_time", ""),
+                                "os": artifact.get("extra_attrs", {}).get("os", ""),
+                                "architecture": artifact.get("extra_attrs", {}).get("architecture", ""),
+                                "author": artifact.get("extra_attrs", {}).get("author", ""),
+                                "docker_version": artifact.get("extra_attrs", {}).get("docker_version", "")
+                            })
+                    
+                    return {
+                        "tags": tags,
+                        "total": total,
+                        "page": page,
+                        "page_size": page_size
+                    }
                     
             elif hub_type == "Docker":
-                api_url = "https://hub.docker.com/v2/repositories/{}/{}/tags".format(namespace, name)
+                api_url = "https://hub.docker.com/v2/repositories/{}/{}/tags?page={}&page_size={}".format(
+                    namespace, name, page, page_size)
                 response = requests.get(
                     api_url,
                     headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
                     timeout=10
                 )
                 if response.status_code == 200:
-                    tags = response.json().get("results", [])
-                    return [tag["name"] for tag in tags]
+                    data = response.json()
+                    tags = []
+                    
+                    for tag in data.get("results", []):
+                        image_detail = tag.get("images", [{}])[0] if tag.get("images") else {}
+                        tags.append({
+                            "name": tag.get("name"),
+                            "size": image_detail.get("size", 0),
+                            "digest": image_detail.get("digest", ""),
+                            "created_at": tag.get("last_updated", ""),
+                            "updated_at": tag.get("last_updated", ""),
+                            "os": image_detail.get("os", ""),
+                            "architecture": image_detail.get("architecture", ""),
+                            "status": tag.get("status", "active")
+                        })
+                    
+                    return {
+                        "tags": tags,
+                        "total": data.get("count", 0),
+                        "page": page,
+                        "page_size": page_size
+                    }
                     
             raise ServiceHandleException(
                 msg="failed to get registry tags, status:{}".format(response.status_code),
