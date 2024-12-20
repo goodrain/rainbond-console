@@ -15,7 +15,7 @@ rainbond/apisix-ingress-controller:1.8.2
 rainbond/apisix:3.9.1-debian
 rainbond/minio:RELEASE.2023-10-24T04-42-36Z
 rainbond/rbd-monitor:v2.20.0
-rainbond/local-path-provisioner:v0.0.29
+rainbond/local-path-provisioner:v0.0.30
 rancher/klipper-helm:v0.8.4-build20240523
 rancher/mirrored-coredns-coredns:1.10.1
 rancher/mirrored-metrics-server:v0.7.0
