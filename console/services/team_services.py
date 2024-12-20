@@ -742,37 +742,26 @@ class TeamService(object):
                 msg_show="连接Docker Hub失败", 
                 status_code=500)
 
-    def get_registry_images(self, domain, username, password, hub_type, namespace, page=1, page_size=10):
-        """获取指定命名空间下的镜像列表,支持分页并返回详细信息
+    def get_registry_images(self, domain, username, password, hub_type, namespace, page=1, page_size=10, search_key=None):
+        """获取指定命名空间下的镜像列表,支持分页和搜索
         
+        Args:
+            search_key (str): 搜索关键字,用于过滤镜像名称
+            
         Returns:
-            dict: 包含镜像详细信息的字典,格式如下:
-            {
-                "images": [{
-                    "name": str,                # 镜像名称
-                    "namespace": str,           # 命名空间
-                    "description": str,         # 描述
-                    "is_public": bool,          # 是否公开
-                    "pull_count": int,          # 拉取次数  
-                    "star_count": int,          # 星标数
-                    "created_at": str,          # 创建时间
-                    "updated_at": str,          # 更新时间
-                    "size": int,                # 镜像大小(bytes)
-                    "status": str,              # 状态
-                }],
-                "total": int,                   # 总数
-                "page": int,                    # 当前页
-                "page_size": int                # 每页大小
-            }
+            dict: 包含镜像详细信息的字典
         """
         try:
             parsed_url = urlparse(domain)
             base_url = parsed_url.scheme + "://" + parsed_url.netloc
             
             if hub_type == "Harbor":
-                # Harbor API
+                # Harbor API 支持搜索
                 api_url = "{}/api/v2.0/projects/{}/repositories?page={}&page_size={}".format(
                     base_url, namespace, page, page_size)
+                if search_key:
+                    api_url += "&q=name=~{}".format(search_key)
+                    
                 response = requests.get(
                     api_url,
                     auth=(username, password),
@@ -785,14 +774,13 @@ class TeamService(object):
                     
                     images = []
                     for repo in repositories:
-                        # 统一返回字段
                         images.append({
                             "name": repo["name"].split("/")[-1],
                             "namespace": namespace,
                             "description": repo.get("description", ""),
                             "is_public": not repo.get("private", True),
                             "pull_count": repo.get("pull_count", 0), 
-                            "star_count": 0,  # Harbor没有star功能,默认为0
+                            "star_count": 0,
                             "created_at": repo.get("creation_time", ""),
                             "updated_at": repo.get("update_time", ""),
                             "status": "active" if repo.get("status", "") == "active" else "inactive",
@@ -807,9 +795,12 @@ class TeamService(object):
                     }
                     
             elif hub_type == "Docker":
-                # Docker Hub API
-                api_url = "https://hub.docker.com/v2/repositories/{}/?page={}&page_size={}&include_tags_count=1".format(
+                # Docker Hub API 支持搜索
+                api_url = "https://hub.docker.com/v2/repositories/{}/?page={}&page_size={}".format(
                     namespace, page, page_size)
+                if search_key:
+                    api_url += "&name={}".format(search_key)
+                    
                 response = requests.get(
                     api_url,
                     headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
@@ -820,7 +811,6 @@ class TeamService(object):
                     repositories = data.get("results", [])
                     images = []
                     for repo in repositories:
-                        # 统一返回字段
                         images.append({
                             "name": repo["name"],
                             "namespace": namespace,

@@ -98,16 +98,13 @@ class DockerComposeCreateView(RegionTenantHeaderView):
 
         """
 
-        group_name = request.data.get("group_name", None)
-        k8s_app = request.data.get("k8s_app", None)
+        app_id = request.data.get("app_id", None)
         hub_user = request.data.get("user_name", "")
         hub_pass = request.data.get("password", "")
         yaml_content = request.data.get("yaml_content", "")
         group_note = request.data.get("group_note", "")
         if group_note and len(group_note) > 2048:
             return Response(general_message(400, "node too long", "应用备注长度限制2048"), status=400)
-        if not group_name:
-            return Response(general_message(400, 'params error', "请指明需要创建的compose组名"), status=400)
         if not yaml_content:
             return Response(general_message(400, "params error", "未指明yaml内容"), status=400)
         # Parsing yaml determines whether the input is illegal
@@ -115,8 +112,12 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         if code != 200:
             return Response(general_message(code, "parse yaml error", msg), status=code)
         # 创建组
-        group_info = group_service.create_app(
-            self.tenant, self.response_region, group_name, group_note, self.user.get_username(), k8s_app=k8s_app)
+        group = group_repo.get_group_by_pk(self.tenant.tenant_id, self.response_region, app_id)
+        group_info = group.to_dict()
+        group_info["group_id"] = group.ID
+        group_info['app_id'] = group.ID
+        group_info['app_name'] = group.group_name
+        group_info['k8s_app'] = group.k8s_app
         code, msg, group_compose = compose_service.create_group_compose(
             self.tenant, self.response_region, group_info["group_id"], yaml_content, hub_user, hub_pass)
         if code != 200:

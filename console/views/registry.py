@@ -76,6 +76,7 @@ class HubRegistryImageView(JWTAuthApiView):
         tag = request.GET.get("tag")
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
+        search_key = request.GET.get("search_key")
         
         if not secret_id:
             result = general_message(400, "error", "缺少secret_id参数")
@@ -106,7 +107,8 @@ class HubRegistryImageView(JWTAuthApiView):
                     hub_type=auth.hub_type,
                     namespace=namespace,
                     page=page,
-                    page_size=page_size
+                    page_size=page_size,
+                    search_key=search_key
                 )
                 result = general_message(200, "success", "查询成功", 
                                       list=data["images"],
