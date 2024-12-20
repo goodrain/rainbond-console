@@ -474,8 +474,8 @@ class UserInviteView(JWTAuthApiView):
     def post(self, request, *args, **kwargs):
         try:
             team_id = request.data.get("team_id")
-            role_id = request.data.get("role_id", "")  
-            expired_days = request.data.get("expired_days", 7)
+            role_id = request.data.get("role_id", "")
+            expired_days = request.data.get("expired_days", 1)
             
             if not team_id:
                 result = general_message(400, "params error", "参数错误")
@@ -489,7 +489,7 @@ class UserInviteView(JWTAuthApiView):
                 
             # 创建邀请时保存role_id
             invite = team_invitation_repo.create_invitation(
-                team_id=team_id,
+                tenant_id=team_id,
                 inviter_id=self.user.user_id,
                 invitation_id=make_uuid(),
                 role_id=role_id,  # 添加role_id
@@ -522,13 +522,17 @@ class UserInviteJoinView(JWTAuthApiView):
             
             team = team_repo.get_team_by_team_id(invite.tenant_id)
             inviter = user_repo.get_user_by_user_id(invite.inviter_id)
+            # 检查用户是否已加入团队
+            is_member = team_repo.get_tenant_perms(team.ID, request.user.user_id)
             invite_info = {
                 "invite_id": invite.invitation_id,
                 "team_name": team.tenant_name, 
                 "team_alias": team.tenant_alias,
                 "invite_time": invite.create_time,
                 "inviter": inviter.real_name if inviter.real_name else inviter.nick_name,
-                "expired_time": invite.expired_time  # 添加过期时间
+                "expired_time": invite.expired_time,
+                "is_member": bool(is_member),  # 添加是否已是团队成员的标识
+                "is_accepted": invite.is_accepted,
             }
             result = general_message(200, "success", "获取邀请信息成功", bean=invite_info)
             return Response(result, status=200)
@@ -573,11 +577,14 @@ class UserInviteJoinView(JWTAuthApiView):
 
             # 处理邀请
             if action == "accept":
+                team = team_repo.get_team_by_team_id(invite.tenant_id)
                 # 使用邀请中的role_id添加用户到团队
                 perm = team_repo.create_team_perms(
                     user_id=self.user.user_id,
-                    tenant_id=invite.tenant_id,
-                    enterprise_id=self.enterprise.enterprise_id
+                    tenant_id=team.ID,
+                    identity="owner",
+                    enterprise_id=self.enterprise.ID,
+                    role_id=invite.role_id,
                 )
                 if not perm:
                     result = general_message(400, "failed", "加入团队失败")
