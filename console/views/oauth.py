@@ -124,6 +124,9 @@ class EnterpriseOauthService(EnterpriseAdminView):
         service = oauth_repo.get_conosle_oauth_service(enterprise_id, self.user.user_id)
         all_services = oauth_repo.get_all_oauth_services(enterprise_id, self.user.user_id)
         if all_services is not None:
+            svc_ids = [svc.ID for svc in all_services]
+            user_oauth_list = oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user.user_id)
+            user_oauth_dict = {uol.service_id: uol for uol in user_oauth_list}
             for l_service in all_services:
                 api = get_oauth_instance(l_service.oauth_type, service, None)
                 authorize_url = api.get_authorize_url()
@@ -145,6 +148,10 @@ class EnterpriseOauthService(EnterpriseAdminView):
                     "authorize_url": authorize_url,
                     "enterprise_id": l_service.eid,
                     "system": l_service.system,
+                    "is_authenticated": user_oauth_dict.get(l_service.ID).is_authenticated if user_oauth_dict.get(
+                        l_service.ID) else False,
+                    "is_expired": user_oauth_dict.get(l_service.ID).is_expired if user_oauth_dict.get(
+                        l_service.ID) else False,
                 })
         rst = {"data": {"list": all_services_list}}
         return Response(rst, status=status.HTTP_200_OK)
