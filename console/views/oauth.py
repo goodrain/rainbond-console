@@ -158,7 +158,6 @@ class EnterpriseOauthService(EnterpriseAdminView):
 
     def post(self, request, enterprise_id, *args, **kwargs):
         values = request.data.get("oauth_services")
-        system = request.data.get("system")
         services = oauth_repo.create_or_update_oauth_services(values, enterprise_id, self.user.user_id, system)
 
         data = []

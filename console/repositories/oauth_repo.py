@@ -78,7 +78,7 @@ class OAuthRepo(object):
                         is_deleted=value.get("is_deleted", False),
                         is_git=is_git,
                         user_id=user_id,
-                        system=system,
+                        system=value.get("system", False),
                     )
                 )
             else:
