@@ -997,6 +997,9 @@ class TeamService(object):
             elif hub_type == "Docker":
                 api_url = "https://hub.docker.com/v2/repositories/{}/{}/tags?page={}&page_size={}".format(
                     namespace, name, page, page_size)
+                if search_key:
+                    api_url += "&name={}".format(search_key)
+                    
                 response = requests.get(
                     api_url,
                     headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
@@ -1026,6 +1029,86 @@ class TeamService(object):
                         "page_size": page_size
                     }
                     
+            elif hub_type == "VolcanoEngine":
+                api_url = "{}/v2/{}/{}/tags/list".format(base_url, namespace, name)
+                response = requests.get(
+                    api_url,
+                    auth=(username, password),
+                    verify=False,
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    tags = []
+                    all_tags = data.get("tags", [])
+                    
+                    # 如果有搜索关键字，进行过滤
+                    if search_key:
+                        all_tags = [tag for tag in all_tags if search_key in tag]
+                        
+                    # 手动实现分页
+                    start = (page - 1) * page_size
+                    end = start + page_size
+                    paginated_tags = all_tags[start:end]
+                    
+                    for tag_name in paginated_tags:
+                        tags.append({
+                            "name": tag_name,
+                            "size": 0,  # 火山云API不提供大小信息
+                            "created_at": "",  # 火山云API不提供时间信息
+                            "updated_at": "",
+                        })
+                    
+                    return {
+                        "tags": tags,
+                        "total": len(all_tags),
+                        "page": page,
+                        "page_size": page_size
+                    }
+
+            elif hub_type == "AliCloud":
+                registry_auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+                headers = {
+                    "Authorization": f"Basic {registry_auth}",
+                    "Content-Type": "application/json",
+                }
+                
+                api_url = "{}/v2/{}/{}/tags/list".format(base_url, namespace, name)
+                response = requests.get(
+                    api_url,
+                    headers=headers,
+                    verify=False,
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    tags = []
+                    all_tags = data.get("tags", [])
+                    
+                    # 如果有搜索关键字，进行过滤
+                    if search_key:
+                        all_tags = [tag for tag in all_tags if search_key in tag]
+                        
+                    # 手动实现分页
+                    start = (page - 1) * page_size
+                    end = start + page_size
+                    paginated_tags = all_tags[start:end]
+                    
+                    for tag_name in paginated_tags:
+                        tags.append({
+                            "name": tag_name,
+                            "size": 0,  # 阿里云API不提供大小信息
+                            "created_at": "",  # 阿里云API不提供时间信息
+                            "updated_at": "",
+                        })
+                    
+                    return {
+                        "tags": tags,
+                        "total": len(all_tags),
+                        "page": page,
+                        "page_size": page_size
+                    }
+
             raise ServiceHandleException(
                 msg="failed to get registry tags, status:{}".format(response.status_code),
                 msg_show="获取镜像标签失败",
