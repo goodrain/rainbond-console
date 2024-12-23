@@ -105,7 +105,7 @@ class OAuthRepo(object):
         rst = OAuthServices.objects.filter(eid=eid, user_id=user_id)
         return rst
 
-    def create_or_update_console_oauth_services(self, values, eid, user_id):
+    def create_or_update_console_oauth_services(self, values, eid, user_id, system):
         old_oauth_service = OAuthServices.objects.filter(eid=eid, is_console=True, user_id=user_id).first()
         for value in values[:1]:
             if value["oauth_type"] in list(support_oauth_type.keys()):
@@ -131,6 +131,7 @@ class OAuthRepo(object):
                         is_console=value["is_console"],
                         is_git=is_git,
                         user_id=user_id,
+                        system=system,
                     )
                 elif old_oauth_service is not None and value.get("service_id") == old_oauth_service.ID:
                     OAuthServices.objects.filter(ID=value["service_id"], user_id=user_id).update(
@@ -205,6 +206,10 @@ class UserOAuthRepo(object):
             return oauth_user
         except UserOAuthServices.DoesNotExist:
             return None
+
+    def get_by_oauths_user_id(self, service_ids, user_id):
+        return UserOAuthServices.objects.filter(service_id__in=service_ids, user_id=user_id)
+
 
     def get_all_user_oauth(self, user_id):
         return UserOAuthServices.objects.filter(user_id=user_id)

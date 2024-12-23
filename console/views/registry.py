@@ -125,7 +125,8 @@ class HubRegistryImageView(JWTAuthApiView):
                     namespace=namespace,
                     name=name,
                     page=page,
-                    page_size=page_size
+                    page_size=page_size,
+                    search_key=search_key
                 )
                 result = general_message(200, "success", "查询成功", 
                                       list=data["tags"],

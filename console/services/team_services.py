@@ -4,6 +4,7 @@ import logging
 import random
 import string
 from urllib.parse import urlparse
+from base64 import b64encode
 
 import requests
 
@@ -659,22 +660,7 @@ class TeamService(object):
         })
 
     def get_registry_namespaces(self, domain, username, password, hub_type):
-        """直接请求镜像仓库获取命名空间列表
-        
-        Args:
-            domain (str): 镜像仓库域名 
-            username (str): 用户名
-            password (str): 密码
-            hub_type (str): 仓库类型,如 "docker", "harbor" 等
-            
-        Returns:
-            list: 命名空间列表
-            
-        Raises:
-            ServiceHandleException: 获取命名空间失败时抛出异常
-        """
         try:
-            # 解析域名
             parsed_url = urlparse(domain)
             base_url = parsed_url.scheme + "://" + parsed_url.netloc
             
@@ -706,6 +692,33 @@ class TeamService(object):
                         namespaces.append(username)
                     return namespaces
                     
+            elif hub_type == "Volcano":
+                # 火山引擎容器镜像服务 API
+                api_url = "{}/v2/manage/namespaces".format(base_url)
+                response = requests.get(
+                    api_url,
+                    auth=(username, password),
+                    verify=False,
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    namespaces = response.json().get("namespaces", [])
+                    return [ns["name"] for ns in namespaces]
+                    
+            elif hub_type == "Aliyun":
+                # 阿里云容器镜像服务 API
+                api_url = "https://cr.{}.aliyuncs.com/v2/repos/namespaces".format(
+                    parsed_url.netloc.split('.')[1]  # 获取地域信息
+                )
+                response = requests.get(
+                    api_url,
+                    headers={"Authorization": "Basic " + b64encode(f"{username}:{password}".encode()).decode()},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    namespaces = response.json().get("data", {}).get("namespaces", [])
+                    return [ns["namespace"] for ns in namespaces]
+
             raise ServiceHandleException(
                 msg="failed to get registry namespaces, status:{}".format(response.status_code),
                 msg_show="获取镜像仓库命名空间失败",
@@ -831,9 +844,87 @@ class TeamService(object):
                         "page_size": page_size
                     }
                     
+            elif hub_type == "Volcano":
+                # 火山引擎容器镜像服务 API
+                api_url = "{}/v2/manage/namespaces/{}/repositories".format(base_url, namespace)
+                if search_key:
+                    api_url += "?name={}".format(search_key)
+                api_url += "&page={}&size={}".format(page, page_size)
+                
+                response = requests.get(
+                    api_url,
+                    auth=(username, password),
+                    verify=False,
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    repositories = data.get("repositories", [])
+                    images = []
+                    for repo in repositories:
+                        images.append({
+                            "name": repo["name"],
+                            "namespace": namespace,
+                            "description": repo.get("description", ""),
+                            "is_public": repo.get("public", False),
+                            "pull_count": repo.get("pull_count", 0),
+                            "star_count": 0,
+                            "created_at": repo.get("created_at", ""),
+                            "updated_at": repo.get("updated_at", ""),
+                            "status": "active",
+                            "registry_type": "Volcano"
+                        })
+                    
+                    return {
+                        "images": images,
+                        "total": data.get("total", 0),
+                        "page": page,
+                        "page_size": page_size
+                    }
+                    
+            elif hub_type == "Aliyun":
+                # 阿里云容器镜像服务 API
+                region = parsed_url.netloc.split('.')[1]
+                api_url = "https://cr.{}.aliyuncs.com/v2/repos".format(region)
+                if namespace:
+                    api_url += "?namespace={}".format(namespace)
+                if search_key:
+                    api_url += "&q={}".format(search_key)
+                api_url += "&page={}&pageSize={}".format(page, page_size)
+                
+                response = requests.get(
+                    api_url,
+                    headers={"Authorization": "Basic " + b64encode(f"{username}:{password}".encode()).decode()},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    repositories = data.get("data", {}).get("repos", [])
+                    images = []
+                    for repo in repositories:
+                        images.append({
+                            "name": repo["repoName"],
+                            "namespace": repo["repoNamespace"],
+                            "description": repo.get("summary", ""),
+                            "is_public": not repo.get("repoType", "PRIVATE") == "PRIVATE",
+                            "pull_count": repo.get("downloads", 0),
+                            "star_count": repo.get("stars", 0),
+                            "created_at": repo.get("gmtCreate", ""),
+                            "updated_at": repo.get("gmtModified", ""),
+                            "status": "active",
+                            "registry_type": "Aliyun"
+                        })
+                    
+                    return {
+                        "images": images,
+                        "total": data.get("data", {}).get("total", 0),
+                        "page": page,
+                        "page_size": page_size
+                    }
+
             raise ServiceHandleException(
                 msg="failed to get registry images, status:{}".format(response.status_code),
-                msg_show="获取镜像列表失败",
+                msg_show="获取镜像列表失败", 
                 status_code=response.status_code)
             
         except requests.exceptions.RequestException as e:
@@ -843,35 +934,34 @@ class TeamService(object):
                 msg_show="连接镜像仓库失败",
                 status_code=500)
 
-    def get_registry_tags(self, domain, username, password, hub_type, namespace, name, page=1, page_size=10):
-        """获取指定镜像的标签列表,支持分页并返回详细信息
+    def get_registry_tags(self, domain, username, password, hub_type, namespace, name, page=1, page_size=10, search_key=None):
+        """获取指定镜像的标签列表,支持分页和搜索
         
+        Args:
+            domain (str): 镜像仓库域名
+            username (str): 用户名
+            password (str): 密码 
+            hub_type (str): 仓库类型
+            namespace (str): 命名空间
+            name (str): 镜像名称
+            page (int): 当前页码
+            page_size (int): 每页大小
+            search_key (str): 标签名称搜索关键字
+            
         Returns:
-            dict: 包含标签详细信息的字典,格式如下:
-            {
-                "tags": [{
-                    "name": str,           # 标签名
-                    "size": int,           # 大小(bytes)
-                    "digest": str,         # 摘要
-                    "created_at": str,     # 创建时间
-                    "updated_at": str,     # 更新时间
-                    "os": str,             # 操作系统
-                    "architecture": str,    # 架构
-                    "author": str,         # 作者
-                    "docker_version": str  # Docker版本
-                }],
-                "total": int,             # 总数
-                "page": int,              # 当前页
-                "page_size": int          # 每页大小
-            }
+            dict: 包含标签详细信息的字典
         """
         try:
             parsed_url = urlparse(domain)
             base_url = parsed_url.scheme + "://" + parsed_url.netloc
             
             if hub_type == "Harbor":
+                # Harbor API 支持搜索
                 api_url = "{}/api/v2.0/projects/{}/repositories/{}/artifacts?page={}&page_size={}".format(
                     base_url, namespace, name, page, page_size)
+                if search_key:
+                    api_url += "&q=tags=~{}".format(search_key)
+                    
                 response = requests.get(
                     api_url,
                     auth=(username, password),

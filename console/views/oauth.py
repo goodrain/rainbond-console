@@ -53,6 +53,9 @@ class OauthService(EnterpriseAdminView):
         eid = request.user.enterprise_id
         service = oauth_repo.get_conosle_oauth_service(eid, self.user.user_id)
         all_services = oauth_repo.get_all_oauth_services(eid, self.user.user_id)
+        svc_ids = [svc.ID for svc in all_services]
+        user_oauth_list = oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user.user_id)
+        user_oauth_dict = {uol.service_id: uol for uol in user_oauth_list}
         if all_services is not None:
             for l_service in all_services:
                 api = get_oauth_instance(l_service.oauth_type, service, None)
@@ -74,15 +77,18 @@ class OauthService(EnterpriseAdminView):
                     "is_git": l_service.is_git,
                     "authorize_url": authorize_url,
                     "enterprise_id": l_service.eid,
+                    "is_authenticated": user_oauth_dict.get(l_service.ID).is_authenticated if user_oauth_dict.get(l_service.ID) else False,
+                    "is_expired": user_oauth_dict.get(l_service.ID).is_expired if user_oauth_dict.get(l_service.ID) else False,
                 })
         rst = {"data": {"list": all_services_list}}
         return Response(rst, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         values = request.data.get("oauth_services")
+        system = request.data.get("system")
         eid = request.user.enterprise_id
         try:
-            services = oauth_repo.create_or_update_console_oauth_services(values, eid, self.user.user_id)
+            services = oauth_repo.create_or_update_console_oauth_services(values, eid, self.user.user_id, system)
         except Exception as e:
             logger.exception(e)
             return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
