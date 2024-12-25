@@ -98,7 +98,7 @@ class DockerComposeCreateView(RegionTenantHeaderView):
 
         """
 
-        app_id = request.data.get("app_id", None)
+        group_id = request.data.get("group_id", None)
         hub_user = request.data.get("user_name", "")
         hub_pass = request.data.get("password", "")
         yaml_content = request.data.get("yaml_content", "")
@@ -112,7 +112,7 @@ class DockerComposeCreateView(RegionTenantHeaderView):
         if code != 200:
             return Response(general_message(code, "parse yaml error", msg), status=code)
         # 创建组
-        group = group_repo.get_group_by_pk(self.tenant.tenant_id, self.response_region, app_id)
+        group = group_repo.get_group_by_pk(self.tenant.tenant_id, self.response_region, group_id)
         group_info = group.to_dict()
         group_info["group_id"] = group.ID
         group_info['app_id'] = group.ID
@@ -209,7 +209,7 @@ class ComposeCheckView(ComposeGroupBaseView):
         try:
             check_uuid = request.GET.get("check_uuid", None)
             compose_id = request.GET.get("compose_id", None)
-            arch = request.GET.get("compose_id", None)
+            arch = request.GET.get("arch", None)
             if not check_uuid:
                 return Response(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status=400)
             if not compose_id:
