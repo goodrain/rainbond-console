@@ -316,11 +316,12 @@ class EnterpriseConfigService(ConfigService):
     def get_oauth_services(self):
         rst = []
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.enterprise_id)
-        if enterprise.ID != 1:
-            oauth_services = OAuthServices.objects.filter(
-                ~Q(oauth_type="enterprisecenter"), eid=enterprise.enterprise_id, is_deleted=False, enable=True, user_id=self.user_id)
-        else:
-            oauth_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True, user_id=self.user_id)
+        # 先查询公共服务
+        oauth_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True, system=True)
+        # 再查询用户私有服务
+        private_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True, system=False, user_id=self.user_id)
+        # 合并查询结果
+        oauth_services = oauth_services | private_services
         if oauth_services:
             for oauth_service in oauth_services:
                 try:
