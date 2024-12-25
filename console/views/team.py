@@ -893,6 +893,10 @@ class AdminAddUserView(JWTAuthApiView):
             team_services.add_user_role_to_team(tenant=team, user_ids=[user.user_id], role_ids=role_ids)
             user.is_active = True
             user.save()
+            team = team_services.create_team(user, enterprise, ["rainbond"], "", user_name, "")
+            region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, "rainbond",
+                                                    team.namespace)
+
             result = general_message(200, "success", "添加用户成功")
         else:
             result = general_message(400, "not role", "创建用户时角色不能为空")
