@@ -542,7 +542,7 @@ class PlatformConfigService(ConfigService):
 
     def get_all_oauth_service(self):
         rst = []
-        oauth_services = OAuthServices.objects.filter(is_deleted=False, enable=True)
+        oauth_services = OAuthServices.objects.filter(is_deleted=False, enable=True, system=True)
         if oauth_services:
             for oauth_service in oauth_services:
                 try:
