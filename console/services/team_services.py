@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
+import base64
 import json
 import logging
 import random
 import string
 from urllib.parse import urlparse
-from base64 import b64encode
 
 import requests
 
@@ -373,7 +373,6 @@ class TeamService(object):
             tenant["running_apps"] = 0
             tenant["memory_request"] = 0
             tenant["cpu_request"] = 0
-            tenants[team.tenant_id] = tenant
         if region_dict:
             region_tenants = list()
             for region_id in region_dict.keys():
@@ -678,19 +677,41 @@ class TeamService(object):
                     return [project["name"] for project in projects]
                     
             elif hub_type == "Docker":
-                # Docker Hub API 
-                api_url = "https://hub.docker.com/v2/repositories/{}/".format(username)
-                response = requests.get(
-                    api_url,
-                    headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    namespaces = response.json().get("namespaces", [])
-                    # 确保包含用户自己的命名空间
-                    if username not in namespaces:
-                        namespaces.append(username)
-                    return namespaces
+                if "docker.io" in domain:
+                    # Docker Hub API
+                    api_url = "https://hub.docker.com/v2/repositories/{}/".format(username)
+                    response = requests.get(
+                        api_url,
+                        headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
+                        timeout=10
+                    )
+                    if response.status_code == 200:
+                        namespaces = response.json().get("namespaces", [])
+                        if username not in namespaces:
+                            namespaces.append(username)
+                        return namespaces
+                else:
+                    # 自建 Docker Registry API v2
+                    api_url = "{}/v2/_catalog".format(base_url)
+                    auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+                    headers = {"Authorization": f"Basic {auth}"}
+                    response = requests.get(
+                        api_url,
+                        headers=headers,
+                        verify=False,
+                        timeout=10
+                    )
+                    if response.status_code == 200:
+                        repositories = response.json().get("repositories", [])
+                        # 提取命名空间（取第一个/之前的部分作为命名空间）
+                        namespaces = set()
+                        for repo in repositories:
+                            if "/" in repo:
+                                namespace = repo.split("/")[0]
+                                namespaces.add(namespace)
+                            else:
+                                namespaces.add("library")
+                        return list(namespaces) or ["library"]
                     
             elif hub_type == "Volcano":
                 # 火山引擎容器镜像服务 API
@@ -712,7 +733,7 @@ class TeamService(object):
                 )
                 response = requests.get(
                     api_url,
-                    headers={"Authorization": "Basic " + b64encode(f"{username}:{password}".encode()).decode()},
+                    headers={"Authorization": "Basic " + base64.b64encode(f"{username}:{password}".encode()).decode()},
                     timeout=10
                 )
                 if response.status_code == 200:
@@ -808,123 +829,95 @@ class TeamService(object):
                     }
                     
             elif hub_type == "Docker":
-                # Docker Hub API 支持搜索
-                api_url = "https://hub.docker.com/v2/repositories/{}/?page={}&page_size={}".format(
-                    namespace, page, page_size)
-                if search_key:
-                    api_url += "&name={}".format(search_key)
+                if "docker.io" in domain:
+                    # Docker Hub API 支持搜索
+                    api_url = "https://hub.docker.com/v2/repositories/{}/?page={}&page_size={}".format(
+                        namespace, page, page_size)
+                    if search_key:
+                        api_url += "&name={}".format(search_key)
                     
-                response = requests.get(
-                    api_url,
-                    headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    data = response.json()
-                    repositories = data.get("results", [])
-                    images = []
-                    for repo in repositories:
-                        images.append({
-                            "name": repo["name"],
-                            "namespace": namespace,
-                            "description": repo.get("description", ""),
-                            "is_public": not repo.get("is_private", False),
-                            "pull_count": repo.get("pull_count", 0),
-                            "star_count": repo.get("star_count", 0),
-                            "created_at": repo.get("date_registered", ""),
-                            "updated_at": repo.get("last_updated", ""),
-                            "status": repo.get("status", "active"),
-                            "registry_type": "Docker"
-                        })
-                    
-                    return {
-                        "images": images,
-                        "total": data.get("count", 0),
-                        "page": page,
-                        "page_size": page_size
-                    }
-                    
-            elif hub_type == "Volcano":
-                # 火山引擎容器镜像服务 API
-                api_url = "{}/v2/manage/namespaces/{}/repositories".format(base_url, namespace)
-                if search_key:
-                    api_url += "?name={}".format(search_key)
-                api_url += "&page={}&size={}".format(page, page_size)
-                
-                response = requests.get(
-                    api_url,
-                    auth=(username, password),
-                    verify=False,
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    data = response.json()
-                    repositories = data.get("repositories", [])
-                    images = []
-                    for repo in repositories:
-                        images.append({
-                            "name": repo["name"],
-                            "namespace": namespace,
-                            "description": repo.get("description", ""),
-                            "is_public": repo.get("public", False),
-                            "pull_count": repo.get("pull_count", 0),
-                            "star_count": 0,
-                            "created_at": repo.get("created_at", ""),
-                            "updated_at": repo.get("updated_at", ""),
-                            "status": "active",
-                            "registry_type": "Volcano"
-                        })
-                    
-                    return {
-                        "images": images,
-                        "total": data.get("total", 0),
-                        "page": page,
-                        "page_size": page_size
-                    }
-                    
-            elif hub_type == "Aliyun":
-                # 阿里云容器镜像服务 API
-                region = parsed_url.netloc.split('.')[1]
-                api_url = "https://cr.{}.aliyuncs.com/v2/repos".format(region)
-                if namespace:
-                    api_url += "?namespace={}".format(namespace)
-                if search_key:
-                    api_url += "&q={}".format(search_key)
-                api_url += "&page={}&pageSize={}".format(page, page_size)
-                
-                response = requests.get(
-                    api_url,
-                    headers={"Authorization": "Basic " + b64encode(f"{username}:{password}".encode()).decode()},
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    data = response.json()
-                    repositories = data.get("data", {}).get("repos", [])
-                    images = []
-                    for repo in repositories:
-                        images.append({
-                            "name": repo["repoName"],
-                            "namespace": repo["repoNamespace"],
-                            "description": repo.get("summary", ""),
-                            "is_public": not repo.get("repoType", "PRIVATE") == "PRIVATE",
-                            "pull_count": repo.get("downloads", 0),
-                            "star_count": repo.get("stars", 0),
-                            "created_at": repo.get("gmtCreate", ""),
-                            "updated_at": repo.get("gmtModified", ""),
-                            "status": "active",
-                            "registry_type": "Aliyun"
-                        })
-                    
-                    return {
-                        "images": images,
-                        "total": data.get("data", {}).get("total", 0),
-                        "page": page,
-                        "page_size": page_size
-                    }
+                    response = requests.get(
+                        api_url,
+                        headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
+                        timeout=10
+                    )
+                    if response.status_code == 200:
+                        data = response.json()
+                        repositories = data.get("results", [])
+                        images = []
+                        for repo in repositories:
+                            images.append({
+                                "name": repo["name"],
+                                "namespace": namespace,
+                                "description": repo.get("description", ""),
+                                "is_public": not repo.get("is_private", False),
+                                "pull_count": repo.get("pull_count", 0),
+                                "star_count": repo.get("star_count", 0),
+                                "created_at": repo.get("date_registered", ""),
+                                "updated_at": repo.get("last_updated", ""),
+                                "status": repo.get("status", "active"),
+                                "registry_type": "Docker"
+                            })
+                        
+                        return {
+                            "images": images,
+                            "total": data.get("count", 0),
+                            "page": page,
+                            "page_size": page_size
+                        }
+                else:
+                    # 自建 Docker Registry API v2
+                    api_url = "{}/v2/_catalog".format(base_url)
+                    auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+                    headers = {"Authorization": f"Basic {auth}"}
+                    response = requests.get(
+                        api_url,
+                        headers=headers,
+                        verify=False,
+                        timeout=10
+                    )
+                    if response.status_code == 200:
+                        repositories = response.json().get("repositories", [])
+                        # 过滤指定命名空间的镜像
+                        if namespace == "library":
+                            filtered_repos = [r for r in repositories if "/" not in r]
+                        else:
+                            filtered_repos = [r.split("/", 1)[1] for r in repositories if r.startswith(namespace + "/")]
+                        
+                        # 搜索过滤
+                        if search_key:
+                            filtered_repos = [r for r in filtered_repos if search_key.lower() in r.lower()]
+                        
+                        total = len(filtered_repos)
+                        start = (page - 1) * page_size
+                        end = start + page_size
+                        paginated_repos = filtered_repos[start:end]
+                        
+                        images = []
+                        for repo in paginated_repos:
+                            images.append({
+                                "name": repo,
+                                "namespace": namespace,
+                                "description": "",
+                                "is_public": True,
+                                "pull_count": 0,
+                                "star_count": 0,
+                                "created_at": "",
+                                "updated_at": "",
+                                "status": "active",
+                                "registry_type": "Docker"
+                            })
+
+                        return {
+                            "images": images,
+                            "total": total,
+                            "page": page,
+                            "page_size": page_size
+                        }
 
             raise ServiceHandleException(
                 msg="failed to get registry images, status:{}".format(response.status_code),
-                msg_show="获取镜像列表失败", 
+                msg_show="获取镜像列表失败",
                 status_code=response.status_code)
             
         except requests.exceptions.RequestException as e:
@@ -938,14 +931,6 @@ class TeamService(object):
         """获取指定镜像的标签列表,支持分页和搜索
         
         Args:
-            domain (str): 镜像仓库域名
-            username (str): 用户名
-            password (str): 密码 
-            hub_type (str): 仓库类型
-            namespace (str): 命名空间
-            name (str): 镜像名称
-            page (int): 当前页码
-            page_size (int): 每页大小
             search_key (str): 标签名称搜索关键字
             
         Returns:
@@ -955,160 +940,83 @@ class TeamService(object):
             parsed_url = urlparse(domain)
             base_url = parsed_url.scheme + "://" + parsed_url.netloc
             
-            if hub_type == "Harbor":
-                # Harbor API 支持搜索
-                api_url = "{}/api/v2.0/projects/{}/repositories/{}/artifacts?page={}&page_size={}".format(
-                    base_url, namespace, name, page, page_size)
-                if search_key:
-                    api_url += "&q=tags=~{}".format(search_key)
+            if hub_type == "Docker":
+                if "docker.io" in domain:
+                    # Docker Hub API
+                    api_url = "https://hub.docker.com/v2/repositories/{}/{}/tags?page={}&page_size={}".format(
+                        namespace, name, page, page_size)
+                    if search_key:
+                        api_url += "&name={}".format(search_key)
                     
-                response = requests.get(
-                    api_url,
-                    auth=(username, password),
-                    verify=False,
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    artifacts = response.json()
-                    total = int(response.headers.get('X-Total-Count', 0))
-                    
-                    tags = []
-                    for artifact in artifacts:
-                        for tag in artifact.get("tags", []):
+                    response = requests.get(
+                        api_url,
+                        headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
+                        timeout=10
+                    )
+                    if response.status_code == 200:
+                        data = response.json()
+                        tags = []
+                        
+                        for tag in data.get("results", []):
+                            image_detail = tag.get("images", [{}])[0] if tag.get("images") else {}
                             tags.append({
                                 "name": tag.get("name"),
-                                "size": artifact.get("size", 0),
-                                "digest": artifact.get("digest", ""),
-                                "created_at": tag.get("push_time", ""),
-                                "updated_at": tag.get("push_time", ""),
-                                "os": artifact.get("extra_attrs", {}).get("os", ""),
-                                "architecture": artifact.get("extra_attrs", {}).get("architecture", ""),
-                                "author": artifact.get("extra_attrs", {}).get("author", ""),
-                                "docker_version": artifact.get("extra_attrs", {}).get("docker_version", "")
+                                "size": image_detail.get("size", 0),
+                                "digest": image_detail.get("digest", ""),
+                                "created_at": tag.get("last_updated", ""),
+                                "updated_at": tag.get("last_updated", ""),
+                                "os": image_detail.get("os", ""),
+                                "architecture": image_detail.get("architecture", ""),
+                                "status": tag.get("status", "active")
                             })
-                    
-                    return {
-                        "tags": tags,
-                        "total": total,
-                        "page": page,
-                        "page_size": page_size
-                    }
-                    
-            elif hub_type == "Docker":
-                api_url = "https://hub.docker.com/v2/repositories/{}/{}/tags?page={}&page_size={}".format(
-                    namespace, name, page, page_size)
-                if search_key:
-                    api_url += "&name={}".format(search_key)
-                    
-                response = requests.get(
-                    api_url,
-                    headers={"Authorization": "JWT " + self._get_dockerhub_token(username, password)},
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    data = response.json()
-                    tags = []
-                    
-                    for tag in data.get("results", []):
-                        image_detail = tag.get("images", [{}])[0] if tag.get("images") else {}
-                        tags.append({
-                            "name": tag.get("name"),
-                            "size": image_detail.get("size", 0),
-                            "digest": image_detail.get("digest", ""),
-                            "created_at": tag.get("last_updated", ""),
-                            "updated_at": tag.get("last_updated", ""),
-                            "os": image_detail.get("os", ""),
-                            "architecture": image_detail.get("architecture", ""),
-                            "status": tag.get("status", "active")
-                        })
-                    
-                    return {
-                        "tags": tags,
-                        "total": data.get("count", 0),
-                        "page": page,
-                        "page_size": page_size
-                    }
-                    
-            elif hub_type == "VolcanoEngine":
-                api_url = "{}/v2/{}/{}/tags/list".format(base_url, namespace, name)
-                response = requests.get(
-                    api_url,
-                    auth=(username, password),
-                    verify=False,
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    data = response.json()
-                    tags = []
-                    all_tags = data.get("tags", [])
-                    
-                    # 如果有搜索关键字，进行过滤
-                    if search_key:
-                        all_tags = [tag for tag in all_tags if search_key in tag]
                         
-                    # 手动实现分页
-                    start = (page - 1) * page_size
-                    end = start + page_size
-                    paginated_tags = all_tags[start:end]
-                    
-                    for tag_name in paginated_tags:
-                        tags.append({
-                            "name": tag_name,
-                            "size": 0,  # 火山云API不提供大小信息
-                            "created_at": "",  # 火山云API不提供时间信息
-                            "updated_at": "",
-                        })
-                    
-                    return {
-                        "tags": tags,
-                        "total": len(all_tags),
-                        "page": page,
-                        "page_size": page_size
-                    }
-
-            elif hub_type == "AliCloud":
-                registry_auth = base64.b64encode(f"{username}:{password}".encode()).decode()
-                headers = {
-                    "Authorization": f"Basic {registry_auth}",
-                    "Content-Type": "application/json",
-                }
-                
-                api_url = "{}/v2/{}/{}/tags/list".format(base_url, namespace, name)
-                response = requests.get(
-                    api_url,
-                    headers=headers,
-                    verify=False,
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    data = response.json()
-                    tags = []
-                    all_tags = data.get("tags", [])
-                    
-                    # 如果有搜索关键字，进行过滤
-                    if search_key:
-                        all_tags = [tag for tag in all_tags if search_key in tag]
+                        return {
+                            "tags": tags,
+                            "total": data.get("count", 0),
+                            "page": page,
+                            "page_size": page_size
+                        }
+                else:
+                    # 自建 Docker Registry API v2
+                    repo_name = name if namespace == "library" else f"{namespace}/{name}"
+                    api_url = "{}/v2/{}/tags/list".format(base_url, repo_name)
+                    auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+                    headers = {"Authorization": f"Basic {auth}"}
+                    response = requests.get(
+                        api_url,
+                        headers=headers,
+                        verify=False,
+                        timeout=10
+                    )
+                    if response.status_code == 200:
+                        all_tags = response.json().get("tags", [])
+                        if search_key:
+                            all_tags = [t for t in all_tags if search_key.lower() in t.lower()]
                         
-                    # 手动实现分页
-                    start = (page - 1) * page_size
-                    end = start + page_size
-                    paginated_tags = all_tags[start:end]
-                    
-                    for tag_name in paginated_tags:
-                        tags.append({
-                            "name": tag_name,
-                            "size": 0,  # 阿里云API不提供大小信息
-                            "created_at": "",  # 阿里云API不提供时间信息
-                            "updated_at": "",
-                        })
-                    
-                    return {
-                        "tags": tags,
-                        "total": len(all_tags),
-                        "page": page,
-                        "page_size": page_size
-                    }
-
+                        total = len(all_tags)
+                        start = (page - 1) * page_size
+                        end = start + page_size
+                        paginated_tags = all_tags[start:end]
+                        
+                        tags = []
+                        for tag_name in paginated_tags:
+                            tags.append({
+                                "name": tag_name,
+                                "size": 0,
+                                "digest": "",
+                                "created_at": "",
+                                "updated_at": "",
+                                "os": "",
+                                "architecture": "",
+                                "status": "active"
+                            })
+                        
+                        return {
+                            "tags": tags,
+                            "total": total,
+                            "page": page,
+                            "page_size": page_size
+                        }
             raise ServiceHandleException(
                 msg="failed to get registry tags, status:{}".format(response.status_code),
                 msg_show="获取镜像标签失败",
