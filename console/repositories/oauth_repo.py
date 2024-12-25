@@ -22,6 +22,15 @@ class OAuthRepo(object):
     def get_oauth_services_by_type(self, oauth_type, eid, user_id):
         return OAuthServices.objects.filter(oauth_type=oauth_type, eid=eid, enable=True, is_deleted=False, user_id=user_id)
 
+    def get_all_oauth_services_by_system(self, eid, is_system=True):
+        """
+        Get all OAuth services filtered by system status
+        :param eid: enterprise ID
+        :param is_system: if True, get only system (public) services; if False, get non-system (private) services
+        :return: QuerySet of OAuthServices
+        """
+        return OAuthServices.objects.filter(eid=eid, is_deleted=False, system=is_system)
+
     def get_oauth_services_by_service_id(self, user_id, service_id=None):
         if not service_id:
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
@@ -44,7 +53,7 @@ class OAuthRepo(object):
     def get_by_name(name, user_id):
         return OAuthServices.objects.get(name=name, user_id=user_id)
 
-    def create_or_update_oauth_services(self, values, eid=None, user_id="", system=""):
+    def create_or_update_oauth_services(self, values, eid=None, user_id=""):
         querysetlist = []
         for value in values:
             instance = get_oauth_instance(value["oauth_type"])

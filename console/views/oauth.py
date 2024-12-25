@@ -121,15 +121,31 @@ class OauthService(EnterpriseAdminView):
 class EnterpriseOauthService(EnterpriseAdminView):
     def get(self, request, enterprise_id, *args, **kwargs):
         all_services_list = []
-        service = oauth_repo.get_conosle_oauth_service(enterprise_id, self.user.user_id)
-        all_services = oauth_repo.get_all_oauth_services(enterprise_id, self.user.user_id)
+        public_only = request.GET.get('system', 'false').lower() == 'true'
+        if public_only:
+            # Only get public services
+            all_services = oauth_repo.get_all_oauth_services_by_system(enterprise_id, True)
+        else:
+            # Get both public services and user's private services
+            public_services = oauth_repo.get_all_oauth_services_by_system(enterprise_id, True)
+            private_services = oauth_repo.get_all_oauth_services(enterprise_id, self.user.user_id)
+            # Combine both querysets
+            all_services = public_services | private_services
+        
         if all_services is not None:
             svc_ids = [svc.ID for svc in all_services]
-            user_oauth_list = oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user.user_id)
+            user_oauth_list = [] if public_only else oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user.user_id)
             user_oauth_dict = {uol.service_id: uol for uol in user_oauth_list}
+            
             for l_service in all_services:
-                api = get_oauth_instance(l_service.oauth_type, service, None)
+                api = get_oauth_instance(l_service.oauth_type, l_service, None)
                 authorize_url = api.get_authorize_url()
+                is_authenticated = False
+                is_expired = False
+                if not public_only and user_oauth_dict.get(l_service.ID):
+                    is_authenticated = user_oauth_dict.get(l_service.ID).is_authenticated
+                    is_expired = user_oauth_dict.get(l_service.ID).is_expired
+                
                 all_services_list.append({
                     "service_id": l_service.ID,
                     "enable": l_service.enable,
@@ -148,17 +164,15 @@ class EnterpriseOauthService(EnterpriseAdminView):
                     "authorize_url": authorize_url,
                     "enterprise_id": l_service.eid,
                     "system": l_service.system,
-                    "is_authenticated": user_oauth_dict.get(l_service.ID).is_authenticated if user_oauth_dict.get(
-                        l_service.ID) else False,
-                    "is_expired": user_oauth_dict.get(l_service.ID).is_expired if user_oauth_dict.get(
-                        l_service.ID) else False,
+                    "is_authenticated": is_authenticated,
+                    "is_expired": is_expired,
                 })
         rst = {"data": {"list": all_services_list}}
         return Response(rst, status=status.HTTP_200_OK)
 
     def post(self, request, enterprise_id, *args, **kwargs):
         values = request.data.get("oauth_services")
-        services = oauth_repo.create_or_update_oauth_services(values, enterprise_id, self.user.user_id, system)
+        services = oauth_repo.create_or_update_oauth_services(values, enterprise_id, self.user.user_id)
 
         data = []
         for service in services:
