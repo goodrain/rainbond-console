@@ -405,7 +405,7 @@ class PackageCreateView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class PackageUploadRecordView(JWTAuthApiView):
+class PackageUploadRecordView(RegionTenantHeaderView):
     @never_cache
     def get(self, request, tenantName, *args, **kwargs):
         """
@@ -517,7 +517,7 @@ class PackageUploadRecordView(JWTAuthApiView):
         return Response(result, status=result["code"])
 
 
-class UploadRecordLastView(JWTAuthApiView):
+class UploadRecordLastView(RegionTenantHeaderView):
     @never_cache
     def get(self, request, tenantName, *args, **kwargs):
         """
