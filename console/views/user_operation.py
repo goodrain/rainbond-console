@@ -364,7 +364,8 @@ class UserDetailsView(JWTAuthApiView):
         user_detail["roles"] = user_services.list_roles(user.enterprise_id, user.user_id)
         # enterprise permissions
         user_detail["permissions"] = list_enterprise_perms_by_roles(user_detail["roles"])
-        tenant_list = list()
+        owner_tenant_list = []
+        member_tenant_list = []
         for tenant in tenants:
             tenant_info = dict()
             is_team_owner = False
@@ -385,7 +386,13 @@ class UserDetailsView(JWTAuthApiView):
                 kind="team", kind_id=tenant.tenant_id, user=user, is_owner=is_team_owner, is_ent_admin=self.is_enterprise_admin)
             tenant_info["tenant_actions"] = perms["permissions"]
             tenant_info["is_team_owner"] = is_team_owner
-            tenant_list.append(tenant_info)
+            # 分别添加到所有者列表和成员列表
+            if is_team_owner:
+                owner_tenant_list.append(tenant_info)
+            else:
+                member_tenant_list.append(tenant_info)
+        # 合并列表，所有者列表在前
+        tenant_list = owner_tenant_list + member_tenant_list
         user_detail["teams"] = tenant_list
         oauth_services = oauth_user_repo.get_user_oauth_services_info(
             eid=request.user.enterprise_id, user_id=request.user.user_id)
