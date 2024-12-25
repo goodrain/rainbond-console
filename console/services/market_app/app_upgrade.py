@@ -884,6 +884,7 @@ class AppUpgrade(MarketApp):
                 name=rs["name"],
                 kind=rs["kind"],
                 content=rs["content"],
+                state=1  # 添加默认状态值
             )
             finall_k8s_resources.append(resource)
         return finall_k8s_resources
