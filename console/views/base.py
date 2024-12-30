@@ -243,8 +243,6 @@ class EnterpriseAdminView(JWTAuthApiView):
 
     def initial(self, request, *args, **kwargs):
         super(EnterpriseAdminView, self).initial(request, *args, **kwargs)
-        if not self.is_enterprise_admin:
-            raise NoPermissionsError
         user_id = kwargs.get("user_id")
         if user_id:
             user = user_repo.get_enterprise_user_by_id(self.enterprise.enterprise_id, user_id)
