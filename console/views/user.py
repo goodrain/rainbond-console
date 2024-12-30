@@ -13,6 +13,7 @@ from console.services.auth import login, logout
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
 from console.services.perm_services import user_kind_role_service
+from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.utils.reqparse import parse_item
@@ -292,6 +293,10 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         else:
             user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip, phone,
                                                           real_name)
+
+        team = team_services.create_team(user, enterprise, ["rainbond"], "", user_name, "")
+        region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, "rainbond", team.namespace)
+
         result = general_message(200, "success", "添加用户成功")
         if tenant:
             create_perm_param = {
