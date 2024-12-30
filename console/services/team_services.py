@@ -896,6 +896,23 @@ class TeamService(object):
                         
                         images = []
                         for repo in paginated_repos:
+                            # 获取仓库的标签列表
+                            tags_url = "{}/v2/{}/tags/list".format(base_url, repo if namespace == "library" else f"{namespace}/{repo}")
+                            tags_response = requests.get(
+                                tags_url,
+                                headers=headers,
+                                verify=False,
+                                timeout=10
+                            )
+                            
+                            if tags_response.status_code == 200:
+                                tags = tags_response.json().get("tags", [])
+                                if tags:
+                                    # 获取最新标签的信息
+                                    repo_name = repo if namespace == "library" else f"{namespace}/{repo}"
+                                    tag_info = self._get_registry_tag_info(base_url, repo_name, tags[0], f"Basic {auth}")
+                                    updated_at = tag_info["updated_at"]
+                            
                             images.append({
                                 "name": repo,
                                 "namespace": namespace,
@@ -903,19 +920,67 @@ class TeamService(object):
                                 "is_public": True,
                                 "pull_count": 0,
                                 "star_count": 0,
-                                "created_at": "",
-                                "updated_at": "",
+                                "created_at": updated_at,
+                                "updated_at": updated_at,
                                 "status": "active",
                                 "registry_type": "Docker"
                             })
-
+                        
                         return {
                             "images": images,
                             "total": total,
                             "page": page,
                             "page_size": page_size
                         }
+            elif hub_type == "Harbor":
+                # Harbor API v2.0
+                api_url = "{}/api/v2.0/projects/{}/repositories/{}/artifacts?page={}&page_size={}&with_tag=true&with_label=false".format(
+                    base_url, namespace, name, page, page_size)
+                if search_key:
+                    api_url += "&q=tags=~{}".format(search_key)
 
+                auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+                headers = {"Authorization": f"Basic {auth}"}
+                response = requests.get(
+                    api_url,
+                    headers=headers,
+                    verify=False,
+                    timeout=10
+                )
+                
+                if response.status_code == 200:
+                    total = int(response.headers.get('X-Total-Count', 0))
+                    artifacts = response.json()
+                    tags = []
+                    
+                    for artifact in artifacts:
+                        # Harbor可能返回多个tag，我们需要处理所有的tag
+                        artifact_tags = artifact.get('tags', [])
+                        # 获取镜像大小和架构信息
+                        extra_attrs = artifact.get('extra_attrs', {})
+                        size = artifact.get('size', 0)
+                        architecture = extra_attrs.get('architecture', '')
+                        os = extra_attrs.get('os', '')
+                        
+                        for tag in artifact_tags:
+                            tags.append({
+                                "name": tag.get('name'),
+                                "size": size,
+                                "digest": artifact.get('digest', ''),
+                                "created_at": artifact.get('push_time', ''),
+                                "updated_at": artifact.get('push_time', ''),
+                                "os": os,
+                                "architecture": architecture,
+                                "status": "active"
+                            })
+                    
+                    return {
+                        "tags": tags,
+                        "total": total,
+                        "page": page,
+                        "page_size": page_size
+                    }
+        
             raise ServiceHandleException(
                 msg="failed to get registry images, status:{}".format(response.status_code),
                 msg_show="获取镜像列表失败",
@@ -1001,14 +1066,17 @@ class TeamService(object):
                         
                         tags = []
                         for tag_name in paginated_tags:
+                            # 获取标签详细信息
+                            tag_info = self._get_registry_tag_info(base_url, repo_name, tag_name, f"Basic {auth}")
+                            
                             tags.append({
                                 "name": tag_name,
-                                "size": 0,
-                                "digest": "",
-                                "created_at": "",
-                                "updated_at": "",
-                                "os": "",
-                                "architecture": "",
+                                "size": tag_info["size"],
+                                "digest": tag_info["digest"],
+                                "created_at": tag_info["updated_at"],
+                                "updated_at": tag_info["updated_at"],
+                                "os": tag_info["os"],
+                                "architecture": tag_info["architecture"],
                                 "status": "active"
                             })
                         
@@ -1018,6 +1086,55 @@ class TeamService(object):
                             "page": page,
                             "page_size": page_size
                         }
+            elif hub_type == "Harbor":
+                # Harbor API v2.0
+                api_url = "{}/api/v2.0/projects/{}/repositories/{}/artifacts?page={}&page_size={}&with_tag=true&with_label=false".format(
+                    base_url, namespace, name, page, page_size)
+                if search_key:
+                    api_url += "&q=tags=~{}".format(search_key)
+
+                auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+                headers = {"Authorization": f"Basic {auth}"}
+                response = requests.get(
+                    api_url,
+                    headers=headers,
+                    verify=False,
+                    timeout=10
+                )
+                
+                if response.status_code == 200:
+                    total = int(response.headers.get('X-Total-Count', 0))
+                    artifacts = response.json()
+                    tags = []
+                    
+                    for artifact in artifacts:
+                        # Harbor可能返回多个tag，我们需要处理所有的tag
+                        artifact_tags = artifact.get('tags', [])
+                        # 获取镜像大小和架构信息
+                        extra_attrs = artifact.get('extra_attrs', {})
+                        size = artifact.get('size', 0)
+                        architecture = extra_attrs.get('architecture', '')
+                        os = extra_attrs.get('os', '')
+                        
+                        for tag in artifact_tags:
+                            tags.append({
+                                "name": tag.get('name'),
+                                "size": size,
+                                "digest": artifact.get('digest', ''),
+                                "created_at": artifact.get('push_time', ''),
+                                "updated_at": artifact.get('push_time', ''),
+                                "os": os,
+                                "architecture": architecture,
+                                "status": "active"
+                            })
+                    
+                    return {
+                        "tags": tags,
+                        "total": total,
+                        "page": page,
+                        "page_size": page_size
+                    }
+        
             raise ServiceHandleException(
                 msg="failed to get registry tags, status:{}".format(response.status_code),
                 msg_show="获取镜像标签失败",
@@ -1029,6 +1146,69 @@ class TeamService(object):
                 msg="failed to connect registry: {}".format(e),
                 msg_show="连接镜像仓库失败",
                 status_code=500)
+
+    def _get_registry_tag_info(self, base_url, repo_name, tag_name, auth_header):
+        """获取 Docker Registry 标签的详细信息
+        
+        Args:
+            base_url: 仓库基础URL
+            repo_name: 仓库名称
+            tag_name: 标签名称
+            auth_header: 认证头信息
+            
+        Returns:
+            dict: 包含标签详细信息的字典
+        """
+        try:
+            manifest_url = "{}/v2/{}/manifests/{}".format(base_url, repo_name, tag_name)
+            manifest_response = requests.get(
+                manifest_url,
+                headers={
+                    "Authorization": auth_header,
+                    "Accept": "application/vnd.docker.distribution.manifest.v2+json"
+                },
+                verify=False,
+                timeout=10
+            )
+            
+            if manifest_response.status_code == 200:
+                manifest = manifest_response.json()
+                config_digest = manifest.get("config", {}).get("digest")
+                
+                # 只计算压缩后的大小
+                compressed_size = sum(layer.get("size", 0) for layer in manifest.get("layers", []))
+                
+                if config_digest:
+                    config_url = "{}/v2/{}/blobs/{}".format(base_url, repo_name, config_digest)
+                    config_response = requests.get(
+                        config_url,
+                        headers={
+                            "Authorization": auth_header,
+                        },
+                        verify=False,
+                        timeout=10
+                    )
+                    if config_response.status_code == 200:
+                        config = config_response.json()
+                        return {
+                            "updated_at": config.get("created", ""),
+                            "created_at": config.get("created", ""),
+                            "digest": manifest.get("config", {}).get("digest", ""),
+                            "os": config.get("os", ""),
+                            "architecture": config.get("architecture", ""),
+                            "size": compressed_size
+                        }
+        except requests.exceptions.RequestException as e:
+            logger.exception(e)
+        
+        return {
+            "updated_at": "",
+            "created_at": "",
+            "digest": "",
+            "os": "",
+            "architecture": "",
+            "size": 0
+        }
 
     def get_full_image_name(self, domain, hub_type, namespace, name, tag):
         """获取完整的镜像地址
