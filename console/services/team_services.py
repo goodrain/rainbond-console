@@ -373,6 +373,7 @@ class TeamService(object):
             tenant["running_apps"] = 0
             tenant["memory_request"] = 0
             tenant["cpu_request"] = 0
+            tenants[team.tenant_id] = tenant
         if region_dict:
             region_tenants = list()
             for region_id in region_dict.keys():
