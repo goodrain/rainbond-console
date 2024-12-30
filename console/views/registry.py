@@ -4,6 +4,9 @@ from www.utils.return_message import general_message
 from rest_framework.response import Response
 from console.repositories.team_repo import team_registry_auth_repo
 from console.utils.reqparse import parse_item
+import logging
+
+logger = logging.getLogger('default')
 
 from console.views.base import JWTAuthApiView
 
@@ -22,24 +25,46 @@ class HubRegistryView(JWTAuthApiView):
         password = parse_item(request, "password", required=True)
         hub_type = parse_item(request, "hub_type", required=True)
         secret_id = parse_item(request, "secret_id", required=True)
+        # 检查是否已存在
         ra = team_registry_auth_repo.check_exist_registry_auth(secret_id, self.user.user_id)
         if ra.exists():
             result = general_message(400, "error", "资源已存在")
             return Response(result, status=result["code"])
-        params = {
-            "tenant_id": '',
-            "region_name": '',
-            "secret_id": secret_id,
-            "domain": domain,
-            "username": username,
-            "password": password,
-            "hub_type": hub_type,
-            "user_id": self.user.user_id,
-        }
-        team_registry_auth_repo.create_team_registry_auth(**params)
-
-        result = general_message(200, "success", "创建成功")
-        return Response(result, status=result["code"])
+            
+        # 检测仓库是否可用
+        try:
+            # 尝试获取命名空间列表来验证认证信息
+            team_services.get_registry_namespaces(
+                domain=domain,
+                username=username,
+                password=password,
+                hub_type=hub_type
+            )
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(400, "connection test failed", 
+                                  "仓库连接测试失败: {}".format(str(e)))
+            return Response(result, status=result["code"])
+        
+        # 仓库可用，创建认证信息
+        try:
+            params = {
+                "tenant_id": '',
+                "region_name": '',
+                "secret_id": secret_id,
+                "domain": domain,
+                "username": username,
+                "password": password,
+                "hub_type": hub_type,
+                "user_id": self.user.user_id,
+            }
+            team_registry_auth_repo.create_team_registry_auth(**params)
+            result = general_message(200, "success", "创建成功")
+            return Response(result, status=result["code"])
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(500, "creation failed",  "创建失败: {}".format(str(e)))
+            return Response(result, status=result["code"])
 
     def put(self, request, *args, **kwargs):
         secret_id = request.GET.get("secret_id")
