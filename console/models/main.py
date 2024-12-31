@@ -1123,8 +1123,8 @@ class TeamRegistryAuth(BaseModel):
     username = models.CharField(max_length=255, help_text="username")
     password = models.CharField(max_length=255, help_text="password")
     region_name = models.CharField(max_length=255, help_text="region_name")
-    hub_type = models.CharField(max_length=32, help_text="hub type")
-    user_id = models.IntegerField(max_length=10, help_text="用户ID")
+    hub_type = models.CharField(max_length=32, help_text="hub type", default="Docker")
+    user_id = models.IntegerField(max_length=10, help_text="用户ID", default=0)
 
 
 class RKECluster(BaseModel):
