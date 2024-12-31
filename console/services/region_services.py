@@ -2,6 +2,7 @@
 import json
 import logging
 import base64
+import os
 import subprocess
 
 import yaml
@@ -558,7 +559,7 @@ class RegionService(object):
         region_resource["region_type"] = (json.loads(region.region_type) if region.region_type else [])
         region_resource["enterprise_id"] = region.enterprise_id
         region_resource["url"] = region.url
-        region_resource["scope"] = region.scope
+        region_resource["scope"] = os.getenv("IS_STANDALONE", region.scope)
         region_resource["provider"] = region.provider
         region_resource["provider_cluster_id"] = region.provider_cluster_id
         if level == "open":
