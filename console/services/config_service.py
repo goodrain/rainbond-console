@@ -8,6 +8,7 @@ from django.db.models import Q
 
 from console.exception.exceptions import ConfigExistError
 from console.models.main import ConsoleSysConfig, OAuthServices
+from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
@@ -160,9 +161,10 @@ class ConfigService(object):
 
 
 class EnterpriseConfigService(ConfigService):
-    def __init__(self, eid):
+    def __init__(self, eid, user_id):
         super(EnterpriseConfigService, self).__init__()
         self.enterprise_id = eid
+        self.user_id = user_id
         self.base_cfg_keys = ["OAUTH_SERVICES"]
         self.cfg_keys = [
             "APPSTORE_IMAGE_HUB", "NEWBIE_GUIDE", "EXPORT_APP", "CLOUD_MARKET", "OBJECT_STORAGE", "AUTO_SSL", "TITLE", "LOGO",
@@ -304,6 +306,7 @@ class EnterpriseConfigService(ConfigService):
         }
 
     def init_base_config_value(self):
+        print("???")
         self.base_cfg_keys_value = {
             "OAUTH_SERVICES": {
                 "value": self.get_oauth_services(),
@@ -315,11 +318,15 @@ class EnterpriseConfigService(ConfigService):
     def get_oauth_services(self):
         rst = []
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(self.enterprise_id)
-        if enterprise.ID != 1:
-            oauth_services = OAuthServices.objects.filter(
-                ~Q(oauth_type="enterprisecenter"), eid=enterprise.enterprise_id, is_deleted=False, enable=True)
-        else:
-            oauth_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True)
+        # 先查询公共服务
+        oauth_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True, system=True)
+        # 再查询用户私有服务
+        private_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True, system=False, user_id=self.user_id)
+        # 合并查询结果
+        oauth_services = oauth_services | private_services
+        svc_ids = [svc.ID for svc in oauth_services]
+        user_oauth_list = oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user_id)
+        user_oauth_dict = {uol.service_id: uol for uol in user_oauth_list}
         if oauth_services:
             for oauth_service in oauth_services:
                 try:
@@ -336,6 +343,8 @@ class EnterpriseConfigService(ConfigService):
                         "is_auto_login": oauth_service.is_auto_login,
                         "is_git": oauth_service.is_git,
                         "authorize_url": authorize_url,
+                        "is_authenticated": user_oauth_dict.get(oauth_service.ID).is_authenticated if user_oauth_dict.get(oauth_service.ID) else False,
+                        "is_expired": user_oauth_dict.get(oauth_service.ID).is_expired if user_oauth_dict.get(oauth_service.ID) else False,
                     })
                 except NoSupportOAuthType:
                     continue
@@ -541,7 +550,7 @@ class PlatformConfigService(ConfigService):
 
     def get_all_oauth_service(self):
         rst = []
-        oauth_services = OAuthServices.objects.filter(is_deleted=False, enable=True)
+        oauth_services = OAuthServices.objects.filter(is_deleted=False, enable=True, system=True)
         if oauth_services:
             for oauth_service in oauth_services:
                 try:

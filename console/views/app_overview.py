@@ -626,7 +626,7 @@ class BuildSourceinfo(AppBaseView):
                 if git_url:
                     if is_oauth:
                         try:
-                            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
+                            oauth_service = oauth_repo.get_oauth_services_by_service_id(user_id=user_id, service_id=oauth_service_id)
                             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
                         except Exception as e:
                             logger.debug(e)
@@ -739,10 +739,9 @@ class ManageFile(AppBaseView):
         host_path = request.GET.get("host_path", "")
         pod_name = request.GET.get("pod_name", "")
         region_name = request.GET.get("region_name", "")
-        container_name = request.GET.get("container_name", "")
         try:
             res = group_service.get_file_and_dir(region_name, self.tenant_name, self.service.service_alias, host_path, pod_name,
-                                                 self.tenant.namespace, container_name)
+                                                 self.tenant.namespace)
             region = region_services.get_region_by_region_name(region_name)
         except Exception as e:
             logger.exception(e)

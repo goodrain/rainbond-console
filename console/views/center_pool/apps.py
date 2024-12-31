@@ -405,7 +405,7 @@ class LocalComponentLibraryConfigCheck(JWTAuthApiView):
         regions = region_services.get_regions_by_enterprise_id(enterprise_id)
         remind = False
         if regions and len(regions) > 1:
-            ent_cfg_svc = EnterpriseConfigService(enterprise_id)
+            ent_cfg_svc = EnterpriseConfigService(enterprise_id, self.user.user_id)
             data = ent_cfg_svc.get_config_by_key("APPSTORE_IMAGE_HUB")
             if data and data.enable:
                 image_config_dict = eval(data.value)

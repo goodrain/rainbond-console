@@ -64,7 +64,7 @@ class AppCheckService(object):
         if service.service_source == AppConstants.SOURCE_CODE:
             if service.oauth_service_id:
                 try:
-                    oauth_service = oauth_repo.get_oauth_services_by_service_id(service.oauth_service_id)
+                    oauth_service = oauth_repo.get_oauth_services_by_service_id(user.user_id, service.oauth_service_id)
                     oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
                         service_id=service.oauth_service_id, user_id=user.user_id)
                 except Exception as e:
@@ -196,7 +196,7 @@ class AppCheckService(object):
                 transaction.savepoint_rollback(sid)
             raise ServiceHandleException(status_code=400, msg="handle check service code info failure", msg_show="处理检测结果失败")
 
-    def save_service_check_info(self, tenant, service, data):
+    def save_service_check_info(self, tenant, app_id, service, data):
         # save the detection properties but does not throw any exception.
         if data["check_status"] == "success" and service.create_status == "checking":
             logger.debug("checking service info install,save info into database")

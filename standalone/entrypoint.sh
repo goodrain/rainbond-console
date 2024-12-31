@@ -5,6 +5,8 @@
 # Initialize configuration
 ########################################
 init_configuration() {
+
+  GET_EIP=$(hostname -i | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) print $i}')
   
   if ! mkdir -p /opt/rainbond/k3s/server/manifests /opt/rainbond/k3s/server/static /opt/rainbond/k3s/agent/images; then
     echo "ERROR: Failed to create directory"
@@ -32,13 +34,13 @@ spec:
   targetNamespace: rbd-system
   valuesContent: |-
     Cluster:
-      gatewayIngressIPs: ${EIP:-$(hostname -i)}
+      gatewayIngressIPs: ${EIP:-$GET_EIP}
       nodesForChaos:
       - name: node
       nodesForGateway:
       - name: node
-        internalIP: $(hostname -i)
-        externalIP: $(hostname -i)
+        internalIP: $GET_EIP
+        externalIP: $GET_EIP
       installVersion: ${VERSION:-v6.0.0-release}
       eid: ${UUID}
 EOF

@@ -43,7 +43,7 @@ class EnterpriseConfigView(EnterpriseAdminView):
         show_langue = parse_item(request, "show_langue")
 
         config_service = ConfigService()
-        ent_config_service = EnterpriseConfigService(enterprise_id)
+        ent_config_service = EnterpriseConfigService(enterprise_id, self.user.user_id)
 
         if title:
             config_service.update_config_value(ConfigKeyEnum.TITLE.name, title)
@@ -111,7 +111,7 @@ class EnterpriseObjectStorageView(EnterpriseAdminView):
         if provider not in ("alioss", "s3"):
             raise AbortRequest("provider {} not in (\"alioss\", \"s3\")".format(provider))
 
-        ent_cfg_svc = EnterpriseConfigService(enterprise_id)
+        ent_cfg_svc = EnterpriseConfigService(enterprise_id, self.user.user_id)
         ent_cfg_svc.update_config_enable_status(key="OBJECT_STORAGE", enable=enable)
         ent_cfg_svc.update_config_value(
             key="OBJECT_STORAGE",
@@ -134,7 +134,7 @@ class EnterpriseAppStoreImageHubView(EnterpriseAdminView):
         hub_user = parse_item(request, "hub_user")
         hub_password = parse_item(request, "hub_password")
 
-        ent_cfg_svc = EnterpriseConfigService(enterprise_id)
+        ent_cfg_svc = EnterpriseConfigService(enterprise_id, self.user.user_id)
         ent_cfg_svc.update_config_enable_status(key="APPSTORE_IMAGE_HUB", enable=enable)
         ent_cfg_svc.update_config_value(
             key="APPSTORE_IMAGE_HUB",
@@ -157,7 +157,7 @@ class EnterpriseVisualMonitorView(EnterpriseAdminView):
         component_monitor_suffix = request.data.get("component_monitor_suffix", "/d/component/zu-jian-jian-kong-ke-shi-hua")
         slo_monitor_suffix = request.data.get("slo_monitor_suffix", "/d/service/fu-wu-jian-kong-ke-shi-hua")
 
-        ent_cfg_svc = EnterpriseConfigService(enterprise_id)
+        ent_cfg_svc = EnterpriseConfigService(enterprise_id, self.user.user_id)
         ent_cfg_svc.update_config_enable_status(key="VISUAL_MONITOR", enable=enable)
         ent_cfg_svc.update_config_value(
             key="VISUAL_MONITOR",

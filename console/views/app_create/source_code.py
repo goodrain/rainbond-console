@@ -144,7 +144,7 @@ class SourceCodeCreateView(RegionTenantHeaderView):
         if is_oauth:
             open_webhook = request.data.get("open_webhook", False)
             try:
-                oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
+                oauth_service = oauth_repo.get_oauth_services_by_service_id(user_id=user_id, service_id=oauth_service_id)
                 oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
             except Exception as e:
                 logger.debug(e)
@@ -405,7 +405,7 @@ class PackageCreateView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
 
-class PackageUploadRecordView(JWTAuthApiView):
+class PackageUploadRecordView(RegionTenantHeaderView):
     @never_cache
     def get(self, request, tenantName, *args, **kwargs):
         """
@@ -517,7 +517,7 @@ class PackageUploadRecordView(JWTAuthApiView):
         return Response(result, status=result["code"])
 
 
-class UploadRecordLastView(JWTAuthApiView):
+class UploadRecordLastView(RegionTenantHeaderView):
     @never_cache
     def get(self, request, tenantName, *args, **kwargs):
         """

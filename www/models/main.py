@@ -103,12 +103,13 @@ class Users(models.Model):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
     sys_admin = models.BooleanField(default=False, help_text="超级管理员")
     enterprise_id = models.CharField(max_length=32, null=True, blank=True, default='', help_text="统一认证中心的enterprise_id")
+    logo = models.CharField(max_length=2048, null=True, help_text="用户头像")
 
     def set_password(self, raw_password):
-        self.password = encrypt_passwd(self.email + raw_password)
+        self.password = encrypt_passwd(raw_password)
 
     def check_password(self, raw_password):
-        return bool(encrypt_passwd(self.email + raw_password) == self.password)
+        return bool(encrypt_passwd(raw_password) == self.password)
 
     def is_anonymous(self):
         return False
@@ -959,3 +960,18 @@ class TaskEvent(BaseModel):
     status = models.CharField(max_length=255)  # 对应 Status
     event_id = models.CharField(max_length=255)  # 对应 EventID
     reason = models.CharField(max_length=255)  # 对应 Reason
+
+
+class TeamInvitation(BaseModel):
+    """团队邀请信息"""
+    
+    class Meta:
+        db_table = 'team_invitation'
+        
+    invitation_id = models.CharField(max_length=32, unique=True, help_text="邀请ID")
+    tenant_id = models.CharField(max_length=32, help_text="团队ID") 
+    inviter_id = models.IntegerField(help_text="邀请人ID")
+    role_id = models.IntegerField(help_text="角色ID", null=True, blank=True)
+    expired_time = models.DateTimeField(help_text="过期时间")
+    is_accepted = models.BooleanField(default=False, help_text="是否已接受邀请")
+    create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")

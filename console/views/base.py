@@ -243,8 +243,6 @@ class EnterpriseAdminView(JWTAuthApiView):
 
     def initial(self, request, *args, **kwargs):
         super(EnterpriseAdminView, self).initial(request, *args, **kwargs)
-        if not self.is_enterprise_admin:
-            raise NoPermissionsError
         user_id = kwargs.get("user_id")
         if user_id:
             user = user_repo.get_enterprise_user_by_id(self.enterprise.enterprise_id, user_id)
@@ -265,10 +263,10 @@ class CloudEnterpriseCenterView(JWTAuthApiView):
         if not os.getenv("IS_PUBLIC", False):
             return
         try:
-            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
+            oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1, user_id=self.user.user_id)
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
             if pre_enterprise_center:
-                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
+                oauth_service = OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter", user_id=self.user.user_id)
             oauth_user = UserOAuthServices.objects.get(service_id=oauth_service.ID, user_id=self.user.user_id)
         except OAuthServices.DoesNotExist:
             raise NotFound("enterprise center oauth server not found")

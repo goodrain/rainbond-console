@@ -26,7 +26,7 @@ class AppStore(object):
             image_config["hub_password"] = data.hub_password
             image_config["namespace"] = data.namespace
         if not data:
-            data = EnterpriseConfigService(enterprise_id).get_config_by_key("APPSTORE_IMAGE_HUB")
+            data = EnterpriseConfigService(enterprise_id, "").get_config_by_key("APPSTORE_IMAGE_HUB")
             if data and data.enable:
                 image_config_dict = eval(data.value)
                 namespace = (image_config_dict.get("namespace") if image_config_dict.get("namespace") else data.enterprise_id)
@@ -38,7 +38,7 @@ class AppStore(object):
         return image_config
 
     def is_no_multiple_region_hub(self, enterprise_id):
-        data = EnterpriseConfigService(enterprise_id).get_config_by_key("APPSTORE_IMAGE_HUB")
+        data = EnterpriseConfigService(enterprise_id, "").get_config_by_key("APPSTORE_IMAGE_HUB")
         if data and data.enable:
             image_config_dict = eval(data.value)
             if image_config_dict["hub_url"]:
@@ -57,7 +57,7 @@ class AppStore(object):
             image_config["ftp_password"] = data.hub_password
             image_config["namespace"] = data.namespace
         if not data:
-            data = EnterpriseConfigService(enterprise_id).get_config_by_key("APPSTORE_IMAGE_HUB")
+            data = EnterpriseConfigService(enterprise_id, "").get_config_by_key("APPSTORE_IMAGE_HUB")
             if data:
                 image_config_dict = eval(data.value)
                 namespace = (image_config_dict.get("namespace") if image_config_dict.get("namespace") else data.enterprise_id)

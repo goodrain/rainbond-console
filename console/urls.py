@@ -125,7 +125,7 @@ from console.views.rbd_ability import RainbondAbilityRUDView, RainbondAbilityLVi
 from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView, RainbondPluginStaticView, RainbondPluginBackendView, RainbondPluginStatusView
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
-from console.views.registry import HubRegistryView
+from console.views.registry import HubRegistryView, HubRegistryImageView
 from console.views.rke2 import ClusterRKE, ClusterRKENode, ClusterNodeIP, ClusterRKEInstallRB, \
     ClusterRKERBStatus, ClusterRKERBEvent, ClusterRKEUNInstallInstallRB, InstallRKECluster, RKERegionConfig
 from console.views.role_prems import TeamAddUserView
@@ -150,7 +150,7 @@ from console.views.user import CheckSourceView, UserLogoutView, UserPemTraView, 
     AdminRolesView
 from console.views.user_accesstoken import UserAccessTokenCLView, UserAccessTokenRUDView
 from console.views.user_operation import TenantServiceView, SendResetEmail, PasswordResetBegin, ChangeLoginPassword, \
-     UserDetailsView, UserFavoriteLCView, UserFavoriteUDView
+    UserDetailsView, UserFavoriteLCView, UserFavoriteUDView, UserInviteView, UserInviteJoinView
 from console.views.webhook import WebHooksDeploy, ImageWebHooksDeploy, CustomWebHooksDeploy, GetWebHooksUrl, \
     ImageWebHooksTrigger, WebHooksStatus, UpdateSecretKey
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
@@ -223,14 +223,18 @@ urlpatterns = [
     # 修改密码
     url(r'^users/changepwd$', ChangeLoginPassword.as_view()),
 
-    # 全局镜像仓库配置
+    # 镜像仓库配置
     url(r'^hub/registry$', HubRegistryView.as_view()),
+    url(r'^hub/registry/image$', HubRegistryImageView.as_view()),
     # 我的详情
     url(r'^users/details$', UserDetailsView.as_view()),
     # 模糊查询用户
     url(r'^users/query$', UserFuzSerView.as_view()),
     url(r"^users/access-token$", UserAccessTokenCLView.as_view()),
     url(r"^users/access-token/(?P<id>[\w\-]+)$", UserAccessTokenRUDView.as_view()),
+    # 用户邀请
+    url(r'^users/invite$', UserInviteView.as_view()),
+    url(r'^users/invite/(?P<invitation_id>[\w\-]+)$', UserInviteJoinView.as_view()),
 
     # 团队中用户详情页
     url(r'^teams/(?P<team_name>[\w\-]+)/(?P<user_name>[\w\-]+)/details$', TeamUserDetaislView.as_view(),

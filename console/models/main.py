@@ -976,7 +976,9 @@ class OAuthServices(BaseModel):
     is_deleted = models.NullBooleanField(null=True, default=False, help_text="is_deleted")
     is_console = models.NullBooleanField(null=True, default=False, help_text="is_console")
     is_auto_login = models.NullBooleanField(null=True, default=False, help_text="is_auto_login")
-    is_git = models.NullBooleanField(null=True, default=True, help_text="是否为git仓库")
+    is_git = models.BooleanField(default=True, help_text="是否为git仓库")
+    user_id = models.IntegerField(max_length=10, help_text="用户ID")
+    system = models.BooleanField(default=False, help_text="是否后台创建")
 
 
 class UserOAuthServices(BaseModel):
@@ -1121,6 +1123,8 @@ class TeamRegistryAuth(BaseModel):
     username = models.CharField(max_length=255, help_text="username")
     password = models.CharField(max_length=255, help_text="password")
     region_name = models.CharField(max_length=255, help_text="region_name")
+    hub_type = models.CharField(max_length=32, help_text="hub type")
+    user_id = models.IntegerField(max_length=10, help_text="用户ID")
 
 
 class RKECluster(BaseModel):
