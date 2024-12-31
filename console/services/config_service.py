@@ -8,6 +8,7 @@ from django.db.models import Q
 
 from console.exception.exceptions import ConfigExistError
 from console.models.main import ConsoleSysConfig, OAuthServices
+from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
@@ -305,6 +306,7 @@ class EnterpriseConfigService(ConfigService):
         }
 
     def init_base_config_value(self):
+        print("???")
         self.base_cfg_keys_value = {
             "OAUTH_SERVICES": {
                 "value": self.get_oauth_services(),
@@ -322,6 +324,9 @@ class EnterpriseConfigService(ConfigService):
         private_services = OAuthServices.objects.filter(eid=enterprise.enterprise_id, is_deleted=False, enable=True, system=False, user_id=self.user_id)
         # 合并查询结果
         oauth_services = oauth_services | private_services
+        svc_ids = [svc.ID for svc in oauth_services]
+        user_oauth_list = oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user_id)
+        user_oauth_dict = {uol.service_id: uol for uol in user_oauth_list}
         if oauth_services:
             for oauth_service in oauth_services:
                 try:
@@ -338,6 +343,8 @@ class EnterpriseConfigService(ConfigService):
                         "is_auto_login": oauth_service.is_auto_login,
                         "is_git": oauth_service.is_git,
                         "authorize_url": authorize_url,
+                        "is_authenticated": user_oauth_dict.get(oauth_service.ID).is_authenticated if user_oauth_dict.get(oauth_service.ID) else False,
+                        "is_expired": user_oauth_dict.get(oauth_service.ID).is_expired if user_oauth_dict.get(oauth_service.ID) else False,
                     })
                 except NoSupportOAuthType:
                     continue
