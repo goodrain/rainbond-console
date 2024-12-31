@@ -42,6 +42,7 @@ spec:
         internalIP: $GET_EIP
         externalIP: $GET_EIP
       installVersion: ${VERSION:-v6.0.0-release}
+      eid: ${UUID}
 EOF
     echo "ERROR: Failed to create rainbond-cluster.yaml"
     exit 1
