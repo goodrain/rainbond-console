@@ -106,10 +106,10 @@ class Users(models.Model):
     logo = models.CharField(max_length=2048, null=True, help_text="用户头像")
 
     def set_password(self, raw_password):
-        self.password = encrypt_passwd(raw_password)
+        self.password = encrypt_passwd(self.email + raw_password)
 
     def check_password(self, raw_password):
-        return bool(encrypt_passwd(raw_password) == self.password)
+        return bool(encrypt_passwd(self.email + raw_password) == self.password)
 
     def is_anonymous(self):
         return False
