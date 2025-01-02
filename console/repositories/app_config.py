@@ -467,6 +467,10 @@ class TenantServiceMntRelationRepository(object):
     def get_service_mnts_filter_volume_type(self, tenant_id, service_id, volume_types=None):
         conn = BaseConnection()
         query = "mnt.tenant_id = '%s' and mnt.service_id = '%s'" % (tenant_id, service_id)
+        if volume_types:
+            vol_type_sql = " and volume.volume_type in ({})".format(','.join(["'%s'"] * len(volume_types)))
+            query += vol_type_sql % tuple(volume_types)
+
         sql = """
         select mnt.mnt_name,
             mnt.mnt_dir,
