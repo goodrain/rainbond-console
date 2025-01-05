@@ -8,6 +8,7 @@ from django.views.generic.base import RedirectView
 from django.views.static import serve
 
 from goodrain_web import settings
+from console.views.bill_proxy import BillProxyView
 
 kwargs = {"document_root": settings.MEDIA_ROOT}
 
@@ -27,6 +28,7 @@ urlpatterns = [
     url(r'^$', IndexTemplateView.as_view()),
     url(r'^install-cluster.sh$', RKE2Install.as_view()),
     url(r'^console/', include('console.urls')),
+    url(r'^bill/.*$', BillProxyView.as_view()),
 ]
 if settings.IS_OPEN_API:
     urlpatterns.append(url(r'^openapi/', include('openapi.urls')), )
