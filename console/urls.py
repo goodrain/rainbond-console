@@ -99,8 +99,9 @@ from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigO
 from console.views.message import UserMessageView
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
                                  OAuthGitUserRepository, OAuthGitUserRepositoryBranches, OAuthServerAuthorize,
-                                 OAuthServerUserAuthorize, OauthService, OauthServiceInfo, OAuthServiceRedirect, OauthType,
-                                 OAuthUserInfo, UserOAuthLink, OauthUserLogoutView)
+                                 OAuthServerUserAuthorize, OauthService, OauthServiceInfo, OAuthServiceRedirect,
+                                 OauthType,
+                                 OAuthUserInfo, UserOAuthLink, OauthUserLogoutView, OverScore)
 from console.views.perms import (PermsInfoLView, TeamRolePermsRUDView, TeamRolesLCView, TeamRolesPermsLView, TeamRolesRUDView,
                                  TeamUserPermsLView, TeamUserRolesRUDView, TeamUsersRolesLView)
 from console.views.plugin.plugin_config import (ConfigPluginManageView, ConfigPreviewView)
@@ -179,6 +180,8 @@ urlpatterns = [
     url(r'^perms$', PermsInfoLView.as_view()),
     url(r'^custom_configs$', CustomConfigsCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/licenses$', LicenseLView.as_view()),
+    # 超分比例
+    url(r"^over_score$", OverScore.as_view()),
     # OAuth
     url(r"^oauth/oauth-config$", OauthConfig.as_view()),
     url(r"^oauth/oauth-services$", OauthService.as_view()),
