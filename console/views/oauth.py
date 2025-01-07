@@ -627,7 +627,7 @@ class OverScore(EnterpriseAdminView):
                 desc="超分比例",
                 enable=True
             )
-            region_api.set_over_score_rate({"over_score_rate": over_score_rate})
+            region_api.set_over_score_rate({"over_score_rate": json.dumps(over_score_rate)})
         else:
             over_score_rate = json.loads(ss_config.value)
 
@@ -638,7 +638,7 @@ class OverScore(EnterpriseAdminView):
             "msg_show": "获取超分比例成功",
             "data": {
                 "bean": {
-                    "over_score_rate": json.loads(over_score_rate)
+                    "over_score_rate": over_score_rate
                 }
             }
         }
@@ -661,7 +661,7 @@ class OverScore(EnterpriseAdminView):
             "msg_show": "更新超分比例成功",
             "data": {
                 "bean": {
-                    "over_score_rate": over_score_rate
+                    "over_score_rate": json.loads(over_score_rate)
                 }
             }
         }
