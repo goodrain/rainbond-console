@@ -729,7 +729,7 @@ class AppPortService(object):
                     service_tcp_domain.is_outer_service = False
                     service_tcp_domain.save()
             svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, deal_port.container_port)
-            path = f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/{svc.k8s_service_name}-{svc.protocol}-{deal_port.container_port}"
+            path = f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/{svc.k8s_service_name}-{deal_port.container_port}"
             region_api.delete_proxy(region.region_name, path)
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service
