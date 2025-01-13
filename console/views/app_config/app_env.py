@@ -424,7 +424,8 @@ class AppBuildEnvView(AppBaseView):
             new_build_env_dict[build_env.attr_name] = build_env.attr_value
 
         compile_env = compile_env_repo.get_service_compile_env(self.service.service_id)
-        compile_env.user_dependency = json.dumps(build_env_dict)
-        compile_env.save()
+        if compile_env:
+            compile_env.user_dependency = json.dumps(build_env_dict)
+            compile_env.save()
         result = general_message(200, "success", "环境变量添加成功")
         return Response(result, status=result["code"])
