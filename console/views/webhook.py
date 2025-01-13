@@ -371,7 +371,17 @@ class GetWebHooksUrl(AppBaseView):
             if deployment_way == "api_webhooks":
                 # 生成秘钥
                 deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
-                secret_key = pickle.loads(base64.b64decode(ast.literal_eval(deploy))).get("secret_key")
+                try:
+                    # 首先尝试直接解码
+                    secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
+                except Exception as e:
+                    try:
+                        # 如果失败，尝试用 ast.literal_eval 解析
+                        secret_key = pickle.loads(base64.b64decode(ast.literal_eval(deploy))).get("secret_key")
+                    except Exception as e:
+                        # 如果两种方式都失败，直接使用原始值
+                        logger.warning(f"Failed to decode secret key, using original value: {str(e)}")
+                        secret_key = deploy
                 url = host + "/console/" + "custom/deploy/" + service_obj.service_id
                 result = general_message(
                     200,
