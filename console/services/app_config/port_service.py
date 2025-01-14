@@ -724,12 +724,14 @@ class AppPortService(object):
             service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
                 service.service_id, deal_port.container_port)
             # 改变tcpdomain表中状态
+            out_port = 0
             if service_tcp_domains:
                 for service_tcp_domain in service_tcp_domains:
                     service_tcp_domain.is_outer_service = False
+                    out_port = service_tcp_domain.end_point.split(":")[1]
                     service_tcp_domain.save()
             svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, deal_port.container_port)
-            path = f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/{svc.k8s_service_name}-{deal_port.container_port}"
+            path = f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/{svc.k8s_service_name}-{out_port}"
             region_api.delete_proxy(region.region_name, path)
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service
