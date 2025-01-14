@@ -28,7 +28,7 @@ urlpatterns = [
     url(r'^$', IndexTemplateView.as_view()),
     url(r'^install-cluster.sh$', RKE2Install.as_view()),
     url(r'^console/', include('console.urls')),
-    url(r'^bill/.*$', BillProxyView.as_view()),
+    url(r'^api/.*$', BillProxyView.as_view()),
 ]
 if settings.IS_OPEN_API:
     urlpatterns.append(url(r'^openapi/', include('openapi.urls')), )
