@@ -10,7 +10,7 @@ import requests
 
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
-from console.models.main import TenantUserRole
+from console.models.main import TenantUserRole, RegionConfig
 from console.repositories.app import TenantServiceInfoRepository
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.perm_repo import role_repo
@@ -30,7 +30,7 @@ from django.db import transaction
 from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import PermRelTenant, Tenants, TenantServiceInfo
+from www.models.main import PermRelTenant, Tenants, TenantServiceInfo, TenantRegionInfo
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
@@ -1242,6 +1242,51 @@ class TeamService(object):
                 msg="failed to generate full image name: {}".format(e),
                 msg_show="生成完整镜像地址失败",
                 status_code=500)
+
+    def get_user_team_details(self, user):
+        """
+        获取用户创建的团队详情
+        """
+        # 获取所有启用状态的集群
+        regions = RegionConfig.objects.filter(status='1')
+        
+        # 获取用户创建的团队
+        teams = Tenants.objects.filter(creater=user.user_id)
+        
+        # 获取团队与集群的关联关系
+        team_region_map = {}
+        team_ids = [t.tenant_id for t in teams]
+        team_regions = TenantRegionInfo.objects.filter(
+            tenant_id__in=team_ids,
+            is_active=True
+        )
+        
+        # 构建团队和集群的映射关系
+        for tr in team_regions:
+            if tr.region_name not in team_region_map:
+                team_region_map[tr.region_name] = []
+            team_region_map[tr.region_name].append(tr.tenant_id)
+
+        # 构建返回数据结构
+        region_list = []
+        for region in regions:
+            team_ids = team_region_map.get(region.region_name, [])
+            region_teams = [t for t in teams if t.tenant_id in team_ids]
+            
+            namespaces = [{
+                "namespace": team.namespace,
+                "user_id": user.user_id,
+                "username": user.username,
+                "apps": []
+            } for team in region_teams]
+
+            region_list.append({
+                "region_name": region.region_name,
+                "region_alias": region.region_alias,
+                "namespaces": namespaces
+            })
+            
+        return region_list
 
 
 team_services = TeamService()

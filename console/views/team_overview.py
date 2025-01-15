@@ -1,7 +1,6 @@
 from console.views.base import JWTAuthApiView
 from rest_framework.response import Response
-from console.exception.main import ServiceHandleException
-from console.models.main import RegionConfig
+from console.services.team_services import TeamService
 from www.utils.return_message import general_message
 
 
@@ -14,14 +13,8 @@ class UserTeamDetailsView(JWTAuthApiView):
             []
         """
         try:
-            # 获取所有启用状态的集群
-            regions = RegionConfig.objects.filter(status='1')
-            
-            region_list = [{
-                "region_name": region.region_name,
-                "region_alias": region.region_alias,
-                "namespaces": []
-            } for region in regions]
+            team_service = TeamService()
+            region_list = team_service.get_user_team_details(self.user)
             
             result = general_message(
                 200,
