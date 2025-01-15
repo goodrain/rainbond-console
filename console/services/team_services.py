@@ -30,7 +30,7 @@ from django.db import transaction
 from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import PermRelTenant, Tenants, TenantServiceInfo, TenantRegionInfo
+from www.models.main import PermRelTenant, Tenants, TenantServiceInfo, TenantRegionInfo, ServiceGroup, RegionApp, ServiceGroupRelation
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
@@ -1267,18 +1267,41 @@ class TeamService(object):
                 team_region_map[tr.region_name] = []
             team_region_map[tr.region_name].append(tr.tenant_id)
 
+        # 获取所有相关的应用信息
+        service_groups = ServiceGroup.objects.filter(tenant_id__in=team_ids)
+        
+        # 获取应用与region_app的映射关系
+        app_ids = [sg.ID for sg in service_groups]
+        region_apps = RegionApp.objects.filter(app_id__in=app_ids)
+        region_app_map = {ra.app_id: ra.region_app_id for ra in region_apps}
+
+        # 构建团队ID到应用的映射
+        team_apps_map = {}
+        for sg in service_groups:
+            if sg.tenant_id not in team_apps_map:
+                team_apps_map[sg.tenant_id] = []
+            # 使用region_app_id，如果没有则使用group_id的字符串形式
+            app_id = region_app_map.get(sg.ID, str(sg.ID))
+            team_apps_map[sg.tenant_id].append({
+                "app_id": app_id,
+                "app_name": sg.group_name,
+                "components": []
+            })
+
         # 构建返回数据结构
         region_list = []
         for region in regions:
             team_ids = team_region_map.get(region.region_name, [])
             region_teams = [t for t in teams if t.tenant_id in team_ids]
             
-            namespaces = [{
-                "namespace": team.namespace,
-                "user_id": user.user_id,
-                "username": user.username,
-                "apps": []
-            } for team in region_teams]
+            namespaces = []
+            for team in region_teams:
+                namespaces.append({
+                    "namespace": team.namespace,
+                    "user_id": user.user_id,
+                    "username": user.username,
+                    "apps": team_apps_map.get(team.tenant_id, [])
+                })
 
             region_list.append({
                 "region_name": region.region_name,
