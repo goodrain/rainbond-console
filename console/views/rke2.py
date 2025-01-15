@@ -55,9 +55,9 @@ class ClusterRKE(BaseClusterView):
                 return Response(result, status=400)
             else:
                 # 处理其他类型的 IntegrityError
-                return self.handle_exception(e, "Failed to get cluster", "获取集群失败")
+                return self.handle_exception(e, "Failed to get cluster", "创建集群失败: {}".format(e))
         except Exception as e:
-            return self.handle_exception(e, "Failed to get cluster", "获取集群失败")
+            return self.handle_exception(e, "Failed to get cluster", "创建集群失败: {}".format(e))
 
     # put 接口用于更新集群的配置文件，脚本执行完成后调用。
     def put(self, request):
