@@ -1275,6 +1275,26 @@ class TeamService(object):
         region_apps = RegionApp.objects.filter(app_id__in=app_ids)
         region_app_map = {ra.app_id: ra.region_app_id for ra in region_apps}
 
+        # 获取应用与组件的关联关系
+        group_service_map = {}
+        group_relations = ServiceGroupRelation.objects.filter(group_id__in=app_ids)
+        service_ids = [gr.service_id for gr in group_relations]
+        
+        # 获取组件信息
+        services = TenantServiceInfo.objects.filter(service_id__in=service_ids)
+        service_map = {s.service_id: s for s in services}
+        
+        # 构建应用与组件的映射关系
+        for relation in group_relations:
+            if relation.group_id not in group_service_map:
+                group_service_map[relation.group_id] = []
+            service = service_map.get(relation.service_id)
+            if service:
+                group_service_map[relation.group_id].append({
+                    "service_id": service.service_id,
+                    "service_name": service.service_cname
+                })
+
         # 构建团队ID到应用的映射
         team_apps_map = {}
         for sg in service_groups:
@@ -1285,7 +1305,7 @@ class TeamService(object):
             team_apps_map[sg.tenant_id].append({
                 "app_id": app_id,
                 "app_name": sg.group_name,
-                "components": []
+                "components": group_service_map.get(sg.ID, [])
             })
 
         # 构建返回数据结构
