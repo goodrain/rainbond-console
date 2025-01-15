@@ -1319,7 +1319,7 @@ class TeamService(object):
                 namespaces.append({
                     "namespace": team.namespace,
                     "user_id": user.user_id,
-                    "username": user.username,
+                    "username": user.nick_name,
                     "apps": team_apps_map.get(team.tenant_id, [])
                 })
 
