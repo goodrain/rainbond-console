@@ -142,10 +142,11 @@ class ClusterRKENode(BaseClusterView):
                         }
                     )
             node_ready = all(node.get("status") == "Ready" for node in nodes_info)
-            if node_ready and nodes_info:
-                rke_cluster.update_cluster(create_status="installed")
-            else:
-                rke_cluster.update_cluster(create_status="installing")
+            if cluster_id == "":
+                if node_ready and nodes_info:
+                    rke_cluster.update_cluster(create_status="installed")
+                else:
+                    rke_cluster.update_cluster(create_status="installing")
             result = general_message(200, "Nodes retrieved successfully.", "节点获取成功", list=nodes_info)
             return Response(result, status=200)
         except Exception as e:
