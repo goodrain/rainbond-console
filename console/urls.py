@@ -155,6 +155,7 @@ from console.views.user_operation import TenantServiceView, SendResetEmail, Pass
 from console.views.webhook import WebHooksDeploy, ImageWebHooksDeploy, CustomWebHooksDeploy, GetWebHooksUrl, \
     ImageWebHooksTrigger, WebHooksStatus, UpdateSecretKey
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
+from console.views.team_overview import UserTeamDetailsView
 
 urlpatterns = [
     # 升级
@@ -1034,6 +1035,7 @@ urlpatterns = [
     # 针对target 查看日志
     url(r'^teams/(?P<tenantName>[\w\-]+)/events$', AppEventsView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/events/(?P<eventId>[\w\-]+)/log$', AppEventsLogView.as_view()),
+    url(r'^users/team_details$', UserTeamDetailsView.as_view()),
 ]
 
 # 云市应用升级相关接口
