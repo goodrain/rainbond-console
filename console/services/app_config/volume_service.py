@@ -3,6 +3,7 @@
   Created on 18/1/17.
 """
 import logging
+import os
 import re
 
 from console.constants import AppConstants, ServiceLanguageConstants
@@ -67,6 +68,9 @@ class AppVolumeService(object):
         if body and hasattr(body, 'list') and body.list:
             for opt in body.list:
                 base_opts.append(opt)
+        if os.getenv("USE_SAAS"):
+            base_opts = [{"volume_type": "volcengine", "name_show": "火山云存储"}]
+
         return base_opts
 
     def get_best_suitable_volume_settings(self,
