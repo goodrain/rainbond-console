@@ -20,14 +20,12 @@ def check_account_quota(user_id, region_name, operation_type):
     Returns:
         bool: 是否允许操作
     """
-    # 如果是公有云环境才进行检查
-    if os.getenv("IS_PUBLIC") != "true" and os.getenv("IS_PUBLIC") != "True":
-        return True
+    if os.getenv("BILL_SERVICE_URL", "") == "":  # 如果未配置计费服务地址
+        logger.info("BILL_SERVICE_URL is not configured, skip quota check")
+        return True  # 不需要计量计费,直接返回True
 
     try:
-        # 从环境变量获取计费系统地址,默认为 localhost:8081
-        bill_domain = os.getenv("BILL_SERVICE_URL", "http://14.103.232.255:32222")
-        api_url = "{}/api/v1/verify/operation".format(bill_domain)
+        api_url = "{}/api/v1/verify/operation".format(os.getenv("BILL_SERVICE_URL", 'http://14.103.232.255:32222'))
 
         payload = {
             "user_id": user_id,
@@ -42,17 +40,12 @@ def check_account_quota(user_id, region_name, operation_type):
         resp = requests.post(api_url, json=payload, timeout=timeout)
         resp.raise_for_status()
         data = resp.json()
-
         if not data.get("allowed", True):
             logger.warning("Account quota check failed - user_id: %s, message: %s", 
                          user_id, data.get("message"))
-            raise ServiceHandleException(msg_show=data.get("message", "账户配额不足"), msg="Account quota not enough", error_code=20002)
+            raise ServiceHandleException(msg_show=data.get("message", "账户配额不足"), msg="Account quota not enough", error_code=20002, status_code=409)
         return True
     except requests.exceptions.RequestException as e:
         logger.error("Failed to check account quota - error: %s", e)
         # 请求失败时默认放行
-        return True
-    except Exception as e:
-        logger.exception("Unexpected error when checking account quota")
-        # 发生未知异常时默认放行
         return True
