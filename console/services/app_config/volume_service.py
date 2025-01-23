@@ -69,7 +69,7 @@ class AppVolumeService(object):
             for opt in body.list:
                 base_opts.append(opt)
         if os.getenv("USE_SAAS"):
-            base_opts = [{"volume_type": "volcengine", "name_show": "火山云存储"}]
+            base_opts = [{"volume_type": "volcengine", "name_show": "火山云存储", "provisioner": ""}]
 
         return base_opts
 
