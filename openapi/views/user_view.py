@@ -5,6 +5,7 @@ import logging
 from console.exception.exceptions import (EmailExistError, PhoneExistError, UserExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
 from console.repositories.user_repo import user_repo
+from console.services.app_actions import app_manage_service
 from console.services.user_services import user_services
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -13,7 +14,7 @@ from openapi.serializer.user_serializer import (ChangePassWdSerializer, ChangePa
 from openapi.views.base import BaseOpenAPIView
 from rest_framework import serializers, status
 from rest_framework.response import Response
-from www.models.main import Users
+from www.models.main import Users, Tenants
 
 logger = logging.getLogger("default")
 
@@ -229,3 +230,18 @@ class CurrentUsersView(BaseOpenAPIView):
             }
             return Response({"bean": res}, status=200)
         return Response(None, status=400)
+
+
+class UserTenantClose(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="根据用户ID关闭所有团队",
+        tags=['openapi-user'],
+    )
+    def get(self, req, user_id, *args, **kwargs):
+        uid = int(user_id)
+        user = user_services.get_user_by_user_id(uid)
+        tenants = Tenants.objects.filter(creater=uid)
+        user.nick_name = "系统（余额不足）"
+        for tenant in tenants:
+            app_manage_service.close_all_component_in_team(tenant, user)
+        return Response({"bean": "close success"}, status=200)

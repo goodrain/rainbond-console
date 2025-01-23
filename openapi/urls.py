@@ -16,7 +16,8 @@ from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
 from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
                                      TeamCertificatesRUDView, TeamEventLogView, TeamInfo, TeamOverviewView, TeamsResourceView)
-from openapi.views.user_view import (ChangePassword, ChangeUserPassword, ListUsersView, UserInfoView, CurrentUsersView)
+from openapi.views.user_view import (ChangePassword, ChangeUserPassword, ListUsersView, UserInfoView, CurrentUsersView,
+                                     UserTenantClose)
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -45,6 +46,7 @@ urlpatterns = [
     url(r'^v1/users$', ListUsersView.as_view()),
     url(r'^v1/currentuser$', CurrentUsersView.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)$', UserInfoView.as_view()),
+    url(r'^v1/users/(?P<user_id>[\w\-]+)/close$', UserTenantClose.as_view()),
     url(r'^v1/users/(?P<user_id>[\w\-]+)/changepwd$', ChangeUserPassword.as_view()),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/teams/resource$', TeamsResourceView.as_view()),
