@@ -389,8 +389,8 @@ class RegionService(object):
             raise ServiceHandleException(status_code=400, msg="", msg_show="集群ID{0}已存在".format(region_data["region_name"]))
         try:
             region_api.test_region_api(region_data)
-        except ServiceHandleException:
-            raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
+        except ServiceHandleException as e:
+            raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态{}".format(e))
 
         # 根据当前企业查询是否有region
         exist_region = region_repo.get_region_by_enterprise_id(ent.enterprise_id)
