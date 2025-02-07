@@ -1570,7 +1570,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info_by_enterprise_id(eid, region)
         url = url + "/v2/app/import/" + event_id
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(url, self.default_headers, region=region, timeout=600)
         return res, body
 
     def get_enterprise_import_file_dir(self, region, eid, event_id):
