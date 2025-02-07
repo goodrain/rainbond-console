@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
 import json
+import os
 from datetime import datetime
 
 from .utils import is_same_component
@@ -382,6 +383,8 @@ class NewComponents(object):
                         settings["volume_capacity"] = volume.get("volume_capacity", 10)
                         if settings["volume_capacity"] == 0:
                             settings["volume_capacity"] = 10
+                    if os.getenv("USE_SAAS"):
+                        volume["volume_type"] = "volcengine"
                 volumes2.append(
                     volume_service.create_service_volume(
                         self.tenant,

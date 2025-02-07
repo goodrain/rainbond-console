@@ -45,6 +45,8 @@ class AppVolumeService(object):
     ]
 
     default_volume_type = "local-path"
+    if os.getenv("USE_SAAS"):
+        default_volume_type = "volcengine"
     simple_volume_type = [default_volume_type, "config-file", "vm-file", "memoryfs", "local"]
 
     def is_simple_volume_type(self, volume_type):
@@ -297,6 +299,8 @@ class AppVolumeService(object):
             check_results = self.check_volume_options(tenant, service, volume_type, settings)
             if not check_results:
                 volume_type = "local-path"
+                if os.getenv("USE_SAAS"):
+                    volume_type = "volcengine"
                 volume_data["volume_type"] = volume_type
             settings = self.setting_volume_properties(tenant, service, volume_type, settings)
 
