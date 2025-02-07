@@ -272,14 +272,14 @@ class AppUpgrade(MarketApp):
             _ = self.predeploy(helm_chart_parameter)
         except Exception as e:
             logger.exception(e)
-            raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常，请稍后重试")
+            raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常{}".format(e))
 
     def _install_deploy(self):
         try:
             _ = self.deploy()
         except Exception as e:
             logger.exception(e)
-            raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常，请稍后重试")
+            raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常{}".format(e))
 
     def _deploy_plugins(self, plugins: [Plugin]):
         new_plugins = []
