@@ -21,7 +21,11 @@ class UserTeamDetailsView(JWTAuthApiView):
                 "success",
                 "查询成功",
                 bean={
-                    "regions": region_list
+                    "regions": region_list,
+                    "user": {
+                        "user_id": self.user.user_id,
+                        "phone": self.user.phone,
+                    }
                 })
             return Response(result, status=result["code"])
             
