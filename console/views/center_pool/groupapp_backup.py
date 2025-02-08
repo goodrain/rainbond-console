@@ -219,7 +219,7 @@ class TeamGroupAppsBackupView(RegionTenantHeaderView):
         backups = groupapp_backup_service.get_group_back_up_info(self.tenant, self.region_name, group_id)
         paginator = JuncheePaginator(backups, int(page_size))
         backup_records = paginator.page(int(page))
-        obj_storage = EnterpriseConfigService(self.user.enterprise_id).get_cloud_obj_storage_info()
+        obj_storage = EnterpriseConfigService(self.user.enterprise_id, self.user.user_id).get_cloud_obj_storage_info()
         bean = {"is_configed": obj_storage is not None}
         result = general_message(
             200, "success", "查询成功", bean=bean, list=[backup.to_dict() for backup in backup_records], total=paginator.count)
