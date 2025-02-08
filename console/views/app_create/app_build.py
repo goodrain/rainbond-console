@@ -65,6 +65,8 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 except ErrInsufficientResource as e:
                     result = general_message(e.error_code, e.msg, e.msg_show)
                     return Response(result, status=e.status_code)
+                except ServiceHandleException as e:
+                    raise e
                 except Exception as e:
                     logger.exception(e)
                     err = ErrComponentBuildFailed()
