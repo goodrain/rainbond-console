@@ -172,10 +172,7 @@ class AppManageService(AppManageBase):
 
     def restart(self, tenant, service, user, oauth_instance):
         if service.create_status == "complete":
-            status_info_map = app_service.get_service_status(tenant, service)
-            if status_info_map.get("status", "Unknown") in [
-                    "undeploy", "closed "
-            ] and not check_account_quota(user.user_id, service.service_region, self.ResourceOperationReStart):
+            if service.service_source != "third_party" and not check_account_quota(user.user_id, service.service_region, self.ResourceOperationReStart):
                 raise ServiceHandleException(error_code=20002, msg="not enough quota")
             body = dict()
             body["operator"] = str(user.nick_name)
@@ -197,10 +194,7 @@ class AppManageService(AppManageBase):
         service.arch = service.arch if service.arch else "amd64"
         if service.arch not in chaos_arch:
             raise AbortRequest("app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
-        status_info_map = app_service.get_service_status(tenant, service)
-        if status_info_map.get("status", "Unknown") in [
-                "undeploy", "closed "
-        ] and not check_account_quota(user.user_id, service.service_region, self.ResourceOperationDeploy):
+        if service.service_source != "third_party" and not check_account_quota(user.user_id, service.service_region, self.ResourceOperationDeploy):
             raise ServiceHandleException(msg="not enough quota", error_code=20002)
         body = dict()
         # 默认更新升级
@@ -424,10 +418,7 @@ class AppManageService(AppManageBase):
         return 200, "success"
 
     def upgrade(self, tenant, service, user, committer_name=None, oauth_instance=None):
-        status_info_map = app_service.get_service_status(tenant, service)
-        if status_info_map.get("status", "Unknown") in [
-                "undeploy", "closed "
-        ] and not check_account_quota(user.user_id, service.service_region, self.ResourceOperationUPGRADE):
+        if service.service_source != "third_party" and not check_account_quota(user.user_id, service.service_region, self.ResourceOperationUPGRADE):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         body = dict()
         body["service_id"] = service.service_id
