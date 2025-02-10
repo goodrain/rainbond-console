@@ -199,11 +199,11 @@ class RegionApiBaseHttpClient(object):
         except MaxRetryError as e:
             logger.debug("error url {}".format(url))
             logger.exception(e)
-            raise ServiceHandleException(error_code=10411, msg="MaxRetryError", msg_show="访问数据中心异常，请稍后重试")
+            raise ServiceHandleException(error_code=10411, msg="MaxRetryError{}".format(e), msg_show="访问数据中心异常，请稍后重试")
         except Exception as e:
             logger.debug("error url {}".format(url))
             logger.exception(e)
-            raise ServiceHandleException(error_code=10411, msg="Exception", msg_show="访问数据中心异常，请稍后重试")
+            raise ServiceHandleException(error_code=10411, msg="Exception{}".format(e), msg_show="访问数据中心异常，请稍后重试")
 
     def destroy_client(self, region_config):
         key = hash(region_config.url + region_config.ssl_ca_cert + region_config.cert_file + region_config.key_file)
