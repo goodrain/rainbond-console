@@ -347,7 +347,7 @@ class TenantHeaderView(JWTAuthApiView):
                             team_role_perms.filter(perm_code=300002).exclude(app_id=-1).values_list("app_id",
                                                                                                     flat=True))
                         app = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                          username=self.user.username).values_list("ID", flat=True)
+                                                          username=self.user.nick_name).values_list("ID", flat=True)
                         self.perm_apps.extend(app)
                         self.perm_apps = list(set(self.perm_apps))
         self.user_perms = list(set(self.user_perms))
