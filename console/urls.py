@@ -138,6 +138,7 @@ from console.views.service_share import ServiceShareRecordView, ShareRecordView,
     AppMarketBatchCView
 from console.views.service_version import AppVersionsView, AppVersionManageView
 from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
+from console.views.storage_statistics import StorageStatistics
 from console.views.task_guidance import BaseGuidance
 from console.views.team import UserFuzSerView, TeamUserDetaislView, TeamCheckResourceName, TeamSortServiceQueryView, \
     TeamCheckKubernetesServiceName, TeamRegistryAuthLView, TeamRegistryAuthRUDView, AddTeamView, TeamUserView, \
@@ -212,6 +213,7 @@ urlpatterns = [
     url(r'^rb_components_status$', ClusterRKERBStatus.as_view()),
     url(r'^rb_component_event$', ClusterRKERBEvent.as_view()),
     url(r'^region_config$', RKERegionConfig.as_view()),
+    url(r'^storage_statistics$', StorageStatistics.as_view()),
     # 判断是sso还是私有云
     url(r'^checksource$', CheckSourceView.as_view()),
     # 用户登录

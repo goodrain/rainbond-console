@@ -40,4 +40,5 @@ cryptography==3.3
 kubernetes==30.1.0
 django-postgrespool2==2.0.5
 ruamel.yaml==0.15.100
+prometheus-api-client==0.5.1
 -e git+https://gitee.com/rainbond/appstore-sdk-python.git@python3#egg=openapi_client
