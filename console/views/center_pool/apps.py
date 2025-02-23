@@ -7,8 +7,11 @@ import json
 import logging
 import re
 
+from console.cloud.services import check_account_quota
+from console.exception.main import ServiceHandleException
 from console.repositories.app import app_tag_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.services.app_actions import app_manage_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.market_app_service import market_app_service
 from console.services.region_services import region_services
@@ -125,7 +128,8 @@ class CenterAppView(RegionTenantHeaderView):
         install_from_cloud = request.data.get("install_from_cloud", False)
         dry_run = request.data.get("dry_run", False)
         market_name = request.data.get("market_name", None)
-
+        if not check_account_quota(self.user.user_id, self.region_name, app_manage_service.ResourceOperationDeploy):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         market_app_service.install_app(self.tenant, self.region, self.user, app_id, app_model_key, version, market_name,
                                        install_from_cloud, is_deploy, dry_run)
         return Response(general_message(200, "success", "创建成功"), status=200)

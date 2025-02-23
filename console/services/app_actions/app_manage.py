@@ -80,6 +80,7 @@ class AppManageBase(object):
         self.ResourceOperationReStart = "restart"
         self.ResourceOperationDeploy = "deploy"
         self.ResourceOperationUPGRADE = "upgrade"
+        self.ResourceOperationROLLBACK = "rollback"
         self.ResourceOperationVerticalUpgrade = "vertical-upgrade"
         self.ResourceOperationHorizontalUpgrade = "horizontal-upgrade"
 
