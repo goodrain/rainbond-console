@@ -392,6 +392,7 @@ class PlatformConfigService(ConfigService):
             "FOOTER",
             "SHADOW",
             ConfigKeyEnum.ENTERPRISE_EDITION.name,
+            ConfigKeyEnum.SECURITY_RESTRICTIONS.name,
         ]
         self.cfg_keys_value = {
             "TITLE": {
@@ -475,6 +476,11 @@ class PlatformConfigService(ConfigService):
                 "value": None,
                 "desc": "控制阴影",
                 "enable": True
+            },
+            ConfigKeyEnum.SECURITY_RESTRICTIONS.name: {
+                "value": None,
+                "desc": "是否启用安全限制，默认不启用",
+                "enable": False
             },
         }
 
