@@ -47,7 +47,7 @@ from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
                                       MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
                                       TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView, PauseAppView,
-                                      UNPauseAppView, TarImageView, AppsPorConsoletView)
+                                      UNPauseAppView, TarImageView, AppsPorConsoletView, ScalingAppView)
 from console.views.app_market import BindableMarketsView
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView, MonitorQueryOverConsoleView)
@@ -673,6 +673,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/horizontal$', HorizontalExtendAppView.as_view(),
         perms.APP_OVERVIEW_TELESCOPIC),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vertical$', VerticalExtendAppView.as_view(),
+        perms.APP_OVERVIEW_TELESCOPIC),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/scaling$', ScalingAppView.as_view(),
         perms.APP_OVERVIEW_TELESCOPIC),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/extend_method$', AppExtendView.as_view(),
         perms.APP_OVERVIEW_TELESCOPIC),
