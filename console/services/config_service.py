@@ -169,7 +169,7 @@ class EnterpriseConfigService(ConfigService):
         self.cfg_keys = [
             "APPSTORE_IMAGE_HUB", "NEWBIE_GUIDE", "EXPORT_APP", "CLOUD_MARKET", "OBJECT_STORAGE", "AUTO_SSL", "TITLE", "LOGO",
             "FAVICON", "LOGIN_IMAGE", "DOCUMENT", "OFFICIAL_DEMO", "VISUAL_MONITOR", "CAPTCHA_CODE", "HEADER_COLOR",
-            "HEADER_WRITING_COLOR", "SIDEBAR_COLOR", "SIDEBAR_WRITING_COLOR", "FOOTER", "SHADOW", "SHOW_K8S", "SHOW_LANGUE"
+            "HEADER_WRITING_COLOR", "SIDEBAR_COLOR", "SIDEBAR_WRITING_COLOR", "FOOTER", "SHADOW", "SHOW_K8S", "SHOW_LANGUE", ConfigKeyEnum.SECURITY_RESTRICTIONS.name,
         ]
         self.cfg_keys_value = {
             "APPSTORE_IMAGE_HUB": {
@@ -303,6 +303,11 @@ class EnterpriseConfigService(ConfigService):
                 "desc": "控制阴影",
                 "enable": True
             },
+            ConfigKeyEnum.SECURITY_RESTRICTIONS.name: {
+                "value": None,
+                "desc": "是否启用安全限制，默认不启用",
+                "enable": False
+            },
         }
 
     def init_base_config_value(self):
@@ -387,6 +392,7 @@ class PlatformConfigService(ConfigService):
             "FOOTER",
             "SHADOW",
             ConfigKeyEnum.ENTERPRISE_EDITION.name,
+            ConfigKeyEnum.SECURITY_RESTRICTIONS.name,
         ]
         self.cfg_keys_value = {
             "TITLE": {
@@ -470,6 +476,11 @@ class PlatformConfigService(ConfigService):
                 "value": None,
                 "desc": "控制阴影",
                 "enable": True
+            },
+            ConfigKeyEnum.SECURITY_RESTRICTIONS.name: {
+                "value": None,
+                "desc": "是否启用安全限制，默认不启用",
+                "enable": False
             },
         }
 

@@ -5,6 +5,8 @@ from enum import Enum
 
 from console.exception.main import ServiceHandleException
 from console.repositories.upgrade_repo import upgrade_repo
+from console.services.app_actions import app_manage_service
+from console.cloud.services import check_account_quota
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.upgrade_services import upgrade_service
@@ -93,6 +95,8 @@ class AppUpgradeInfoView(ApplicationView):
 
 class AppUpgradeRollbackView(AppUpgradeRecordView):
     def post(self, request, group_id, record_id, *args, **kwargs):
+        if not check_account_quota(self.user.user_id, self.region_name, app_manage_service.ResourceOperationROLLBACK):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         record, _ = upgrade_service.restore(self.tenant, self.region, self.user, self.app, self.app_upgrade_record)
         return MessageResponse(msg="success", bean=record)
 
@@ -119,6 +123,8 @@ class AppUpgradeComponentListView(ApplicationView):
 
 class AppUpgradeView(AppUpgradeRecordView):
     def post(self, request, app_id, record_id, *args, **kwargs):
+        if not check_account_quota(self.user.user_id, self.region_name, app_manage_service.ResourceOperationUPGRADE):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         version = parse_item(request, "version", required=True)
         # It is not yet possible to upgrade based on services, which is user-specified attribute changes
         components = parse_item(request, "services", default=[])
@@ -137,6 +143,8 @@ class AppUpgradeView(AppUpgradeRecordView):
 
 class AppUpgradeDeployView(AppUpgradeRecordView):
     def post(self, request, app_id, record_id, *args, **kwargs):
+        if not check_account_quota(self.user.user_id, self.region_name, app_manage_service.ResourceOperationDeploy):
+            raise ServiceHandleException(error_code=20002, msg="not enough quota")
         upgrade_service.deploy(self.tenant, self.region_name, self.user, self.app_upgrade_record)
         return MessageResponse(msg="success", msg_show="部署成功")
 

@@ -25,7 +25,10 @@ class UserTeamDetailsView(JWTAuthApiView):
                     "user": {
                         "user_id": self.user.user_id,
                         "phone": self.user.phone,
-                    }
+                        "username": self.user.nick_name,
+                        "real_name": self.user.real_name,
+                        "email": self.user.email,
+                    },
                 })
             return Response(result, status=result["code"])
             
