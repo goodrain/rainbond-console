@@ -88,7 +88,7 @@ class StorageStatistics(AlowAnyApiView):
                 service_aliases = [s.service_alias for s in services]
             elif tenant_id:
                 # 查询团队下的所有组件
-                services = service_repo.get_services_by_tenant_id(tenant_id)
+                services = service_repo.get_service_by_tenant(tenant_id)
                 service_aliases = [s.service_alias for s in services]
             
             # 获取5分钟内的平均使用量
