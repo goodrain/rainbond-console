@@ -28,6 +28,8 @@ from console.services.region_services import region_services
 from django.core.paginator import Paginator, EmptyPage
 from django.db import transaction
 from django.db.models import Q
+
+from console.services.storage_service import storage_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import PermRelTenant, Tenants, TenantServiceInfo, TenantRegionInfo, ServiceGroup, RegionApp, ServiceGroupRelation
@@ -373,6 +375,7 @@ class TeamService(object):
             tenant["running_apps"] = 0
             tenant["memory_request"] = 0
             tenant["cpu_request"] = 0
+            tenant["storage_request"] = storage_service.get_tenant_storage_usage(team.tenant_id)
             tenants[team.tenant_id] = tenant
         if region_dict:
             region_tenants = list()
