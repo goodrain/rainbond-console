@@ -49,6 +49,25 @@ class StorageStatistics(AlowAnyApiView):
         prometheus_url = os.environ.get("PROMETHEUS_URL", "http://rbd-monitor:9999")
         self.prom_client = PrometheusClient(prometheus_url)
 
+    def _format_storage_size(self, size_in_bytes):
+        """
+        格式化存储大小，自动选择合适的单位
+        :param size_in_bytes: 字节大小
+        :return: 包含数值和单位的字典
+        """
+        units = ['B', 'KB', 'MB', 'GB', 'TB']
+        size = float(size_in_bytes)
+        unit_index = 0
+        
+        while size >= 1024 and unit_index < len(units) - 1:
+            size /= 1024
+            unit_index += 1
+            
+        return {
+            "value": round(size, 2),
+            "unit": units[unit_index]
+        }
+
     def get(self, request):
         """
         获取存储使用统计
@@ -98,7 +117,7 @@ class StorageStatistics(AlowAnyApiView):
             )
             
             storage_stats = {
-                "used_storage": used_bytes / (1024 * 1024 * 1024)  # 转换为GB
+                "used_storage": self._format_storage_size(used_bytes)
             }
 
             result = general_message(
