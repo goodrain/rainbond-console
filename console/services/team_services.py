@@ -2,6 +2,7 @@
 import base64
 import json
 import logging
+import os
 import random
 import string
 from urllib.parse import urlparse
@@ -12,6 +13,7 @@ from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
 from console.models.main import TenantUserRole, RegionConfig
 from console.repositories.app import TenantServiceInfoRepository
+from console.repositories.app_config import volume_repo
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.region_repo import region_repo
@@ -351,6 +353,33 @@ class TeamService(object):
         user_id_dict = dict()
         for user_id in user_id_list:
             user_id_dict[tenant_IDs.get(user_id["tenant_id"])] = user_id_dict.get(tenant_IDs.get(user_id["tenant_id"]), 0) + 1
+        
+        # Pre-calculate storage usage for all teams
+        storage_dict = {}
+        if not os.getenv("USE_SAAS"):
+            # Get all components for all teams
+            all_components = TenantServiceInfo.objects.filter()
+            service_ids = [comp.service_id for comp in all_components]
+            
+            # Get all volumes for these components
+            all_volumes = volume_repo.get_services_volumes(service_ids)
+            
+            # Calculate storage for each team
+            team_components = {}
+            for comp in all_components:
+                if comp.tenant_id not in team_components:
+                    team_components[comp.tenant_id] = []
+                team_components[comp.tenant_id].append(comp.service_id)
+            
+            for team_id in team_components:
+                use_disk = 0
+                team_service_ids = team_components[team_id]
+                for volume in all_volumes:
+                    if volume.service_id in team_service_ids and volume.volume_type != "config-file":
+                        volume.volume_capacity = 10 if volume.volume_capacity == 0 else volume.volume_capacity
+                        use_disk += volume.volume_capacity
+                storage_dict[team_id] = use_disk
+
         for team in teams:
             region_info_map = []
             region_name_list = team_repo.get_team_region_names(team.tenant_id)
@@ -375,7 +404,11 @@ class TeamService(object):
             tenant["running_apps"] = 0
             tenant["memory_request"] = 0
             tenant["cpu_request"] = 0
-            tenant["storage_request"] = storage_service.get_tenant_storage_usage(team.tenant_id)
+            if os.getenv("USE_SAAS"):
+                storage_request = storage_service.get_tenant_storage_usage(team.tenant_id)
+                tenant["storage_request"] = "{}{}".format(storage_request.get("value", 0), storage_request.get("unit", "B"))
+            else:
+                tenant["storage_request"] = storage_dict.get(team.tenant_id, 0)
             tenants[team.tenant_id] = tenant
         if region_dict:
             region_tenants = list()
