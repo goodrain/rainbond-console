@@ -421,8 +421,8 @@ class TeamService(object):
                 tenants.get(tenant_id)["set_limit_cpu"] = region_tenant.get("LimitCPU", 0)
                 tenants.get(tenant_id)["set_limit_storage"] = region_tenant.get("LimitStorage", 0)
                 tenants.get(tenant_id)["running_apps"] = running_apps + region_tenant.get("running_applications", 0)
-                tenants.get(tenant_id)["memory_request"] = region_tenant.get("memory_request", 0)
-                tenants.get(tenant_id)["cpu_request"] = region_tenant.get("cpu_request", 0)
+                tenants.get(tenant_id)["memory_request"] = region_tenant.get("memory_limit", 0)
+                tenants.get(tenant_id)["cpu_request"] = region_tenant.get("cpu_limit", 0)
         return tenants.values()
 
     def get_region_tenant(self, eid, region_id, tenant_ids):
