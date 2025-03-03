@@ -254,8 +254,8 @@ class TeamService(object):
                 transaction.savepoint_rollback(sid)
             logger.exception(e)
 
-    def get_current_user_tenants(self, user_id):
-        tenants = team_repo.get_tenants_by_user_id(user_id=user_id)
+    def get_current_user_tenants(self, user_id, team_name=""):
+        tenants = team_repo.get_tenants_by_user_id(user_id=user_id, team_name=team_name)
         return tenants
 
     @transaction.atomic

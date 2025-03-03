@@ -345,9 +345,10 @@ class UserDetailsView(JWTAuthApiView):
         查询我的详情
         ---
         """
+        team_name = request.GET.get("team_name", "")
         code = 200
         user = self.user
-        tenants = team_services.get_current_user_tenants(user_id=user.user_id)
+        tenants = team_services.get_current_user_tenants(user_id=user.user_id, team_name=team_name)
         user_detail = dict()
         user_detail["user_id"] = user.user_id
         user_detail["user_name"] = user.nick_name
