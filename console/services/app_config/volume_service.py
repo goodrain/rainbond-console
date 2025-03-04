@@ -200,6 +200,8 @@ class AppVolumeService(object):
             return access_mode.upper()
         if volume_type == self.default_volume_type:
             access_mode = "RWO"
+            if service.extend_method == ComponentType.stateless_multiple.value:
+                access_mode = "RWX"
         elif volume_type == "config-file":
             access_mode = "RWX"
         elif volume_type == "memoryfs" or volume_type == "local":
