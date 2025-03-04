@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
-from prometheus_api_client import PrometheusConnect
+import volcenginesdkcore
+import volcenginesdkfilenas
+from volcenginesdkcore.rest import ApiException
 from console.repositories.app import service_repo
 
 logger = logging.getLogger("default")
@@ -10,11 +12,21 @@ logger = logging.getLogger("default")
 class StorageService(object):
     def __init__(self):
         """
-        初始化存储服务
+        初始化存储服务，使用火山云 SDK 配置
         """
-        # 从环境变量获取Prometheus URL，默认为 http://rbd-monitor:9999
-        self.prometheus_url = os.environ.get("PROMETHEUS_URL", "http://rbd-monitor:9999")
-        self.prom_client = PrometheusConnect(url=self.prometheus_url, disable_ssl=True)
+        # 从环境变量获取 AK、SK 和区域信息
+        self.ak = os.environ.get("VOLCENGINES_AK", "")
+        self.sk = os.environ.get("VOLCENGINES_SK", "")
+        self.region = os.environ.get("VOLCENGINES_REGION", "cn-beijing")
+
+        # 配置火山云 SDK
+        configuration = volcenginesdkcore.Configuration()
+        configuration.ak = self.ak
+        configuration.sk = self.sk
+        configuration.region = self.region
+        volcenginesdkcore.Configuration.set_default(configuration)
+
+        self.api_instance = volcenginesdkfilenas.FILENASApi()
 
     def get_storage_usage_by_service_aliases(self, service_aliases: list, duration_minutes: int = 5) -> float:
         """
@@ -26,20 +38,26 @@ class StorageService(object):
         try:
             if not service_aliases:
                 return 0.0
-                
-            # 构造查询语句，使用正则表达式匹配多个service_alias
-            service_aliases_str = "|".join(service_aliases)
-            query = f'sum(avg_over_time(kubelet_volume_stats_used_bytes{{persistentvolumeclaim=~"({service_aliases_str})"}}[{duration_minutes}m]))'
-            
-            # 执行查询
-            result = self.prom_client.custom_query(query)
-            
-            # 解析结果
-            if result and isinstance(result, list) and len(result) > 0:
-                return float(result[0]['value'][1])
-            
-            return 0.0
-        except Exception as e:
+
+            # 火山云 SDK API 查询：示例代码假设从文件系统查询使用量
+            filters = [
+                volcenginesdkfilenas.FilterForDescribeFileSystemsInput(
+                    key="FileSystemName",
+                    value="|".join(service_aliases)
+                )
+            ]
+            describe_file_systems_request = volcenginesdkfilenas.DescribeFileSystemsRequest(filters=filters)
+            # 获取火山云文件系统使用情况
+            file_systems = self.api_instance.describe_file_systems(describe_file_systems_request)
+            # 解析返回结果中的存储使用量
+            total_used_bytes = 0
+            for fs in file_systems.file_systems:
+                print(fs.capacity.used)
+                total_used_bytes += fs.capacity.used  # 假设返回的结果包含 'used_size' 字段，单位为字节
+
+            return total_used_bytes
+
+        except ApiException as e:
             logger.warning(f"获取存储使用量失败: {e}")
             return 0.0
 
@@ -49,7 +67,7 @@ class StorageService(object):
         :param size_in_bytes: 字节大小
         :return: 包含数值和单位的字典
         """
-        units = ['B', 'KB', 'MB', 'GB', 'TB']
+        units = ['MB', 'GB', 'TB']
         size = float(size_in_bytes)
         unit_index = 0
         
