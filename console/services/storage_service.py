@@ -39,7 +39,21 @@ class StorageService(object):
         try:
             if not service_aliases:
                 return 0.0
-            describe_file_systems_request = volcenginesdkfilenas.DescribeFileSystemsRequest()
+
+            tag_filters_list = []
+            for service_alias in service_aliases:
+                tag_filters_list.append(
+                    volcenginesdkfilenas.TagFilterForDescribeFileSystemsInput(
+                        key="service_alias",
+                        value=service_alias,
+                    )
+                )
+
+            describe_file_systems_request = volcenginesdkfilenas.DescribeFileSystemsRequest(
+                tag_filters=tag_filters_list,
+                page_size=100,
+                page_number=1,
+            )
             # 获取火山云文件系统使用情况
             file_systems = self.api_instance.describe_file_systems(describe_file_systems_request)
             # 解析返回结果中的存储使用量
