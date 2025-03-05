@@ -5,6 +5,7 @@ import volcenginesdkcore
 import volcenginesdkfilenas
 from volcenginesdkcore.rest import ApiException
 from console.repositories.app import service_repo
+from console.repositories.group import group_service_relation_repo
 
 logger = logging.getLogger("default")
 
@@ -38,23 +39,14 @@ class StorageService(object):
         try:
             if not service_aliases:
                 return 0.0
-
-            # 火山云 SDK API 查询：示例代码假设从文件系统查询使用量
-            filters = [
-                volcenginesdkfilenas.FilterForDescribeFileSystemsInput(
-                    key="FileSystemName",
-                    value="|".join(service_aliases)
-                )
-            ]
-            describe_file_systems_request = volcenginesdkfilenas.DescribeFileSystemsRequest(filters=filters)
+            describe_file_systems_request = volcenginesdkfilenas.DescribeFileSystemsRequest()
             # 获取火山云文件系统使用情况
             file_systems = self.api_instance.describe_file_systems(describe_file_systems_request)
             # 解析返回结果中的存储使用量
             total_used_bytes = 0
             for fs in file_systems.file_systems:
-                print(fs.capacity.used)
-                total_used_bytes += fs.capacity.used  # 假设返回的结果包含 'used_size' 字段，单位为字节
-
+                if fs.file_system_name in service_aliases:
+                    total_used_bytes += fs.capacity.used  # 假设返回的结果包含 'used_size' 字段，单位为字节
             return total_used_bytes
 
         except ApiException as e:
@@ -91,13 +83,14 @@ class StorageService(object):
         used_bytes = self.get_storage_usage_by_service_aliases(service_aliases)
         return self._format_storage_size(used_bytes)
 
-    def get_app_storage_usage(self, app_id: str) -> dict:
+    def get_app_storage_usage(self, app_id: int) -> dict:
         """
         获取应用的存储使用量
         :param app_id: 应用ID
         :return: 格式化后的存储使用量
         """
-        services = service_repo.get_services_by_group_id(app_id)
+        group_services = group_service_relation_repo.get_services_by_group(int(app_id))
+        services = service_repo.get_services_by_service_ids(group_services.values_list("service_id", flat=True))
         service_aliases = [s.service_alias for s in services]
         used_bytes = self.get_storage_usage_by_service_aliases(service_aliases)
         return self._format_storage_size(used_bytes)
