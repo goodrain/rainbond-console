@@ -42,4 +42,4 @@ django-postgrespool2==2.0.5
 ruamel.yaml==0.15.100
 prometheus-api-client==0.5.1
 volcengine-python-sdk==1.0.126
--e git+https://gitee.com/rainbond/appstore-sdk-python.git@python3#egg=openapi_client
+-e git+https://gitee.com/zhangsetsail/appstore-sdk-python.git@python3#egg=openapi_client
