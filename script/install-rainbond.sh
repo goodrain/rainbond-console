@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v6.0.0-release'}
+RAINBOND_VERSION=${VERSION:-'v6.1.2-release'}
 IMGHUB_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain"
 
 # Define colorful stdout
@@ -126,6 +126,17 @@ if ! (docker info &>/dev/null); then
         fi
     fi
 else
+    DOCKER_VERSION=$(docker --version | awk '{print $3}' | cut -d '.' -f1)
+    if [ "$DOCKER_VERSION" -lt 24 ]; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "Docker 版本 ${DOCKER_VERSION}.x 不支持, 需要版本 24.0+."
+            exit 1
+        else
+            send_error "Docker version ${DOCKER_VERSION}.x is too old. Requires version 24.0+."
+            exit 1
+        fi
+    fi
+
     if docker ps -a --filter "name=^rainbond$" | grep -q "rainbond"; then
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
             send_error "rainbond 容器已存在.\n\t- 确保 rainbond 是否在运行.\n\t- 尝试执行 'docker start rainbond' 命令启动.\n\t- 或者你可以选择删除该容器 'docker rm -f rainbond'"

@@ -55,9 +55,9 @@ class ClusterRKE(BaseClusterView):
                 return Response(result, status=400)
             else:
                 # 处理其他类型的 IntegrityError
-                return self.handle_exception(e, "Failed to get cluster", "获取集群失败")
+                return self.handle_exception(e, "Failed to get cluster", "创建集群失败: {}".format(e))
         except Exception as e:
-            return self.handle_exception(e, "Failed to get cluster", "获取集群失败")
+            return self.handle_exception(e, "Failed to get cluster", "创建集群失败: {}".format(e))
 
     # put 接口用于更新集群的配置文件，脚本执行完成后调用。
     def put(self, request):
@@ -142,10 +142,11 @@ class ClusterRKENode(BaseClusterView):
                         }
                     )
             node_ready = all(node.get("status") == "Ready" for node in nodes_info)
-            if node_ready and nodes_info:
-                rke_cluster.update_cluster(create_status="installed")
-            else:
-                rke_cluster.update_cluster(create_status="installing")
+            if cluster_id == "":
+                if node_ready and nodes_info:
+                    rke_cluster.update_cluster(create_status="installed")
+                else:
+                    rke_cluster.update_cluster(create_status="installing")
             result = general_message(200, "Nodes retrieved successfully.", "节点获取成功", list=nodes_info)
             return Response(result, status=200)
         except Exception as e:

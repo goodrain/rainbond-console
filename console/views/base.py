@@ -2,6 +2,7 @@
 import copy
 import logging
 import os
+import traceback
 
 import jwt
 from addict import Dict
@@ -588,11 +589,22 @@ def custom_exception_handler(exc, context):
         if exc.message.get("httpcode") == 404:
             data = {"code": 404, "msg": "region no found this resource", "msg_show": "数据中心资源不存在"}
         else:
-            data = {"code": 400, "msg": exc.message, "msg_show": "数据中心操作故障，请稍后重试"}
+            error_body = exc.message.get('body', {})
+            if isinstance(error_body, dict) and error_body.get('msg'):
+                core_error = error_body['msg']
+            else:
+                core_error = str(exc.message)
+            data = {"code": 400, "msg": exc.message, "msg_show": "数据中心操作故障 {}".format(core_error)}
         return Response(data, status=data["code"])
     elif isinstance(exc, ValidationError):
         logger.error(exc)
-        return Response({"detail": "参数错误", "err": exc.detail, "code": 20400}, status=exc.status_code)
+        return Response({
+            "detail": "参数错误",
+            "err": exc.detail,
+            "code": 20400,
+            "error_type": exc.__class__.__name__,
+            "error_trace": traceback.format_exc()
+        }, status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):
         headers = {}
         if getattr(exc, 'auth_header', None):
@@ -607,7 +619,13 @@ def custom_exception_handler(exc, context):
 
         set_rollback()
         # 处理数据为标准返回格式
-        data.update({"code": exc.status_code, "msg": "{0}".format(exc.detail), "msg_show": "{0}".format(exc.detail)})
+        data.update({
+            "code": exc.status_code,
+            "msg": "{0}".format(exc.detail),
+            "msg_show": "{0}".format(exc.detail),
+            "error_type": exc.__class__.__name__,
+            "error_trace": traceback.format_exc()
+        })
         return Response(data, status=exc.status_code, headers=headers)
     elif isinstance(exc, AuthenticationInfoHasExpiredError):
         data = {"code": 10405, "msg": "Signature has expired.", "msg_show": "身份认证信息失败，请登录"}
@@ -657,9 +675,16 @@ def custom_exception_handler(exc, context):
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
-        return Response({
+        error_info = {
             "code": 10401,
-            "msg": exc.message if hasattr(exc, 'message') else '',
-            "msg_show": "服务端异常"
-        },
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            "msg": str(exc),
+            "msg_show": traceback.format_exc(),
+            "error_type": exc.__class__.__name__,
+            "error_trace": traceback.format_exc(),
+            "error_details": {
+                "args": getattr(exc, 'args', None),
+                "message": exc.message if hasattr(exc, 'message') else str(exc),
+                "module": exc.__class__.__module__
+            }
+        }
+        return Response(error_info, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
