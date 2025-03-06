@@ -158,6 +158,7 @@ from console.views.webhook import WebHooksDeploy, ImageWebHooksDeploy, CustomWeb
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
 from console.views.team_overview import UserTeamDetailsView
 from console.views.sms_config import SMSConfigView
+from console.views.sms_verification import SMSVerificationView
 
 urlpatterns = [
     # 升级
@@ -1043,6 +1044,8 @@ urlpatterns = [
     url(r'^users/team_details$', UserTeamDetailsView.as_view()),
     # 短信配置接口
     url(r'^enterprises/(?P<enterprise_id>[\w\-]+)/sms-config$', SMSConfigView.as_view()),
+    # 短信验证码发送
+    url(r'^sms/send-code$', SMSVerificationView.as_view()),
 ]
 
 # 云市应用升级相关接口

@@ -1189,3 +1189,15 @@ class ComponentK8sAttributes(BaseModel):
     # Define the attribute value, which is stored in the database.
     # The value is stored in the database in the form of `json/yaml/string`.
     attribute_value = models.TextField(help_text="the attribute value")
+
+
+class SMSVerificationCode(models.Model):
+    """短信验证码"""
+    phone = models.CharField(max_length=11, help_text="手机号")
+    code = models.CharField(max_length=6, help_text="验证码") 
+    purpose = models.CharField(max_length=20, help_text="用途")
+    created_at = models.DateTimeField(auto_now_add=True, help_text="创建时间")
+    expires_at = models.DateTimeField(help_text="过期时间")
+
+    class Meta:
+        db_table = "sms_verification_code"
