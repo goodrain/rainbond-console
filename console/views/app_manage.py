@@ -65,7 +65,7 @@ class AppsPorConsoletView(RegionTenantHeaderView):
                     port_list.append(port_dict)
                     continue
                 group_port = group_service_relation_repo.get_group_by_service_id(port.service_id)
-                if group_port.group_id == int(app_id):
+                if group_port and group_port.group_id == int(app_id):
                     port_list.append(port_dict)
         ret_data = {"outer_url": tcp_domain, "namespace": self.team.namespace, "ports": port_list}
         result = general_message(200, "success", "查询成功", bean=ret_data)
