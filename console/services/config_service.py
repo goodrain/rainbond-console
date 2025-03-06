@@ -311,7 +311,6 @@ class EnterpriseConfigService(ConfigService):
         }
 
     def init_base_config_value(self):
-        print("???")
         self.base_cfg_keys_value = {
             "OAUTH_SERVICES": {
                 "value": self.get_oauth_services(),
