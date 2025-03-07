@@ -674,6 +674,9 @@ class RegisterByPhoneView(BaseApiView):
                 region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name,
                                                             regions[0].region_name,
                                                             team.namespace)
+                # 默认短信注册的用户创建的团队，限额 4 Core 8 GB
+                limit_quota = {"limit_memory": 8192, "limit_cpu": 4000, "limit_storage": 0}
+                team_services.set_tenant_resource_limit(enterprise.enterprise_id, regions[0].region_id, team.tenant_name, limit_quota)
             except Exception as e:
                 logger.warning("create default team failed", e)
             # 生成token
