@@ -26,4 +26,12 @@ class SMSVerificationCodeRepository(object):
             created_at__gt=today
         ).count()
 
+    def get_valid_code(self, phone, purpose):
+        """获取有效的验证码"""
+        return SMSVerificationCode.objects.filter(
+            phone=phone,
+            purpose=purpose,
+            expires_at__gt=timezone.now()
+        ).order_by('-created_at').first()
+
 sms_repo = SMSVerificationCodeRepository() 

@@ -159,6 +159,7 @@ from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
 from console.views.team_overview import UserTeamDetailsView
 from console.views.sms_config import SMSConfigView
 from console.views.sms_verification import SMSVerificationView
+from console.views.user_operation import RegisterByPhoneView, LoginByPhoneView
 
 urlpatterns = [
     # 升级
@@ -1046,6 +1047,10 @@ urlpatterns = [
     url(r'^enterprises/(?P<enterprise_id>[\w\-]+)/sms-config$', SMSConfigView.as_view()),
     # 短信验证码发送
     url(r'^sms/send-code$', SMSVerificationView.as_view()),
+    # 用户注册（手机号）
+    url(r'^users/register-by-phone$', RegisterByPhoneView.as_view()),
+    # 用户登录（手机号）
+    url(r'^users/login-by-phone$', LoginByPhoneView.as_view()),
 ]
 
 # 云市应用升级相关接口

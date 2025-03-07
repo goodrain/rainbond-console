@@ -25,7 +25,7 @@ class SMSService(object):
 
         # 检查当天发送次数  
         today_count = sms_repo.count_today_codes(phone)
-        if today_count >= 10:
+        if today_count >= 5:
             raise ServiceHandleException(
                 msg="too many attempts today",
                 msg_show="当天发送验证码次数已达上限",
