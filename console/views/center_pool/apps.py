@@ -128,7 +128,7 @@ class CenterAppView(RegionTenantHeaderView):
         install_from_cloud = request.data.get("install_from_cloud", False)
         dry_run = request.data.get("dry_run", False)
         market_name = request.data.get("market_name", None)
-        if not check_account_quota(self.user.user_id, self.region_name, app_manage_service.ResourceOperationDeploy):
+        if not check_account_quota(self.tenant.creater, self.region_name, app_manage_service.ResourceOperationDeploy):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         market_app_service.install_app(self.tenant, self.region, self.user, app_id, app_model_key, version, market_name,
                                        install_from_cloud, is_deploy, dry_run)
