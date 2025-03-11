@@ -96,7 +96,7 @@ class AppDeployService(object):
         """
         After the preparation is completed, emit a deployment task to the data center.
         """
-        if not check_account_quota(user.user_id, service.service_region, app_manage_service.ResourceOperationDeploy):
+        if not check_account_quota(tenant.creater, service.service_region, app_manage_service.ResourceOperationDeploy):
             raise ServiceHandleException(msg="not enough quota", error_code=20002)
         self.pre_deploy_action(tenant, service, version)
 

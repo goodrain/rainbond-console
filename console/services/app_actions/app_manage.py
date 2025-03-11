@@ -107,7 +107,7 @@ class AppManageBase(object):
 
 class AppManageService(AppManageBase):
     def start(self, tenant, service, user, oauth_instance):
-        if service.service_source != "third_party" and not check_account_quota(user.user_id, service.service_region,
+        if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region,
                                                                                self.ResourceOperationStart):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         if service.create_status == "complete":
@@ -173,7 +173,7 @@ class AppManageService(AppManageBase):
 
     def restart(self, tenant, service, user, oauth_instance):
         if service.create_status == "complete":
-            if service.service_source != "third_party" and not check_account_quota(user.user_id, service.service_region, self.ResourceOperationReStart):
+            if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region, self.ResourceOperationReStart):
                 raise ServiceHandleException(error_code=20002, msg="not enough quota")
             body = dict()
             body["operator"] = str(user.nick_name)
@@ -195,7 +195,7 @@ class AppManageService(AppManageBase):
         service.arch = service.arch if service.arch else "amd64"
         if service.arch not in chaos_arch:
             raise AbortRequest("app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
-        if service.service_source != "third_party" and not check_account_quota(user.user_id, service.service_region, self.ResourceOperationDeploy):
+        if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region, self.ResourceOperationDeploy):
             raise ServiceHandleException(msg="not enough quota", error_code=20002)
         body = dict()
         # 默认更新升级
@@ -419,7 +419,7 @@ class AppManageService(AppManageBase):
         return 200, "success"
 
     def upgrade(self, tenant, service, user, committer_name=None, oauth_instance=None):
-        if service.service_source != "third_party" and not check_account_quota(user.user_id, service.service_region, self.ResourceOperationUPGRADE):
+        if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region, self.ResourceOperationUPGRADE):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         body = dict()
         body["service_id"] = service.service_id
@@ -559,7 +559,7 @@ class AppManageService(AppManageBase):
         start_infos_list = []
         body["start_infos"] = start_infos_list
         # request_memory = base_service.get_not_run_services_request_memory(tenant, services)
-        if not check_account_quota(user.user_id, region_name, self.ResourceOperationStart):
+        if not check_account_quota(tenant.creater, region_name, self.ResourceOperationStart):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         for service in services:
             if service.service_source == "":
@@ -586,7 +586,7 @@ class AppManageService(AppManageBase):
         upgrade_infos_list = []
         body["upgrade_infos"] = upgrade_infos_list
         # request_memory = base_service.get_not_run_services_request_memory(tenant, services)
-        if not check_account_quota(user.user_id, region_name, self.ResourceOperationUPGRADE):
+        if not check_account_quota(tenant.creater, region_name, self.ResourceOperationUPGRADE):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         for service in services:
             service_dict = dict()
@@ -600,7 +600,7 @@ class AppManageService(AppManageBase):
         deploy_infos_list = []
         body["build_infos"] = deploy_infos_list
         # request_memory = base_service.get_not_run_services_request_memory(tenant, services)
-        if not check_account_quota(user.user_id, region_name, self.ResourceOperationDeploy):
+        if not check_account_quota(tenant.creater, region_name, self.ResourceOperationDeploy):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         app_version_cache = {}
         for service in services:
@@ -761,7 +761,7 @@ class AppManageService(AppManageBase):
         new_memory = int(new_memory)
         if new_memory > 65536 or new_memory < 0:
             return 400, "内存范围在0M到64G之间"
-        if new_memory > service.min_memory and not check_account_quota(user.user_id, service.service_region, self.ResourceOperationVerticalUpgrade):
+        if new_memory > service.min_memory and not check_account_quota(tenant.creater, service.service_region, self.ResourceOperationVerticalUpgrade):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         if service.create_status == "complete":
             body = dict()
@@ -797,7 +797,7 @@ class AppManageService(AppManageBase):
             raise ServiceHandleException(status_code=409, msg="singleton component, do not allow", msg_show="组件为单实例组件，不可使用多节点")
 
         if new_node > service.min_node:
-            if not check_account_quota(user.user_id, service.service_region, self.ResourceOperationHorizontalUpgrade):
+            if not check_account_quota(tenant.creater, service.service_region, self.ResourceOperationHorizontalUpgrade):
                 raise ServiceHandleException(status_code=20002, msg="not enough quota")
 
         if service.create_status == "complete":
