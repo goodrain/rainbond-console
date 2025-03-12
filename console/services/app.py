@@ -1283,7 +1283,6 @@ class AppMarketService(object):
 
     def get_market_app_list(self, market, page=1, page_size=10, query=None, query_all=False, extend=False, arch=""):
         results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all, arch=arch)
-        logger.info("------------------{}".format(results.apps))
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
