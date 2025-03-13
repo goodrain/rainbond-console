@@ -83,11 +83,10 @@ class AppstoreCharts(JWTAuthApiView):
 
 class AppstoreChart(JWTAuthApiView):
     def get(self, request, enterprise_id, name, chart_name, version, *args, **kwargs):
-        chart_url = request.GET.get("chart_url", "https://dl.gitea.com/charts/gitea-10.4.1.tgz")
-
-        if not chart_url:
-            return Response({"code": 400, "msg": "bad request", "msg_show": "缺少 chart_url 参数"}, status=400)
-
+        app_store = helm_repo.get_helm_repo_by_name(name)
+        if not app_store:
+            return Response({"code": 400, "msg": "bad request", "msg_show": "无此应用商店"}, status=400)
+        chart_url = "{app_store_url}/charts/{chart_name}-{version}.tgz".format(app_store_url=app_store["repo_url"].rstrip("/"), chart_name=chart_name, version=version)
         try:
             # 下载 tgz 文件
             response = requests.get(chart_url, stream=True)
