@@ -47,7 +47,7 @@ from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
                                       MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
                                       TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView, PauseAppView,
-                                      UNPauseAppView, TarImageView, AppsPorConsoletView)
+                                      UNPauseAppView, TarImageView, AppsPorConsoletView, ScalingAppView)
 from console.views.app_market import BindableMarketsView
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
                                        BatchAppMonitorQueryView, MonitorQueryOverConsoleView)
@@ -99,8 +99,9 @@ from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigO
 from console.views.message import UserMessageView
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
                                  OAuthGitUserRepository, OAuthGitUserRepositoryBranches, OAuthServerAuthorize,
-                                 OAuthServerUserAuthorize, OauthService, OauthServiceInfo, OAuthServiceRedirect, OauthType,
-                                 OAuthUserInfo, UserOAuthLink, OauthUserLogoutView)
+                                 OAuthServerUserAuthorize, OauthService, OauthServiceInfo, OAuthServiceRedirect,
+                                 OauthType,
+                                 OAuthUserInfo, UserOAuthLink, OauthUserLogoutView, OverScore)
 from console.views.perms import (PermsInfoLView, TeamRolePermsRUDView, TeamRolesLCView, TeamRolesPermsLView, TeamRolesRUDView,
                                  TeamUserPermsLView, TeamUserRolesRUDView, TeamUsersRolesLView)
 from console.views.plugin.plugin_config import (ConfigPluginManageView, ConfigPreviewView)
@@ -137,6 +138,7 @@ from console.views.service_share import ServiceShareRecordView, ShareRecordView,
     AppMarketBatchCView
 from console.views.service_version import AppVersionsView, AppVersionManageView
 from console.views.services_toplogical import TopologicalGraphView, GroupServiceDetView, TopologicalInternetView
+from console.views.storage_statistics import StorageStatistics
 from console.views.task_guidance import BaseGuidance
 from console.views.team import UserFuzSerView, TeamUserDetaislView, TeamCheckResourceName, TeamSortServiceQueryView, \
     TeamCheckKubernetesServiceName, TeamRegistryAuthLView, TeamRegistryAuthRUDView, AddTeamView, TeamUserView, \
@@ -154,6 +156,10 @@ from console.views.user_operation import TenantServiceView, SendResetEmail, Pass
 from console.views.webhook import WebHooksDeploy, ImageWebHooksDeploy, CustomWebHooksDeploy, GetWebHooksUrl, \
     ImageWebHooksTrigger, WebHooksStatus, UpdateSecretKey
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
+from console.views.team_overview import UserTeamDetailsView
+from console.views.sms_config import SMSConfigView
+from console.views.sms_verification import SMSVerificationView
+from console.views.user_operation import RegisterByPhoneView, LoginByPhoneView
 
 urlpatterns = [
     # 升级
@@ -179,6 +185,8 @@ urlpatterns = [
     url(r'^perms$', PermsInfoLView.as_view()),
     url(r'^custom_configs$', CustomConfigsCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/licenses$', LicenseLView.as_view()),
+    # 超分比例
+    url(r"^over_score$", OverScore.as_view()),
     # OAuth
     url(r"^oauth/oauth-config$", OauthConfig.as_view()),
     url(r"^oauth/oauth-services$", OauthService.as_view()),
@@ -208,6 +216,7 @@ urlpatterns = [
     url(r'^rb_components_status$', ClusterRKERBStatus.as_view()),
     url(r'^rb_component_event$', ClusterRKERBEvent.as_view()),
     url(r'^region_config$', RKERegionConfig.as_view()),
+    url(r'^storage_statistics$', StorageStatistics.as_view()),
     # 判断是sso还是私有云
     url(r'^checksource$', CheckSourceView.as_view()),
     # 用户登录
@@ -668,6 +677,8 @@ urlpatterns = [
         perms.APP_OVERVIEW_TELESCOPIC),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vertical$', VerticalExtendAppView.as_view(),
         perms.APP_OVERVIEW_TELESCOPIC),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/scaling$', ScalingAppView.as_view(),
+        perms.APP_OVERVIEW_TELESCOPIC),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/extend_method$', AppExtendView.as_view(),
         perms.APP_OVERVIEW_TELESCOPIC),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/xparules$', ListAppAutoscalerView.as_view(),
@@ -1031,6 +1042,15 @@ urlpatterns = [
     # 针对target 查看日志
     url(r'^teams/(?P<tenantName>[\w\-]+)/events$', AppEventsView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/events/(?P<eventId>[\w\-]+)/log$', AppEventsLogView.as_view()),
+    url(r'^users/team_details$', UserTeamDetailsView.as_view()),
+    # 短信配置接口
+    url(r'^enterprises/(?P<enterprise_id>[\w\-]+)/sms-config$', SMSConfigView.as_view()),
+    # 短信验证码发送
+    url(r'^sms/send-code$', SMSVerificationView.as_view()),
+    # 用户注册（手机号）
+    url(r'^users/register-by-phone$', RegisterByPhoneView.as_view()),
+    # 用户登录（手机号）
+    url(r'^users/login-by-phone$', LoginByPhoneView.as_view()),
 ]
 
 # 云市应用升级相关接口

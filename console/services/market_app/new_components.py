@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
 import json
+import os
 from datetime import datetime
 
 from .utils import is_same_component
@@ -208,12 +209,18 @@ class NewComponents(object):
             component.min_memory = template.get("extend_method_map", {}).get("min_memory")
         else:
             component.min_memory = 512
+        if component.min_memory == 0:
+            component.min_memory = 512
 
         container_cpu = template.get("extend_method_map", {}).get("container_cpu")
         if container_cpu is not None:
             component.min_cpu = template["extend_method_map"]["container_cpu"]
         else:
-            component.min_cpu = 0
+            component.min_cpu = 250
+
+        if component.min_cpu == 0:
+            component.min_cpu = 250
+
         component.total_memory = component.min_node * component.min_memory
 
         return component
@@ -373,8 +380,11 @@ class NewComponents(object):
                         if volume["volume_type"] == "share-file":
                             volume["volume_capacity"] = 0
                     else:
-                        settings["volume_capacity"] = volume.get("volume_capacity", 0)
-
+                        settings["volume_capacity"] = volume.get("volume_capacity", 10)
+                        if settings["volume_capacity"] == 0:
+                            settings["volume_capacity"] = 10
+                    if os.getenv("USE_SAAS"):
+                        volume["volume_type"] = "volcengine"
                 volumes2.append(
                     volume_service.create_service_volume(
                         self.tenant,

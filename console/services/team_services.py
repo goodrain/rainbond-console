@@ -2,6 +2,7 @@
 import base64
 import json
 import logging
+import os
 import random
 import string
 from urllib.parse import urlparse
@@ -10,8 +11,9 @@ import requests
 
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
-from console.models.main import TenantUserRole
+from console.models.main import TenantUserRole, RegionConfig
 from console.repositories.app import TenantServiceInfoRepository
+from console.repositories.app_config import volume_repo
 from console.repositories.enterprise_repo import enterprise_repo
 from console.repositories.perm_repo import role_repo
 from console.repositories.region_repo import region_repo
@@ -28,9 +30,11 @@ from console.services.region_services import region_services
 from django.core.paginator import Paginator, EmptyPage
 from django.db import transaction
 from django.db.models import Q
+
+from console.services.storage_service import storage_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import PermRelTenant, Tenants, TenantServiceInfo
+from www.models.main import PermRelTenant, Tenants, TenantServiceInfo, TenantRegionInfo, ServiceGroup, RegionApp, ServiceGroupRelation
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
@@ -250,8 +254,8 @@ class TeamService(object):
                 transaction.savepoint_rollback(sid)
             logger.exception(e)
 
-    def get_current_user_tenants(self, user_id):
-        tenants = team_repo.get_tenants_by_user_id(user_id=user_id)
+    def get_current_user_tenants(self, user_id, team_name=""):
+        tenants = team_repo.get_tenants_by_user_id(user_id=user_id, team_name=team_name)
         return tenants
 
     @transaction.atomic
@@ -349,6 +353,33 @@ class TeamService(object):
         user_id_dict = dict()
         for user_id in user_id_list:
             user_id_dict[tenant_IDs.get(user_id["tenant_id"])] = user_id_dict.get(tenant_IDs.get(user_id["tenant_id"]), 0) + 1
+        
+        # Pre-calculate storage usage for all teams
+        storage_dict = {}
+        if not os.getenv("USE_SAAS"):
+            # Get all components for all teams
+            all_components = TenantServiceInfo.objects.filter()
+            service_ids = [comp.service_id for comp in all_components]
+            
+            # Get all volumes for these components
+            all_volumes = volume_repo.get_services_volumes(service_ids)
+            
+            # Calculate storage for each team
+            team_components = {}
+            for comp in all_components:
+                if comp.tenant_id not in team_components:
+                    team_components[comp.tenant_id] = []
+                team_components[comp.tenant_id].append(comp.service_id)
+            
+            for team_id in team_components:
+                use_disk = 0
+                team_service_ids = team_components[team_id]
+                for volume in all_volumes:
+                    if volume.service_id in team_service_ids and volume.volume_type != "config-file":
+                        volume.volume_capacity = 10 if volume.volume_capacity == 0 else volume.volume_capacity
+                        use_disk += volume.volume_capacity
+                storage_dict[team_id] = use_disk
+
         for team in teams:
             region_info_map = []
             region_name_list = team_repo.get_team_region_names(team.tenant_id)
@@ -373,6 +404,11 @@ class TeamService(object):
             tenant["running_apps"] = 0
             tenant["memory_request"] = 0
             tenant["cpu_request"] = 0
+            if os.getenv("USE_SAAS"):
+                storage_request = storage_service.get_tenant_storage_usage(team.tenant_id)
+                tenant["storage_request"] = "{}{}".format(storage_request.get("value", 0), storage_request.get("unit", "B"))
+            else:
+                tenant["storage_request"] = storage_dict.get(team.tenant_id, 0)
             tenants[team.tenant_id] = tenant
         if region_dict:
             region_tenants = list()
@@ -385,8 +421,8 @@ class TeamService(object):
                 tenants.get(tenant_id)["set_limit_cpu"] = region_tenant.get("LimitCPU", 0)
                 tenants.get(tenant_id)["set_limit_storage"] = region_tenant.get("LimitStorage", 0)
                 tenants.get(tenant_id)["running_apps"] = running_apps + region_tenant.get("running_applications", 0)
-                tenants.get(tenant_id)["memory_request"] = region_tenant.get("memory_request", 0)
-                tenants.get(tenant_id)["cpu_request"] = region_tenant.get("cpu_request", 0)
+                tenants.get(tenant_id)["memory_request"] = region_tenant.get("memory_limit", 0)
+                tenants.get(tenant_id)["cpu_request"] = region_tenant.get("cpu_limit", 0)
         return tenants.values()
 
     def get_region_tenant(self, eid, region_id, tenant_ids):
@@ -1242,6 +1278,94 @@ class TeamService(object):
                 msg="failed to generate full image name: {}".format(e),
                 msg_show="生成完整镜像地址失败",
                 status_code=500)
+
+    def get_user_team_details(self, user):
+        """
+        获取用户创建的团队详情
+        """
+        # 获取所有启用状态的集群
+        regions = RegionConfig.objects.filter(status='1')
+        
+        # 获取用户创建的团队
+        teams = Tenants.objects.filter(creater=user.user_id)
+        
+        # 获取团队与集群的关联关系
+        team_region_map = {}
+        team_ids = [t.tenant_id for t in teams]
+        team_regions = TenantRegionInfo.objects.filter(
+            tenant_id__in=team_ids,
+            is_active=True
+        )
+        
+        # 构建团队和集群的映射关系
+        for tr in team_regions:
+            if tr.region_name not in team_region_map:
+                team_region_map[tr.region_name] = []
+            team_region_map[tr.region_name].append(tr.tenant_id)
+
+        # 获取所有相关的应用信息
+        service_groups = ServiceGroup.objects.filter(tenant_id__in=team_ids)
+        
+        # 获取应用与region_app的映射关系
+        app_ids = [sg.ID for sg in service_groups]
+        region_apps = RegionApp.objects.filter(app_id__in=app_ids)
+        region_app_map = {ra.app_id: ra.region_app_id for ra in region_apps}
+
+        # 获取应用与组件的关联关系
+        group_service_map = {}
+        group_relations = ServiceGroupRelation.objects.filter(group_id__in=app_ids)
+        service_ids = [gr.service_id for gr in group_relations]
+        
+        # 获取组件信息
+        services = TenantServiceInfo.objects.filter(service_id__in=service_ids)
+        service_map = {s.service_id: s for s in services}
+        
+        # 构建应用与组件的映射关系
+        for relation in group_relations:
+            if relation.group_id not in group_service_map:
+                group_service_map[relation.group_id] = []
+            service = service_map.get(relation.service_id)
+            if service:
+                group_service_map[relation.group_id].append({
+                    "service_id": service.service_id,
+                    "service_name": service.service_cname
+                })
+
+        # 构建团队ID到应用的映射
+        team_apps_map = {}
+        for sg in service_groups:
+            if sg.tenant_id not in team_apps_map:
+                team_apps_map[sg.tenant_id] = []
+            # 使用region_app_id，如果没有则使用group_id的字符串形式
+            app_id = region_app_map.get(sg.ID, str(sg.ID))
+            team_apps_map[sg.tenant_id].append({
+                "app_id": app_id,
+                "app_name": sg.group_name,
+                "components": group_service_map.get(sg.ID, [])
+            })
+
+        # 构建返回数据结构
+        region_list = []
+        for region in regions:
+            team_ids = team_region_map.get(region.region_name, [])
+            region_teams = [t for t in teams if t.tenant_id in team_ids]
+            
+            namespaces = []
+            for team in region_teams:
+                namespaces.append({
+                    "namespace": team.namespace,
+                    "user_id": user.user_id,
+                    "username": user.nick_name,
+                    "apps": team_apps_map.get(team.tenant_id, [])
+                })
+
+            region_list.append({
+                "region_name": region.region_name,
+                "region_alias": region.region_alias,
+                "namespaces": namespaces
+            })
+            
+        return region_list
 
 
 team_services = TeamService()

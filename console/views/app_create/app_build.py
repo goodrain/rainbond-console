@@ -4,7 +4,7 @@
 """
 import logging
 
-from console.cloud.services import check_memory_quota
+from console.cloud.services import check_account_quota
 from console.exception.bcode import ErrComponentBuildFailed
 from console.exception.main import (ErrInsufficientResource, ServiceHandleException)
 from console.repositories.deploy_repo import deploy_repo
@@ -47,9 +47,8 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
         probe = None
         is_deploy = request.data.get("is_deploy", True)
         try:
-            if not check_memory_quota(self.oauth_instance, self.tenant.enterprise_id, self.service.min_memory,
-                                      self.service.min_node):
-                raise ServiceHandleException(msg="not enough quota", error_code=20002)
+            # if not check_account_quota(self.user.user_id, self.region.region_name, "deploy"):
+            #     raise ServiceHandleException(msg="not enough quota", error_code=20002)
             if self.service.service_source == "third_party":
                 is_deploy = False
                 # create third component from region
@@ -66,6 +65,8 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 except ErrInsufficientResource as e:
                     result = general_message(e.error_code, e.msg, e.msg_show)
                     return Response(result, status=e.status_code)
+                except ServiceHandleException as e:
+                    raise e
                 except Exception as e:
                     logger.exception(e)
                     err = ErrComponentBuildFailed()

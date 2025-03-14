@@ -35,12 +35,16 @@ class TeamRepo(object):
         user_list = Users.objects.filter(user_id__in=user_id_list)
         return user_list
 
-    def get_tenants_by_user_id(self, user_id, name=None):
+    def get_tenants_by_user_id(self, user_id, name=None, team_name=""):
         tenant_ids = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
+        filters = Q(ID__in=tenant_ids)
         if name:
-            tenants = Tenants.objects.filter(ID__in=tenant_ids, tenant_alias__contains=name).order_by("-create_time")
-        else:
-            tenants = Tenants.objects.filter(ID__in=tenant_ids).order_by("-create_time")
+            filters &= Q(tenant_alias__contains=name)
+
+        tenants = Tenants.objects.filter(filters).order_by("-create_time")
+        if team_name:
+            tenants = tenants | Tenants.objects.filter(tenant_name=team_name).order_by("-create_time")
+
         return tenants
 
     def get_user_tenant_by_name(self, user_id, name):

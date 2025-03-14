@@ -3,6 +3,8 @@ import logging
 
 from rest_framework.response import Response
 
+from console.models.main import EnterpriseUserPerm
+from console.repositories.enterprise_repo import enterprise_repo
 from console.services.perm_services import perm_services
 from console.services.perm_services import role_kind_services
 from console.services.perm_services import role_perm_service
@@ -86,9 +88,24 @@ class TeamRolePermsRUDView(RegionTenantHeaderView):
 
 class TeamUsersRolesLView(RegionTenantHeaderView):
     def get(self, request, team_name, *args, **kwargs):
+        # 获取团队所有用户
         team_users = team_services.get_team_users(self.tenant)
+        
+        # 获取企业管理员列表（除了团队创建者）
+        admin_users = EnterpriseUserPerm.objects.filter()
+        admin_user_ids = set(admin_users.values_list('user_id', flat=True))
+        
+        # 过滤用户列表，排除企业管理员（除非是团队创建者）
+        filtered_users = [user for user in team_users if user.user_id not in admin_user_ids or user.user_id == self.tenant.creater]
+        
+        # 获取用户角色信息
         data = user_kind_role_service.get_users_roles(
-            kind="team", kind_id=self.tenant.tenant_id, users=team_users, creater_id=self.tenant.creater)
+            kind="team", 
+            kind_id=self.tenant.tenant_id, 
+            users=filtered_users, 
+            creater_id=self.tenant.creater
+        )
+        
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
 

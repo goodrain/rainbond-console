@@ -357,19 +357,19 @@ TEAM = {
             ]
         },
     },
-    "listed_manage": {
-        "perms": [
-            ["describe", "查看", 700001],
-            ["create", "创建", 700002],
-            ["edit", "编辑", 700003],
-            ["delete", "删除", 700004],
-        ],
-    },
-    "application_records": {
-        "perms": [
-            ["describe", "查看", 800001],
-        ],
-    },
+    # "listed_manage": {
+    #     "perms": [
+    #         ["describe", "查看", 700001],
+    #         ["create", "创建", 700002],
+    #         ["edit", "编辑", 700003],
+    #         ["delete", "删除", 700004],
+    #     ],
+    # },
+    # "application_records": {
+    #     "perms": [
+    #         ["describe", "查看", 800001],
+    #     ],
+    # },
 }
 
 DEFAULT_TEAM_ROLE_PERMS = {

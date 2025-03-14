@@ -1174,6 +1174,8 @@ class AppMarketService(object):
                         "rainbond_version": version.desc,
                         "update_time": version.update_time,
                         "update_version": version.update_version,
+                        "cpu": version.cpu,
+                        "memory": version.memory,
                     })
                 market_info = {
                     "app_id": dt.app_key_id,

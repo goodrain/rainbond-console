@@ -696,8 +696,8 @@ class AppUpgrade(MarketApp):
                     build_version=plugin.build_version.build_version,
                     service_meta_type=plugin_dep.get("service_meta_type"),
                     plugin_status=plugin_dep.get("plugin_status"),
-                    min_memory=plugin_dep.get("min_memory", 128),
-                    min_cpu=plugin_dep.get("min_cpu"),
+                    min_memory=max(plugin_dep.get("min_memory", 0) or 128, 128),
+                    min_cpu=max(plugin_dep.get("min_cpu", 0) or 250, 250),
                 ))
         return new_plugin_deps, new_plugin_configs
 
@@ -817,8 +817,8 @@ class AppUpgrade(MarketApp):
                 image_tag = image_and_tag[1]
             else:
                 image_tag = "latest"
-        min_memory = plugin_tmpl.get('min_memory', 0)
-        min_cpu = int(min_memory) / 128 * 20
+        min_memory = max(plugin_tmpl.get('min_memory', 0) or 128, 128)
+        min_cpu = max(int(min_memory) / 128 * 20, 250)
 
         return PluginBuildVersion(
             plugin_id=plugin_id,

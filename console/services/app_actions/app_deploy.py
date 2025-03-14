@@ -6,6 +6,8 @@ from datetime import datetime
 from enum import IntEnum
 
 from addict import Dict
+
+from console.cloud.services import check_account_quota
 from console.exception.main import (EnvAlreadyExist, ErrDepVolumeNotFound, ErrInvalidVolume, InnerPortNotFound, InvalidEnvName,
                                     ServiceHandleException, ServiceRelationAlreadyExist)
 from console.repositories.app import service_repo, service_source_repo
@@ -94,6 +96,8 @@ class AppDeployService(object):
         """
         After the preparation is completed, emit a deployment task to the data center.
         """
+        if not check_account_quota(tenant.creater, service.service_region, app_manage_service.ResourceOperationDeploy):
+            raise ServiceHandleException(msg="not enough quota", error_code=20002)
         self.pre_deploy_action(tenant, service, version)
 
         return self.execute(tenant, service, user, version, committer_name, oauth_instance=oauth_instance)
