@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from console.enum.component_enum import is_state, is_support
 from console.exception.main import (AbortRequest, AccountOverdueException, CallRegionAPIException, RbdAppNotFound,
-                                    ResourceNotEnoughException)
+                                    ResourceNotEnoughException, ServiceHandleException)
 from console.repositories.app import service_repo
 from console.repositories.app_config import port_repo
 from console.repositories.group import group_repo, GroupServiceRelationRepository
@@ -65,7 +65,7 @@ class AppsPorConsoletView(RegionTenantHeaderView):
                     port_list.append(port_dict)
                     continue
                 group_port = group_service_relation_repo.get_group_by_service_id(port.service_id)
-                if group_port.group_id == int(app_id):
+                if group_port and group_port.group_id == int(app_id):
                     port_list.append(port_dict)
         ret_data = {"outer_url": tcp_domain, "namespace": self.team.namespace, "ports": port_list}
         result = general_message(200, "success", "查询成功", bean=ret_data)
@@ -398,6 +398,91 @@ class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
         except AccountOverdueException as re:
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
+        return Response(result, status=result["code"])
+
+
+class ScalingAppView(AppBaseCloudEnterpriseCenterView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        """
+        组件伸缩（支持水平和垂直伸缩）
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 组件别名
+              required: true
+              type: string
+              paramType: path
+            - name: new_memory
+              description: 内存大小(单位：M)，用于垂直伸缩
+              required: false
+              type: int
+              paramType: form
+            - name: new_gpu
+              description: gpu显存数量(单位：MiB)，用于垂直伸缩
+              required: false
+              type: int
+              paramType: form
+            - name: new_cpu
+              description: cpu分配额(单位：1000=1Core)，用于垂直伸缩
+              required: false
+              type: int
+              paramType: form
+            - name: new_node
+              description: 节点个数，用于水平伸缩
+              required: false
+              type: int
+              paramType: form
+        """
+        try:
+            # 获取垂直伸缩参数
+            new_memory = request.data.get("new_memory", None)
+            new_gpu = request.data.get("new_gpu", None)
+            new_cpu = request.data.get("new_cpu", None)
+            # 获取水平伸缩参数
+            new_node = request.data.get("new_node", None)
+
+            # 检查是否有伸缩参数
+            has_vertical_params = any(param is not None for param in [new_memory, new_gpu, new_cpu])
+            has_horizontal_params = new_node is not None
+
+            if not has_vertical_params and not has_horizontal_params:
+                return Response(general_message(400, "parameters error", "请提供伸缩参数"), status=400)
+
+            # 执行垂直伸缩
+            if has_vertical_params:
+                code, msg = app_manage_service.vertical_upgrade(
+                    self.tenant,
+                    self.service,
+                    self.user,
+                    int(new_memory) if new_memory else 0,
+                    oauth_instance=self.oauth_instance,
+                    new_gpu=new_gpu,
+                    new_cpu=new_cpu)
+                if code != 200:
+                    return Response(general_message(code, "vertical upgrade error", msg, bean={}), status=code)
+
+            # 执行水平伸缩
+            if has_horizontal_params and new_node != self.service.min_node:
+                app_manage_service.horizontal_upgrade(
+                    self.tenant, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
+            self.service.update_time = datetime.now()
+            self.service.save()
+        except ResourceNotEnoughException as re:
+            raise re
+        except AccountOverdueException as re:
+            logger.exception(re)
+            return Response(general_message(10410, "resource is not enough", re.message), status=412)
+        except ServiceHandleException as e:
+            # 节点没有变化的错误码为 10104，不需要抛出异常
+            if e.error_code != 10104:
+                raise e
+        result = general_message(200, "success", "操作成功", bean={})
         return Response(result, status=result["code"])
 
 

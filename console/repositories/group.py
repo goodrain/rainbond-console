@@ -100,6 +100,9 @@ class GroupRepository(object):
     def get_groups_by_tenant_ids(self, tenant_ids):
         return ServiceGroup.objects.filter(tenant_id__in=tenant_ids).order_by("-update_time", "-order_index")
 
+    def get_groups_by_tenant_id(self, tenant_id):
+        return ServiceGroup.objects.filter(tenant_id=tenant_id)
+
     def get_group_by_id(self, group_id):
         return ServiceGroup.objects.filter(pk=group_id).first()
 

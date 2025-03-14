@@ -609,3 +609,60 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         except (region_api.CallApiError, ServiceHandleException) as e:
             logger.debug(e)
             raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")
+
+
+class OverScore(EnterpriseAdminView):
+    def get(self, request, *args, **kwargs):
+        # 获取超分比例配置
+        ss_config = EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).get_config_by_key(
+            key="OVER_SCORE")
+        over_score_rate = {"CPU": 1.0, "MEMORY": 1.0}
+
+        # 如果配置不存在，则初始化
+        if not ss_config:
+            EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).add_config(
+                key="OVER_SCORE",
+                default_value=json.dumps({"CPU": 1.0, "MEMORY": 1.0}),
+                type="json",
+                desc="超分比例",
+                enable=True
+            )
+            region_api.set_over_score_rate({"over_score_rate": json.dumps(over_score_rate)})
+        else:
+            over_score_rate = json.loads(ss_config.value)
+
+        # 返回规范化结构
+        rst = {
+            "code": 200,
+            "msg": "",
+            "msg_show": "获取超分比例成功",
+            "data": {
+                "bean": {
+                    "over_score_rate": over_score_rate
+                }
+            }
+        }
+        return Response(rst, status=status.HTTP_200_OK)
+
+    def put(self, request, *args, **kwargs):
+        # 获取用户提交的新超分比例
+        over_score_rate = request.data.get("over_score_rate")
+
+        # 更新超分比例配置
+        EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).update_config_value(
+            key="OVER_SCORE",
+            value=over_score_rate
+        )
+        region_api.set_over_score_rate({"over_score_rate": over_score_rate})
+        # 返回规范化结构
+        rst = {
+            "code": 200,
+            "msg": "",
+            "msg_show": "更新超分比例成功",
+            "data": {
+                "bean": {
+                    "over_score_rate": json.loads(over_score_rate)
+                }
+            }
+        }
+        return Response(rst, status=status.HTTP_200_OK)

@@ -3,6 +3,7 @@
   Created on 18/1/17.
 """
 import logging
+import os
 import re
 
 from console.constants import AppConstants, ServiceLanguageConstants
@@ -44,6 +45,8 @@ class AppVolumeService(object):
     ]
 
     default_volume_type = "local-path"
+    if os.getenv("USE_SAAS"):
+        default_volume_type = "volcengine"
     simple_volume_type = [default_volume_type, "config-file", "vm-file", "memoryfs", "local"]
 
     def is_simple_volume_type(self, volume_type):
@@ -67,6 +70,9 @@ class AppVolumeService(object):
         if body and hasattr(body, 'list') and body.list:
             for opt in body.list:
                 base_opts.append(opt)
+        if os.getenv("USE_SAAS"):
+            base_opts = [{"volume_type": "volcengine", "name_show": "火山云存储", "provisioner": ""}]
+
         return base_opts
 
     def get_best_suitable_volume_settings(self,
@@ -194,6 +200,8 @@ class AppVolumeService(object):
             return access_mode.upper()
         if volume_type == self.default_volume_type:
             access_mode = "RWO"
+            if service.extend_method == ComponentType.stateless_multiple.value:
+                access_mode = "RWX"
         elif volume_type == "config-file":
             access_mode = "RWX"
         elif volume_type == "memoryfs" or volume_type == "local":
@@ -293,6 +301,8 @@ class AppVolumeService(object):
             check_results = self.check_volume_options(tenant, service, volume_type, settings)
             if not check_results:
                 volume_type = "local-path"
+                if os.getenv("USE_SAAS"):
+                    volume_type = "volcengine"
                 volume_data["volume_type"] = volume_type
             settings = self.setting_volume_properties(tenant, service, volume_type, settings)
 

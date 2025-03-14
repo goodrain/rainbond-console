@@ -1019,9 +1019,10 @@ class ShareService(object):
             app_version.update_time = datetime.datetime.now()
             app_version.is_plugin = is_plugin
             app_version.save()
-            app.is_version = True
-            app.update_time = datetime.datetime.now()
-            app.save()
+            if app:
+                app.is_version = True
+                app.update_time = datetime.datetime.now()
+                app.save()
             RainbondCenterAppVersion.objects.filter(
                 app_id=app_version.app_id, source="local", scope="goodrain", is_complete=True).delete()
             share_record.is_success = True

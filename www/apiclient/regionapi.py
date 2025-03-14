@@ -3171,3 +3171,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url += "/v2/cluster/langVersion"
         res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
         return body
+
+    def set_over_score_rate(self, data):
+        ret_data = {}
+        region_infos = RegionConfig.objects.filter()
+        if not region_infos:
+            raise ServiceHandleException("region not found")
+        for region_info in region_infos:
+            url = region_info.url
+            url += "/v2/cluster/over_score"
+            res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
+            ret_data[region_info.region_name] = body
+        return ret_data

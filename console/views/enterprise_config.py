@@ -41,6 +41,7 @@ class EnterpriseConfigView(EnterpriseAdminView):
         show_k8s = parse_item(request, "show_k8s")
         # 是否显示切换语言
         show_langue = parse_item(request, "show_langue")
+        security_restrictions = parse_item(request, "security_restrictions", default=False)
 
         config_service = ConfigService()
         ent_config_service = EnterpriseConfigService(enterprise_id, self.user.user_id)
@@ -63,6 +64,8 @@ class EnterpriseConfigView(EnterpriseAdminView):
             ent_config_service.update_config_enable_status(ConfigKeyEnum.SHOW_K8S.name, show_k8s)
         if type(show_langue) == bool:
             ent_config_service.update_config_enable_status(ConfigKeyEnum.SHOW_LANGUE.name, show_langue)
+        if security_restrictions is not None:
+            ent_config_service.update_config_enable_status(ConfigKeyEnum.SECURITY_RESTRICTIONS.name, security_restrictions)
 
         config_service.update_config_value(ConfigKeyEnum.HEADER_COLOR.name, header_color)
         ent_config_service.update_config_value(ConfigKeyEnum.HEADER_COLOR.name, header_color)
