@@ -16,7 +16,7 @@ const transformedNode = (otherProps, { x, y, k, opacity }) => (
 
 export default class NodeContainer extends React.PureComponent {
   render() {
-    const { dx, dy, isAnimated, scale, blurred, contrastMode } = this.props;
+    const { dx, dy, isAnimated, scale, blurred, contrastMode, focused } = this.props;
     const nodeBlurOpacity = contrastMode ? 0.6 : 0.25;
     const forwardedProps = omit(this.props, 'dx', 'dy', 'isAnimated', 'scale', 'blurred');
     const opacity = blurred ? nodeBlurOpacity : 1;
@@ -32,7 +32,7 @@ export default class NodeContainer extends React.PureComponent {
         style={{
           x: spring(dx, NODES_SPRING_ANIMATION_CONFIG),
           y: spring(dy, NODES_SPRING_ANIMATION_CONFIG),
-          k: spring(scale, NODES_SPRING_ANIMATION_CONFIG),
+          k: spring(focused ? scale * 0.6 : scale, NODES_SPRING_ANIMATION_CONFIG),
           opacity: spring(opacity, NODES_SPRING_ANIMATION_CONFIG),
         }}>
         {interpolated => transformedNode(forwardedProps, interpolated)}

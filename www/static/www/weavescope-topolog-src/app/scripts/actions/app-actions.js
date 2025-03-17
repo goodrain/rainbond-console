@@ -342,16 +342,29 @@ export function setResourceView() {
 export function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
   console.log('node click: ', nodeId, serviceAlias);
   return (dispatch, getState) => {
+    const state = getState();
+    const prevSelectedNodeId = state.get('selectedNodeId');
+    // 判断是切换组件还是回到总览视图
+    const isDeselecting = prevSelectedNodeId === nodeId;
     dispatch({
       type: ActionTypes.CLICK_NODE,
       origin,
       label,
       nodeId,
       serviceAlias,
-      serviceCname
+      serviceCname,
+      isDeselecting
     });
+    if (isDeselecting) {
+      // 回到总览视图的逻辑
+      console.log('回到总览视图');
+      window.parent && window.parent.clickBackground && window.parent.clickBackground();
+    }else{
+      // 切换组件的逻辑
+      window.parent && window.parent.clickNode && window.parent.clickNode(nodeId, label, origin, serviceAlias, serviceCname);
+      console.log('切换组件');
+    }
     updateRoute(getState);
-    const state = getState();
     getNodeDetails(
       state.get('topologyUrlsById'),
       state.get('currentTopologyId'),

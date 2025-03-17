@@ -270,6 +270,8 @@ export function rootReducer(state = initialState, action) {
     }
 
     case ActionTypes.CLICK_BACKGROUND: {
+      // 点击背景回到总览视图
+      window.parent && window.parent.clickBackground && window.parent.clickBackground();
       if (state.get('showingHelp')) {
         state = state.set('showingHelp', false);
       }
@@ -594,12 +596,31 @@ export function rootReducer(state = initialState, action) {
       // Turn on the table view if the graph is too complex, but skip
       // this block if the user has already loaded topologies once.
       //最初节点加载
+      const nodeDetails = state.get('nodeDetails');
       if (!state.get('initialNodesLoaded') && !state.get('nodesLoaded')) {
         if (state.get('topologyViewMode') === GRAPH_VIEW_MODE) {
           state = graphExceedsComplexityThreshSelector(state)
             ? state.set('topologyViewMode', TABLE_VIEW_MODE) : state;
         }
         state = state.set('initialNodesLoaded', true);
+        // 在初次加载时设置默认选中的节点，获取父iframe的service_alias
+        const serviceAlias = window.parent.getServiceAlias();
+        // 在初次加载时获取默认选中的节点
+        if (serviceAlias) {
+        const nodes = state.get('nodes');
+                if (nodes && nodes.size > 0) {
+                  const serviceAlias = nodes.filter(node => node.get('service_alias') === serviceAlias);
+                  const firstNodeIds = serviceAlias.first().get('id');
+                  const label = serviceAlias.first().get('label');
+        
+                  state = state.set('selectedNodeId', firstNodeIds);
+                  state = state.setIn(['nodeDetails', firstNodeIds], {
+                    id: firstNodeId,
+                    label: label,
+                    topologyId: state.get('currentTopologyId')
+                  });
+                }
+        }
       }
       return state.set('nodesLoaded', true);
     }
