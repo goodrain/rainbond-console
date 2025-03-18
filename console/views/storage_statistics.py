@@ -34,17 +34,18 @@ class StorageStatistics(AlowAnyApiView):
             tenant_id = request.GET.get("tenant_id", "")
             app_id = request.GET.get("app_id", "")
             service_id = request.GET.get("service_id", "")
+            region_name = request.GET.get("region_name", "")
             
             # 根据不同的查询条件获取存储使用量
             if service_id:
                 # 查询单个组件
                 storage_stats = {
-                    "used_storage": storage_service.get_service_storage_usage(service_id)
+                    "used_storage": storage_service.get_storage_usage_by_service_id(service_id)
                 }
             elif app_id:
                 # 查询应用下的所有组件
                 storage_stats = {
-                    "used_storage": storage_service.get_app_storage_usage(app_id)
+                    "used_storage": storage_service.get_app_storage_usage(region_name, app_id)
                 }
             elif tenant_id:
                 # 查询团队下的所有组件
