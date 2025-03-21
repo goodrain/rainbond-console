@@ -42,7 +42,7 @@ class OauthConfig(EnterpriseAdminView):
     def put(self, request, *args, **kwargs):
         data = request.data.get("oauth_services")
         enable = data.get("enable")
-        EnterpriseConfigService(request.user.enterprise_id).update_config_enable_status(key="OAUTH_SERVICES", enable=enable)
+        EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).update_config_enable_status(key="OAUTH_SERVICES", enable=enable)
         rst = {"data": {"bean": {"oauth_services": data}}}
         return Response(rst, status=status.HTTP_200_OK)
 
