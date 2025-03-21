@@ -670,7 +670,7 @@ class RegisterByPhoneView(BaseApiView):
 
             try:
                 regions = region_repo.get_usable_regions(enterprise.enterprise_id)
-                team = team_services.create_team(user, enterprise)
+                team = team_services.create_team(user, enterprise, None, None, nick_name)
                 region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name,
                                                             regions[0].region_name,
                                                             team.namespace)
