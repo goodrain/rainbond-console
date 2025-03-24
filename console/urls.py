@@ -49,8 +49,9 @@ from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete,
                                       TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView, PauseAppView,
                                       UNPauseAppView, TarImageView, AppsPorConsoletView, ScalingAppView)
 from console.views.app_market import BindableMarketsView
-from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
-                                       BatchAppMonitorQueryView, MonitorQueryOverConsoleView)
+from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView,
+                                       AppTraceView,
+                                       BatchAppMonitorQueryView, MonitorQueryOverConsoleView, MonitorQueryView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView,
                                         AppGroupVisitView,
                                         AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView,
@@ -170,6 +171,7 @@ urlpatterns = [
     url(r'^update/versions/(?P<version>[\w\-.]+)/images$', UpgradeVersionImagesView.as_view()),
     # 直接代理到 普罗米修斯
     url(r'^open/monitor/query$', MonitorQueryOverConsoleView.as_view()),
+    url(r'^monitor/query$', MonitorQueryView.as_view()),
     url(r'^api-gateway/v1/(?P<tenantName>[\w\-]+)/(.*?)', AppApiGatewayView.as_view()),
     url(r'^api-gateway/convert', AppApiGatewayConvertView.as_view()),
     url(r'^v2/proxy-pass/(.*?)', ProxyPassView.as_view()),
