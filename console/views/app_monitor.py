@@ -296,3 +296,12 @@ class MonitorQueryOverConsoleView(AlowAnyApiView):
         serializer = MonitorQueryOverviewSeralizer(data=body)
         serializer.is_valid()
         return Response(body, status=200)
+
+
+class MonitorQueryView(AlowAnyApiView):
+    def get(self, req, *args, **kwargs):
+        region_name = req.GET.get("region_name", "")
+        query = req.GET.get("query", "")
+        query = "?"+"query="+query
+        _, body = region_api.get_query_data(region_name, "", query)
+        return Response(body, status=200)
