@@ -43,4 +43,5 @@ ruamel.yaml==0.15.100
 prometheus-api-client==0.5.1
 volcengine-python-sdk==1.0.126
 alibabacloud_dysmsapi20170525
+volcengine
 -e git+https://gitee.com/zhangsetsail/appstore-sdk-python.git@python3#egg=openapi_client

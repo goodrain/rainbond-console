@@ -1,3 +1,4 @@
+import json
 import random
 from datetime import timedelta
 from django.utils import timezone
@@ -7,7 +8,66 @@ from console.repositories.sms_repo import sms_repo
 from console.exception.main import ServiceHandleException
 from console.services.config_service import EnterpriseConfigService
 
+class SMSProvider(object):
+    """短信服务商基类"""
+    def send_sms(self, phone, code, config):
+        raise NotImplementedError
+
+class AliyunSMSProvider(SMSProvider):
+    """阿里云短信"""
+    def send_sms(self, phone, code, config):
+        from alibabacloud_dysmsapi20170525.client import Client
+        from alibabacloud_tea_openapi import models as open_api_models
+        from alibabacloud_dysmsapi20170525 import models as dysmsapi_models
+
+        client = Client(
+            open_api_models.Config(
+                access_key_id=config["access_key"],
+                access_key_secret=config["access_secret"],
+                endpoint='dysmsapi.aliyuncs.com'
+            )
+        )
+
+        send_req = dysmsapi_models.SendSmsRequest(
+            phone_numbers=phone,
+            sign_name=config["sign_name"],
+            template_code=config["template_code"],
+            template_param='{"code":"%s"}' % code
+        )
+
+        response = client.send_sms(send_req)
+        if response.body.code != "OK":
+            raise Exception(response.body.message)
+
+class VolcanoSMSProvider(SMSProvider):
+    """火山云短信"""
+    def send_sms(self, phone, code, config):
+        from volcengine.sms.SmsService import SmsService
+
+        sms_service = SmsService()
+        sms_service.set_ak(config["access_key"])
+        sms_service.set_sk(config["access_secret"])
+
+        body = {
+            "SmsAccount": config["sms_account"],
+            "Sign": config["sign_name"],
+            "TemplateID": config["template_code"],
+            "TemplateParam": '{"code":"%s"}' % code,
+            "PhoneNumbers": phone,
+        }
+        response = sms_service.send_sms(json.dumps(body))
+        # 火山云返回码为 0 表示成功
+        if response.get("ResponseMetadata", {}).get("Error") is not None:
+            error = response["ResponseMetadata"]["Error"]
+            raise Exception(f"Code: {error.get('Code')}, Message: {error.get('Message')}")
+
 class SMSService(object):
+    def __init__(self):
+        self.providers = {
+            "aliyun": AliyunSMSProvider(),
+            "volcano": VolcanoSMSProvider()
+        }
+
     def generate_code(self):
         """生成6位随机验证码"""
         return ''.join([str(random.randint(0, 9)) for _ in range(6)])
@@ -55,7 +115,15 @@ class SMSService(object):
         # 发送短信
         try:
             config = eval(sms_config.value)
-            self._send_sms(phone, code, config)
+            provider = config.get("provider", "aliyun")  # 默认使用阿里云
+            if provider not in self.providers:
+                raise ServiceHandleException(
+                    msg="unsupported sms provider",
+                    msg_show="不支持的短信服务商",
+                    status_code=400
+                )
+            
+            self.providers[provider].send_sms(phone, code, config)
         except Exception as e:
             raise ServiceHandleException(
                 msg="send sms failed",
@@ -69,29 +137,4 @@ class SMSService(object):
         
         return code
 
-    def _send_sms(self, phone, code, config):
-        """调用阿里云发送短信"""
-        from alibabacloud_dysmsapi20170525.client import Client
-        from alibabacloud_tea_openapi import models as open_api_models
-        from alibabacloud_dysmsapi20170525 import models as dysmsapi_models
-
-        client = Client(
-            open_api_models.Config(
-                access_key_id=config["access_key"],
-                access_key_secret=config["access_secret"],
-                endpoint='dysmsapi.aliyuncs.com'
-            )
-        )
-
-        send_req = dysmsapi_models.SendSmsRequest(
-            phone_numbers=phone,
-            sign_name=config["sign_name"],
-            template_code=config["template_code"],
-            template_param='{"code":"%s"}' % code
-        )
-
-        response = client.send_sms(send_req)
-        if response.body.code != "OK":
-            raise Exception(response.body.message)
-
-sms_service = SMSService() 
+sms_service = SMSService()
