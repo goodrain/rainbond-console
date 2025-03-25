@@ -28,7 +28,7 @@ class SMSConfigView(EnterpriseAdminView):
                 # 如果配置不存在，初始化一个默认配置
                 config_service.add_config(
                     key="SMS_CONFIG",
-                    default_value={"access_key": "", "access_secret": "", "sign_name": "", "template_code": ""},
+                    default_value={"access_key": "", "access_secret": "", "sign_name": "", "template_code": "", "provider": "aliyun", "sms_account": ""},
                     type="json",
                     desc="短信认证配置",
                     enable=True
@@ -75,8 +75,8 @@ class SMSConfigView(EnterpriseAdminView):
                 result = general_message(400, "参数错误", "缺少sms_config参数")
                 return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
-            # 验证必要的配置字段
-            required_fields = ["access_key", "access_secret", "sign_name", "template_code"]
+            # 验证必要的配置字段, sms_account 只在火山云短信服务商下使用，暂不做校验
+            required_fields = ["access_key", "access_secret", "sign_name", "template_code", "provider"]
             for field in required_fields:
                 if field not in sms_config.get("value", {}):
                     result = general_message(400, "参数错误", "缺少必要的配置字段: {}".format(field))
