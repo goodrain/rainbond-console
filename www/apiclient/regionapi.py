@@ -72,7 +72,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 "actual_node": actual_node,
                 "actual_memory": actual_memory_gb,
             })
-            logger.debug("default_headers: %s" % self.default_headers)
 
     def __get_tenant_region_info(self, tenant_name, region):
         if type(tenant_name) == Tenants:
