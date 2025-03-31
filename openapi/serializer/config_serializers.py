@@ -108,3 +108,9 @@ class EnterpriseConfigSeralizer(serializers.Serializer):
     object_storage = ObjectStorageBaseRespSerializer(required=False)
     appstore_image_hub = AppStoreImageHubBaseRespSerializer(required=False)
     newbie_guide = NewBieGuideBaseRespSerializer(required=False)
+
+
+
+class ResourceOverviewSeralizer(serializers.Serializer):
+    nodes = serializers.ListField(help_text="资源级别")
+    links = serializers.ListField(help_text="资源关系")
