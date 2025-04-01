@@ -11,6 +11,17 @@ class ComponentType(Enum):
     cronjob = "cronjob"
     vm = "vm"
 
+    @staticmethod
+    def to_zh(key):
+        if key == "stateless_singleton":
+            return "无状态单实例"
+        if key == "stateless_multiple":
+            return "无状态多实例"
+        if key == "state_singleton":
+            return "有状态单实例"
+        if key == "state_multiple":
+            return "有状态多实例"
+
 
 def is_state(component_type):
     if component_type == ComponentType.state_singleton.value or component_type == ComponentType.state_multiple.value:

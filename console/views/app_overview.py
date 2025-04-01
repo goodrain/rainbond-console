@@ -24,6 +24,7 @@ from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
+from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import app_plugin_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -218,13 +219,35 @@ class AppBriefView(AppBaseView):
         if app:
             if app_service.is_k8s_component_name_duplicate(app.ID, k8s_component_name, self.service.service_id):
                 raise ErrK8sComponentNameExists
+        original_component_name = self.service.service_cname
         is_pass, msg = app_service.check_service_cname(self.tenant, service_cname, self.service.service_region)
         if not is_pass:
             return Response(general_message(400, "param error", msg), status=400)
         self.service.k8s_component_name = k8s_component_name
+        old_information = json.dumps({"组件名称": self.service.service_cname}, ensure_ascii=False)
+        new_information = json.dumps({"组件名称": service_cname}, ensure_ascii=False)
         self.service.service_cname = service_cname
         region_api.update_service(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                   {"k8s_component_name": k8s_component_name})
+
+        modified_name = operation_log_service.process_component_name(
+            name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+        )
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.CHANGE, module_name=original_component_name, suffix=" 的名称为 {}".format(modified_name))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            new_information=new_information,
+            old_information=old_information)
+
         self.service.save()
         result = general_message(200, "success", "查询成功", bean=self.service.to_dict())
         return Response(result, status=result["code"])
@@ -489,10 +512,30 @@ class AppGroupView(AppBaseView):
             group_service.delete_service_group_relation_by_service_id(self.service.service_id)
         else:
             # check target app exists or not
-            group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)
+            app = group_service.get_group_by_id(self.tenant, self.service.service_region, group_id)
+            app_old = group_service.get_group_by_id(self.tenant, self.service.service_region, self.app.ID)
             # update service relation
             group_service.update_or_create_service_group_relation(self.tenant, self.service, group_id)
-
+            app_name = operation_log_service.process_app_name(
+                app.get("group_name", ""), self.service.service_region, self.tenant.tenant_name, group_id)
+            old_information = json.dumps({"组件所属应用": app_old["group_name"]}, ensure_ascii=False)
+            new_information = json.dumps({"组件所属应用": app["group_name"]}, ensure_ascii=False)
+            comment = operation_log_service.generate_component_comment(
+                operation=Operation.BATCH_MOVE,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias,
+                suffix=" 到应用 {}".format(app_name))
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=group_id,
+                service_alias=self.service.service_alias,
+                old_information=old_information,
+                new_information=new_information)
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
@@ -602,7 +645,8 @@ class BuildSourceinfo(AppBaseView):
 
             service_source_user = service_source_repo.get_service_source(
                 team_id=self.service.tenant_id, service_id=self.service.service_id)
-
+            new_information = service_source_repo.json_service_source(image=image, cmd=cmd)
+            old_information = service_source_repo.json_service_source(image=self.service.image, cmd=self.service.cmd)
             if not service_source_user:
                 service_source_info = {
                     "service_id": self.service.service_id,
@@ -675,6 +719,24 @@ class BuildSourceinfo(AppBaseView):
                 self.service.save()
                 transaction.savepoint_commit(s_id)
             self.service.arch = arch
+            comment = operation_log_service.generate_component_comment(
+                operation=Operation.CHANGE,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias,
+                suffix=" 的构建源")
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=self.app.ID,
+                service_alias=self.service.service_alias,
+                old_information=old_information,
+                new_information=new_information,
+            )
+
             self.service.save()
             arch_service.update_affinity_by_arch(arch, self.tenant, self.region_name, self.service)
             result = general_message(200, "success", "修改成功")

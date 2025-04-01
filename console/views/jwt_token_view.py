@@ -2,6 +2,7 @@
 import logging
 import datetime
 
+from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.utils.cache import cache
 from rest_framework import status
 from rest_framework.response import Response
@@ -93,6 +94,10 @@ class JWTTokenView(JSONWebTokenAPIView):
                     response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
                 jwt_manager = JwtManager()
                 jwt_manager.set(response_data["token"], user.user_id)
+                comment = operation_log_service.generate_generic_comment(
+                    operation=Operation.FINISH, module=OperationModule.LOGIN, module_name="")
+                operation_log_service.create_enterprise_log(user=user, comment=comment,
+                                                            enterprise_id=user.enterprise_id)
                 return response
             result = general_message(400, "login failed", "{}".format(list(dict(serializer.errors).values())[0][0]))
             return Response(result, status=status.HTTP_400_BAD_REQUEST)

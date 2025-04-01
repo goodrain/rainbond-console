@@ -2,6 +2,7 @@
 """
   Created on 18/5/23.
 """
+import json
 import logging
 import io
 import urllib
@@ -14,6 +15,7 @@ from console.constants import StorageUnit
 from console.repositories.group import group_repo
 from console.services.backup_service import groupapp_backup_service
 from console.services.config_service import EnterpriseConfigService
+from console.services.operation_log import operation_log_service, OperationType
 from console.services.team_services import team_services
 from console.views.base import AlowAnyApiView
 from console.views.base import RegionTenantHeaderView
@@ -84,6 +86,9 @@ class GroupAppsBackupView(RegionTenantHeaderView):
 
         bean = back_up_record.to_dict()
         result = general_message(200, "success", "操作成功，正在备份中", bean=bean)
+        new_information = json.dumps({"备份类型": "本地备份" if mode == "full-offline" else "云端备份", "备份说明": note},
+                                     ensure_ascii=False)
+        operation_log_service.create_app_log(self, "备份了应用{app}", new_information=new_information)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -135,9 +140,19 @@ class GroupAppsBackupView(RegionTenantHeaderView):
         根据应用备份ID删除备份
         """
         backup_id = request.data.get("backup_id", None)
+
+        code, msg, backup_record = groupapp_backup_service.get_groupapp_backup_status_by_backup_id(
+            self.tenant, self.response_region, backup_id)
+        old_information = json.dumps({
+            "备份类型": "本地备份" if backup_record.mode == "full-offline" else "云端备份",
+            "备份说明": backup_record.note
+        },
+            ensure_ascii=False)
+
         if not backup_id:
             return Response(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status=400)
         groupapp_backup_service.delete_group_backup_by_backup_id(self.tenant, self.response_region, backup_id)
+        operation_log_service.create_app_log(self, "删除了应用{app}的备份", old_information=old_information)
 
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
@@ -324,6 +339,12 @@ class GroupAppsBackupExportView(AlowAnyApiView):
             res = StreamingHttpResponse(output.getvalue())
             res['Content-Type'] = 'application/octet-stream'
             res['Content-Disposition'] = "attachment;filename*=UTF-8''" + urllib.parse.quote(file_name)
+
+            app = operation_log_service.process_app_name(group.group_name, group.region_name, team.tenant_name, group.app_id)
+            comment = "导出了应用{}的备份".format(app)
+            operation_log_service.create_log("", OperationType.APPLICATION_MANAGE, comment, team.enterprise_id,
+                                             team.tenant_name, group.app_id)
+
             return res
         except Exception as e:
             logger.exception(e)
@@ -363,6 +384,7 @@ class GroupAppsBackupImportView(RegionTenantHeaderView):
             if code != 200:
                 return Response(general_message(code, "backup import failed", msg), status=code)
             result = general_message(200, "success", "导入成功", bean=record.to_dict())
+            operation_log_service.create_app_log(self, "导入了应用{app}的备份")
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

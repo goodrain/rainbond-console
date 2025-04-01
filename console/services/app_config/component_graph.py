@@ -72,6 +72,7 @@ class ComponentGraphService(object):
                 ))
             seq += 1
         ComponentGraph.objects.bulk_create(graphs)
+        return graphs
 
     @transaction.atomic
     def create_component_graph(self, component_id, title, promql, component_arch):

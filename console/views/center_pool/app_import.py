@@ -2,10 +2,12 @@
 """
   Created on 18/5/5.
 """
+import json
 import logging
 
 from console.exception.main import AbortRequest, RegionNotFound
 from console.services.app_import_and_export_service import import_service
+from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.region_services import region_services
 from console.views.base import JWTAuthApiView
 from django.db import transaction
@@ -101,6 +103,11 @@ class CenterAppImportView(JWTAuthApiView):
         files = file_name.split(",")
         import_service.start_import_apps(scope, event_id, files, team_name, self.enterprise.enterprise_id)
         result = general_message(200, 'success', "操作成功，正在导入")
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.IMPORT, module=OperationModule.APPMODEL, module_name="")
+        new_information = json.dumps({"导入团队": team_name, "导入文件": file_name, "可见范围": scope}, ensure_ascii=False)
+        operation_log_service.create_component_library_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, new_information=new_information)
         return Response(result, status=result["code"])
 
     @never_cache

@@ -1201,3 +1201,23 @@ class SMSVerificationCode(models.Model):
 
     class Meta:
         db_table = "sms_verification_code"
+
+
+class OperationLog(BaseModel):
+    class Meta:
+        db_table = 'operation_log'
+
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, null=True, help_text=u"创建时间")
+    username = models.CharField(max_length=64, help_text=u"操作用户名")
+    operation_type = models.CharField(max_length=32, help_text=u"操作类型")
+    enterprise_id = models.CharField(max_length=32, help_text=u"企业ID")
+    team_name = models.CharField(max_length=32, help_text=u"团队名")
+    app_id = models.IntegerField(help_text=u"应用ID")
+    service_alias = models.CharField(max_length=32, help_text=u"组件别名")
+    comment = models.TextField(help_text=u"操作详情")
+    is_openapi = models.BooleanField(help_text=u"是否通过openapi调用")
+    service_cname = models.CharField(max_length=100, help_text=u"组件名称")
+    app_name = models.CharField(max_length=128, help_text=u"应用名称")
+    old_information = models.TextField(help_text=u"旧状态", null=True)
+    new_information = models.TextField(help_text=u"新状态", null=True)
+    information_type = models.CharField(max_length=32, help_text=u"增删改三种类型")

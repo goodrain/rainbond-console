@@ -5,8 +5,9 @@
 import json
 import logging
 
-from console.repositories.app_config import compile_env_repo
+from console.repositories.app_config import compile_env_repo, env_var_repo
 from console.services.app_config.env_service import AppEnvVarService
+from console.services.operation_log import operation_log_service, Operation
 from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.views.app_config.base import AppBaseView
@@ -234,6 +235,22 @@ class AppEnvView(AppBaseView):
             result = general_message(code, "add env error", msg)
             return Response(result, status=code)
         result = general_message(code, msg, "环境变量添加成功", bean=data.to_dict())
+        new_information = env_var_service.json_service_env_var(attr_name=attr_name, attr_value=attr_value, name=name)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.ADD,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 下的环境变量 {}".format(attr_name))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            new_information=new_information)
         return Response(result, status=result["code"])
 
 
@@ -264,8 +281,26 @@ class AppEnvManageView(AppBaseView):
         env_id = kwargs.get("env_id", None)
         if not env_id:
             return Response(general_message(400, "env_id not specify", "环境变量ID未指定"))
+        env = env_var_repo.get_env_by_ids_and_env_id(self.tenant.tenant_id, self.service.service_id, env_id)
+        old_information = env_var_service.json_service_env_var(
+            attr_name=env.attr_name, attr_value=env.attr_value, name=env.name)
         env_var_service.delete_env_by_env_id(self.tenant, self.service, env_id, self.user.nick_name)
         result = general_message(200, "success", "删除成功")
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.DELETE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 下的环境变量 {}".format(env.attr_name))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -337,12 +372,32 @@ class AppEnvManageView(AppBaseView):
             return Response(general_message(400, "env_id not specify", "环境变量ID未指定"))
         name = request.data.get("name", "")
         attr_value = request.data.get("attr_value", "")
-
+        env = env_var_repo.get_env_by_ids_and_env_id(self.tenant.tenant_id, self.service.service_id, env_id)
+        old_information = env_var_service.json_service_env_var(
+            attr_name=env.attr_name, attr_value=env.attr_value, name=env.name)
+        new_information = env_var_service.json_service_env_var(attr_name=env.attr_name, attr_value=attr_value,
+                                                               name=name)
         code, msg, env = env_var_service.update_env_by_env_id(self.tenant, self.service, env_id, name, attr_value,
                                                               self.user.nick_name)
         if code != 200:
             raise AbortRequest(msg="update value error", msg_show=msg, status_code=code)
         result = general_message(200, "success", "更新成功", bean=model_to_dict(env))
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.UPDATE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 下的环境变量 {}".format(env.attr_name))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            new_information=new_information,
+            old_information=old_information)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -350,7 +405,24 @@ class AppEnvManageView(AppBaseView):
         """变更环境变量范围"""
         scope = parse_item(request, 'scope', required=True, error="scope is is a required parameter")
         env = env_var_service.patch_env_scope(self.tenant, self.service, env_id, scope, self.user.nick_name)
+        old_information = env_var_service.json_service_env_var(
+            attr_name=env.attr_name, attr_value=env.attr_value, name=env.name)
         if env:
+            comment = operation_log_service.generate_component_comment(
+                operation=Operation.TRANSFER,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias,
+                suffix=" 下的环境变量 {}".format(env.attr_name))
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=self.app.ID,
+                service_alias=self.service.service_alias,
+                old_information=old_information)
             return MessageResponse(msg="success", msg_show="更新成功", bean=env.to_dict())
         else:
             return MessageResponse(msg="success", msg_show="更新成功", bean={})
@@ -406,9 +478,12 @@ class AppBuildEnvView(AppBaseView):
             return Response(general_message(200, "success", "设置成功"))
 
         # 传入有值，清空再添加
+        old_build_env_dict = dict()
         if build_envs:
             for build_env in build_envs:
+                old_build_env_dict[build_env.attr_name] = build_env.attr_value
                 build_env.delete()
+        old_information = json.dumps(old_build_env_dict, ensure_ascii=False)
         for key, value in list(build_env_dict.items()):
             name = "构建运行时环境变量"
             attr_name = key
@@ -427,5 +502,22 @@ class AppBuildEnvView(AppBaseView):
         if compile_env:
             compile_env.user_dependency = json.dumps(build_env_dict)
             compile_env.save()
+        new_information = json.dumps(new_build_env_dict, ensure_ascii=False)
         result = general_message(200, "success", "环境变量添加成功")
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.CHANGE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix="的源码构建参数")
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information,
+            new_information=new_information)
         return Response(result, status=result["code"])

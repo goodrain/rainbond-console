@@ -4,6 +4,7 @@ import datetime
 import logging
 import re
 
+from console.appstore.appstore import app_store
 from console.enum.component_enum import is_singleton
 from console.exception.main import ServiceHandleException
 from console.models.main import PluginShareRecordEvent, ServiceShareRecordEvent
@@ -11,6 +12,7 @@ from console.repositories.group import group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
+from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.share_services import share_service
 from console.utils.reqparse import parse_argument
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
@@ -550,7 +552,19 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
             result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
             return Response(result, status=415)
         app_market_url = share_service.complete(self.tenant, self.user, share_record, is_plugin)
+        rainbond_app = share_service.get_app_by_app_id(share_record.app_id)
         result = general_message(200, "share complete", "应用分享完成", bean=share_record.to_dict(), app_market_url=app_market_url)
+        app = group_repo.get_app_by_pk(share_record.group_id)
+        if app and rainbond_app:
+            self.app = app
+            comment = "发布为 {version} 版本的应用模板：{app_model}".format(
+                version=share_record.share_version, app_model=rainbond_app.app_name)
+            if share_record.share_version_alias:
+                comment = "发布为 {version}({version_alias}) 版本的应用模板：{app_model}".format(
+                    version=share_record.share_version,
+                    version_alias=share_record.share_version_alias,
+                    app_model=rainbond_app.app_name)
+            operation_log_service.create_app_log(self, "将应用 {app} " + comment)
         return Response(result, status=200)
 
 
@@ -619,12 +633,23 @@ class AppMarketCLView(JWTAuthApiView):
 
         app_market = app_market_service.create_app_market(dt)
         result = general_message(200, "success", None, bean=app_market.to_dict())
+        try:
+            market = app_store.get_market(app_market)
+            app_store_name = market.name
+        except Exception as e:
+            app_store_name = name
+            logger.debug(e)
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.ADD, module=OperationModule.APPSTORE, module_name="{}".format(app_store_name))
+        operation_log_service.create_component_library_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
         return Response(result, status=200)
 
 
 class AppMarketBatchCView(JWTAuthApiView):
     def post(self, request, enterprise_id, *args, **kwargs):
         data = []
+        market_names = []
         for market in request.data.get("markets", []):
             name = market["name"]
             if not market_name_format(name):
@@ -642,8 +667,14 @@ class AppMarketBatchCView(JWTAuthApiView):
                 "access_key": access_key,
                 "domain": market["domain"],
             })
+            market_names.append(name)
 
         app_market = app_market_service.batch_create_app_market(enterprise_id, data)
+        app_store_names = ", ".join([mk["alias"] for mk in app_market if mk["name"] in market_names])
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.ADD, module=OperationModule.APPSTORE, module_name=" {}".format(app_store_names))
+        operation_log_service.create_component_library_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
         result = general_message(200, "success", None, bean=app_market)
         return Response(result, status=200)
 
@@ -661,12 +692,32 @@ class AppMarketRUDView(JWTAuthApiView):
         request.data["market_name"] = market_name
         new_market = app_market_service.update_app_market(market_model, request.data)
         result = general_message(200, "success", None, list=new_market.to_dict())
+        try:
+            market = app_store.get_market(new_market)
+            app_store_name = market.name
+        except Exception as e:
+            app_store_name = market_name
+            logger.debug(e)
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.UPDATE, module=OperationModule.APPSTORE, module_name="{}".format(app_store_name))
+        operation_log_service.create_component_library_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
         return Response(result, status=200)
 
     def delete(self, request, enterprise_id, market_name, *args, **kwargs):
         _, market_model = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
         market_model.delete()
         result = general_message(200, "success", None)
+        try:
+            market = app_store.get_market(market_model)
+            app_store_name = market.name
+        except Exception as e:
+            app_store_name = market_name
+            logger.debug(e)
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.DELETE, module=OperationModule.APPSTORE, module_name="{}".format(app_store_name))
+        operation_log_service.create_component_library_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
         return Response(result, status=200)
 
 

@@ -2,13 +2,14 @@
 """
   Created on 18/1/15.
 """
+import json
 import logging
 from datetime import datetime
 
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.enum.component_enum import is_state, is_support
+from console.enum.component_enum import is_state, is_support, ComponentType
 from console.exception.main import (AbortRequest, AccountOverdueException, CallRegionAPIException, RbdAppNotFound,
                                     ResourceNotEnoughException, ServiceHandleException)
 from console.repositories.app import service_repo
@@ -18,7 +19,9 @@ from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.env_service import AppEnvVarService
+from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
+from console.services.operation_log import operation_log_service, OperationType, InformationType, Operation
 from console.services.region_services import region_services
 from console.services.upgrade_services import upgrade_service
 from console.views.app_config.base import (AppBaseCloudEnterpriseCenterView, AppBaseView)
@@ -97,6 +100,19 @@ class StartAppView(AppBaseCloudEnterpriseCenterView):
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+            comment = operation_log_service.generate_component_comment(
+                operation=Operation.START,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias)
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=self.app.ID,
+                service_alias=self.service.service_alias)
             self.service.update_time = datetime.now()
             self.service.save()
         except ResourceNotEnoughException as re:
@@ -128,6 +144,20 @@ class StopAppView(AppBaseView):
         """
         app_manage_service.stop(self.tenant, self.service, self.user)
         result = general_message(200, "success", "操作成功", bean={})
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.STOP,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias)
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+        )
         self.service.update_time = datetime.now()
         self.service.save()
         return Response(result, status=result["code"])
@@ -209,6 +239,19 @@ class ReStartAppView(AppBaseCloudEnterpriseCenterView):
         if code != 200:
             return Response(general_message(code, "restart app error", msg, bean=bean), status=code)
         result = general_message(code, "success", "操作成功", bean=bean)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.RESTART,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias)
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias)
         self.service.update_time = datetime.now()
         self.service.save()
         return Response(result, status=result["code"])
@@ -241,6 +284,19 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
             if code != 200:
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+            comment = operation_log_service.generate_component_comment(
+                operation=Operation.DEPLOY,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias)
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=self.app.ID,
+                service_alias=self.service.service_alias)
             self.service.update_time = datetime.now()
             self.service.save()
         except ErrServiceSourceNotFound as e:
@@ -289,6 +345,19 @@ class RollBackAppView(AppBaseView):
             if code != 200:
                 return Response(general_message(code, "roll back app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+            comment = operation_log_service.generate_component_comment(
+                operation=Operation.ROLL_BACK,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias)
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=self.app.ID,
+                service_alias=self.service.service_alias)
             self.service.update_time = datetime.now()
             self.service.save()
         except ResourceNotEnoughException as re:
@@ -337,6 +406,14 @@ class VerticalExtendAppView(AppBaseCloudEnterpriseCenterView):
             new_memory = request.data.get("new_memory", 0)
             new_gpu = request.data.get("new_gpu", None)
             new_cpu = request.data.get("new_cpu", None)
+            old_information = json.dumps({
+                "内存": "{}M".format(self.service.min_memory),
+                "GPU显存": self.service.container_gpu,
+                "CPU": self.service.min_cpu
+            },
+                ensure_ascii=False)
+            new_information = json.dumps({"内存": "{}M".format(new_memory), "GPU显存": new_gpu, "CPU": new_cpu},
+                                         ensure_ascii=False)
             code, msg = app_manage_service.vertical_upgrade(
                 self.tenant,
                 self.service,
@@ -349,6 +426,21 @@ class VerticalExtendAppView(AppBaseCloudEnterpriseCenterView):
             if code != 200:
                 return Response(general_message(code, "vertical upgrade error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+            comment = operation_log_service.generate_component_comment(
+                operation=Operation.VERTICAL_SCALE,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias)
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=self.app.ID,
+                service_alias=self.service.service_alias,
+                old_information=old_information,
+                new_information=new_information)
             self.service.update_time = datetime.now()
             self.service.save()
         except ResourceNotEnoughException as re:
@@ -387,10 +479,26 @@ class HorizontalExtendAppView(AppBaseView, CloudEnterpriseCenterView):
             new_node = request.data.get("new_node", None)
             if not new_node:
                 return Response(general_message(400, "node is null", "请选择节点个数"), status=400)
-
+            old_information = json.dumps({"实例数量": self.service.min_node}, ensure_ascii=False)
+            new_information = json.dumps({"实例数量": new_node}, ensure_ascii=False)
             app_manage_service.horizontal_upgrade(
                 self.tenant, self.service, self.user, int(new_node), oauth_instance=self.oauth_instance)
             result = general_message(200, "success", "操作成功", bean={})
+            comment = operation_log_service.generate_component_comment(
+                operation=Operation.HORIZONTAL_SCALE,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias)
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=self.app.ID,
+                service_alias=self.service.service_alias,
+                old_information=old_information,
+                new_information=new_information)
             self.service.update_time = datetime.now()
             self.service.save()
         except ResourceNotEnoughException as re:
@@ -516,13 +624,68 @@ class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
         move_group_id = request.data.get("move_group_id", None)
         if action not in ("stop", "start", "restart", "move", "upgrade", "deploy"):
             return Response(general_message(400, "param error", "操作类型错误"), status=400)
+
+        action_zh = ""
+        if action == "stop":
+            self.has_perms([400008])
+            action_zh = "关闭"
+        if action == "start":
+            self.has_perms([400006])
+            action_zh = "启动"
+        if action == "restart":
+            self.has_perms([400007])
+            action_zh = "重启"
+        if action == "move":
+            self.has_perms([400003])
+            action_zh = "移动"
+        if action == "upgrade":
+            self.has_perms([400009])
+            action_zh = "更新"
+        if action == "deploy":
+            self.has_perms([400010])
+            action_zh = "构建"
+        comment = "批量" + action_zh + "了应用{app}下的组件"
         service_id_list = service_ids.split(",")
-        code, msg = app_manage_service.batch_action(self.region_name, self.tenant, self.user, action, service_id_list,
+        app = group_service.get_service_group_info(service_id_list[0])
+        code, msg, services = app_manage_service.batch_action(self.region_name, self.tenant, self.user, action, service_id_list,
                                                     move_group_id, self.oauth_instance)
+
+        app_name = operation_log_service.process_app_name(app.app_name, self.region_name, self.team_name, app.app_id)
+        comment = comment.format(app=app_name)
+        component_names = []
+        idx = 0
+        new_json_service_list = []
+        for svc in services:
+            if idx <= 2:
+                component_names.append(
+                    operation_log_service.process_component_name(svc.service_cname, self.region_name, self.team_name,
+                                                                 svc.service_alias))
+            new_json_services_dict = dict()
+            new_json_services_dict["组件名"] = svc.service_cname
+            new_json_services_dict["操作"] = action_zh
+            new_json_service_list.append(new_json_services_dict)
+            idx += 1
+        new_information = json.dumps(new_json_service_list, ensure_ascii=False)
+        component_names = ",".join(component_names)
+        if idx >= 2:
+            component_names += "等"
+        comment += component_names
+
         if code != 200:
             result = general_message(code, "batch manage error", msg)
         else:
             result = general_message(200, "success", "操作成功")
+
+        operation_log_service.create_log(
+            self.user,
+            operation_type=OperationType.APPLICATION_MANAGE,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.team_name,
+            app_id=app.app_id,
+            new_information=new_information,
+            information_type=InformationType.INFORMATION_ADDS.value)
+
         return Response(result, status=result["code"])
 
 
@@ -557,6 +720,18 @@ class DeleteAppView(AppBaseView):
         if code != 200:
             return Response(general_message(code, "delete service error", msg, bean=bean), status=code)
         result = general_message(code, "success", "操作成功", bean=bean)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.DELETE, module_name=self.service.service_cname)
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            service_cname=self.service.service_cname)
+        self.service.update_time = datetime.now()
+        self.service.save()
         return Response(result, status=result["code"])
 
 
@@ -581,6 +756,26 @@ class BatchDelete(RegionTenantHeaderView):
         service_ids = request.data.get("service_ids", None)
         service_id_list = service_ids.split(",")
         services = service_repo.get_services_by_service_ids(service_id_list)
+
+        if not services:
+            result = general_message(200, "success", "未指定需要删除的组件", list=[])
+            return Response(result, status=result['code'])
+        component_names = []
+        comment = ""
+        app = None
+        old_information = list()
+        if services:
+            app = group_service.get_service_group_info(service_id_list[0])
+            if app:
+                app_name = operation_log_service.process_app_name(app.app_name, self.region_name, self.team_name, app.app_id)
+                for svc in services:
+                    component_names.append(svc.service_cname)
+                    old_information.append({"组件名": svc.service_cname, "操作": "删除"})
+                if len(component_names) > 2:
+                    component_names = ",".join(component_names[0:2]) + "等"
+                else:
+                    component_names = ",".join(component_names)
+                comment = "批量删除应用 {app} 中的组件 {component_names}".format(app=app_name, component_names=component_names)
         msg_list = []
         for service in services:
             code, msg = app_manage_service.batch_delete(self.user, self.tenant, service, is_force=True)
@@ -590,6 +785,10 @@ class BatchDelete(RegionTenantHeaderView):
             msg_dict['service_id'] = service.service_id
             msg_dict['service_cname'] = service.service_cname
             msg_list.append(msg_dict)
+        if app:
+            self.app = app
+            old_information = json.dumps(old_information, ensure_ascii=False)
+            operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False, old_information=old_information)
         code = 200
         result = general_message(code, "success", "操作成功", list=msg_list)
         return Response(result, status=result['code'])
@@ -615,9 +814,19 @@ class AgainDelete(RegionTenantHeaderView):
         """
         service_id = request.data.get("service_id", None)
         service = service_repo.get_service_by_service_id(service_id)
+        app = group_service.get_service_group_info(service_id)
         app_manage_service.delete_again(self.user, self.tenant, service, is_force=True)
         result = general_message(200, "success", "操作成功", bean={})
-
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.DELETE, module_name=service.service_cname)
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=app.ID if app else 0,
+            service_alias=service.service_alias,
+            service_cname=service.service_cname)
         return Response(result, status=result["code"])
 
 
@@ -638,9 +847,36 @@ class ChangeServiceTypeView(AppBaseView):
 
             if not is_support(extend_method):
                 raise AbortRequest(msg="do not support service type", msg_show="组件类型非法")
+            new_information = json.dumps({
+                "组件": self.service.service_cname,
+                "组件部署类型": app_manage_service.get_extend_method_name(self.service.extend_method)
+            },
+                                         ensure_ascii=False)
+            app_manage_service.change_service_type(self.tenant, self.service, extend_method, self.user.nick_name)
+            old_information = json.dumps({
+                "组件": self.service.service_cname,
+                "组件部署类型": app_manage_service.get_extend_method_name(self.service.extend_method)
+            },
+                                         ensure_ascii=False)
             logger.debug("tenant: {0}, service:{1}, extend_method:{2}".format(self.tenant, self.service, extend_method))
             app_manage_service.change_service_type(self.tenant, self.service, extend_method, self.user.nick_name)
             result = general_message(200, "success", "操作成功")
+            comment = operation_log_service.generate_component_comment(
+                operation=Operation.CHANGE,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias,
+                suffix=" 的类型为'{}'".format(ComponentType.to_zh(extend_method)))
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=self.app.ID,
+                service_alias=self.service.service_alias,
+                old_information=old_information,
+                new_information=new_information)
         except CallRegionAPIException as e:
             result = general_message(e.code, "failure", e.message)
         return Response(result, status=result["code"])
@@ -659,6 +895,19 @@ class UpgradeAppView(AppBaseView, CloudEnterpriseCenterView):
             if code != 200:
                 return Response(general_message(code, "upgrade app error", msg, bean=bean), status=code)
             result = general_message(code, "success", "操作成功", bean=bean)
+            comment = operation_log_service.generate_component_comment(
+                operation=Operation.UPGRADE,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias)
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=self.app.ID,
+                service_alias=self.service.service_alias)
             self.service.update_time = datetime.now()
             self.service.save()
         except ResourceNotEnoughException as re:
@@ -702,7 +951,21 @@ class ChangeServiceUpgradeView(AppBaseView):
         :return:
         """
         build_upgrade = request.data.get("build_upgrade", True)
-
+        op = Operation.OPEN if build_upgrade else Operation.CLOSE
+        comment = operation_log_service.generate_component_comment(
+            operation=op,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 设置'构建后自动升级'")
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias)
         self.service.build_upgrade = build_upgrade
         self.service.save()
         result = general_message(200, "success", "操作成功", bean={"build_upgrade": self.service.build_upgrade})
@@ -740,6 +1003,11 @@ class TeamAppsCloseView(JWTAuthApiView):
             app_manage_service.close_all_component_in_tenant(self.team, region_name, self.user)
         else:
             app_manage_service.close_all_component_in_team(self.team, self.user)
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.CLOSE, module_name=self.team.tenant_alias, team_name=self.team.tenant_name,
+            suffix=" 下所有组件")
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                    enterprise_id=self.user.enterprise_id)
         return Response(status=200, data=general_message(200, "success", "操作成功"))
 
 

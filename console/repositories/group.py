@@ -29,6 +29,9 @@ class GroupRepository(object):
         return ServiceGroup.objects.filter(
             tenant_id=tenant.tenant_id, region_name=region_name).order_by("-update_time", "-order_index")
 
+    def get_tenant_group_on_region(self, app_id):
+        return ServiceGroup.objects.get(ID=app_id)
+
     def add_group(self, tenant, region_name, group_name, group_note="", is_default=False, username=""):
         group = ServiceGroup.objects.create(
             tenant_id=tenant.tenant_id,

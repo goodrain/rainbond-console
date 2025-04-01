@@ -93,8 +93,10 @@ class PluginConfigService(object):
                         protocol=option.get("protocol", ""))
                     config_items_list.append(config_item)
 
-        config_group_repo.bulk_create_plugin_config_group(plugin_config_meta_list)
+        config = config_group_repo.bulk_create_plugin_config_group(plugin_config_meta_list)
         config_item_repo.bulk_create_items(config_items_list)
+        return config
+
 
     def delete_config_group_by_meta_type(self, plugin_id, build_version, service_meta_type):
         config_group_repo.delete_config_group_by_meta_type(plugin_id, build_version, service_meta_type)
@@ -129,3 +131,24 @@ class PluginConfigService(object):
             item_dict["build_version"] = new_version
             config_items_copy.append(PluginConfigItems(**item_dict))
         config_item_repo.bulk_create_items(config_items_copy)
+
+    def json_config_group(self, config):
+        config_dict = dict()
+        config_dict["配置项名"] = config.config_name
+        if config.service_meta_type == "un_define":
+            config_dict["依赖元数据类型"] = "不依赖"
+        elif config.service_meta_type == "service_meta_type":
+            config_dict["依赖元数据类型"] = "组件端口"
+        elif config.service_meta_type == "downstream_port":
+            config_dict["依赖元数据类型"] = "下游组件端口"
+        else:
+            config_dict["依赖元数据类型"] = "其他"
+        if config.injection == "auto":
+            config_dict["注入类型"] = "主动发现"
+        elif config.injection == "env":
+            config_dict["注入类型"] = "环境变量"
+        else:
+            config_dict["注入类型"] = "其他"
+        config_dict["配置项"] = "格式特殊，暂不支持展示"
+        return json.dumps(config_dict, ensure_ascii=False)
+

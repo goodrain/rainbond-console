@@ -14,9 +14,10 @@ from console.services.app import app_service, package_upload_service
 from console.services.app_config import compile_env_service
 from console.services.app_import_and_export_service import import_service
 from console.services.group_service import group_service
+from console.services.operation_log import operation_log_service
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
-from console.views.base import RegionTenantHeaderView, JWTAuthApiView
+from console.views.base import RegionTenantHeaderView, JWTAuthApiView, ApplicationView
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
@@ -29,7 +30,7 @@ logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 
-class SourceCodeCreateView(RegionTenantHeaderView):
+class SourceCodeCreateView(ApplicationView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -213,6 +214,21 @@ class SourceCodeCreateView(RegionTenantHeaderView):
                 logger.debug("service.create", msg_show)
             bean = new_service.to_dict()
             result = general_message(200, "success", "创建成功", bean=bean)
+            new_information = json.dumps({
+                "应用名称": self.app.group_name,
+                "组件名称": service_cname,
+                "组件英文名称": k8s_component_name,
+                "仓库地址": service_code_clone_url,
+                "代码版本": service_code_version
+            },
+                ensure_ascii=False)
+            component = operation_log_service.process_component_name(new_service.service_cname, self.region_name,
+                                                                     self.tenant_name, new_service.service_alias)
+            comment = "在应用{app}中创建了组件 ".format(
+                app=operation_log_service.process_app_name(self.app.group_name, self.region_name, self.tenant_name,
+                                                           self.app.app_id)) + component
+            operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False,
+                                                 new_information=new_information)
         except ResourceNotEnoughException as re:
             raise re
         except AccountOverdueException as re:

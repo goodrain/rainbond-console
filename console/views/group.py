@@ -8,7 +8,7 @@ from console.enum.app import GovernanceModeEnum
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.exception.bcode import ErrQualifiedName
 from console.repositories.app import service_repo
-from console.repositories.group import group_service_relation_repo
+from console.repositories.group import group_service_relation_repo, group_repo
 from console.repositories.region_app import region_app_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.helm_app import helm_app_service
@@ -17,9 +17,11 @@ from console.services.group_service import group_service
 from console.services.application import application_service
 from console.services.market_app_service import market_app_service
 from console.services.k8s_resource import k8s_resource_service
+from console.services.operation_log import operation_log_service, Operation
 from console.utils.reqparse import parse_item
 from console.utils.validation import is_qualified_name
-from console.views.base import (ApplicationView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView)
+from console.views.base import (ApplicationView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView,
+                                ApplicationViewCloudEnterpriseCenterView)
 from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
 from www.apiclient.regionapi import RegionInvokeApi
@@ -92,7 +94,21 @@ class TenantGroupView(RegionTenantHeaderView):
             self.user.enterprise_id,
             logo,
             k8s_app=k8s_app)
+        new_information = group_service.json_app(app_name=app_name, k8s_app=k8s_app, logo=logo, note=note)
         result = general_message(200, "success", "创建成功", bean=data)
+        app_name = operation_log_service.process_app_name(app_name, region_name, self.tenant.tenant_name, data["app_id"])
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.IN,
+            module_name=self.tenant.tenant_alias,
+            region=region_name,
+            team_name=self.tenant.tenant_name,
+            suffix=" 中创建了应用 {}".format(app_name))
+        operation_log_service.create_team_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            new_information=new_information)
         return Response(result, status=result["code"])
 
 
@@ -131,7 +147,10 @@ class TenantGroupOperationView(ApplicationView):
         overrides = request.data.get("overrides", [])
         version = request.data.get("version", "")
         revision = request.data.get("revision", 0)
-
+        old_app = group_repo.get_tenant_group_on_region(app_id)
+        old_information = group_service.json_app(
+            app_name=self.app.app_name, k8s_app=k8s_app, logo=old_app.logo, note=old_app.note)
+        new_information = group_service.json_app(app_name=app_name, k8s_app=k8s_app, logo=logo, note=note)
         group_service.update_group(
             self.tenant,
             self.response_region,
@@ -145,6 +164,15 @@ class TenantGroupOperationView(ApplicationView):
             logo=logo,
             k8s_app=k8s_app)
         result = general_message(200, "success", "修改成功")
+        handle_app_name = operation_log_service.process_app_name(self.app.app_name, self.region_name, self.tenant_name,
+                                                                 self.app.app_id)
+        comment = "更新了应用{}的信息".format(handle_app_name)
+        if self.app.group_name != app_name:
+            app_name = operation_log_service.process_app_name(app_name, self.region_name, self.tenant_name,
+                                                              self.app.app_id)
+            comment = "修改了应用{}的名称为{app}".format(self.app.app_name, app=app_name)
+        operation_log_service.create_app_log(
+            self, comment, format_app=False, old_information=old_information, new_information=new_information)
         return Response(result, status=result["code"])
 
     def delete(self, request, app_id, *args, **kwargs):
@@ -164,8 +192,13 @@ class TenantGroupOperationView(ApplicationView):
                   paramType: path
 
         """
+        old_app = group_repo.get_tenant_group_on_region(app_id)
+        old_information = group_service.json_app(
+            app_name=self.app.app_name, k8s_app=old_app.k8s_app, logo=old_app.logo, note=old_app.note)
         group_service.delete_app(self.tenant, self.region_name, self.app)
         result = general_message(200, "success", "删除成功")
+        operation_log_service.create_app_log(
+            self, "删除了应用 {app}".format(app=self.app.group_name), format_app=False, old_information=old_information)
         return Response(result, status=result["code"])
 
     def get(self, request, app_id, *args, **kwargs):
@@ -237,7 +270,7 @@ class TenantAppUpgradableNumView(ApplicationView):
 
 
 # 应用（组）常见操作【停止，重启， 启动， 重新构建】
-class TenantGroupCommonOperationView(RegionTenantHeaderCloudEnterpriseCenterView):
+class TenantGroupCommonOperationView(ApplicationViewCloudEnterpriseCenterView):
     def post(self, request, *args, **kwargs):
         """
         ---
@@ -269,7 +302,26 @@ class TenantGroupCommonOperationView(RegionTenantHeaderCloudEnterpriseCenterView
         if action not in ("stop", "start", "upgrade", "deploy"):
             return Response(general_message(400, "param error", "操作类型错误"), status=400)
         app_manage_service.batch_operations(self.tenant, self.region_name, self.user, action, service_ids, self.oauth_instance)
+        action_zh = ""
+        if action == "stop":
+            self.has_perms([300006, 400008])
+            action_zh = "停止"
+        if action == "start":
+            action_zh = "启动"
+            self.has_perms([300005, 400006])
+        if action == "upgrade":
+            action_zh = "更新"
+            self.has_perms([300007, 400009])
+        if action == "deploy":
+            action_zh = "构建"
+            self.has_perms([300008, 400010])
+            # 批量操作
+        app_manage_service.batch_operations(self.tenant, self.region_name, self.user, action, service_ids,
+                                            self.oauth_instance,
+                                            self.app.app_id)
         result = general_message(200, "success", "操作成功")
+        comment = action_zh + "了应用{app}"
+        operation_log_service.create_app_log(self, comment)
         return Response(result, status=result["code"])
 
 
@@ -312,6 +364,10 @@ class AppGovernanceModeView(ApplicationView):
         if governance_cr:
             bean["governance_cr"] = governance_cr
         result = general_message(200, "success", "更新成功", bean=bean)
+        app_name = operation_log_service.process_app_name(self.app.app_name, self.region_name, self.tenant_name,
+                                                          self.app.app_id)
+        comment = "修改了应用{}的治理模式".format(app_name)
+        operation_log_service.create_app_log(self, comment, format_app=False)
         return Response(result)
 
 

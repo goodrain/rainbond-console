@@ -2,7 +2,8 @@
 from rest_framework.response import Response
 
 from console.services.app_config_group import app_config_group_service
-from console.views.base import RegionTenantHeaderView
+from console.services.operation_log import operation_log_service
+from console.views.base import RegionTenantHeaderView, ApplicationView
 from www.utils.return_message import general_data
 from console.services.group_service import group_service
 from console.serializer import AppConfigGroupCreateSerilizer
@@ -10,7 +11,7 @@ from console.serializer import AppConfigGroupUpdateSerilizer
 from console.exception.main import AbortRequest
 
 
-class ListAppConfigGroupView(RegionTenantHeaderView):
+class ListAppConfigGroupView(ApplicationView):
     def post(self, request, team_name, app_id, *args, **kwargs):
         serializer = AppConfigGroupCreateSerilizer(data=request.data)
         serializer.is_valid()
@@ -20,6 +21,17 @@ class ListAppConfigGroupView(RegionTenantHeaderView):
         acg = app_config_group_service.create_config_group(app_id, params["config_group_name"], params["config_items"],
                                                            params["deploy_type"], params["enable"], params["service_ids"],
                                                            params["region_name"], team_name)
+        service_names = [service["service_cname"] for service in acg["services"]]
+        config_items = [{"变量名": item["item_key"], "变量值": item["item_value"]} for item in acg["config_items"]]
+        app_name = operation_log_service.process_app_name(self.app.app_name, self.region_name, self.tenant_name,
+                                                          self.app.app_id)
+        new_information = app_config_group_service.json_config_groups(
+            config_group_name=acg["config_group_name"],
+            config_items=config_items,
+            enable=acg["enable"],
+            services_names=service_names)
+        comment = "为应用 {} 创建了配置组 {}".format(app_name, params["config_group_name"])
+        operation_log_service.create_app_log(self, comment, format_app=False, new_information=new_information)
         return Response(status=200, data=general_data(bean=acg))
 
     def get(self, request, app_id, *args, **kwargs):
@@ -36,15 +48,36 @@ class ListAppConfigGroupView(RegionTenantHeaderView):
         return Response(status=200, data=general_data(list=acg, total=total))
 
 
-class AppConfigGroupView(RegionTenantHeaderView):
+class AppConfigGroupView(ApplicationView):
     def put(self, request, team_name, app_id, name, *args, **kwargs):
         serializer = AppConfigGroupUpdateSerilizer(data=request.data)
         serializer.is_valid()
         params = serializer.data
 
         check_services(app_id, params["service_ids"])
+        acg = app_config_group_service.get_config_group(self.region_name, app_id, name)
+        service_names = [service["service_cname"] for service in acg["services"]]
+        config_items = [{"变量名": item["item_key"], "变量值": item["item_value"]} for item in acg["config_items"]]
+        old_information = app_config_group_service.json_config_groups(
+            config_group_name=acg["config_group_name"],
+            config_items=config_items,
+            enable=acg["enable"],
+            services_names=service_names)
         acg = app_config_group_service.update_config_group(self.region_name, app_id, name, params["config_items"],
                                                            params["enable"], params["service_ids"], team_name)
+        service_names = [service["service_cname"] for service in acg["services"]]
+        config_items = [{"变量名": item["item_key"], "变量值": item["item_value"]} for item in acg["config_items"]]
+
+        app_name = operation_log_service.process_app_name(self.app.app_name, self.region_name, self.tenant_name,
+                                                          self.app.app_id)
+        new_information = app_config_group_service.json_config_groups(
+            config_group_name=acg["config_group_name"],
+            config_items=config_items,
+            enable=acg["enable"],
+            services_names=service_names)
+        comment = "修改了应用 {} 的配置组 {}".format(app_name, name)
+        operation_log_service.create_app_log(
+            self, comment, format_app=False, new_information=new_information, old_information=old_information)
         return Response(status=200, data=general_data(bean=acg))
 
     def get(self, request, app_id, name, *args, **kwargs):
@@ -53,6 +86,18 @@ class AppConfigGroupView(RegionTenantHeaderView):
 
     def delete(self, request, team_name, app_id, name, *args, **kwargs):
         acg = app_config_group_service.delete_config_group(self.region_name, team_name, app_id, name)
+        service_names = [service["service_cname"] for service in acg["services"]]
+        config_items = [{"变量名": item["item_key"], "变量值": item["item_value"]} for item in acg["config_items"]]
+        old_information = app_config_group_service.json_config_groups(
+            config_group_name=acg["config_group_name"],
+            config_items=config_items,
+            enable=acg["enable"],
+            services_names=service_names)
+        app_config_group_service.delete_config_group(self.region_name, team_name, app_id, name)
+        app_name = operation_log_service.process_app_name(self.app.app_name, self.region_name, self.tenant_name,
+                                                          self.app.app_id)
+        comment = "删除了应用 {} 的配置组 {}".format(app_name, name)
+        operation_log_service.create_app_log(self, comment, format_app=False, old_information=old_information)
         return Response(status=200, data=general_data(bean=acg))
 
 

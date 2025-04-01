@@ -13,6 +13,7 @@ from console.services.app_actions import app_manage_service, event_service
 from console.services.app_config import (dependency_service, env_var_service, port_service, probe_service, volume_service)
 from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
+from console.services.operation_log import operation_log_service, Operation
 from console.views.app_config.base import AppBaseView
 from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderCloudEnterpriseCenterView)
 from django.db import transaction
@@ -76,6 +77,19 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 deploy_repo.create_deploy_relation_by_service_id(service_id=self.service.service_id)
 
             result = general_message(200, "success", "构建成功")
+            comment = operation_log_service.generate_component_comment(
+                operation=Operation.BUILD,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias)
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=self.app.ID,
+                service_alias=self.service.service_alias)
             return Response(result, status=result["code"])
         except HttpClient.CallApiError as e:
             logger.exception(e)

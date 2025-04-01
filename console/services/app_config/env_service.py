@@ -2,6 +2,7 @@
 """
   Created on 18/1/17.
 """
+import json
 import logging
 import re
 from itertools import chain
@@ -62,6 +63,9 @@ class AppEnvVarService(object):
         tenantServiceEnvVar["is_change"] = is_change
         tenantServiceEnvVar["scope"] = scope
         return env_var_repo.add_service_env(**tenantServiceEnvVar)
+
+    def json_service_env_var(self, attr_name, attr_value, name):
+        return json.dumps({"变量名": attr_name, "变量值": attr_value, "说明": name}, ensure_ascii=False)
 
     def add_service_env_var(self,
                             tenant,
