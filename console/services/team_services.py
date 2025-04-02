@@ -289,7 +289,7 @@ class TeamService(object):
         else:
             team_name = self.random_tenant_name(enterprise=user.enterprise_id, length=8)
         if not team_alias:
-            team_alias = "{0}的团队".format(user.nick_name)
+            team_alias = "{0} workspace".format(user.nick_name)
         params = {
             "tenant_name": team_name,
             "creater": user.user_id,
