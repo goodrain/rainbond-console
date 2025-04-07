@@ -2,7 +2,7 @@
 
 # Basic environment variables
 RAINBOND_VERSION=${VERSION:-'v6.1.2-release'}
-IMGHUB_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain"
+IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 
 # Define colorful stdout
 RED='\033[0;31m'
