@@ -565,13 +565,12 @@ class NewComponents(object):
     def _ingress_config(rule_id, ingress):
         set_headers = []
         proxy_header = ingress.get("proxy_header")
-        if proxy_header and isinstance(proxy_header, dict):
-            for item_key in proxy_header:
-                header = {"item_key": item_key, "item_value": proxy_header[item_key]}
-                set_headers.append(header)
+        if proxy_header and isinstance(proxy_header, list):
+            set_headers = list(proxy_header)
         return GatewayCustomConfiguration(
             rule_id=rule_id,
             value=json.dumps({
+                "rule_id": rule_id,
                 "proxy_buffer_numbers":
                 ingress["proxy_buffer_numbers"] if ingress.get("proxy_buffer_numbers") else 4,
                 "proxy_buffer_size":

@@ -15,8 +15,10 @@ class AppApiGatewayView(RegionTenantHeaderView):
     @never_cache
     def post(self, request, *args, **kwargs):
         app_id = request.query_params.get('appID', "")
+        service_alias = request.query_params.get('service_alias', "")
+        port = request.query_params.get('port', "")
         path = request.get_full_path().replace("/console", "")
-        resp = region_api.api_gateway_post_proxy(self.region, self.tenant_name, path, request.data, app_id)
+        resp = region_api.api_gateway_post_proxy(self.region, self.tenant_name, path, request.data, app_id, service_alias, port)
         result = general_message(200, "success", "创建成功", bean=resp)
         return Response(result, status=result["code"])
 
