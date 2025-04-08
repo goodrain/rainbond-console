@@ -567,6 +567,8 @@ class NewComponents(object):
         proxy_header = ingress.get("proxy_header")
         if proxy_header and isinstance(proxy_header, list):
             set_headers = list(proxy_header)
+        if proxy_header and isinstance(proxy_header, dict):
+            set_headers = [{"item_key": k, "item_value": v} for k, v in proxy_header.items()]
         return GatewayCustomConfiguration(
             rule_id=rule_id,
             value=json.dumps({
