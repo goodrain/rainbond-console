@@ -1057,9 +1057,9 @@ class ShareService(object):
                 http_rule["proxy_header"] = new_proxy_headers
             apps = data["template"].get("apps", [])
             new_apps = []
-            for app in apps:
-                app["cpu"] = app.get("extend_method_map", {}).get("container_cpu", 0)
-                new_apps = new_apps.append(app)
+            for ap in apps:
+                ap["cpu"] = ap.get("extend_method_map", {}).get("container_cpu", 0)
+                new_apps = new_apps.append(ap)
             data["template"]["apps"] = new_apps
             market = app_market_service.get_app_market_by_name(
                 tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
