@@ -111,7 +111,7 @@ class NewComponents(object):
             # probe
             probes = self._template_to_probes(cpt, component_tmpl.get("probes"))
             # extend info
-            extend_info = self._template_to_extend_info(cpt, component_tmpl.get("extend_method_map"))
+            extend_info = self._template_to_extend_info(cpt, component_tmpl.get("extend_method_map"), component_tmpl.get("cpu"))
             # service monitors
             monitors = self._template_to_service_monitors(cpt, component_tmpl.get("component_monitors"))
             # graphs
@@ -406,13 +406,13 @@ class NewComponents(object):
             result.append(probe_service.create_probe(self.tenant, component, probe))
         return result
 
-    def _template_to_extend_info(self, component, extend_info):
+    def _template_to_extend_info(self, component, extend_info, cpu):
         if not extend_info:
             return None
         version = component.version
         if len(version) > 255:
             version = version[:255]
-        container_cpu = extend_info.get("container_cpu")
+        container_cpu = extend_info.get("container_cpu", cpu)
         if container_cpu is None:
             container_cpu = baseService.calculate_service_cpu(component.service_region, component.min_memory)
         return ServiceExtendMethod(
