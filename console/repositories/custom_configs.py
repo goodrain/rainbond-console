@@ -9,7 +9,11 @@ class CustomConfigsReporsitory(object):
 
     @staticmethod
     def list():
-        return ConsoleConfig.objects.filter().values()
+        return ConsoleConfig.objects.filter(user_nick_name="").values()
+
+    @staticmethod
+    def list_by_user_nick_name(user_nick_name):
+        return ConsoleConfig.objects.filter(user_nick_name=user_nick_name).values()
 
     @staticmethod
     def delete(keys):
