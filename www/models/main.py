@@ -111,6 +111,10 @@ class Users(models.Model):
     def check_password(self, raw_password):
         return bool(encrypt_passwd(self.email + raw_password) == self.password)
 
+    @property
+    def username(self):
+        return self.nick_name
+
     def is_anonymous(self):
         return False
 
