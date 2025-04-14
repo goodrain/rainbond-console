@@ -69,7 +69,7 @@ from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupVie
 from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
-from console.views.custom_configs import CustomConfigsCLView
+from console.views.custom_configs import CustomConfigsCLView, CustomConfigsUserCLView
 from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
                                       NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage,
                                       EnterpriseRegionGatewayBatch, EnterpriseTeamNames, EnterpriseRegionLangVersion)
@@ -235,6 +235,7 @@ urlpatterns = [
     url(r'^users/begin_password_reset$', PasswordResetBegin.as_view()),
     # 修改密码
     url(r'^users/changepwd$', ChangeLoginPassword.as_view()),
+    url(r'^users/custom_configs$', CustomConfigsUserCLView.as_view()),
 
     # 镜像仓库配置
     url(r'^hub/registry$', HubRegistryView.as_view()),
@@ -1002,7 +1003,7 @@ urlpatterns = [
         AppMarketOrgModelLView.as_view()),
 
     # 应用导出
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view(), perms.APP_RELEASE_EXPORT),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view()),
     # WIP
     # 创建应用导入记录
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import$', EnterpriseAppImportInitView.as_view()),

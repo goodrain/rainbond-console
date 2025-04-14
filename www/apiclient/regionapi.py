@@ -13,6 +13,7 @@ from django import http
 from django.conf import settings
 
 from console.repositories.app import service_repo
+from console.repositories.app_config import configuration_repo, domain_repo
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
@@ -2903,9 +2904,29 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         else:
             k8s_resources_repo.update(app_id=app_id, name=name, kind=data["kind"], content=body["bean"]["content"])
 
-    def api_gateway_post_proxy(self, region, tenant_name, path, data, app_id):
+    def api_gateway_post_proxy(self, region, tenant_name, path, data, app_id, service_alias="", port=""):
         if app_id:
             region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
+            if "routes/http?" in path:
+                if data.get("websocket") != "" and service_alias:
+                    svc = service_repo.get_service_by_service_alias(service_alias)
+                    domains = domain_repo.get_service_domain_by_container_port(svc.service_id, int(port))
+                    if domains:
+                        gateway_rule = configuration_repo.get_configuration_by_rule_id(domains[0].http_rule_id)
+                        value_data = {
+                            "set_headers": [
+                                {"item_key": "WebSocket", "item_value": str(data.get("websocket"))},
+                            ]
+                        }
+                        value = json.dumps(value_data)
+                        if gateway_rule:
+                            gateway_rule.value = value
+                            gateway_rule.save()
+                        else:
+                            cf_dict = dict()
+                            cf_dict["rule_id"] = domains[0].http_rule_id
+                            cf_dict["value"] = value
+                            configuration_repo.add_configuration(**cf_dict)
             path = path.replace("appID=" + str(app_id), "appID=" + region_app_id) + "&intID=" + str(app_id)
 
         url = region.url + path

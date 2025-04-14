@@ -2,7 +2,7 @@
 
 # Basic environment variables
 RAINBOND_VERSION=${VERSION:-'v6.1.2-release'}
-IMGHUB_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain"
+IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 
 # Define colorful stdout
 RED='\033[0;31m'
@@ -87,9 +87,9 @@ UUID=$(echo $OS_INFO | ${MD5_CMD} | cut -b 1-32)
 
 ################ Start #################
 if [ "$LANG" == "zh_CN.UTF-8" ]; then
-    send_info "欢迎您安装 Rainbond, 如果您安装遇到问题, 请反馈到 https://www.rainbond.com/community/support"
+    send_info "欢迎您安装 Rainbond, 如果您安装遇到问题, 请反馈到 https://www.rainbond.com/docs/support"
 else
-    send_info "Welcome to install Rainbond, If you install problem, please feedback to https://www.rainbond.com/community/support"
+    send_info "Welcome to install Rainbond, If you install problem, please feedback to https://www.rainbond.com/en/docs/support"
 fi
 
 ########################################
@@ -113,7 +113,7 @@ if ! (docker info &>/dev/null); then
             send_error "未检测到 Docker 环境, 请自行安装 Docker 或者使用此命令 'curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun'"
             exit 1
         else
-            send_error "Ops! Docker has not been installed.\nPlease install Docker yourself or use the command 'curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun'"
+            send_error "Ops! Docker has not been installed.\nPlease install Docker yourself or use the command 'curl -fsSL https://get.docker.com | bash -s docker'"
             exit 1
         fi
     elif [ "${OS_TYPE}" = "Darwin" ]; then
@@ -354,7 +354,7 @@ if [ "$LANG" == "zh_CN.UTF-8" ]; then
 # Web 控制台访问地址: http://$EIP:7070
 # Rainbond 文档: https://www.rainbond.com/docs
 # 如过您安装遇到问题，请反馈至:
-#     https://www.rainbond.com/community/support
+#     https://www.rainbond.com/docs/support
 ###############################################
 
 EOF
@@ -370,7 +370,7 @@ else
 # Web Site: http://$EIP:7070
 # Rainbond Docs: https://www.rainbond.com/docs
 # If you install problem, please feedback to: 
-#     https://www.rainbond.com/community/support
+#     https://www.rainbond.com/en/docs/support
 ###############################################
 
 EOF
