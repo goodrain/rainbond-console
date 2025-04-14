@@ -7,7 +7,9 @@ from datetime import datetime, timedelta
 
 from console.exception.exceptions import UserFavoriteNotExistError
 from console.forms.users_operation import RegisterForm
+from console.login.login_event import LoginEvent
 from console.models.main import UserRole
+from console.repositories.login_event import login_event_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.perm_repo import perms_repo
 from console.repositories.region_repo import region_repo
@@ -742,7 +744,8 @@ class LoginByPhoneView(BaseApiView):
                 return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
             user = user_service.login_by_phone(phone, code)
-
+            login_event = LoginEvent(user, login_event_repo, request=request)
+            login_event.login()
             # 生成token
             payload = jwt_payload_handler(user)
             token = jwt_encode_handler(payload)

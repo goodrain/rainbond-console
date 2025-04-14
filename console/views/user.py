@@ -6,6 +6,8 @@ from console.enum.enterprise_enum import EnterpriseRolesEnum
 from console.exception.bcode import ErrEnterpriseNotFound, ErrUserNotFound
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import AbortRequest, ServiceHandleException
+from console.login.login_event import LoginEvent
+from console.repositories.login_event import login_event_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
@@ -133,6 +135,8 @@ class UserLogoutView(JWTAuthApiView):
 
         """
         try:
+            login_event = LoginEvent(self.user, login_event_repo)
+            login_event.logout()
             user = request.user
             logger.debug(type(user))
             if isinstance(user, AnonymousUser):

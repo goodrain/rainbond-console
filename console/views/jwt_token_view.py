@@ -2,6 +2,8 @@
 import logging
 import datetime
 
+from console.login.login_event import LoginEvent
+from console.repositories.login_event import login_event_repo
 from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.utils.cache import cache
 from rest_framework import status
@@ -94,6 +96,8 @@ class JWTTokenView(JSONWebTokenAPIView):
                     response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
                 jwt_manager = JwtManager()
                 jwt_manager.set(response_data["token"], user.user_id)
+                login_event = LoginEvent(user, login_event_repo, request=request)
+                login_event.login()
                 comment = operation_log_service.generate_generic_comment(
                     operation=Operation.FINISH, module=OperationModule.LOGIN, module_name="")
                 operation_log_service.create_enterprise_log(user=user, comment=comment,

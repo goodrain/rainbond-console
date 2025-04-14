@@ -96,6 +96,7 @@ from console.views.jwt_token_view import JWTTokenView
 from console.views.license import LicenseLView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
 from console.views.k8s_resource import AppK8sResourceListView, AppK8ResourceView
+from console.views.login_event import LoginEventView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigOSSView
 from console.views.message import UserMessageView
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
@@ -887,6 +888,7 @@ urlpatterns = [
     url(r'^enterprise/monitor_alarm$', MonitorAlarmStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/login-events$', LoginEventView.as_view()),
     # 初始化集群、团队信息
     url(r'^enterprise/init$', InitDefaultInfoView.as_view()),
     # 上传证书无用接口（为前端提供）

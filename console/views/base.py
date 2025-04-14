@@ -9,10 +9,12 @@ from addict import Dict
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException,
                                     AbortRequest)
+from console.login.login_event import LoginEvent
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
 # repository
 from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
 from console.repositories.group import group_repo
+from console.repositories.login_event import login_event_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.region_repo import region_repo
@@ -110,6 +112,8 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
         user = self.authenticate_credentials(payload)
         jwt_manager.set(jwt_value, user.user_id)
+        login_event = LoginEvent(user, login_event_repo)
+        login_event.active()
         return user, jwt_value
 
     def authenticate_credentials(self, payload):
@@ -553,15 +557,18 @@ class EnterpriseHeaderView(JWTAuthApiView):
     def __init__(self, *args, **kwargs):
         super(EnterpriseHeaderView, self).__init__(*args, **kwargs)
         self.enterprise = None
+        self.enterprise_id = None
 
     def initial(self, request, *args, **kwargs):
         super(EnterpriseHeaderView, self).initial(request, *args, **kwargs)
         eid = kwargs.get("eid", None)
-        if not eid:
+        enterprise_id = kwargs.get("enterprise_id", eid)
+        if not enterprise_id:
             raise ImportError("enterprise_id not found !")
-        self.enterprise = enterprise_repo.get_enterprise_by_enterprise_id(eid)
+        self.enterprise = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
         if not self.enterprise:
-            raise NotFound("enterprise id: {};enterprise not found".format(eid))
+            raise NotFound("enterprise id: {};enterprise not found".format(enterprise_id))
+        self.enterprise_id = enterprise_id
 
 
 def custom_exception_handler(exc, context):

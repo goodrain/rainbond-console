@@ -1221,3 +1221,19 @@ class OperationLog(BaseModel):
     old_information = models.TextField(help_text=u"旧状态", null=True)
     new_information = models.TextField(help_text=u"新状态", null=True)
     information_type = models.CharField(max_length=32, help_text=u"增删改三种类型")
+
+
+class LoginEvent(BaseModel):
+    class Meta:
+        db_table = 'login_events'
+
+    event_id = models.CharField(max_length=32, help_text="the identity of the event")
+    enterprise_id = models.CharField(max_length=32, help_text="the identity of the enterprise")
+    username = models.CharField(max_length=64, help_text="username")
+    login_time = models.DateTimeField(help_text="login time", null=True)
+    last_active_time = models.DateTimeField(help_text="last active time", null=True)
+    logout_time = models.DateTimeField(help_text="logout time", null=True)
+    duration = models.IntegerField(help_text="duration in millisecond", null=True)
+    client_ip = models.CharField(max_length=255, help_text="the ip address of the client")
+    ip_locale_main = models.CharField(max_length=255)
+    user_agent = models.CharField(max_length=255, help_text="user agent")
