@@ -70,7 +70,7 @@ def get_current_time():
 def get_sql():
     sql = 'INSERT INTO region_info (`region_id`,`region_name`,`region_alias`,`url`,`status`,`desc`,`wsurl`, \
     `httpdomain`,`tcpdomain`,`scope`,`ssl_ca_cert`,`cert_file`,`key_file`,`create_time`) VALUES ("{0}", "rainbond", \
-    "default cluster", "{1}", "1", "The current cluster is the default built-in cluster", "{2}", "{3}", "{4}", "default", \
+    "Built-in Cluster", "{1}", "1", "The current cluster is the default built-in cluster", "{2}", "{3}", "{4}", "default", \
         "{5}", "{6}", "{7}", "{8}" )'.format(get_region_id(), get_url(), get_wsurl(), get_http_domain(), get_tcp_domain(),
                                              get_ssl_ca_cert(), get_cert_file(), get_key_file(), get_current_time())
     print(sql)
