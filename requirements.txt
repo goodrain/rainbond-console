@@ -41,7 +41,14 @@ django-postgrespool2==2.0.5
 ruamel.yaml==0.15.100
 prometheus-api-client==0.5.1
 volcengine-python-sdk==1.0.126
-alibabacloud_dysmsapi20170525
+alibabacloud_dysmsapi20170525==3.1.2
 alibabacloud-tea-openapi==0.3.12
+alibabacloud-credentials==0.3.6
+alibabacloud-endpoint-util==0.0.3
+alibabacloud-gateway-spi==0.0.3
+alibabacloud-openapi-util==0.2.2
+alibabacloud-tea==0.3.10
+alibabacloud-tea-util==0.3.13
+alibabacloud-tea-xml==0.0.2
 volcengine
 -e git+https://gitee.com/zhangsetsail/appstore-sdk-python.git@python3#egg=openapi_client
