@@ -382,6 +382,8 @@ class UserDetailsView(JWTAuthApiView):
             tenant_info = dict()
             is_team_owner = False
             team_region_list = region_services.get_region_list_by_team_name(team_name=tenant.tenant_name)
+            if not team_region_list:
+                continue
             tenant_info["team_id"] = tenant.ID
             tenant_info["team_name"] = tenant.tenant_name
             tenant_info["team_alias"] = tenant.tenant_alias
