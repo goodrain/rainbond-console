@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-
+import json
 import logging
 
 from django.db.models import Q
@@ -31,6 +31,9 @@ class ComponentServiceMonitor(object):
         if sms:
             return sms[0]
         return None
+
+    def json_component_service_monitor(self, name, s_name, interval, path, port):
+        return json.dumps({"配置名": name, "收集任务名称": s_name, "收集间隔时间": interval, "指标路径": path, "端口号": port}, ensure_ascii=False)
 
     def create_component_service_monitor(self, tenant, service, name, path, port, service_show_name, interval, user=None):
         if ServiceMonitor.objects.filter(tenant_id=tenant.tenant_id, name=name).count() > 0:
