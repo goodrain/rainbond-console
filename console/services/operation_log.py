@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+import os
 import time
 from enum import Enum
 
@@ -165,7 +166,8 @@ class OperationLogService(object):
                 "old_information": old_information,
                 "information_type": information_type
             }
-            operation_log_repo.create(**operation_log)
+            if os.getenv("USE_SAAS"):
+                operation_log_repo.create(**operation_log)
         except Exception as e:
             logger.error(e)
 
