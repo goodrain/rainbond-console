@@ -7,6 +7,7 @@ import logging
 from console.exception.main import AbortRequest
 from console.repositories.app_config import port_repo
 from console.services.app_config import domain_service, port_service
+from console.services.operation_log import operation_log_service, Operation
 from console.utils.reqparse import parse_item
 from console.views.app_config.base import AppBaseView
 from django.forms.models import model_to_dict
@@ -161,10 +162,28 @@ class AppPortView(AppBaseView):
             port_alias = self.service.service_alias.upper().replace("-", "_") + str(port)
         code, msg, port_info = port_service.add_service_port(self.tenant, self.service, port, protocol, port_alias,
                                                              is_inner_service, is_outer_service, None, self.user.nick_name)
+        tenant_service_port = port_service.get_service_port_by_port(self.service, port)
+        new_information = port_service.json_service_port(tenant_service_port)
         if code != 200:
             return Response(general_message(code, "add port error", msg), status=code)
 
         result = general_message(200, "success", "端口添加成功", bean=model_to_dict(port_info))
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.ADD,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 端口 {}".format(port))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            new_information=new_information,
+        )
         return Response(result, status=result["code"])
 
 
@@ -230,8 +249,25 @@ class AppPortManageView(AppBaseView):
         container_port = kwargs.get("port", None)
         if not container_port:
             raise AbortRequest("container_port not specify", "端口变量名未指定")
+        tenant_service_port = port_service.get_service_port_by_port(self.service, container_port)
+        old_information = port_service.json_service_port(tenant_service_port)
         data = port_service.delete_port_by_container_port(self.tenant, self.service, int(container_port), self.user.nick_name)
         result = general_message(200, "success", "删除成功", bean=model_to_dict(data))
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.DELETE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 端口 {}".format(container_port))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -284,13 +320,35 @@ class AppPortManageView(AppBaseView):
             if code != 200:
                 logger.exception(msg, msg_show)
                 return Response(general_message(code, msg, msg_show), status=code)
-
+        tenant_service_port = port_service.get_service_port_by_port(self.service, container_port)
+        old_information = port_service.json_service_port(tenant_service_port)
         code, msg, data = port_service.manage_port(self.tenant, self.service, self.response_region, int(container_port), action,
                                                    protocol, port_alias, k8s_service_name, self.user.nick_name, self.app)
+        new_information = port_service.json_service_port(tenant_service_port)
         if code != 200:
             return Response(general_message(code, "change port fail", msg), status=code)
         result = general_message(200, "success", "操作成功", bean=model_to_dict(data))
-
+        op = Operation.CHANGE
+        if action in "open_outer|open_inner":
+            op = Operation.OPEN
+        if action in "close_outer|close_inner":
+            op = Operation.CLOSE
+        comment = operation_log_service.generate_component_comment(
+            operation=op,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 端口 {} 的{}".format(container_port, operation_log_service.port_action_to_zh(action)))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information,
+            new_information=new_information)
         return Response(result, status=result["code"])
 
 

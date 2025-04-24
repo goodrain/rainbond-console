@@ -5,7 +5,8 @@
 import json
 import logging
 
-from console.services.plugin import app_plugin_service, plugin_version_service
+from console.services.operation_log import operation_log_service, Operation
+from console.services.plugin import app_plugin_service, plugin_version_service, plugin_service
 from console.views.app_config.base import AppBaseView
 from django.db import transaction
 from rest_framework.response import Response
@@ -86,6 +87,27 @@ class ServicePluginInstallView(AppBaseView):
                                               self.user)
 
         result = general_message(200, "success", "安装成功")
+        plugin = plugin_service.get_plugin_by_plugin_id(self.tenant, plugin_id)
+        plugin_name = operation_log_service.process_plugin_name(
+            plugin.plugin_alias,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            plugin_id=plugin_id,
+        )
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.FOR,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 开通了插件 {}".format(plugin_name))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias)
         return Response(result, status=result["code"])
 
     def delete(self, request, plugin_id, *args, **kwargs):
@@ -115,6 +137,22 @@ class ServicePluginInstallView(AppBaseView):
                                             self.service.service_alias, body)
         app_plugin_service.delete_service_plugin_relation(self.service, plugin_id)
         app_plugin_service.delete_service_plugin_config(self.service, plugin_id)
+        plugin = plugin_service.get_plugin_by_plugin_id(self.tenant, plugin_id)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.UNINSTALL,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 下的插件 {}".format(plugin.plugin_alias))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+        )
         return Response(general_message(200, "success", "卸载成功"))
 
 

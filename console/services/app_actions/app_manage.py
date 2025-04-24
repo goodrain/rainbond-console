@@ -523,7 +523,7 @@ class AppManageService(AppManageBase):
                 fail_service_name.append(service.service_cname)
                 logger.exception(e)
         logger.debug("fail service names {0}".format(fail_service_name))
-        return code, msg
+        return code, msg, services
 
     # 5.1新版批量操作（启动，关闭，构建）
     def batch_operations(self, tenant, region_name, user, action, service_ids, oauth_instance=None):

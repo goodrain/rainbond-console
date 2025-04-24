@@ -96,6 +96,7 @@ from console.views.jwt_token_view import JWTTokenView
 from console.views.license import LicenseLView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
 from console.views.k8s_resource import AppK8sResourceListView, AppK8ResourceView
+from console.views.login_event import LoginEventView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigOSSView
 from console.views.message import UserMessageView
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
@@ -103,6 +104,7 @@ from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCo
                                  OAuthServerUserAuthorize, OauthService, OauthServiceInfo, OAuthServiceRedirect,
                                  OauthType,
                                  OAuthUserInfo, UserOAuthLink, OauthUserLogoutView, OverScore)
+from console.views.operation_log import OperationLogView, TeamOperationLogView, AppOperationLogView
 from console.views.perms import (PermsInfoLView, TeamRolePermsRUDView, TeamRolesLCView, TeamRolesPermsLView, TeamRolesRUDView,
                                  TeamUserPermsLView, TeamUserRolesRUDView, TeamUsersRolesLView)
 from console.views.plugin.plugin_config import (ConfigPluginManageView, ConfigPreviewView)
@@ -306,6 +308,8 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/overview$', TeamOverView.as_view(), perms.TEAM_OVERVIEW_DESCRIBE),
     url(r'^teams/(?P<team_name>[\w\-]+)/arch$', TeamArchView.as_view()),
     # team operation logs
+    url(r'^teams/(?P<team_name>[\w\-]+)/operation-logs$', TeamOperationLogView.as_view()),
+
     # 总览 获取应用状态
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/services/status$', AllServiceInfo.as_view(), perms.TEAM_OVERVIEW_APP_DESCRIBE),
     # 上传yaml文件
@@ -411,6 +415,9 @@ urlpatterns = [
         AppK8ResourceView.as_view(), perms.APP_RESOURCE_PERMS),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/status', ApplicationStatusView.as_view(),
         perms.APP_OVERVIEW_PERMS),
+
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<app_id>[\w\-]+)/operation-logs$', AppOperationLogView.as_view()),
+
     # 应用状态（应用）
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$', GroupStatusView.as_view(), perms.APP_OVERVIEW_PERMS),
     # 应用(组)常见操作
@@ -882,6 +889,7 @@ urlpatterns = [
     url(r'^enterprise/monitor_alarm$', MonitorAlarmStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/login-events$', LoginEventView.as_view()),
     # 初始化集群、团队信息
     url(r'^enterprise/init$', InitDefaultInfoView.as_view()),
     # 上传证书无用接口（为前端提供）
@@ -891,6 +899,10 @@ urlpatterns = [
     url(r'^enterprise/admin/join-team$', AdministratorJoinTeamView.as_view()),
     # get basic task guided information
     url(r'^enterprises$', Enterprises.as_view()),
+
+    # Get Operation log
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/operation-logs$', OperationLogView.as_view()),
+
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/platform-info$', EnterpriseInfoFileView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/backups$', BackupDataCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/backups/(?P<backup_name>[\w\-\.]+)$', BackupDateDownload.as_view()),

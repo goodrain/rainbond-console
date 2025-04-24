@@ -6,7 +6,8 @@ import logging
 
 from console.exception.main import ServiceHandleException
 from console.services.groupcopy_service import groupapp_copy_service
-from console.views.base import RegionTenantHeaderView
+from console.services.operation_log import operation_log_service, OperationType
+from console.views.base import RegionTenantHeaderView, ApplicationView
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 from www.apiclient.baseclient import HttpClient
@@ -15,7 +16,7 @@ from www.utils.return_message import general_message
 logger = logging.getLogger('default')
 
 
-class GroupAppsCopyView(RegionTenantHeaderView):
+class GroupAppsCopyView(ApplicationView):
     @never_cache
     def get(self, request, tenantName, group_id, **kwargs):
         group_services = groupapp_copy_service.get_group_services_with_build_source(self.tenant, self.region_name, group_id)
@@ -62,6 +63,11 @@ class GroupAppsCopyView(RegionTenantHeaderView):
                     "tar_group_id": tar_group_id
                 })
             status = 200
+            comment = groupapp_copy_service.generate_comment(self.app, self.region_name, self.tenant_name, tar_group,
+                                                             tar_region_name, tar_team_name, services)
+            operation_log_service.create_log(self.user, OperationType.APPLICATION_MANAGE, comment,
+                                             self.user.enterprise_id,
+                                             self.tenant_name, self.app.app_id)
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:

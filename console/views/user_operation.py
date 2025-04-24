@@ -7,13 +7,16 @@ from datetime import datetime, timedelta
 
 from console.exception.exceptions import UserFavoriteNotExistError
 from console.forms.users_operation import RegisterForm
+from console.login.login_event import LoginEvent
 from console.models.main import UserRole
+from console.repositories.login_event import login_event_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.perm_repo import perms_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_invitation_repo, team_repo
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
+from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.perm_services import (user_kind_perm_service, user_kind_role_service)
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -184,6 +187,10 @@ class TenantServiceView(BaseApiView):
                 jwt_manager.set(token, user.user_id)
                 result = general_message(200, "register success", "注册成功", bean=data)
                 response = Response(result, status=200)
+                comment = operation_log_service.generate_generic_comment(
+                    operation=Operation.FINISH, module=OperationModule.REGISTER, module_name="")
+                operation_log_service.create_enterprise_log(user=user, comment=comment,
+                                                            enterprise_id=user.enterprise_id)
                 return response
             else:
                 error = {"error": list(json.loads(register_form.errors.as_json()).values())[0][0].get("message", "参数错误")}
@@ -449,6 +456,10 @@ class UserFavoriteLCView(JWTAuthApiView):
                     return Response(result, status=status.HTTP_400_BAD_REQUEST)
                 user_repo.create_user_favorite(request.user.user_id, name, url, is_default)
                 result = general_message(200, "success", "收藏视图创建成功")
+                comment = operation_log_service.generate_generic_comment(
+                    operation=Operation.ADD, module=OperationModule.FAVORITE, module_name=" {}".format(name))
+                operation_log_service.create_enterprise_log(
+                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
                 return Response(result, status=status.HTTP_200_OK)
             except Exception as e:
                 logger.debug(e)
@@ -482,6 +493,10 @@ class UserFavoriteUDView(JWTAuthApiView):
         result = general_message(200, "success", "删除成功")
         try:
             user_repo.delete_user_favorite_by_id(request.user.user_id, favorite_id)
+            comment = operation_log_service.generate_generic_comment(
+                operation=Operation.DELETE, module=OperationModule.FAVORITE, module_name=" {}".format(favorite.name))
+            operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                        enterprise_id=self.user.enterprise_id)
         except UserFavoriteNotExistError as e:
             logger.debug(e)
             result = general_message(404, "fail", "收藏视图不存在")
@@ -731,7 +746,8 @@ class LoginByPhoneView(BaseApiView):
                 return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
             user = user_service.login_by_phone(phone, code)
-
+            login_event = LoginEvent(user, login_event_repo, request=request)
+            login_event.login()
             # 生成token
             payload = jwt_payload_handler(user)
             token = jwt_encode_handler(payload)

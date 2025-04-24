@@ -2,6 +2,7 @@
 import logging
 
 from console.exception.main import ServiceHandleException
+from console.services.operation_log import operation_log_service, OperationModule, Operation
 from console.services.user_accesstoken_services import user_access_services
 from console.views.base import JWTAuthApiView
 from django.db import IntegrityError
@@ -22,6 +23,10 @@ class UserAccessTokenCLView(JWTAuthApiView):
         try:
             access_key = user_access_services.create_user_access_key(note, request.user.user_id, age)
             result = general_message(200, None, None, bean=access_key.to_dict())
+            comment = operation_log_service.generate_generic_comment(
+                operation=Operation.CREATE, module=OperationModule.ACCESSKEY, module_name=note)
+            operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                        enterprise_id=self.user.enterprise_id)
             return Response(result, status=200)
         except ValueError as e:
             logger.exception(e)
@@ -55,9 +60,18 @@ class UserAccessTokenRUDView(JWTAuthApiView):
             result = general_message(404, "no found access key", "未找到该凭证")
             return Response(result, status=404)
         result = general_message(200, "success", None, bean=access_key.to_dict())
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.REGENERATED, module=OperationModule.ACCESSKEY, module_name=access_key.note)
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                    enterprise_id=self.user.enterprise_id)
         return Response(result, status=200)
 
     def delete(self, request, id, **kwargs):
         user_access_services.delete_user_access_key_by_id(request.user.user_id, id)
         result = general_message(200, "success", None)
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.DELETE, module=OperationModule.ACCESSKEY,
+            module_name=access_key.note if access_key else "")
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                    enterprise_id=self.user.enterprise_id)
         return Response(result, status=200)

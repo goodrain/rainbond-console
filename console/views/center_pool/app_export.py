@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from console.services.app_import_and_export_service import export_service
 from console.services.market_app_service import market_app_service
+from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.views.base import JWTAuthApiView
 from www.utils.return_message import general_message
 
@@ -76,4 +77,11 @@ class CenterAppExportView(JWTAuthApiView):
         new_export_record_list.append(record.to_dict())
 
         result = general_message(200, "success", "操作成功，正在导出", list=new_export_record_list)
+        app, app_version = market_app_service.get_rainbond_app_and_version(enterprise_id, app_id, app_versions[0])
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.EXPORT,
+            module=OperationModule.APPMODEL,
+            module_name="{} 的 {} 版本".format(app.app_name, app_version.version))
+        operation_log_service.create_component_library_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
         return Response(result, status=result["code"])

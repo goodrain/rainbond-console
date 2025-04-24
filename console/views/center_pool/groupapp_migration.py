@@ -10,9 +10,10 @@ from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
 from console.services.groupapp_recovery.groupapps_migrate import \
     migrate_service
+from console.services.operation_log import operation_log_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.views.base import RegionTenantHeaderView
+from console.views.base import RegionTenantHeaderView, ApplicationView
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 from www.utils.return_message import error_message, general_message
@@ -20,7 +21,7 @@ from www.utils.return_message import error_message, general_message
 logger = logging.getLogger('default')
 
 
-class GroupAppsMigrateView(RegionTenantHeaderView):
+class GroupAppsMigrateView(ApplicationView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -80,6 +81,12 @@ class GroupAppsMigrateView(RegionTenantHeaderView):
         migrate_record = migrate_service.start_migrate(self.user, self.tenant, self.region_name, migrate_team, migrate_region,
                                                        backup_id, migrate_type, event_id, restore_id)
         result = general_message(200, "success", "操作成功，开始迁移应用", bean=migrate_record.to_dict())
+        comment = "迁移应用{app}到团队".format(
+            app=operation_log_service.process_app_name(self.app.app_name, self.region_name, self.tenant_name,
+                                                       self.app.app_id))
+        comment += operation_log_service.process_team_name(migrate_team.tenant_alias, migrate_region,
+                                                           migrate_team.tenant_name)
+        operation_log_service.create_app_log(self, comment, format_app=False)
         return Response(result, status=result["code"])
 
     @never_cache

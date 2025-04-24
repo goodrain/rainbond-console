@@ -20,7 +20,8 @@ class PluginConfigGroupRepository(object):
 
     def bulk_create_plugin_config_group(self, plugin_config_meta_list):
         """批量创建插件配置组信息"""
-        PluginConfigGroup.objects.bulk_create(plugin_config_meta_list)
+        config = PluginConfigGroup.objects.bulk_create(plugin_config_meta_list)
+        return config
 
     def delete_config_group_by_meta_type(self, plugin_id, build_version, service_meta_type):
         PluginConfigGroup.objects.filter(

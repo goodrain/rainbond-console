@@ -5,6 +5,8 @@ from rest_framework.response import Response
 
 from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_repo
+from console.repositories.region_repo import region_repo
+from console.services.operation_log import operation_log_service, Operation
 from console.services.perm_services import perm_services
 from console.services.perm_services import role_kind_services
 from console.services.perm_services import role_perm_service
@@ -33,8 +35,18 @@ class TeamRolesLCView(TenantHeaderView):
 
     def post(self, request, team_name, *args, **kwargs):
         name = request.data.get("name")
+        tenant = team_services.get_tenant(team_name)
+        regions = region_repo.get_region_by_tenant_name(team_name)
         role = role_kind_services.create_role("team", self.tenant.tenant_id, name)
         result = general_message(200, "success", "创建角色成功", bean=role.to_dict())
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.IN,
+            module_name=tenant.tenant_alias,
+            region=regions[0].region_name if regions else "",
+            team_name=tenant.tenant_name,
+            suffix=" 中创建了角色 {}".format(name))
+        operation_log_service.create_team_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=tenant.tenant_name)
         return Response(result, status=200)
 
 
@@ -54,11 +66,28 @@ class TeamRolesRUDView(RegionTenantHeaderView):
         del data["kind"]
         del data["kind_id"]
         result = general_message(200, "success", "更新角色成功", bean=data)
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.IN,
+            module_name=self.tenant.tenant_alias,
+            region=self.response_region,
+            team_name=self.tenant.tenant_name,
+            suffix=" 中编辑了角色 {}".format(role.name))
+        operation_log_service.create_team_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=self.tenant.tenant_name)
         return Response(result, status=200)
 
     def delete(self, request, team_name, role_id, *args, **kwargs):
+        role = role_kind_services.get_role_by_id("team", self.tenant.tenant_id, role_id)
         role_kind_services.delete_role("team", self.tenant.tenant_id, role_id)
         result = general_message(200, "success", "删除角色成功")
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.IN,
+            module_name=self.tenant.tenant_alias,
+            region=self.response_region,
+            team_name=self.tenant.tenant_name,
+            suffix=" 中删除了角色 {}".format(role.name))
+        operation_log_service.create_team_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=self.tenant.tenant_name)
         return Response(result, status=200)
 
 
@@ -125,6 +154,13 @@ class TeamUserRolesRUDView(TenantHeaderView):
         user_kind_role_service.update_user_roles(kind="team", kind_id=self.tenant.tenant_id, user=user, role_ids=roles)
         data = user_kind_role_service.get_user_roles(kind="team", kind_id=self.tenant.tenant_id, user=user)
         result = general_message(200, "success", None, bean=data)
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.IN,
+            module_name=self.tenant.tenant_alias,
+            team_name=self.tenant.tenant_name,
+            suffix=" 中修改了用户 {} 的角色".format(user.get_name()))
+        operation_log_service.create_team_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=self.tenant.tenant_name)
         return Response(result, status=200)
 
     def delete(self, request, team_name, user_id, *args, **kwargs):

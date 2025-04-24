@@ -8,6 +8,7 @@ from console.exception.main import ServiceHandleException, AbortRequest
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.oauth_service import oauth_sev_user_service
+from console.services.operation_log import Operation, operation_log_service, OperationModule
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance, support_oauth_type)
 from console.views.base import (AlowAnyApiView, EnterpriseAdminView, JWTAuthApiView)
 from django.http import HttpResponseRedirect
@@ -44,6 +45,11 @@ class OauthConfig(EnterpriseAdminView):
         enable = data.get("enable")
         EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).update_config_enable_status(key="OAUTH_SERVICES", enable=enable)
         rst = {"data": {"bean": {"oauth_services": data}}}
+        op = Operation.ENABLE if enable else Operation.DISABLE
+        comment = operation_log_service.generate_generic_comment(
+            operation=op, module=OperationModule.OAUTHCONNECT, module_name="")
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                    enterprise_id=self.user.enterprise_id)
         return Response(rst, status=status.HTTP_200_OK)
 
 
@@ -115,6 +121,10 @@ class OauthService(EnterpriseAdminView):
                 "authorize_url": authorize_url,
             })
         rst = {"data": {"bean": {"oauth_services": data}}}
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.UPDATE, module=OperationModule.OAUTHCONFIG, module_name="")
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                    enterprise_id=self.user.enterprise_id)
         return Response(rst, status=status.HTTP_200_OK)
 
 
@@ -196,6 +206,10 @@ class EnterpriseOauthService(EnterpriseAdminView):
                 "authorize_url": authorize_url,
             })
         rst = {"data": {"bean": {"oauth_services": data}}}
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.UPDATE, module=OperationModule.OAUTHCONFIG, module_name="")
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                    enterprise_id=self.user.enterprise_id)
         return Response(rst, status=status.HTTP_200_OK)
 
 

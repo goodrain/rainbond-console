@@ -6,12 +6,15 @@ from console.enum.enterprise_enum import EnterpriseRolesEnum
 from console.exception.bcode import ErrEnterpriseNotFound, ErrUserNotFound
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import AbortRequest, ServiceHandleException
+from console.login.login_event import LoginEvent
+from console.repositories.login_event import login_event_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.auth import login, logout
 from console.services.enterprise_services import enterprise_services
 from console.services.exception import (ErrAdminUserDoesNotExist, ErrCannotDelLastAdminUser)
+from console.services.operation_log import operation_log_service, OperationModule, Operation
 from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -132,6 +135,8 @@ class UserLogoutView(JWTAuthApiView):
 
         """
         try:
+            login_event = LoginEvent(self.user, login_event_repo)
+            login_event.logout()
             user = request.user
             logger.debug(type(user))
             if isinstance(user, AnonymousUser):
@@ -142,6 +147,10 @@ class UserLogoutView(JWTAuthApiView):
                 logout(request)
                 code = 200
                 result = general_message(code, "logout success", "登出成功")
+                comment = operation_log_service.generate_generic_comment(
+                    operation=Operation.EXIT, module=OperationModule.LOGIN, module_name="")
+                operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                            enterprise_id=self.user.enterprise_id)
                 response = Response(result, status=code)
                 response.delete_cookie('tenant_name')
                 response.delete_cookie('uid', domain='.goodrain.com')
@@ -174,6 +183,15 @@ class UserPemTraView(TeamOwnerView):
         self.tenant.creater = user_id
         self.tenant.save()
         result = general_message(msg="success", msg_show="移交成功", code=200)
+        user = user_services.get_user_by_user_id(user_id)
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.TRUN_OVER,
+            module_name=self.tenant.tenant_alias,
+            region=self.response_region,
+            team_name=self.tenant.tenant_name,
+            suffix=" 给用户 {}".format(user.get_name()))
+        operation_log_service.create_team_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=self.tenant.tenant_name)
         return Response(result, status=200)
 
 
@@ -201,6 +219,11 @@ class AdminUserLCView(EnterpriseAdminView):
             raise ErrEnterpriseNotFound
 
         user_services.create_admin_user(user, ent, roles)
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.CREATE, module=OperationModule.ENTERPRISEADMIN,
+            module_name=" {}".format(user.get_name()))
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                    enterprise_id=self.user.enterprise_id)
         return Response(general_message(201, "success", None), status=201)
 
 
@@ -210,8 +233,14 @@ class AdminUserView(EnterpriseAdminView):
             result = general_message(400, "fail", "不可删除自己")
             return Response(result, 400)
         try:
+            user = user_services.get_user_by_user_id(user_id)
             user_services.delete_admin_user(user_id)
             result = general_message(200, "success", None)
+            comment = operation_log_service.generate_generic_comment(
+                operation=Operation.DELETE, module=OperationModule.ENTERPRISEADMIN,
+                module_name=" {}".format(user.get_name()))
+            operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                        enterprise_id=self.user.enterprise_id)
             return Response(result, 200)
         except ErrAdminUserDoesNotExist as e:
             logger.debug(e)
@@ -311,6 +340,9 @@ class EnterPriseUsersCLView(JWTAuthApiView):
                 user.is_active = True
                 user.save()
                 result = general_message(200, "success", "添加用户成功")
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.ADD, module=OperationModule.USER, module_name="{}".format(user.get_name()))
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
         return Response(result)
 
 
@@ -332,6 +364,10 @@ class EnterPriseUsersUDView(JWTAuthApiView):
             }
             oauth_instance.update_user(enterprise_id, user.enterprise_center_user_id, data)
         result = general_message(200, "success", "更新用户成功")
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.CHANGE, module=OperationModule.USER, module_name="{} 的信息".format(user.get_name()))
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                    enterprise_id=self.user.enterprise_id)
         return Response(result, status=200)
 
     def delete(self, request, enterprise_id, user_id, *args, **kwargs):
@@ -346,6 +382,9 @@ class EnterPriseUsersUDView(JWTAuthApiView):
         all_oauth_user = oauth_user_repo.get_all_user_oauth(user_id)
         all_oauth_user.delete()
         result = general_message(200, "success", "删除用户成功")
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.DELETE, module=OperationModule.USER, module_name="{}".format(user.get_name()))
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
         return Response(result, status=200)
 
 

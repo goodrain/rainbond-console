@@ -7,6 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import plugin_config_service
 from console.views.plugin.base import PluginBaseView
 from www.utils.return_message import general_message
@@ -82,6 +83,8 @@ class ConfigPluginManageView(PluginBaseView):
         config_name = config.get("config_name")
         config_group_pk = config.get("ID")
         modify_type = config.get("modify_type", False)
+        old_config = plugin_config_service.get_config_group_by_pk(config_group_pk)
+        old_information = plugin_config_service.json_config_group(old_config)
         config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id,
                                                                self.plugin_version.build_version).exclude(pk=config_group_pk)
         is_pass, msg = plugin_config_service.check_group_config(service_meta_type, injection, config_groups)
@@ -103,6 +106,23 @@ class ConfigPluginManageView(PluginBaseView):
             plugin_config_service.create_config_items(self.plugin_version.plugin_id, self.plugin_version.build_version,
                                                       service_meta_type, *options)
         result = general_message(200, "success", "修改成功")
+        plugin_name = operation_log_service.process_plugin_name(self.plugin.plugin_alias, self.response_region,
+                                                                self.tenant.tenant_name, self.plugin.plugin_id)
+        new_config = plugin_config_service.get_config_group_by_pk(config_group_pk)
+        new_information = plugin_config_service.json_config_group(new_config)
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.IN,
+            module_name=self.tenant.tenant_alias,
+            region=self.response_region,
+            team_name=self.tenant.tenant_name,
+            suffix=" 中编辑了插件 {} 的配置组 {}".format(plugin_name, config.get("config_name", "")))
+        operation_log_service.create_team_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            old_information=old_information,
+            new_information=new_information)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -142,14 +162,30 @@ class ConfigPluginManageView(PluginBaseView):
         if not is_pass:
             return Response(general_message(400, "param error", msg), status=400)
         create_data = [config]
+        new_information = ""
         if modify_type and injection == "plugin_storage":
             plugin_config_service.create_config_items(self.plugin_version.plugin_id, self.plugin_version.build_version,
                                                       service_meta_type, config["options"][0])
         else:
-            plugin_config_service.create_config_groups(self.plugin_version.plugin_id, self.plugin_version.build_version,
+            new_config = plugin_config_service.create_config_groups(self.plugin_version.plugin_id, self.plugin_version.build_version,
                                                        create_data)
-        result = general_message(200, "success", "添加成功")
 
+            new_information = plugin_config_service.json_config_group(new_config[0])
+        result = general_message(200, "success", "添加成功")
+        plugin_name = operation_log_service.process_plugin_name(self.plugin.plugin_alias, self.response_region,
+                                                                self.tenant.tenant_name, self.plugin.plugin_id)
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.IN,
+            module_name=self.tenant.tenant_alias,
+            region=self.response_region,
+            team_name=self.tenant.tenant_name,
+            suffix=" 中添加了插件 {} 的配置组 {}".format(plugin_name, config.get("config_name", "")))
+        operation_log_service.create_team_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            new_information=new_information)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -188,8 +224,26 @@ class ConfigPluginManageView(PluginBaseView):
             return Response(general_message(404, "config group not exist", "配置组不存在"), status=404)
         plugin_config_service.delete_config_group_by_meta_type(config_group.plugin_id, config_group.build_version,
                                                                config_group.service_meta_type)
+        old_config = plugin_config_service.delete_config_group_by_meta_type(config_group.plugin_id, config_group.build_version,
+                                                                            config_group.service_meta_type)
+        old_information = plugin_config_service.json_config_group(old_config)
 
         result = general_message(200, "success", "删除成功")
+
+        plugin_name = operation_log_service.process_plugin_name(self.plugin.plugin_alias, self.response_region,
+                                                                self.tenant.tenant_name, self.plugin.plugin_id)
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.IN,
+            module_name=self.tenant.tenant_alias,
+            region=self.response_region,
+            team_name=self.tenant.tenant_name,
+            suffix=" 中删除了插件 {} 的配置组 {}".format(plugin_name, config_group.config_name))
+        operation_log_service.create_team_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            old_information=old_information)
         return Response(result, status=result["code"])
 
 

@@ -2,6 +2,7 @@
 import logging
 
 from console.exception.main import ServiceHandleException
+from console.services.operation_log import operation_log_service, Operation
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.views.base import (JWTAuthApiView, RegionTenantHeaderView, TenantHeaderView)
@@ -86,6 +87,10 @@ class OpenRegionView(TenantHeaderView):
             return Response(general_message(404, "team is not found", "团队{0}不存在".format(team_name)), status=403)
         region_services.create_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name, team.namespace)
         result = general_message(200, "success", "数据中心{0}开通成功".format(region_name))
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.FOR, module_name=team.tenant_alias, team_name=team.tenant_name, suffix=" 开通了集群")
+        operation_log_service.create_team_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=team.tenant_name)
         return Response(result, result["code"])
 
     def patch(self, request, team_name, *args, **kwargs):
@@ -116,6 +121,10 @@ class OpenRegionView(TenantHeaderView):
         for region_name in region_list:
             region_services.create_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name, team.namespace)
         result = general_message(200, "success", "批量开通数据中心成功")
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.FOR, module_name=team.tenant_alias, team_name=team.tenant_name, suffix=" 开通了集群")
+        operation_log_service.create_team_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=team.tenant_name)
         return Response(result, result["code"])
 
     def delete(self, request, team_name, *args, **kwargs):
@@ -137,8 +146,14 @@ class OpenRegionView(TenantHeaderView):
         region_name = request.data.get("region_name", None)
         if not region_name:
             return Response(general_message(400, "params error", "参数异常"), status=400)
+        tenant = team_services.get_tenant_by_tenant_name(team_name)
         region_services.delete_tenant_on_region(self.enterprise.enterprise_id, team_name, region_name, self.user)
         result = general_message(200, "success", "团队关闭数据中心{0}成功".format(region_name))
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.UNINSTALL, module_name=tenant.tenant_alias, team_name=tenant.tenant_name,
+            suffix=" 下的集群")
+        operation_log_service.create_team_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=tenant.tenant_name)
         return Response(result, result["code"])
 
 

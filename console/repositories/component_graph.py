@@ -30,6 +30,10 @@ class ComponentGraphRepository(object):
             raise ErrComponentGraphNotFound
 
     @staticmethod
+    def gets(component_id, graph_id):
+        return ComponentGraph.objects.filter(component_id=component_id, graph_id__in=graph_id)
+
+    @staticmethod
     def get_by_title(component_id, title):
         try:
             return ComponentGraph.objects.get(component_id=component_id, title=title)

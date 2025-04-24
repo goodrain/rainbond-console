@@ -235,9 +235,11 @@ class TeamService(object):
     @transaction.atomic()
     def delete_by_tenant_id(self, user, tenant):
         tenant_regions = region_repo.get_tenant_regions_by_teamid(tenant.tenant_id)
+        region_list = list()
         for region in tenant_regions:
             try:
-                region_services.delete_tenant_on_region(tenant.enterprise_id, tenant.tenant_name, region.region_name, user)
+                region_config = region_services.delete_tenant_on_region(tenant.enterprise_id, tenant.tenant_name, region.region_name, user)
+                region_list.append(region_config.region_alias)
             except ServiceHandleException as e:
                 raise e
             except Exception as e:
@@ -253,6 +255,8 @@ class TeamService(object):
             if sid:
                 transaction.savepoint_rollback(sid)
             logger.exception(e)
+        return region_list
+
 
     def get_current_user_tenants(self, user_id, team_name=""):
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id, team_name=team_name)

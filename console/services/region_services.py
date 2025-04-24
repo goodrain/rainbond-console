@@ -334,6 +334,7 @@ class RegionService(object):
                 logger.exception(e)
                 raise ServiceHandleException(msg="delete tenant from cluster failure", msg_show="从集群删除租户失败")
         tenant_region.delete()
+        return region_config
 
     def get_enterprise_free_resource(self, tenant_id, enterprise_id, region_name, user_name):
         try:
