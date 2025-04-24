@@ -3,6 +3,7 @@
   Created on 18/1/26.
 """
 import copy
+import json
 import logging
 
 from console.exception.main import ServiceHandleException, AbortRequest
@@ -17,6 +18,33 @@ logger = logging.getLogger("default")
 
 class ProbeService(object):
     PROBE_MODE = ("readiness", "liveness", "ignore")
+
+    def json_service_probe(self,
+                           port,
+                           scheme,
+                           mode,
+                           initial_delay_second,
+                           period_second,
+                           timeout_second,
+                           success_threshold,
+                           is_used=True,
+                           http_header="",
+                           path="",
+                           **kwargs):
+        service_probe_dict = dict()
+        service_probe_dict["状态"] = "启用" if is_used else "禁用"
+        service_probe_dict["检测端口"] = port
+        service_probe_dict["探针协议"] = scheme
+        service_probe_dict["不健康处理方式"] = "下线" if mode == "readiness" else "重启"
+        if http_header:
+            service_probe_dict["http请求头"] = http_header
+        if path:
+            service_probe_dict["路径"] = path
+        service_probe_dict["初始化等候时间"] = "{}秒".format(initial_delay_second)
+        service_probe_dict["检测间隔时间"] = "{}秒".format(period_second)
+        service_probe_dict["检测超时时间"] = "{}秒".format(timeout_second)
+        service_probe_dict["连续成功次数"] = success_threshold
+        return json.dumps(service_probe_dict, ensure_ascii=False)
 
     def get_service_probe_by_mode(self, service, mode):
         if not mode:

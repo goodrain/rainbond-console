@@ -21,6 +21,12 @@ class GroupRepository(object):
     def create(app):
         app.save()
 
+    def get_app_by_pk(self, app_id):
+        try:
+            return ServiceGroup.objects.get(pk=app_id)
+        except ServiceGroup.DoesNotExist:
+            return None
+
     @staticmethod
     def update(app_id, **data):
         ServiceGroup.objects.filter(pk=app_id).update(**data)

@@ -3,6 +3,7 @@
   Created on 18/1/17.
 """
 import datetime
+import json
 import logging
 import re
 import validators
@@ -42,6 +43,17 @@ logger = logging.getLogger("default")
 
 
 class AppPortService(object):
+    def json_service_port(self, service_port):
+        service_port_dict = dict()
+        service_port_dict["端口号"] = service_port.container_port
+        service_port_dict["端口协议"] = service_port.protocol
+        service_port_dict["对内服务"] = "开" if service_port.is_inner_service else "关"
+        service_port_dict["对外服务"] = "开" if service_port.is_outer_service else "关"
+        service_port_dict["别名"] = service_port.port_alias
+        service_port_dict["内部域名"] = service_port.k8s_service_name
+        return json.dumps(service_port_dict, ensure_ascii=False)
+
+
     @staticmethod
     def check_port(service, container_port):
         port = port_repo.get_service_port_by_port(service.tenant_id, service.service_id, container_port)

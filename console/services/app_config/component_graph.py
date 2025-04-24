@@ -18,6 +18,21 @@ logger = logging.getLogger("default")
 
 class ComponentGraphService(object):
     @staticmethod
+    def select_component_graphs(component_id, graph_ids):
+        graphs = component_graph_repo.gets(component_id, graph_ids)
+        return graphs
+
+    def json_component_graphs(self, graphs):
+        component_graph_list = list()
+        for graph in graphs:
+            component_graph_dict = dict()
+            component_graph_dict["图表标题"] = graph.title
+            component_graph_dict["查询条件"] = graph.promql
+            component_graph_list.append(component_graph_dict)
+        return json.dumps(component_graph_list, ensure_ascii=False)
+
+
+    @staticmethod
     def _load_internal_graphs():
         filenames = []
         internal_graphs = {}
@@ -99,6 +114,8 @@ class ComponentGraphService(object):
     def list_component_graphs(component_id):
         graphs = component_graph_repo.list(component_id)
         return [graph.to_dict() for graph in graphs]
+
+
 
     @transaction.atomic()
     def delete_component_graph(self, graph):

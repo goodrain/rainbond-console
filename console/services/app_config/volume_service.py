@@ -2,6 +2,7 @@
 """
   Created on 18/1/17.
 """
+import json
 import logging
 import os
 import re
@@ -48,6 +49,20 @@ class AppVolumeService(object):
     if os.getenv("USE_SAAS"):
         default_volume_type = "volcengine"
     simple_volume_type = [default_volume_type, "config-file", "vm-file", "memoryfs", "local"]
+
+    def json_service_volume(self, volume_type, volume_name, volume_path, mode, file_content, volume_cap):
+        if volume_type == "share-file":
+            return json.dumps({"存储名称": volume_name, "挂载路径": volume_path, "存储容量": volume_cap, "类型": "共享存储"}, ensure_ascii=False)
+        elif volume_type == "config-file":
+            return json.dumps({
+                "配置文件名称": volume_name,
+                "配置文件挂载路径": volume_path,
+                "权限": mode,
+                "配置文件": file_content
+            },
+                              ensure_ascii=False)
+        elif volume_type == "memoryfs":
+            return json.dumps({"存储名称": volume_name, "挂载路径": volume_path, "存储容量": volume_cap, "类型": "临时存储"}, ensure_ascii=False)
 
     def is_simple_volume_type(self, volume_type):
         if volume_type in self.simple_volume_type:
