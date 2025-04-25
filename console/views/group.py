@@ -304,17 +304,17 @@ class TenantGroupCommonOperationView(ApplicationViewCloudEnterpriseCenterView):
         app_manage_service.batch_operations(self.tenant, self.region_name, self.user, action, service_ids, self.oauth_instance)
         action_zh = ""
         if action == "stop":
-            self.has_perms([300006, 400008])
+            self.has_perms([300006])
             action_zh = "停止"
         if action == "start":
             action_zh = "启动"
-            self.has_perms([300005, 400006])
+            self.has_perms([300005])
         if action == "upgrade":
             action_zh = "更新"
-            self.has_perms([300007, 400009])
+            self.has_perms([300007])
         if action == "deploy":
             action_zh = "构建"
-            self.has_perms([300008, 400010])
+            self.has_perms([300008])
             # 批量操作
         app_manage_service.batch_operations(self.tenant, self.region_name, self.user, action, service_ids,
                                             self.oauth_instance,

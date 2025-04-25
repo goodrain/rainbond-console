@@ -537,7 +537,7 @@ class AppUpgradeRecordView(ApplicationView):
 
 class ApplicationViewCloudEnterpriseCenterView(ApplicationView, CloudEnterpriseCenterView):
     def __init__(self, *args, **kwargs):
-        super(RegionTenantHeaderCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
+        super(ApplicationViewCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
 
     def initial(self, request, *args, **kwargs):
         ApplicationView.initial(self, request, *args, **kwargs)
