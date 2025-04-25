@@ -627,22 +627,16 @@ class BatchActionView(RegionTenantHeaderCloudEnterpriseCenterView):
 
         action_zh = ""
         if action == "stop":
-            self.has_perms([400008])
             action_zh = "关闭"
         if action == "start":
-            self.has_perms([400006])
             action_zh = "启动"
         if action == "restart":
-            self.has_perms([400007])
             action_zh = "重启"
         if action == "move":
-            self.has_perms([400003])
             action_zh = "移动"
         if action == "upgrade":
-            self.has_perms([400009])
             action_zh = "更新"
         if action == "deploy":
-            self.has_perms([400010])
             action_zh = "构建"
         comment = "批量" + action_zh + "了应用{app}下的组件"
         service_id_list = service_ids.split(",")
