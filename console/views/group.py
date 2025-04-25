@@ -316,8 +316,6 @@ class TenantGroupCommonOperationView(ApplicationViewCloudEnterpriseCenterView):
             action_zh = "构建"
             self.has_perms([300008])
             # 批量操作
-        app_manage_service.batch_operations(self.tenant, self.region_name, self.user, action, service_ids,
-                                            self.oauth_instance)
         result = general_message(200, "success", "操作成功")
         comment = action_zh + "了应用{app}"
         operation_log_service.create_app_log(self, comment)
