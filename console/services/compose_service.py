@@ -149,7 +149,7 @@ class ComposeService(object):
             logger.exception(e)
             if sid:
                 transaction.savepoint_rollback(sid)
-            return 500, "{0}".format(e.message), service_list
+            return 500, "{0}".format(e), service_list
         return 200, "success", service_list
 
     def __save_service_dep_relation(self, tenant, service_dep_map, name_service_map):
