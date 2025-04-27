@@ -1,12 +1,16 @@
+import logging
+
 from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.services.k8s_attribute import k8s_attribute_service
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
 
+logger = logging.getLogger('default')
 
 class AppArchService(object):
     def update_affinity_by_arch(self, arch, tenant, region_name, component):
+        arch = arch if arch else "amd64"
         data = {"arch": arch, "name": "affinity"}
         res, body = region_api.get_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, data)
         attrdata = body.get("bean")
