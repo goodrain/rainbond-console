@@ -97,7 +97,7 @@ from console.views.license import LicenseLView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
 from console.views.k8s_resource import AppK8sResourceListView, AppK8ResourceView
 from console.views.login_event import LoginEventView
-from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigOSSView
+from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigOSSView, UserSourceView
 from console.views.message import UserMessageView
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
                                  OAuthGitUserRepository, OAuthGitUserRepositoryBranches, OAuthServerAuthorize,
@@ -181,6 +181,9 @@ urlpatterns = [
 
     # record error logs
     url(r'^errlog$', ErrLogView.as_view()),
+
+    url(r'^user_source$', UserSourceView.as_view()),
+
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigRUDView.as_view()),
     url(r'^config/oss$', ConfigOSSView.as_view()),
