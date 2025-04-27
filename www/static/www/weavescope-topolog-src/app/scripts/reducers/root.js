@@ -609,13 +609,17 @@ export function rootReducer(state = initialState, action) {
         if (serviceAlias) {
         const nodes = state.get('nodes');
                 if (nodes && nodes.size > 0) {
-                  const serviceAlias = nodes.filter(node => node.get('service_alias') === serviceAlias);
-                  const firstNodeIds = serviceAlias.first().get('id');
-                  const label = serviceAlias.first().get('label');
-        
-                  state = state.set('selectedNodeId', firstNodeIds);
-                  state = state.setIn(['nodeDetails', firstNodeIds], {
-                    id: firstNodeId,
+                  var id = '';
+                  var label = '';
+                  nodes.forEach(node => {
+                    if(node.get('service_alias') === serviceAlias){
+                      id = node.get('id');
+                      label = node.get('label');
+                    }
+                  });        
+                  state = state.set('selectedNodeId', id);
+                  state = state.setIn(['nodeDetails', id], {
+                    id: id,
                     label: label,
                     topologyId: state.get('currentTopologyId')
                   });

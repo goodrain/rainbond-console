@@ -1,5 +1,4 @@
 Django==2.2
-mysqlclient==2.1.1
 django-crispy-forms==1.12.0
 addict==0.4.0
 gunicorn==19.10.0

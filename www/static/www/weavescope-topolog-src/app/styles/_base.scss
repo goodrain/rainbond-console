@@ -1834,8 +1834,8 @@
   align-items: center;
   flex-direction: column;
   padding: 10px 10px 5px;
-  bottom: 50px;
-  right: 40px;
+  top: 74px;
+  left:0;
 
   .zoom-in, .zoom-out {
     @extend .btn-opacity;

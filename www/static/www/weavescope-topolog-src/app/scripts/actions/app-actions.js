@@ -361,7 +361,7 @@ export function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
       window.parent && window.parent.clickBackground && window.parent.clickBackground();
     }else{
       // 切换组件的逻辑
-      window.parent && window.parent.clickNode && window.parent.clickNode(nodeId, label, origin, serviceAlias, serviceCname);
+      window.parent && window.parent.clickNode && window.parent.clickNode(nodeId,serviceAlias);
       console.log('切换组件');
     }
     updateRoute(getState);
