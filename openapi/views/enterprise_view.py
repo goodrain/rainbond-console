@@ -7,11 +7,12 @@ from console.models.main import EnterpriseUserPerm
 from console.repositories.user_repo import user_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
+from console.services.global_resource_processing import Global_resource_processing
 from console.services.region_services import region_services
 from console.utils.timeutil import time_to_str
 from django.db import connection
 from drf_yasg.utils import swagger_auto_schema
-from openapi.serializer.config_serializers import EnterpriseConfigSeralizer
+from openapi.serializer.config_serializers import EnterpriseConfigSeralizer, ResourceOverviewSeralizer
 from openapi.serializer.ent_serializers import (EnterpriseInfoSerializer, EnterpriseSourceSerializer, UpdEntReqSerializer)
 from openapi.views.base import BaseOpenAPIView
 from rest_framework import status
@@ -135,4 +136,23 @@ class EnterpriseConfigView(BaseOpenAPIView):
             raise ServiceHandleException(
                 status_code=404, msg="no found config key {}".format(key), msg_show="企业没有 {} 配置".format(key))
         serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ResourceOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="资源信息总览",
+        responses={200: ResourceOverviewSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        handle = Global_resource_processing()
+        handle.region_obtain_handle(self.enterprise.enterprise_id)
+        handle.tenant_obtain_handle(self.enterprise.enterprise_id)
+        handle.app_obtain_handle()
+        handle.host_obtain_handle()
+        nodes, links = handle.template_handle()
+        result = [{"nodes": nodes, "links": links}]
+        serializer = ResourceOverviewSeralizer(data=result, many=True)
+        serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)

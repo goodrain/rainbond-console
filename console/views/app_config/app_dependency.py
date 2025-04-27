@@ -2,10 +2,13 @@
 """
   Created on 18/1/15.
 """
+import json
 import logging
 
+from console.repositories.app import service_repo
 from console.services.app_config import dependency_service, port_service
 from console.services.group_service import group_service
+from console.services.operation_log import operation_log_service, Operation
 from console.views.app_config.base import AppBaseView
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -283,7 +286,27 @@ class AppDependencyView(AppBaseView):
         if code != 200:
             result = general_message(code, "add dependency error", msg, list=data)
             return Response(result, status=code)
+        dependency = dependency_service.get_service_dependencies_part([dep_service_id])
+        service_group = group_service.get_service_group_info(dep_service_id)
+        new_information = json.dumps({"所属应用": service_group.group_name, "组件名": dependency[0].service_cname}, ensure_ascii=False)
+
         result = general_message(code, msg, "依赖添加成功", bean=data.to_dict())
+        dep_component_name = handle_dep_component_info(self.tenant, dep_service_id)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.FOR,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 添加了对组件 {} 的依赖".format(dep_component_name))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            new_information=new_information)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -321,6 +344,28 @@ class AppDependencyView(AppBaseView):
             result = general_message(code, "add dependency error", msg)
             return Response(result, status=code)
         result = general_message(code, msg, "依赖添加成功")
+        new_dependencies = dependency_service.get_service_dependencies_part(dep_service_list)
+        new_information = dependency_service.json_service_dependency(new_dependencies, dep_service_list)
+        dep_component_a_name = handle_dep_component_info(self.tenant, dep_service_list[0])
+        suffix = " 添加了对组件 {} 的依赖".format(dep_component_a_name)
+        if len(dep_service_list) > 1:
+            dep_component_b_name = handle_dep_component_info(self.tenant, dep_service_list[1])
+            suffix = " 添加了 {}、{} 等依赖".format(dep_component_a_name, dep_component_b_name)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.FOR,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=suffix)
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            new_information=new_information)
         return Response(result, status=result["code"])
 
 
@@ -429,10 +474,41 @@ class AppDependencyManageView(AppBaseView):
         dep_service_id = kwargs.get("dep_service_id", None)
         if not dep_service_id:
             return Response(general_message(400, "attr_name not specify", "未指定需要删除的依赖组件"))
+        dependency = dependency_service.get_service_dependencies_part([dep_service_id])
+        service_group = group_service.get_service_group_info(dep_service_id)
+        old_information = json.dumps({"所属应用": service_group.group_name, "组件名": dependency[0].service_cname}, ensure_ascii=False)
         code, msg, dependency = dependency_service.delete_service_dependency(self.tenant, self.service, dep_service_id,
                                                                              self.user.nick_name)
         if code != 200:
             return Response(general_message(code, "delete dependency error", msg))
 
         result = general_message(200, "success", "删除成功", bean=dependency.to_dict())
+        dep_component_name = handle_dep_component_info(self.tenant, dep_service_id)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.REMOVE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 对 {} 的依赖".format(dep_component_name))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information,
+        )
         return Response(result, status=result["code"])
+
+
+def handle_dep_component_info(tenant, dep_service_id):
+    dep_component = service_repo.get_service_by_service_id(dep_service_id)
+    dep_component_name = operation_log_service.process_component_name(
+        name=dep_component.service_cname,
+        region=dep_component.service_region,
+        team_name=tenant.tenant_name,
+        service_alias=dep_component.service_alias,
+    )
+    return dep_component_name

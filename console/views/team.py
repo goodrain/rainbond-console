@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+import json
 import logging
 import os
 import re
@@ -21,6 +22,7 @@ from console.services.enterprise_services import \
     enterprise_services as console_enterprise_service
 from console.services.enterprise_services import make_uuid
 from console.services.message_service import MessageType
+from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.perm_services import user_kind_role_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -180,6 +182,21 @@ class AddTeamView(JWTAuthApiView):
                             "success",
                             "团队在集群【{} 】中已存在命名空间 {}".format(exist_namespace_region, team.namespace),
                             bean=team.to_dict()))
+                region_info = region_repo.get_region_by_region_names(regions)
+                new_information = json.dumps({
+                    "团队名称": team_alias,
+                    "团队英文名称": namespace,
+                    "集群": ",".join([region.region_alias for region in region_info])
+                },
+                    ensure_ascii=False)
+                comment = operation_log_service.generate_team_comment(
+                    operation=Operation.CREATE, module_name=team.tenant_alias, team_name=team.tenant_name)
+                operation_log_service.create_team_log(
+                    user=self.user,
+                    comment=comment,
+                    enterprise_id=self.user.enterprise_id,
+                    team_name=team.tenant_name,
+                    new_information=new_information)
                 return Response(general_message(200, "success", "团队添加成功", bean=team.to_dict()))
         except TenantExistError as e:
             logger.exception(e)
@@ -292,8 +309,22 @@ class UserDelView(RegionTenantHeaderView):
                     result = general_message(400, "failed", "不能删除团队创建者！")
                     return Response(result, status=400)
             try:
+                user1 = user_services.get_user_by_user_id(user_ids[0])
+                suffix = " 中删除了用户 {}".format(user1.get_name())
+                if len(user_ids) > 1:
+                    user2 = user_services.get_user_by_user_id(user_ids[1])
+                    suffix = " 中删除了 {}、{} 等用户".format(user1.get_name(), user2.get_name())
                 user_services.batch_delete_users(team_name, user_ids)
                 result = general_message(200, "delete the success", "删除成功")
+                comment = operation_log_service.generate_team_comment(
+                    operation=Operation.IN,
+                    module_name=self.tenant.tenant_alias,
+                    region=self.response_region,
+                    team_name=self.tenant.tenant_name,
+                    suffix=suffix)
+                operation_log_service.create_team_log(
+                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,
+                    team_name=self.tenant.tenant_name)
             except Tenants.DoesNotExist as e:
                 logger.exception(e)
                 result = general_message(400, "tenant not exist", "{}团队不存在".format(team_name))
@@ -330,8 +361,23 @@ class TeamNameModView(RegionTenantHeaderView):
         if new_team_alias:
             try:
                 code = 200
+                old_information = json.dumps({"团队名称": self.tenant.tenant_alias}, ensure_ascii=False)
                 team = team_services.update_tenant_info(tenant_name=team_name, new_team_alias=new_team_alias, new_logo=new_logo)
+                new_information = json.dumps({"团队名称": new_team_alias}, ensure_ascii=False)
                 result = general_message(code, "update success", "团队信息修改成功", bean=team.to_dict())
+                comment = operation_log_service.generate_team_comment(
+                    operation=Operation.CHANGE,
+                    module_name=team.tenant_alias,
+                    region=self.region_name,
+                    team_name=team.tenant_name,
+                    suffix=" 的名称")
+                operation_log_service.create_team_log(
+                    user=self.user,
+                    comment=comment,
+                    enterprise_id=self.user.enterprise_id,
+                    team_name=team.tenant_name,
+                    new_information=new_information,
+                    old_information=old_information)
             except Exception as e:
                 code = 500
                 result = general_message(code, "update failed", "团队信息修改失败")
@@ -359,8 +405,18 @@ class TeamDelView(JWTAuthApiView):
         if tenant is None:
             result = general_message(404, "tenant not exist", "{}团队不存在".format(team_name))
         else:
-            team_services.delete_by_tenant_id(self.user, tenant)
+            old_region_dict = {"团队名称": tenant.tenant_alias, "团队英文名称": tenant.namespace}
+            region_list = team_services.delete_by_tenant_id(self.user, tenant)
+            old_region_dict["集群"] = region_list
+            old_information = json.dumps(old_region_dict, ensure_ascii=False)
             result = general_message(200, "delete a tenant successfully", "删除团队成功")
+            comment = operation_log_service.generate_team_comment(operation=Operation.DELETE, module_name=tenant.tenant_alias)
+            operation_log_service.create_team_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=tenant.tenant_name,
+                old_information=old_information)
         return Response(result, status=result["code"])
 
 
@@ -381,6 +437,11 @@ class TeamExitView(RegionTenantHeaderView):
         code, msg_show = team_services.exit_current_team(team_name=team_name, user_id=request.user.user_id)
         if code == 200:
             result = general_message(code=code, msg="success", msg_show=msg_show)
+            tenant = team_services.get_tenant_by_tenant_name(team_name)
+            comment = operation_log_service.generate_team_comment(
+                operation=Operation.EXIT, module_name=tenant.tenant_alias, team_name=tenant.tenant_name)
+            operation_log_service.create_team_log(
+                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=tenant.tenant_name)
         else:
             result = general_message(code=code, msg="failed", msg_show=msg_show)
         return Response(result, status=result.get("code", 200))
@@ -488,6 +549,7 @@ class ApplicantsView(RegionTenantHeaderView):
         action = request.data.get("action")
         role_ids = request.data.get("role_ids")
         join = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
+        user = user_services.get_user_by_user_id(user_id)
         if action is True:
             join.update(is_pass=1)
             team = team_repo.get_team_by_team_name(team_name=team_name)
@@ -495,11 +557,26 @@ class ApplicantsView(RegionTenantHeaderView):
             # 发送通知
             info = "同意"
             self.send_user_message_for_apply_info(user_id=user_id, team_name=team.tenant_name, info=info)
+            comment = operation_log_service.generate_team_comment(
+                operation="{0}用户 {1} 加入".format(Operation.THROUGH.value, user.get_name()),
+                module_name=team.tenant_alias,
+                team_name=team.tenant_name,
+                suffix=" 的申请")
+            operation_log_service.create_team_log(
+                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=team.tenant_name)
             return Response(general_message(200, "join success", "加入成功"), status=200)
         else:
             join.update(is_pass=2)
             info = "拒绝"
             self.send_user_message_for_apply_info(user_id=user_id, team_name=team_name, info=info)
+            comment = operation_log_service.generate_team_comment(
+                operation="{0}用户 {1} 加入".format(Operation.REJECT.value, user.get_name()),
+                module_name=self.tenant.tenant_alias,
+                team_name=self.tenant.tenant_name,
+                suffix=" 的申请")
+            operation_log_service.create_team_log(
+                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name)
             return Response(general_message(200, "join rejected", "拒绝成功"), status=200)
 
     # 用户加入团队，发送站内信给用户
@@ -560,10 +637,17 @@ class RegisterStatusView(JWTAuthApiView):
             if is_regist is False:
                 # 修改全局配置
                 platform_config_service.update_config("IS_REGIST", {"enable": False, "value": None})
-
+                comment = operation_log_service.generate_generic_comment(
+                    operation=Operation.CLOSE, module=OperationModule.USER, module_name=OperationModule.REGISTER.value)
+                operation_log_service.create_enterprise_log(
+                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
                 return Response(general_message(200, "close register", "关闭注册"), status=200)
             else:
                 platform_config_service.update_config("IS_REGIST", {"enable": True, "value": None})
+                comment = operation_log_service.generate_generic_comment(
+                    operation=Operation.OPEN, module=OperationModule.USER, module_name=OperationModule.REGISTER.value)
+                operation_log_service.create_enterprise_log(
+                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
                 return Response(general_message(200, "open register", "开启注册"), status=200)
         else:
             return Response(general_message(400, "no jurisdiction", "没有权限"), status=400)
@@ -660,6 +744,10 @@ class JoinTeamView(JWTAuthApiView):
         if info:
             admins = team_repo.get_tenant_admin_by_tenant_id(tenant)
             self.send_user_message_to_tenantadmin(admins=admins, team_name=team_name, nick_name=self.user.get_name())
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.APPLYJOIN, module_name=tenant.tenant_alias, team_name=tenant.tenant_name)
+        operation_log_service.create_team_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=tenant.tenant_name)
         return Response(result, status=result["code"])
 
     def put(self, request, *args, **kwargs):
@@ -674,6 +762,12 @@ class JoinTeamView(JWTAuthApiView):
             return Response(result, status=409)
         apply_service.delete_applicants(user_id=user_id, team_name=team_name)
         result = general_message(200, "success", None)
+        tenant = Tenants.objects.filter(tenant_name=team_name).first()
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.CANCEL_JOIN, module_name=tenant.tenant_alias, team_name=tenant.tenant_name,
+            suffix=" 的申请")
+        operation_log_service.create_team_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=tenant.tenant_name)
         return Response(result, status=200)
 
     # 用户加入团队，给管理员发送站内信

@@ -5,6 +5,7 @@
 import datetime
 import json
 import logging
+import re
 import time
 
 # enum
@@ -305,7 +306,7 @@ class MarketAppService(object):
                     app_manage_service.truncate_service(tenant, service)
                 except Exception as le:
                     logger.exception(le)
-            raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常，请稍后重试")
+            raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常{}".format(e))
 
     def install_service_when_upgrade_app(self,
                                          tenant,
@@ -1089,13 +1090,22 @@ class MarketAppService(object):
                 app_with_versions[version.app_id] = dict()
                 app_release_ver_nums[version.app_id] = []
                 app_not_release_ver_nums[version.app_id] = []
+            # 提取所有 memory 的值（确保是独立字段，避免匹配 memory 这种字段名的一部分）
+            memory_list = re.findall(r'"memory"\s*:\s*(\d+)', version.app_template)
+            # 提取所有 container_cpu 的值
+            cpu_list = re.findall(r'"container_cpu"\s*:\s*(\d+)', version.app_template)
 
+            # 转换为整数并求和
+            total_memory = sum(int(m) for m in memory_list)
+            total_cpu = sum(int(c) for c in cpu_list)
             version_info = {
                 "is_complete": version.is_complete,
                 "version": version.version,
                 "version_alias": version.version_alias,
                 "dev_status": version.dev_status,
-                "arch": version.arch if version.arch else "amd64"
+                "arch": version.arch if version.arch else "amd64",
+                "cpu": total_cpu,
+                "memory": total_memory
             }
             # If the versions are the same, take the last version information
             app_with_versions[version.app_id][version_info["version"]] = version_info

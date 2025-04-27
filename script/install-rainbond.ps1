@@ -92,7 +92,7 @@ function Test-ValidIPAddress {
 }
 
 function select_eip { 
-    Write-Host "Welcome to install Rainbond, If you install problem, please feedback to https://www.rainbond.com/community/support. `n" -ForegroundColor green
+    Write-Host "Welcome to install Rainbond, If you install problem, please feedback to https://www.rainbond.com/en/docs/support. `n" -ForegroundColor green
 
     Write-Host "######################################################################" -ForegroundColor green
     Write-Host "# The script automatically detects IP addresses in the system" -ForegroundColor green
@@ -137,7 +137,7 @@ function start_rainbond {
     Write-Host "# Web Site: http://${EIP}:7070" -ForegroundColor green
     Write-Host "# Rainbond Docs: https://www.rainbond.com/docs" -ForegroundColor green
     Write-Host "# If you install problem, please feedback to:" -ForegroundColor green
-    Write-Host "#    https://www.rainbond.com/community/support" -ForegroundColor green
+    Write-Host "#    https://www.rainbond.com/en/docs/support" -ForegroundColor green
     Write-Host "##############################################" -ForegroundColor green
     Write-Host "Generating the installation command:" -ForegroundColor green
 

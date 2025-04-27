@@ -21,6 +21,12 @@ class GroupRepository(object):
     def create(app):
         app.save()
 
+    def get_app_by_pk(self, app_id):
+        try:
+            return ServiceGroup.objects.get(pk=app_id)
+        except ServiceGroup.DoesNotExist:
+            return None
+
     @staticmethod
     def update(app_id, **data):
         ServiceGroup.objects.filter(pk=app_id).update(**data)
@@ -28,6 +34,9 @@ class GroupRepository(object):
     def list_tenant_group_on_region(self, tenant, region_name):
         return ServiceGroup.objects.filter(
             tenant_id=tenant.tenant_id, region_name=region_name).order_by("-update_time", "-order_index")
+
+    def get_tenant_group_on_region(self, app_id):
+        return ServiceGroup.objects.get(ID=app_id)
 
     def add_group(self, tenant, region_name, group_name, group_note="", is_default=False, username=""):
         group = ServiceGroup.objects.create(

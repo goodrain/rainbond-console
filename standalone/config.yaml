@@ -4,3 +4,5 @@ disable:
 - local-storage
 node-name: node 
 data-dir: /opt/rainbond/k3s
+kubelet-arg:
+- "eviction-hard=nodefs.available<5%"

@@ -5,8 +5,10 @@ from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
 from console.exception.main import AbortRequest
+from console.models.main import AutoscalerRules, AutoscalerRuleMetrics
 from console.services.autoscaler_service import autoscaler_service
 from console.services.autoscaler_service import scaling_records_service
+from console.services.operation_log import operation_log_service, Operation
 from console.utils.reqparse import parse_item
 from console.views.app_config.base import AppBaseView
 from www.utils.return_message import general_message
@@ -65,8 +67,24 @@ class ListAppAutoscalerView(AppBaseView):
         data["service_id"] = self.service.service_id
         res = autoscaler_service.create_autoscaler_rule(self.region_name, self.tenant.tenant_name, self.service.service_alias,
                                                         data)
-
+        new_information = autoscaler_service.json_autoscaler_rules(
+            max_replicas=req.data["max_replicas"], min_replicas=req.data["min_replicas"], metrics=req.data["metrics"])
         result = general_message(200, "success", "创建成功", bean=res)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.CREATE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 的自动伸缩规则")
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            new_information=new_information)
         return Response(data=result, status=200)
 
 
@@ -81,11 +99,36 @@ class AppAutoscalerView(AppBaseView):
     @never_cache
     def put(self, req, rule_id, *args, **kwargs):
         validate_parameter(req.data)
-
+        old = AutoscalerRules.objects.get(rule_id=rule_id)
+        old_metrics = AutoscalerRuleMetrics.objects.filter(rule_id=rule_id).values()
+        old_information = autoscaler_service.json_autoscaler_rules(
+            max_replicas=old.max_replicas, min_replicas=old.min_replicas, metrics=old_metrics)
         res = autoscaler_service.update_autoscaler_rule(self.region_name, self.tenant.tenant_name, self.service.service_alias,
                                                         rule_id, req.data, self.user.nick_name)
 
+        new_information = autoscaler_service.json_autoscaler_rules(
+            max_replicas=req.data["max_replicas"], min_replicas=req.data["min_replicas"], metrics=req.data["metrics"])
+        if req.data["enable"] and not old.enable:
+            old_information = None
+        elif not req.data["enable"] and old.enable:
+            new_information = None
         result = general_message(200, "success", "创建成功", bean=res)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.UPDATE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 的自动伸缩规则")
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information,
+            new_information=new_information)
         return Response(data=result, status=200)
 
 

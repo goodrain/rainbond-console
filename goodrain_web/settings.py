@@ -276,7 +276,8 @@ LOGGING = {
     },
     'formatters': {
         'standard': {
-            'format': "%(asctime)s [%(levelname)s] localhost [%(funcName)s] %(pathname)s:%(lineno)s %(message)s",
+            '()': 'goodrain_web.log_formatter.IPFormatter',
+            'format': "%(asctime)s [%(levelname)s] [%(process)d] [%(thread)d] [%(name)s] [%(funcName)s] [%(hostname)s] %(pathname)s:%(lineno)s - %(message)s",
             'datefmt': "%Y-%m-%d %H:%M:%S"
         }
     },

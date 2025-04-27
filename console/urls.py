@@ -49,8 +49,9 @@ from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete,
                                       TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView, PauseAppView,
                                       UNPauseAppView, TarImageView, AppsPorConsoletView, ScalingAppView)
 from console.views.app_market import BindableMarketsView
-from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView, AppTraceView,
-                                       BatchAppMonitorQueryView, MonitorQueryOverConsoleView)
+from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView,
+                                       AppTraceView,
+                                       BatchAppMonitorQueryView, MonitorQueryOverConsoleView, MonitorQueryView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView,
                                         AppGroupVisitView,
                                         AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView,
@@ -68,7 +69,7 @@ from console.views.center_pool.groupapp_backup import (AllTeamGroupAppsBackupVie
 from console.views.center_pool.groupapp_copy import GroupAppsCopyView
 from console.views.center_pool.groupapp_migration import (GroupAppsMigrateView, GroupAppsView, MigrateRecordView)
 from console.views.code_repo import ServiceCodeBranch
-from console.views.custom_configs import CustomConfigsCLView
+from console.views.custom_configs import CustomConfigsCLView, CustomConfigsUserCLView
 from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
                                       NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage,
                                       EnterpriseRegionGatewayBatch, EnterpriseTeamNames, EnterpriseRegionLangVersion)
@@ -95,13 +96,15 @@ from console.views.jwt_token_view import JWTTokenView
 from console.views.license import LicenseLView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
 from console.views.k8s_resource import AppK8sResourceListView, AppK8ResourceView
-from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigOSSView
+from console.views.login_event import LoginEventView
+from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigOSSView, UserSourceView
 from console.views.message import UserMessageView
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
                                  OAuthGitUserRepository, OAuthGitUserRepositoryBranches, OAuthServerAuthorize,
                                  OAuthServerUserAuthorize, OauthService, OauthServiceInfo, OAuthServiceRedirect,
                                  OauthType,
                                  OAuthUserInfo, UserOAuthLink, OauthUserLogoutView, OverScore)
+from console.views.operation_log import OperationLogView, TeamOperationLogView, AppOperationLogView
 from console.views.perms import (PermsInfoLView, TeamRolePermsRUDView, TeamRolesLCView, TeamRolesPermsLView, TeamRolesRUDView,
                                  TeamUserPermsLView, TeamUserRolesRUDView, TeamUsersRolesLView)
 from console.views.plugin.plugin_config import (ConfigPluginManageView, ConfigPreviewView)
@@ -157,6 +160,9 @@ from console.views.webhook import WebHooksDeploy, ImageWebHooksDeploy, CustomWeb
     ImageWebHooksTrigger, WebHooksStatus, UpdateSecretKey
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
 from console.views.team_overview import UserTeamDetailsView
+from console.views.sms_config import SMSConfigView
+from console.views.sms_verification import SMSVerificationView
+from console.views.user_operation import RegisterByPhoneView, LoginByPhoneView
 
 urlpatterns = [
     # 升级
@@ -167,6 +173,7 @@ urlpatterns = [
     url(r'^update/versions/(?P<version>[\w\-.]+)/images$', UpgradeVersionImagesView.as_view()),
     # 直接代理到 普罗米修斯
     url(r'^open/monitor/query$', MonitorQueryOverConsoleView.as_view()),
+    url(r'^monitor/query$', MonitorQueryView.as_view()),
     url(r'^api-gateway/v1/(?P<tenantName>[\w\-]+)/(.*?)', AppApiGatewayView.as_view()),
     url(r'^api-gateway/convert', AppApiGatewayConvertView.as_view()),
     url(r'^v2/proxy-pass/(.*?)', ProxyPassView.as_view()),
@@ -174,6 +181,9 @@ urlpatterns = [
 
     # record error logs
     url(r'^errlog$', ErrLogView.as_view()),
+
+    url(r'^user_source$', UserSourceView.as_view()),
+
     # 获取云帮Logo、标题、github、gitlab配置信息
     url(r'^config/info$', ConfigRUDView.as_view()),
     url(r'^config/oss$', ConfigOSSView.as_view()),
@@ -228,6 +238,7 @@ urlpatterns = [
     url(r'^users/begin_password_reset$', PasswordResetBegin.as_view()),
     # 修改密码
     url(r'^users/changepwd$', ChangeLoginPassword.as_view()),
+    url(r'^users/custom_configs$', CustomConfigsUserCLView.as_view()),
 
     # 镜像仓库配置
     url(r'^hub/registry$', HubRegistryView.as_view()),
@@ -300,6 +311,8 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/overview$', TeamOverView.as_view(), perms.TEAM_OVERVIEW_DESCRIBE),
     url(r'^teams/(?P<team_name>[\w\-]+)/arch$', TeamArchView.as_view()),
     # team operation logs
+    url(r'^teams/(?P<team_name>[\w\-]+)/operation-logs$', TeamOperationLogView.as_view()),
+
     # 总览 获取应用状态
     url(r'^teams/(?P<team_name>[\w\-]+)/overview/services/status$', AllServiceInfo.as_view(), perms.TEAM_OVERVIEW_APP_DESCRIBE),
     # 上传yaml文件
@@ -405,6 +418,9 @@ urlpatterns = [
         AppK8ResourceView.as_view(), perms.APP_RESOURCE_PERMS),
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[\w\-]+)/status', ApplicationStatusView.as_view(),
         perms.APP_OVERVIEW_PERMS),
+
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<app_id>[\w\-]+)/operation-logs$', AppOperationLogView.as_view()),
+
     # 应用状态（应用）
     url(r'^teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[\w\-]+)$', GroupStatusView.as_view(), perms.APP_OVERVIEW_PERMS),
     # 应用(组)常见操作
@@ -876,6 +892,7 @@ urlpatterns = [
     url(r'^enterprise/monitor_alarm$', MonitorAlarmStatusView.as_view()),
     # 获取企业信息
     url(r'^enterprise/info$', EnterpriseInfoView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/login-events$', LoginEventView.as_view()),
     # 初始化集群、团队信息
     url(r'^enterprise/init$', InitDefaultInfoView.as_view()),
     # 上传证书无用接口（为前端提供）
@@ -885,6 +902,10 @@ urlpatterns = [
     url(r'^enterprise/admin/join-team$', AdministratorJoinTeamView.as_view()),
     # get basic task guided information
     url(r'^enterprises$', Enterprises.as_view()),
+
+    # Get Operation log
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/operation-logs$', OperationLogView.as_view()),
+
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/platform-info$', EnterpriseInfoFileView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/backups$', BackupDataCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/backups/(?P<backup_name>[\w\-\.]+)$', BackupDateDownload.as_view()),
@@ -985,7 +1006,7 @@ urlpatterns = [
         AppMarketOrgModelLView.as_view()),
 
     # 应用导出
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view(), perms.APP_RELEASE_EXPORT),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/export$', CenterAppExportView.as_view()),
     # WIP
     # 创建应用导入记录
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app-models/import$', EnterpriseAppImportInitView.as_view()),
@@ -1040,6 +1061,14 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/events$', AppEventsView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/events/(?P<eventId>[\w\-]+)/log$', AppEventsLogView.as_view()),
     url(r'^users/team_details$', UserTeamDetailsView.as_view()),
+    # 短信配置接口
+    url(r'^enterprises/(?P<enterprise_id>[\w\-]+)/sms-config$', SMSConfigView.as_view()),
+    # 短信验证码发送
+    url(r'^sms/send-code$', SMSVerificationView.as_view()),
+    # 用户注册（手机号）
+    url(r'^users/register-by-phone$', RegisterByPhoneView.as_view()),
+    # 用户登录（手机号）
+    url(r'^users/login-by-phone$', LoginByPhoneView.as_view()),
 ]
 
 # 云市应用升级相关接口

@@ -12,6 +12,7 @@ from console.enum.system_config import ConfigKeyEnum
 from console.exception.main import AbortRequest
 from console.services.config_service import EnterpriseConfigService, ConfigService
 from console.services.enterprise_services import enterprise_services
+from console.services.operation_log import operation_log_service, OperationModule, Operation
 from www.utils.return_message import general_message
 from console.utils.reqparse import bool_argument
 from console.utils.reqparse import parse_item
@@ -125,6 +126,9 @@ class EnterpriseObjectStorageView(EnterpriseAdminView):
                 "access_key": access_key,
                 "secret_key": secret_key,
             })
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.Set, module=OperationModule.OBJECT_STORAGE, module_name="")
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment, enterprise_id=enterprise_id)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -147,6 +151,9 @@ class EnterpriseAppStoreImageHubView(EnterpriseAdminView):
                 "hub_user": hub_user,
                 "hub_password": hub_password,
             })
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.Set, module=OperationModule.APP_STORE_IMAGE_HUB, module_name="")
+        operation_log_service.create_enterprise_log(user=self.user, comment=comment, enterprise_id=enterprise_id)
         return Response(status=status.HTTP_200_OK)
 
 

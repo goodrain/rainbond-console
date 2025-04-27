@@ -16,6 +16,7 @@ from console.repositories.region_repo import region_repo
 from console.services.app_config import domain_service, port_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.gateway_api import gateway_api
+from console.services.operation_log import operation_log_service, Operation
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.virtual_machine import vms
@@ -117,6 +118,25 @@ class TenantCertificateView(RegionTenantHeaderView):
                                                certificate_type)
         bean = {"alias": alias, "id": new_c.ID}
         result = general_message(200, "success", "操作成功", bean=bean)
+        new_information = json.dumps({
+            "证书名称": alias,
+            "证书类型": certificate_type,
+            "公钥证书": certificate,
+            "私钥": private_key
+        },
+            ensure_ascii=False)
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.FOR,
+            module_name=self.tenant.tenant_alias,
+            region=self.response_region,
+            team_name=self.tenant.tenant_name,
+            suffix=" 添加了 {} 证书".format(alias))
+        operation_log_service.create_team_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            new_information=new_information)
         return Response(result, status=result["code"])
 
 
@@ -140,8 +160,28 @@ class TenantCertificateManageView(RegionTenantHeaderView):
 
         """
         certificate_id = kwargs.get("certificate_id", None)
+        _, _, cert = domain_service.get_certificate_by_pk(certificate_id)
+        old_information = json.dumps({
+            "证书名称": cert["alias"],
+            "证书类型": cert["certificate_type"],
+            "公钥证书": cert["certificate"],
+            "私钥": cert["private_key"]
+        },
+            ensure_ascii=False)
         domain_service.delete_certificate_by_pk(self.region.region_name, self.tenant, certificate_id)
         result = general_message(200, "success", "证书删除成功")
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.DELETE,
+            module_name=self.tenant.tenant_alias,
+            region=self.response_region,
+            team_name=self.tenant.tenant_name,
+            suffix=" 下的 {} 证书".format(cert.get("alias", "")))
+        operation_log_service.create_team_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            old_information=old_information)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -187,12 +227,42 @@ class TenantCertificateManageView(RegionTenantHeaderView):
         private_key = request.data.get("private_key", None)
         certificate = request.data.get("certificate", None)
         certificate_type = request.data.get("certificate_type", None)
+        _, _, cert = domain_service.get_certificate_by_pk(certificate_id)
+        old_information = json.dumps({
+            "证书名称": cert["alias"],
+            "证书类型": cert["certificate_type"],
+            "公钥证书": cert["certificate"],
+            "私钥": cert["private_key"]
+        },
+                                     ensure_ascii=False)
         domain_repo.get_certificate_by_pk(int(certificate_id))
 
         domain_service.update_certificate(self.region, self.tenant, certificate_id, new_alias, certificate, private_key,
                                           certificate_type)
-
+        cert = domain_service.update_certificate(self.region, self.tenant, certificate_id, new_alias, certificate,
+                                                 private_key,
+                                                 certificate_type)
+        new_information = json.dumps({
+            "证书名称": cert["alias"],
+            "证书类型": certificate_type,
+            "公钥证书": certificate,
+            "私钥": private_key
+        },
+                                     ensure_ascii=False)
         result = general_message(200, "success", "证书修改成功")
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.UPDATE,
+            module_name=self.tenant.tenant_alias,
+            region=self.response_region,
+            team_name=self.tenant.tenant_name,
+            suffix=" 下的 {} 证书".format(cert.alias))
+        operation_log_service.create_team_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            old_information=old_information,
+            new_information=new_information)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -319,6 +389,24 @@ class ServiceDomainView(AppBaseView):
 
         region_api.api_gateway_bind_http_domain(self.service.service_alias, self.region, self.tenant.tenant_name,
                                                 [domain_name], svc, self.app.app_id)
+
+        new_information = json.dumps(service_domain, ensure_ascii=False)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.IN,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 中绑定了域名 {}".format(domain_name))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            new_information=new_information)
+
         return Response(result, status=result["code"])
 
     @never_cache
@@ -374,7 +462,24 @@ class ServiceDomainView(AppBaseView):
             if certificate:
                 service_domain["证书别名"] = certificate.alias
         domain_service.unbind_domain(self.tenant, self.service, container_port, domain_name, is_tcp, self.app.app_id)
+        old_information = json.dumps(service_domain, ensure_ascii=False)
+        domain_service.unbind_domain(self.tenant, self.service, container_port, domain_name, is_tcp)
         result = general_message(200, "success", "域名解绑成功")
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.IN,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 中解绑了域名 {}".format(domain_name))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information)
         return Response(result, status=result["code"])
 
 

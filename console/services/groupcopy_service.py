@@ -47,13 +47,15 @@ class GroupAppCopyService(object):
             return []
         service_ids = [group_service.get("service_id") for group_service in group_services]
         build_infos = base_service.get_build_infos(tenant, service_ids)
-
+        gl_group_services = []
         for group_service in group_services:
             group_service["app_name"] = group_service.get("group_name")
             if build_infos.get(group_service["service_id"], None):
                 group_service["build_source"] = build_infos[group_service["service_id"]]
                 group_service["build_source"]["service_id"] = group_service["service_id"]
-        return group_services
+            if group_service["build_source"]["image"]:
+                gl_group_services.append(group_service)
+        return gl_group_services
 
     def check_and_get_team_group(self, user, team_name, region_name, group_id):
         team = team_services.check_and_get_user_team_by_name_and_region(user.user_id, team_name, region_name)

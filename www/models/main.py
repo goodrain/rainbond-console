@@ -111,6 +111,10 @@ class Users(models.Model):
     def check_password(self, raw_password):
         return bool(encrypt_passwd(self.email + raw_password) == self.password)
 
+    @property
+    def username(self):
+        return self.nick_name
+
     def is_anonymous(self):
         return False
 
@@ -804,6 +808,7 @@ class ConsoleConfig(BaseModel):
     value = models.CharField(max_length=1000, help_text="配置值")
     description = models.TextField(null=True, blank=True, default="", help_text="说明")
     update_time = models.DateTimeField(help_text="更新时间", null=True)
+    user_nick_name = models.CharField(max_length=64, help_text="用户名称", default="")
 
 
 class TenantEnterprise(BaseModel):

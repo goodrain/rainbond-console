@@ -899,6 +899,7 @@ class PluginService(object):
             self.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant, event_id)
             plugin_build_version.build_status = "build_success"
             plugin_build_version.save()
+            return plugin_base_info
         except Exception as e:
             logger.exception(e)
             if plugin_base_info:

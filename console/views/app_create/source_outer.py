@@ -3,6 +3,7 @@
   Created by leon on 19/2/13.
 """
 import base64
+import json
 import logging
 import os
 import pickle
@@ -14,9 +15,10 @@ from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
 from console.services.app_config import endpoint_service, port_service
 from console.services.group_service import group_service
+from console.services.operation_log import operation_log_service
 from console.utils.validation import (validate_endpoint_address, validate_endpoints_info)
 from console.views.app_config.base import AppBaseView
-from console.views.base import AlowAnyApiView, RegionTenantHeaderView
+from console.views.base import AlowAnyApiView, RegionTenantHeaderView, ApplicationView
 from django.db.transaction import atomic
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -28,7 +30,7 @@ logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 
-class ThirdPartyServiceCreateView(RegionTenantHeaderView):
+class ThirdPartyServiceCreateView(ApplicationView):
     @never_cache
     def post(self, request, *args, **kwargs):
         """
@@ -42,17 +44,24 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         endpoints_type = request.data.get("endpoints_type", None)
         service_name = request.data.get("serviceName", "")
         k8s_component_name = request.data.get("k8s_component_name", "")
+        service_log_dict = {"组件名称": service_cname, "组件英文名称": k8s_component_name, "应用名称": self.app.group_name}
+        service_build_type = "其他"
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             raise ErrK8sComponentNameExists
         if not service_cname:
             return Response(general_message(400, "service_cname is null", "组件名未指明"), status=400)
         if endpoints_type == "static":
+            service_build_type = "静态注册"
             validate_endpoints_info(static)
+            service_log_dict["组件地址"] = static
         source_config = {}
         if endpoints_type == "kubernetes":
             if not service_name:
                 return Response(general_message(400, "kubernetes service name is null", "Kubernetes Service名称必须指定"), status=400)
             source_config = {"service_name": service_name, "namespace": request.data.get("namespace", "")}
+            service_build_type = "Kubernetes"
+            service_log_dict["Namespace"] = source_config["namespace"]
+            service_log_dict["Service"] = source_config["service_name"]
         new_service = app_service.create_third_party_app(
             self.response_region,
             self.tenant,
@@ -71,6 +80,7 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
         bean = new_service.to_dict()
         if endpoints_type == "api":
             # 生成秘钥
+            service_build_type = "API注册"
             deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=new_service.service_id)
             api_secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
             # 从环境变量中获取域名，没有在从请求中获取
@@ -79,8 +89,17 @@ class ThirdPartyServiceCreateView(RegionTenantHeaderView):
             bean["api_service_key"] = api_secret_key
             bean["url"] = api_url
             service_endpoints_repo.create_api_endpoints(self.tenant, new_service)
-
+        service_log_dict["组件注册方式"] = service_build_type
         result = general_message(200, "success", "创建成功", bean=bean)
+        new_information = json.dumps(service_log_dict, ensure_ascii=False)
+        component = operation_log_service.process_component_name(new_service.service_cname, self.region_name,
+                                                                 self.tenant_name,
+                                                                 new_service.service_alias)
+        app = operation_log_service.process_app_name(self.app.group_name, self.region_name, self.tenant_name,
+                                                     self.app.app_id)
+        comment = "在应用{app}中创建了第三方组件 ".format(app=app) + component
+        operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False,
+                                             new_information=new_information)
         return Response(result, status=result["code"])
 
 

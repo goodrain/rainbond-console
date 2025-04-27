@@ -2,16 +2,19 @@
 import copy
 import logging
 import os
+import traceback
 
 import jwt
 from addict import Dict
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException,
                                     AbortRequest)
+from console.login.login_event import LoginEvent
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
 # repository
 from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
 from console.repositories.group import group_repo
+from console.repositories.login_event import login_event_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.region_repo import region_repo
@@ -109,6 +112,8 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
         user = self.authenticate_credentials(payload)
         jwt_manager.set(jwt_value, user.user_id)
+        login_event = LoginEvent(user, login_event_repo)
+        login_event.active()
         return user, jwt_value
 
     def authenticate_credentials(self, payload):
@@ -507,6 +512,7 @@ class ApplicationView(RegionTenantHeaderView):
     def initial(self, request, *args, **kwargs):
         super(ApplicationView, self).initial(request, *args, **kwargs)
         app_id = kwargs.get("app_id") if kwargs.get("app_id") else kwargs.get("group_id")
+        app_id = app_id if app_id else request.data.get("group_id")
         app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
         if not app:
             raise ServiceHandleException("app not found", "应用不存在", status_code=404)
@@ -531,7 +537,7 @@ class AppUpgradeRecordView(ApplicationView):
 
 class ApplicationViewCloudEnterpriseCenterView(ApplicationView, CloudEnterpriseCenterView):
     def __init__(self, *args, **kwargs):
-        super(RegionTenantHeaderCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
+        super(ApplicationViewCloudEnterpriseCenterView, self).__init__(*args, **kwargs)
 
     def initial(self, request, *args, **kwargs):
         ApplicationView.initial(self, request, *args, **kwargs)
@@ -552,15 +558,18 @@ class EnterpriseHeaderView(JWTAuthApiView):
     def __init__(self, *args, **kwargs):
         super(EnterpriseHeaderView, self).__init__(*args, **kwargs)
         self.enterprise = None
+        self.enterprise_id = None
 
     def initial(self, request, *args, **kwargs):
         super(EnterpriseHeaderView, self).initial(request, *args, **kwargs)
         eid = kwargs.get("eid", None)
-        if not eid:
+        enterprise_id = kwargs.get("enterprise_id", eid)
+        if not enterprise_id:
             raise ImportError("enterprise_id not found !")
-        self.enterprise = enterprise_repo.get_enterprise_by_enterprise_id(eid)
+        self.enterprise = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id)
         if not self.enterprise:
-            raise NotFound("enterprise id: {};enterprise not found".format(eid))
+            raise NotFound("enterprise id: {};enterprise not found".format(enterprise_id))
+        self.enterprise_id = enterprise_id
 
 
 def custom_exception_handler(exc, context):
@@ -588,11 +597,22 @@ def custom_exception_handler(exc, context):
         if exc.message.get("httpcode") == 404:
             data = {"code": 404, "msg": "region no found this resource", "msg_show": "数据中心资源不存在"}
         else:
-            data = {"code": 400, "msg": exc.message, "msg_show": "数据中心操作故障，请稍后重试"}
+            error_body = exc.message.get('body', {})
+            if isinstance(error_body, dict) and error_body.get('msg'):
+                core_error = error_body['msg']
+            else:
+                core_error = str(exc.message)
+            data = {"code": 400, "msg": exc.message, "msg_show": "数据中心操作故障 {}".format(core_error)}
         return Response(data, status=data["code"])
     elif isinstance(exc, ValidationError):
         logger.error(exc)
-        return Response({"detail": "参数错误", "err": exc.detail, "code": 20400}, status=exc.status_code)
+        return Response({
+            "detail": "参数错误",
+            "err": exc.detail,
+            "code": 20400,
+            "error_type": exc.__class__.__name__,
+            "error_trace": traceback.format_exc()
+        }, status=exc.status_code)
     elif isinstance(exc, exceptions.APIException):
         headers = {}
         if getattr(exc, 'auth_header', None):
@@ -607,7 +627,13 @@ def custom_exception_handler(exc, context):
 
         set_rollback()
         # 处理数据为标准返回格式
-        data.update({"code": exc.status_code, "msg": "{0}".format(exc.detail), "msg_show": "{0}".format(exc.detail)})
+        data.update({
+            "code": exc.status_code,
+            "msg": "{0}".format(exc.detail),
+            "msg_show": "{0}".format(exc.detail),
+            "error_type": exc.__class__.__name__,
+            "error_trace": traceback.format_exc()
+        })
         return Response(data, status=exc.status_code, headers=headers)
     elif isinstance(exc, AuthenticationInfoHasExpiredError):
         data = {"code": 10405, "msg": "Signature has expired.", "msg_show": "身份认证信息失败，请登录"}
@@ -657,9 +683,16 @@ def custom_exception_handler(exc, context):
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
     else:
         logger.exception(exc)
-        return Response({
+        error_info = {
             "code": 10401,
-            "msg": exc.message if hasattr(exc, 'message') else '',
-            "msg_show": "服务端异常"
-        },
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            "msg": str(exc),
+            "msg_show": traceback.format_exc(),
+            "error_type": exc.__class__.__name__,
+            "error_trace": traceback.format_exc(),
+            "error_details": {
+                "args": getattr(exc, 'args', None),
+                "message": exc.message if hasattr(exc, 'message') else str(exc),
+                "module": exc.__class__.__module__
+            }
+        }
+        return Response(error_info, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

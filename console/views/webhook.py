@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import ast
 import base64
+import json
 import logging
 import os
 import pickle
@@ -11,6 +12,7 @@ from console.models.main import DeployRelation
 from console.repositories.app import service_repo, service_webhooks_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service
+from console.services.operation_log import operation_log_service, Operation
 from console.services.user_services import user_services
 from console.views.app_config.base import AppBaseView
 from console.views.base import AlowAnyApiView
@@ -371,7 +373,17 @@ class GetWebHooksUrl(AppBaseView):
             if deployment_way == "api_webhooks":
                 # 生成秘钥
                 deploy = deploy_repo.get_deploy_relation_by_service_id(service_id=service_id)
-                secret_key = pickle.loads(base64.b64decode(ast.literal_eval(deploy))).get("secret_key")
+                try:
+                    # 首先尝试直接解码
+                    secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
+                except Exception as e:
+                    try:
+                        # 如果失败，尝试用 ast.literal_eval 解析
+                        secret_key = pickle.loads(base64.b64decode(ast.literal_eval(deploy))).get("secret_key")
+                    except Exception as e:
+                        # 如果两种方式都失败，直接使用原始值
+                        logger.warning(f"Failed to decode secret key, using original value: {str(e)}")
+                        secret_key = deploy
                 url = host + "/console/" + "custom/deploy/" + service_obj.service_id
                 result = general_message(
                     200,
@@ -430,9 +442,31 @@ class ImageWebHooksTrigger(AppBaseView):
             if trigger:
                 service_webhook.trigger = trigger
                 service_webhook.save()
+            old_information = json.dumps({
+                "组件": self.service.service_cname,
+                "Tag触发": service_webhook.trigger
+            },
+                                         ensure_ascii=False)
         except Exception as e:
             logger.exception(e)
             return error_message(e.message)
+        new_information = json.dumps({"组件": self.service.service_cname, "Tag触发": trigger}, ensure_ascii=False)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.CHANGE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 镜像仓库 Webhook 触发 Tag 为 {}".format(trigger))
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information,
+            new_information=new_information)
         return Response(
             general_message(
                 200,
@@ -489,10 +523,28 @@ class WebHooksStatus(AppBaseView):
                 service_webhook.state = True
                 service_webhook.save()
                 result = general_message(200, "success", "开启成功")
+                op = Operation.ENABLE
             else:
                 service_webhook.state = False
                 service_webhook.save()
                 result = general_message(200, "success", "关闭成功")
+                op = Operation.CLOSE
+
+
+            comment = operation_log_service.generate_component_comment(
+                operation=op,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias,
+                suffix=" 的自动构建功能")
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=self.app.ID,
+                service_alias=self.service.service_alias)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -548,6 +600,20 @@ class UpdateSecretKey(AppBaseView):
             if deploy_obj:
                 deploy_obj.update(secret_key=pwd)
                 result = general_message(200, "success", "修改成功")
+                comment = operation_log_service.generate_component_comment(
+                    operation=Operation.CHANGE,
+                    module_name=self.service.service_cname,
+                    region=self.service.service_region,
+                    team_name=self.tenant.tenant_name,
+                    service_alias=self.service.service_alias,
+                    suffix=" 自定义 API 的秘钥")
+                operation_log_service.create_component_log(
+                    user=self.user,
+                    comment=comment,
+                    enterprise_id=self.user.enterprise_id,
+                    team_name=self.tenant.tenant_name,
+                    app_id=self.app.ID,
+                    service_alias=self.service.service_alias)
                 return Response(result, 200)
             else:
                 result = general_message(404, "not found", "没有该组件")

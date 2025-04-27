@@ -8,6 +8,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import plugin_config_service
 from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
@@ -70,6 +71,17 @@ class PluginBuildView(PluginBaseView):
             self.plugin_version.save()
             bean = {"event_id": event_id}
             result = general_message(200, "success", "操作成功", bean=bean)
+            plugin_name = operation_log_service.process_plugin_name(self.plugin.plugin_alias, self.response_region,
+                                                                    self.tenant.tenant_name, self.plugin.plugin_id)
+            comment = operation_log_service.generate_team_comment(
+                operation=Operation.IN,
+                module_name=self.tenant.tenant_alias,
+                region=self.response_region,
+                team_name=self.tenant.tenant_name,
+                suffix=" 中构建了插件 {}".format(plugin_name))
+            operation_log_service.create_team_log(
+                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name)
         except Exception as e:
             logger.exception(e)
             result = general_message(500, "region invoke error", "构建失败，请查看镜像或源代码是否正确")

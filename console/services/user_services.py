@@ -78,6 +78,9 @@ class UserService(object):
             pass
         user.delete()
 
+    def get_users_by_user_ids(self, user_ids):
+        return user_repo.get_users_by_user_ids(user_ids)
+
     def get_user_tenants(self, user_id):
         tenant_id_list = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)
         tenant_list = Tenants.objects.filter(pk__in=tenant_id_list).values_list("tenant_name", flat=True)

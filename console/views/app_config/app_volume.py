@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from console.repositories.app_config import volume_repo
 from console.services.app_config import mnt_service
 from console.services.app_config import volume_service
+from console.services.operation_log import operation_log_service, Operation
 from console.utils.reqparse import parse_argument
 from console.views.app_config.base import AppBaseView
 from www.apiclient.regionapi import RegionInvokeApi
@@ -147,7 +148,13 @@ class AppVolumeView(AppBaseView):
         settings['backup_policy'] = backup_policy
         settings['reclaim_policy'] = reclaim_policy
         settings['allow_expansion'] = allow_expansion
-
+        new_information = volume_service.json_service_volume(
+            volume_type=volume_type,
+            volume_name=volume_name,
+            volume_path=volume_path,
+            volume_cap=volume_capacity,
+            mode=mode,
+            file_content=file_content)
         data = volume_service.add_service_volume(
             self.tenant,
             self.service,
@@ -159,7 +166,23 @@ class AppVolumeView(AppBaseView):
             self.user.nick_name,
             mode=mode)
         result = general_message(200, "success", "持久化路径添加成功", bean=data.to_dict())
+        src_suffix = " 下的配置文件 {}".format(volume_name) if volume_type == "config-file" else " 下的存储 {}".format(volume_name)
 
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.ADD,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=src_suffix)
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            new_information=new_information)
         return Response(result, status=result["code"])
 
 
@@ -191,12 +214,41 @@ class AppVolumeManageView(AppBaseView):
         volume_id = kwargs.get("volume_id", None)
         if not volume_id:
             return Response(general_message(400, "attr_name not specify", "未指定需要删除的持久化路径"), status=400)
+        volume = volume_repo.get_service_volume_by_pk(volume_id)
+        file_content = ""
+        if volume.volume_type == "config-file":
+            file_content = volume_repo.get_service_config_file(volume).file_content
+        old_information = volume_service.json_service_volume(
+            volume_name=volume.volume_name,
+            volume_path=volume.volume_path,
+            mode=volume.mode,
+            file_content=file_content,
+            volume_cap=volume.volume_capacity,
+            volume_type=volume.volume_type)
         code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id),
                                                                        self.user.nick_name, force)
         if code != 200:
             result = general_message(code=code, msg="delete volume error", msg_show=msg, list=volume)
             return Response(result, status=result["code"])
         result = general_message(200, "success", "删除成功")
+        src_suffix = " 下的配置文件 {}".format(
+            volume.volume_name) if volume.volume_type == "config-file" else " 下的存储 {}".format(
+            volume.volume_name)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.DELETE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=src_suffix)
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -221,14 +273,31 @@ class AppVolumeManageView(AppBaseView):
         if mode is not None:
             mode = ensure_volume_mode(mode)
         service_config = volume_repo.get_service_config_file(volume)
+        file_content = ""
         if volume.volume_type == 'config-file':
             if not service_config:
                 return Response(general_message(400, "file_content is null", "配置文件内容不存在"), status=400)
             if new_volume_path == volume.volume_path and new_file_content == service_config.file_content and volume.mode == mode:
                 return Response(general_message(400, "no change", "没有变化，不需要修改"), status=400)
+            file_content = service_config.file_content
         else:
             if new_volume_path == volume.volume_path:
                 return Response(general_message(400, "no change", "没有变化，不需要修改"), status=400)
+
+        new_information = volume_service.json_service_volume(
+            volume_name=volume.volume_name,
+            volume_path=new_volume_path,
+            mode=mode,
+            file_content=new_file_content,
+            volume_type=volume.volume_type,
+            volume_cap=volume.volume_capacity)
+        old_information = volume_service.json_service_volume(
+            volume_name=volume.volume_name,
+            volume_path=volume.volume_path,
+            mode=volume.mode,
+            file_content=file_content,
+            volume_type=volume.volume_type,
+            volume_cap=volume.volume_capacity)
         data = {
             "volume_name": volume.volume_name,
             "volume_path": new_volume_path,
@@ -249,5 +318,24 @@ class AppVolumeManageView(AppBaseView):
                 service_config.file_content = new_file_content
                 service_config.save()
             result = general_message(200, "success", "修改成功")
+            src_suffix = " 下的配置文件 {}".format(
+                volume.volume_name) if volume.volume_type == "config-file" else " 下的存储 {}".format(
+                volume.volume_name)
+            comment = operation_log_service.generate_component_comment(
+                operation=Operation.CHANGE,
+                module_name=self.service.service_cname,
+                region=self.service.service_region,
+                team_name=self.tenant.tenant_name,
+                service_alias=self.service.service_alias,
+                suffix=src_suffix)
+            operation_log_service.create_component_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                app_id=self.app.ID,
+                service_alias=self.service.service_alias,
+                old_information=old_information,
+                new_information=new_information)
             return Response(result, status=result["code"])
         return Response(general_message(405, "success", "修改失败"), status=405)

@@ -111,7 +111,7 @@ class NewComponents(object):
             # probe
             probes = self._template_to_probes(cpt, component_tmpl.get("probes"))
             # extend info
-            extend_info = self._template_to_extend_info(cpt, component_tmpl.get("extend_method_map"))
+            extend_info = self._template_to_extend_info(cpt, component_tmpl.get("extend_method_map"), component_tmpl.get("cpu"))
             # service monitors
             monitors = self._template_to_service_monitors(cpt, component_tmpl.get("component_monitors"))
             # graphs
@@ -216,7 +216,8 @@ class NewComponents(object):
         if container_cpu is not None:
             component.min_cpu = template["extend_method_map"]["container_cpu"]
         else:
-            component.min_cpu = 250
+            container_cpu = template.get("cpu")
+            component.min_cpu = container_cpu if container_cpu else 250
 
         if component.min_cpu == 0:
             component.min_cpu = 250
@@ -406,13 +407,13 @@ class NewComponents(object):
             result.append(probe_service.create_probe(self.tenant, component, probe))
         return result
 
-    def _template_to_extend_info(self, component, extend_info):
+    def _template_to_extend_info(self, component, extend_info, cpu):
         if not extend_info:
             return None
         version = component.version
         if len(version) > 255:
             version = version[:255]
-        container_cpu = extend_info.get("container_cpu")
+        container_cpu = extend_info.get("container_cpu", cpu)
         if container_cpu is None:
             container_cpu = baseService.calculate_service_cpu(component.service_region, component.min_memory)
         return ServiceExtendMethod(
@@ -565,13 +566,14 @@ class NewComponents(object):
     def _ingress_config(rule_id, ingress):
         set_headers = []
         proxy_header = ingress.get("proxy_header")
+        if proxy_header and isinstance(proxy_header, list):
+            set_headers = list(proxy_header)
         if proxy_header and isinstance(proxy_header, dict):
-            for item_key in proxy_header:
-                header = {"item_key": item_key, "item_value": proxy_header[item_key]}
-                set_headers.append(header)
+            set_headers = [{"item_key": k, "item_value": v} for k, v in proxy_header.items()]
         return GatewayCustomConfiguration(
             rule_id=rule_id,
             value=json.dumps({
+                "rule_id": rule_id,
                 "proxy_buffer_numbers":
                 ingress["proxy_buffer_numbers"] if ingress.get("proxy_buffer_numbers") else 4,
                 "proxy_buffer_size":

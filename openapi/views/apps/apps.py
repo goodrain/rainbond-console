@@ -252,13 +252,13 @@ class APPOperationsView(TeamAppAPIView):
         # TODO: Check the amount of resources used
         action = sos.data.get("action")
         if action == "stop":
-            self.has_perms([300006, 400008])
+            self.has_perms([300006])
         if action == "start":
-            self.has_perms([300005, 400006])
+            self.has_perms([300005])
         if action == "upgrade":
-            self.has_perms([300007, 400009])
+            self.has_perms([300007])
         if action == "deploy":
-            self.has_perms([300008, 400010])
+            self.has_perms([300008])
         app_manage_service.batch_operations(self.team, self.region_name, request.user, action, service_ids, None)
         result = {"msg": "操作成功"}
         rst_serializer = SuccessSerializer(data=result)

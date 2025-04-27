@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from console.repositories.label_repo import (label_repo, node_label_repo, service_label_repo)
 from console.services.app_config import label_service
+from console.services.operation_log import operation_log_service, Operation
 from console.views.app_config.base import AppBaseView
 from www.utils.return_message import general_message
 
@@ -67,6 +68,20 @@ class AppLabelView(AppBaseView):
         if code != 200:
             return Response(general_message(code, "add labels error", msg), status=code)
         result = general_message(200, "success", "标签添加成功")
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.ADD,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 的标签")
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -101,6 +116,20 @@ class AppLabelView(AppBaseView):
         if code != 200:
             return Response(general_message(code, "add labels error", msg), status=code)
         result = general_message(200, "success", "标签删除成功")
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.DELETE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 的标签")
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias)
         return Response(result, status=result["code"])
 
 

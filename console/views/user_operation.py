@@ -7,12 +7,16 @@ from datetime import datetime, timedelta
 
 from console.exception.exceptions import UserFavoriteNotExistError
 from console.forms.users_operation import RegisterForm
+from console.login.login_event import LoginEvent
 from console.models.main import UserRole
+from console.repositories.login_event import login_event_repo
 from console.repositories.oauth_repo import oauth_user_repo
 from console.repositories.perm_repo import perms_repo
+from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_invitation_repo, team_repo
 from console.repositories.user_repo import user_repo
 from console.services.enterprise_services import enterprise_services
+from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.perm_services import (user_kind_perm_service, user_kind_role_service)
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -23,11 +27,14 @@ from django import forms
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework_jwt.settings import api_settings
-from www.models.main import SuperAdminUser, Users
+from www.models.main import Users
 from www.utils.crypt import AuthCode, make_uuid
 from www.utils.mail import send_reset_pass_mail
 from www.utils.return_message import error_message, general_message
 from console.login.jwt_manager import JwtManager
+from console.services.user_service import user_service
+from console.exception.main import ServiceHandleException
+from rest_framework_jwt.views import jwt_response_payload_handler
 
 jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
 jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
@@ -180,6 +187,10 @@ class TenantServiceView(BaseApiView):
                 jwt_manager.set(token, user.user_id)
                 result = general_message(200, "register success", "注册成功", bean=data)
                 response = Response(result, status=200)
+                comment = operation_log_service.generate_generic_comment(
+                    operation=Operation.FINISH, module=OperationModule.REGISTER, module_name="")
+                operation_log_service.create_enterprise_log(user=user, comment=comment,
+                                                            enterprise_id=user.enterprise_id)
                 return response
             else:
                 error = {"error": list(json.loads(register_form.errors.as_json()).values())[0][0].get("message", "参数错误")}
@@ -371,6 +382,8 @@ class UserDetailsView(JWTAuthApiView):
             tenant_info = dict()
             is_team_owner = False
             team_region_list = region_services.get_region_list_by_team_name(team_name=tenant.tenant_name)
+            if not team_region_list:
+                continue
             tenant_info["team_id"] = tenant.ID
             tenant_info["team_name"] = tenant.tenant_name
             tenant_info["team_alias"] = tenant.tenant_alias
@@ -443,6 +456,10 @@ class UserFavoriteLCView(JWTAuthApiView):
                     return Response(result, status=status.HTTP_400_BAD_REQUEST)
                 user_repo.create_user_favorite(request.user.user_id, name, url, is_default)
                 result = general_message(200, "success", "收藏视图创建成功")
+                comment = operation_log_service.generate_generic_comment(
+                    operation=Operation.ADD, module=OperationModule.FAVORITE, module_name=" {}".format(name))
+                operation_log_service.create_enterprise_log(
+                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
                 return Response(result, status=status.HTTP_200_OK)
             except Exception as e:
                 logger.debug(e)
@@ -476,6 +493,10 @@ class UserFavoriteUDView(JWTAuthApiView):
         result = general_message(200, "success", "删除成功")
         try:
             user_repo.delete_user_favorite_by_id(request.user.user_id, favorite_id)
+            comment = operation_log_service.generate_generic_comment(
+                operation=Operation.DELETE, module=OperationModule.FAVORITE, module_name=" {}".format(favorite.name))
+            operation_log_service.create_enterprise_log(user=self.user, comment=comment,
+                                                        enterprise_id=self.user.enterprise_id)
         except UserFavoriteNotExistError as e:
             logger.debug(e)
             result = general_message(404, "fail", "收藏视图不存在")
@@ -617,3 +638,131 @@ class UserInviteJoinView(JWTAuthApiView):
             logger.exception(e)
             result = error_message(e.message)
             return Response(result, status=500)
+
+
+class RegisterByPhoneView(BaseApiView):
+    def post(self, request, *args, **kwargs):
+        """
+        手机号注册
+        ---
+        parameters:
+            - name: phone
+              description: 手机号
+              required: true
+              type: string
+              paramType: form
+            - name: code
+              description: 验证码
+              required: true
+              type: string
+              paramType: form
+            - name: nick_name
+              description: 用户名
+              required: true
+              type: string
+              paramType: form
+        """
+        try:
+            phone = request.data.get("phone")
+            code = request.data.get("code")
+            nick_name = request.data.get("nick_name")
+
+            if not all([phone, code, nick_name]):
+                result = general_message(400, "参数错误", "参数不完整")
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+            # 用户名格式校验
+            if not re.match(r'^[a-zA-Z0-9_-]{3,24}$', nick_name):
+                result = general_message(400, "参数错误", "用户名只能包含字母、数字、下划线和中划线,长度在3-24位之间")
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            # 获取企业信息
+            enterprise = enterprise_services.get_enterprise_first()
+            if not enterprise:
+                raise ServiceHandleException(
+                    msg="enterprise not found",
+                    msg_show="企业信息不存在",
+                    status_code=404
+                )
+            user = user_service.register_by_phone(enterprise.enterprise_id, phone, code, nick_name)
+
+            try:
+                regions = region_repo.get_usable_regions(enterprise.enterprise_id)
+                team = team_services.create_team(user, enterprise, None, None, nick_name)
+                region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name,
+                                                            regions[0].region_name,
+                                                            team.namespace)
+                # 默认短信注册的用户创建的团队，限额 4 Core 8 GB
+                limit_quota = {"limit_memory": 8192, "limit_cpu": 4000, "limit_storage": 0}
+                team_services.set_tenant_resource_limit(enterprise.enterprise_id, regions[0].region_id, team.tenant_name, limit_quota)
+            except Exception as e:
+                logger.warning("create default team failed", e)
+            # 生成token
+            jwt_manager = JwtManager()
+            payload = jwt_payload_handler(user)
+            token = jwt_encode_handler(payload)
+            jwt_manager.set(token, user.user_id)
+
+            data = {
+                "user_id": user.user_id,
+                "nick_name": user.nick_name,
+                "phone": user.phone,
+                "enterprise_id": user.enterprise_id,
+                "token": token
+            }
+
+            result = general_message(200, "success", "注册成功", bean=data)
+            return Response(result, status=status.HTTP_200_OK)
+        except ServiceHandleException as e:
+            raise e
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(500, "注册失败", str(e))
+            return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class LoginByPhoneView(BaseApiView):
+    def post(self, request, *args, **kwargs):
+        """
+        手机号登录
+        ---
+        parameters:
+            - name: phone
+              description: 手机号
+              required: true
+              type: string
+              paramType: form
+            - name: code
+              description: 验证码
+              required: true
+              type: string
+              paramType: form
+        """
+        try:
+            phone = request.data.get("phone")
+            code = request.data.get("code")
+
+            if not all([phone, code]):
+                result = general_message(400, "参数错误", "参数不完整")
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+            user = user_service.login_by_phone(phone, code)
+            login_event = LoginEvent(user, login_event_repo, request=request)
+            login_event.login()
+            # 生成token
+            payload = jwt_payload_handler(user)
+            token = jwt_encode_handler(payload)
+            response_data = jwt_response_payload_handler(token, user, request)
+            result = general_message(200, "login success", "登录成功", bean=response_data)
+            response = Response(result)
+            if api_settings.JWT_AUTH_COOKIE:
+                expiration = (datetime.now() + timedelta(days=30))
+                response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
+            jwt_manager = JwtManager()
+            jwt_manager.set(response_data["token"], user.user_id)
+            return Response(result, status=status.HTTP_200_OK)
+        except ServiceHandleException as e:
+            raise e
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(500, "登录失败", str(e))
+            return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

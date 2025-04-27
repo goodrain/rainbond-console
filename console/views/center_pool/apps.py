@@ -14,6 +14,7 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.app_actions import app_manage_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.market_app_service import market_app_service
+from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.region_services import region_services
 from console.services.user_services import user_services
 from console.utils.response import MessageResponse
@@ -128,10 +129,12 @@ class CenterAppView(RegionTenantHeaderView):
         install_from_cloud = request.data.get("install_from_cloud", False)
         dry_run = request.data.get("dry_run", False)
         market_name = request.data.get("market_name", None)
-        if not check_account_quota(self.user.user_id, self.region_name, app_manage_service.ResourceOperationDeploy):
+        if not check_account_quota(self.tenant.creater, self.region_name, app_manage_service.ResourceOperationDeploy):
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
-        market_app_service.install_app(self.tenant, self.region, self.user, app_id, app_model_key, version, market_name,
+        app_name = market_app_service.install_app(self.tenant, self.region, self.user, app_id, app_model_key, version, market_name,
                                        install_from_cloud, is_deploy, dry_run)
+        comment = "从应用市场{}安装了应用{}".format(market_name, app_name)
+        operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False)
         return Response(general_message(200, "success", "创建成功"), status=200)
 
 
@@ -253,7 +256,14 @@ class CenterAppCLView(JWTAuthApiView):
         market_app = market_app_service.create_rainbond_app(enterprise_id, app_info, make_uuid())
         if not market_app:
             return Response(general_message(400, "创建失败：应用已存在", None), status=400)
+        tags = app_tag_repo.get_tags(tag_ids)
+        tag_names = [tag.name for tag in tags]
+        new_information = market_app_service.json_rainbond_app(name, scope, tag_names, describe, pic)
         result = general_message(200, "success", None)
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.CREATE, module=OperationModule.APPMODEL, module_name="{}".format(name))
+        operation_log_service.create_component_library_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, new_information=new_information)
         return Response(result, status=200)
 
 
@@ -289,13 +299,42 @@ class CenterAppUDView(JWTAuthApiView):
             "scope": scope,
             "create_team": create_team,
         }
+        app = market_app_service.get_rainbond_app(enterprise_id, app_id)
+        tags = rainbond_app_repo.get_app_tag_by_id(enterprise_id, app_id)
+        old_tag_ids = [tag.tag_id for tag in tags]
+        tags = app_tag_repo.get_tags(old_tag_ids)
+        old_information = market_app_service.json_rainbond_app(
+            name=app.app_name, scope=app.scope, tag_names=[tag.name for tag in tags], describe=app.describe,
+            logo=app.pic)
+        tags = app_tag_repo.get_tags(tag_ids)
+        tag_names = [tag.name for tag in tags]
+        new_information = market_app_service.json_rainbond_app(name, scope, tag_names, describe, pic)
         market_app_service.update_rainbond_app(enterprise_id, app_id, app_info)
         result = general_message(200, "success", None)
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.UPDATE, module=OperationModule.APPMODEL, module_name="{}".format(name))
+        operation_log_service.create_component_library_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            old_information=old_information,
+            new_information=new_information)
         return Response(result, status=200)
 
     def delete(self, request, enterprise_id, app_id, *args, **kwargs):
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
+        tags = rainbond_app_repo.get_app_tag_by_id(enterprise_id, app_id)
+        tag_ids = [tag.tag_id for tag in tags]
+        tags = app_tag_repo.get_tags(tag_ids)
+        tag_names = [tag.name for tag in tags]
+        old_information = market_app_service.json_rainbond_app(
+            name=app.app_name, scope=app.scope, tag_names=tag_names, describe=app.describe, logo=app.pic)
         market_app_service.delete_rainbond_app_all_info_by_id(enterprise_id, app_id)
         result = general_message(200, "success", None)
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.DELETE, module=OperationModule.APPMODEL, module_name="{}".format(app.app_name if app else ""))
+        operation_log_service.create_component_library_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, old_information=old_information)
         return Response(result, status=200)
 
     def get(self, request, enterprise_id, app_id, *args, **kwargs):
@@ -386,6 +425,7 @@ class AppVersionUDView(JWTAuthApiView):
         dev_status = request.data.get("dev_status", "")
         version_alias = request.data.get("version_alias", None)
         app_version_info = request.data.get("app_version_info", None)
+        app, app_version = market_app_service.get_rainbond_app_and_version(enterprise_id, app_id, version)
 
         body = {
             "release_user_id": self.user.user_id,
@@ -395,11 +435,31 @@ class AppVersionUDView(JWTAuthApiView):
         }
         version = market_app_service.update_rainbond_app_version_info(app_id, version, **body)
         result = general_message(200, "success", "更新成功", bean=version.to_dict())
+
+        op = Operation.UPDATE
+        module_name = "{}的{}版本".format(app.app_name if app else "", version.version)
+        if dev_status == "release":
+            op = Operation.Set
+            module_name = "{}的{}版本为release状态".format(app.app_name if app else "", version.version)
+        if dev_status == "" and app_version.dev_status == "release":
+            op = Operation.CANCEL
+            module_name = "{}的{}版本release状态".format(app.app_name if app else "", version.version)
+        comment = operation_log_service.generate_generic_comment(
+            operation=op, module=OperationModule.APPMODEL, module_name=module_name)
+        operation_log_service.create_component_library_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, app_id, version, *args, **kwargs):
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
         result = general_message(200, "success", "删除成功")
         market_app_service.delete_rainbond_app_version(enterprise_id, app_id, version)
+        comment = operation_log_service.generate_generic_comment(
+            operation=Operation.DELETE,
+            module=OperationModule.APPMODEL,
+            module_name="{}的{}版本".format(app.app_name if app else "", version))
+        operation_log_service.create_component_library_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
         return Response(result, status=result.get("code", 200))
 
 

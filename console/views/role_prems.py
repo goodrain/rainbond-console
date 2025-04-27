@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 
 from rest_framework.response import Response
 
 from console.exception.exceptions import ParamsError
 from console.exception.exceptions import UserNotExistError
+from console.services.message_service import msg_service
+from console.services.operation_log import operation_log_service, Operation
+from console.services.perm_services import role_kind_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.views.base import RegionTenantHeaderView
@@ -64,6 +68,28 @@ class TeamAddUserView(RegionTenantHeaderView):
             team = team_services.get_tenant(tenant_name=team_name)
             team_services.add_user_role_to_team(tenant=team, user_ids=user_ids, role_ids=role_ids)
             result = general_message(code, "success", "用户添加到{}成功".format(team_name))
+            user1 = user_services.get_user_by_user_id(user_ids[0])
+            suffix = " 中添加了用户 {}".format(user1.get_name())
+            if len(user_ids) > 1:
+                user2 = user_services.get_user_by_user_id(user_ids[1])
+                suffix = " 中添加了 {}、{} 等用户".format(user1.get_name(), user2.get_name())
+            users = user_services.get_users_by_user_ids(user_ids)
+            roles = role_kind_services.get_roles("team", self.tenant.tenant_id, with_default=True).values("name")
+            role_names = [role["name"] for role in roles]
+            user_list = [{"用户名": user.get_name(), "角色": role_names} for user in users]
+            new_information = json.dumps(user_list, ensure_ascii=False)
+            comment = operation_log_service.generate_team_comment(
+                operation=Operation.IN,
+                module_name=self.tenant.tenant_alias,
+                region=self.response_region,
+                team_name=self.tenant.tenant_name,
+                suffix=suffix)
+            operation_log_service.create_team_log(
+                user=self.user,
+                comment=comment,
+                enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name,
+                new_information=new_information)
 
         except ParamsError as e:
             logging.exception(e)

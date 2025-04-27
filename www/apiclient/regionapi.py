@@ -13,6 +13,7 @@ from django import http
 from django.conf import settings
 
 from console.repositories.app import service_repo
+from console.repositories.app_config import configuration_repo, domain_repo
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
@@ -72,7 +73,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 "actual_node": actual_node,
                 "actual_memory": actual_memory_gb,
             })
-            logger.debug("default_headers: %s" % self.default_headers)
 
     def __get_tenant_region_info(self, tenant_name, region):
         if type(tenant_name) == Tenants:
@@ -1291,7 +1291,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def get_query_data(self, region, tenant_name, params):
         """获取监控数据"""
         url, token = self.__get_region_access_info(tenant_name, region)
-        url = "/api/v1/query" + params
+        url = url + "/api/v1/query" + params
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region, timeout=10, retries=1)
         return res, body
@@ -1570,7 +1570,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info_by_enterprise_id(eid, region)
         url = url + "/v2/app/import/" + event_id
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(url, self.default_headers, region=region, timeout=600)
         return res, body
 
     def get_enterprise_import_file_dir(self, region, eid, event_id):
@@ -2904,9 +2904,29 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         else:
             k8s_resources_repo.update(app_id=app_id, name=name, kind=data["kind"], content=body["bean"]["content"])
 
-    def api_gateway_post_proxy(self, region, tenant_name, path, data, app_id):
+    def api_gateway_post_proxy(self, region, tenant_name, path, data, app_id, service_alias="", port=""):
         if app_id:
             region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
+            if "routes/http?" in path:
+                if data.get("websocket") != "" and service_alias:
+                    svc = service_repo.get_service_by_service_alias(service_alias)
+                    domains = domain_repo.get_service_domain_by_container_port(svc.service_id, int(port))
+                    if domains:
+                        gateway_rule = configuration_repo.get_configuration_by_rule_id(domains[0].http_rule_id)
+                        value_data = {
+                            "set_headers": [
+                                {"item_key": "WebSocket", "item_value": str(data.get("websocket"))},
+                            ]
+                        }
+                        value = json.dumps(value_data)
+                        if gateway_rule:
+                            gateway_rule.value = value
+                            gateway_rule.save()
+                        else:
+                            cf_dict = dict()
+                            cf_dict["rule_id"] = domains[0].http_rule_id
+                            cf_dict["value"] = value
+                            configuration_repo.add_configuration(**cf_dict)
             path = path.replace("appID=" + str(app_id), "appID=" + region_app_id) + "&intID=" + str(app_id)
 
         url = region.url + path

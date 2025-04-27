@@ -467,9 +467,6 @@ class TenantServiceMntRelationRepository(object):
     def get_service_mnts_filter_volume_type(self, tenant_id, service_id, volume_types=None):
         conn = BaseConnection()
         query = "mnt.tenant_id = '%s' and mnt.service_id = '%s'" % (tenant_id, service_id)
-        if volume_types:
-            vol_type_sql = " and volume.volume_type in ({})".format(','.join(["'%s'"] * len(volume_types)))
-            query += vol_type_sql % tuple(volume_types)
 
         sql = """
         select mnt.mnt_name,
@@ -487,6 +484,12 @@ class TenantServiceMntRelationRepository(object):
         result = conn.query(sql)
         dep_mnts = []
         for real_dep_mnt in result:
+            if volume_types and len(volume_types) == 1 and volume_types[0] == "config-file":
+                if real_dep_mnt.get("volume_type") != "config-file":
+                    continue
+            if volume_types and len(volume_types) >= 1 and volume_types[0] != "config-file":
+                if real_dep_mnt.get("volume_type") == "config-file":
+                    continue
             mnt = TenantServiceMountRelation(
                 tenant_id=real_dep_mnt.get("tenant_id"),
                 service_id=real_dep_mnt.get("service_id"),
@@ -495,6 +498,7 @@ class TenantServiceMntRelationRepository(object):
                 mnt_dir=real_dep_mnt.get("mnt_dir"))
             mnt.volume_type = real_dep_mnt.get("volume_type")
             mnt.volume_id = real_dep_mnt.get("volume_id")
+
             dep_mnts.append(mnt)
         return dep_mnts
 

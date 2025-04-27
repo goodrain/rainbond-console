@@ -6,6 +6,7 @@ import logging
 import threading
 
 from console.repositories.plugin import (app_plugin_relation_repo, plugin_version_repo)
+from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.views.base import RegionTenantHeaderView
 from console.views.plugin.base import PluginBaseView
@@ -66,6 +67,14 @@ class PluginBaseInfoView(PluginBaseView):
         is_force = request.data.get("is_force", False)
         plugin_service.delete_plugin(self.response_region, self.team, self.plugin.plugin_id, is_force=is_force)
         result = general_message(200, "success", "删除成功")
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.IN,
+            module_name=self.tenant.tenant_alias,
+            region=self.response_region,
+            team_name=self.tenant.tenant_name,
+            suffix=" 中删除了插件 {}".format(self.plugin.plugin_alias))
+        operation_log_service.create_team_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=self.tenant.tenant_name)
         return Response(result, status=result["code"])
 
 
@@ -279,6 +288,17 @@ class PluginVersionInfoView(PluginBaseView):
             # 保存版本信息
             self.plugin_version.save()
             result = general_message(200, "success", "操作成功")
+            plugin_name = operation_log_service.process_plugin_name(self.plugin.plugin_alias, self.response_region,
+                                                                    self.tenant.tenant_name, self.plugin.plugin_id)
+            comment = operation_log_service.generate_team_comment(
+                operation=Operation.IN,
+                module_name=self.tenant.tenant_alias,
+                region=self.response_region,
+                team_name=self.tenant.tenant_name,
+                suffix=" 中编辑了插件 {} 的基础信息".format(plugin_name))
+            operation_log_service.create_team_log(
+                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)

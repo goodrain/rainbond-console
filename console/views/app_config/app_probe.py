@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from console.serializer import ProbeSerilizer
 from console.services.app_config import probe_service
+from console.services.operation_log import operation_log_service, Operation
 from console.views.app_config.base import AppBaseView
 from www.utils.return_message import general_message
 
@@ -75,9 +76,25 @@ class AppProbeView(AppBaseView):
             return Response(result, status=result["code"])
         params = dict(serializer.data)
         code, msg, probe = probe_service.add_service_probe(self.tenant, self.service, params)
+        new_information = probe_service.json_service_probe(**data)
         if code != 200:
             return Response(general_message(code, "add probe error", msg))
         result = general_message(200, "success", "添加成功", bean=(probe.to_dict() if probe else probe))
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.CREATE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 的健康检测")
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            new_information=new_information)
         return Response(result, status=result["code"])
 
     @never_cache
@@ -88,8 +105,32 @@ class AppProbeView(AppBaseView):
         serializer: ProbeSerilizer
         """
         data = request.data
-
+        _, _, old_probe = probe_service.get_service_probe(self.service)
         probe = probe_service.update_service_probea(
             tenant=self.tenant, service=self.service, data=data, user_name=self.user.nick_name)
         result = general_message(200, "success", "修改成功", bean=(probe.to_dict() if probe else probe))
+        old_information = ''
+        if old_probe:
+            old_information = probe_service.json_service_probe(**old_probe.__dict__)
+        new_information = probe_service.json_service_probe(**probe.__dict__)
+        op = Operation.UPDATE
+        if old_probe and probe:
+            if old_probe.is_used != probe.is_used:
+                op = Operation.ENABLE if probe.is_used else Operation.DISABLE
+        comment = operation_log_service.generate_component_comment(
+            operation=op,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 的健康检测")
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information,
+            new_information=new_information)
         return Response(result, status=result["code"])

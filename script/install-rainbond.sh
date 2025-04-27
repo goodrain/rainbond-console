@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v6.0.0-release'}
-IMGHUB_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain"
+RAINBOND_VERSION=${VERSION:-'v6.1.2-release'}
+IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 
 # Define colorful stdout
 RED='\033[0;31m'
@@ -87,9 +87,9 @@ UUID=$(echo $OS_INFO | ${MD5_CMD} | cut -b 1-32)
 
 ################ Start #################
 if [ "$LANG" == "zh_CN.UTF-8" ]; then
-    send_info "欢迎您安装 Rainbond, 如果您安装遇到问题, 请反馈到 https://www.rainbond.com/community/support"
+    send_info "欢迎您安装 Rainbond, 如果您安装遇到问题, 请反馈到 https://www.rainbond.com/docs/support"
 else
-    send_info "Welcome to install Rainbond, If you install problem, please feedback to https://www.rainbond.com/community/support"
+    send_info "Welcome to install Rainbond, If you install problem, please feedback to https://www.rainbond.com/en/docs/support"
 fi
 
 ########################################
@@ -113,7 +113,7 @@ if ! (docker info &>/dev/null); then
             send_error "未检测到 Docker 环境, 请自行安装 Docker 或者使用此命令 'curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun'"
             exit 1
         else
-            send_error "Ops! Docker has not been installed.\nPlease install Docker yourself or use the command 'curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun'"
+            send_error "Ops! Docker has not been installed.\nPlease install Docker yourself or use the command 'curl -fsSL https://get.docker.com | bash -s docker'"
             exit 1
         fi
     elif [ "${OS_TYPE}" = "Darwin" ]; then
@@ -126,6 +126,17 @@ if ! (docker info &>/dev/null); then
         fi
     fi
 else
+    DOCKER_VERSION=$(docker --version | awk '{print $3}' | cut -d '.' -f1)
+    if [ "$DOCKER_VERSION" -lt 24 ]; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "Docker 版本 ${DOCKER_VERSION}.x 不支持, 需要版本 24.0+."
+            exit 1
+        else
+            send_error "Docker version ${DOCKER_VERSION}.x is too old. Requires version 24.0+."
+            exit 1
+        fi
+    fi
+
     if docker ps -a --filter "name=^rainbond$" | grep -q "rainbond"; then
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
             send_error "rainbond 容器已存在.\n\t- 确保 rainbond 是否在运行.\n\t- 尝试执行 'docker start rainbond' 命令启动.\n\t- 或者你可以选择删除该容器 'docker rm -f rainbond'"
@@ -343,7 +354,7 @@ if [ "$LANG" == "zh_CN.UTF-8" ]; then
 # Web 控制台访问地址: http://$EIP:7070
 # Rainbond 文档: https://www.rainbond.com/docs
 # 如过您安装遇到问题，请反馈至:
-#     https://www.rainbond.com/community/support
+#     https://www.rainbond.com/docs/support
 ###############################################
 
 EOF
@@ -359,7 +370,7 @@ else
 # Web Site: http://$EIP:7070
 # Rainbond Docs: https://www.rainbond.com/docs
 # If you install problem, please feedback to: 
-#     https://www.rainbond.com/community/support
+#     https://www.rainbond.com/en/docs/support
 ###############################################
 
 EOF

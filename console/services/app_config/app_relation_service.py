@@ -2,6 +2,7 @@
 """
   Created on 18/1/17.
 """
+import json
 import logging
 
 from console.exception.main import (InnerPortNotFound, ServiceHandleException, ServiceRelationAlreadyExist)
@@ -10,6 +11,7 @@ from console.repositories.app_config import (dep_relation_repo, env_var_repo, po
 from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.services.app_config.port_service import AppPortService
 from console.services.exception import ErrDepServiceNotFound
+from console.services.group_service import group_service
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
@@ -21,6 +23,21 @@ class AppServiceRelationService(object):
     def __get_dep_service_ids(self, tenant, service):
         return dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id).values_list(
             "dep_service_id", flat=True)
+
+    def get_service_dependencies_part(self, dep_ids):
+        services = service_repo.get_services_by_service_ids(dep_ids)
+        return services
+
+    def json_service_dependency(self, dependencies, service_ids):
+        service_dependency_list = list()
+        service_group_map = group_service.get_services_group_name(service_ids)
+        for dependencie in dependencies:
+            service_dependency_dict = dict()
+            service_dependency_dict["所属应用"] = service_group_map[dependencie.service_id]["group_name"]
+            service_dependency_dict["组件名"] = dependencie.service_cname
+            service_dependency_list.append(service_dependency_dict)
+        return json.dumps(service_dependency_list, ensure_ascii=False)
+
 
     def get_dep_service_ids(self, service):
         return dep_relation_repo.get_service_dependencies(service.tenant_id, service.service_id).values_list(

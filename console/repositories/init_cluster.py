@@ -56,9 +56,14 @@ class Cluster(object):
 
     def delete_cluster(self, cluster_name="", cluster_id=""):
         if cluster_name:
-            RKECluster.objects.filter(cluster_name=cluster_name).delete()
+            clusters = RKECluster.objects.filter(cluster_name=cluster_name)
+            if clusters:
+                cluster = clusters[0]
+                RKEClusterNode.objects.filter(cluster_id=cluster.cluster_id).delete()
+            clusters.delete()
         if cluster_id:
             RKECluster.objects.filter(cluster_id=cluster_id).delete()
+            RKEClusterNode.objects.filter(cluster_id=cluster_id).delete()
 
 
 class ClusterNode(object):

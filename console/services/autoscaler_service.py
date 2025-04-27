@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import json
+
 from django.db import IntegrityError
 from django.db import transaction
 
@@ -14,6 +16,22 @@ region_api = RegionInvokeApi()
 
 
 class AutoscalerService(object):
+    def json_autoscaler_rules(self, min_replicas, max_replicas, metrics):
+        metric_type_dict = {
+            "average_value": "使用量",
+            "utilization": "使用率",
+            "cpu": "CPU",
+            "memory": "内存",
+        }
+        autoscaler_rules_dict = dict()
+        autoscaler_rules_dict["最小实例数"] = min_replicas
+        autoscaler_rules_dict["最大实例数"] = max_replicas
+        for metric in metrics:
+            metric_name = metric_type_dict.get(metric["metric_name"]) + metric_type_dict.get(metric["metric_target_type"])
+            autoscaler_rules_dict[metric_name] = metric["metric_target_value"]
+        return json.dumps(autoscaler_rules_dict, ensure_ascii=False)
+
+
     def get_by_rule_id(self, rule_id):
         try:
             rule = autoscaler_rules_repo.get_by_rule_id(rule_id)

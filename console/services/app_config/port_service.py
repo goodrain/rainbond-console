@@ -3,6 +3,7 @@
   Created on 18/1/17.
 """
 import datetime
+import json
 import logging
 import re
 import validators
@@ -42,6 +43,17 @@ logger = logging.getLogger("default")
 
 
 class AppPortService(object):
+    def json_service_port(self, service_port):
+        service_port_dict = dict()
+        service_port_dict["端口号"] = service_port.container_port
+        service_port_dict["端口协议"] = service_port.protocol
+        service_port_dict["对内服务"] = "开" if service_port.is_inner_service else "关"
+        service_port_dict["对外服务"] = "开" if service_port.is_outer_service else "关"
+        service_port_dict["别名"] = service_port.port_alias
+        service_port_dict["内部域名"] = service_port.k8s_service_name
+        return json.dumps(service_port_dict, ensure_ascii=False)
+
+
     @staticmethod
     def check_port(service, container_port):
         port = port_repo.get_service_port_by_port(service.tenant_id, service.service_id, container_port)
@@ -724,12 +736,14 @@ class AppPortService(object):
             service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
                 service.service_id, deal_port.container_port)
             # 改变tcpdomain表中状态
+            out_port = 0
             if service_tcp_domains:
                 for service_tcp_domain in service_tcp_domains:
                     service_tcp_domain.is_outer_service = False
+                    out_port = service_tcp_domain.end_point.split(":")[1]
                     service_tcp_domain.save()
             svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, deal_port.container_port)
-            path = f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/{svc.k8s_service_name}-{svc.protocol}-{deal_port.container_port}"
+            path = f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/{svc.k8s_service_name}-{out_port}"
             region_api.delete_proxy(region.region_name, path)
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service

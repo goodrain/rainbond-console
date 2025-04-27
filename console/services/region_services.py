@@ -104,7 +104,8 @@ class RegionService(object):
                         "region_scope": regionconfig.scope,
                         "region_create_time": regionconfig.create_time,
                         "websocket_uri": regionconfig.wsurl,
-                        "tcpdomain": regionconfig.tcpdomain
+                        "tcpdomain": regionconfig.tcpdomain,
+                        "region_id": regionconfig.region_id,
                     }
                     region_name_list.append(region_info)
             return region_name_list
@@ -333,6 +334,7 @@ class RegionService(object):
                 logger.exception(e)
                 raise ServiceHandleException(msg="delete tenant from cluster failure", msg_show="从集群删除租户失败")
         tenant_region.delete()
+        return region_config
 
     def get_enterprise_free_resource(self, tenant_id, enterprise_id, region_name, user_name):
         try:
@@ -389,8 +391,8 @@ class RegionService(object):
             raise ServiceHandleException(status_code=400, msg="", msg_show="集群ID{0}已存在".format(region_data["region_name"]))
         try:
             region_api.test_region_api(region_data)
-        except ServiceHandleException:
-            raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
+        except ServiceHandleException as e:
+            raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态{}".format(e))
 
         # 根据当前企业查询是否有region
         exist_region = region_repo.get_region_by_enterprise_id(ent.enterprise_id)

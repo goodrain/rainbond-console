@@ -7,6 +7,7 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
+from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin.app_plugin import allow_plugins, default_plugins
 from console.services.plugin import plugin_service
 from console.services.plugin import plugin_version_service
@@ -163,6 +164,17 @@ class PluginCreateView(RegionTenantHeaderView):
             bean["image_tag"] = plugin_build_version.image_tag
 
             result = general_message(200, "success", "创建成功", bean=bean)
+            plugin_name = operation_log_service.process_plugin_name(tenant_plugin.plugin_alias, self.response_region,
+                                                                    self.tenant.tenant_name, tenant_plugin.plugin_id)
+            comment = operation_log_service.generate_team_comment(
+                operation=Operation.IN,
+                module_name=self.tenant.tenant_alias,
+                region=self.response_region,
+                team_name=self.tenant.tenant_name,
+                suffix=" 中创建了插件 {}".format(plugin_name))
+            operation_log_service.create_team_log(
+                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id,
+                team_name=self.tenant.tenant_name)
         except Exception as e:
             logger.exception(e)
             result = error_message(e.message)
@@ -197,8 +209,18 @@ class DefaultPluginCreateView(RegionTenantHeaderView):
             return Response(general_message(400, "plugin type is null", "请指明插件类型"), status=400)
         if plugin_type not in default_plugins:
             return Response(general_message(400, "plugin type not support", "插件类型不支持"), status=400)
-        plugin_service.add_default_plugin(self.user, self.team, self.response_region, plugin_type)
+        plugin = plugin_service.add_default_plugin(self.user, self.team, self.response_region, plugin_type)
         result = general_message(200, "success", "创建成功")
+        plugin_name = operation_log_service.process_plugin_name(plugin.plugin_alias, self.response_region,
+                                                                self.tenant.tenant_name, plugin.plugin_id)
+        comment = operation_log_service.generate_team_comment(
+            operation=Operation.IN,
+            module_name=self.tenant.tenant_alias,
+            region=self.response_region,
+            team_name=self.tenant.tenant_name,
+            suffix=" 中安装了插件 {}".format(plugin_name))
+        operation_log_service.create_team_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, team_name=self.tenant.tenant_name)
         return Response(result, status=200)
 
     def get(self, request, *args, **kwargs):
