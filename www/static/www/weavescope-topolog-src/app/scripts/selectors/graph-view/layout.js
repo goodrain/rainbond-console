@@ -18,7 +18,7 @@ const circularOffsetAngle = Math.PI / 4;
 // make sure circular layouts a bit denser with 3-6 nodes
 const radiusDensity = scaleThreshold()
   .domain([3, 6])
-  .range([2.5, 3, 2.5]);
+  .range([3.5, 4, 3.5]);
 
 
 const translationToViewportCenterSelector = createSelector(
@@ -29,8 +29,9 @@ const translationToViewportCenterSelector = createSelector(
   ],
   (centerX, centerY, zoomState) => {
     const { scaleX, scaleY, translateX, translateY } = zoomState.toJS();
+    const leftOffset = centerX * 0.5;
     return {
-      x: (-translateX + centerX) / scaleX,
+      x: (-translateX + leftOffset) / scaleX,
       y: (-translateY + centerY) / scaleY,
     };
   }

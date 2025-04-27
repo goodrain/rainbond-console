@@ -41,6 +41,13 @@ class NodesChart extends React.Component {
     this.handleMouseClick = this.handleMouseClick.bind(this);
     this.loading = this.loading.bind(this);
   }
+  componentDidMount() {
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'TRIGGER_CLICK_BACKGROUND') {
+        this.props.clickBackground();
+      }
+    });
+  }
 
   handleMouseClick() {
     if (this.props.selectedNodeId) {
