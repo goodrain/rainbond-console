@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import subprocess
 from datetime import datetime
 
 from django.db import transaction
@@ -326,3 +327,111 @@ class InitPerms(AlowAnyApiView):
                             kind="team", kind_id=team.tenant_id, user=user, role_ids=[developer.ID])
         result = general_message(msg="success", msg_show="初始化权限分配成功", code=200)
         return Response(result, status=200)
+
+
+class UserSourceView(AlowAnyApiView):
+    """
+    飞书API集成接口
+    ---
+    """
+
+    def get(self, request, *args, **kwargs):
+        """
+        使用curl发送飞书消息
+        ---
+        """
+        try:
+            # 从环境变量获取配置参数
+            app_id = os.getenv("FEISHU_APP_ID")
+            app_secret = os.getenv("FEISHU_APP_SECRET")
+            receive_id = os.getenv("FEISHU_DEFAULT_RECEIVE_ID")
+            
+            # 验证必要的配置参数是否存在
+            missing_params = []
+            if not app_id:
+                missing_params.append("FEISHU_APP_ID")
+            if not app_secret:
+                missing_params.append("FEISHU_APP_SECRET")
+            if not receive_id:
+                missing_params.append("FEISHU_DEFAULT_RECEIVE_ID")
+            
+            if missing_params:
+                error_msg = f"缺少必要的环境变量: {', '.join(missing_params)}"
+                logger.error(error_msg)
+                return Response(general_message(400, "missing params", error_msg), status=400)
+            
+            receive_id_type = request.GET.get("receive_id_type", "open_id")
+            msg_type = "text"  # 固定为文本类型
+            
+            # 获取消息内容，直接作为文本而不是JSON
+            message_text = request.GET.get("content", "你好")
+            
+            # 将文本内容转换为飞书API所需的JSON格式
+            content = json.dumps({"text": message_text})
+            
+            # 构建获取认证token的curl命令
+            token_command = [
+                'curl', 
+                '-X', 'POST', 
+                'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', 
+                '-H', 'Content-Type: application/json',
+                '-d', json.dumps({
+                    "app_id": app_id,
+                    "app_secret": app_secret
+                })
+            ]
+            
+            # 执行命令获取token
+            token_process = subprocess.Popen(token_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            token_stdout, token_stderr = token_process.communicate()
+            
+            if token_process.returncode != 0:
+                logger.error(f"获取token失败: {token_stderr.decode('utf-8')}")
+                return Response(general_message(500, "failed", "获取Token失败", bean={"error": token_stderr.decode('utf-8')}), status=500)
+            
+            # 解析token响应
+            token_response = json.loads(token_stdout.decode('utf-8'))
+            
+            if token_response.get("code") != 0:
+                return Response(general_message(500, "failed", "获取Token失败", bean=token_response), status=500)
+            
+            access_token = token_response.get("tenant_access_token")
+            
+            # 构建发送消息的curl命令
+            send_message_command = [
+                'curl', 
+                '-X', 'POST', 
+                f'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type={receive_id_type}', 
+                '-H', f'Authorization: Bearer {access_token}',
+                '-H', 'Content-Type: application/json',
+                '-d', json.dumps({
+                    "receive_id": receive_id,
+                    "msg_type": msg_type,
+                    "content": content
+                })
+            ]
+            
+            # 执行命令发送消息
+            send_process = subprocess.Popen(send_message_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            send_stdout, send_stderr = send_process.communicate()
+            
+            if send_process.returncode != 0:
+                logger.error(f"发送消息失败: {send_stderr.decode('utf-8')}")
+                return Response(general_message(500, "failed", "发送消息失败", bean={"error": send_stderr.decode('utf-8')}), status=500)
+            
+            # 解析发送消息响应
+            send_response = json.loads(send_stdout.decode('utf-8'))
+            
+            if send_response.get("code") != 0:
+                return Response(general_message(500, "failed", "发送消息失败", bean=send_response), status=500)
+            
+            # 返回成功响应
+            result_data = send_response.get("data", {})
+            result_data["text"] = message_text  # 添加原始消息文本到返回数据中
+            
+            return Response(general_message(200, "success", "消息发送成功", bean=result_data), status=200)
+            
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(str(e))
+            return Response(result, status=500) 
