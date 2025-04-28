@@ -901,16 +901,29 @@ function setResourceView() {
 function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
   console.log('node click: ', nodeId, serviceAlias);
   return function (dispatch, getState) {
+    var state = getState();
+    var prevSelectedNodeId = state.get('selectedNodeId');
+    // 判断是切换组件还是回到总览视图
+    var isDeselecting = prevSelectedNodeId === nodeId;
     dispatch({
       type: _actionTypes2.default.CLICK_NODE,
       origin: origin,
       label: label,
       nodeId: nodeId,
       serviceAlias: serviceAlias,
-      serviceCname: serviceCname
+      serviceCname: serviceCname,
+      isDeselecting: isDeselecting
     });
+    if (isDeselecting) {
+      // 回到总览视图的逻辑
+      console.log('回到总览视图');
+      window.parent && window.parent.clickBackground && window.parent.clickBackground();
+    } else {
+      // 切换组件的逻辑
+      window.parent && window.parent.clickNode && window.parent.clickNode(nodeId, serviceAlias);
+      console.log('切换组件');
+    }
     (0, _routerUtils.updateRoute)(getState);
-    var state = getState();
     (0, _webApiUtils.getNodeDetails)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
     (0, _webApiUtils.Dateils)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
     (0, _webApiUtils.Podname)(serviceAlias);
@@ -27189,7 +27202,8 @@ var NodeContainer = function (_React$PureComponent) {
           isAnimated = _props.isAnimated,
           scale = _props.scale,
           blurred = _props.blurred,
-          contrastMode = _props.contrastMode;
+          contrastMode = _props.contrastMode,
+          focused = _props.focused;
 
       var nodeBlurOpacity = contrastMode ? 0.6 : 0.25;
       var forwardedProps = (0, _omit3.default)(this.props, 'dx', 'dy', 'isAnimated', 'scale', 'blurred');
@@ -27208,7 +27222,7 @@ var NodeContainer = function (_React$PureComponent) {
             style: {
               x: (0, _reactMotion.spring)(dx, _animation.NODES_SPRING_ANIMATION_CONFIG),
               y: (0, _reactMotion.spring)(dy, _animation.NODES_SPRING_ANIMATION_CONFIG),
-              k: (0, _reactMotion.spring)(scale, _animation.NODES_SPRING_ANIMATION_CONFIG),
+              k: (0, _reactMotion.spring)(focused ? scale * 0.6 : scale, _animation.NODES_SPRING_ANIMATION_CONFIG),
               opacity: (0, _reactMotion.spring)(opacity, _animation.NODES_SPRING_ANIMATION_CONFIG)
             } },
           function (interpolated) {
@@ -27604,8 +27618,7 @@ var NodesChartEdges = function (_React$Component) {
             dispatch: _this2.props.dispatch,
             isAnimated: isAnimated
           });
-        }),
-        _react2.default.createElement('circle', { cx: '0', cy: '0', r: '10', style: { stroke: "none", fill: "#fff", position: 'relative', zIndex: 99 } })
+        })
       );
     }
   }]);
@@ -27985,6 +27998,17 @@ var NodesChart = function (_React$Component) {
   }
 
   _createClass(NodesChart, [{
+    key: 'componentDidMount',
+    value: function componentDidMount() {
+      var _this2 = this;
+
+      window.addEventListener('message', function (event) {
+        if (event.data.type === 'TRIGGER_CLICK_BACKGROUND') {
+          _this2.props.clickBackground();
+        }
+      });
+    }
+  }, {
     key: 'handleMouseClick',
     value: function handleMouseClick() {
       if (this.props.selectedNodeId) {
@@ -29791,8 +29815,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _react = __webpack_require__(1);
@@ -29830,15 +29852,7 @@ var Details = function (_React$Component) {
           details = _props.details;
       // render all details as cards, later cards go on top
 
-      return _react2.default.createElement(
-        'div',
-        { className: 'details' },
-        details.toIndexedSeq().map(function (obj, index) {
-          return _react2.default.createElement(_detailsCard2.default, _extends({
-            key: obj.id, index: index, cardCount: details.size,
-            nodeControlStatus: controlStatus.get(obj.id) }, obj));
-        })
-      );
+      return _react2.default.createElement('div', { className: 'details' });
     }
   }]);
 
@@ -34443,6 +34457,8 @@ function rootReducer() {
 
     case _actionTypes2.default.CLICK_BACKGROUND:
       {
+        // 点击背景回到总览视图
+        window.parent && window.parent.clickBackground && window.parent.clickBackground();
         if (state.get('showingHelp')) {
           state = state.set('showingHelp', false);
         }
@@ -34818,11 +34834,34 @@ function rootReducer() {
         // Turn on the table view if the graph is too complex, but skip
         // this block if the user has already loaded topologies once.
         //最初节点加载
+        var nodeDetails = state.get('nodeDetails');
         if (!state.get('initialNodesLoaded') && !state.get('nodesLoaded')) {
           if (state.get('topologyViewMode') === _naming.GRAPH_VIEW_MODE) {
             state = (0, _topology.graphExceedsComplexityThreshSelector)(state) ? state.set('topologyViewMode', _naming.TABLE_VIEW_MODE) : state;
           }
           state = state.set('initialNodesLoaded', true);
+          // 在初次加载时设置默认选中的节点，获取父iframe的service_alias
+          var serviceAlias = window.parent.getServiceAlias();
+          // 在初次加载时获取默认选中的节点
+          if (serviceAlias) {
+            var nodes = state.get('nodes');
+            if (nodes && nodes.size > 0) {
+              var id = '';
+              var label = '';
+              nodes.forEach(function (node) {
+                if (node.get('service_alias') === serviceAlias) {
+                  id = node.get('id');
+                  label = node.get('label');
+                }
+              });
+              state = state.set('selectedNodeId', id);
+              state = state.setIn(['nodeDetails', id], {
+                id: id,
+                label: label,
+                topologyId: state.get('currentTopologyId')
+              });
+            }
+          }
         }
         return state.set('nodesLoaded', true);
       }
@@ -35101,7 +35140,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var circularOffsetAngle = Math.PI / 4;
 
 // make sure circular layouts a bit denser with 3-6 nodes
-var radiusDensity = (0, _d3Scale.scaleThreshold)().domain([3, 6]).range([2.5, 3, 2.5]);
+var radiusDensity = (0, _d3Scale.scaleThreshold)().domain([3, 6]).range([3.5, 4, 3.5]);
 
 var translationToViewportCenterSelector = (0, _reselect.createSelector)([_canvas.canvasDetailsHorizontalCenterSelector, _canvas.canvasDetailsVerticalCenterSelector, _zoom.graphZoomStateSelector], function (centerX, centerY, zoomState) {
   var _zoomState$toJS = zoomState.toJS(),
@@ -35110,8 +35149,9 @@ var translationToViewportCenterSelector = (0, _reselect.createSelector)([_canvas
       translateX = _zoomState$toJS.translateX,
       translateY = _zoomState$toJS.translateY;
 
+  var leftOffset = centerX * 0.5;
   return {
-    x: (-translateX + centerX) / scaleX,
+    x: (-translateX + leftOffset) / scaleX,
     y: (-translateY + centerY) / scaleY
   };
 });
