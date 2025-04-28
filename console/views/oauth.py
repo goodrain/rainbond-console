@@ -11,6 +11,7 @@ from console.services.oauth_service import oauth_sev_user_service
 from console.services.operation_log import Operation, operation_log_service, OperationModule
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance, support_oauth_type)
 from console.views.base import (AlowAnyApiView, EnterpriseAdminView, JWTAuthApiView)
+from console.models.main import OAuthServices
 from django.http import HttpResponseRedirect
 from rest_framework import status
 from rest_framework.response import Response
@@ -226,12 +227,17 @@ class OauthServiceInfo(EnterpriseAdminView):
             return Response(rst, status=status.HTTP_200_OK)
 
 
-class OAuthServiceRedirect(JWTAuthApiView):
+class OAuthServiceRedirect(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
         if not code:
             return HttpResponseRedirect("/")
         service_id = request.GET.get("service_id")
+        try:
+            service = OAuthServices.objects.get(ID=service_id)
+        except OAuthServices.DoesNotExist:
+             logger.error(f"OAuth service with ID {service_id} not found during redirect.")
+             return HttpResponseRedirect("/")
         service = oauth_repo.get_oauth_services_by_service_id(self.user.user_id, service_id)
         route_mode = os.getenv("ROUTE_MODE", "hash")
         path = "/#/oauth/callback?service_id={}&code={}"
@@ -240,17 +246,23 @@ class OAuthServiceRedirect(JWTAuthApiView):
         return HttpResponseRedirect(path.format(service.ID, code))
 
 
-class OAuthServerAuthorize(JWTAuthApiView):
+class OAuthServerAuthorize(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
         domain = request.GET.get("domain")
         home_split_url = None
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(self.user.user_id, service_id)
+            oauth_service = OAuthServices.objects.get(ID=service_id)
+            if not oauth_service.enable:
+                 raise ServiceHandleException(msg="OAuth service disabled", msg_show="该 OAuth 服务已被禁用")
             if oauth_service.oauth_type == "enterprisecenter" and domain:
                 home_split_url = urlsplit(oauth_service.home_url)
                 oauth_service.proxy_home_url = home_split_url.scheme + "://" + domain + home_split_url.path
+        except OAuthServices.DoesNotExist:
+            logger.debug(f"OAuth service with ID {service_id} not found.")
+            rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+            return Response(rst, status=status.HTTP_200_OK)
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
