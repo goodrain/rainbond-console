@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import time
 import logging
 
@@ -51,6 +52,14 @@ class AppConfigGroupService(object):
         else:
             raise ErrAppConfigGroupExists
         return self.get_config_group(region_name, app_id, config_group_name)
+
+    def json_config_groups(self, config_group_name, config_items, enable, services_names):
+        config_groups_dict = dict()
+        config_groups_dict["配置组名称"] = config_group_name
+        config_groups_dict["生效状态"] = "开启" if enable else "关闭"
+        config_groups_dict["配置项"] = config_items
+        config_groups_dict["生效组件"] = ','.join(services_names)
+        return json.dumps(config_groups_dict, ensure_ascii=False)
 
     def get_config_group(self, region_name, app_id, config_group_name):
         try:

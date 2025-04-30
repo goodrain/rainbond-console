@@ -378,6 +378,20 @@ class RegionService(object):
             team_opened_regions = team_opened_regions.filter(is_init=True, region_name__in=region_names)
         return team_opened_regions
 
+    def json_region(self, region):
+        json_region_dict = dict()
+        json_region_dict["集群ID"] = region["region_name"]
+        json_region_dict["集群名称"] = region["region_alias"]
+        json_region_dict["API地址"] = region["url"]
+        json_region_dict["WebSocket通信地址"] = region["wsurl"]
+        json_region_dict["HTTP应用默认域名后缀"] = region["httpdomain"]
+        json_region_dict["httpdomain"] = region["httpdomain"]
+        json_region_dict["API-CA证书"] = region["ssl_ca_cert"]
+        json_region_dict["API-Client证书"] = region["cert_file"]
+        json_region_dict["API-Client证书密钥"] = region["key_file"]
+        json_region_dict["备注"] = region["desc"]
+        return json.dumps(json_region_dict, ensure_ascii=False)
+
     def get_regions_by_enterprise_id(self, enterprise_id):
         return RegionConfig.objects.filter(enterprise_id=enterprise_id)
 

@@ -335,6 +335,9 @@ class TenantServiceWebhooks(object):
 
 
 class AppTagRepository(object):
+    def get_tags(self, tag_id):
+        return RainbondCenterAppTag.objects.filter(ID__in=tag_id)
+
     def get_all_tag_list(self, enterprise_id):
         return RainbondCenterAppTag.objects.filter(enterprise_id=enterprise_id, is_deleted=False)
 
