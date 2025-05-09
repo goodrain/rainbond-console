@@ -25,6 +25,25 @@ class AppMntService(object):
     LOCAL = 'local'
     TMPFS = 'memoryfs'
 
+    def get_service_mnt_details_byid(self, dep_vol_data):
+        dep_vol_list = list()
+        for dep_vol in dep_vol_data:
+            dep_vol_dict = dict()
+            dep_vol_dict["本地挂载配置文件路径"] = dep_vol["path"]
+            mnt_list = volume_repo.get_service_volume_by_id(id=dep_vol["id"])
+            dep_vol_dict["配置文件名称"] = mnt_list.volume_name
+            dep_vol_dict["目标挂载配置文件路径"] = mnt_list.volume_path
+            dep_service = service_repo.get_service_by_service_id(mnt_list.service_id)
+            dep_vol_dict["所属组件"] = dep_service.service_cname
+            gs_rel = group_service_relation_repo.get_group_by_service_id(dep_service.service_id)
+            group = None
+            if gs_rel:
+                group = group_repo.get_group_by_pk(dep_service.tenant_id, dep_service.service_region, gs_rel.group_id)
+            dep_vol_dict["组件所属应用"] = group.group_name if group else '未分组'
+            dep_vol_list.append(dep_vol_dict)
+        return dep_vol_list
+
+
     def get_service_mnt_details(self, tenant, service, volume_types, page=1, page_size=20):
 
         all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(tenant.tenant_id, service.service_id, volume_types)
