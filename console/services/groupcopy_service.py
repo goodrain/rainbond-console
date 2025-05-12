@@ -74,7 +74,10 @@ class GroupAppCopyService(object):
             if build_infos.get(group_service["service_id"], None):
                 group_service["build_source"] = build_infos[group_service["service_id"]]
                 group_service["build_source"]["service_id"] = group_service["service_id"]
-            if group_service["build_source"]["image"]:
+            if group_service["build_source"]["service_source"] == "docker_image":
+                if group_service["build_source"]["image"]:
+                    gl_group_services.append(group_service)
+            else:
                 gl_group_services.append(group_service)
         return gl_group_services
 
