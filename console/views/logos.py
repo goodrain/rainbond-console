@@ -345,6 +345,11 @@ class UserSourceView(AlowAnyApiView):
             app_id = os.getenv("FEISHU_APP_ID")
             app_secret = os.getenv("FEISHU_APP_SECRET")
             receive_id = os.getenv("FEISHU_DEFAULT_RECEIVE_ID")
+            sms_type = request.GET.get("sms_type")
+            if sms_type == "rainbond":
+                app_id = os.getenv("FEISHU_TJ_APP_ID")
+                app_secret = os.getenv("FEISHU_TJ_APP_SECRET")
+                receive_id = os.getenv("FEISHU_TJ_DEFAULT_RECEIVE_ID")
             
             # 验证必要的配置参数是否存在
             missing_params = []
