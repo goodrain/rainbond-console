@@ -436,7 +436,7 @@ class GroupService(object):
         # Batch Delete Components
         for service in services:
             app_manage_service.batch_delete(user, tenant, service, is_force=True, is_del_app=True)
-        return
+        return services
 
     def delete_app_share_records(self, team_name, app_id):
         share_records = share_repo.get_app_share_records_by_groupid(team_name, app_id)
