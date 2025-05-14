@@ -150,10 +150,6 @@ class TenantServiceView(BaseApiView):
                     team = team_services.create_team(user, enterprise, ["rainbond"], "", "default", "")
                     region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, "rainbond",
                                                                 team.namespace)
-                else:
-                    team = team_services.create_team(user, enterprise, ["rainbond"], "", nick_name, "")
-                    region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, "rainbond",
-                                                            team.namespace)
                 user.enterprise_id = enterprise.enterprise_id
                 user.save()
 
