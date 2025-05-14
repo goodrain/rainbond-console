@@ -322,10 +322,6 @@ class EnterPriseUsersCLView(JWTAuthApiView):
         else:
             user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip, phone,
                                                           real_name)
-
-        team = team_services.create_team(user, enterprise, ["rainbond"], "", user_name, "")
-        region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, "rainbond", team.namespace)
-
         result = general_message(200, "success", "添加用户成功")
         if tenant:
             create_perm_param = {
