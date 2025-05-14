@@ -2,6 +2,7 @@
 """
   Created on 18/1/16.
 """
+import json
 import logging
 import os
 
@@ -231,6 +232,9 @@ class ServiceSourceRepository(object):
         if service_sources:
             return service_sources[0]
         return None
+
+    def json_service_source(self, image, cmd):
+        return json.dumps({"镜像名称": image, "启动命令": cmd, "用户名": "——", "用户密码": "——"}, ensure_ascii=False)
 
     def get_service_sources(self, team_id, service_ids):
         return ServiceSourceInfo.objects.filter(team_id=team_id, service_id__in=service_ids)

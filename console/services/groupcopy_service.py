@@ -14,6 +14,7 @@ from console.services.app_config import port_service
 from console.services.backup_service import groupapp_backup_service
 from console.services.groupapp_recovery.groupapps_migrate import \
     migrate_service
+from console.services.operation_log import operation_log_service
 from console.services.plugin import app_plugin_service, plugin_service
 from console.services.service_services import base_service
 from console.services.team_services import team_services
@@ -26,6 +27,26 @@ logger = logging.getLogger("default")
 
 
 class GroupAppCopyService(object):
+    def generate_comment(self, src_app, src_region_name, src_tenant_name, target_app, tar_region_name, tar_team_name, services):
+        source_app_name = operation_log_service.process_app_name(src_app.app_name, src_region_name, src_tenant_name,
+                                                                 src_app.app_id)
+        target_app_name = operation_log_service.process_app_name(target_app.app_name, tar_region_name, tar_team_name,
+                                                                 target_app.app_id)
+        component_names = []
+        idx = 0
+        for svc in services:
+            if idx >= 2:
+                break
+            component_names.append(
+                operation_log_service.process_component_name(svc.service_cname, tar_region_name, tar_team_name,
+                                                             svc.service_alias))
+            idx += 1
+        component_names = ",".join(component_names)
+        if idx >= 2:
+            component_names += "等"
+        return "将{}组件从应用{}复制到应用{}".format(component_names, source_app_name, target_app_name)
+
+
     @transaction.atomic()
     def copy_group_services(self, user, old_team, old_region_name, tar_team, tar_region_name, tar_group, group_id,
                             choose_services):
@@ -53,7 +74,10 @@ class GroupAppCopyService(object):
             if build_infos.get(group_service["service_id"], None):
                 group_service["build_source"] = build_infos[group_service["service_id"]]
                 group_service["build_source"]["service_id"] = group_service["service_id"]
-            if group_service["build_source"]["image"]:
+            if group_service["build_source"]["service_source"] == "docker_image":
+                if group_service["build_source"]["image"]:
+                    gl_group_services.append(group_service)
+            else:
                 gl_group_services.append(group_service)
         return gl_group_services
 

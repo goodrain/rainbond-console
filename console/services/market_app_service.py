@@ -1506,6 +1506,16 @@ class MarketAppService(object):
                     app.create_team = create_team
         app.save()
 
+    def json_rainbond_app(self, name, scope, tag_names, describe, logo):
+        return json.dumps({
+            "名称": name,
+            "发布范围": "当前企业" if scope == "enterprise" else "团队",
+            "分类标签": ",".join(tag_names),
+            "简介": describe,
+            "LOGO": logo
+        },
+                          ensure_ascii=False)
+
     @transaction.atomic
     def create_rainbond_app(self, enterprise_id, app_info, app_id):
         if RainbondCenterApp.objects.filter(app_name=app_info.get("app_name")).first():

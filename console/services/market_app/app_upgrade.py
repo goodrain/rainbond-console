@@ -27,7 +27,7 @@ from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.k8s_resources import k8s_resources_repo
 # exception
-from console.exception.main import ServiceHandleException
+from console.exception.main import ServiceHandleException, ErrTenantLackOfMemory
 from console.exception.bcode import ErrAppUpgradeDeployFailed
 # model
 from console.models.main import AppUpgradeRecord, K8sResource
@@ -270,6 +270,9 @@ class AppUpgrade(MarketApp):
             helm_chart_parameter["app_name"] = self.app_template["group_name"]
             helm_chart_parameter["app_version"] = self.app_template["group_version"]
             _ = self.predeploy(helm_chart_parameter)
+        except ErrTenantLackOfMemory as e:
+            logger.exception(e)
+            raise ErrTenantLackOfMemory()
         except Exception as e:
             logger.exception(e)
             raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常{}".format(e))
@@ -277,6 +280,9 @@ class AppUpgrade(MarketApp):
     def _install_deploy(self):
         try:
             _ = self.deploy()
+        except ErrTenantLackOfMemory as e:
+            logger.exception(e)
+            raise ErrTenantLackOfMemory()
         except Exception as e:
             logger.exception(e)
             raise ServiceHandleException(msg="install app failure", msg_show="安装应用发生异常{}".format(e))
