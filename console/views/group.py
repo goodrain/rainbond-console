@@ -2,6 +2,7 @@
 """
   Created by leon on 18/1/5.
 """
+import json
 import logging
 
 from console.enum.app import GovernanceModeEnum
@@ -236,7 +237,7 @@ class TenantGroupHandleView(ApplicationView):
         删除应用及所有资源
         """
         # delete services
-        group_service.batch_delete_app_services(self.user, self.tenant.tenant_id, self.region_name, app_id)
+        services = group_service.batch_delete_app_services(self.user, self.tenant.tenant_id, self.region_name, app_id)
         # delete k8s resource
         k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
         resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
@@ -248,6 +249,26 @@ class TenantGroupHandleView(ApplicationView):
         group_service.delete_app_share_records(self.tenant.tenant_name, app_id)
         # delete app
         group_service.delete_app(self.tenant, self.region_name, self.app)
+        component_names = []
+        comment = ""
+        old_information = list()
+        if services:
+            app = self.app
+            if app:
+                app_name = operation_log_service.process_app_name(app.app_name, self.region_name, self.team_name,
+                                                                  app.app_id)
+                for svc in services:
+                    component_names.append(svc.service_cname)
+                    old_information.append({"组件名": svc.service_cname, "操作": "删除"})
+                if len(component_names) > 2:
+                    component_names = ",".join(component_names[0:2]) + "等"
+                else:
+                    component_names = ",".join(component_names)
+                comment = "删除了应用 {app}, 以及应用下的组件 {component_names}".format(app=app_name, component_names=component_names)
+
+        old_information = json.dumps(old_information, ensure_ascii=False)
+        operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False, old_information=old_information)
+
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
 

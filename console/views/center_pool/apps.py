@@ -322,7 +322,7 @@ class CenterAppUDView(JWTAuthApiView):
         return Response(result, status=200)
 
     def delete(self, request, enterprise_id, app_id, *args, **kwargs):
-        app = rainbond_app_repo.get_rainbond_app_by_app_id(enterprise_id, app_id)
+        app = rainbond_app_repo.get_rainbond_app_by_app_id(app_id)
         tags = rainbond_app_repo.get_app_tag_by_id(enterprise_id, app_id)
         tag_ids = [tag.tag_id for tag in tags]
         tags = app_tag_repo.get_tags(tag_ids)
