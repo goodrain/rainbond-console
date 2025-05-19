@@ -509,6 +509,9 @@ class TenantServiceMntRelationRepository(object):
             dep_mnts.append(mnt)
         return dep_mnts
 
+    def get_mnt_relation_by_id(self, service_id, dep_service_id, mnt_name):
+        return TenantServiceMountRelation.objects.get(service_id=service_id, dep_service_id=dep_service_id, mnt_name=mnt_name)
+
     def list_mnt_relations_by_service_ids(self, tenant_id, service_ids):
         return TenantServiceMountRelation.objects.filter(tenant_id=tenant_id, service_id__in=service_ids)
 

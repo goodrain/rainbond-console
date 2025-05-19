@@ -1264,6 +1264,18 @@ class AppManageService(AppManageBase):
         service.delete()
         return ignore_delete_from_cluster
 
+    def get_extend_method_name(self, extend_method):
+        if extend_method == "state_singleton":
+            return "有状态单实例"
+        elif extend_method == "state_multiple":
+            return "有状态多实例"
+        elif extend_method == "stateless_singleton":
+            return "无状态单实例"
+        elif extend_method == "stateless_multiple":
+            return "无状态多实例"
+        else:
+            return None
+
     def change_service_type(self, tenant, service, extend_method, user_name=''):
         # 存储限制
         tenant_service_volumes = volume_service.get_service_volumes(tenant, service)
