@@ -107,7 +107,7 @@ class AppMntService(object):
         else:
             service_volumes = volume_repo.get_services_volumes(current_tenant_services_id).filter(
                 access_mode="RWX") \
-                .exclude(ID__in=mounted_ids).exclude(service_id__in=state_service_ids).exclude(volume_type=self.CONFIG)
+                .exclude(ID__in=mounted_ids).exclude(service_id__in=state_service_ids).exclude(volume_type=self.CONFIG).exclude(volume_type="local-path")
         # TODO 使用函数进行存储的排查，确定哪些存储不可以进行共享，哪些存储可以共享，而不是现在这样简单的提供一个self.SHARE
 
         total = len(service_volumes)

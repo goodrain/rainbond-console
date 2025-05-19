@@ -73,7 +73,6 @@ class NodesChartEdges extends React.Component {
           />
 
         ))}
-         <circle cx="0" cy="0" r="10" style={{stroke:"none", fill:"#fff", position:'relative', zIndex: 99}}></circle>
       </g>
     );
   }

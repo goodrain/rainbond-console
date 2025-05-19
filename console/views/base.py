@@ -32,6 +32,7 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as trans
 
 from console.utils.perms import get_perms, APP
+from default_region import make_uuid
 from goodrain_web import errors
 from rest_framework import exceptions, status
 from rest_framework.authentication import get_authorization_header
@@ -513,6 +514,33 @@ class ApplicationView(RegionTenantHeaderView):
         super(ApplicationView, self).initial(request, *args, **kwargs)
         app_id = kwargs.get("app_id") if kwargs.get("app_id") else kwargs.get("group_id")
         app_id = app_id if app_id else request.data.get("group_id")
+
+        if app_id == "源码构建示例":
+            groups = ServiceGroup.objects.filter(
+                tenant_id=self.tenant.tenant_id, region_name=self.region_name, group_name="源码构建示例")
+            k8s_app_name = "sourcecode-demo"
+            if groups:
+                app_id = groups[0].ID
+            else:
+                k8s_apps = ServiceGroup.objects.filter(
+                    tenant_id=self.tenant.tenant_id, region_name=self.region_name, k8s_app="sourcecode-demo")
+                if k8s_apps:
+                    k8s_app_name += make_uuid()[:6]
+                data = group_service.create_app(
+                    self.tenant,
+                    self.region_name,
+                    "源码构建示例",
+                    None,
+                    self.user.get_username(),
+                    None,
+                    None,
+                    None,
+                    None,
+                    self.user.enterprise_id,
+                    None,
+                    k8s_app=k8s_app_name)
+                app_id = data["group_id"]
+
         app = group_repo.get_group_by_pk(self.tenant.tenant_id, self.region_name, app_id)
         if not app:
             raise ServiceHandleException("app not found", "应用不存在", status_code=404)

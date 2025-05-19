@@ -901,16 +901,29 @@ function setResourceView() {
 function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
   console.log('node click: ', nodeId, serviceAlias);
   return function (dispatch, getState) {
+    var state = getState();
+    var prevSelectedNodeId = state.get('selectedNodeId');
+    // 判断是切换组件还是回到总览视图
+    var isDeselecting = prevSelectedNodeId === nodeId;
     dispatch({
       type: _actionTypes2.default.CLICK_NODE,
       origin: origin,
       label: label,
       nodeId: nodeId,
       serviceAlias: serviceAlias,
-      serviceCname: serviceCname
+      serviceCname: serviceCname,
+      isDeselecting: isDeselecting
     });
+    if (isDeselecting) {
+      // 回到总览视图的逻辑
+      console.log('回到总览视图');
+      window.parent && window.parent.clickBackground && window.parent.clickBackground();
+    } else {
+      // 切换组件的逻辑
+      window.parent && window.parent.clickNode && window.parent.clickNode(nodeId, serviceAlias);
+      console.log('切换组件');
+    }
     (0, _routerUtils.updateRoute)(getState);
-    var state = getState();
     (0, _webApiUtils.getNodeDetails)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
     (0, _webApiUtils.Dateils)(state.get('topologyUrlsById'), state.get('currentTopologyId'), (0, _topology.activeTopologyOptionsSelector)(state), state.get('nodeDetails'), dispatch, serviceAlias);
     (0, _webApiUtils.Podname)(serviceAlias);
@@ -27189,7 +27202,8 @@ var NodeContainer = function (_React$PureComponent) {
           isAnimated = _props.isAnimated,
           scale = _props.scale,
           blurred = _props.blurred,
-          contrastMode = _props.contrastMode;
+          contrastMode = _props.contrastMode,
+          focused = _props.focused;
 
       var nodeBlurOpacity = contrastMode ? 0.6 : 0.25;
       var forwardedProps = (0, _omit3.default)(this.props, 'dx', 'dy', 'isAnimated', 'scale', 'blurred');
@@ -27208,7 +27222,7 @@ var NodeContainer = function (_React$PureComponent) {
             style: {
               x: (0, _reactMotion.spring)(dx, _animation.NODES_SPRING_ANIMATION_CONFIG),
               y: (0, _reactMotion.spring)(dy, _animation.NODES_SPRING_ANIMATION_CONFIG),
-              k: (0, _reactMotion.spring)(scale, _animation.NODES_SPRING_ANIMATION_CONFIG),
+              k: (0, _reactMotion.spring)(focused ? scale * 0.6 : scale, _animation.NODES_SPRING_ANIMATION_CONFIG),
               opacity: (0, _reactMotion.spring)(opacity, _animation.NODES_SPRING_ANIMATION_CONFIG)
             } },
           function (interpolated) {
@@ -27604,8 +27618,7 @@ var NodesChartEdges = function (_React$Component) {
             dispatch: _this2.props.dispatch,
             isAnimated: isAnimated
           });
-        }),
-        _react2.default.createElement('circle', { cx: '0', cy: '0', r: '10', style: { stroke: "none", fill: "#fff", position: 'relative', zIndex: 99 } })
+        })
       );
     }
   }]);
@@ -27985,6 +27998,17 @@ var NodesChart = function (_React$Component) {
   }
 
   _createClass(NodesChart, [{
+    key: 'componentDidMount',
+    value: function componentDidMount() {
+      var _this2 = this;
+
+      window.addEventListener('message', function (event) {
+        if (event.data.type === 'TRIGGER_CLICK_BACKGROUND') {
+          _this2.props.clickBackground();
+        }
+      });
+    }
+  }, {
     key: 'handleMouseClick',
     value: function handleMouseClick() {
       if (this.props.selectedNodeId) {
@@ -29791,8 +29815,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _react = __webpack_require__(1);
@@ -29830,15 +29852,7 @@ var Details = function (_React$Component) {
           details = _props.details;
       // render all details as cards, later cards go on top
 
-      return _react2.default.createElement(
-        'div',
-        { className: 'details' },
-        details.toIndexedSeq().map(function (obj, index) {
-          return _react2.default.createElement(_detailsCard2.default, _extends({
-            key: obj.id, index: index, cardCount: details.size,
-            nodeControlStatus: controlStatus.get(obj.id) }, obj));
-        })
-      );
+      return _react2.default.createElement('div', { className: 'details' });
     }
   }]);
 
@@ -34443,6 +34457,8 @@ function rootReducer() {
 
     case _actionTypes2.default.CLICK_BACKGROUND:
       {
+        // 点击背景回到总览视图
+        window.parent && window.parent.clickBackground && window.parent.clickBackground();
         if (state.get('showingHelp')) {
           state = state.set('showingHelp', false);
         }
@@ -34818,11 +34834,34 @@ function rootReducer() {
         // Turn on the table view if the graph is too complex, but skip
         // this block if the user has already loaded topologies once.
         //最初节点加载
+        var nodeDetails = state.get('nodeDetails');
         if (!state.get('initialNodesLoaded') && !state.get('nodesLoaded')) {
           if (state.get('topologyViewMode') === _naming.GRAPH_VIEW_MODE) {
             state = (0, _topology.graphExceedsComplexityThreshSelector)(state) ? state.set('topologyViewMode', _naming.TABLE_VIEW_MODE) : state;
           }
           state = state.set('initialNodesLoaded', true);
+          // 在初次加载时设置默认选中的节点，获取父iframe的service_alias
+          var serviceAlias = window.parent.getServiceAlias();
+          // 在初次加载时获取默认选中的节点
+          if (serviceAlias) {
+            var nodes = state.get('nodes');
+            if (nodes && nodes.size > 0) {
+              var id = '';
+              var label = '';
+              nodes.forEach(function (node) {
+                if (node.get('service_alias') === serviceAlias) {
+                  id = node.get('id');
+                  label = node.get('label');
+                }
+              });
+              state = state.set('selectedNodeId', id);
+              state = state.setIn(['nodeDetails', id], {
+                id: id,
+                label: label,
+                topologyId: state.get('currentTopologyId')
+              });
+            }
+          }
         }
         return state.set('nodesLoaded', true);
       }
@@ -34876,6 +34915,30 @@ function rootReducer() {
           }
           state = state.setIn(['nodes', node.id], (0, _immutable.fromJS)(n));
         });
+
+        // 在节点数据更新后，检查是否需要设置默认选中节点
+        var _serviceAlias = window.parent.getServiceAlias();
+        if (_serviceAlias && !state.get('selectedNodeId')) {
+          var _nodes = state.get('nodes');
+          if (_nodes && _nodes.size > 0) {
+            var id = '';
+            var label = '';
+            _nodes.forEach(function (node) {
+              if (node.get('service_alias') === _serviceAlias) {
+                id = node.get('id');
+                label = node.get('label');
+              }
+            });
+            if (id) {
+              state = state.set('selectedNodeId', id);
+              state = state.setIn(['nodeDetails', id], {
+                id: id,
+                label: label,
+                topologyId: state.get('currentTopologyId')
+              });
+            }
+          }
+        }
 
         // apply pinned searches, filters nodes that dont match
         state = (0, _searchUtils.applyPinnedSearches)(state);
@@ -35101,7 +35164,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var circularOffsetAngle = Math.PI / 4;
 
 // make sure circular layouts a bit denser with 3-6 nodes
-var radiusDensity = (0, _d3Scale.scaleThreshold)().domain([3, 6]).range([2.5, 3, 2.5]);
+var radiusDensity = (0, _d3Scale.scaleThreshold)().domain([3, 6]).range([3.5, 4, 3.5]);
 
 var translationToViewportCenterSelector = (0, _reselect.createSelector)([_canvas.canvasDetailsHorizontalCenterSelector, _canvas.canvasDetailsVerticalCenterSelector, _zoom.graphZoomStateSelector], function (centerX, centerY, zoomState) {
   var _zoomState$toJS = zoomState.toJS(),
@@ -35110,8 +35173,9 @@ var translationToViewportCenterSelector = (0, _reselect.createSelector)([_canvas
       translateX = _zoomState$toJS.translateX,
       translateY = _zoomState$toJS.translateY;
 
+  var leftOffset = centerX * 0.5;
   return {
-    x: (-translateX + centerX) / scaleX,
+    x: (-translateX + leftOffset) / scaleX,
     y: (-translateY + centerY) / scaleY
   };
 });
@@ -70835,58 +70899,34 @@ function coerce(val) {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return alignPoint; });
 function ownKeys(object, enumerableOnly) {
   var keys = Object.keys(object);
-
   if (Object.getOwnPropertySymbols) {
     var symbols = Object.getOwnPropertySymbols(object);
-
-    if (enumerableOnly) {
-      symbols = symbols.filter(function (sym) {
-        return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-      });
-    }
-
-    keys.push.apply(keys, symbols);
+    enumerableOnly && (symbols = symbols.filter(function (sym) {
+      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+    })), keys.push.apply(keys, symbols);
   }
-
   return keys;
 }
-
 function _objectSpread2(target) {
   for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i] != null ? arguments[i] : {};
-
-    if (i % 2) {
-      ownKeys(Object(source), true).forEach(function (key) {
-        _defineProperty(target, key, source[key]);
-      });
-    } else if (Object.getOwnPropertyDescriptors) {
-      Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
-    } else {
-      ownKeys(Object(source)).forEach(function (key) {
-        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
-      });
-    }
+    var source = null != arguments[i] ? arguments[i] : {};
+    i % 2 ? ownKeys(Object(source), !0).forEach(function (key) {
+      _defineProperty(target, key, source[key]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)) : ownKeys(Object(source)).forEach(function (key) {
+      Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+    });
   }
-
   return target;
 }
-
 function _typeof(obj) {
   "@babel/helpers - typeof";
 
-  if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
-    _typeof = function (obj) {
-      return typeof obj;
-    };
-  } else {
-    _typeof = function (obj) {
-      return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-    };
-  }
-
-  return _typeof(obj);
+  return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) {
+    return typeof obj;
+  } : function (obj) {
+    return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+  }, _typeof(obj);
 }
-
 function _defineProperty(obj, key, value) {
   if (key in obj) {
     Object.defineProperty(obj, key, {
@@ -70898,7 +70938,6 @@ function _defineProperty(obj, key, value) {
   } else {
     obj[key] = value;
   }
-
   return obj;
 }
 
@@ -70910,63 +70949,50 @@ var jsCssMap = {
   ms: '-ms-',
   O: '-o-'
 };
-
 function getVendorPrefix() {
   if (vendorPrefix !== undefined) {
     return vendorPrefix;
   }
-
   vendorPrefix = '';
   var style = document.createElement('p').style;
   var testProp = 'Transform';
-
   for (var key in jsCssMap) {
     if (key + testProp in style) {
       vendorPrefix = key;
     }
   }
-
   return vendorPrefix;
 }
-
 function getTransitionName() {
   return getVendorPrefix() ? "".concat(getVendorPrefix(), "TransitionProperty") : 'transitionProperty';
 }
-
 function getTransformName() {
   return getVendorPrefix() ? "".concat(getVendorPrefix(), "Transform") : 'transform';
 }
 function setTransitionProperty(node, value) {
   var name = getTransitionName();
-
   if (name) {
     node.style[name] = value;
-
     if (name !== 'transitionProperty') {
       node.style.transitionProperty = value;
     }
   }
 }
-
 function setTransform(node, value) {
   var name = getTransformName();
-
   if (name) {
     node.style[name] = value;
-
     if (name !== 'transform') {
       node.style.transform = value;
     }
   }
 }
-
 function getTransitionProperty(node) {
   return node.style.transitionProperty || node.style[getTransitionName()];
 }
 function getTransformXY(node) {
   var style = window.getComputedStyle(node, null);
   var transform = style.getPropertyValue('transform') || style.getPropertyValue(getTransformName());
-
   if (transform && transform !== 'none') {
     var matrix = transform.replace(/[^0-9\-.,]/g, '').split(',');
     return {
@@ -70974,7 +71000,6 @@ function getTransformXY(node) {
       y: parseFloat(matrix[13] || matrix[5], 0)
     };
   }
-
   return {
     x: 0,
     y: 0
@@ -70985,11 +71010,9 @@ var matrix3d = /matrix3d\((.*)\)/;
 function setTransformXY(node, xy) {
   var style = window.getComputedStyle(node, null);
   var transform = style.getPropertyValue('transform') || style.getPropertyValue(getTransformName());
-
   if (transform && transform !== 'none') {
     var arr;
     var match2d = transform.match(matrix2d);
-
     if (match2d) {
       match2d = match2d[1];
       arr = match2d.split(',').map(function (item) {
@@ -71013,64 +71036,63 @@ function setTransformXY(node, xy) {
 }
 
 var RE_NUM = /[\-+]?(?:\d*\.|)\d+(?:[eE][\-+]?\d+|)/.source;
-var getComputedStyleX; // https://stackoverflow.com/a/3485654/3040605
+var getComputedStyleX;
 
+// https://stackoverflow.com/a/3485654/3040605
 function forceRelayout(elem) {
   var originalStyle = elem.style.display;
   elem.style.display = 'none';
   elem.offsetHeight; // eslint-disable-line
-
   elem.style.display = originalStyle;
 }
-
 function css(el, name, v) {
   var value = v;
-
   if (_typeof(name) === 'object') {
     for (var i in name) {
       if (name.hasOwnProperty(i)) {
         css(el, i, name[i]);
       }
     }
-
     return undefined;
   }
-
   if (typeof value !== 'undefined') {
     if (typeof value === 'number') {
       value = "".concat(value, "px");
     }
-
     el.style[name] = value;
     return undefined;
   }
-
   return getComputedStyleX(el, name);
 }
-
 function getClientPosition(elem) {
   var box;
   var x;
   var y;
   var doc = elem.ownerDocument;
   var body = doc.body;
-  var docElem = doc && doc.documentElement; // 根据 GBS 最新数据，A-Grade Browsers 都已支持 getBoundingClientRect 方法，不用再考虑传统的实现方式
+  var docElem = doc && doc.documentElement;
+  // 根据 GBS 最新数据，A-Grade Browsers 都已支持 getBoundingClientRect 方法，不用再考虑传统的实现方式
+  box = elem.getBoundingClientRect();
 
-  box = elem.getBoundingClientRect(); // 注：jQuery 还考虑减去 docElem.clientLeft/clientTop
+  // 注：jQuery 还考虑减去 docElem.clientLeft/clientTop
   // 但测试发现，这样反而会导致当 html 和 body 有边距/边框样式时，获取的值不正确
   // 此外，ie6 会忽略 html 的 margin 值，幸运地是没有谁会去设置 html 的 margin
 
-  x = box.left;
-  y = box.top; // In IE, most of the time, 2 extra pixels are added to the top and left
+  x = Math.floor(box.left);
+  y = Math.floor(box.top);
+
+  // In IE, most of the time, 2 extra pixels are added to the top and left
   // due to the implicit 2-pixel inset border.  In IE6/7 quirks mode and
   // IE6 standards mode, this border can be overridden by setting the
   // document element's border to zero -- thus, we cannot rely on the
   // offset always being 2 pixels.
+
   // In quirks mode, the offset can be determined by querying the body's
   // clientLeft/clientTop, but in standards mode, it is found by querying
   // the document element's clientLeft/clientTop.  Since we already called
   // getClientBoundingRect we have already forced a reflow, so it is not
   // too expensive just to query them all.
+
   // ie 下应该减去窗口的边框吧，毕竟默认 absolute 都是相对窗口定位的
   // 窗口边框标准是设 documentElement ,quirks 时设置 body
   // 最好禁止在 body 和 html 上边框 ，但 ie < 9 html 默认有 2px ，减去
@@ -71086,33 +71108,26 @@ function getClientPosition(elem) {
     top: y
   };
 }
-
 function getScroll(w, top) {
   var ret = w["page".concat(top ? 'Y' : 'X', "Offset")];
   var method = "scroll".concat(top ? 'Top' : 'Left');
-
   if (typeof ret !== 'number') {
-    var d = w.document; // ie6,7,8 standard mode
-
+    var d = w.document;
+    // ie6,7,8 standard mode
     ret = d.documentElement[method];
-
     if (typeof ret !== 'number') {
       // quirks mode
       ret = d.body[method];
     }
   }
-
   return ret;
 }
-
 function getScrollLeft(w) {
   return getScroll(w);
 }
-
 function getScrollTop(w) {
   return getScroll(w, true);
 }
-
 function getOffset(el) {
   var pos = getClientPosition(el);
   var doc = el.ownerDocument;
@@ -71121,95 +71136,86 @@ function getOffset(el) {
   pos.top += getScrollTop(w);
   return pos;
 }
+
 /**
  * A crude way of determining if an object is a window
  * @member util
  */
-
-
 function isWindow(obj) {
   // must use == for ie8
-
   /* eslint eqeqeq:0 */
   return obj !== null && obj !== undefined && obj == obj.window;
 }
-
 function getDocument(node) {
   if (isWindow(node)) {
     return node.document;
   }
-
   if (node.nodeType === 9) {
     return node;
   }
-
   return node.ownerDocument;
 }
-
 function _getComputedStyle(elem, name, cs) {
   var computedStyle = cs;
   var val = '';
   var d = getDocument(elem);
-  computedStyle = computedStyle || d.defaultView.getComputedStyle(elem, null); // https://github.com/kissyteam/kissy/issues/61
+  computedStyle = computedStyle || d.defaultView.getComputedStyle(elem, null);
 
+  // https://github.com/kissyteam/kissy/issues/61
   if (computedStyle) {
     val = computedStyle.getPropertyValue(name) || computedStyle[name];
   }
-
   return val;
 }
-
 var _RE_NUM_NO_PX = new RegExp("^(".concat(RE_NUM, ")(?!px)[a-z%]+$"), 'i');
-
 var RE_POS = /^(top|right|bottom|left)$/;
 var CURRENT_STYLE = 'currentStyle';
 var RUNTIME_STYLE = 'runtimeStyle';
 var LEFT = 'left';
 var PX = 'px';
-
 function _getComputedStyleIE(elem, name) {
   // currentStyle maybe null
   // http://msdn.microsoft.com/en-us/library/ms535231.aspx
-  var ret = elem[CURRENT_STYLE] && elem[CURRENT_STYLE][name]; // 当 width/height 设置为百分比时，通过 pixelLeft 方式转换的 width/height 值
+  var ret = elem[CURRENT_STYLE] && elem[CURRENT_STYLE][name];
+
+  // 当 width/height 设置为百分比时，通过 pixelLeft 方式转换的 width/height 值
   // 一开始就处理了! CUSTOM_STYLE.height,CUSTOM_STYLE.width ,cssHook 解决@2011-08-19
   // 在 ie 下不对，需要直接用 offset 方式
   // borderWidth 等值也有问题，但考虑到 borderWidth 设为百分比的概率很小，这里就不考虑了
+
   // From the awesome hack by Dean Edwards
   // http://erik.eae.net/archives/2007/07/27/18.54.15/#comment-102291
   // If we're not dealing with a regular pixel number
   // but a number that has a weird ending, we need to convert it to pixels
   // exclude left right for relativity
-
   if (_RE_NUM_NO_PX.test(ret) && !RE_POS.test(name)) {
     // Remember the original values
     var style = elem.style;
     var left = style[LEFT];
-    var rsLeft = elem[RUNTIME_STYLE][LEFT]; // prevent flashing of content
+    var rsLeft = elem[RUNTIME_STYLE][LEFT];
 
-    elem[RUNTIME_STYLE][LEFT] = elem[CURRENT_STYLE][LEFT]; // Put in the new values to get a computed value out
+    // prevent flashing of content
+    elem[RUNTIME_STYLE][LEFT] = elem[CURRENT_STYLE][LEFT];
 
+    // Put in the new values to get a computed value out
     style[LEFT] = name === 'fontSize' ? '1em' : ret || 0;
-    ret = style.pixelLeft + PX; // Revert the changed values
+    ret = style.pixelLeft + PX;
 
+    // Revert the changed values
     style[LEFT] = left;
     elem[RUNTIME_STYLE][LEFT] = rsLeft;
   }
-
   return ret === '' ? 'auto' : ret;
 }
-
 if (typeof window !== 'undefined') {
   getComputedStyleX = window.getComputedStyle ? _getComputedStyle : _getComputedStyleIE;
 }
-
 function getOffsetDirection(dir, option) {
   if (dir === 'left') {
     return option.useCssRight ? 'right' : dir;
   }
-
   return option.useCssBottom ? 'bottom' : dir;
 }
-
 function oppositeOffsetDirection(dir) {
   if (dir === 'left') {
     return 'right';
@@ -71220,59 +71226,49 @@ function oppositeOffsetDirection(dir) {
   } else if (dir === 'bottom') {
     return 'top';
   }
-} // 设置 elem 相对 elem.ownerDocument 的坐标
+}
 
-
+// 设置 elem 相对 elem.ownerDocument 的坐标
 function setLeftTop(elem, offset, option) {
   // set position first, in-case top/left are set even on static elem
   if (css(elem, 'position') === 'static') {
     elem.style.position = 'relative';
   }
-
   var presetH = -999;
   var presetV = -999;
   var horizontalProperty = getOffsetDirection('left', option);
   var verticalProperty = getOffsetDirection('top', option);
   var oppositeHorizontalProperty = oppositeOffsetDirection(horizontalProperty);
   var oppositeVerticalProperty = oppositeOffsetDirection(verticalProperty);
-
   if (horizontalProperty !== 'left') {
     presetH = 999;
   }
-
   if (verticalProperty !== 'top') {
     presetV = 999;
   }
-
   var originalTransition = '';
   var originalOffset = getOffset(elem);
-
   if ('left' in offset || 'top' in offset) {
     originalTransition = getTransitionProperty(elem) || '';
     setTransitionProperty(elem, 'none');
   }
-
   if ('left' in offset) {
     elem.style[oppositeHorizontalProperty] = '';
     elem.style[horizontalProperty] = "".concat(presetH, "px");
   }
-
   if ('top' in offset) {
     elem.style[oppositeVerticalProperty] = '';
     elem.style[verticalProperty] = "".concat(presetV, "px");
-  } // force relayout
-
-
+  }
+  // force relayout
   forceRelayout(elem);
   var old = getOffset(elem);
   var originalStyle = {};
-
   for (var key in offset) {
     if (offset.hasOwnProperty(key)) {
       var dir = getOffsetDirection(key, option);
       var preset = key === 'left' ? presetH : presetV;
       var off = originalOffset[key] - old[key];
-
       if (dir === key) {
         originalStyle[dir] = preset + off;
       } else {
@@ -71280,23 +71276,17 @@ function setLeftTop(elem, offset, option) {
       }
     }
   }
-
-  css(elem, originalStyle); // force relayout
-
+  css(elem, originalStyle);
+  // force relayout
   forceRelayout(elem);
-
   if ('left' in offset || 'top' in offset) {
     setTransitionProperty(elem, originalTransition);
   }
-
   var ret = {};
-
   for (var _key in offset) {
     if (offset.hasOwnProperty(_key)) {
       var _dir = getOffsetDirection(_key, option);
-
       var _off = offset[_key] - originalOffset[_key];
-
       if (_key === _dir) {
         ret[_dir] = originalStyle[_dir] + _off;
       } else {
@@ -71304,10 +71294,8 @@ function setLeftTop(elem, offset, option) {
       }
     }
   }
-
   css(elem, ret);
 }
-
 function setTransform$1(elem, offset) {
   var originalOffset = getOffset(elem);
   var originalXY = getTransformXY(elem);
@@ -71315,18 +71303,14 @@ function setTransform$1(elem, offset) {
     x: originalXY.x,
     y: originalXY.y
   };
-
   if ('left' in offset) {
     resultXY.x = originalXY.x + offset.left - originalOffset.left;
   }
-
   if ('top' in offset) {
     resultXY.y = originalXY.y + offset.top - originalOffset.top;
   }
-
   setTransformXY(elem, resultXY);
 }
-
 function setOffset(elem, offset, option) {
   if (option.ignoreShake) {
     var oriOffset = getOffset(elem);
@@ -71334,12 +71318,10 @@ function setOffset(elem, offset, option) {
     var oTop = oriOffset.top.toFixed(0);
     var tLeft = offset.left.toFixed(0);
     var tTop = offset.top.toFixed(0);
-
     if (oLeft === tLeft && oTop === tTop) {
       return;
     }
   }
-
   if (option.useCssRight || option.useCssBottom) {
     setLeftTop(elem, offset, option);
   } else if (option.useCssTransform && getTransformName() in document.body.style) {
@@ -71348,75 +71330,64 @@ function setOffset(elem, offset, option) {
     setLeftTop(elem, offset, option);
   }
 }
-
 function each(arr, fn) {
   for (var i = 0; i < arr.length; i++) {
     fn(arr[i]);
   }
 }
-
 function isBorderBoxFn(elem) {
   return getComputedStyleX(elem, 'boxSizing') === 'border-box';
 }
-
 var BOX_MODELS = ['margin', 'border', 'padding'];
 var CONTENT_INDEX = -1;
 var PADDING_INDEX = 2;
 var BORDER_INDEX = 1;
 var MARGIN_INDEX = 0;
-
 function swap(elem, options, callback) {
   var old = {};
   var style = elem.style;
-  var name; // Remember the old values, and insert the new ones
+  var name;
 
+  // Remember the old values, and insert the new ones
   for (name in options) {
     if (options.hasOwnProperty(name)) {
       old[name] = style[name];
       style[name] = options[name];
     }
   }
+  callback.call(elem);
 
-  callback.call(elem); // Revert the old values
-
+  // Revert the old values
   for (name in options) {
     if (options.hasOwnProperty(name)) {
       style[name] = old[name];
     }
   }
 }
-
 function getPBMWidth(elem, props, which) {
   var value = 0;
   var prop;
   var j;
   var i;
-
   for (j = 0; j < props.length; j++) {
     prop = props[j];
-
     if (prop) {
       for (i = 0; i < which.length; i++) {
         var cssProp = void 0;
-
         if (prop === 'border') {
           cssProp = "".concat(prop).concat(which[i], "Width");
         } else {
           cssProp = prop + which[i];
         }
-
         value += parseFloat(getComputedStyleX(elem, cssProp)) || 0;
       }
     }
   }
-
   return value;
 }
-
 var domUtils = {
   getParent: function getParent(element) {
     var parent = element;
-
     do {
       if (parent.nodeType === 11 && parent.host) {
         parent = parent.host;
@@ -71424,31 +71395,32 @@ var domUtils = {
         parent = parent.parentNode;
       }
     } while (parent && parent.nodeType !== 1 && parent.nodeType !== 9);
-
     return parent;
   }
 };
 each(['Width', 'Height'], function (name) {
   domUtils["doc".concat(name)] = function (refWin) {
     var d = refWin.document;
-    return Math.max( // firefox chrome documentElement.scrollHeight< body.scrollHeight
+    return Math.max(
+    // firefox chrome documentElement.scrollHeight< body.scrollHeight
     // ie standard mode : documentElement.scrollHeight> body.scrollHeight
-    d.documentElement["scroll".concat(name)], // quirks : documentElement.scrollHeight 最大等于可视窗口多一点？
+    d.documentElement["scroll".concat(name)],
+    // quirks : documentElement.scrollHeight 最大等于可视窗口多一点？
     d.body["scroll".concat(name)], domUtils["viewport".concat(name)](d));
   };
-
   domUtils["viewport".concat(name)] = function (win) {
     // pc browser includes scrollbar in window.innerWidth
     var prop = "client".concat(name);
     var doc = win.document;
     var body = doc.body;
     var documentElement = doc.documentElement;
-    var documentElementProp = documentElement[prop]; // 标准模式取 documentElement
+    var documentElementProp = documentElement[prop];
+    // 标准模式取 documentElement
     // backcompat 取 body
-
     return doc.compatMode === 'CSS1Compat' && documentElementProp || body && body[prop] || documentElementProp;
   };
 });
+
 /*
  得到元素的大小信息
  @param elem
@@ -71457,73 +71429,60 @@ each(['Width', 'Height'], function (name) {
  'border' : (css width) + padding + border
  'margin' : (css width) + padding + border + margin
  */
-
 function getWH(elem, name, ex) {
   var extra = ex;
-
   if (isWindow(elem)) {
     return name === 'width' ? domUtils.viewportWidth(elem) : domUtils.viewportHeight(elem);
   } else if (elem.nodeType === 9) {
     return name === 'width' ? domUtils.docWidth(elem) : domUtils.docHeight(elem);
   }
-
   var which = name === 'width' ? ['Left', 'Right'] : ['Top', 'Bottom'];
-  var borderBoxValue = name === 'width' ? elem.getBoundingClientRect().width : elem.getBoundingClientRect().height;
+  var borderBoxValue = name === 'width' ? Math.floor(elem.getBoundingClientRect().width) : Math.floor(elem.getBoundingClientRect().height);
   var isBorderBox = isBorderBoxFn(elem);
   var cssBoxValue = 0;
-
   if (borderBoxValue === null || borderBoxValue === undefined || borderBoxValue <= 0) {
-    borderBoxValue = undefined; // Fall back to computed then un computed css if necessary
-
+    borderBoxValue = undefined;
+    // Fall back to computed then un computed css if necessary
     cssBoxValue = getComputedStyleX(elem, name);
-
     if (cssBoxValue === null || cssBoxValue === undefined || Number(cssBoxValue) < 0) {
       cssBoxValue = elem.style[name] || 0;
-    } // Normalize '', auto, and prepare for extra
-
-
-    cssBoxValue = parseFloat(cssBoxValue) || 0;
+    }
+    // Normalize '', auto, and prepare for extra
+    cssBoxValue = Math.floor(parseFloat(cssBoxValue)) || 0;
   }
-
   if (extra === undefined) {
     extra = isBorderBox ? BORDER_INDEX : CONTENT_INDEX;
   }
-
   var borderBoxValueOrIsBorderBox = borderBoxValue !== undefined || isBorderBox;
   var val = borderBoxValue || cssBoxValue;
-
   if (extra === CONTENT_INDEX) {
     if (borderBoxValueOrIsBorderBox) {
       return val - getPBMWidth(elem, ['border', 'padding'], which);
     }
-
     return cssBoxValue;
   } else if (borderBoxValueOrIsBorderBox) {
     if (extra === BORDER_INDEX) {
       return val;
     }
-
     return val + (extra === PADDING_INDEX ? -getPBMWidth(elem, ['border'], which) : getPBMWidth(elem, ['margin'], which));
   }
-
   return cssBoxValue + getPBMWidth(elem, BOX_MODELS.slice(extra), which);
 }
-
 var cssShow = {
   position: 'absolute',
   visibility: 'hidden',
   display: 'block'
-}; // fix #119 : https://github.com/kissyteam/kissy/issues/119
+};
 
+// fix #119 : https://github.com/kissyteam/kissy/issues/119
 function getWHIgnoreDisplay() {
   for (var _len = arguments.length, args = new Array(_len), _key2 = 0; _key2 < _len; _key2++) {
     args[_key2] = arguments[_key2];
   }
-
   var val;
-  var elem = args[0]; // in case elem is window
+  var elem = args[0];
+  // in case elem is window
   // elem.offsetWidth === undefined
-
   if (elem.offsetWidth !== 0) {
     val = getWH.apply(undefined, args);
   } else {
@@ -71531,56 +71490,42 @@ function getWHIgnoreDisplay() {
       val = getWH.apply(undefined, args);
     });
   }
-
   return val;
 }
-
 each(['width', 'height'], function (name) {
   var first = name.charAt(0).toUpperCase() + name.slice(1);
-
   domUtils["outer".concat(first)] = function (el, includeMargin) {
     return el && getWHIgnoreDisplay(el, name, includeMargin ? MARGIN_INDEX : BORDER_INDEX);
   };
-
   var which = name === 'width' ? ['Left', 'Right'] : ['Top', 'Bottom'];
-
   domUtils[name] = function (elem, v) {
     var val = v;
-
     if (val !== undefined) {
       if (elem) {
         var isBorderBox = isBorderBoxFn(elem);
-
         if (isBorderBox) {
           val += getPBMWidth(elem, ['padding', 'border'], which);
         }
-
         return css(elem, name, val);
       }
-
       return undefined;
     }
-
     return elem && getWHIgnoreDisplay(elem, name, CONTENT_INDEX);
   };
 });
-
 function mix(to, from) {
   for (var i in from) {
     if (from.hasOwnProperty(i)) {
       to[i] = from[i];
     }
   }
-
   return to;
 }
-
 var utils = {
   getWindow: function getWindow(node) {
     if (node && node.document && node.setTimeout) {
       return node;
     }
-
     var doc = node.ownerDocument || node;
     return doc.defaultView || doc.parentWindow;
   },
@@ -71598,15 +71543,12 @@ var utils = {
   clone: function clone(obj) {
     var i;
     var ret = {};
-
     for (i in obj) {
       if (obj.hasOwnProperty(i)) {
         ret[i] = obj[i];
       }
     }
-
     var overflow = obj.overflow;
-
     if (overflow) {
       for (i in obj) {
         if (obj.hasOwnProperty(i)) {
@@ -71614,7 +71556,6 @@ var utils = {
         }
       }
     }
-
     return ret;
   },
   mix: mix,
@@ -71626,11 +71567,9 @@ var utils = {
   },
   merge: function merge() {
     var ret = {};
-
     for (var i = 0; i < arguments.length; i++) {
       utils.mix(ret, i < 0 || arguments.length <= i ? undefined : arguments[i]);
     }
-
     return ret;
   },
   viewportWidth: 0,
@@ -71641,14 +71580,12 @@ mix(utils, domUtils);
 /**
  * 得到会导致元素显示不全的祖先元素
  */
-
 var getParent = utils.getParent;
-
 function getOffsetParent(element) {
   if (utils.isWindow(element) || element.nodeType === 9) {
     return null;
-  } // ie 这个也不是完全可行
-
+  }
+  // ie 这个也不是完全可行
   /*
    <div style="width: 50px;height: 100px;overflow: hidden">
    <div style="width: 50px;height: 100px;position: relative;" id="d6">
@@ -71663,26 +71600,20 @@ function getOffsetParent(element) {
   //            return element.offsetParent;
   //        }
   // 统一的 offsetParent 方法
-
-
   var doc = utils.getDocument(element);
   var body = doc.body;
   var parent;
   var positionStyle = utils.css(element, 'position');
   var skipStatic = positionStyle === 'fixed' || positionStyle === 'absolute';
-
   if (!skipStatic) {
     return element.nodeName.toLowerCase() === 'html' ? null : getParent(element);
   }
-
   for (parent = getParent(element); parent && parent !== body && parent.nodeType !== 9; parent = getParent(parent)) {
     positionStyle = utils.css(parent, 'position');
-
     if (positionStyle !== 'static') {
       return parent;
     }
   }
-
   return null;
 }
 
@@ -71691,27 +71622,23 @@ function isAncestorFixed(element) {
   if (utils.isWindow(element) || element.nodeType === 9) {
     return false;
   }
-
   var doc = utils.getDocument(element);
   var body = doc.body;
   var parent = null;
-
-  for (parent = getParent$1(element); // 修复元素位于 document.documentElement 下导致崩溃问题
+  for (parent = getParent$1(element);
+  // 修复元素位于 document.documentElement 下导致崩溃问题
   parent && parent !== body && parent !== doc; parent = getParent$1(parent)) {
     var positionStyle = utils.css(parent, 'position');
-
     if (positionStyle === 'fixed') {
       return true;
     }
   }
-
   return false;
 }
 
 /**
  * 获得元素的显示部分的区域
  */
-
 function getVisibleRectForElement(element, alwaysByViewport) {
   var visibleRect = {
     left: 0,
@@ -71723,68 +71650,65 @@ function getVisibleRectForElement(element, alwaysByViewport) {
   var doc = utils.getDocument(element);
   var win = doc.defaultView || doc.parentWindow;
   var body = doc.body;
-  var documentElement = doc.documentElement; // Determine the size of the visible rect by climbing the dom accounting for
-  // all scrollable containers.
+  var documentElement = doc.documentElement;
 
+  // Determine the size of the visible rect by climbing the dom accounting for
+  // all scrollable containers.
   while (el) {
     // clientWidth is zero for inline block elements in ie.
-    if ((navigator.userAgent.indexOf('MSIE') === -1 || el.clientWidth !== 0) && // body may have overflow set on it, yet we still get the entire
+    if ((navigator.userAgent.indexOf('MSIE') === -1 || el.clientWidth !== 0) &&
+    // body may have overflow set on it, yet we still get the entire
     // viewport. In some browsers, el.offsetParent may be
     // document.documentElement, so check for that too.
     el !== body && el !== documentElement && utils.css(el, 'overflow') !== 'visible') {
-      var pos = utils.offset(el); // add border
-
+      var pos = utils.offset(el);
+      // add border
       pos.left += el.clientLeft;
       pos.top += el.clientTop;
       visibleRect.top = Math.max(visibleRect.top, pos.top);
-      visibleRect.right = Math.min(visibleRect.right, // consider area without scrollBar
+      visibleRect.right = Math.min(visibleRect.right,
+      // consider area without scrollBar
       pos.left + el.clientWidth);
       visibleRect.bottom = Math.min(visibleRect.bottom, pos.top + el.clientHeight);
       visibleRect.left = Math.max(visibleRect.left, pos.left);
     } else if (el === body || el === documentElement) {
       break;
     }
-
     el = getOffsetParent(el);
-  } // Set element position to fixed
+  }
+
+  // Set element position to fixed
   // make sure absolute element itself don't affect it's visible area
   // https://github.com/ant-design/ant-design/issues/7601
-
-
   var originalPosition = null;
-
   if (!utils.isWindow(element) && element.nodeType !== 9) {
     originalPosition = element.style.position;
     var position = utils.css(element, 'position');
-
     if (position === 'absolute') {
       element.style.position = 'fixed';
     }
   }
-
   var scrollX = utils.getWindowScrollLeft(win);
   var scrollY = utils.getWindowScrollTop(win);
   var viewportWidth = utils.viewportWidth(win);
   var viewportHeight = utils.viewportHeight(win);
   var documentWidth = documentElement.scrollWidth;
-  var documentHeight = documentElement.scrollHeight; // scrollXXX on html is sync with body which means overflow: hidden on body gets wrong scrollXXX.
+  var documentHeight = documentElement.scrollHeight;
+
+  // scrollXXX on html is sync with body which means overflow: hidden on body gets wrong scrollXXX.
   // We should cut this ourself.
-
   var bodyStyle = window.getComputedStyle(body);
-
   if (bodyStyle.overflowX === 'hidden') {
     documentWidth = win.innerWidth;
   }
-
   if (bodyStyle.overflowY === 'hidden') {
     documentHeight = win.innerHeight;
-  } // Reset element position after calculate the visible area
+  }
 
-
+  // Reset element position after calculate the visible area
   if (element.style) {
     element.style.position = originalPosition;
   }
-
   if (alwaysByViewport || isAncestorFixed(element)) {
     // Clip by viewport's size.
     visibleRect.left = Math.max(visibleRect.left, scrollX);
@@ -71798,7 +71722,6 @@ function getVisibleRectForElement(element, alwaysByViewport) {
     var maxVisibleHeight = Math.max(documentHeight, scrollY + viewportHeight);
     visibleRect.bottom = Math.min(visibleRect.bottom, maxVisibleHeight);
   }
-
   return visibleRect.top >= 0 && visibleRect.left >= 0 && visibleRect.bottom > visibleRect.top && visibleRect.right > visibleRect.left ? visibleRect : null;
 }
 
@@ -71808,38 +71731,36 @@ function adjustForViewport(elFuturePos, elRegion, visibleRect, overflow) {
     width: elRegion.width,
     height: elRegion.height
   };
-
   if (overflow.adjustX && pos.left < visibleRect.left) {
     pos.left = visibleRect.left;
-  } // Left edge inside and right edge outside viewport, try to resize it.
+  }
 
-
+  // Left edge inside and right edge outside viewport, try to resize it.
   if (overflow.resizeWidth && pos.left >= visibleRect.left && pos.left + size.width > visibleRect.right) {
     size.width -= pos.left + size.width - visibleRect.right;
-  } // Right edge outside viewport, try to move it.
+  }
 
-
+  // Right edge outside viewport, try to move it.
   if (overflow.adjustX && pos.left + size.width > visibleRect.right) {
     // 保证左边界和可视区域左边界对齐
     pos.left = Math.max(visibleRect.right - size.width, visibleRect.left);
-  } // Top edge outside viewport, try to move it.
+  }
 
-
+  // Top edge outside viewport, try to move it.
   if (overflow.adjustY && pos.top < visibleRect.top) {
     pos.top = visibleRect.top;
-  } // Top edge inside and bottom edge outside viewport, try to resize it.
+  }
 
-
+  // Top edge inside and bottom edge outside viewport, try to resize it.
   if (overflow.resizeHeight && pos.top >= visibleRect.top && pos.top + size.height > visibleRect.bottom) {
     size.height -= pos.top + size.height - visibleRect.bottom;
-  } // Bottom edge outside viewport, try to move it.
+  }
 
-
+  // Bottom edge outside viewport, try to move it.
   if (overflow.adjustY && pos.top + size.height > visibleRect.bottom) {
     // 保证上边界和可视区域上边界对齐
     pos.top = Math.max(visibleRect.bottom - size.height, visibleRect.top);
   }
-
   return utils.mix(pos, size);
 }
 
@@ -71847,7 +71768,6 @@ function getRegion(node) {
   var offset;
   var w;
   var h;
-
   if (!utils.isWindow(node) && node.nodeType !== 9) {
     offset = utils.offset(node);
     w = utils.outerWidth(node);
@@ -71861,7 +71781,6 @@ function getRegion(node) {
     w = utils.viewportWidth(win);
     h = utils.viewportHeight(win);
   }
-
   offset.width = w;
   offset.height = h;
   return offset;
@@ -71870,6 +71789,7 @@ function getRegion(node) {
 /**
  * 获取 node 上的 align 对齐点 相对于页面的坐标
  */
+
 function getAlignOffset(region, align) {
   var V = align.charAt(0);
   var H = align.charAt(1);
@@ -71877,19 +71797,16 @@ function getAlignOffset(region, align) {
   var h = region.height;
   var x = region.left;
   var y = region.top;
-
   if (V === 'c') {
     y += h / 2;
   } else if (V === 'b') {
     y += h;
   }
-
   if (H === 'c') {
     x += w / 2;
   } else if (H === 'r') {
     x += w;
   }
-
   return {
     left: x,
     top: y
@@ -71911,22 +71828,20 @@ function getElFuturePos(elRegion, refNodeRegion, points, offset, targetOffset) {
  * @author yiminghe@gmail.com
  */
 
+// http://yiminghe.iteye.com/blog/1124720
+
 function isFailX(elFuturePos, elRegion, visibleRect) {
   return elFuturePos.left < visibleRect.left || elFuturePos.left + elRegion.width > visibleRect.right;
 }
-
 function isFailY(elFuturePos, elRegion, visibleRect) {
   return elFuturePos.top < visibleRect.top || elFuturePos.top + elRegion.height > visibleRect.bottom;
 }
-
 function isCompleteFailX(elFuturePos, elRegion, visibleRect) {
   return elFuturePos.left > visibleRect.right || elFuturePos.left + elRegion.width < visibleRect.left;
 }
-
 function isCompleteFailY(elFuturePos, elRegion, visibleRect) {
   return elFuturePos.top > visibleRect.bottom || elFuturePos.top + elRegion.height < visibleRect.top;
 }
-
 function flip(points, reg, map) {
   var ret = [];
   utils.each(points, function (p) {
@@ -71936,35 +71851,29 @@ function flip(points, reg, map) {
   });
   return ret;
 }
-
 function flipOffset(offset, index) {
   offset[index] = -offset[index];
   return offset;
 }
-
 function convertOffset(str, offsetLen) {
   var n;
-
   if (/%$/.test(str)) {
     n = parseInt(str.substring(0, str.length - 1), 10) / 100 * offsetLen;
   } else {
     n = parseInt(str, 10);
   }
-
   return n || 0;
 }
-
 function normalizeOffset(offset, el) {
   offset[0] = convertOffset(offset[0], el.width);
   offset[1] = convertOffset(offset[1], el.height);
 }
+
 /**
  * @param el
  * @param tgtRegion 参照节点所占的区域: { left, top, width, height }
  * @param align
  */
-
-
 function doAlign(el, tgtRegion, align, isTgtRegionVisible) {
   var points = align.points;
   var offset = align.offset || [0, 0];
@@ -71976,19 +71885,20 @@ function doAlign(el, tgtRegion, align, isTgtRegionVisible) {
   overflow = overflow || {};
   var newOverflowCfg = {};
   var fail = 0;
-  var alwaysByViewport = !!(overflow && overflow.alwaysByViewport); // 当前节点可以被放置的显示区域
-
-  var visibleRect = getVisibleRectForElement(source, alwaysByViewport); // 当前节点所占的区域, left/top/width/height
-
-  var elRegion = getRegion(source); // 将 offset 转换成数值，支持百分比
-
+  var alwaysByViewport = !!(overflow && overflow.alwaysByViewport);
+  // 当前节点可以被放置的显示区域
+  var visibleRect = getVisibleRectForElement(source, alwaysByViewport);
+  // 当前节点所占的区域, left/top/width/height
+  var elRegion = getRegion(source);
+  // 将 offset 转换成数值，支持百分比
   normalizeOffset(offset, elRegion);
-  normalizeOffset(targetOffset, tgtRegion); // 当前节点将要被放置的位置
+  normalizeOffset(targetOffset, tgtRegion);
+  // 当前节点将要被放置的位置
+  var elFuturePos = getElFuturePos(elRegion, tgtRegion, points, offset, targetOffset);
+  // 当前节点将要所处的区域
+  var newElRegion = utils.merge(elRegion, elFuturePos);
 
-  var elFuturePos = getElFuturePos(elRegion, tgtRegion, points, offset, targetOffset); // 当前节点将要所处的区域
-
-  var newElRegion = utils.merge(elRegion, elFuturePos); // 如果可视区域不能完全放置当前节点时允许调整
-
+  // 如果可视区域不能完全放置当前节点时允许调整
   if (visibleRect && (overflow.adjustX || overflow.adjustY) && isTgtRegionVisible) {
     if (overflow.adjustX) {
       // 如果横向不能放下
@@ -71997,12 +71907,11 @@ function doAlign(el, tgtRegion, align, isTgtRegionVisible) {
         var newPoints = flip(points, /[lr]/gi, {
           l: 'r',
           r: 'l'
-        }); // 偏移量也反下
-
+        });
+        // 偏移量也反下
         var newOffset = flipOffset(offset, 0);
         var newTargetOffset = flipOffset(targetOffset, 0);
         var newElFuturePos = getElFuturePos(elRegion, tgtRegion, newPoints, newOffset, newTargetOffset);
-
         if (!isCompleteFailX(newElFuturePos, elRegion, visibleRect)) {
           fail = 1;
           points = newPoints;
@@ -72011,7 +71920,6 @@ function doAlign(el, tgtRegion, align, isTgtRegionVisible) {
         }
       }
     }
-
     if (overflow.adjustY) {
       // 如果纵向不能放下
       if (isFailY(elFuturePos, elRegion, visibleRect)) {
@@ -72019,15 +71927,11 @@ function doAlign(el, tgtRegion, align, isTgtRegionVisible) {
         var _newPoints = flip(points, /[tb]/gi, {
           t: 'b',
           b: 't'
-        }); // 偏移量也反下
-
-
+        });
+        // 偏移量也反下
         var _newOffset = flipOffset(offset, 1);
-
         var _newTargetOffset = flipOffset(targetOffset, 1);
-
         var _newElFuturePos = getElFuturePos(elRegion, tgtRegion, _newPoints, _newOffset, _newTargetOffset);
-
         if (!isCompleteFailY(_newElFuturePos, elRegion, visibleRect)) {
           fail = 1;
           points = _newPoints;
@@ -72035,61 +71939,58 @@ function doAlign(el, tgtRegion, align, isTgtRegionVisible) {
           targetOffset = _newTargetOffset;
         }
       }
-    } // 如果失败，重新计算当前节点将要被放置的位置
+    }
 
-
+    // 如果失败，重新计算当前节点将要被放置的位置
     if (fail) {
       elFuturePos = getElFuturePos(elRegion, tgtRegion, points, offset, targetOffset);
       utils.mix(newElRegion, elFuturePos);
     }
-
     var isStillFailX = isFailX(elFuturePos, elRegion, visibleRect);
-    var isStillFailY = isFailY(elFuturePos, elRegion, visibleRect); // 检查反下后的位置是否可以放下了，如果仍然放不下：
+    var isStillFailY = isFailY(elFuturePos, elRegion, visibleRect);
+    // 检查反下后的位置是否可以放下了，如果仍然放不下：
     // 1. 复原修改过的定位参数
-
     if (isStillFailX || isStillFailY) {
-      var _newPoints2 = points; // 重置对应部分的翻转逻辑
+      var _newPoints2 = points;
 
+      // 重置对应部分的翻转逻辑
       if (isStillFailX) {
         _newPoints2 = flip(points, /[lr]/gi, {
           l: 'r',
           r: 'l'
         });
       }
-
       if (isStillFailY) {
         _newPoints2 = flip(points, /[tb]/gi, {
           t: 'b',
           b: 't'
         });
       }
-
       points = _newPoints2;
       offset = align.offset || [0, 0];
       targetOffset = align.targetOffset || [0, 0];
-    } // 2. 只有指定了可以调整当前方向才调整
-
-
+    }
+    // 2. 只有指定了可以调整当前方向才调整
     newOverflowCfg.adjustX = overflow.adjustX && isStillFailX;
-    newOverflowCfg.adjustY = overflow.adjustY && isStillFailY; // 确实要调整，甚至可能会调整高度宽度
+    newOverflowCfg.adjustY = overflow.adjustY && isStillFailY;
 
+    // 确实要调整，甚至可能会调整高度宽度
     if (newOverflowCfg.adjustX || newOverflowCfg.adjustY) {
       newElRegion = adjustForViewport(elFuturePos, elRegion, visibleRect, newOverflowCfg);
     }
-  } // need judge to in case set fixed with in css on height auto element
+  }
 
-
+  // need judge to in case set fixed with in css on height auto element
   if (newElRegion.width !== elRegion.width) {
     utils.css(source, 'width', utils.width(source) + newElRegion.width - elRegion.width);
   }
-
   if (newElRegion.height !== elRegion.height) {
     utils.css(source, 'height', utils.height(source) + newElRegion.height - elRegion.height);
-  } // https://github.com/kissyteam/kissy/issues/190
+  }
+
+  // https://github.com/kissyteam/kissy/issues/190
   // 相对于屏幕位置没变，而 left/top 变了
   // 例如 <div 'relative'><el absolute></div>
-
-
   utils.offset(source, {
     left: newElRegion.left,
     top: newElRegion.top
@@ -72120,14 +72021,12 @@ function isOutOfVisibleRect(target, alwaysByViewport) {
   var targetRegion = getRegion(target);
   return !visibleRect || targetRegion.left + targetRegion.width <= visibleRect.left || targetRegion.top + targetRegion.height <= visibleRect.top || targetRegion.left >= visibleRect.right || targetRegion.top >= visibleRect.bottom;
 }
-
 function alignElement(el, refNode, align) {
   var target = align.target || refNode;
   var refNodeRegion = getRegion(target);
   var isTargetNotOutOfVisible = !isOutOfVisibleRect(target, align.overflow && align.overflow.alwaysByViewport);
   return doAlign(el, refNodeRegion, align, isTargetNotOutOfVisible);
 }
-
 alignElement.__getOffsetParent = getOffsetParent;
 alignElement.__getVisibleRectForElement = getVisibleRectForElement;
 
@@ -72145,27 +72044,25 @@ function alignPoint(el, tgtPoint, align) {
   var scrollY = utils.getWindowScrollTop(win);
   var viewportWidth = utils.viewportWidth(win);
   var viewportHeight = utils.viewportHeight(win);
-
   if ('pageX' in tgtPoint) {
     pageX = tgtPoint.pageX;
   } else {
     pageX = scrollX + tgtPoint.clientX;
   }
-
   if ('pageY' in tgtPoint) {
     pageY = tgtPoint.pageY;
   } else {
     pageY = scrollY + tgtPoint.clientY;
   }
-
   var tgtRegion = {
     left: pageX,
     top: pageY,
     width: 0,
     height: 0
   };
-  var pointInView = pageX >= 0 && pageX <= scrollX + viewportWidth && pageY >= 0 && pageY <= scrollY + viewportHeight; // Provide default target point
+  var pointInView = pageX >= 0 && pageX <= scrollX + viewportWidth && pageY >= 0 && pageY <= scrollY + viewportHeight;
 
+  // Provide default target point
   var points = [align.points[0], 'cc'];
   return doAlign(el, tgtRegion, _objectSpread2(_objectSpread2({}, align), {}, {
     points: points

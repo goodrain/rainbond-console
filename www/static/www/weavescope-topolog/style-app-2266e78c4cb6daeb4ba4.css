@@ -6130,8 +6130,8 @@
   -ms-flex-direction: column;
       flex-direction: column;
   padding: 10px 10px 5px;
-  bottom: 50px;
-  right: 40px; }
+  top: 74px;
+  left: 0; }
   .zoom-control .zoom-in, .zoom-control .zoom-out {
     color: #5b5b88;
     cursor: pointer;
@@ -6308,7 +6308,7 @@
 .icon-wangzhi:before {
   content: "\E68D"; }
 svg {
-  background-color: #FFF;
+  /* background-color: #FFF; */
   cursor: default;
   -webkit-user-select: none;
   -ms-user-select: none;
