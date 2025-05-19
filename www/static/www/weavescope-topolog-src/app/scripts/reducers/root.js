@@ -681,30 +681,6 @@ export function rootReducer(state = initialState, action) {
         state = state.setIn(['nodes', node.id], fromJS(n));
       });
 
-      // 在节点数据更新后，检查是否需要设置默认选中节点
-      const serviceAlias = window.parent.getServiceAlias();
-      if (serviceAlias && !state.get('selectedNodeId')) {
-        const nodes = state.get('nodes');
-        if (nodes && nodes.size > 0) {
-          var id = '';
-          var label = '';
-          nodes.forEach(node => {
-            if(node.get('service_alias') === serviceAlias){
-              id = node.get('id');
-              label = node.get('label');
-            }
-          });        
-          if (id) {
-            state = state.set('selectedNodeId', id);
-            state = state.setIn(['nodeDetails', id], {
-              id: id,
-              label: label,
-              topologyId: state.get('currentTopologyId')
-            });
-          }
-        }
-      }
-
       // apply pinned searches, filters nodes that dont match
       state = applyPinnedSearches(state);
 
