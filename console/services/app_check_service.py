@@ -272,7 +272,7 @@ class AppCheckService(object):
         service.language = service_info.get("language", "")
         memory = service_info.get("memory", 128)
         service.min_memory = memory - memory % 32
-        service.min_cpu = 0
+        service.min_cpu = 500
         # Set the deployment type based on the test results
         logger.debug("save svc extend_method {0}".format(
             service_info.get("service_type", ComponentType.stateless_multiple.value)))
