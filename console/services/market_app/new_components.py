@@ -103,8 +103,8 @@ class NewComponents(object):
             # ports
             ports = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))
             # envs
-            inner_envs = component_tmpl.get("service_env_map_list")
-            outer_envs = component_tmpl.get("service_connect_info_map_list")
+            inner_envs = component_tmpl.get("service_env_map_list", [])
+            outer_envs = component_tmpl.get("service_connect_info_map_list", [])
             envs = self._template_to_envs(cpt, inner_envs, outer_envs, ports)
             # volumes
             volumes, config_files = self._template_to_volumes(cpt, component_tmpl.get("service_volume_map_list"))
@@ -227,7 +227,7 @@ class NewComponents(object):
         return component
 
     def _template_to_component_source(self, component: TenantServiceInfo, tmpl: map):
-        extend_info = tmpl.get("service_image")
+        extend_info = tmpl.get("service_image", {})
         extend_info["source_deploy_version"] = tmpl.get("deploy_version")
         extend_info["source_service_share_uuid"] = tmpl.get("service_share_uuid") if tmpl.get(
             "service_share_uuid", None) else tmpl.get("service_key", "")
@@ -410,7 +410,7 @@ class NewComponents(object):
     def _template_to_extend_info(self, component, extend_info, cpu):
         if not extend_info:
             return None
-        version = component.version
+        version = component.version if component.version else "alpine"
         if len(version) > 255:
             version = version[:255]
         container_cpu = extend_info.get("container_cpu", cpu)
@@ -419,13 +419,13 @@ class NewComponents(object):
         return ServiceExtendMethod(
             service_key=component.service_key,
             app_version=version,
-            min_node=extend_info["min_node"],
-            max_node=extend_info["max_node"],
-            step_node=extend_info["step_node"],
-            min_memory=extend_info["min_memory"],
-            max_memory=extend_info["max_memory"],
-            step_memory=extend_info["step_memory"],
-            is_restart=extend_info["is_restart"],
+            min_node=extend_info.get("min_node", 1),
+            max_node=extend_info.get("max_node", 64),
+            step_node=extend_info.get("step_node", 1),
+            min_memory=extend_info.get("min_memory", 64),
+            max_memory=extend_info.get("max_memory", 65536),
+            step_memory=extend_info.get("step_memory", 64),
+            is_restart=extend_info.get("is_restart", 0),
             container_cpu=container_cpu)
 
     def _template_to_service_monitors(self, component, service_monitors):
