@@ -702,7 +702,7 @@ class AppUpgrade(MarketApp):
                     build_version=plugin.build_version.build_version,
                     service_meta_type=plugin_dep.get("service_meta_type"),
                     plugin_status=plugin_dep.get("plugin_status"),
-                    min_memory=max(plugin_dep.get("min_memory", 0) or 128, 128),
+                    min_memory=max(plugin_dep.get("min_memory", 0) or 512, 512),
                     min_cpu=max(plugin_dep.get("min_cpu", 0) or 250, 250),
                 ))
         return new_plugin_deps, new_plugin_configs
