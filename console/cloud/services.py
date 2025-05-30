@@ -25,7 +25,7 @@ def check_account_quota(user_id, region_name, operation_type):
         return True  # 不需要计量计费,直接返回True
 
     try:
-        api_url = "{}/api/v1/verify/operation".format(os.getenv("BILL_SERVICE_URL", 'http://14.103.232.255:32222'))
+        api_url = "{}/api/v1/verify/operation".format(os.getenv("BILL_SERVICE_URL", ''))
 
         payload = {
             "user_id": user_id,
