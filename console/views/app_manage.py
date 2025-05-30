@@ -724,8 +724,6 @@ class DeleteAppView(AppBaseView):
             app_id=self.app.ID,
             service_alias=self.service.service_alias,
             service_cname=self.service.service_cname)
-        self.service.update_time = datetime.now()
-        self.service.save()
         return Response(result, status=result["code"])
 
 
