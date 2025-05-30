@@ -10,7 +10,7 @@ from django.utils.decorators import method_decorator
 class BillProxyView(View):
     def __init__(self, **kwargs):
         super(BillProxyView, self).__init__(**kwargs)
-        self.bill_service_url = os.getenv('BILL_SERVICE_URL', 'http://14.103.232.255:32222')
+        self.bill_service_url = os.getenv('BILL_SERVICE_URL', '')
 
     def dispatch(self, request, *args, **kwargs):
         # 获取原始请求路径
