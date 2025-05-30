@@ -68,10 +68,7 @@ class EntAppModelView(BaseOpenAPIView):
             app_template["group_name"] = app_name
             app_template["group_version"] = version
             # 获取第一条记录的enterprise_id
-            first_enterprise = RainbondCenterApp.objects.first()
-            if not first_enterprise:
-                return Response({"msg": "未找到企业信息"}, status=status.HTTP_400_BAD_REQUEST)
-            enterprise_id = first_enterprise.enterprise_id
+            enterprise_id = self.enterprise.enterprise_id
 
             # 检查应用是否已存在
             rainbond_app = rainbond_app_repo.get_rainbond_app_by_app_id(app_id)

@@ -94,6 +94,9 @@ urlpatterns = [
     # 资源监控
     url(r'^v1/monitor/resource_over_view$', ResourceOverview.as_view()),
 
+    # MCP 相关接口
+    url(r'^v1/mcp/', include('openapi.mcp.urls')),
 ]
+
 if os.environ.get("OPENAPI_V2") == "true":
     urlpatterns += [url(r'^v2', include('openapi.v2.urls'))]

@@ -141,8 +141,12 @@ class ServiceRepo(object):
         service_event = ServiceEvent.objects.create(**create_info)
         return service_event
 
-    def get_service_by_tenant_and_alias(self, tenant_id, service_alias):
-        services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)
+    def get_service_by_tenant_and_alias(self, tenant_id, service_alias="", service_id=""):
+        services = []
+        if service_alias:
+            services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias)
+        if service_id:
+            services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_id=service_id)
         if services:
             return services[0]
         return None
