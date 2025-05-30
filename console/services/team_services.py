@@ -537,7 +537,7 @@ class TeamService(object):
 
     def list_user_teams(self, enterprise_id, user, name):
         # User joined team
-        teams = self.get_teams_region_by_user_id(enterprise_id, user, name, get_region=False)
+        teams = self.get_teams_region_by_user_id(enterprise_id, user, name, get_region=True)
         # The team that the user did not join
         user_id = user.user_id if user else ""
         nojoin_teams = team_repo.get_user_notjoin_teams(enterprise_id, user_id, name)
