@@ -19,6 +19,8 @@ urlpatterns = [
          views.McpComponentView.as_view()),
     path('teams/<str:team_alias>/apps/<int:app_id>/components/<str:component_id>',
          views.McpComponentDetailView.as_view()),
+
+    # 端口管理
     path('teams/<str:team_alias>/apps/<int:app_id>/components/<str:component_id>/ports',
          views.McpComponentPortsView.as_view()),
 ]
