@@ -267,7 +267,6 @@ class AppPortService(object):
             "is_outer_service": bool(is_outer_service),
             "k8s_service_name": k8s_service_name,
         }
-
         if service.create_status == "complete":
             region_api.add_service_port(service.service_region, tenant.tenant_name, service.service_alias, {
                 "port": [service_port],

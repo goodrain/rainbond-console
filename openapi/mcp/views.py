@@ -11,6 +11,9 @@ from console.services.app import app_service, port_service
 from console.services.app_actions import app_manage_service
 from console.services.app_check_service import app_check_service
 from console.services.app_config.arch_service import arch_service
+from console.services.app_config import env_var_service
+from console.services.app_config import volume_service
+from console.services.app_config import domain_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.group_service import group_service
@@ -32,6 +35,7 @@ from .serializers import (
     CreateComponentRequestSerializer,
     AddPortRequestSerializer,
     PortBaseSerializer,
+    ComponentDetailSerializer,
 )
 
 region_api = RegionInvokeApi()
@@ -318,14 +322,20 @@ class McpComponentView(BaseOpenAPIView):
                 while retry_count < max_retries:
                     try:
                         check_uuid = check_info.get("check_uuid")
-                        check_status = region_api.get_service_check_info(app.region_name, team.tenant_name, check_uuid)
-                        bean = check_status[1].get("bean", {})
+                        res, body = region_api.get_service_check_info(app.region_name, team.tenant_name, check_uuid)
+                        bean = body["bean"]
+                        if not bean["check_status"]:
+                            bean["check_status"] = "checking"
+                        bean["check_status"] = bean["check_status"].lower()
                         status = bean.get("check_status", "")
                         if status == "checking" or status == "":
                             time.sleep(2)  # 等待2秒后重试
                             retry_count += 1
                             continue
-                        elif status == "Success":
+                        elif status == "success":
+                            if bean["service_info"] and len(bean["service_info"]) < 2:
+                                app_check_service.save_service_check_info(team, app.ID, component, bean)
+                            app_check_service.wrap_service_check_info(component, bean)
                             break
                         else:
                             return Response(general_message(500, "check failed", "代码检测失败"), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -372,40 +382,141 @@ class McpComponentDetailView(BaseOpenAPIView):
     - 查看组件的详细配置信息
     - 查看组件的运行实例（Pod）信息
     """
+    
+    def _get_team_and_component(self, team_alias, component_id):
+        """获取团队和组件信息"""
+        team = team_services.get_team_by_team_alias(team_alias)
+        if not team:
+            return None, None, Response(
+                general_message(404, "team not found", "团队不存在"), 
+                status=http_status.HTTP_404_NOT_FOUND
+            )
+        
+        component = service_repo.get_service_by_tenant_and_alias(team.tenant_id, service_id=component_id)
+        if not component:
+            return team, None, Response(
+                general_message(404, "component not found", "组件不存在"), 
+                status=http_status.HTTP_404_NOT_FOUND
+            )
+        
+        return team, component, None
+    
+    def _get_component_status(self, component, team):
+        """获取组件状态"""
+        try:
+            status_info = region_api.check_service_status(
+                component.service_region,
+                team.tenant_name,
+                component.service_alias,
+                team.enterprise_id
+            )
+            return status_info.get("bean", {}).get("status_cn", "未知")
+        except Exception as e:
+            print(f"获取组件状态失败：{e}")
+            return "未知"
+    
+    def _build_access_url(self, domain):
+        """构建访问 URL"""
+        if hasattr(domain, 'domain_name'):  # HTTP 域名
+            protocol = "https" if domain.certificate_id > 0 else "http"
+            url = f"{protocol}://{domain.domain_name}"
+            if hasattr(domain, 'domain_path') and domain.domain_path and domain.domain_path != "/":
+                url += domain.domain_path
+            return url
+        else:  # TCP 域名
+            return domain.end_point
+    
+    def _merge_access_urls_to_ports(self, ports, http_domains, tcp_domains):
+        """将访问地址信息合并到端口中"""
+        # 创建端口到域名的映射，提高查询效率
+        http_domain_map = {}
+        tcp_domain_map = {}
+        
+        for domain in http_domains:
+            port = domain.container_port
+            if port not in http_domain_map:
+                http_domain_map[port] = []
+            http_domain_map[port].append(domain)
+        
+        for domain in tcp_domains:
+            port = domain.container_port
+            if port not in tcp_domain_map:
+                tcp_domain_map[port] = []
+            tcp_domain_map[port].append(domain)
+        
+        # 构建端口列表
+        port_list = []
+        for port in ports:
+            port_info = {
+                "container_port": port.container_port,
+                "protocol": port.protocol,
+                "is_outer_service": port.is_outer_service,
+                "is_inner_service": port.is_inner_service,
+                "access_urls": []
+            }
+            
+            # 添加该端口的所有访问地址
+            port_number = port.container_port
+            
+            # 添加 HTTP 访问地址
+            for domain in http_domain_map.get(port_number, []):
+                port_info["access_urls"].append(self._build_access_url(domain))
+            
+            # 添加 TCP 访问地址
+            for domain in tcp_domain_map.get(port_number, []):
+                port_info["access_urls"].append(self._build_access_url(domain))
+            
+            port_list.append(port_info)
+        
+        return port_list
+    
     @swagger_auto_schema(
-        operation_description="获取组件状态",
+        operation_description="获取组件详情",
         responses={
-            200: openapi.Response('获取成功', ComponentStatusSerializer),
+            200: openapi.Response('获取成功', ComponentDetailSerializer),
             404: openapi.Response('团队或组件不存在'),
             500: openapi.Response('内部错误'),
         },
         tags=['组件管理']
     )
     def get(self, request, team_alias, app_id, component_id):
-        """获取组件状态"""
+        """获取组件详情"""
         try:
-            team = team_services.get_team_by_team_alias(team_alias)
-            if not team:
-                return Response(general_message(404, "team not found", "团队不存在"), status=http_status.HTTP_404_NOT_FOUND)
+            # 获取团队和组件信息
+            team, component, error_response = self._get_team_and_component(team_alias, component_id)
+            if error_response:
+                return error_response
+
+            # 获取组件状态
+            status_cn = self._get_component_status(component, team)
+
+            # 并行获取组件相关信息
+            ports = port_service.get_service_ports(component)
+            env_vars = env_var_service.get_service_inner_env(component)
+            volumes = volume_service.get_service_volumes(team, component)
+            http_domains = domain_service.get_http_ruls_by_service_ids([component.service_id])
+            tcp_domains = domain_service.get_tcp_rules_by_service_ids(component.service_region, [component.service_id])
+
+            # 合并访问地址到端口信息
+            port_list = self._merge_access_urls_to_ports(ports, http_domains, tcp_domains)
+
+            # 构建响应数据
+            result = {
+                "service_id": component.service_id,
+                "service_cname": component.service_cname,
+                "service_alias": component.service_alias,
+                "update_time": component.update_time,
+                "min_memory": component.min_memory,
+                "min_cpu": component.min_cpu,
+                "status_cn": status_cn,
+                "ports": port_list,
+                "envs": env_vars,
+                "volumes": volumes
+            }
             
-            component = service_repo.get_service_by_tenant_and_alias(team.tenant_id, service_id=component_id)
-            if not component:
-                return Response(general_message(404, "component not found", "组件不存在"), status=http_status.HTTP_404_NOT_FOUND)
+            serializer = ComponentDetailSerializer(result)
+            return Response(general_message(200, "success", "获取成功", bean=serializer.data), status=http_status.HTTP_200_OK)
             
-            status_info = service_repo.get_group_service_by_group_id(
-                group_id=app_id,
-                region_name=component.service_region,
-                team_id=team.tenant_id,
-                team_name=team.tenant_name,
-                enterprise_id=team.enterprise_id,
-                query=component.service_alias
-            )
-            if not status_info:
-                return Response(general_message(404, "component status not found", "组件状态不存在"), status=http_status.HTTP_404_NOT_FOUND)
-            
-            serializer = ComponentStatusSerializer(status_info[0] if status_info else None)
-            result = general_message(200, "success", "获取成功", bean=serializer.data)
-            return Response(result, status=http_status.HTTP_200_OK)
         except Exception as e:
             return Response(general_message(500, "error", str(e)), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -540,18 +651,36 @@ class McpComponentPortsView(BaseOpenAPIView):
                 return Response(general_message(400, "port exists", "端口已存在"), status=http_status.HTTP_400_BAD_REQUEST)
 
             # 添加端口
-            code, msg = port_service.add_service_port(
+            code, msg, new_port_obj = port_service.add_service_port(
                 team,
                 component,
                 port,
                 protocol,
                 port_alias=None,
-                is_inner_service=False,
-                is_outer_service=is_outer_service
+                is_inner_service=True,
+                is_outer_service=False  # 先创建端口，然后再开启对外服务
             )
 
             if code != 200:
                 return Response(general_message(code, "add port failed", msg), status=code)
+
+            # 如果需要开启对外服务，调用相应的方法
+            if is_outer_service:
+                from console.repositories.region_repo import region_repo
+                from console.repositories.group import group_repo
+                
+                region = region_repo.get_region_by_region_name(component.service_region)
+                app = group_repo.get_app_by_pk(app_id)
+                
+                # 获取刚添加的端口对象
+                deal_port = port_service.get_service_port_by_port(component, port)
+                if not deal_port:
+                    return Response(general_message(500, "get port failed", "获取端口信息失败"), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+                # 调用默认开启对外服务的方法
+                code, msg = port_service.defalut_open_outer(team, component, region, deal_port, app)
+                if code != 200:
+                    return Response(general_message(code, "open outer failed", msg), status=code)
 
             # 获取新添加的端口信息
             ports = port_service.get_service_ports(component)
