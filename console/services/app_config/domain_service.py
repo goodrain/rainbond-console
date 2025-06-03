@@ -38,10 +38,10 @@ class DomainService(object):
     def get_time_now(self):
         return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    def get_certificate(self, tenant, page, page_size):
+    def get_certificate(self, tenant, page, page_size, search_key=None):
         end = page_size * page - 1  # 一页数据的开始索引
         start = end - page_size + 1  # 一页数据的结束索引
-        certificate, nums = domain_repo.get_tenant_certificate_page(tenant.tenant_id, start, end)
+        certificate, nums = domain_repo.get_tenant_certificate_page(tenant.tenant_id, start, end, search_key)
         c_list = []
         for c in certificate:
             cert = base64.b64decode(c.certificate).decode('utf-8')

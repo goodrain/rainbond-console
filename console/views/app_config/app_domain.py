@@ -70,11 +70,17 @@ class TenantCertificateView(RegionTenantHeaderView):
               required: true
               type: string
               paramType: path
+            - name: search_key
+              description: 搜索关键字(按证书别名搜索)
+              required: false
+              type: string
+              paramType: query
 
         """
         page = int(request.GET.get("page_num", 1))
         page_size = int(request.GET.get("page_size", 10))
-        certificates, nums = domain_service.get_certificate(self.tenant, page, page_size)
+        search_key = request.GET.get("search_key", None)
+        certificates, nums = domain_service.get_certificate(self.tenant, page, page_size, search_key)
         bean = {"nums": nums}
         result = general_message(200, "success", "查询成功", list=certificates, bean=bean)
         return Response(result, status=result["code"])
