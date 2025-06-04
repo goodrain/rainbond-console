@@ -233,12 +233,7 @@ class OAuthServiceRedirect(AlowAnyApiView):
         if not code:
             return HttpResponseRedirect("/")
         service_id = request.GET.get("service_id")
-        try:
-            service = OAuthServices.objects.get(ID=service_id)
-        except OAuthServices.DoesNotExist:
-             logger.error(f"OAuth service with ID {service_id} not found during redirect.")
-             return HttpResponseRedirect("/")
-        service = oauth_repo.get_oauth_services_by_service_id(self.user.user_id, service_id)
+        service = OAuthServices.objects.get(ID=service_id)
         route_mode = os.getenv("ROUTE_MODE", "hash")
         path = "/#/oauth/callback?service_id={}&code={}"
         if route_mode == "history":
@@ -411,7 +406,7 @@ class UserOAuthLink(JWTAuthApiView):
         oauth_user_id = str(request.data.get("oauth_user_id"))
         service_id = request.data.get("service_id")
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(self.user.user_id, service_id=service_id)
+            oauth_service = OAuthServices.objects.get(ID=service_id)
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
