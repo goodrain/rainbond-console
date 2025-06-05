@@ -272,7 +272,7 @@ class OAuthServerAuthorize(AlowAnyApiView):
             oauth_user, access_token, refresh_token = api.get_user_info(code=code)
         except Exception as e:
             logger.exception(e)
-            rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
+            rst = {"data": {"bean": None}, "status": 404, "msg_show": str(e)}
             return Response(rst, status=status.HTTP_200_OK)
         if api.is_communication_oauth():
             logger.debug(oauth_user.enterprise_domain)
@@ -406,7 +406,7 @@ class UserOAuthLink(JWTAuthApiView):
         oauth_user_id = str(request.data.get("oauth_user_id"))
         service_id = request.data.get("service_id")
         try:
-            oauth_service = OAuthServices.objects.get(ID=service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(self.user.user_id, service_id=service_id)
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
