@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import os
 import re
 import time
 from datetime import datetime, timedelta
@@ -22,6 +23,7 @@ from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.utils.perms import list_enterprise_perms_by_roles
+from console.utils.validation import normalize_name_for_k8s_namespace
 from console.views.base import BaseApiView, JWTAuthApiView
 from django import forms
 from rest_framework import status
@@ -129,6 +131,7 @@ class TenantServiceView(BaseApiView):
 
             if register_form.is_valid():
                 nick_name = register_form.cleaned_data["user_name"]
+                nick_name = normalize_name_for_k8s_namespace(nick_name)
                 email = register_form.cleaned_data["email"]
                 password = register_form.cleaned_data["password"]
                 # 创建一个用户
@@ -150,6 +153,18 @@ class TenantServiceView(BaseApiView):
                     team = team_services.create_team(user, enterprise, ["rainbond"], "", "default", "")
                     region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, "rainbond",
                                                                 team.namespace)
+                if os.getenv("USE_SAAS"):
+                    regions = region_repo.get_usable_regions(enterprise.enterprise_id)
+                    # 转换nick_name为符合k8s命名空间规范的名称
+                    team = team_services.create_team(user, enterprise, None, None, nick_name)
+                    region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name,
+                                                            regions[0].region_name,
+                                                            team.namespace)
+                    # 默认短信注册的用户创建的团队，限额 4 Core 8 GB
+                    limit_quota = {"limit_memory": 10240, "limit_cpu": 4000, "limit_storage": 0}
+                    team_services.set_tenant_resource_limit(enterprise.enterprise_id, regions[0].region_id,
+                                                            team.tenant_name, limit_quota)
+
                 user.enterprise_id = enterprise.enterprise_id
                 user.save()
 
@@ -683,7 +698,9 @@ class RegisterByPhoneView(BaseApiView):
 
             try:
                 regions = region_repo.get_usable_regions(enterprise.enterprise_id)
-                team = team_services.create_team(user, enterprise, None, None, nick_name)
+                # 转换nick_name为符合k8s命名空间规范的名称
+                normalized_namespace = normalize_name_for_k8s_namespace(nick_name)
+                team = team_services.create_team(user, enterprise, None, None, normalized_namespace)
                 region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name,
                                                             regions[0].region_name,
                                                             team.namespace)

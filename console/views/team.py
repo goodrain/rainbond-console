@@ -29,7 +29,7 @@ from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.utils.reqparse import parse_item
 from console.utils.timeutil import time_to_str
-from console.utils.validation import is_qualified_name
+from console.utils.validation import is_qualified_name, normalize_name_for_k8s_namespace
 from console.views.base import JWTAuthApiView, RegionTenantHeaderView
 from django.conf import settings
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
@@ -146,7 +146,7 @@ class AddTeamView(JWTAuthApiView):
             namespace = request.data.get("namespace", "")
             logo = request.data.get("logo", "")
             if not is_qualified_name(namespace):
-                raise ErrQualifiedName(msg="invalid namespace name", msg_show="命名空间只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
+                raise ErrQualifiedName(msg="invalid namespace name", msg_show="命名空间只能由小写字母、数字或"-"组成，并且必须以字母开始、以数字或字母结尾")
             regions = []
             if not team_alias:
                 result = general_message(400, "failed", "团队名不能为空")
@@ -923,77 +923,79 @@ class AllUserView(JWTAuthApiView):
 class AdminAddUserView(JWTAuthApiView):
     def post(self, request, *args, **kwargs):
         """
+        管理员添加成员到团队
+        ---
         parameters:
             - name: tenant_name
-              description: 租户名称
+              description: 团队名
               required: true
               type: string
-              paramType: path
+              paramType: body
             - name: user_name
               description: 用户名
               required: true
               type: string
-              paramType: form
-            - name: phone
-              description: 手机号
-              required: true
-              type: string
-              paramType: form
+              paramType: body
             - name: email
-              description: 邮件地址
+              description: 邮箱
               required: true
               type: string
-              paramType: form
+              paramType: body
             - name: password
               description: 密码
               required: true
               type: string
-              paramType: form
+              paramType: body
             - name: re_password
-              description: 重复密码
+              description: 确认密码
               required: true
               type: string
-              paramType: form
-            - name: identity
-              description: 用户在租户的身份
+              paramType: body
+            - name: role_ids
+              description: 角色id列表
               required: true
               type: string
-              paramType: form
-
+              paramType: body
         """
-        tenant_name = request.data.get("tenant_name", None)
-        user_name = request.data.get("user_name", None)
-        email = request.data.get("email", None)
-        password = request.data.get("password", None)
-        re_password = request.data.get("re_password", None)
-        role_ids = request.data.get("role_ids", None)
-        if len(password) < 8:
-            result = general_message(400, "len error", "密码长度最少为8位")
-            return Response(result)
-        if not tenant_name:
-            result = general_message(400, "not tenant", "团队不能为空")
-            return Response(result)
-        if role_ids and tenant_name:
-            team = team_services.get_tenant_by_tenant_name(tenant_name)
-            if not team:
-                raise ServiceHandleException(msg_show="团队不存在", msg="no found team", status_code=404)
-            # 校验用户信息
-            user_services.check_params(user_name, email, password, re_password, self.user.enterprise_id)
-            client_ip = user_services.get_client_ip(request)
-            enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
-            # 创建用户
-            user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
-            # 创建用户团队关系表
-            team_services.add_user_role_to_team(tenant=team, user_ids=[user.user_id], role_ids=role_ids)
-            user.is_active = True
-            user.save()
-            team = team_services.create_team(user, enterprise, ["rainbond"], "", user_name, "")
-            region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, "rainbond",
-                                                    team.namespace)
+        try:
+            user_name = request.data.get("user_name", None)
+            email = request.data.get("email", None)
+            password = request.data.get("password", None)
+            re_password = request.data.get("re_password", None)
+            role_ids = request.data.get("role_ids", None)
+            tenant_name = request.data.get("tenant_name", None)
+            if role_ids:
+                role_ids = [int(role_id) for role_id in role_ids.split(",")]
+            else:
+                result = general_message(400, "not role", "创建用户时角色不能为空")
+                return Response(result)
 
-            result = general_message(200, "success", "添加用户成功")
-        else:
-            result = general_message(400, "not role", "创建用户时角色不能为空")
+            if role_ids and tenant_name:
+                team = team_services.get_tenant_by_tenant_name(tenant_name)
+                if not team:
+                    raise ServiceHandleException(msg_show="团队不存在", msg="no found team", status_code=404)
+                # 校验用户信息
+                user_services.check_params(user_name, email, password, re_password, self.user.enterprise_id)
+                client_ip = user_services.get_client_ip(request)
+                enterprise = console_enterprise_service.get_enterprise_by_enterprise_id(self.user.enterprise_id)
+                # 创建用户
+                user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip)
+                # 创建用户团队关系表
+                team_services.add_user_role_to_team(tenant=team, user_ids=[user.user_id], role_ids=role_ids)
+                user.is_active = True
+                user.save()
+                # 转换user_name为符合k8s命名空间规范的名称
+                normalized_namespace = normalize_name_for_k8s_namespace(user_name)
+                team = team_services.create_team(user, enterprise, ["rainbond"], "", normalized_namespace, "")
+                region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, "rainbond",
+                                                        team.namespace)
+
+                result = general_message(200, "success", "添加用户成功")
+            else:
+                result = general_message(400, "not role", "创建用户时角色不能为空")
+        except Exception as e:
+            logger.exception(e)
+            result = error_message(e.message)
         return Response(result)
 
 
