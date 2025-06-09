@@ -46,8 +46,8 @@ class OAuthRepo(object):
         except OAuthServices.DoesNotExist:
             raise ErrOauthServiceNotFound
 
-    def open_get_oauth_services_by_service_id(self, service_id, user_id):
-        return OAuthServices.objects.filter(ID=service_id, is_deleted=False, user_id=user_id).first()
+    def open_get_oauth_services_by_service_id(self, service_id):
+        return OAuthServices.objects.filter(ID=service_id, is_deleted=False).first()
 
     @staticmethod
     def get_by_name(name, user_id):
@@ -92,12 +92,12 @@ class OAuthRepo(object):
                 )
             else:
                 if value.get("is_deleted"):
-                    self.delete_oauth_service(service_id=value.get("service_id"), user_id=user_id)
+                    self.delete_oauth_service(service_id=value.get("service_id"))
                 else:
-                    old_service = self.open_get_oauth_services_by_service_id(service_id=value.get("service_id"), user_id=user_id)
+                    old_service = self.open_get_oauth_services_by_service_id(service_id=value.get("service_id"))
                     if old_service.home_url != value["home_url"]:
                         UserOAuthServices.objects.filter(service_id=value.get("service_id")).delete()
-                    OAuthServices.objects.filter(ID=value["service_id"], user_id=user_id).update(
+                    OAuthServices.objects.filter(ID=value["service_id"]).update(
                         name=value["name"],
                         eid=value["eid"],
                         redirect_uri=value["redirect_uri"],
