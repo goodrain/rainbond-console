@@ -5,8 +5,6 @@
 # Initialize configuration
 ########################################
 init_configuration() {
-
-  GET_EIP=$(hostname -i | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) print $i}')
   
   if ! mkdir -p /opt/rainbond/k3s/server/manifests /opt/rainbond/k3s/server/static /opt/rainbond/k3s/agent/images; then
     echo "ERROR: Failed to create directory"
@@ -18,7 +16,18 @@ init_configuration() {
     exit 1
   fi
 
-  if ! cat > /opt/rainbond/k3s/server/manifests/rainbond-cluster.yaml << EOF ; then
+  if [ ! -f "/opt/rainbond/k3s/agent/images/rbd-images.tar" ]; then
+    cp /tmp/rbd-images.tar /opt/rainbond/k3s/agent/images/rbd-images.tar
+  fi
+
+  rainbond_cluster_yaml
+}
+
+rainbond_cluster_yaml() {
+
+  GET_EIP=$(hostname -i | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) print $i}')
+
+cat > /opt/rainbond/k3s/server/manifests/rainbond-cluster.yaml << EOF
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -44,19 +53,14 @@ spec:
       installVersion: ${VERSION:-v6.0.0-release}
       eid: ${UUID}
 EOF
-    echo "ERROR: Failed to create rainbond-cluster.yaml"
-    exit 1
-  fi
-
-  if [ ! -f "/opt/rainbond/k3s/agent/images/rbd-images.tar" ]; then
-    cp /tmp/rbd-images.tar /opt/rainbond/k3s/agent/images/rbd-images.tar
-  fi
 }
 
 if [ ! -f "/opt/rainbond/k3s/server/static/rainbond-cluster.tgz" ] || \
    [ ! -f "/opt/rainbond/k3s/server/manifests/rainbond-cluster.yaml" ]; \
    [ ! -f "/opt/rainbond/k3s/agent/images/rbd-images.tar" ]; then
     init_configuration
+else
+  rainbond_cluster_yaml
 fi
 
 if [ ! -f "/root/.bash_aliases" ]; then
