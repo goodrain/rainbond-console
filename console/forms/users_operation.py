@@ -39,7 +39,7 @@ class RegisterForm(Form):
 
     user_name = forms.CharField(required=True, max_length=24, label="", validators=[is_standard_word, is_sensitive])
 
-    email = forms.EmailField(required=True, max_length=32, label="")
+    email = forms.EmailField(required=True, max_length=64, label="")
 
     phone = forms.CharField(required=False, max_length=15, label="")
 

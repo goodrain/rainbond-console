@@ -127,11 +127,11 @@ class TenantServiceView(BaseApiView):
             import copy
             querydict = copy.copy(request.data)
             client_ip = request.META.get("REMOTE_ADDR", None)
+            querydict["user_name"] = normalize_name_for_k8s_namespace(querydict["user_name"])
             register_form = RegisterForm(querydict)
 
             if register_form.is_valid():
                 nick_name = register_form.cleaned_data["user_name"]
-                nick_name = normalize_name_for_k8s_namespace(nick_name)
                 email = register_form.cleaned_data["email"]
                 password = register_form.cleaned_data["password"]
                 # 创建一个用户
