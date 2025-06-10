@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
 import logging
+import os
 
 from console.exception.main import ServiceHandleException
 from console.exception.bcode import ErrUnAuthnOauthService, ErrExpiredAuthnOauthService
@@ -16,12 +17,39 @@ logger = logging.getLogger("default")
 
 class GithubApiV3MiXin(object):
     def set_api(self, access_token):
-        self.api = Github(access_token, per_page=10)
+        # 为GitHub API客户端设置代理
+        proxies = self._get_proxies()
+        if proxies:
+            # PyGithub使用requests，可以通过session传递代理
+            import requests
+            session = requests.Session()
+            session.proxies.update(proxies)
+            self.api = Github(access_token, per_page=10, session=session)
+        else:
+            self.api = Github(access_token, per_page=10)
+    
+    def _get_proxies(self):
+        """获取代理配置"""
+        proxies = {}
+        http_proxy = os.environ.get('HTTP_PROXY') or os.environ.get('http_proxy')
+        https_proxy = os.environ.get('HTTPS_PROXY') or os.environ.get('https_proxy')
+        
+        if http_proxy:
+            proxies['http'] = http_proxy
+        if https_proxy:
+            proxies['https'] = https_proxy
+            
+        return proxies
 
 
 class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
     def __init__(self):
         super(GithubApiV3, self).set_session()
+        # 为session设置代理
+        proxies = self._get_proxies()
+        if proxies:
+            self._session.proxies.update(proxies)
+            
         self.events = ["push"]
         self.request_params = {
             "scope": "user user:email repo admin:repo_hook",
