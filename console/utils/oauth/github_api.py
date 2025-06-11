@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
 import logging
+import os
 
 from console.exception.main import ServiceHandleException
 from console.exception.bcode import ErrUnAuthnOauthService, ErrExpiredAuthnOauthService
@@ -13,6 +14,9 @@ from urllib3.exceptions import MaxRetryError, ReadTimeoutError, SSLError
 
 logger = logging.getLogger("default")
 
+# 代理配置：只对 GitHub 相关请求生效
+github_proxy = os.environ.get("GITHUB_PROXY")
+proxies = {"http": github_proxy, "https": github_proxy} if github_proxy else None
 
 class GithubApiV3MiXin(object):
     def set_api(self, access_token):
@@ -54,7 +58,7 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
             }
             url = self.get_access_token_url(self.oauth_service.home_url)
             try:
-                rst = self._session.request(method='POST', url=url, headers=headers, params=params)
+                rst = self._session.request(method='POST', url=url, headers=headers, params=params, proxies=proxies)
             except Exception:
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
