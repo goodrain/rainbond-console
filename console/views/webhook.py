@@ -641,33 +641,43 @@ class ImageWebHooksDeploy(AlowAnyApiView):
             if not service_webhook.state:
                 result = general_message(400, "failed", "组件关闭了自动构建")
                 return Response(result, status=400)
-            # 校验
-            repository = request.data.get("repository")
-            if not repository:
-                logger.debug("缺少repository信息")
-                result = general_message(400, "failed", "缺少repository信息")
-                return Response(result, status=400)
-
-            push_data = request.data.get("push_data")
-            pusher = push_data.get("pusher")
-            tag = push_data.get("tag")
-            repo_name = repository.get("repo_name")
-            if not repo_name:
-                repository_namespace = repository.get("namespace")
-                repository_name = repository.get("name")
-                if repository_namespace and repository_name:
-                    # maybe aliyun repo add fake host
-                    repo_name = "fake.repo.aliyun.com/" + repository_namespace + "/" + repository_name
+            data = request.data
+            # ----------- Harbor webhook 兼容 -----------
+            if "event_data" in data and "resources" in data["event_data"]:
+                event_data = data["event_data"]
+                resources = event_data.get("resources", [])
+                repository = event_data.get("repository", {})
+                if resources:
+                    tag = resources[0].get("tag")
+                    repo_name = repository.get("repo_full_name") or repository.get("name")
+                    pusher = data.get("operator", "harbor")
                 else:
-                    repo_name = repository.get("repo_full_name")
+                    result = general_message(400, "failed", "Harbor webhook缺少resources信息")
+                    return Response(result, status=400)
+            else:
+                # 兼容原有格式
+                repository = data.get("repository")
+                if not repository:
+                    logger.debug("缺少repository信息")
+                    result = general_message(400, "failed", "缺少repository信息")
+                    return Response(result, status=400)
+                push_data = data.get("push_data")
+                pusher = push_data.get("pusher") if push_data else None
+                tag = push_data.get("tag") if push_data else None
+                repo_name = repository.get("repo_name")
+                if not repo_name:
+                    repository_namespace = repository.get("namespace")
+                    repository_name = repository.get("name")
+                    if repository_namespace and repository_name:
+                        repo_name = "fake.repo.aliyun.com/" + repository_namespace + "/" + repository_name
+                    else:
+                        repo_name = repository.get("repo_full_name")
             if not repo_name:
                 result = general_message(400, "failed", "缺少repository名称信息")
                 return Response(result, status=400)
 
-            repo_ref = reference.Reference.parse(repo_name)
-            _, repo_name = repo_ref.split_hostname()
             ref = reference.Reference.parse(service_obj.image)
-            hostname, name = ref.split_hostname()
+            _, name = ref.split_hostname()
             if repo_name != name:
                 result = general_message(400, "failed", "镜像名称与组件构建源不符")
                 return Response(result, status=400)
