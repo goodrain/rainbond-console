@@ -64,7 +64,7 @@ class AppCheckService(object):
         if service.service_source == AppConstants.SOURCE_CODE:
             if service.oauth_service_id:
                 try:
-                    oauth_service = oauth_repo.get_oauth_services_by_service_id(user.user_id, service.oauth_service_id)
+                    oauth_service = oauth_repo.get_oauth_services_by_service_id(service.oauth_service_id)
                     oauth_user = oauth_user_repo.get_user_oauth_by_user_id(
                         service_id=service.oauth_service_id, user_id=user.user_id)
                 except Exception as e:
