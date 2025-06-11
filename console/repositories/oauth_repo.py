@@ -31,13 +31,13 @@ class OAuthRepo(object):
         """
         return OAuthServices.objects.filter(eid=eid, is_deleted=False, system=is_system)
 
-    def get_oauth_services_by_service_id(self, user_id, service_id=None):
+    def get_oauth_services_by_service_id(self, service_id=None):
         if not service_id:
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
             if pre_enterprise_center:
-                return OAuthServices.objects.get(user_id=user_id, name=pre_enterprise_center, oauth_type="enterprisecenter")
-            return OAuthServices.objects.filter(user_id=user_id, oauth_type="enterprisecenter", enable=True, is_deleted=False).first()
-        return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False, user_id=user_id)
+                return OAuthServices.objects.get(name=pre_enterprise_center, oauth_type="enterprisecenter")
+            return OAuthServices.objects.filter(oauth_type="enterprisecenter", enable=True, is_deleted=False).first()
+        return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
 
     @staticmethod
     def get_by_client_id(client_id, user_id):

@@ -119,7 +119,7 @@ class SourceCodeCreateView(ApplicationView):
         if is_oauth:
             open_webhook = request.data.get("open_webhook", False)
             try:
-                oauth_service = oauth_repo.get_oauth_services_by_service_id(user_id=user_id, service_id=oauth_service_id)
+                oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
                 oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user_id)
             except Exception as e:
                 logger.debug(e)

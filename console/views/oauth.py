@@ -345,7 +345,7 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
         code = request.data.get("code")
         service_id = request.data.get("service_id")
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(self.user.user_id, service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
@@ -406,7 +406,7 @@ class UserOAuthLink(JWTAuthApiView):
         oauth_user_id = str(request.data.get("oauth_user_id"))
         service_id = request.data.get("service_id")
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(self.user.user_id, service_id=service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
@@ -443,7 +443,7 @@ class OAuthGitUserRepositories(JWTAuthApiView):
         page = request.GET.get("page", 1)
         search = request.GET.get("search", '')
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(user_id, service_id=service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.debug(e)
@@ -486,7 +486,7 @@ class OAuthGitUserRepository(JWTAuthApiView):
         full_name = '/'.join([path, name])
         user_id = request.user.user_id
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(user_id, service_id=service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.debug(e)
@@ -535,7 +535,7 @@ class OAuthGitUserRepositoryBranches(JWTAuthApiView):
         type = request.GET.get("type")
         full_name = request.GET.get("full_name")
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(user_id, service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.debug(e)
@@ -571,7 +571,7 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         version = request.data.get("version")
         user_id = request.user.user_id
         try:
-            oauth_service = oauth_repo.get_oauth_services_by_service_id(user_id, service_id)
+            oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
         except Exception as e:
             logger.exception(e)
