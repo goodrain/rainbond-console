@@ -272,7 +272,9 @@ class UserOAuthRepo(object):
 
     def get_user_oauth_services_info(self, eid, user_id):
         oauth_services = []
-        services = OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True, user_id=user_id)
+        system_services = OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True, system=True)
+        user_services = OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True, user_id=user_id)
+        services = system_services.union(user_services)
         for service in services:
             user_service = self.get_user_oauth_by_user_id(service_id=service.ID, user_id=user_id)
             api = get_oauth_instance(service.oauth_type, service, None)
