@@ -149,6 +149,10 @@ parse_args() {
             INSTALL_RKE2_MIRROR="$2"
             shift 2
             ;;
+        "--server-url")
+            RKE2_SERVER_URL_BASE="$2"
+            shift 2
+            ;;
         *)
             fatal "Unknown argument passed in ($1)"
             ;;
@@ -220,7 +224,10 @@ register_node() {
         fi
 
         # If server_ip is not empty, set RKE2_SERVER_URL and exit the loop
-        if [ -n "$SERVER_IP" ]; then
+        if [ -n "$RKE2_SERVER_URL_BASE" ]; then
+            RKE2_SERVER_URL="server: $RKE2_SERVER_URL_BASE"
+            break
+        elif [ -n "$SERVER_IP" ]; then
             RKE2_SERVER_URL="server: https://$SERVER_IP:9345"
             break
         fi
