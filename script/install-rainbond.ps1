@@ -1,11 +1,6 @@
-################################################################################
-# Copyright (c) Goodrain, Inc.
-#
-# This source code is licensed under the LGPL-3.0 license found in the
-# LICENSE file in the root directory of this source tree.
-################################################################################
+# This script is used to install Rainbond standalone on Windows
 
-param($IMAGE_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain", $RAINBOND_VERSION="v6.0.0-release")
+param($IMAGE_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain", $RAINBOND_VERSION="v6.3.1-release")
 $DATE=Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
 function Write-ColoredText($Text,$Color) {
@@ -102,14 +97,18 @@ function select_eip {
 
     $Default_IP = "127.0.0.1"
     Write-Host "The following IP has been detected:" -ForegroundColor green
-    $IPAddress_List = (Get-NetIPAddress | Where-Object { $_.InterfaceAlias -ne 'Loopback Pseudo-Interface 1' -and $_.AddressFamily -eq 'IPv4' }).IPAddress
+    $IPAddress_List = (Get-NetIPAddress | Where-Object { $_.InterfaceAlias -ne 'Loopback Pseudo-Interface 1' -and $_.AddressFamily -eq 'IPv4' -and $_.IPAddress -ne '127.0.0.1' }).IPAddress
 
     for ($i = 0; $i -lt $IPAddress_List.Count; $i++) {
         Write-Host "$($i+1). $($IPAddress_List[$i])"
     }
-    $Custom_EIP = Read-Host "For example: enter '1 or 2' to choose the IP, or input '11.22.33.44'(IPv4 address) for specific one, press enter to use the default IP address`nEnter your choose or a specific IP address( Default IP is $Default_IP)"
+    $Custom_EIP = Read-Host "For example: enter '1 or 2' to choose the IP, or input '11.22.33.44'(IPv4 address) for specific one, press enter to use the default IP address`nEnter your choose or a specific IP address (127.0.0.1 is not allowed)"
     if ([string]::IsNullOrWhiteSpace($Custom_EIP)) {
-        $global:EIP = $Default_IP
+        Write-ColoredText "127.0.0.1 不能作为EIP，请重新运行脚本并输入有效的IP地址。" red
+        Exit
+    } elseif ($Custom_EIP -eq '127.0.0.1') {
+        Write-ColoredText "127.0.0.1 不能作为EIP，请重新运行脚本并输入有效的IP地址。" red
+        Exit
     } elseif ($Custom_EIP -match '^\d+$') {
         $index = [int]$Custom_EIP
         if ($index -ge 1 -and $index -le $IPAddress_List.Count) {
@@ -119,10 +118,15 @@ function select_eip {
             Write-ColoredText "Invalid index, please run the script again and enter a valid index." red
             exit
         }
-    } elseif (-not (Test-ValidIPAddress $selectedIP)){
+    } elseif (-not (Test-ValidIPAddress $Custom_EIP)){
         Write-ColoredText "Invalid IP address, please run the script again and enter a valid IP address." red
         Exit
-    } 
+    } elseif ($Custom_EIP -eq '127.0.0.1') {
+        Write-ColoredText "127.0.0.1 不能作为EIP，请重新运行脚本并输入有效的IP地址。" red
+        Exit
+    } else {
+        $global:EIP = $Custom_EIP
+    }
 
     Write-Host "The selected IP address is: $EIP" -ForegroundColor green
 }

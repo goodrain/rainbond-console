@@ -1,23 +1,18 @@
-<img src="https://www.rainbond.com/images/logo.png" width="100%">
+## Rainbond Console
+
+`rainbond-console` is one of the core sub-projects of [Rainbond](https://github.com/goodrain/rainbond). It provides business-level support for the application console and works together with [Rainbond-UI](https://github.com/goodrain/rainbond-ui).
 
 
-[![GitHub stars](https://img.shields.io/github/stars/goodrain/rainbond-console.svg?style=flat-square)](https://github.com/goodrain/rainbond-console/stargazers)
-[![Build Status](https://travis-ci.org/goodrain/rainbond-console.svg?branch=V5.0)](https://travis-ci.org/goodrain/rainbond-console)
+## Related Projects
 
-[项目官网](http://www.rainbond.com) • [文档](https://www.rainbond.com/docs/)
+- [Rainbond Main Repository](https://github.com/goodrain/rainbond): Rainbond core services
+- [Rainbond-UI](https://github.com/goodrain/rainbond-ui): Rainbond console frontend project
 
+---
 
-**Rainbond** 企业应用云操作系统
+## License
 
-Rainbond（云帮）是企业应用的操作系统。 Rainbond支撑企业应用的开发、架构、交付和运维的全流程，通过“无侵入”架构，无缝衔接各类企业应用，底层资源可以对接和管理IaaS、虚拟机和物理服务器。
-```
-企业应用包括：
-各类信息系统、OA、CRM、ERP、数据库、大数据、物联网、互联网平台、微服务架构等运行在企业内部的各种系统
-```
-
-## 项目说明
-
-当前项目为[Rainbond](https://github.com/goodrain/rainbond)的子项目，提供应用控制台的业务级支持，与[Rainbond-UI](https://github.com/goodrain/rainbond-ui)协同工作。
+This project uses the same license as the [Rainbond main repository](https://github.com/goodrain/rainbond), which is [Apache License 2.0](https://github.com/goodrain/rainbond/blob/main/LICENSE), with additional terms specified in [ADDITIONAL_TERMS.md](https://github.com/goodrain/rainbond/blob/main/ADDITIONAL_TERMS.md). Please read both the Apache License 2.0 and the Additional Terms before using, modifying, or distributing this software.
 
 
 
