@@ -104,10 +104,10 @@ function select_eip {
     }
     $Custom_EIP = Read-Host "For example: enter '1 or 2' to choose the IP, or input '11.22.33.44'(IPv4 address) for specific one, press enter to use the default IP address`nEnter your choose or a specific IP address (127.0.0.1 is not allowed)"
     if ([string]::IsNullOrWhiteSpace($Custom_EIP)) {
-        Write-ColoredText "127.0.0.1 不能作为EIP，请重新运行脚本并输入有效的IP地址。" red
+        Write-ColoredText "127.0.0.1 cannot be used as EIP, please rerun the script and enter a valid IP address." red
         Exit
     } elseif ($Custom_EIP -eq '127.0.0.1') {
-        Write-ColoredText "127.0.0.1 不能作为EIP，请重新运行脚本并输入有效的IP地址。" red
+        Write-ColoredText "127.0.0.1 cannot be used as EIP, please rerun the script and enter a valid IP address." red
         Exit
     } elseif ($Custom_EIP -match '^\d+$') {
         $index = [int]$Custom_EIP
@@ -120,9 +120,6 @@ function select_eip {
         }
     } elseif (-not (Test-ValidIPAddress $Custom_EIP)){
         Write-ColoredText "Invalid IP address, please run the script again and enter a valid IP address." red
-        Exit
-    } elseif ($Custom_EIP -eq '127.0.0.1') {
-        Write-ColoredText "127.0.0.1 不能作为EIP，请重新运行脚本并输入有效的IP地址。" red
         Exit
     } else {
         $global:EIP = $Custom_EIP
