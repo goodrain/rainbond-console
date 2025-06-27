@@ -186,11 +186,11 @@ fi
 
 # Choose tool for IP detect.
 if which ip >/dev/null; then
-    IF_NUM=$(ip -4 a | egrep -v "docker0|flannel|cni|calico|kube" | grep inet | wc -l)
-    IPS=$(ip -4 a | egrep -v "docker0|flannel|cni|calico|kube" | grep inet | awk '{print $2}' | awk -F '/' '{print $1}' | tr '\n' ' ')
+    IF_NUM=$(ip -4 a | egrep -v "docker0|flannel|cni|calico|kube|127.0.0.1" | grep inet | wc -l)
+    IPS=$(ip -4 a | egrep -v "docker0|flannel|cni|calico|kube|127.0.0.1" | grep inet | awk '{print $2}' | awk -F '/' '{print $1}' | tr '\n' ' ')
 elif which ifconfig >/dev/null; then
-    IF_NUM=$(ifconfig | grep -w inet | awk '{print $2}' | wc -l)
-    IPS=$(ifconfig | grep -w inet | awk '{print $2}')
+    IF_NUM=$(ifconfig | grep -w inet | awk '{print $2}' | grep -v 127.0.0.1 | wc -l)
+    IPS=$(ifconfig | grep -w inet | awk '{print $2}' | grep -v 127.0.0.1)
 elif which ipconfig >/dev/null; then
     # TODO
     IF_NUM=$(ipconfig ifcount)
@@ -200,52 +200,29 @@ else
     IPS=""
 fi
 
-# 过滤掉127.0.0.1
-if [ -n "$IPS" ]; then
-    # Convert to indexed array，并过滤127.0.0.1
-    declare -a ip_list=()
-    for ip in $IPS; do
-        if [ "$ip" != "127.0.0.1" ]; then
-            ip_list+=("$ip")
-        fi
-    done
-    IF_NUM=${#ip_list[@]}
-else
-    declare -a ip_list=()
-    IF_NUM=0
-fi
-
 # Func for verify the result entered.
 function verify_eip() {
-    local max=$1
     local result=$2
-    if [ -z "$result" ]; then
-        # 如果默认EIP为127.0.0.1，报错
-        if [ "$EIP" == "127.0.0.1" ] || [ -z "$EIP" ]; then
-            echo -e "${RED}127.0.0.1 不能作为EIP，请重新输入${NC}"
-            return 1
-        fi
-        export EIP="$EIP"
-        return 0
-    # 禁止输入127.0.0.1
-    elif [ "$result" == "127.0.0.1" ]; then
-        echo -e "${RED}127.0.0.1 不能作为EIP，请重新输入${NC}"
+    local max=$1
+    if [ -z $result ]; then
+        echo -e "${YELLOW}Do not enter null values${NC}"
         return 1
     # Regular matching IPv4
-    elif [[ $result =~ ^([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
+    elif [[ $result =~ ^([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
+        # Check if it's 127.0.0.1
         if [ "$result" == "127.0.0.1" ]; then
-            echo -e "${RED}127.0.0.1 不能作为EIP，请重新输入${NC}"
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                echo -e "${YELLOW}不能使用回环地址 127.0.0.1${NC}"
+            else
+                echo -e "${YELLOW}Cannot use loopback address 127.0.0.1${NC}"
+            fi
             return 1
         fi
         export EIP=$result
         return 0
     # Regular matching positive integer
-    elif [[ $result =~ ^[0-9]+$ ]]; then
+    elif [[ $result =~ \d? ]]; then
         if [ $result -gt 0 ] && [ $result -le $max ]; then
-            if [ "${ip_list[$result - 1]}" == "127.0.0.1" ]; then
-                echo -e "${RED}127.0.0.1 不能作为EIP，请重新输入${NC}"
-                return 1
-            fi
             export EIP=${ip_list[$result - 1]}
             return 0
         else
@@ -294,16 +271,16 @@ EOF
     for i in 1 2 3; do
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
             echo -e "\n${GREEN}例如: 输入 '1 or 2' 选择 IP, 或指定IP '11.22.33.44'(IPv4 address), 直接回车则使用默认 IP 地址${NC}"
-            verify_eip $IF_NUM 2
+            verify_eip $IF_NUM 1
             echo -n -e "输入您的选择或指定 IP 地址(默认IP是: $EIP):"
         else
             echo -e "\n${GREEN}For example: enter '1 or 2' to choose the IP, or input '11.22.33.44'(IPv4 address) for specific one, press enter to use the default IP address${NC}"
-            verify_eip $IF_NUM 2
+            verify_eip $IF_NUM 1
             echo -n -e "Enter your choose or a specific IP address( Default IP is $EIP):"
         fi
         read res
         if [ -z $res ]; then
-            verify_eip $IF_NUM 2 && break
+            verify_eip $IF_NUM 1 && break
         else
             verify_eip $IF_NUM $res && break
         fi
