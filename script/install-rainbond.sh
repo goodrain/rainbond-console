@@ -160,7 +160,7 @@ function check_base_env() {
     
     # Comment out swap entries in /etc/fstab to prevent re-enabling on reboot
     if [ -f /etc/fstab ]; then
-      sed -i.bak '/swap/s/^/#/' /etc/fstab
+      sed -i.bak '/^[^#].*swap/s/^/#/' /etc/fstab
       if [ "$LANG" == "zh_CN.UTF-8" ]; then
         send_info "已修改 /etc/fstab 防止重启后重新启用交换分区"
       else
