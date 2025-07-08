@@ -734,11 +734,9 @@ validate_docker_version() {
     
     if [ "$docker_version" -lt $min_version ]; then
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "Docker 版本过低，当前版本: $docker_version.x，要求最低版本: $min_version.x"
-            send_error "请更新 Docker 版本: https://docs.docker.com/engine/install/"
+            send_error "Docker 版本过低，当前版本: $docker_version.x, 要求最低版本: $min_version.x\n\t- 请更新 Docker 版本: https://docs.docker.com/engine/install/"
         else
-            send_error "Docker version is too low, current version: $docker_version.x, minimum required: $min_version.x"
-            send_error "Please update Docker version: https://docs.docker.com/engine/install/"
+            send_error "Docker version is too low, current version: $docker_version.x, minimum required: $min_version.x\n\t- Please update Docker version: https://docs.docker.com/engine/install/"
         fi
         exit 1
     fi
