@@ -349,7 +349,7 @@ else
         send_error "Rainbond 目前还不支持 $(arch) 架构"
         exit 1
     else
-        send_error "Rainbond do not support $(arch) architecture"
+        send_error "Rainbond does not support $(arch) architecture"
         exit 1
     fi
 fi
