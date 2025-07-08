@@ -366,7 +366,7 @@ UUID=$(echo $OS_INFO | ${MD5_CMD} | cut -b 1-32)
 
 # Function to check if Docker is installed
 check_docker_installed() {
-    if which docker &>/dev/null; then
+    if command -v docker &>/dev/null; then
         return 0
     else
         return 1
