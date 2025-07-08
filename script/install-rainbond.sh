@@ -333,11 +333,11 @@ fi
 # Return amd64 or arm64.
 ########################################
 
-if [ $(arch) = "x86_64" ] || [ $(arch) = "amd64" ]; then
+if [ "$(arch)" = "x86_64" ] || [ "$(arch)" = "amd64" ]; then
     ARCH_TYPE=amd64
-elif [ $(arch) = "aarch64" ] || [ $(arch) = "arm64" ]; then
+elif [ "$(arch)" = "aarch64" ] || [ "$(arch)" = "arm64" ]; then
     ARCH_TYPE=arm64
-elif [ $(arch) = "i386" ]; then
+elif [ "$(arch)" = "i386" ]; then
     ARCH_TYPE=amd64
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
         send_warn "检测到 i386, 我们把它当做 x86_64(amd64). 如果您使用的是 M1 芯片的 MacOS, 确保您禁用了 Rosetta. \n\t 请参阅: https://github.com/goodrain/rainbond/issues/1439 "
