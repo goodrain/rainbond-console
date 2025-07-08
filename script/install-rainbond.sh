@@ -1047,9 +1047,9 @@ if docker ps --filter "name=rainbond" --filter "status=running" | grep -q "rainb
   fi
 else
   if [ "$LANG" == "zh_CN.UTF-8" ]; then
-    send_info "Rainbond 容器启动失败"
+    send_error "Rainbond 容器启动失败"
   else
-    send_info "Rainbond container startup failed"
+    send_error "Rainbond container startup failed"
   fi
 fi
 
