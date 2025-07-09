@@ -101,6 +101,53 @@ fi
 # Added critical checks to improve success rate
 ########################################
 
+# Function to check only ports for macOS
+function check_ports_only_macos() {
+  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    send_info "######## 开始检测端口... ########"
+  else
+    send_info "######## Starting port check... ########"
+  fi
+
+  # Check ports
+  local ports=("7070" "80" "443" "6060")
+  local occupied_ports=()
+  
+  for port in "${ports[@]}"; do
+    port_occupied=false
+    
+    # macOS port detection using netstat
+    if netstat -anp tcp 2>/dev/null | grep -q "*.${port}*.*LISTEN"; then
+      port_occupied=true
+    fi
+    
+    if [ "$port_occupied" = true ]; then
+      occupied_ports+=($port)
+    fi
+  done
+  
+  if [ ${#occupied_ports[@]} -gt 0 ]; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      send_error "以下端口被占用: \n\t- ${occupied_ports[*]}\n\t请释放这些端口后重试."
+    else
+      send_error "The following ports are occupied: \n\t- ${occupied_ports[*]}\n\tPlease free these ports and try again."
+    fi
+    exit 1
+  else
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      send_info "端口检测通过，所有必需端口可用"
+    else
+      send_info "Port check passed, all required ports are available"
+    fi
+  fi
+
+  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    send_info "######## 端口检测通过 ########"
+  else
+    send_info "######## Port check passed ########"
+  fi
+}
+
 function check_base_env() {
   if [ "$LANG" == "zh_CN.UTF-8" ]; then
     send_info "######## 开始检测基础环境... ########"
@@ -254,14 +301,15 @@ function check_base_env() {
   available_space=$(echo "$available_space" | tr -d 'K' | tr -d 'M' | tr -d 'G' | sed 's/[^0-9]//g')
   available_space=${available_space:-0}
   
-  # Check if at least 20GB available (20971520 KB)
-  if [ "$available_space" -lt 20971520 ] 2>/dev/null; then
+  # Check if at least 10GB available (10485760 KB)
+  if [ "$available_space" -lt 10485760 ] 2>/dev/null; then
     local available_gb=$((available_space / 1024 / 1024))
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
-      send_warn "磁盘空间可能不足，当前可用: ${available_gb}GB，建议至少保留20GB空间"
+      send_error "磁盘空间不足，当前可用: ${available_gb}GB, 请至少保留10GB空间后重试"
     else
-      send_warn "Disk space may be insufficient, available: ${available_gb}GB, recommend at least 20GB free space"
+      send_error "Disk space is insufficient, available: ${available_gb}GB, please reserve at least 10GB space and try again"
     fi
+    exit 1
   else
     local available_gb=$((available_space / 1024 / 1024))
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
@@ -325,6 +373,8 @@ check_rainbond_container
 
 if [ "${OS_TYPE}" == "Linux" ]; then
   check_base_env
+elif [ "${OS_TYPE}" == "Darwin" ]; then
+  check_ports_only_macos
 fi
 
 ########################################
