@@ -117,7 +117,7 @@ function check_ports_only_macos() {
     port_occupied=false
     
     # macOS port detection using netstat
-    if netstat -anp tcp 2>/dev/null | grep -q "*.${port}*.*LISTEN"; then
+    if netstat -anp tcp 2>/dev/null | grep -E -q "\.${port}[[:space:]]+.*LISTEN"; then
       port_occupied=true
     fi
     
