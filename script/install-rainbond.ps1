@@ -1,4 +1,4 @@
-# This script is used to install Rainbond standalone on Windows
+﻿# This script is used to install Rainbond standalone on Windows
 
 param($IMAGE_MIRROR="registry.cn-hangzhou.aliyuncs.com/goodrain", $RAINBOND_VERSION="v6.3.1-release")
 $DATE=Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -33,7 +33,7 @@ function send_msg ($msg) {
     $params = @{
         Uri = "https://log.rainbond.com/dindlog"
         Method = "POST"
-        ContentType = "application/json"
+        ContentType = "application/json; charset=utf-8"
         Body = $body
     }
     Invoke-RestMethod @params > $null
