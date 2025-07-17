@@ -1042,7 +1042,7 @@ class AppMarketService(object):
     def get_app_markets(self, enterprise_id, extend, user_id=None):
         """获取应用市场列表"""
         markets = app_market_repo.get_app_markets(enterprise_id, user_id)
-        app_market_repo.create_default_app_market_if_not_exists(markets, enterprise_id)
+        app_market_repo.create_default_app_market_if_not_exists(markets, enterprise_id, user_id)
         market_list = []
         for market in markets:
             dt = {
