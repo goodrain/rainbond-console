@@ -1024,7 +1024,6 @@ class Errlog(BaseModel):
 class AppMarket(BaseModel):
     class Meta:
         db_table = "app_market"
-        unique_together = ('name', 'enterprise_id')
 
     name = models.CharField(max_length=64, help_text="应用商店标识")
     url = models.CharField(max_length=255, help_text="应用商店链接")
