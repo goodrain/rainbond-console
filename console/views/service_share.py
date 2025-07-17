@@ -2,6 +2,7 @@
 import base64
 import datetime
 import logging
+import os
 import re
 
 from console.appstore.appstore import app_store
@@ -609,7 +610,8 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
 class AppMarketCLView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         extend = request.GET.get("extend", "false")
-        app_markets = app_market_service.get_app_markets(enterprise_id, extend)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+        app_markets = app_market_service.get_app_markets(enterprise_id, extend, user_id)
         result = general_message(200, "success", None, list=app_markets)
         return Response(result, status=200)
 
@@ -631,7 +633,8 @@ class AppMarketCLView(JWTAuthApiView):
             "domain": request.data.get("domain"),
         }
 
-        app_market = app_market_service.create_app_market(dt)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+        app_market = app_market_service.create_app_market(dt, user_id)
         result = general_message(200, "success", None, bean=app_market.to_dict())
         try:
             market = app_store.get_market(app_market)
@@ -669,7 +672,8 @@ class AppMarketBatchCView(JWTAuthApiView):
             })
             market_names.append(name)
 
-        app_market = app_market_service.batch_create_app_market(enterprise_id, data)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+        app_market = app_market_service.batch_create_app_market(enterprise_id, data, user_id)
         app_store_names = ", ".join([mk["alias"] for mk in app_market if mk["name"] in market_names])
         comment = operation_log_service.generate_generic_comment(
             operation=Operation.ADD, module=OperationModule.APPSTORE, module_name=" {}".format(app_store_names))
@@ -682,12 +686,14 @@ class AppMarketBatchCView(JWTAuthApiView):
 class AppMarketRUDView(JWTAuthApiView):
     def get(self, request, enterprise_id, market_name, *args, **kwargs):
         extend = request.GET.get("extend", "false")
-        market, _ = app_market_service.get_app_market(enterprise_id, market_name, extend, raise_exception=True)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+        market, _ = app_market_service.get_app_market(enterprise_id, market_name, user_id, extend, raise_exception=True)
         result = general_message(200, "success", None, list=market)
         return Response(result, status=200)
 
     def put(self, request, enterprise_id, market_name, *args, **kwargs):
-        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, user_id, raise_exception=True)
         request.data["enterprise_id"] = enterprise_id
         request.data["market_name"] = market_name
         new_market = app_market_service.update_app_market(market_model, request.data)
@@ -705,7 +711,8 @@ class AppMarketRUDView(JWTAuthApiView):
         return Response(result, status=200)
 
     def delete(self, request, enterprise_id, market_name, *args, **kwargs):
-        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, user_id, raise_exception=True)
         market_model.delete()
         result = general_message(200, "success", None)
         try:
@@ -729,7 +736,8 @@ class AppMarketAppModelLView(JWTAuthApiView):
         page_size = int(request.GET.get("page_size", 10))
         is_plugin = request.GET.get("is_plugin", False)
         arch = request.GET.get("arch", "")
-        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, user_id, raise_exception=True)
         if is_plugin == "true":
             data, page, page_size, total = app_market_service.get_market_plugins_apps(
                 market_model, page, page_size, query=query, query_all=query_all, extend=True)
@@ -763,7 +771,8 @@ class AppMarketAppModelLView(JWTAuthApiView):
             "tags": request.data.get("tags"),
             "introduction": request.data.get("introduction"),
         }
-        market = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+        market = app_market_service.get_app_market_by_name(enterprise_id, market_name, user_id, raise_exception=True)
         rst = app_market_service.create_market_app_model(market, body=dt)
         result = general_message(200, msg="success", msg_show=None, bean=(rst.to_dict() if rst else None))
         return Response(result, status=200)
@@ -772,7 +781,8 @@ class AppMarketAppModelLView(JWTAuthApiView):
 class AppMarketAppModelVersionsLView(JWTAuthApiView):
     def get(self, request, enterprise_id, market_name, app_id, *args, **kwargs):
         query_all = request.GET.get("query_all", False)
-        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, user_id, raise_exception=True)
         data = app_market_service.get_market_app_model_versions(market_model, app_id, query_all=query_all, extend=True)
         result = general_message(200, "success", None, list=data)
         return Response(result, status=200)
@@ -780,7 +790,8 @@ class AppMarketAppModelVersionsLView(JWTAuthApiView):
 
 class AppMarketAppModelVersionsRView(JWTAuthApiView):
     def get(self, request, enterprise_id, market_name, app_id, version, *args, **kwargs):
-        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+        _, market_model = app_market_service.get_app_market(enterprise_id, market_name, user_id, raise_exception=True)
         data = app_market_service.get_market_app_model_version(market_model, app_id, version, extend=True)
         result = general_message(200, "success", None, bean=data)
         return Response(result, status=200)
@@ -788,7 +799,8 @@ class AppMarketAppModelVersionsRView(JWTAuthApiView):
 
 class AppMarketOrgModelLView(JWTAuthApiView):
     def get(self, request, enterprise_id, market_name):
-        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, user_id, raise_exception=True)
         orgs = app_market_service.get_market_orgs(market_model)
         result = general_message(200, msg="success", msg_show=None, list=orgs)
         return Response(result, status=200)

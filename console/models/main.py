@@ -1032,6 +1032,9 @@ class AppMarket(BaseModel):
     access_key = models.CharField(max_length=255, null=True, blank=True, help_text="应用商店访问令牌")
     enterprise_id = models.CharField(max_length=32, help_text="企业id")
     type = models.CharField(max_length=32, help_text="类型")
+    # 用户关系字段
+    user_id = models.IntegerField(null=True, blank=True, help_text="创建用户ID")
+    is_personal = models.BooleanField(default=False, help_text="是否为个人应用市场")
 
 
 class ServiceMonitor(BaseModel):
