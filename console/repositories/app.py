@@ -483,8 +483,15 @@ class AppMarketRepository(object):
             enterprise_id=eid,
         )
 
-    def get_app_markets(self, enterprise_id):
-        return AppMarket.objects.filter(enterprise_id=enterprise_id)
+    def get_app_markets(self, enterprise_id, user_id=None):
+        """获取应用市场列表，支持用户过滤"""
+        queryset = AppMarket.objects.filter(enterprise_id=enterprise_id)
+        
+        if os.getenv("USE_SAAS") and user_id:
+            # SAAS模式下只返回用户相关的市场
+            queryset = queryset.filter(user_id=user_id)
+            
+        return queryset
 
     def get_app_market(self, enterprise_id, market_id, raise_exception=False):
         market = AppMarket.objects.filter(enterprise_id=enterprise_id, ID=market_id).first()
@@ -493,11 +500,16 @@ class AppMarketRepository(object):
                 raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
         return market
 
-    def get_app_market_by_name(self, enterprise_id, name, raise_exception=False):
-        market = AppMarket.objects.filter(enterprise_id=enterprise_id, name=name).first()
-        if raise_exception:
-            if not market:
-                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
+    def get_app_market_by_name(self, enterprise_id, name, user_id=None, raise_exception=False):
+        """根据名称获取应用市场，支持用户过滤"""
+        queryset = AppMarket.objects.filter(enterprise_id=enterprise_id, name=name)
+        
+        if os.getenv("USE_SAAS") and user_id:
+            queryset = queryset.filter(user_id=user_id)
+            
+        market = queryset.first()
+        if raise_exception and not market:
+            raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
         return market
 
     def get_app_market_by_domain_url(self, enterprise_id, domain, url, raise_exception=False):
@@ -507,8 +519,19 @@ class AppMarketRepository(object):
                 raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
         return market
 
-    def create_app_market(self, **kwargs):
+    def create_app_market(self, user_id=None, **kwargs):
+        """创建应用市场，支持用户绑定"""
+        if os.getenv("USE_SAAS") and user_id:
+            kwargs['user_id'] = user_id
+            kwargs['is_personal'] = True
         return AppMarket.objects.create(**kwargs)
+
+    def get_user_app_markets(self, user_id, enterprise_id=None):
+        """获取用户的应用市场"""
+        queryset = AppMarket.objects.filter(user_id=user_id)
+        if enterprise_id:
+            queryset = queryset.filter(enterprise_id=enterprise_id)
+        return queryset
 
     def update_access_key(self, enterprise_id, name, access_key):
         return AppMarket.objects.filter(enterprise_id=enterprise_id, name=name).update(access_key=access_key)

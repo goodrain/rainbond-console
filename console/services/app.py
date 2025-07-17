@@ -6,6 +6,7 @@ import base64
 import datetime
 import json
 import logging
+import os
 import random
 import string
 from addict import Dict
@@ -1038,8 +1039,9 @@ class AppService(object):
 
 
 class AppMarketService(object):
-    def get_app_markets(self, enterprise_id, extend):
-        markets = app_market_repo.get_app_markets(enterprise_id)
+    def get_app_markets(self, enterprise_id, extend, user_id=None):
+        """获取应用市场列表"""
+        markets = app_market_repo.get_app_markets(enterprise_id, user_id)
         app_market_repo.create_default_app_market_if_not_exists(markets, enterprise_id)
         market_list = []
         for market in markets:
@@ -1079,8 +1081,10 @@ class AppMarketService(object):
             market_list.append(dt)
         return market_list
 
-    def get_app_market(self, enterprise_id, market_name, extend="false", raise_exception=False):
-        market = app_market_repo.get_app_market_by_name(enterprise_id, market_name, raise_exception)
+    def get_app_market(self, enterprise_id, market_name, user_id=None, extend="false", raise_exception=False):
+        market = app_market_repo.get_app_market_by_name(
+            enterprise_id, market_name, user_id=user_id if os.getenv("USE_SAAS") else None, raise_exception=raise_exception
+        )
         dt = {
             "access_key": market.access_key,
             "name": market.name,
@@ -1116,28 +1120,43 @@ class AppMarketService(object):
             })
         return dt, market
 
-    def get_app_market_by_name(self, enterprise_id, name, raise_exception=False):
-        return app_market_repo.get_app_market_by_name(enterprise_id, name, raise_exception=raise_exception)
+    def get_app_market_by_name(self, enterprise_id, name, user_id=None, raise_exception=False):
+        """根据名称获取应用市场"""
+        return app_market_repo.get_app_market_by_name(
+            enterprise_id, name, user_id=user_id if os.getenv("USE_SAAS") else None, 
+            raise_exception=raise_exception
+        )
 
     def get_app_market_by_domain_url(self, enterprise_id, domain, url, raise_exception=False):
         return app_market_repo.get_app_market_by_domain_url(enterprise_id, domain, url, raise_exception=raise_exception)
 
-    def create_app_market(self, data):
-        exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
+    def create_app_market(self, data, user_id=None):
+        """创建应用市场"""
+        exit_market = app_market_repo.get_app_market_by_name(
+            enterprise_id=data["enterprise_id"], 
+            name=data["name"],
+            user_id=user_id if os.getenv("USE_SAAS") else None
+        )
         if exit_market:
             raise ServiceHandleException(msg="name exist", msg_show="标识已存在", status_code=400)
-        return app_market_repo.create_app_market(**data)
+        
+        return app_market_repo.create_app_market(user_id=user_id, **data)
 
     @transaction.atomic
-    def batch_create_app_market(self, eid, data):
+    def batch_create_app_market(self, eid, data, user_id=None):
+        """批量创建应用市场"""
         if data is not None:
             for dt in data:
-                exist_market = app_market_repo.get_app_market_by_name(enterprise_id=eid, name=dt["name"])
+                exist_market = app_market_repo.get_app_market_by_name(
+                    enterprise_id=eid, 
+                    name=dt["name"],
+                    user_id=user_id if os.getenv("USE_SAAS") else None
+                )
                 if exist_market:
                     app_market_repo.update_access_key(enterprise_id=eid, name=dt["name"], access_key=dt["access_key"])
                     continue
-                app_market_repo.create_app_market(**dt)
-        return self.get_app_markets(eid, extend="true")
+                app_market_repo.create_app_market(user_id=user_id, **dt)
+        return self.get_app_markets(eid, extend="true", user_id=user_id)
 
     def update_app_market(self, app_market, data):
         exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
