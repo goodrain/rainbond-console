@@ -556,7 +556,8 @@ class ServiceShareCompleteView(RegionTenantHeaderView):
         if count > 0 or plugin_count > 0:
             result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
             return Response(result, status=415)
-        app_market_url = share_service.complete(self.tenant, self.user, share_record, is_plugin)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+        app_market_url = share_service.complete(self.tenant, self.user, share_record, is_plugin, user_id)
         rainbond_app = share_service.get_app_by_app_id(share_record.app_id)
         result = general_message(200, "share complete", "应用分享完成", bean=share_record.to_dict(), app_market_url=app_market_url)
         app = group_repo.get_app_by_pk(share_record.group_id)
