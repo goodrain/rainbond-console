@@ -737,8 +737,7 @@ class AppMarketAppModelLView(JWTAuthApiView):
         page_size = int(request.GET.get("page_size", 10))
         is_plugin = request.GET.get("is_plugin", False)
         arch = request.GET.get("arch", "")
-        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
-        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, user_id, raise_exception=True)
+        market_model = app_market_service.get_app_market_by_name(enterprise_id, market_name, None, raise_exception=True)
         if is_plugin == "true":
             data, page, page_size, total = app_market_service.get_market_plugins_apps(
                 market_model, page, page_size, query=query, query_all=query_all, extend=True)

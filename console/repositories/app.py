@@ -548,8 +548,11 @@ class AppMarketRepository(object):
             queryset = queryset.filter(enterprise_id=enterprise_id)
         return queryset
 
-    def update_access_key(self, enterprise_id, name, access_key):
-        return AppMarket.objects.filter(enterprise_id=enterprise_id, name=name).update(access_key=access_key)
+    def update_access_key(self, enterprise_id, name, access_key, user_id):
+        app_filter = AppMarket.objects.filter(enterprise_id=enterprise_id, name=name)
+        if user_id:
+            app_filter = app_filter.filter(user_id=user_id)
+        return app_filter.update(access_key=access_key)
 
 
 service_repo = TenantServiceInfoRepository()
