@@ -1129,14 +1129,14 @@ class ShareService(object):
                 })
         return app_list
 
-    def get_last_shared_app_and_app_list(self, enterprise_id, tenant, group_id, scope, market_name):
+    def get_last_shared_app_and_app_list(self, enterprise_id, tenant, group_id, scope, market_name, user_id):
         last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, tenant.tenant_name, scope)
         dt = {}
         dt["app_model_list"] = []
         dt["last_shared_app"] = {}
         dt["scope"] = scope
         if scope == "goodrain":
-            market = app_market_service.get_app_market_by_name(enterprise_id, market_name, raise_exception=True)
+            market = app_market_service.get_app_market_by_name(enterprise_id, market_name, user_id=user_id, raise_exception=True)
             apps_versions, _, _, _ = app_market_service.get_market_app_models(market, page_size=-1, query=None, query_all=True)
             if apps_versions:
                 for app in apps_versions:

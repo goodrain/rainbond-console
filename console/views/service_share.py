@@ -600,8 +600,9 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
     def get(self, request, team_name, group_id, *args, **kwargs):
         scope = request.GET.get("scope", None)
         market_name = request.GET.get("market_id", None)
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
         data = share_service.get_last_shared_app_and_app_list(self.tenant.enterprise_id, self.tenant, group_id, scope,
-                                                              market_name)
+                                                              market_name, user_id)
         result = general_message(
             200, "get shared apps list complete", None, bean=data["last_shared_app"], list=data["app_model_list"])
         return Response(result, status=200)
