@@ -1039,10 +1039,17 @@ class AppService(object):
 
 
 class AppMarketService(object):
-    def get_app_markets(self, enterprise_id, extend, user_id=None):
+    def get_app_markets(self, enterprise_id, extend, user_id=None, for_publish=False):
         """获取应用市场列表"""
-        markets = app_market_repo.get_app_markets(enterprise_id, user_id)
-        app_market_repo.create_default_app_market_if_not_exists(markets, enterprise_id, user_id)
+        markets = app_market_repo.get_app_markets(enterprise_id, user_id, for_publish)
+        
+        if for_publish:
+            # 发布用途时创建默认应用市场（如果需要）
+            app_market_repo.create_default_app_market_if_not_exists(markets, enterprise_id, user_id)
+        else:
+            # 非发布用途，创建默认的非个人应用市场
+            app_market_repo.create_default_app_market_if_not_exists(markets, enterprise_id, None)
+        
         market_list = []
         for market in markets:
             dt = {
@@ -1156,7 +1163,7 @@ class AppMarketService(object):
                     app_market_repo.update_access_key(enterprise_id=eid, name=dt["name"], access_key=dt["access_key"])
                     continue
                 app_market_repo.create_app_market(user_id=user_id, **dt)
-        return self.get_app_markets(eid, extend="true", user_id=user_id)
+        return self.get_app_markets(eid, extend="true", user_id=user_id, for_publish=bool(user_id))
 
     def update_app_market(self, app_market, data):
         exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])

@@ -460,7 +460,7 @@ class AppTagRepository(object):
 
 
 class AppMarketRepository(object):
-    def create_default_app_market_if_not_exists(self, markets_all, eid, user_id):
+    def create_default_app_market_if_not_exists(self, markets_all, eid, user_id=None):
         access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY", "")
         domain = os.getenv("DEFAULT_APP_MARKET_DOMAIN", "rainbond")
         url = os.getenv("DEFAULT_APP_MARKET_URL", "https://hub.grapps.cn")
@@ -474,24 +474,37 @@ class AppMarketRepository(object):
         # For compatibility, so if there is an application market with the same name, no longer create
         if markets_all.filter(name=name):
             return
-        AppMarket.objects.create(
-            name=name,
-            url=url,
-            domain=domain,
-            type="rainstore",
-            access_key=access_key,
-            enterprise_id=eid,
-            user_id=user_id,
-            is_personal=True
-        )
+        
+        # 创建默认应用市场时根据USE_SAAS环境变量和user_id决定是否设置用户关系
+        create_data = {
+            "name": name,
+            "url": url,
+            "domain": domain,
+            "type": "rainstore",
+            "access_key": access_key,
+            "enterprise_id": eid,
+        }
+        
+        if os.getenv("USE_SAAS") and user_id:
+            create_data["user_id"] = user_id
+            create_data["is_personal"] = True
+        else:
+            create_data["is_personal"] = False
+            
+        AppMarket.objects.create(**create_data)
 
-    def get_app_markets(self, enterprise_id, user_id=None):
+    def get_app_markets(self, enterprise_id, user_id=None, for_publish=False):
         """获取应用市场列表，支持用户过滤"""
         queryset = AppMarket.objects.filter(enterprise_id=enterprise_id)
         
-        if os.getenv("USE_SAAS") and user_id:
-            # SAAS模式下只返回用户相关的市场
-            queryset = queryset.filter(user_id=user_id)
+        if for_publish:
+            # 用于发布的查询
+            if os.getenv("USE_SAAS") and user_id:
+                # SAAS模式下只返回用户相关的市场
+                queryset = queryset.filter(user_id=user_id)
+        else:
+            # 非发布用途，查询is_personal为false的第一条
+            queryset = queryset.filter(is_personal=False)
             
         return queryset
 

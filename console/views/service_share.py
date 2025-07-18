@@ -610,8 +610,9 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
 class AppMarketCLView(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
         extend = request.GET.get("extend", "false")
-        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
-        app_markets = app_market_service.get_app_markets(enterprise_id, extend, user_id)
+        for_publish = request.GET.get("for_publish", "false").lower() == "true"
+        user_id = self.user.user_id if os.getenv("USE_SAAS") and for_publish else None
+        app_markets = app_market_service.get_app_markets(enterprise_id, extend, user_id, for_publish)
         result = general_message(200, "success", None, list=app_markets)
         return Response(result, status=200)
 
