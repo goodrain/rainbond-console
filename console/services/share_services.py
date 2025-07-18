@@ -1002,7 +1002,7 @@ class ShareService(object):
         if service.get('dep_service_map_list'):
             service['dep_service_map_list'] = list(filter(filter_dep, service['dep_service_map_list']))
 
-    def complete(self, tenant, user, share_record, is_plugin):
+    def complete(self, tenant, user, share_record, is_plugin, user_id):
         app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
         app = rainbond_app_repo.get_rainbond_app_by_app_id(app_version.app_id)
         app_market_url = None
@@ -1014,7 +1014,7 @@ class ShareService(object):
                 if len(info) > 1:
                     share_type = info[1]
                 app_market_url = self.publish_app_to_public_market(tenant, share_record, user.nick_name, app_version,
-                                                                   is_plugin, share_type)
+                                                                   is_plugin, user_id, share_type)
             app_version.is_complete = True
             app_version.update_time = datetime.datetime.now()
             app_version.is_plugin = is_plugin
@@ -1034,7 +1034,7 @@ class ShareService(object):
         app_export_record_repo.delete_by_key_and_version(app_version.app_id, app_version.version)
         return app_market_url
 
-    def publish_app_to_public_market(self, tenant, share_record, user_name, app, is_plugin, share_type="private"):
+    def publish_app_to_public_market(self, tenant, share_record, user_name, app, is_plugin, user_id, share_type="private"):
         try:
             data = dict()
             data["description"] = app.app_version_info
