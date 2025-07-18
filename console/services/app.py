@@ -1160,7 +1160,7 @@ class AppMarketService(object):
                     user_id=user_id if os.getenv("USE_SAAS") else None
                 )
                 if exist_market:
-                    app_market_repo.update_access_key(enterprise_id=eid, name=dt["name"], access_key=dt["access_key"])
+                    app_market_repo.update_access_key(enterprise_id=eid, name=dt["name"], access_key=dt["access_key"], user_id=user_id)
                     continue
                 app_market_repo.create_app_market(user_id=user_id, **dt)
         return self.get_app_markets(eid, extend="true", user_id=user_id, for_publish=bool(user_id))
