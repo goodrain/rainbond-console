@@ -1062,7 +1062,7 @@ class ShareService(object):
                 new_apps.append(ap)
             data["template"]["apps"] = new_apps
             market = app_market_service.get_app_market_by_name(
-                tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
+                tenant.enterprise_id, share_record.share_app_market_name, user_id=user_id, raise_exception=True)
             app_market_service.create_market_app_model_version(market, app.app_id, data)
             # 云市url
         except HttpClient.CallApiError as e:
