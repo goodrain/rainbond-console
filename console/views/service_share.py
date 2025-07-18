@@ -361,6 +361,8 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
             return Response(result, status=400)
 
+        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
+
         if not request.data:
             result = general_message(400, "share info can not be empty", "分享信息不能为空")
             return Response(result, status=400)
@@ -394,7 +396,9 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             share_team=self.team,
             share_user=request.user,
             share_info=request.data,
-            use_force=use_force)
+            use_force=use_force,
+            user_id=user_id
+        )
         bean['is_plugin'] = is_plugin
         result = general_message(code, "create share info", msg, bean=bean)
         return Response(result, status=code)

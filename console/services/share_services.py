@@ -691,7 +691,7 @@ class ShareService(object):
     # 创建应用记录
     # 创建介质同步记录
     @transaction.atomic
-    def create_share_info(self, tenant, region_name, share_record, share_team, share_user, share_info, use_force):
+    def create_share_info(self, tenant, region_name, share_record, share_team, share_user, share_info, use_force, user_id):
         # 开启事务
         sid = transaction.savepoint()
         try:
@@ -713,7 +713,7 @@ class ShareService(object):
                 market_id = share_record.share_app_market_name
             if market_id:
                 scope = "goodrain"
-                market = app_market_service.get_app_market_by_name(share_team.enterprise_id, market_id, raise_exception=True)
+                market = app_market_service.get_app_market_by_name(share_team.enterprise_id, market_id, user_id=user_id, raise_exception=True)
                 cloud_app = app_market_service.get_market_app_model(market, app_model_id, True)
                 if cloud_app:
                     app_model_name = cloud_app.app_name
