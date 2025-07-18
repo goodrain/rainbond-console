@@ -521,7 +521,8 @@ class AppMarketRepository(object):
         
         if os.getenv("USE_SAAS") and user_id:
             queryset = queryset.filter(user_id=user_id)
-            
+        else:
+            queryset = queryset.filter(is_personal=False)
         market = queryset.first()
         if raise_exception and not market:
             raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
