@@ -109,6 +109,10 @@ if DATABASE_TYPE == 'mysql':
             'PASSWORD': os.environ.get('MYSQL_PASS') or "",
             'HOST': os.environ.get('MYSQL_HOST') or "127.0.0.1",
             'PORT': os.environ.get('MYSQL_PORT') or "3306",
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            }
         }
     }
 
