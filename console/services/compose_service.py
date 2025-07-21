@@ -221,14 +221,10 @@ class ComposeService(object):
         service_ids = list(service_ids)
         return service_repo.get_services_by_service_ids(service_ids)
 
-    def give_up_compose_create(self, tenant, group_id, compose_id, k8s_app, region_name):
+    def give_up_compose_create(self, tenant, compose_id):
         self.__delete_created_compose_info(tenant, compose_id)
-        app_manage_service.delete_compose_app(tenant, region_name, k8s_app)
         compose_repo.delete_group_compose_by_compose_id(compose_id)
-        group_repo.delete_group_by_pk(group_id)
-        # 删除组件与组的关系
-        group_service_relation_repo.delete_relation_by_group_id(group_id)
-        compose_repo.delete_group_compose_by_group_id(group_id)
+
 
     def __delete_created_compose_info(self, tenant, compose_id):
         services = self.get_compose_services(compose_id)
