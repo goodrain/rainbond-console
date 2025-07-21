@@ -328,7 +328,7 @@ class ComposeDeleteView(ComposeGroupBaseView):
             return Response(general_message(400, "params error", "请指明需要删除的组标识 "), status=400)
         if not compose_id:
             return Response(general_message(400, "params error", "请指明需要删除的compose ID "), status=400)
-        compose_service.give_up_compose_create(self.tenant, group_id, compose_id, app_name, self.region_name)
+        compose_service.give_up_compose_create(self.tenant, compose_id)
         result = general_message(200, "compose delete success", "删除成功")
         return Response(result, status=result["code"])
 
