@@ -667,6 +667,7 @@ class BuildSourceinfo(AppBaseView):
                     self.service.code_version = ""
                 else:
                     self.service.code_version = "master"
+                self.service.code_from = ""
                 if git_url:
                     if is_oauth:
                         try:
@@ -694,7 +695,6 @@ class BuildSourceinfo(AppBaseView):
                     else:
                         self.service.git_url = git_url
                 self.service.service_source = service_source
-                self.service.code_from = ""
                 self.service.server_type = server_type
                 self.service.cmd = ""
                 self.service.image = ""
