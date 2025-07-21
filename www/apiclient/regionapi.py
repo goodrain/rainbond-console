@@ -2912,6 +2912,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                     svc = service_repo.get_service_by_service_alias(service_alias)
                     domains = domain_repo.get_service_domain_by_container_port(svc.service_id, int(port))
                     if domains:
+                        domain_name = data.get("name")
+                        if domain_name:
+                            domain = domains[0]
+                            if domain.domain_name in domain_name:
+                                domain_hosts = data.get("match", {}).get("hosts", [])
+                                if domain_hosts:
+                                    domain.domain_name = domain_hosts[0]
+                                    domain.save()
+
                         gateway_rule = configuration_repo.get_configuration_by_rule_id(domains[0].http_rule_id)
                         value_data = {
                             "set_headers": [
