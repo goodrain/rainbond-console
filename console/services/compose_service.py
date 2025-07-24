@@ -44,9 +44,6 @@ class ComposeService(object):
             return 400, "yaml内容格式不正确", {}
 
     def create_group_compose(self, tenant, region, group_id, compose_content, hub_user="", hub_pass=""):
-        gc = compose_repo.get_group_compose_by_group_id(group_id)
-        if gc:
-            return 409, "该组已与其他compose组关联", None
         # 将yaml格式信息转成json数据
         group_compose_data = {
             "hub_user": hub_user,
