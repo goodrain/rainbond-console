@@ -12,7 +12,7 @@ rainbond/rbd-api:${VERSION}
 rainbond/rainbond:${VERSION}
 rainbond/alpine:latest
 rainbond/apisix-ingress-controller:v1.8.3
-rainbond/apisix:3.9.1-debian
+rainbond/apisix:3.9.1-debian-fix
 rainbond/minio:RELEASE.2023-10-24T04-42-36Z
 rainbond/rbd-monitor:v2.20.0
 rainbond/local-path-provisioner:v0.0.30

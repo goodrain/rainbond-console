@@ -1,7 +1,4 @@
 mirrors:
-  "docker.io":
-    endpoint:
-      - "https://docker.rainbond.cc"
   "goodrain.me":
     endpoint:
       - "https://goodrain.me"
