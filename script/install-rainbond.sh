@@ -632,6 +632,16 @@ install_docker_linux() {
             send_info "Found existing Docker binary file, verifying integrity..."
         fi
         
+         # Check if tar command is available
+        if ! command -v tar >/dev/null 2>&1; then
+          if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "tar 命令未找到，请安装 tar 软件包"
+          else
+            send_error "tar command not found - please install tar package"
+          fi
+          exit 1
+        fi
+    
         # Try to test if the file is a valid tar.gz
         if tar -tzf "$docker_file" >/dev/null 2>&1; then
             if [ "$LANG" == "zh_CN.UTF-8" ]; then
