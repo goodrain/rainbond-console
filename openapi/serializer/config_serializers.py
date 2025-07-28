@@ -11,6 +11,21 @@ class MonitorQueryOverviewSeralizer(serializers.Serializer):
     data = serializers.DictField(help_text="查询数据")
     status = serializers.CharField(help_text="查询状态", max_length=64)
 
+class AppRankOverviewSeralizer(serializers.Serializer):
+    visits = serializers.IntegerField(help_text="实时访问数[每5分钟]", default=0)
+    memory = serializers.IntegerField(help_text="使用内存", default=0)
+    app_name = serializers.CharField(help_text="应用名", max_length=64)
+    team_alias = serializers.CharField(help_text="团队名", max_length=64)
+    region_alias = serializers.CharField(help_text="集群名", max_length=64)
+
+
+class MonitorMessageOverviewSeralizer(serializers.Serializer):
+    event_type = serializers.CharField(help_text="事件类型", max_length=64)
+    event_nums = serializers.IntegerField(help_text="事件发生次数", default=0)
+    team_alias = serializers.CharField(help_text="团队名", max_length=64)
+    app_name = serializers.CharField(help_text="应用名", max_length=64)
+    component_name = serializers.CharField(help_text="组件名", max_length=64)
+    region_alias = serializers.CharField(help_text="集群名", max_length=64)
 
 class AppStoreImageHubRespSerializer(serializers.Serializer):
     namespace = serializers.CharField(max_length=255, allow_null=True, allow_blank=True, required=False)
@@ -110,7 +125,60 @@ class EnterpriseConfigSeralizer(serializers.Serializer):
     newbie_guide = NewBieGuideBaseRespSerializer(required=False)
 
 
+class VisualMonitorURLSeralizer(serializers.Serializer):
+    home_url = serializers.CharField(help_text="监控主页地址")
+    cluster_monitor_suffix = serializers.CharField(help_text="集群监控拼接后缀")
+    node_monitor_suffix = serializers.CharField(help_text="节点监控拼接后缀")
+    component_monitor_suffix = serializers.CharField(help_text="组件监控拼接后缀")
+    slo_monitor_suffix = serializers.CharField(help_text="服务监控拼接后缀")
+
+
+class VisualMonitorSeralizer(serializers.Serializer):
+    enable = serializers.BooleanField(default=False)
+    value = VisualMonitorURLSeralizer()
+
+
+class EnterpriseOverviewSeralizer(serializers.Serializer):
+    teams = serializers.IntegerField(help_text="团队数", default=0)
+    apps = serializers.IntegerField(help_text="应用数", default=0)
+    components = serializers.IntegerField(help_text="组件数", default=0)
+    instances = serializers.IntegerField(help_text="实例数", default=0)
+    nodes = serializers.IntegerField(help_text="节点数", default=0)
+    visual_monitor = VisualMonitorSeralizer()
+
+
 
 class ResourceOverviewSeralizer(serializers.Serializer):
     nodes = serializers.ListField(help_text="资源级别")
     links = serializers.ListField(help_text="资源关系")
+
+
+class ServieOveriewSeralizer(serializers.Serializer):
+    abnormal_service_num = serializers.IntegerField(help_text="异常的组件个数")
+    closed_service_num = serializers.IntegerField(help_text="关闭的组件个数")
+    started_service_num = serializers.IntegerField(help_text="启动的组件个数")
+
+
+class PerformanceOverviewSeralizer(serializers.Serializer):
+    cpu_use_sum = serializers.IntegerField(help_text="CPU使用总量")
+    memory_use_sum = serializers.IntegerField(help_text="内存使用总量")
+    disk_use_sum = serializers.IntegerField(help_text="磁盘使用总量")
+    node_number = serializers.IntegerField(help_text="节点总数")
+    service_number = serializers.IntegerField(help_text="组件总数")
+
+
+class RegionMonitorOverviewSeralizer(serializers.Serializer):
+    region_alias = serializers.CharField(help_text="集群名", max_length=64)
+    node_name = serializers.CharField(help_text="节点名", max_length=64)
+    exception_type = serializers.CharField(help_text="异常类型", max_length=64)
+    reason = serializers.CharField(help_text="异常原因")
+
+
+class InstancesMonitorOverviewSeralizer(serializers.Serializer):
+    instance_status = serializers.CharField(help_text="实例状态", max_length=64)
+    team_alias = serializers.CharField(help_text="团队名", max_length=64)
+    app_name = serializers.CharField(help_text="应用名", max_length=64)
+    component_name = serializers.CharField(help_text="组件名", max_length=64)
+    disk_usage = serializers.IntegerField(help_text="磁盘使用量")
+    memory_usage = serializers.IntegerField(help_text="内存使用量")
+    cpu_usage = serializers.IntegerField(help_text="CPU使用量")

@@ -13,6 +13,13 @@ from openapi.views.apps.apps import ListAppsView, AppModelImportEvent, AppTarbal
     AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView, HelmChart
 from openapi.views.enterprise_view import ResourceOverview
 
+from openapi.views.apps.apps import ListAppsView
+from openapi.views.enterprise_view import (EnterpriseConfigView, EnterpriseOverview, AppRankOverview,
+                                           MonitorMessageOverview,
+                                           MonitorQueryOverview, MonitorQueryRangeOverview, MonitorSeriesOverview,
+                                           RegionsMonitorOverview, InstancesMonitorOverview, ResourceOverview,
+                                           ServiceOverview, Performance_overview)
+from openapi.views.enterprise_view import EnterpriseConfigView, EnterpriseOverview
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
 from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
@@ -40,6 +47,7 @@ urlpatterns = [
     url(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     # get enterprise regions
+    url(r'^v1/overview$', EnterpriseOverview.as_view()),
     url(r'^v1/regions$', ListRegionInfo.as_view(), name="list_regions"),
     url(r'^v1/regions/(?P<region_id>[\w\-]+)$', RegionInfo.as_view(), name="region_info"),
     url(r'^v1/administrators$', ListAdminsView.as_view()),
@@ -93,6 +101,12 @@ urlpatterns = [
         HelmChart.as_view()),
     # 资源监控
     url(r'^v1/monitor/resource_over_view$', ResourceOverview.as_view()),
+    url(r'^v1/monitor/service_overview$', ServiceOverview.as_view()),
+    url(r'^v1/monitor/performance_overview', Performance_overview.as_view()),
+    url(r'^v1/monitor/query$', MonitorQueryOverview.as_view()),
+    url(r'^v1/monitor/query_range$', MonitorQueryRangeOverview.as_view()),
+    url(r'^v1/monitor/series$', MonitorSeriesOverview.as_view()),
+    url(r'^v1/instances/monitor$', InstancesMonitorOverview.as_view()),
 
     # MCP 相关接口
     url(r'^v1/mcp/', include('openapi.mcp.urls')),

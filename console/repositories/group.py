@@ -170,6 +170,17 @@ class GroupRepository(object):
         except ServiceGroupRelation.DoesNotExist:
             raise ServiceGroup.DoesNotExist
 
+    def get_app_principal(self, app):
+        return Users.objects.get(nick_name=app.username)
+
+    @staticmethod
+    def count_app_nums_by_tenant_ids(tenant_ids):
+        return ServiceGroup.objects.filter(tenant_id__in=tenant_ids).values("tenant_id").annotate(counts=Count("tenant_id"))
+
+    @staticmethod
+    def count_apps():
+        return ServiceGroup.objects.count()
+
 
 class GroupServiceRelationRepository(object):
     def delete_relation_by_group_id(self, group_id):

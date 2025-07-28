@@ -1,23 +1,36 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
+import os
+from drf_yasg import openapi
 
 from console.exception.main import ServiceHandleException
 from console.models.main import EnterpriseUserPerm
 from console.repositories.user_repo import user_repo
 from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
+from console.services.performance_overview import performance_overview
+from console.services.region_services import region_services
 from console.services.global_resource_processing import Global_resource_processing
 from console.services.region_services import region_services
 from console.utils.timeutil import time_to_str
 from django.db import connection
 from drf_yasg.utils import swagger_auto_schema
-from openapi.serializer.config_serializers import EnterpriseConfigSeralizer, ResourceOverviewSeralizer
+from openapi.serializer.config_serializers import EnterpriseConfigSeralizer, EnterpriseOverviewSeralizer, VisualMonitorSeralizer, EnterpriseOverviewSeralizer, ResourceOverviewSeralizer
 from openapi.serializer.ent_serializers import (EnterpriseInfoSerializer, EnterpriseSourceSerializer, UpdEntReqSerializer)
+from openapi.serializer.config_serializers import (
+    EnterpriseConfigSeralizer, EnterpriseOverviewSeralizer, VisualMonitorSeralizer, AppRankOverviewSeralizer,
+    MonitorMessageOverviewSeralizer, MonitorQueryOverviewSeralizer, RegionMonitorOverviewSeralizer,
+    InstancesMonitorOverviewSeralizer, ResourceOverviewSeralizer, ServieOveriewSeralizer, PerformanceOverviewSeralizer)
+from openapi.serializer.ent_serializers import (EnterpriseInfoSerializer, EnterpriseSourceSerializer,
+                                                UpdEntReqSerializer)
 from openapi.views.base import BaseOpenAPIView
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
+from console.services.team_services import team_services
+from console.services.group_service import group_repo
+from console.repositories.app import service_repo
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -154,5 +167,239 @@ class ResourceOverview(BaseOpenAPIView):
         nodes, links = handle.template_handle()
         result = [{"nodes": nodes, "links": links}]
         serializer = ResourceOverviewSeralizer(data=result, many=True)
+        serializer.is_valid()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class EnterpriseOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="获取企业总览信息",
+        responses={200: EnterpriseOverviewSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="")
+        nodes = 0
+        instances = 0
+        for region in regions:
+            nodes += region.get("all_nodes", 0)
+            instances += region.get("pods", 0)
+        teams = team_services.count_teams(self.user.enterprise_id)
+        apps = group_repo.count_apps()
+        components = service_repo.count_components()
+        visual_monitor = {
+            "value": {
+                "home_url": os.getenv("home_url", "https://visualmonitor.goodrain.com"),
+                "cluster_monitor_suffix": os.getenv("cluster_monitor_suffix", "/d/cluster/ji-qun-jian-kong-ke-shi-hua"),
+                "node_monitor_suffix": os.getenv("node_monitor_suffix", "/d/node/jie-dian-jian-kong-ke-shi-hua"),
+                "component_monitor_suffix": os.getenv("component_monitor_suffix", "/d/component/zu-jian-jian-kong-ke-shi-hua"),
+                "slo_monitor_suffix": os.getenv("slo_monitor_suffix", "/d/service/fu-wu-jian-kong-ke-shi-hua"),
+            },
+            "enable": True
+        }
+        visual_monitor_serializer = VisualMonitorSeralizer(data=visual_monitor)
+        visual_monitor_serializer.is_valid()
+        data = {
+            "teams": teams,
+            "apps": apps,
+            "components": components,
+            "instances": instances,
+            "nodes": nodes,
+            "visual_monitor": visual_monitor_serializer.data,
+        }
+        serializer = EnterpriseOverviewSeralizer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AppRankOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="获取应用排名总览信息",
+        responses={200: AppRankOverviewSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        team_name = req.GET.get("team_name", "")
+        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="", check_status="no")
+        tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)
+        result = enterprise_services.get_app_ranking(regions, tenants, team_name)
+        serializer = AppRankOverviewSeralizer(data=result, many=True)
+        serializer.is_valid()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MonitorMessageOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="获取组件异常事件信息",
+        responses={200: MonitorMessageOverviewSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        team_name = req.GET.get("team_name", "")
+        interval = req.GET.get("interval", 60)
+        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="", check_status="no")
+        tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)
+        result = enterprise_services.get_monitor_message(regions, tenants, team_name, interval)
+        serializer = MonitorMessageOverviewSeralizer(data=result, many=True)
+        serializer.is_valid()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class Performance_overview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="性能总览",
+        responses={200: PerformanceOverviewSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        result = performance_overview.get_performance_overview(self.enterprise.enterprise_id)
+        serializer = PerformanceOverviewSeralizer(data=result)
+        serializer.is_valid()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ServiceOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="组件信息总览",
+        responses={200: ServieOveriewSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        region_name = req.GET.get("region_name")
+        run_count, abnormal_count, closed_count = service_overview.get_service_overview(
+            enterprise_id=self.enterprise.enterprise_id,
+            region_name=region_name)
+        result = {"abnormal_service_num": abnormal_count, "closed_service_num": closed_count,
+                  "started_service_num": run_count}
+        serializer = ServieOveriewSeralizer(data=result)
+        serializer.is_valid()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ResourceOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="资源信息总览",
+        responses={200: ResourceOverviewSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        handle = Global_resource_processing()
+        handle.region_obtain_handle(self.enterprise.enterprise_id)
+        handle.tenant_obtain_handle(self.enterprise.enterprise_id)
+        handle.app_obtain_handle()
+        handle.host_obtain_handle()
+        nodes, links = handle.template_handle()
+        result = [{"nodes": nodes, "links": links}]
+        serializer = ResourceOverviewSeralizer(data=result, many=True)
+        serializer.is_valid()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MonitorQueryOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="prometheus query接口",
+        manual_parameters=[
+            openapi.Parameter("region_name", openapi.IN_QUERY, description="集群名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("query", openapi.IN_QUERY, description="PromQL表达式", type=openapi.TYPE_STRING),
+        ],
+        responses={200: MonitorQueryOverviewSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        region_name = req.GET.get("region_name", "")
+        query = req.GET.get("query", "")
+        _, body = region_api.get_query_data(region_name, "", "?query={}".format(query))
+        serializer = MonitorQueryOverviewSeralizer(data=body)
+        serializer.is_valid()
+        return Response(body, status=status.HTTP_200_OK)
+
+
+class MonitorQueryRangeOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="prometheus query_range接口",
+        manual_parameters=[
+            openapi.Parameter("region_name", openapi.IN_QUERY, description="集群名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("query", openapi.IN_QUERY, description="PromQL表达式", type=openapi.TYPE_STRING),
+            openapi.Parameter("start", openapi.IN_QUERY, description="起始时间", type=openapi.TYPE_NUMBER),
+            openapi.Parameter("end", openapi.IN_QUERY, description="结束时间", type=openapi.TYPE_NUMBER),
+            openapi.Parameter("step", openapi.IN_QUERY, description="查询步长", type=openapi.TYPE_NUMBER),
+        ],
+        responses={200: MonitorQueryOverviewSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        region_name = req.GET.get("region_name", "")
+        query = req.GET.get("query", "")
+        start = req.GET.get("start")
+        end = req.GET.get("end")
+        step = req.GET.get("step")
+        _, body = region_api.get_query_range_data(region_name, "", "?query={}&start={}&end={}&step={}".format(
+            query, start, end, step))
+        serializer = MonitorQueryOverviewSeralizer(data=body)
+        serializer.is_valid()
+        return Response(body, status=status.HTTP_200_OK)
+
+
+class MonitorSeriesOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="prometheus series接口",
+        manual_parameters=[
+            openapi.Parameter("match[]", openapi.IN_QUERY, description="选择器", type=openapi.TYPE_STRING),
+            openapi.Parameter("start", openapi.IN_QUERY, description="起始时间", type=openapi.TYPE_NUMBER),
+            openapi.Parameter("end", openapi.IN_QUERY, description="结束时间", type=openapi.TYPE_NUMBER),
+            openapi.Parameter("region_name", openapi.IN_QUERY, description="集群名称", type=openapi.TYPE_STRING),
+        ],
+        responses={200: MonitorQueryOverviewSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        region_name = req.GET.get("region_name", "")
+        match = req.GET.get("match[]")
+        start = req.GET.get("start")
+        end = req.GET.get("end")
+        query = "?match[]={}".format(match)
+        if start:
+            query = "{}&start={}".format(query, start)
+        if end:
+            query = "{}&end={}".format(query, end)
+        _, body = region_api.get_query_series(region_name, "", query)
+        serializer = MonitorQueryOverviewSeralizer(data=body)
+        serializer.is_valid()
+        return Response(body, status=status.HTTP_200_OK)
+
+
+class RegionsMonitorOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="获取所有集群异常节点信息",
+        responses={200: RegionMonitorOverviewSeralizer(many=True)},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="", check_status="no")
+        data = enterprise_services.get_exception_nodes_info(regions)
+        serializer = RegionMonitorOverviewSeralizer(data=data, many=True)
+        serializer.is_valid()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class InstancesMonitorOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="获取实例监控信息",
+        manual_parameters=[
+            openapi.Parameter("region_name", openapi.IN_QUERY, description="集群名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("node_name", openapi.IN_QUERY, description="节点名", type=openapi.TYPE_STRING),
+            openapi.Parameter("query", openapi.IN_QUERY, description="区分查询全部或不健康的实例, unhealthy",
+                              type=openapi.TYPE_STRING),
+        ],
+        responses={200: InstancesMonitorOverviewSeralizer(many=True)},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        region_name = req.GET.get("region_name", "")
+        node_name = req.GET.get("node_name", "")
+        query = req.GET.get("query", "")
+        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="", check_status="no")
+        tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)
+        result = enterprise_services.get_instances_monitor(regions, tenants, region_name, node_name, query)
+        serializer = InstancesMonitorOverviewSeralizer(data=result, many=True)
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)
