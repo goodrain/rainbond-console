@@ -632,6 +632,7 @@ class RegionService(object):
                     region_resource["resource_proxy_status"] = body["bean"]["resource_proxy_status"]
                     region_resource["k8s_version"] = body["bean"]["k8s_version"]
                     region_resource["all_nodes"] = body["bean"]["all_node"]
+                    region_resource["services_status"] = {"running": body["bean"]["run_pod_number"]}
                     region_resource["pods"] = body["bean"]["pods"]
                     region_resource["run_pod_number"] = body["bean"]["run_pod_number"]
                     region_resource["node_ready"] = body["bean"]["node_ready"]
