@@ -245,6 +245,9 @@ class GroupServiceRelationRepository(object):
     def get_services_by_group(self, group_id):
         return ServiceGroupRelation.objects.filter(group_id=group_id)
 
+    def get_service_number(self, region_name):
+        return ServiceGroupRelation.objects.filter(region_name=region_name).count()
+
     @staticmethod
     def list_serivce_ids_by_app_id(tenant_id, region_name, app_id):
         relations = ServiceGroupRelation.objects.filter(tenant_id=tenant_id, region_name=region_name, group_id=app_id)
