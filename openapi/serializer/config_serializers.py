@@ -182,3 +182,8 @@ class InstancesMonitorOverviewSeralizer(serializers.Serializer):
     disk_usage = serializers.IntegerField(help_text="磁盘使用量")
     memory_usage = serializers.IntegerField(help_text="内存使用量")
     cpu_usage = serializers.IntegerField(help_text="CPU使用量")
+
+
+class ComponentMemoryOverviewSeralizer(serializers.Serializer):
+    nodes = serializers.ListField(help_text="组件内存级别")
+    links = serializers.ListField(help_text="组件内存关系")

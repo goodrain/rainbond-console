@@ -16,12 +16,10 @@ from console.services.region_services import region_services
 from console.utils.timeutil import time_to_str
 from django.db import connection
 from drf_yasg.utils import swagger_auto_schema
-from openapi.serializer.config_serializers import EnterpriseConfigSeralizer, EnterpriseOverviewSeralizer, VisualMonitorSeralizer, EnterpriseOverviewSeralizer, ResourceOverviewSeralizer
-from openapi.serializer.ent_serializers import (EnterpriseInfoSerializer, EnterpriseSourceSerializer, UpdEntReqSerializer)
 from openapi.serializer.config_serializers import (
     EnterpriseConfigSeralizer, EnterpriseOverviewSeralizer, VisualMonitorSeralizer, AppRankOverviewSeralizer,
     MonitorMessageOverviewSeralizer, MonitorQueryOverviewSeralizer, RegionMonitorOverviewSeralizer,
-    InstancesMonitorOverviewSeralizer, ResourceOverviewSeralizer, ServieOveriewSeralizer, PerformanceOverviewSeralizer)
+    InstancesMonitorOverviewSeralizer, ResourceOverviewSeralizer, ServieOveriewSeralizer, PerformanceOverviewSeralizer, ComponentMemoryOverviewSeralizer)
 from openapi.serializer.ent_serializers import (EnterpriseInfoSerializer, EnterpriseSourceSerializer,
                                                 UpdEntReqSerializer)
 from openapi.views.base import BaseOpenAPIView
@@ -411,5 +409,24 @@ class InstancesMonitorOverview(BaseOpenAPIView):
         tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)
         result = enterprise_services.get_instances_monitor(regions, tenants, region_name, node_name, query)
         serializer = InstancesMonitorOverviewSeralizer(data=result, many=True)
+        serializer.is_valid()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ComponentMemoryOverview(BaseOpenAPIView):
+    @swagger_auto_schema(
+        operation_description="组件内存桑吉图信息总览",
+        responses={200: ComponentMemoryOverviewSeralizer},
+        tags=['openapi-entreprise'],
+    )
+    def get(self, req, *args, **kwargs):
+        from console.services.component_memory_processing import Component_memory_processing
+        handle = Component_memory_processing()
+        handle.region_obtain_handle(self.enterprise.enterprise_id)
+        handle.tenant_obtain_handle(self.enterprise.enterprise_id)
+        handle.component_memory_obtain_handle(self.enterprise.enterprise_id)
+        nodes, links = handle.template_handle()
+        result = [{"nodes": nodes, "links": links}]
+        serializer = ComponentMemoryOverviewSeralizer(data=result, many=True)
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)

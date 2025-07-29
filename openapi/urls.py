@@ -18,7 +18,7 @@ from openapi.views.enterprise_view import (EnterpriseConfigView, EnterpriseOverv
                                            MonitorMessageOverview,
                                            MonitorQueryOverview, MonitorQueryRangeOverview, MonitorSeriesOverview,
                                            RegionsMonitorOverview, InstancesMonitorOverview, ResourceOverview,
-                                           ServiceOverview, Performance_overview)
+                                           ServiceOverview, Performance_overview, ComponentMemoryOverview)
 from openapi.views.enterprise_view import EnterpriseConfigView, EnterpriseOverview
 from openapi.views.gateway.gateway import ListEnterpriseAppGatewayHTTPRuleView
 from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionIP
@@ -102,6 +102,7 @@ urlpatterns = [
     # 资源监控
     url(r'^v1/monitor/resource_over_view$', ResourceOverview.as_view()),
     url(r'^v1/monitor/service_overview$', ServiceOverview.as_view()),
+    url(r'^v1/monitor/component_memory_overview$', ComponentMemoryOverview.as_view()),
     url(r'^v1/monitor/performance_overview', Performance_overview.as_view()),
     url(r'^v1/monitor/query$', MonitorQueryOverview.as_view()),
     url(r'^v1/monitor/query_range$', MonitorQueryRangeOverview.as_view()),
