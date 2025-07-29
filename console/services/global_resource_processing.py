@@ -132,8 +132,7 @@ class Global_resource_processing(object):
                     # 然后从剩余部分提取组件别名（到第一个连字符为止）
                     service_alias_parts = rest.split("-", 1)
                     service_alias = service_alias_parts[0]  # 组件的service_alias
-                    logger.debug(f"从路由 {route} 中提取到命名空间: {namespace}, 组件别名: {service_alias}")
-                    
+
                     # 获取HTTP请求数量
                     request_count = domain["value"][1]
                     # 跳过零请求的路由

@@ -180,7 +180,17 @@ class EnterpriseOverview(BaseOpenAPIView):
         instances = 0
         for region in regions:
             nodes += region.get("all_nodes", 0)
-            instances += region.get("pods", 0)
+            # 修复类型错误：pods可能是字典，使用run_pod_number获取实际的pod数量
+            pods_data = region.get("pods", 0)
+            if isinstance(pods_data, dict):
+                # 如果pods是字典，尝试获取总数或运行中的pod数量
+                instances += region.get("run_pod_number", 0)
+            elif isinstance(pods_data, (int, float)):
+                # 如果pods是数字，直接相加
+                instances += pods_data
+            else:
+                # 其他情况使用run_pod_number作为备选
+                instances += region.get("run_pod_number", 0)
         teams = team_services.count_teams(self.user.enterprise_id)
         apps = group_repo.count_apps()
         components = service_repo.count_components()
