@@ -128,7 +128,7 @@ from console.views.public_areas import (AllServiceInfo, GroupServiceView, Servic
 from console.views.rbd_ability import RainbondAbilityRUDView, RainbondAbilityLView
 from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView, RainbondPluginStaticView, RainbondPluginBackendView, RainbondPluginStatusView
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
-                                  OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView)
+                                  OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView, RegionMonitor)
 from console.views.registry import HubRegistryView, HubRegistryImageView
 from console.views.rke2 import ClusterRKE, ClusterRKENode, ClusterNodeIP, ClusterRKEInstallRB, \
     ClusterRKERBStatus, ClusterRKERBEvent, ClusterRKEUNInstallInstallRB, InstallRKECluster, RKERegionConfig
@@ -233,6 +233,7 @@ urlpatterns = [
     # 用户注册
     url(r'^users/register$', TenantServiceView.as_view()),
     url(r'^captcha', CaptchaView.as_view()),
+    url(r'^regions/monitor$', RegionMonitor.as_view()),
     # 忘记密码
     url(r'^users/send_reset_email$', SendResetEmail.as_view()),
     url(r'^users/begin_password_reset$', PasswordResetBegin.as_view()),
