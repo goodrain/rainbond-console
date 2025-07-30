@@ -45,7 +45,9 @@ class Global_resource_processing(object):
         """
         从数据库获取集群信息
         """
+        logger.info(f"开始获取企业 {enterprise_id} 的集群信息")
         regions = region_services.get_enterprise_regions(enterprise_id, level="safe")
+        logger.info(f"共获取到 {len(regions)} 个集群")
         for region in regions:
             self.region_list.append(
                 self.monitor_handle(0, [region["region_name"], region["region_alias"]], region["region_id"], 200, "nil", "nil"))
@@ -54,22 +56,29 @@ class Global_resource_processing(object):
         """
         从数据库获取团队信息及其对应的父级
         """
+        logger.info(f"开始获取企业 {enterprise_id} 的团队信息")
         tenants = TenantRegionInfo.objects.filter(enterprise_id=enterprise_id)
+        total_tenants = 0
         for region in self.region_list:
             ent_tenants = tenants.filter(region_name=region["resource_name"][0])
             for ent_tenant in ent_tenants:
                 t = Tenants.objects.filter(tenant_id=ent_tenant.tenant_id)
                 if not t:
+                    logger.warning(f"找不到团队ID {ent_tenant.tenant_id} 的详细信息")
                     continue
                 self.tenant_list.append(
                     self.monitor_handle(1, t[0].tenant_alias, ent_tenant.tenant_id, 200, region["resource_name"],
                                         t[0].namespace))
+                total_tenants += 1
+        logger.info(f"共获取到 {total_tenants} 个团队")
 
     def app_obtain_handle(self):
         """
         从数据库获取应用信息及其对应的父级
         """
+        logger.info("开始获取应用信息")
         apps = ServiceGroup.objects.filter()
+        total_apps = 0
         for tenant in self.tenant_list:
             ten_apps = apps.filter(tenant_id=tenant["resource_id"])
             for ten_app in ten_apps:
@@ -78,14 +87,23 @@ class Global_resource_processing(object):
                     self.monitor_handle(2, ten_app.group_name, ten_app.ID, 200, tenant["resource_id"],
                                         tenant["resource_namespace"])
                 })
+                total_apps += 1
+        logger.info(f"共获取到 {total_apps} 个应用")
 
     def host_obtain_handle(self):
         """
         通过请求区域端的代理接口，获取APISIX网关信息和请求流量，并将网关绑定到其父应用
         """
+        logger.info("开始获取网关流量数据")
         time_range = "1h"  # 查询最近1小时的数据
         
+        total_processed_tenants = 0
+        total_domains_found = 0
+        total_valid_routes = 0
+        
         for tenant in self.tenant_list:
+            total_processed_tenants += 1
+            
             # APISIX HTTP状态码指标查询
             # route的命名规则是: 命名空间_组件名称_xxx
             query = (
@@ -103,19 +121,60 @@ class Global_resource_processing(object):
                     tenant["resource_name"], 
                     suffix
                 )
+                
                 # 确保返回了有效数据
                 if not body or "data" not in body or "result" not in body["data"]:
                     logger.warning(f"无法获取租户 {tenant['resource_name']} 的网关访问数据")
                     continue
                     
                 domains = body["data"]["result"]
+                total_domains_found += len(domains)
 
                 for domain in domains:
                     # 提取路由名称和带宽使用量
                     route = domain["metric"].get("route", "")
                     if not route:
                         continue
+                        
                     domain_route = domain["metric"].get("matched_host", "")
+                    
+                    # 如果matched_host为空，使用route的简化版本作为显示名称
+                    if not domain_route:
+                        # 从路由名称中提取域名信息
+                        # 例如：从 "default_grf634aa-8080-default-14.103.232.255.ip.goodrain.netp-ps-s_478ad582"
+                        # 1. 删除 "default_" (下划线及前面的部分)
+                        # 2. 删除 "p-ps-s_478ad582" (从单独的p开始到末尾)
+                        # 得到：grf634aa-8080-default-14.103.232.255.ip.goodrain.net
+                        
+                        # 步骤1：删除下划线及前面的部分
+                        if "_" in route:
+                            route_without_prefix = route.split("_", 1)[1]  # 取下划线后面的部分
+                        else:
+                            route_without_prefix = route
+                        
+                        # 步骤2：删除从单独的'p'开始的后缀部分
+                        # 查找 "netp-" 模式，将netp替换为net并删除后面的部分
+                        if "netp-" in route_without_prefix:
+                            # 在netp-处分割，取前面部分并将netp改为net
+                            domain_route = route_without_prefix.split("netp-")[0] + "net"
+                        elif "-p-" in route_without_prefix:
+                            # 备用：查找其他的-p-模式
+                            domain_route = route_without_prefix.split("-p-")[0] + ".net"
+                        else:
+                            # 如果没找到模式，查找以.netp结尾的情况
+                            if route_without_prefix.endswith('.netp'):
+                                # 找到最后一个.netp的位置，替换为.net
+                                domain_route = route_without_prefix.rsplit('.netp', 1)[0] + '.net'
+                            else:
+                                # 备用方案：使用组件:端口格式
+                                route_parts = route_without_prefix.split("-")
+                                if len(route_parts) >= 2:
+                                    component_part = route_parts[0]
+                                    port_part = route_parts[1]
+                                    domain_route = f"{component_part}:{port_part}"
+                                else:
+                                    domain_route = route_without_prefix
+                    
                     # 从路由名称中提取组件信息
                     # 实际格式例如: "zqhh_gr1a56e3-5000-zs6bcf8j-14.103.232.255.ip.goodrain.netp-ps-s_a4d2683f"
                     # 其中zqhh是命名空间，gr1a56e3是组件别名
@@ -123,7 +182,6 @@ class Global_resource_processing(object):
                     # 首先按第一个下划线分割获取命名空间
                     parts = route.split("_", 1)
                     if len(parts) < 2:
-                        logger.debug(f"路由名称格式不正确，无法提取命名空间: {route}")
                         continue
                     
                     namespace = parts[0]
@@ -135,9 +193,13 @@ class Global_resource_processing(object):
 
                     # 获取HTTP请求数量
                     request_count = domain["value"][1]
-                    # 跳过零请求的路由
-                    if not request_count or int(float(request_count)) == 0:
-                        continue
+                    
+                    # 调整阈值：包含请求量为0的记录，用于显示完整的网络拓扑
+                    # 对于请求量为0的记录，设置一个最小值1以便在桑基图中显示
+                    if not request_count:
+                        request_count = "1"  # 设置最小值
+                    elif int(float(request_count)) == 0:
+                        request_count = "1"  # 设置最小值
                     
                     # 查找对应的租户
                     tenant_obj = None
@@ -147,12 +209,10 @@ class Global_resource_processing(object):
                             break
                             
                     if not tenant_obj:
-                        logger.debug(f"找不到命名空间 {namespace} 对应的租户")
                         continue
                     
                     service_info = service_repo.get_service_by_service_alias(service_alias)
                     if not service_info:
-                        logger.debug(f"找不到组件 {service_alias} 对应的服务")
                         continue
                         
                     host_service_id = service_info.service_id
@@ -160,35 +220,40 @@ class Global_resource_processing(object):
                     # 查找服务对应的应用组
                     service_relations = ServiceGroupRelation.objects.filter(service_id=host_service_id)
                     if not service_relations.exists():
-                        logger.debug(f"找不到服务 {host_service_id} 对应的应用组")
                         continue
                     app_id = service_relations[0].group_id
                     
                     # 添加到主机列表
-                    self.host_list.append(
-                        self.monitor_handle(
-                            3, 
-                            domain_route,  # 使用路由名称作为资源名称
-                            service_info.ID,  # 使用服务ID作为资源ID
-                            int(float(request_count)),  # 使用HTTP请求数量作为资源请求量
-                            [app_id, tenant_obj["resource_name"], tenant_obj["resource_parent"][1]],
-                            tenant_obj["resource_namespace"]
-                        )
+                    host_data = self.monitor_handle(
+                        3, 
+                        domain_route,  # 使用处理后的域名作为资源名称
+                        service_info.ID,  # 使用服务ID作为资源ID
+                        int(float(request_count)),  # 使用HTTP请求数量作为资源请求量
+                        [app_id, tenant_obj["resource_name"], tenant_obj["resource_parent"][1]],
+                        tenant_obj["resource_namespace"]
                     )
+                    self.host_list.append(host_data)
+                    total_valid_routes += 1
                     
             except Exception as e:
                 logger.error(f"获取租户 {tenant['resource_name']} 的网关访问数据失败: {str(e)}")
+        
+        logger.info(f"流量数据获取完成: 处理了 {total_processed_tenants} 个租户, 找到 {total_domains_found} 个域名记录, 有效路由 {total_valid_routes} 个")
 
     def template_handle(self):
         """
         按照指定格式对数据进行排序并返回给前端
         """
+        logger.info("开始构建桑基图数据")
+        
         # 降序排序，显示请求量最多的域名
         self.host_list = sorted(self.host_list, key=lambda x: x["resource_requests"], reverse=True)
         
         # 限制返回结果数量
+        original_length = len(self.host_list)
         if len(self.host_list) > 20:
             self.host_list = self.host_list[:20]
+            logger.info(f"限制结果数量: 从 {original_length} 减少到 {len(self.host_list)}")
             
         nodes = []
         links = []
@@ -248,5 +313,7 @@ class Global_resource_processing(object):
         # 添加租户到区域的链接
         for (tenant, region), value in tenant_region_relations.items():
             links.append({"source": tenant, "target": region, "value": value})
+        
+        logger.info(f"桑基图数据构建完成: {len(nodes)} 个节点, {len(links)} 个链接")
             
         return nodes, links

@@ -15,7 +15,6 @@ class Performance_overview(object):
         for region in regions:
             try:
                 data = region_services.get_enterprise_region(enterprise_id, region.region_id, check_status="yes")
-                logger.info("-------------{}".format(data))
                 # 确保data不为None
                 if not data:
                     continue
