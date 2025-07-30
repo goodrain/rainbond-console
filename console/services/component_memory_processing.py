@@ -1,5 +1,5 @@
 """
-该文件主要用于openapi调用，返回组件内存桑吉图数据，展示组件内存使用情况的层级关系。
+该文件主要用于openapi调用，返回组件内存桑吉图数据，展示组件内存分配情况的层级关系。
 """
 import logging
 from functools import reduce
@@ -27,7 +27,7 @@ class Component_memory_processing(object):
         resource_type ：args[0] 资源类型级别
         resource_name ：args[1] 资源名称
         resource_id ：args[2] 资源唯一标识
-        resource_memory ： args[3] 内存使用量
+        resource_memory ： args[3] 内存分配量（单位：MB）
         resource_parent ： args[4] 资源的父级
         resource_namespace ： args[5] 资源的命名空间
         """
@@ -82,9 +82,9 @@ class Component_memory_processing(object):
 
     def component_memory_obtain_handle(self, enterprise_id):
         """
-        获取组件内存使用信息
+        获取组件内存分配信息（从数据库配置中获取）
         """
-        logger.info(f"开始获取企业 {enterprise_id} 的组件内存使用信息")
+        logger.info(f"开始获取企业 {enterprise_id} 的组件内存分配信息")
         total_components_processed = 0
         successful_components = 0
         
@@ -107,69 +107,28 @@ class Component_memory_processing(object):
                 total_components_processed += 1
                 
                 try:
-                    # 通过API获取组件的内存使用情况
-                    body = region_api.get_service_pods(region_name, tenant["resource_namespace"], component.service_alias, enterprise_id)
+                    # 直接从数据库获取内存分配值（min_memory字段，单位：MB）
+                    allocated_memory = component.min_memory or 0
                     
-                    if not body:
-                        logger.warning(f"组件 {component.service_alias} 返回空响应")
-                        continue
-                        
-                    if "bean" not in body or not body["bean"]:
-                        logger.warning(f"组件 {component.service_alias} 响应中缺少 'bean' 字段或为空")
-                        continue
-                        
-                    bean_data = body["bean"]
-                    
-                    # 获取新旧Pod数据
-                    all_pods = []
-                    if "new_pods" in bean_data and bean_data["new_pods"]:
-                        all_pods.extend(bean_data["new_pods"])
-                    if "old_pods" in bean_data and bean_data["old_pods"]:
-                        all_pods.extend(bean_data["old_pods"])
-                    
-                    if not all_pods:
-                        continue
-                        
-                    total_memory = 0
-                    
-                    for i, pod in enumerate(all_pods):
-                        # 从pod信息中提取内存使用量
-                        containers = pod.get("container", {})
-                        
-                        for container_name, container_info in containers.items():
-                            if container_name == "POD":  # 跳过POD容器
-                                continue
-                                
-                            memory_usage = container_info.get("memory_usage", 0)
-                            
-                            # 内存单位通常是字节，需要转换
-                            if isinstance(memory_usage, (int, float)) and memory_usage > 0:
-                                # 转换为MB
-                                memory_mb = float(memory_usage) / 1024 / 1024
-                                total_memory += memory_mb
-                            elif isinstance(memory_usage, str) and memory_usage.replace('.', '').isdigit():
-                                memory_mb = float(memory_usage) / 1024 / 1024
-                                total_memory += memory_mb
-                    
-                    # 只有内存使用量大于0的组件才加入桑吉图
-                    if total_memory > 0:
+                    # 只有内存分配量大于0的组件才加入桑吉图
+                    if allocated_memory > 0:
                         component_data = self.monitor_handle(
                             2, 
                             component.service_cname or component.service_alias, 
                             component.service_id, 
-                            total_memory,
+                            allocated_memory,  # 使用分配的内存值
                             [tenant["resource_id"], tenant["resource_name"], tenant["resource_parent"]],
                             tenant["resource_namespace"]
                         )
                         self.component_list.append(component_data)
                         successful_components += 1
-                        logger.info(f"成功添加组件: {component.service_cname or component.service_alias}, 内存: {total_memory:.2f} MB")
+                        logger.info(f"成功添加组件: {component.service_cname or component.service_alias}, 分配内存: {allocated_memory} MB")
                         
                 except Exception as e:
                     logger.warning(f"获取组件 {component.service_alias} 内存信息失败: {e}")
                     continue
         
-        logger.info(f"组件内存信息获取完成，共处理 {total_components_processed} 个组件，成功获取 {successful_components} 个组件的内存信息")
+        logger.info(f"组件内存信息获取完成，共处理 {total_components_processed} 个组件，成功获取 {successful_components} 个组件的内存分配信息")
 
     def template_handle(self):
         """
@@ -177,7 +136,7 @@ class Component_memory_processing(object):
         """
         logger.info(f"开始处理模板数据，当前有 {len(self.component_list)} 个组件")
         
-        # 按内存使用量降序排序
+        # 按内存分配量降序排序
         self.component_list = sorted(self.component_list, key=lambda x: x["resource_memory"], reverse=True)
         
         # 限制返回结果数量
@@ -189,7 +148,7 @@ class Component_memory_processing(object):
         nodes = []
         links = []
         
-        # 用于存储组件到租户和租户到区域的关系及内存值
+        # 用于存储组件到租户和租户到区域的关系及内存分配值
         component_tenant_relations = {}
         tenant_region_relations = {}
         
@@ -220,7 +179,7 @@ class Component_memory_processing(object):
             # 添加组件到租户的链接
             links.append({"source": component_name, "target": tenant_alias, "value": component_memory})
             
-            # 累计租户的内存使用量（使用tenant_alias作为键）
+            # 累计租户的内存分配量（使用tenant_alias作为键）
             if tenant_alias in tenant_region_relations:
                 tenant_region_relations[tenant_alias] = (tenant_region_relations[tenant_alias][0], 
                                                       tenant_region_relations[tenant_alias][1] + component_memory)
