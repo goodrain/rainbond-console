@@ -163,6 +163,8 @@ from console.views.team_overview import UserTeamDetailsView
 from console.views.sms_config import SMSConfigView
 from console.views.sms_verification import SMSVerificationView
 from console.views.user_operation import RegisterByPhoneView, LoginByPhoneView
+from console.views.kube_blocks import (KubeBlocksAddonsView, KubeBlocksStorageClassesView, KubeBlocksBackupReposView, KubeBlocksClustersView,
+                                  KubeBlocksComponentInfoView, KubeBlocksClusterDetailView, KubeBlocksClusterBackupView, KubeBlocksClusterBackupListView)
 
 urlpatterns = [
     # 升级
@@ -1070,6 +1072,26 @@ urlpatterns = [
     url(r'^users/register-by-phone$', RegisterByPhoneView.as_view()),
     # 用户登录（手机号）
     url(r'^users/login-by-phone$', LoginByPhoneView.as_view()),
+
+    # KubeBlocks && Block Mechanica
+
+    # 支持的数据库类型
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/supported_databases$', KubeBlocksAddonsView.as_view()),
+    # 获取 StorageClass
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/storage_classes$', KubeBlocksStorageClassesView.as_view()),
+    # 获取 BackupRepo
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/backup_repos$', KubeBlocksBackupReposView.as_view()),
+    # 创建 Cluster
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/clusters$', KubeBlocksClustersView.as_view()),
+    # Cluster detail and expansion
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/clusters/(?P<service_id>[\w\-]+)$', KubeBlocksClusterDetailView.as_view()),
+    # 设置备份策略
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/clusters/(?P<service_id>[\w\-]+)/backup$', KubeBlocksClusterBackupView.as_view()),
+    # 备份创建/获取/删除
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/clusters/(?P<service_id>[\w\-]+)/backups$', KubeBlocksClusterBackupListView.as_view()),
+    # 获取 KubeBlocks Component 信息
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/component/(?P<service_id>[\w\-]+)/infos$', KubeBlocksComponentInfoView.as_view()),
+
 ]
 
 # 云市应用升级相关接口

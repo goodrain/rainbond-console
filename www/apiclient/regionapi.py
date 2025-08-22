@@ -3212,3 +3212,175 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
             ret_data[region_info.region_name] = body
         return ret_data
+
+    def get_kubeblocks_supported_databases(self, region_name):
+        """
+        获取 KubeBlocks 支持的数据库类型列表
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/kubeblocks/supported-databases"
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_kubeblocks_storage_classes(self, region_name):
+        """
+        获取 KubeBlocks StorageClass 列表
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/kubeblocks/storage-classes"
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_kubeblocks_backup_repos(self, region_name):
+        """
+        获取 KubeBlocks BackupRepo 列表
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/kubeblocks/backup-repos" 
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def create_kubeblocks_database_cluster(self, region_name, cluster_data):
+        """
+        创建 KubeBlocks 数据库集群
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/kubeblocks/clusters"
+        self._set_headers(region_info.token)
+        res, body = self._post(url, self.default_headers, body=json.dumps(cluster_data), region=region_name)
+        return res, body
+
+    def get_kubeblocks_connect_info(self, region_name, cluster_data):
+        """
+        获取 KubeBlocks 数据库集群连接信息
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/kubeblocks/clusters/connect-infos"
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, body=json.dumps(cluster_data), region=region_name)
+        return res, body
+
+    def get_kubeblocks_component_info(self, region_name, service_id):
+        """
+        查询某个组件是否为 KubeBlocks 组件，并获取其数据库类型等关键信息
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += f"/v2/cluster/kubeblocks/component/{service_id}/infos"
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_kubeblocks_cluster_detail(self, region_name, service_id):
+        """
+        获取 KubeBlocks 集群详情
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += f"/v2/cluster/kubeblocks/clusters/{service_id}"
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def expansion_kubeblocks_cluster(self, region_name, service_id, scale_data):
+        """
+        伸缩 KubeBlocks 数据库集群
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += f"/v2/cluster/kubeblocks/clusters/{service_id}"
+        self._set_headers(region_info.token)
+        res, body = self._put(url, self.default_headers, body=json.dumps(scale_data), region=region_name)
+        return res, body
+
+    def update_kubeblocks_backup_config(self, region_name, service_id, backup_config):
+        """
+        更新 KubeBlocks 集群的备份配置, 
+        仅对指定集群的备份策略生效, 不影响其他伸缩/资源配置
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += f"/v2/cluster/kubeblocks/clusters/{service_id}/backup-schedules"
+        self._set_headers(region_info.token)
+        res, body = self._put(url, self.default_headers, body=json.dumps(backup_config), region=region_name)
+        return res, body
+
+    def create_kubeblocks_manual_backup(self, region_name, service_id):
+        """
+        创建 Cluster的手动备份
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += f"/v2/cluster/kubeblocks/clusters/{service_id}/backups"
+        self._set_headers(region_info.token)
+        res, body = self._post(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_kubeblocks_backup_list(self, region_name, service_id):
+        """
+        获取 KubeBlocks 集群的备份列表
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += f"/v2/cluster/kubeblocks/clusters/{service_id}/backups"
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+        
+    def delete_kubeblocks_backups(self, region_name, service_id, backups):
+        """
+        删除 KubeBlocks 集群的备份记录, 
+        backups 是需要删除的备份名称列表 
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += f"/v2/cluster/kubeblocks/clusters/{service_id}/backups"
+        self._set_headers(region_info.token)
+        request_body = {"backups": backups if isinstance(backups, list) else []}
+        res, body = self._delete(url, self.default_headers, json=request_body, region=region_name)
+        return res, body
+
+    def delete_kubeblocks_cluster(self, region_name, delete_data):
+        """
+        删除 KubeBlocks 集群
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/kubeblocks/clusters"
+        self._set_headers(region_info.token)
+        res, body = self._delete(url, self.default_headers, body=json.dumps(delete_data), region=region_name)
+        return res, body

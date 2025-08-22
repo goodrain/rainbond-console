@@ -14,6 +14,7 @@ from console.services.app_config import (dependency_service, env_var_service, po
 from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
 from console.services.operation_log import operation_log_service, Operation
+from console.services.kube_blocks_service import kubeblocks_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderCloudEnterpriseCenterView)
 from django.db import transaction
@@ -59,6 +60,10 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 new_service = app_service.create_region_service(self.tenant, self.service, self.user.nick_name)
 
             self.service = new_service
+
+            # 为 KubeBlocks 添加连接信息
+            kubeblocks_service.add_database_env_vars(self.tenant, self.service, self.user, self.region.region_name)
+             
             if is_deploy:
                 try:
                     arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)

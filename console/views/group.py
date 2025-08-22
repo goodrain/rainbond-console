@@ -19,6 +19,7 @@ from console.services.application import application_service
 from console.services.market_app_service import market_app_service
 from console.services.k8s_resource import k8s_resource_service
 from console.services.operation_log import operation_log_service, Operation
+from console.services.kube_blocks_service import kubeblocks_service
 from console.utils.reqparse import parse_item
 from console.utils.validation import is_qualified_name
 from console.views.base import (ApplicationView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView,
@@ -238,6 +239,9 @@ class TenantGroupHandleView(ApplicationView):
         """
         # delete services
         services = group_service.batch_delete_app_services(self.user, self.tenant.tenant_id, self.region_name, app_id)
+        # delete kubeblocks cluster
+        service_ids = [service.service_id for service in services]
+        kubeblocks_service.delete_kubeblocks_cluster(service_ids, self.region_name)
         # delete k8s resource
         k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
         resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
