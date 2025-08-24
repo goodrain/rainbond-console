@@ -436,4 +436,214 @@ class KubeBlocksService(object):
             logger.exception("删除 KubeBlocks 集群发生异常: service_ids=%s, region=%s, 错误=%s", 
                              str(service_ids), region_name, str(e))
 
+    def get_component_info(self, region_name, service_id):
+        """
+        获取组件信息，判断是否为 KubeBlocks Component 并获取数据库类型等关键信息
+        """
+        if not region_name or not region_name.strip():
+            return 400, {"msg_show": "区域名称不能为空", "bean": {"isKubeBlocksComponent": False}}
+            
+        if not service_id or not service_id.strip():
+            return 400, {"msg_show": "组件ID不能为空", "bean": {"isKubeBlocksComponent": False}}
+            
+        try:
+            res, body = region_api.get_kubeblocks_component_info(region_name, service_id)
+            status_code = res.get("status", 500)
+            
+            if status_code == 200:
+                bean = body.get("bean", {})
+                bean.setdefault("isKubeBlocksComponent", bean.get("isKubeBlocksComponent", False))
+                return 200, {"msg_show": "查询成功", "bean": bean}
+            elif status_code == 404:
+                return 404, {"msg_show": "组件不存在", "bean": {"isKubeBlocksComponent": False}}
+            elif status_code == 403:
+                return 403, {"msg_show": "无权限", "bean": {"isKubeBlocksComponent": False}}
+            else:
+                msg_show = body.get("msg_show", "查询失败") if isinstance(body, dict) else "查询失败"
+                return status_code, {"msg_show": msg_show, "bean": {"isKubeBlocksComponent": False}}
+                
+        except Exception as e:
+            logger.exception("获取组件信息异常: service_id=%s, region=%s, 错误=%s", 
+                             service_id, region_name, str(e))
+            return 500, {"msg_show": f"后端服务异常: {str(e)}", "bean": {"isKubeBlocksComponent": False}}
+    
+    def get_cluster_detail(self, region_name, service_id):
+        """
+        获取 KubeBlocks Cluster 详情
+        """
+        if not region_name or not region_name.strip():
+            return 400, {"msg_show": "区域名称不能为空"}
+            
+        if not service_id or not service_id.strip():
+            return 400, {"msg_show": "组件ID不能为空"}
+            
+        try:
+            logger.debug(f"查询 KubeBlocks 集群详情: region_name={region_name}, service_id={service_id}")
+            
+            res, body = region_api.get_kubeblocks_cluster_detail(region_name, service_id)
+            status_code = res.get("status", 500)
+            
+            if status_code == 200:
+                bean = body.get("bean", {})
+                logger.info(f"集群详情查询成功: {bean}")
+                return 200, {"msg_show": "查询成功", "bean": bean}
+            elif status_code == 404:
+                logger.error(f"集群不存在: service_id={service_id}")
+                return 404, {"msg_show": "集群不存在"}
+            elif status_code == 403:
+                logger.error(f"无权限访问集群: service_id={service_id}")
+                return 403, {"msg_show": "无权限"}
+            else:
+                msg_show = body.get("msg_show", "查询失败") if isinstance(body, dict) else "查询失败"
+                logger.error(f"查询集群详情失败: status={status_code}, msg={msg_show}")
+                return status_code, {"msg_show": msg_show}
+                
+        except Exception as e:
+            logger.exception(f"查询集群详情异常: service_id={service_id}, region={region_name}, 错误={str(e)}")
+            return 500, {"msg_show": f"后端服务异常: {str(e)}"}
+    
+    def expand_cluster(self, region_name, service_id, expansion_data):
+        """
+        KubeBlocks Cluster 伸缩操作
+        """
+        if not region_name or not region_name.strip():
+            return 400, {"msg_show": "区域名称不能为空"}
+            
+        if not service_id or not service_id.strip():
+            return 400, {"msg_show": "组件ID不能为空"}
+            
+        if not isinstance(expansion_data, dict):
+            return 400, {"msg_show": "伸缩配置数据格式错误"}
+            
+        try:
+            scale_body = dict(expansion_data)
+            if not scale_body.get('rbdService'):
+                scale_body['rbdService'] = {'service_id': service_id}
+                
+            res, body = region_api.expansion_kubeblocks_cluster(region_name, service_id, scale_body)
+            status_code = res.get('status', 500)
+            
+            if status_code == 200:
+                return 200, {"msg_show": "伸缩成功", "bean": body.get('bean') if isinstance(body, dict) else body}
+            else:
+                msg_show = body.get('msg_show', '伸缩失败') if isinstance(body, dict) else '伸缩失败'
+                return status_code, {"msg_show": msg_show}
+                
+        except Exception as e:
+            logger.exception("集群伸缩异常: service_id=%s, region=%s, 错误=%s", 
+                             service_id, region_name, str(e))
+            return 500, {"msg_show": f"请求异常: {str(e)}"}
+    
+    def update_backup_config(self, region_name, service_id, backup_config):
+        """
+        更新 KubeBlocks Cluster 的备份配置
+        """
+        if not region_name or not region_name.strip():
+            return 400, {"msg_show": "区域名称不能为空"}
+            
+        if not service_id or not service_id.strip():
+            return 400, {"msg_show": "组件ID不能为空"}
+            
+        if not isinstance(backup_config, dict):
+            return 400, {"msg_show": "参数必须为 JSON 对象"}
+            
+        try:
+            body = dict(backup_config)
+            if not body.get('rbdService'):
+                body['rbdService'] = {'service_id': service_id}
+
+            res, data = region_api.update_kubeblocks_backup_config(region_name, service_id, body)
+            status_code = res.get('status', 500)
+            
+            if status_code == 200:
+                return 200, {"msg_show": "备份配置更新成功", "bean": data.get('bean') if isinstance(data, dict) else data}
+            else:
+                msg_show = data.get('msg_show', '备份配置更新失败') if isinstance(data, dict) else '备份配置更新失败'
+                return status_code, {"msg_show": msg_show}
+                
+        except Exception as e:
+            logger.exception("更新备份配置异常: service_id=%s, region=%s, 错误=%s", 
+                             service_id, region_name, str(e))
+            return 500, {"msg_show": f"请求异常: {str(e)}"}
+    
+    def get_backup_list(self, region_name, service_id):
+        """
+        获取 KubeBlocks Cluster 的备份列表
+        """
+        if not region_name or not region_name.strip():
+            return 400, {"msg_show": "区域名称不能为空"}
+            
+        if not service_id or not service_id.strip():
+            return 400, {"msg_show": "组件ID不能为空"}
+            
+        try:
+            res, data = region_api.get_kubeblocks_backup_list(region_name, service_id)
+            status_code = res.get('status', 500)
+            
+            if status_code == 200:
+                backup_list = data.get('list', []) if isinstance(data, dict) else []
+                return 200, {"msg_show": "获取备份列表成功", "list": backup_list}
+            else:
+                msg_show = data.get('msg_show', '获取备份列表失败') if isinstance(data, dict) else '获取备份列表失败'
+                return status_code, {"msg_show": msg_show}
+                
+        except Exception as e:
+            logger.exception("获取备份列表异常: service_id=%s, region=%s, 错误=%s", 
+                             service_id, region_name, str(e))
+            return 500, {"msg_show": f"请求异常: {str(e)}"}
+    
+    def create_manual_backup(self, region_name, service_id):
+        """
+        创建 KubeBlocks Cluster 的手动备份
+        """
+        if not region_name or not region_name.strip():
+            return 400, {"msg_show": "区域名称不能为空"}
+            
+        if not service_id or not service_id.strip():
+            return 400, {"msg_show": "组件ID不能为空"}
+            
+        try:
+            res, data = region_api.create_kubeblocks_manual_backup(region_name, service_id)
+            status_code = res.get('status', 500)
+            
+            if status_code == 200:
+                return 200, {"msg_show": "手动备份已启动", "bean": data.get('bean') if isinstance(data, dict) else data}
+            else:
+                msg_show = data.get('msg_show', '手动备份启动失败') if isinstance(data, dict) else '手动备份启动失败'
+                return status_code, {"msg_show": msg_show}
+                
+        except Exception as e:
+            logger.exception("创建手动备份异常: service_id=%s, region=%s, 错误=%s", 
+                             service_id, region_name, str(e))
+            return 500, {"msg_show": f"请求异常: {str(e)}"}
+    
+    def delete_backups(self, region_name, service_id, backups):
+        """
+        删除 KubeBlocks Cluster 的备份
+        """
+        if not region_name or not region_name.strip():
+            return 400, {"msg_show": "区域名称不能为空"}
+            
+        if not service_id or not service_id.strip():
+            return 400, {"msg_show": "组件ID不能为空"}
+
+        if backups is not None and not isinstance(backups, list):
+            return 400, {"msg_show": "参数 backups 必须为数组"}
+            
+        try:
+            res, data = region_api.delete_kubeblocks_backups(region_name, service_id, backups)
+            status_code = res.get('status', 500)
+
+            if status_code == 200:
+                deleted_list = data.get('list', []) if isinstance(data, dict) else []
+                return 200, {"msg_show": "备份删除成功", "list": deleted_list}
+            else:
+                msg_show = data.get('msg_show', '备份删除失败') if isinstance(data, dict) else '备份删除失败'
+                return status_code, {"msg_show": msg_show}
+                
+        except Exception as e:
+            logger.exception("删除备份异常: service_id=%s, region=%s, 错误=%s", 
+                             service_id, region_name, str(e))
+            return 500, {"msg_show": f"请求异常: {str(e)}"}
+
 kubeblocks_service = KubeBlocksService() 

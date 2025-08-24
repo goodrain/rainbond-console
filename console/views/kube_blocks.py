@@ -5,12 +5,10 @@ from rest_framework.response import Response
 
 from console.exception.bcode import ErrK8sComponentNameExists
 from console.services.kube_blocks_service import kubeblocks_service
-from console.views.base import RegionTenantHeaderView
 from console.views.app_config.base import AppBaseView
-from www.apiclient.regionapi import RegionInvokeApi
+from console.views.base import RegionTenantHeaderView
 from www.utils.return_message import general_message
 
-region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
@@ -213,23 +211,19 @@ class KubeBlocksComponentInfoView(RegionTenantHeaderView):
         判断某个组件是否为 KubeBlocks 组件，并获取其数据库类型等关键信息
         """
         try:
-            res, body = region_api.get_kubeblocks_component_info(region_name, service_id)
+            status_code, data = kubeblocks_service.get_component_info(region_name, service_id)
             
-            if res.get("status") == 200:
-                bean = body.get("bean", {})
-                bean.setdefault("isKubeBlocksComponent", bean.get("isKubeBlocksComponent", False))
-                return Response(general_message(200, "查询成功", "查询成功", bean=bean))
-            elif res.get("status") == 404:
-                return Response(general_message(404, "组件不存在", "组件不存在", bean={"isKubeBlocksComponent": False}))
-            elif res.get("status") == 403:
-                return Response(general_message(403, "无权限", "无权限", bean={"isKubeBlocksComponent": False}))
+            if status_code == 200:
+                bean = data.get("bean", {})
+                return Response(general_message(200, "查询成功", data.get("msg_show", "查询成功"), bean=bean))
             else:
-                msg_show = body.get("msg_show", "查询失败")
-                return Response(general_message(res.get("status", 500), "查询失败", msg_show, bean={"isKubeBlocksComponent": False}))
+                bean = data.get("bean", {"isKubeBlocksComponent": False})
+                msg_show = data.get("msg_show", "查询失败")
+                return Response(general_message(status_code, "查询失败", msg_show, bean=bean))
                 
         except Exception as e:
+            logger.exception(e)
             return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}", bean={"isKubeBlocksComponent": False}))
-
 
 class KubeBlocksClusterDetailView(RegionTenantHeaderView):
     def get(self, request, team_name, region_name, service_id, *args, **kwargs):
@@ -239,22 +233,15 @@ class KubeBlocksClusterDetailView(RegionTenantHeaderView):
         try:
             logger.debug(f"查询 KubeBlocks 集群详情: team_name={team_name}, region_name={region_name}, service_id={service_id}")
             
-            res, body = region_api.get_kubeblocks_cluster_detail(region_name, service_id)
+            status_code, data = kubeblocks_service.get_cluster_detail(region_name, service_id)
             
-            if res.get("status") == 200:
-                bean = body.get("bean", {})
-                logger.info(f"集群详情查询成功: {bean}")
-                return Response(general_message(200, "查询成功", "查询成功", bean=bean))
-            elif res.get("status") == 404:
-                logger.error(f"集群不存在: service_id={service_id}")
-                return Response(general_message(404, "集群不存在", "集群不存在"))
-            elif res.get("status") == 403:
-                logger.error(f"无权限访问集群: service_id={service_id}")
-                return Response(general_message(403, "无权限", "无权限"))
+            if status_code == 200:
+                bean = data.get("bean", {})
+                msg_show = data.get("msg_show", "查询成功")
+                return Response(general_message(200, "查询成功", msg_show, bean=bean))
             else:
-                msg_show = body.get("msg_show", "查询失败")
-                logger.error(f"查询集群详情失败: status={res.get('status')}, msg={msg_show}")
-                return Response(general_message(res.get("status", 500), "查询失败", msg_show))
+                msg_show = data.get("msg_show", "查询失败")
+                return Response(general_message(status_code, "查询失败", msg_show))
                 
         except Exception as e:
             logger.exception(f"查询集群详情异常: {str(e)}")
@@ -265,15 +252,17 @@ class KubeBlocksClusterDetailView(RegionTenantHeaderView):
         伸缩 Cluster
         """
         try:
-            scale_body = request.data or {}
-            if not scale_body.get('rbdService'):
-                scale_body['rbdService'] = {'service_id': service_id}
-            res, body = region_api.expansion_kubeblocks_cluster(region_name, service_id, scale_body)
-            status = res.get('status', 500)
-            if status == 200:
-                return Response(general_message(200, 'success', '伸缩成功', bean=body.get('bean') if isinstance(body, dict) else body))
-            msg_show = body.get('msg_show') if isinstance(body, dict) else '伸缩失败'
-            return Response(general_message(status, 'failed', msg_show))
+            expansion_body = request.data or {}
+            status_code, data = kubeblocks_service.expand_cluster(region_name, service_id, expansion_body)
+            
+            if status_code == 200:
+                bean = data.get('bean', {})
+                msg_show = data.get("msg_show", "伸缩成功")
+                return Response(general_message(200, 'success', msg_show, bean=bean))
+            else:
+                msg_show = data.get('msg_show', '伸缩失败')
+                return Response(general_message(status_code, 'failed', msg_show))
+                
         except Exception as e:
             logger.exception(e)
             return Response(general_message(500, 'request error', f'请求异常: {str(e)}'))
@@ -286,17 +275,16 @@ class KubeBlocksClusterBackupView(RegionTenantHeaderView):
         """
         try:
             body = request.data or {}
-            if not isinstance(body, dict):
-                return Response(general_message(400, 'params error', '参数必须为 JSON 对象'))
-            if not body.get('rbdService'):
-                body['rbdService'] = {'service_id': service_id}
-
-            res, data = region_api.update_kubeblocks_backup_config(region_name, service_id, body)
-            status = res.get('status', 500)
-            if status == 200:
-                return Response(general_message(200, 'success', '备份配置更新成功', bean=data.get('bean') if isinstance(data, dict) else data))
-            msg_show = data.get('msg_show', '备份配置更新失败') if isinstance(data, dict) else '备份配置更新失败'
-            return Response(general_message(status, 'failed', msg_show))
+            status_code, data = kubeblocks_service.update_backup_config(region_name, service_id, body)
+            
+            if status_code == 200:
+                bean = data.get('bean', {})
+                msg_show = data.get("msg_show", "备份配置更新成功")
+                return Response(general_message(200, 'success', msg_show, bean=bean))
+            else:
+                msg_show = data.get('msg_show', '备份配置更新失败')
+                return Response(general_message(status_code, 'failed', msg_show))
+                
         except Exception as e:
             logger.exception(e)
             return Response(general_message(500, 'request error', f'请求异常: {str(e)}'))
@@ -307,15 +295,15 @@ class KubeBlocksClusterBackupListView(RegionTenantHeaderView):
         获取备份列表
         """
         try:
-            res, data = region_api.get_kubeblocks_backup_list(region_name, service_id)
-            status = res.get('status', 500)
+            status_code, data = kubeblocks_service.get_backup_list(region_name, service_id)
             
-            if status == 200:
-                backup_list = data.get('list', []) if isinstance(data, dict) else []
-                return Response(general_message(200, 'success', '获取备份列表成功', list=backup_list))
-            
-            msg_show = data.get('msg_show', '获取备份列表失败') if isinstance(data, dict) else '获取备份列表失败'
-            return Response(general_message(status, 'failed', msg_show))
+            if status_code == 200:
+                backup_list = data.get('list', [])
+                msg_show = data.get("msg_show", "获取备份列表成功")
+                return Response(general_message(200, 'success', msg_show, list=backup_list))
+            else:
+                msg_show = data.get('msg_show', '获取备份列表失败')
+                return Response(general_message(status_code, 'failed', msg_show))
             
         except Exception as e:
             logger.exception(e)
@@ -326,14 +314,15 @@ class KubeBlocksClusterBackupListView(RegionTenantHeaderView):
         创建手动备份
         """
         try:
-            res, data = region_api.create_kubeblocks_manual_backup(region_name, service_id)
-            status = res.get('status', 500)
+            status_code, data = kubeblocks_service.create_manual_backup(region_name, service_id)
             
-            if status == 200:
-                return Response(general_message(200, 'success', '手动备份已启动', bean=data.get('bean') if isinstance(data, dict) else data))
-            
-            msg_show = data.get('msg_show', '手动备份启动失败') if isinstance(data, dict) else '手动备份启动失败'
-            return Response(general_message(status, 'failed', msg_show))
+            if status_code == 200:
+                bean = data.get('bean', {})
+                msg_show = data.get("msg_show", "手动备份已启动")
+                return Response(general_message(200, 'success', msg_show, bean=bean))
+            else:
+                msg_show = data.get('msg_show', '手动备份启动失败')
+                return Response(general_message(status_code, 'failed', msg_show))
             
         except Exception as e:
             logger.exception(e)
@@ -347,18 +336,15 @@ class KubeBlocksClusterBackupListView(RegionTenantHeaderView):
             request_data = request.data or {}
             backups = request_data.get('backups', None)
 
-            if backups is not None and not isinstance(backups, list):
-                return Response(general_message(400, 'params error', '参数 backups 必须为数组'), status=400)
+            status_code, data = kubeblocks_service.delete_backups(region_name, service_id, backups)
 
-            res, data = region_api.delete_kubeblocks_backups(region_name, service_id, backups)
-            status = res.get('status', 500)
-
-            if status == 200:
-                deleted_list = data.get('list', []) if isinstance(data, dict) else []
-                return Response(general_message(200, 'success', '备份删除成功', list=deleted_list))
-
-            msg_show = data.get('msg_show', '备份删除失败') if isinstance(data, dict) else '备份删除失败'
-            return Response(general_message(status, 'failed', msg_show))
+            if status_code == 200:
+                deleted_list = data.get('list', [])
+                msg_show = data.get("msg_show", "备份删除成功")
+                return Response(general_message(200, 'success', msg_show, list=deleted_list))
+            else:
+                msg_show = data.get('msg_show', '备份删除失败')
+                return Response(general_message(status_code, 'failed', msg_show))
 
         except Exception as e:
             logger.exception(e)
