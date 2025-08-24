@@ -3369,7 +3369,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url += f"/v2/cluster/kubeblocks/clusters/{service_id}/backups"
         self._set_headers(region_info.token)
         request_body = {"backups": backups if isinstance(backups, list) else []}
-        res, body = self._delete(url, self.default_headers, json=request_body, region=region_name)
+        res, body = self._delete(url, self.default_headers, body=json.dumps(request_body), region=region_name)
         return res, body
 
     def delete_kubeblocks_cluster(self, region_name, delete_data):
