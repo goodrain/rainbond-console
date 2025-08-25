@@ -24,6 +24,7 @@ from console.services.market_app_service import market_app_service
 from console.services.operation_log import operation_log_service, OperationType, InformationType, Operation
 from console.services.region_services import region_services
 from console.services.upgrade_services import upgrade_service
+from console.services.kube_blocks_service import kubeblocks_service
 from console.views.app_config.base import (AppBaseCloudEnterpriseCenterView, AppBaseView)
 from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderCloudEnterpriseCenterView,
                                 RegionTenantHeaderView)
@@ -713,6 +714,11 @@ class DeleteAppView(AppBaseView):
         bean = {}
         if code != 200:
             return Response(general_message(code, "delete service error", msg, bean=bean), status=code)
+
+        # 删除 KubeBlocks Cluster
+        service_id = self.service.service_id
+        kubeblocks_service.delete_kubeblocks_cluster([service_id], self.region_name)
+
         result = general_message(code, "success", "操作成功", bean=bean)
         comment = operation_log_service.generate_component_comment(
             operation=Operation.DELETE, module_name=self.service.service_cname)
@@ -777,6 +783,9 @@ class BatchDelete(RegionTenantHeaderView):
             msg_dict['service_id'] = service.service_id
             msg_dict['service_cname'] = service.service_cname
             msg_list.append(msg_dict)
+            # 删除 KubeBlocks Cluster
+            if code == 200:
+                kubeblocks_service.delete_kubeblocks_cluster([service.service_id], service.service_region)
         if app:
             self.app = app
             old_information = json.dumps(old_information, ensure_ascii=False)
