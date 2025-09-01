@@ -96,6 +96,7 @@ from console.views.jwt_token_view import JWTTokenView
 from console.views.license import LicenseLView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
 from console.views.k8s_resource import AppK8sResourceListView, AppK8ResourceView
+from console.views.log_proxy import LogProxyView
 from console.views.login_event import LoginEventView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigOSSView, UserSourceView
 from console.views.message import UserMessageView
@@ -234,6 +235,8 @@ urlpatterns = [
     url(r'^users/register$', TenantServiceView.as_view()),
     url(r'^captcha', CaptchaView.as_view()),
     url(r'^regions/monitor$', RegionMonitor.as_view()),
+    # 日志代理接口
+    url(r'^log/proxy$', LogProxyView.as_view()),
     # 忘记密码
     url(r'^users/send_reset_email$', SendResetEmail.as_view()),
     url(r'^users/begin_password_reset$', PasswordResetBegin.as_view()),
