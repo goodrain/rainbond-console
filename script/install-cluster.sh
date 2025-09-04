@@ -168,7 +168,7 @@ setup_env() {
     STORAGE_URL="https://rke2-ci-builds.s3.amazonaws.com"
     INSTALL_RKE2_GITHUB_URL="https://github.com/rancher/rke2"
     if [ "${INSTALL_RKE2_MIRROR}" = cn ]; then
-        INSTALL_RKE2_GITHUB_URL="https://rancher-mirror.rancher.cn/rke2"
+        INSTALL_RKE2_GITHUB_URL="https://pkg.rainbond.com/rke2"
         INSTALL_RKE2_IMAGE_REPOSITORY="system-default-registry: registry.cn-hangzhou.aliyuncs.com"
     fi
     DEFAULT_TAR_PREFIX="/usr/local"
