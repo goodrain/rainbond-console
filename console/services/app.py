@@ -376,6 +376,45 @@ class AppService(object):
 
         return 200, "创建成功", ts
 
+    def create_kubeblocks_component(self,
+                              region,
+                              tenant,
+                              user,
+                              service_cname,
+                              k8s_component_name="",
+                              arch="amd64"):
+        """
+        创建 KubeBlocks 组件
+
+        KubeBlocks 组件是一种特殊的组件类型，用于在 Rainbond 中集成 KubeBlocks
+        该组件遵循标准的 Rainbond 组件创建流程，但其工作负载的实际构建和
+        生命周期由 KubeBlocks 和 Block Mechanica 负责，Rainbond 主要负责服务发现和连接管理。
+        """
+        # 参数验证：检查组件名称是否合规
+        service_cname = service_cname.rstrip().lstrip()
+        is_pass, msg = self.check_service_cname(tenant, service_cname, region)
+        if not is_pass:
+            return 412, msg, None
+
+        new_service = self.__init_kubeblocks_component(region)
+        new_service.tenant_id = tenant.tenant_id
+        new_service.service_cname = service_cname
+
+        service_id = make_uuid(tenant.tenant_id)
+        service_alias = self.create_service_alias(service_id)
+        new_service.service_id = service_id
+        new_service.service_alias = service_alias
+        new_service.creater = user.pk
+
+        new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
+        new_service.arch = arch
+        new_service.save()
+
+        logger.debug("service.create", f"user:{user.nick_name} create kubeblocks component: {service_cname}")
+
+        ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
+
+        return 200, "创建成功", ts
     def create_vm_run_app(self,
                           region,
                           tenant,
@@ -439,6 +478,55 @@ class AppService(object):
         tenant_service.host_path = ""
         tenant_service.service_source = AppConstants.THIRD_PARTY
         tenant_service.create_status = "creating"
+        return tenant_service
+
+    def __init_kubeblocks_component(self, region):
+        """
+        初始化 KubeBlocks 组件的默认数据，未存入数据库
+        
+        KubeBlocks 组件是一种特殊的组件类型，用于集成 KubeBlocks 数据库集群。
+        该组件在 region 层面仅作为 k8s service 资源存在，不需要实际的计算资源，
+        主要用于服务发现和连接管理。
+        
+        Args:
+            region (str): 区域名称
+            
+        Returns:
+            TenantServiceInfo: 初始化的组件对象，包含默认配置
+        """
+        from console.enum.component_enum import ComponentType
+        
+        tenant_service = TenantServiceInfo()
+        tenant_service.service_region = region
+        tenant_service.service_key = "00000"
+        tenant_service.desc = "KubeBlocks database component"
+        tenant_service.category = "application" 
+        tenant_service.extend_method = ComponentType.kubeblocks.value 
+        tenant_service.env = ","
+
+        # 仅占位
+        tenant_service.min_node = 1
+        tenant_service.min_memory = 128  
+        tenant_service.min_cpu = 100    
+        tenant_service.container_gpu = 0
+        tenant_service.inner_port = 1    
+        tenant_service.version = "latest"
+        tenant_service.namespace = "goodrain"
+        tenant_service.update_version = 1
+        tenant_service.port_type = "multi_outer"  
+        tenant_service.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        tenant_service.deploy_version = ""
+        tenant_service.git_project_id = 0
+        tenant_service.service_type = "application"  
+        tenant_service.total_memory = 128  
+        tenant_service.volume_mount_path = ""
+        tenant_service.host_path = ""
+        tenant_service.code_from = ""
+        tenant_service.language = ""
+        tenant_service.service_source = "kubeblocks"  
+        tenant_service.service_origin = "assistant"   # 标识为 rainbond 创建
+        tenant_service.create_status = "creating"
+        
         return tenant_service
 
     def create_third_party_app(self,

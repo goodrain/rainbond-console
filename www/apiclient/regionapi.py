@@ -3252,7 +3252,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def create_kubeblocks_database_cluster(self, region_name, cluster_data):
+    def create_kubeblocks_cluster(self, region_name, cluster_data):
         """
         创建 KubeBlocks 数据库集群
         """
@@ -3367,8 +3367,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += f"/v2/cluster/kubeblocks/clusters/{service_id}/backups"
-        self._set_headers(region_info.token)
         request_body = {"backups": backups if isinstance(backups, list) else []}
+        self._set_headers(region_info.token)
         res, body = self._delete(url, self.default_headers, body=json.dumps(request_body), region=region_name)
         return res, body
 
@@ -3384,3 +3384,49 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(region_info.token)
         res, body = self._delete(url, self.default_headers, body=json.dumps(delete_data), region=region_name)
         return res, body
+
+    def get_kubeblocks_cluster_events(self, region_name, service_id, page, page_size):
+        """
+        获取 KubeBlocks 集群的事件（操作记录）列表
+        路径: /v2/cluster/kubeblocks/clusters/{service_id}/events?page=&page_size=
+        返回值: { list, number }
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        # 构造查询串，保持参数命名与现有 get_target_events 一致
+        url += f"/v2/cluster/kubeblocks/clusters/{service_id}/events?page={int(page)}&page_size={int(page_size)}"
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def manage_cluster_status(self, region_name, service_ids, operation):
+        """
+        管理 KubeBlocks 集群状态
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/kubeblocks/clusters/actions"
+        body = {
+            "operation": operation,
+            "service_ids": service_ids
+        }
+        self._set_headers(region_info.token)
+        res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, response_body
+
+    def kubeblocks_cluster_pod_detail(self, region_name, service_id, pod_name):
+        """
+        获取 KubeBlocks 集群的 pod 详情
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += f"/v2/cluster/kubeblocks/clusters/{service_id}/pods/{pod_name}/details"
+        self._set_headers(region_info.token)
+        _, body = self._get(url, self.default_headers, region=region_name)
+        return body

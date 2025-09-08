@@ -9,7 +9,7 @@ from datetime import datetime
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.enum.component_enum import is_state, is_support, ComponentType
+from console.enum.component_enum import is_state, is_support, ComponentType, is_kubeblocks
 from console.exception.main import (AbortRequest, AccountOverdueException, CallRegionAPIException, RbdAppNotFound,
                                     ResourceNotEnoughException, ServiceHandleException)
 from console.repositories.app import service_repo
@@ -97,6 +97,8 @@ class StartAppView(AppBaseCloudEnterpriseCenterView):
         """
         try:
             code, msg = app_manage_service.start(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
+            if is_kubeblocks(self.service.extend_method):
+                code, msg = kubeblocks_service.manage_cluster_status(self.service, self.region_name, oauth_instance=self.oauth_instance, operation="start")
             bean = {}
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
@@ -144,6 +146,8 @@ class StopAppView(AppBaseView):
 
         """
         app_manage_service.stop(self.tenant, self.service, self.user)
+        if is_kubeblocks(self.service.extend_method):
+            kubeblocks_service.manage_cluster_status(self.service, self.region_name, oauth_instance=None, operation="stop")
         result = general_message(200, "success", "操作成功", bean={})
         comment = operation_log_service.generate_component_comment(
             operation=Operation.STOP,
@@ -236,6 +240,8 @@ class ReStartAppView(AppBaseCloudEnterpriseCenterView):
 
         """
         code, msg = app_manage_service.restart(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
+        if is_kubeblocks(self.service.extend_method):
+            kubeblocks_service.manage_cluster_status(self.service, self.region_name, oauth_instance=self.oauth_instance, operation="restart")
         bean = {}
         if code != 200:
             return Response(general_message(code, "restart app error", msg, bean=bean), status=code)

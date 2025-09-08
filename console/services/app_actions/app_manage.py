@@ -441,6 +441,8 @@ class AppManageService(AppManageBase):
             if service.service_source == AppConstants.SOURCE_CODE \
                     or service.service_source == AppConstants.PACKAGE_BUILD:
                 return "build_from_source_code"
+            elif service.service_source == AppConstants.KUBEBLOCKS:
+                return "kubeblocks"
             elif service.service_source == AppConstants.DOCKER_RUN \
                     or service.service_source == AppConstants.DOCKER_COMPOSE \
                     or service.service_source == AppConstants.DOCKER_IMAGE:

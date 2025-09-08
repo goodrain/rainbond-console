@@ -3,151 +3,487 @@
 KubeBlocks 相关服务
 """
 import logging
-
 from django.db import transaction
 
-from console.exception.bcode import ErrK8sComponentNameExists
-from console.services.app import app_service
 from console.services.app_config.env_service import AppEnvVarService
-from console.services.group_service import group_service
+from console.services.app_config.port_service import AppPortService
+from console.services.group_service import GroupService
+from console.services.app import app_service
+from console.services.app_actions import app_manage_service
 from www.apiclient.regionapi import RegionInvokeApi
+from console.exception.main import ServiceHandleException
+from www.models.main import TenantServiceInfo
 
-logger = logging.getLogger("kubeblocks_service")
+logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 
 class KubeBlocksService(object):
     
+    def __init__(self):
+        self.env_service = AppEnvVarService()
+        self.port_service = AppPortService()
+        self.group_service = GroupService()
+    
     @transaction.atomic
-    def create_database_cluster(self, tenant, user, region_name, cluster_params):
+    def create_complete_kubeblocks_component(self, tenant, user, region_name, creation_params):
         """
-        创建数据库集群（用户感知为通过容器镜像创建 Rainbond 组件）
+        一站式创建 KubeBlocks 组件的完整流程
+        
+        Args:
+            tenant: 租户对象
+            user: 用户对象  
+            region_name: 区域名称
+            creation_params: 创建参数，包含组件基础信息和集群配置
+            
+        Returns:
+            tuple: (success, data, error_msg)
+                - success: bool 是否成功
+                - data: dict 组件信息
+                - error_msg: str 错误信息
+        """
+        new_service = None
+        try:
+            # 第一阶段：创建组件元数据和基础配置
+            logger.info(f"开始创建KubeBlocks组件: {creation_params.get('service_cname')}")
+            
+            new_service = self._create_component_metadata(tenant, user, region_name, creation_params)
 
+            # 第二阶段：创建KubeBlocks集群
+            cluster_result = self._create_kubeblocks_cluster(tenant, user, region_name, new_service, creation_params)
+            
+            # 第二阶段后：更新组件的 k8s_component_name
+            self._update_k8s_component_name_from_cluster(new_service, cluster_result)
+            
+            # 第三阶段：加入应用分组
+            self._add_to_application_group(tenant, region_name, creation_params.get('group_id'), new_service.service_id)
+            
+            # 第四阶段：在Region中创建资源
+            self._create_region_service(tenant, new_service, user.nick_name)
+
+            # 第五阶段：配置连接信息（环境变量）
+            self._configure_connection_env_vars(tenant, user, region_name, new_service)
+            
+            # 第六阶段：配置端口信息
+            self._configure_service_ports(tenant, user, new_service)
+            
+            # 第七阶段：构建部署组件
+            deploy_result = self._deploy_component(tenant, new_service, user)
+            
+            # 第八阶段：创建部署关系记录
+            from console.repositories.deploy_repo import deploy_repo
+            deploy_repo.create_deploy_relation_by_service_id(service_id=new_service.service_id)
+            logger.info(f"为组件 {new_service.service_alias} 创建部署关系记录")
+            
+            logger.info(f"KubeBlocks组件创建成功: {new_service.service_alias}")
+            
+            # 构建返回数据（与标准组件部署完成后格式一致）
+            result_data = self._build_success_response(new_service, deploy_result)
+            
+            return True, result_data, None
+            
+        except Exception as e:
+            logger.exception(f"创建KubeBlocks组件失败: {str(e)}")
+            
+            # 清理资源
+            if new_service:
+                self._cleanup_on_failure(new_service, tenant, region_name)
+            
+            return False, None, str(e)
+    
+    def _create_component_metadata(self, tenant, user, region_name, params):
+        """创建组件元数据"""
+        service_cname = params.get('service_cname', '').strip()
+        k8s_component_name = params.get('k8s_component_name', '')
+        arch = params.get('arch', 'amd64')
+        
+        # 调用现有的组件创建方法
+        code, msg, new_service = app_service.create_kubeblocks_component(
+            region=region_name,
+            tenant=tenant,
+            user=user,
+            service_cname=service_cname,
+            k8s_component_name=k8s_component_name,
+            arch=arch
+        )
+        
+        if code != 200:
+            raise ServiceHandleException(msg=msg, msg_show=msg)
+
+            
+        return new_service
+    
+    def _add_to_application_group(self, tenant, region_name, group_id, service_id):
+        """
+        将组件加入应用分组
+        
+        复用现有的应用分组服务，确保与其他组件创建流程保持一致。
+        使用推荐的 add_component_to_app 方法而不是已弃用的 add_service_to_group。
+        
+        Args:
+            tenant: 租户对象
+            region_name (str): 区域名称
+            group_id: 应用分组ID
+            service_id (str): 组件服务ID
+        
+        Raises:
+            ErrApplicationNotFound: 当应用分组不存在时抛出异常
         """
         try:
-            # 提取参数
-            group_id = cluster_params.get("group_id")
-            cluster_name = cluster_params["cluster_name"]
-            database_type = cluster_params["database_type"]
-            version = cluster_params["version"]
-            k8s_component_name = cluster_params.get("k8s_component_name", "")
-            arch = cluster_params.get("arch", "amd64")
-            
-            service_cname = cluster_name
-            docker_cmd = "alpine/socat:1.8.0.3"
-            image = ""
-            image_type = "docker_image"
-            
-            if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
-                raise ErrK8sComponentNameExists
-            
-            code, msg_show, new_service = app_service.create_docker_run_app(
-                region_name,
-                tenant,
-                user,
-                service_cname,
-                docker_cmd,
-                image_type,
-                k8s_component_name,
-                image,
-                arch
+            GroupService.add_component_to_app(
+                tenant=tenant,
+                region_name=region_name,
+                app_id=group_id,
+                component_id=service_id
             )
-            
-            if code != 200:
-                return False, None
-            
-            new_service.service_name = new_service.k8s_component_name
-            new_service.save()
-            
-            code, msg_show = group_service.add_service_to_group(
-                tenant,
-                region_name,
-                group_id,
-                new_service.service_id
-            )
-            
-            if code != 200:
-                new_service.delete()
-                return False, None
-            
-            cluster_data = self._build_block_mechanica_request(cluster_params, new_service, tenant.namespace)
-            
-            try:
-                res, body = region_api.create_kubeblocks_database_cluster(region_name, cluster_data)
-                
-                if res.get("status") != 200:
-                    logger.error(f"KubeBlocks 集群创建失败，但组件创建成功: {body}")
-            except Exception as cluster_error:
-                logger.exception(f"KubeBlocks 集群创建异常，但组件创建成功: {str(cluster_error)}")
-            
-            result_data = new_service.to_dict()
-            result_data["app_alias"] = new_service.service_alias
-            result_data["group_id"] = group_id
-            
-            logger.info(f"成功通过镜像创建组件: {service_cname}")
-            return True, result_data
-                
+            logger.info(f"成功将组件 {service_id} 加入应用分组 {group_id}")
         except Exception as e:
-            logger.exception(f"创建组件异常: {str(e)}")
+            logger.error(f"将组件加入应用分组失败: {str(e)}")
+            raise ServiceHandleException(
+                msg=f"加入应用分组失败: {str(e)}",
+                msg_show="加入应用分组失败"
+            )
+    
+    def _create_kubeblocks_cluster(self, tenant, user, region_name, new_service, params):
+        """创建KubeBlocks集群"""
+        # 构建集群创建参数（与KubeBlocksClustersView.post的参数保持一致）
+        cluster_params = {
+            "group_id": params.get("group_id"),
+            "app_name": params.get("app_name", ""),
+            "cluster_name": params.get("cluster_name"),
+            "database_type": params.get("database_type"),
+            "version": params.get("version"),
+            "cpu": params.get("cpu"),
+            "memory": params.get("memory"),
+            "storage_size": params.get("storage_size"),
+            "storage_class": params.get("storage_class", ""),
+            "replicas": params.get("replicas", 1),
+            "backup_repo": params.get("backup_repo", ""),
+            "backup_schedule": params.get("backup_schedule", {}),
+            "retention_period": params.get("retention_period", "7d"),
+            "termination_policy": params.get("termination_policy", "Delete"),
+            "k8s_component_name": new_service.k8s_component_name,
+            "arch": params.get("arch", "amd64")
+        }
+        
+        # 创建集群（传递已创建的 kubeblocks 组件对象）
+        success, cluster_data = kubeblocks_service.create_cluster(
+            tenant, user, region_name, cluster_params, new_service
+        )
+        
+        if not success:
+            raise ServiceHandleException(
+                msg="KubeBlocks集群创建失败", 
+                msg_show="KubeBlocks集群创建失败"
+            )
+        
+        return cluster_data
+    
+    def _configure_connection_env_vars(self, tenant, user, region_name, new_service):
+        """配置数据库连接环境变量"""
+        # 配置数据库连接信息，失败时抛出异常
+        kubeblocks_service.add_database_env_vars(tenant, new_service, user, region_name)
+        logger.info(f"为组件 {new_service.service_alias} 配置连接环境变量成功")
+    
+    def _configure_service_ports(self, tenant, user, new_service):
+        """配置服务端口"""
+        # TODO: 
+        # 新增一个 region API 从 block mechanica 获取端口信息
+        default_port = 3306
+        port_alias = "DB"
+        
+        # 检查端口是否已存在
+        existing_ports = self.port_service.get_service_ports(new_service)
+        if not existing_ports:
+            # 添加默认端口
+            code, msg, port_data = self.port_service.add_service_port(
+                tenant=tenant,
+                service=new_service,
+                container_port=default_port,
+                protocol="http",
+                port_alias=port_alias,
+                is_inner_service=True,
+                is_outer_service=False,
+                k8s_service_name="",
+                user_name=user.nick_name
+            )
+            
+            if code != 200:
+                logger.error(f"添加默认端口失败: {msg}")
+                raise ServiceHandleException(
+                    msg=f"添加默认端口失败: {msg}",
+                    msg_show="端口配置失败"
+                )
+            else:
+                logger.info(f"为组件 {new_service.service_alias} 添加默认端口 {default_port}")
+        else:
+            logger.info(f"组件 {new_service.service_alias} 已存在端口配置，跳过端口添加")
+    
+    def _create_region_service(self, tenant, new_service, user_name):
+        """在Region中创建服务资源"""
+        try:
+            result_service = app_service.create_region_service(
+                tenant=tenant,
+                service=new_service, 
+                user_name=user_name,
+                do_deploy=False  # 先不部署，后续单独部署
+            )
+            logger.info(f"在Region中创建服务资源成功: {new_service.service_alias}")
+            return result_service
+        except Exception as e:
+            logger.error(f"在Region中创建服务资源失败: {str(e)}")
+            raise ServiceHandleException(
+                msg=f"Region资源创建失败: {str(e)}", 
+                msg_show="Region资源创建失败"
+            )
+    
+    def _deploy_component(self, tenant, new_service, user):
+        """构建部署组件"""
+        try:
+            # 设置架构亲和性（在部署前执行）
+            from console.services.app_config.arch_service import arch_service
+            arch_service.update_affinity_by_arch(
+                new_service.arch, tenant, new_service.service_region, new_service
+            )
+            logger.info(f"为组件 {new_service.service_alias} 设置架构亲和性: {new_service.arch}")
+            
+            # 调用标准的部署流程
+            deploy_result = app_manage_service.deploy(
+                tenant=tenant,
+                service=new_service,
+                user=user,
+                oauth_instance=None
+            )
+            logger.info(f"组件部署成功: {new_service.service_alias}")
+            return deploy_result
+        except Exception as e:
+            logger.error(f"组件部署失败: {str(e)}")
+            raise ServiceHandleException(
+                msg=f"组件部署失败: {str(e)}", 
+                msg_show="组件部署失败"
+            )
+    
+    def _build_success_response(self, new_service, deploy_result):
+        """构建成功响应数据（与标准组件部署完成后格式一致）"""
+        # 获取最新的服务信息
+        updated_service = TenantServiceInfo.objects.get(
+            service_id=new_service.service_id,
+            tenant_id=new_service.tenant_id
+        )
+        
+        # 构建与app_build.py部署成功后相同格式的响应
+        result_data = {
+            "service_id": updated_service.service_id,
+            "service_cname": updated_service.service_cname,
+            "service_alias": updated_service.service_alias,
+            "service_key": updated_service.service_key,
+            "category": updated_service.category,
+            "version": updated_service.version,
+            "create_status": updated_service.create_status,
+            "deploy_version": updated_service.deploy_version,
+            "service_type": updated_service.service_type,
+            "extend_method": updated_service.extend_method,
+            "min_memory": updated_service.min_memory,
+            "min_cpu": updated_service.min_cpu,
+        }
+        
+        # 获取组件所属的应用分组ID（前端跳转必需）
+        try:
+            group_info = self.group_service.get_service_group_info(updated_service.service_id)
+            if group_info:
+                result_data["group_id"] = group_info.ID
+                logger.info(f"成功获取组件 {updated_service.service_alias} 的分组ID: {group_info.ID}")
+            else:
+                logger.warning(f"未找到组件 {updated_service.service_id} 的分组关系")
+                result_data["group_id"] = None
+        except Exception as e:
+            logger.error(f"获取组件分组信息失败: {e}")
+            result_data["group_id"] = None
+        
+        # 如果有部署结果，添加部署相关信息
+        if deploy_result:
+            result_data.update({
+                "status": "running",
+                "status_cn": "运行中"
+            })
+        
+        return result_data
+    
+    def _update_k8s_component_name_from_cluster(self, new_service, cluster_result):
+        """
+        从集群创建结果中更新组件的 k8s_component_name
+        
+        格式: {cluster_name}-{component_spec_name}
+        例如: string-a0e0-mysql
+        
+        Args:
+            new_service: 组件对象
+            cluster_result: 集群创建结果数据
+        """
+        try:
+            # 早期返回：检查 cluster_result 有效性
+            if not cluster_result or not isinstance(cluster_result, dict):
+                logger.warning("集群创建结果无效或为空")
+                return
+                
+            bean = cluster_result.get('bean', {})
+            metadata = bean.get('metadata', {})
+            spec = bean.get('spec', {})
+            
+            # 提取并验证必要字段
+            cluster_name = metadata.get('name', '').strip()
+            component_specs = spec.get('componentSpecs', [])
+            
+            if not cluster_name or not component_specs:
+                return
+            
+            # 获取并验证组件名称
+            component_name = component_specs[0].get('name', '').strip()
+            if not component_name:
+                logger.warning(f"集群创建结果中未找到有效的组件规格名称: componentSpecs={component_specs}")
+                return
+            
+            # 成功路径：更新组件名称
+            new_k8s_component_name = f"{cluster_name}-{component_name}"
+            new_service.k8s_component_name = new_k8s_component_name
+            new_service.version = component_specs[0].get('serviceVersion', '').strip()
+            new_service.create_status = "complete"
+            new_service.action = True
+
+            new_service.save()
+            logger.info(f"成功更新组件 {new_service.service_alias} 的 k8s_component_name 为: {new_k8s_component_name}")
+        except Exception as e:
+            raise ServiceHandleException(
+                msg=f"更新 k8s_component_name 失败: {str(e)}",
+                msg_show="更新 k8s_component_name 失败"
+            )
+    
+    def _cleanup_on_failure(self, new_service, tenant, region_name):
+        """失败时清理资源"""
+        try:
+            if new_service and new_service.service_id:
+                # 清理KubeBlocks集群
+                kubeblocks_service.delete_kubeblocks_cluster([new_service.service_id], region_name)
+                
+                # 清理组件（如果已创建）
+                if new_service.pk:
+                    new_service.delete()
+                    
+                logger.info(f"清理失败的组件资源: {new_service.service_id}")
+        except Exception as e:
+            logger.error(f"清理失败资源时出错: {str(e)}")
+    
+    def create_cluster(self, tenant, user, region_name, cluster_params, kubeblocks_service):
+        """
+        创建 KubeBlocks 数据库集群
+        
+        纯集群创建逻辑，不涉及组件创建。接收已创建的 kubeblocks 组件对象，
+        调用 Region API 创建对应的 KubeBlocks 集群。
+        
+        Args:
+            tenant: 租户对象
+            user: 用户对象
+            region_name (str): 区域名称
+            cluster_params (dict): 集群创建参数
+            kubeblocks_service: 已创建的 kubeblocks 组件对象
+            
+        Returns:
+            tuple: (success: bool, cluster_data: dict)
+                - success: 是否创建成功
+                - cluster_data: 集群创建结果数据
+        """
+        try:
+            # 参数验证
+            is_valid, error_msg = self.validate_cluster_params(cluster_params)
+            if not is_valid:
+                logger.error(f"KubeBlocks 集群参数验证失败: {error_msg}")
+                return False, None
+            
+            # 构建集群创建请求数据
+            cluster_data = self._build_block_mechanica_request(cluster_params, kubeblocks_service, tenant.namespace)
+            
+            # 调用 Region API 创建集群
+            res, body = region_api.create_kubeblocks_cluster(region_name, cluster_data)
+            
+            if res.get("status") != 200:
+                error_msg = f"KubeBlocks 集群创建失败: {body}"
+                logger.error(error_msg)
+                return False, None
+            
+            logger.info(f"成功创建 KubeBlocks 集群: {cluster_params.get('cluster_name')}")
+            return True, body
+            
+        except Exception as e:
+            logger.exception(f"创建 KubeBlocks 集群异常: {str(e)}")
             return False, None
     
     def add_database_env_vars(self, tenant, service, user, region_name):
         """
         为数据库组件添加环境变量
-
+        
+        失败时抛出ServiceHandleException异常
         """
-        try:
-            env_service = AppEnvVarService()
+        from console.exception.main import ServiceHandleException
+        
+        env_service = AppEnvVarService()
+        
+        # 获取数据库连接信息
+        connect_info = self._get_database_connect_info(service, region_name)
+        
+        if not connect_info.get("username") and not connect_info.get("password"):
+            raise ServiceHandleException(
+                msg="无法获取数据库连接信息",
+                msg_show="获取数据库连接信息失败"
+            )
+        
+        # 添加数据库连接信息
+        env_vars = [
+            {
+                "name": "Password",
+                "attr_name": "DB_PASS",
+                "attr_value": connect_info.get("password", ""),
+                "scope": "outer"
+            },
+            {
+                "name": "Username", 
+                "attr_name": "DB_USER",
+                "attr_value": connect_info.get("username", "root"),
+                "scope": "outer"
+            }
+        ]
+        
+        # 添加环境变量，失败时抛出异常
+        for env_var in env_vars:
+            if not env_var["attr_value"]:
+                continue
+                
+            code, msg, env = env_service.add_service_env_var(
+                tenant=tenant,
+                service=service,
+                container_port=0,
+                name=env_var["name"],
+                attr_name=env_var["attr_name"],
+                attr_value=env_var["attr_value"],
+                is_change=True,
+                scope=env_var["scope"],
+                user_name=user.get_username()
+            )
             
-            connect_info = self._get_database_connect_info(service, region_name)
-            
-            if not connect_info.get("username") and not connect_info.get("password"):
-                return
-            
-            # 添加数据库连接信息
-            env_vars = [
-                {
-                    "name": "Password",
-                    "attr_name": "DB_PASS",
-                    "attr_value": connect_info.get("password", ""),  # 默认值
-                    "scope": "outer"
-                },
-                {
-                    "name": "Username", 
-                    "attr_name": "DB_USER",
-                    "attr_value": connect_info.get("username", "root"),  # 默认值
-                    "scope": "outer"
-                }
-            ]
-            
-            # 只添加非空值的环境变量
-            for env_var in env_vars:
-                if not env_var["attr_value"]:
-                    continue
-                    
-                try:
-                    env_service.add_service_env_var(
-                        tenant=tenant,
-                        service=service,
-                        container_port=0,
-                        name=env_var["name"],
-                        attr_name=env_var["attr_name"],
-                        attr_value=env_var["attr_value"],
-                        is_change=True,
-                        scope=env_var["scope"],
-                        user_name=user.get_username()
-                    )
-                except Exception:
-                    pass
-                    
-        except Exception:
-            pass
+            # 检查环境变量添加结果
+            if code != 200 and code != 412:  # 412表示环境变量已存在，这是可接受的
+                raise ServiceHandleException(
+                    msg=f"添加环境变量 {env_var['attr_name']} 失败: {msg}",
+                    msg_show="添加数据库环境变量失败"
+                )
     
     def _get_database_connect_info(self, service, region_name):
         """
         从 Block Mechanica API 获取数据库连接信息
-
+        
+        失败时抛出ServiceHandleException异常
         """
+        from console.exception.main import ServiceHandleException
+        
         try:
             request_data = {
                 "RBDService": {
@@ -158,7 +494,8 @@ class KubeBlocksService(object):
             res, body = region_api.get_kubeblocks_connect_info(region_name, request_data)
             
             if res.get("status") == 200:
-                connect_list = body.get("list", [])
+                bean = body.get("bean", {})
+                connect_list = bean.get("connect_infos", [])
                 
                 if connect_list and len(connect_list) > 0:
                     connect_data = connect_list[0]
@@ -166,11 +503,25 @@ class KubeBlocksService(object):
                         "username": connect_data.get("user", "root"),
                         "password": connect_data.get("password", "")
                     }
-            
-        except Exception:
-            pass
-        
-        return {"username": "", "password": ""}
+                else:
+                    raise ServiceHandleException(
+                        msg="KubeBlocks API 返回空的连接信息列表",
+                        msg_show="获取数据库连接信息为空"
+                    )
+            else:
+                status = res.get("status", "未知")
+                raise ServiceHandleException(
+                    msg=f"KubeBlocks API 调用失败，状态码: {status}",
+                    msg_show="获取数据库连接信息失败"
+                )
+                
+        except ServiceHandleException:
+            raise
+        except Exception as e:
+            raise ServiceHandleException(
+                msg=f"调用 KubeBlocks API 获取连接信息异常: {str(e)}",
+                msg_show="获取数据库连接信息异常"
+            )
     
     def _build_block_mechanica_request(self, cluster_params, new_service, namespace):
         """
@@ -467,6 +818,79 @@ class KubeBlocksService(object):
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"后端服务异常: {str(e)}", "bean": {"isKubeBlocksComponent": False}}
     
+    def get_component_port_info(self, service, region_name):
+        """
+        从 KubeBlocks Component Info API 获取端口信息
+        
+        Args:
+            service: 组件对象
+            region_name: 区域名称
+            
+        Returns:
+            dict: 端口信息，格式为 {"port": 3306}
+            
+        Raises:
+            ServiceHandleException: 当API调用失败或端口信息不存在时
+        """
+        from console.exception.main import ServiceHandleException
+        
+        if not service or not service.service_id:
+            raise ServiceHandleException(
+                msg="组件对象或组件ID不能为空",
+                msg_show="组件信息无效"
+            )
+        
+        if not region_name or not region_name.strip():
+            raise ServiceHandleException(
+                msg="区域名称不能为空",
+                msg_show="区域信息无效"
+            )
+        
+        try:
+            # 调用现有的 region API
+            res, body = region_api.get_kubeblocks_component_info(region_name, service.service_id)
+            
+            if res.get("status") == 200:
+                bean = body.get("bean", {})
+                port = bean.get("port")
+                
+                if port and isinstance(port, int):
+                    logger.info(f"成功获取组件 {service.service_alias} 端口信息: {port}")
+                    return {"port": port}
+                else:
+                    raise ServiceHandleException(
+                        msg="KubeBlocks API 返回的端口信息无效",
+                        msg_show="获取端口信息为空或无效"
+                    )
+            elif res.get("status") == 404:
+                raise ServiceHandleException(
+                    msg="组件不存在",
+                    msg_show="组件不存在"
+                )
+            elif res.get("status") == 403:
+                raise ServiceHandleException(
+                    msg="无权限访问组件信息",
+                    msg_show="无权限"
+                )
+            else:
+                status = res.get("status", "未知")
+                error_msg = body.get("msg_show", "查询失败") if isinstance(body, dict) else "查询失败"
+                raise ServiceHandleException(
+                    msg=f"KubeBlocks API 调用失败，状态码: {status}, 错误: {error_msg}",
+                    msg_show="获取端口信息失败"
+                )
+        
+        except ServiceHandleException:
+            # 重新抛出服务异常
+            raise
+        except Exception as e:
+            logger.exception("获取组件端口信息异常: service_id=%s, region=%s, 错误=%s", 
+                           service.service_id, region_name, str(e))
+            raise ServiceHandleException(
+                msg=f"获取组件端口信息异常: {str(e)}",
+                msg_show="获取端口信息失败"
+            )
+    
     def get_cluster_detail(self, region_name, service_id):
         """
         获取 KubeBlocks Cluster 详情
@@ -478,14 +902,11 @@ class KubeBlocksService(object):
             return 400, {"msg_show": "组件ID不能为空"}
             
         try:
-            logger.debug(f"查询 KubeBlocks 集群详情: region_name={region_name}, service_id={service_id}")
-            
             res, body = region_api.get_kubeblocks_cluster_detail(region_name, service_id)
             status_code = res.get("status", 500)
             
             if status_code == 200:
                 bean = body.get("bean", {})
-                logger.info(f"集群详情查询成功: {bean}")
                 return 200, {"msg_show": "查询成功", "bean": bean}
             elif status_code == 404:
                 logger.error(f"集群不存在: service_id={service_id}")
@@ -646,4 +1067,347 @@ class KubeBlocksService(object):
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
 
-kubeblocks_service = KubeBlocksService() 
+    def _get_kubeblocks_status_map(self, kubeblocks_status):
+        """
+        KubeBlocks 状态到 Rainbond 状态映射
+        """
+        status_mapping = {
+            # 支持小写状态值（实际API返回的格式）
+            "creating": {
+                "rainbond_status": "creating",
+                "status_cn": "创建中",
+                "disabledAction": ['restart', 'stop', 'reboot'],
+                "activeAction": [],
+            },
+            "running": {
+                "rainbond_status": "running", 
+                "status_cn": "运行中",
+                "disabledAction": ['restart'],
+                "activeAction": ['stop', 'reboot'],
+            },
+            "updating": {
+                "rainbond_status": "upgrade",
+                "status_cn": "升级中", 
+                "disabledAction": ['restart', 'stop'],
+                "activeAction": ['reboot'],
+            },
+            "stopping": {
+                "rainbond_status": "stopping",
+                "status_cn": "关闭中",
+                "disabledAction": ['restart', 'stop', 'reboot'],
+                "activeAction": [],
+            },
+            "stopped": {
+                "rainbond_status": "closed",
+                "status_cn": "已关闭",
+                "disabledAction": ['stop', 'reboot'],
+                "activeAction": ['restart'],
+            },
+            "deleting": {
+                "rainbond_status": "stopping", 
+                "status_cn": "删除中",
+                "disabledAction": ['restart', 'stop', 'reboot'],
+                "activeAction": [],
+            },
+            "failed": {
+                "rainbond_status": "failure",
+                "status_cn": "未知",
+                "disabledAction": ['restart'],
+                "activeAction": ['stop', 'reboot'],
+            },
+            "abnormal": {
+                "rainbond_status": "abnormal",
+                "status_cn": "运行异常",
+                "disabledAction": ['restart'],
+                "activeAction": ['stop', 'reboot'],
+            },
+            # 向后兼容：支持大写状态值
+            "Creating": {
+                "rainbond_status": "creating",
+                "status_cn": "创建中",
+                "disabledAction": ['restart', 'stop', 'reboot'],
+                "activeAction": [],
+            },
+            "Running": {
+                "rainbond_status": "running", 
+                "status_cn": "运行中",
+                "disabledAction": ['restart'],
+                "activeAction": ['stop', 'reboot'],
+            },
+            "Updating": {
+                "rainbond_status": "upgrade",
+                "status_cn": "升级中", 
+                "disabledAction": ['restart', 'stop'],
+                "activeAction": ['reboot'],
+            },
+            "Stopping": {
+                "rainbond_status": "stopping",
+                "status_cn": "关闭中",
+                "disabledAction": ['restart', 'stop', 'reboot'],
+                "activeAction": [],
+            },
+            "Stopped": {
+                "rainbond_status": "closed",
+                "status_cn": "已关闭",
+                "disabledAction": ['stop', 'reboot'],
+                "activeAction": ['restart'],
+            },
+            "Deleting": {
+                "rainbond_status": "stopping", 
+                "status_cn": "删除中",
+                "disabledAction": ['restart', 'stop', 'reboot'],
+                "activeAction": [],
+            },
+            "Failed": {
+                "rainbond_status": "failure",
+                "status_cn": "未知",
+                "disabledAction": ['restart'],
+                "activeAction": ['stop', 'reboot'],
+            },
+            "Abnormal": {
+                "rainbond_status": "abnormal",
+                "status_cn": "运行异常",
+                "disabledAction": ['restart'],
+                "activeAction": ['stop', 'reboot'],
+            }
+        }
+        
+        return status_mapping.get(kubeblocks_status, {
+            "rainbond_status": "unKnow",
+            "status_cn": "未知",
+            "disabledAction": ['restart', 'reboot'],
+            "activeAction": ['stop'],
+        })
+    
+    def get_kubeblocks_service_status(self, region_name, service_id):
+        """
+        获取 KubeBlocks 组件状态信息
+        
+        复用现有的状态处理逻辑，将 KubeBlocks 集群状态映射为 Rainbond 组件状态格式
+        
+        Returns:
+            dict: 包含 status, status_cn, disabledAction, activeAction, start_time 的状态映射
+                 失败时返回 None
+        """
+        try:
+            status_code, response = self.get_cluster_detail(region_name, service_id)
+            
+            if status_code != 200:
+                if status_code == 503:
+                    logger.warning(f"KubeBlocks 服务不可用: status={status_code}, service_id={service_id}")
+                else:
+                    logger.warning(f"获取 KubeBlocks 集群详情失败: status={status_code}, service_id={service_id}")
+                return None
+                
+            bean = response.get("bean", {})
+            basic_info = bean.get("basic", {})
+            status_info = basic_info.get("status", {})
+            
+            # 从状态信息字典中提取实际的状态字符串
+            if isinstance(status_info, dict):
+                kubeblocks_status = status_info.get("status", "")
+                start_time = status_info.get("start_time", "")
+            else:
+                # 向后兼容：如果是字符串则直接使用
+                kubeblocks_status = status_info
+                start_time = ""
+            
+            if not kubeblocks_status:
+                logger.warning(f"KubeBlocks 集群状态为空: service_id={service_id}")
+                return None
+            
+            # 映射 KubeBlocks 状态到 Rainbond 状态
+            status_mapping = self._get_kubeblocks_status_map(kubeblocks_status)
+            
+            # 构建返回的状态映射
+            status_info_map = {
+                "status": status_mapping["rainbond_status"],
+                "status_cn": status_mapping["status_cn"], 
+                "disabledAction": status_mapping["disabledAction"],
+                "activeAction": status_mapping["activeAction"],
+                "start_time": start_time  # 使用实际的启动时间
+            }
+            
+            return status_info_map
+            
+        except Exception as e:
+            logger.exception(f"获取 KubeBlocks 组件状态异常: service_id={service_id}, region={region_name}, 错误={str(e)}")
+            return None
+
+    def get_multiple_kubeblocks_status_and_resources(self, region_name, service_ids):
+        """
+        批量获取 KubeBlocks 组件的状态和资源信息
+        
+        Args:
+            region_name (str): 区域名称
+            service_ids (list): 组件ID列表
+            
+        Returns:
+            dict: {service_id: {"status": "...", "status_cn": "...", "used_mem": 0}}
+        """
+        result = {}
+        
+        for service_id in service_ids:
+            try:
+                # 获取状态信息
+                # TODO 调用了两次 get_cluster_detail
+                kb_status = self.get_kubeblocks_service_status(region_name, service_id)
+                
+                # 获取资源信息
+                kb_resource = self.get_kubeblocks_resource_info(region_name, service_id)
+                
+                result[service_id] = {
+                    "status": kb_status.get("status", "failure") if kb_status else "failure",
+                    "status_cn": kb_status.get("status_cn", "获取状态失败") if kb_status else "获取状态失败",
+                    "used_mem": kb_resource.get("used_mem", 0) if kb_resource else 0
+                }
+                
+            except Exception as e:
+                logger.exception(f"获取 KubeBlocks 组件 {service_id} 信息失败: {str(e)}")
+                # 降级处理：资源消耗设为0
+                result[service_id] = {
+                    "status": "failure",
+                    "status_cn": "获取状态失败", 
+                    "used_mem": 0
+                }
+                
+        return result
+    
+    def get_kubeblocks_resource_info(self, region_name, service_id):
+        """
+        获取 KubeBlocks 组件的资源信息
+        
+        Args:
+            region_name (str): 区域名称
+            service_id (str): 组件ID
+            
+        Returns:
+            dict: {"used_mem": 内存消耗(MB), "used_cpu": CPU消耗}
+        """
+        try:
+            # 获取集群详情
+            status_code, response = self.get_cluster_detail(region_name, service_id)
+            
+            if status_code != 200:
+                logger.warning(f"获取 KubeBlocks 集群详情失败: status={status_code}, service_id={service_id}")
+                return {"used_mem": 0, "used_cpu": 0}
+                
+            bean = response.get("bean", {})
+            resource_info = bean.get("resource", {})
+            
+            # 提取资源信息并转换单位
+            memory_mb = resource_info.get("memory", 0)  # MB
+            cpu_cores = resource_info.get("cpu", 0)     # millicores
+            
+            # CPU 单位转换：millicores -> cores
+            cpu_cores = cpu_cores / 1000.0 if cpu_cores else 0
+            
+            # 副本数
+            replicas = resource_info.get("replicas", 1)
+            
+            # 计算总资源（分配资源 = 单实例资源 × 副本数）
+            total_memory = memory_mb * replicas
+            total_cpu = cpu_cores * replicas
+            
+            logger.debug(f"KubeBlocks 组件 {service_id} 资源信息: 内存={total_memory}MB, CPU={total_cpu}cores")
+            
+            return {
+                "used_mem": int(total_memory),  # 使用分配的内存作为 used_mem
+                "used_cpu": round(total_cpu, 2)
+            }
+            
+        except Exception as e:
+            logger.exception(f"获取 KubeBlocks 组件资源信息异常: service_id={service_id}, region={region_name}, 错误={str(e)}")
+            return {"used_mem": 0, "used_cpu": 0}
+
+    def manage_cluster_status(self, service, region_name, oauth_instance, operation):
+        """
+        管理 KubeBlocks 集群状态
+        """
+        res, body = region_api.manage_cluster_status(region_name, [service.service_id], operation)
+        logger.warning(f"kubeblocks manage_cluster_service: res={res}, body={body}")
+        status_code = 500
+        message = ""
+        try:
+            if isinstance(res, dict):
+                status_code = res.get("status", 500)
+            else:
+                # 兜底：支持可能的对象属性
+                status_code = getattr(res, "status", 500)
+
+            if isinstance(body, dict):
+                message = body.get("msg") or body.get("message") or ""
+        except Exception as e:
+            logger.exception(f"解析 KubeBlocks manage_cluster_status 响应异常: {e}")
+        return status_code, message
+
+
+
+    def get_cluster_events(self, region_name, service_id, page, page_size):
+        """
+        获取 KubeBlocks 集群事件（操作记录）列表
+
+        返回:
+            (status_code, data) 其中 data 格式: { 'list': [...], 'number': int }
+        """
+        try:
+            res, body = region_api.get_kubeblocks_cluster_events(region_name, service_id, page, page_size)
+            status_code = res.get('status', 500) if isinstance(res, dict) else getattr(res, 'status', 500)
+            if status_code == 200:
+                events = []
+                total = 0
+                if isinstance(body, dict):
+                    events = body.get('list', []) or []
+                    total = body.get('number', 0) or 0
+                return 200, { 'list': events, 'number': int(total) }
+            else:
+                msg_show = (body.get('msg_show') if isinstance(body, dict) else None) or '获取 KubeBlocks 事件失败'
+                return status_code, { 'msg_show': msg_show, 'list': [], 'number': 0 }
+        except Exception as e:
+            logger.exception("获取 KubeBlocks 事件异常: service_id=%s, region=%s, 错误=%s", service_id, region_name, str(e))
+            return 500, { 'msg_show': f'请求异常: {str(e)}', 'list': [], 'number': 0 }
+
+    def normalize_kb_events(self, events, tenant, service):
+        """
+        将 KB 事件补齐为 UI/Console 统一结构（仅补齐必要字段）
+
+        填充/默认规则:
+          - target: 'service'
+          - target_id: service.service_id
+          - tenant_id: tenant.tenant_id
+          - user_name: 缺省 'system'
+          - syn_type: 1 （KB 暂不提供详情日志）
+        保留（若存在）:
+          - event_id, opt_type, status, final_status, message, reason, create_time, end_time
+        """
+        normalized = []
+        if not events:
+            return normalized
+        for ev in events:
+            if not isinstance(ev, dict):
+                continue
+            item = {}
+            # 保留已有字段
+            for key in ['event_id', 'opt_type', 'status', 'final_status', 'message', 'reason', 'create_time', 'end_time']:
+                if key in ev:
+                    item[key] = ev.get(key)
+            # 补齐字段
+            item['target'] = 'service'
+            try:
+                item['target_id'] = service.service_id
+            except Exception:
+                item['target_id'] = ''
+            try:
+                item['tenant_id'] = tenant.tenant_id
+            except Exception:
+                item['tenant_id'] = ''
+            # 透传来自 Block Mechanica 的操作者信息；若无则不设置，避免覆盖上游默认
+            ev_user = ev.get('user_name')
+            if isinstance(ev_user, str) and ev_user:
+                item['user_name'] = ev_user
+            # KB 事件当前不开放详情日志
+            item['syn_type'] = 1
+            normalized.append(item)
+        return normalized
+ 
+kubeblocks_service = KubeBlocksService()

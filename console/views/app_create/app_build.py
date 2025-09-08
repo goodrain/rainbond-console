@@ -61,9 +61,6 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
 
             self.service = new_service
 
-            # 为 KubeBlocks 添加连接信息
-            kubeblocks_service.add_database_env_vars(self.tenant, self.service, self.user, self.region.region_name)
-             
             if is_deploy:
                 try:
                     arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)

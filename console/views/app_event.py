@@ -7,6 +7,7 @@ import logging
 
 from console.constants import LogConstants
 from console.services.app_actions import event_service, log_service, ws_service
+from console.services.kube_blocks_service import kubeblocks_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from django.views.decorators.cache import never_cache
@@ -53,6 +54,78 @@ class AppEventView(AppBaseView):
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 6)
         start_time = request.GET.get("start_time", None)
+
+        # KubeBlocks 组件：与 AppEventsView 保持一致，合并 Region 事件与 KubeBlocks 事件
+        try:
+            if self.service.extend_method == 'kubeblocks_component':
+                p = int(page)
+                s = int(page_size)
+                window = p * s
+                # Region 事件
+                region_events, region_total, _ = event_service.get_target_events(
+                    'service', self.service.service_id, self.tenant, self.service.service_region, 1, window
+                )
+                # KB 事件
+                status_kb, kb_data = kubeblocks_service.get_cluster_events(
+                    self.service.service_region, self.service.service_id, 1, window
+                )
+                kb_list = []
+                kb_total = 0
+                if status_kb == 200:
+                    kb_list = kubeblocks_service.normalize_kb_events(
+                        kb_data.get('list', []), self.tenant, self.service
+                    )
+                    logger.debug(f"kubeblocks list: {kb_list}")
+                    kb_total = int(kb_data.get('number', 0) or 0)
+
+                # 合并（按 event_id 优先；无 id 用复合键去重）
+                merged_map = {}
+                for ev in (region_events or []):
+                    eid = ev.get('event_id')
+                    if eid and eid not in merged_map:
+                        merged_map[eid] = ev
+                    elif not eid:
+                        key = f"{ev.get('opt_type','')}|{ev.get('message','')}|{ev.get('create_time','')}"
+                        merged_map.setdefault(key, ev)
+                for ev in (kb_list or []):
+                    eid = ev.get('event_id')
+                    if eid and eid not in merged_map:
+                        merged_map[eid] = ev
+                    elif not eid:
+                        key = f"{ev.get('opt_type','')}|{ev.get('message','')}|{ev.get('create_time','')}"
+                        merged_map.setdefault(key, ev)
+
+                merged = list(merged_map.values())
+                merged.sort(key=lambda x: x.get('create_time', ''), reverse=True)
+                start = (p - 1) * s
+                end = p * s
+                page_list = merged[start:end]
+                total = int(region_total) + int(kb_total)
+                has_next = end < total
+
+                for event in page_list:
+                    if event.get("opt_type") == "INITIATING":
+                        msg = event.get("message", "")
+                        alias = msg.split(",") if msg else []
+                        relys = []
+                        for ali in alias:
+                            service = TenantServiceInfo.objects.filter(
+                                service_alias=ali, tenant_id=self.tenant.tenant_id
+                            ).first()
+                            if service:
+                                relys.append({
+                                    "service_cname": service.service_cname,
+                                    "serivce_alias": service.service_alias,
+                                })
+                        if relys:
+                            event["Message"] = "依赖的其他组件暂未运行 {0}".format(json.dumps(relys, ensure_ascii=False))
+
+                result = general_message(200, "success", "查询成功", list=page_list, total=total, has_next=has_next)
+                return Response(result, status=result["code"])
+        except Exception as e:
+            # 若出现异常，回退到原有逻辑，避免影响原功能
+            logger.exception(f"KubeBlocks 合并事件失败: {e}")
+
         events, has_next = event_service.get_service_event(self.tenant, self.service, int(page), int(page_size), start_time)
 
         result = general_message(200, "success", "查询成功", list=events, has_next=has_next)
@@ -240,23 +313,84 @@ class AppEventsView(RegionTenantHeaderView):
             if len(services) > 0:
                 self.service = services[0]
                 target_id = self.service.service_id
-                events, total, has_next = event_service.get_target_events(target, target_id,
-                                                                          self.tenant, self.service.service_region, int(page),
-                                                                          int(page_size))
-                relys = []
-                for event in events:
-                    if event["opt_type"] == "INITIATING":
-                        msg = event["message"]
-                        alias = msg.split(",")
-                        for ali in alias:
-                            service = TenantServiceInfo.objects.filter(
-                                service_alias=ali, tenant_id=self.tenant.tenant_id).first()
-                            relys.append({
-                                "service_cname": service.service_cname,
-                                "serivce_alias": service.service_alias,
-                            })
-                        event["Message"] = "依赖的其他组件暂未运行 {0}".format(json.dumps(relys, ensure_ascii=False))
-                result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
+                # 若为 kubeblocks_component，则应从 block mechanica 获取数据并合并，否则沿用原有逻辑
+                if self.service.extend_method == 'kubeblocks_component':
+                    p = int(page)
+                    s = int(page_size)
+                    window = p * s
+                    region_events, region_total, _ = event_service.get_target_events(
+                        target, target_id, self.tenant, self.service.service_region, 1, window
+                    )
+                    status_kb, kb_data = kubeblocks_service.get_cluster_events(
+                        self.service.service_region, target_id, 1, window
+                    )
+                    kb_list = []
+                    kb_total = 0
+                    if status_kb == 200:
+                        kb_list = kubeblocks_service.normalize_kb_events(kb_data.get('list', []), self.tenant, self.service)
+                        logger.debug(f"kubeblocks list: {kb_list}")
+                        kb_total = int(kb_data.get('number', 0) or 0)
+                    # 合并
+                    merged_map = {}
+                    for ev in (region_events or []):
+                        eid = ev.get('event_id')
+                        if eid and eid not in merged_map:
+                            merged_map[eid] = ev
+                        elif not eid:
+                            # 对无 event_id 的记录，使用组合键去重
+                            key = f"{ev.get('opt_type','')}|{ev.get('message','')}|{ev.get('create_time','')}"
+                            merged_map.setdefault(key, ev)
+                    for ev in (kb_list or []):
+                        eid = ev.get('event_id')
+                        if eid and eid not in merged_map:
+                            merged_map[eid] = ev
+                        elif not eid:
+                            key = f"{ev.get('opt_type','')}|{ev.get('message','')}|{ev.get('create_time','')}"
+                            merged_map.setdefault(key, ev)
+                    merged = list(merged_map.values())
+                    merged.sort(key=lambda x: x.get('create_time', ''), reverse=True)
+                    logger.debug(f"kubeblocks merged: {merged}")
+                    start = (p - 1) * s
+                    end = p * s
+                    page_list = merged[start:end]
+                    total = int(region_total) + int(kb_total)
+                    has_next = end < total
+                    relys = []
+                    for event in page_list:
+                        if event.get("opt_type") == "INITIATING":
+                            msg = event.get("message", "")
+                            alias = msg.split(",") if msg else []
+                            relys = []
+                            for ali in alias:
+                                service = TenantServiceInfo.objects.filter(
+                                    service_alias=ali, tenant_id=self.tenant.tenant_id
+                                ).first()
+                                if service:
+                                    relys.append({
+                                        "service_cname": service.service_cname,
+                                        "serivce_alias": service.service_alias,
+                                    })
+                            if relys:
+                                event["Message"] = "依赖的其他组件暂未运行 {0}".format(json.dumps(relys, ensure_ascii=False))
+                    result = general_message(200, "success", "查询成功", list=page_list, total=total, has_next=has_next)
+                else:
+                    events, total, has_next = event_service.get_target_events(target, target_id,
+                                                                              self.tenant, self.service.service_region, int(page),
+                                                                              int(page_size))
+                    relys = []
+                    for event in events:
+                        if event["opt_type"] == "INITIATING":
+                            msg = event["message"]
+                            alias = msg.split(",")
+                            for ali in alias:
+                                service = TenantServiceInfo.objects.filter(
+                                    service_alias=ali, tenant_id=self.tenant.tenant_id).first()
+                                relys.append({
+                                    "service_cname": service.service_cname,
+                                    "serivce_alias": service.service_alias,
+                                })
+                            event["Message"] = "依赖的其他组件暂未运行 {0}".format(json.dumps(relys, ensure_ascii=False))
+                    result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
             else:
                 result = general_message(200, "success", "查询成功", list=[], total=0, has_next=False)
         elif target == "tenant":
