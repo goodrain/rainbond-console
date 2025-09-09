@@ -65,7 +65,7 @@ class KubeBlocksService(object):
             self._configure_connection_env_vars(tenant, user, region_name, new_service)
             
             # 第六阶段：配置端口信息
-            self._configure_service_ports(tenant, user, new_service)
+            self._configure_service_ports(tenant, user, new_service, region_name)
             
             # 第七阶段：构建部署组件
             deploy_result = self._deploy_component(tenant, new_service, user)
@@ -185,13 +185,29 @@ class KubeBlocksService(object):
         kubeblocks_service.add_database_env_vars(tenant, new_service, user, region_name)
         logger.info(f"为组件 {new_service.service_alias} 配置连接环境变量成功")
     
-    def _configure_service_ports(self, tenant, user, new_service):
+    def _configure_service_ports(self, tenant, user, new_service, region_name):
         """配置服务端口"""
-        # TODO: 
-        # 新增一个 region API 从 block mechanica 获取端口信息
-        default_port = 3306
+        request_data = {
+            "RBDService": {
+                "service_id": new_service.service_id
+            }
+        }
+        res, body = region_api.get_kubeblocks_connect_info(region_name=region_name, cluster_data=request_data)
+        if res.get("status") != 200 or not isinstance(body, dict):
+            status = res.get("status") if isinstance(res, dict) else "unknown"
+            raise ServiceHandleException(
+                msg=f"获取连接信息失败，状态码: {status}",
+                msg_show="获取端口信息失败"
+            )
+
+        bean = body.get("bean", {}) if isinstance(body, dict) else {}
+        port = bean.get("port")
+        if not isinstance(port, int):
+            raise ServiceHandleException(
+                msg="Block Mechanica 返回的端口信息无效",
+                msg_show="端口信息无效"
+            )
         port_alias = "DB"
-        
         # 检查端口是否已存在
         existing_ports = self.port_service.get_service_ports(new_service)
         if not existing_ports:
@@ -199,7 +215,7 @@ class KubeBlocksService(object):
             code, msg, port_data = self.port_service.add_service_port(
                 tenant=tenant,
                 service=new_service,
-                container_port=default_port,
+                container_port=port,
                 protocol="http",
                 port_alias=port_alias,
                 is_inner_service=True,
@@ -214,10 +230,6 @@ class KubeBlocksService(object):
                     msg=f"添加默认端口失败: {msg}",
                     msg_show="端口配置失败"
                 )
-            else:
-                logger.info(f"为组件 {new_service.service_alias} 添加默认端口 {default_port}")
-        else:
-            logger.info(f"组件 {new_service.service_alias} 已存在端口配置，跳过端口添加")
     
     def _create_region_service(self, tenant, new_service, user_name):
         """在Region中创建服务资源"""
