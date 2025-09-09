@@ -78,22 +78,15 @@ class AppEventView(AppBaseView):
                     logger.debug(f"kubeblocks list: {kb_list}")
                     kb_total = int(kb_data.get('number', 0) or 0)
 
-                # 合并（按 event_id 优先；无 id 用复合键去重）
                 merged_map = {}
                 for ev in (region_events or []):
                     eid = ev.get('event_id')
                     if eid and eid not in merged_map:
                         merged_map[eid] = ev
-                    elif not eid:
-                        key = f"{ev.get('opt_type','')}|{ev.get('message','')}|{ev.get('create_time','')}"
-                        merged_map.setdefault(key, ev)
                 for ev in (kb_list or []):
                     eid = ev.get('event_id')
                     if eid and eid not in merged_map:
                         merged_map[eid] = ev
-                    elif not eid:
-                        key = f"{ev.get('opt_type','')}|{ev.get('message','')}|{ev.get('create_time','')}"
-                        merged_map.setdefault(key, ev)
 
                 merged = list(merged_map.values())
                 merged.sort(key=lambda x: x.get('create_time', ''), reverse=True)
@@ -328,25 +321,16 @@ class AppEventsView(RegionTenantHeaderView):
                     kb_total = 0
                     if status_kb == 200:
                         kb_list = kubeblocks_service.normalize_kb_events(kb_data.get('list', []), self.tenant, self.service)
-                        logger.debug(f"kubeblocks list: {kb_list}")
                         kb_total = int(kb_data.get('number', 0) or 0)
-                    # 合并
                     merged_map = {}
                     for ev in (region_events or []):
                         eid = ev.get('event_id')
                         if eid and eid not in merged_map:
                             merged_map[eid] = ev
-                        elif not eid:
-                            # 对无 event_id 的记录，使用组合键去重
-                            key = f"{ev.get('opt_type','')}|{ev.get('message','')}|{ev.get('create_time','')}"
-                            merged_map.setdefault(key, ev)
                     for ev in (kb_list or []):
                         eid = ev.get('event_id')
                         if eid and eid not in merged_map:
                             merged_map[eid] = ev
-                        elif not eid:
-                            key = f"{ev.get('opt_type','')}|{ev.get('message','')}|{ev.get('create_time','')}"
-                            merged_map.setdefault(key, ev)
                     merged = list(merged_map.values())
                     merged.sort(key=lambda x: x.get('create_time', ''), reverse=True)
                     logger.debug(f"kubeblocks merged: {merged}")

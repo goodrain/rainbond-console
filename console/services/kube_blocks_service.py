@@ -3,6 +3,7 @@
 KubeBlocks 相关服务
 """
 import logging
+from datetime import datetime, timezone
 from django.db import transaction
 
 from console.services.app_config.env_service import AppEnvVarService
@@ -1395,6 +1396,41 @@ class KubeBlocksService(object):
         normalized = []
         if not events:
             return normalized
+
+        def _kb_time_to_local_rfc3339(tstr):
+            """仅转换 KB 的时间到本地时区 RFC3339(+HH:MM) 字符串。
+
+            兼容 Python 3.6：不使用 fromisoformat，采用 strptime(%z)。
+            - 支持 Z 结尾（转为 +0000）
+            - 支持带冒号偏移（+08:00 -> +0800）
+            - 失败则返回原字符串
+            """
+            try:
+                if not isinstance(tstr, str) or not tstr:
+                    return tstr
+                s = tstr.strip()
+                # 1) Z -> +0000
+                if s.endswith('Z'):
+                    s = s[:-1] + '+0000'
+                # 2) +08:00 -> +0800 ； -05:30 -> -0530
+                elif len(s) >= 6 and (s[-6] == '+' or s[-6] == '-') and s[-3] == ':':
+                    s = s[:-3] + s[-2:]
+
+                dt = None
+                for fmt in ('%Y-%m-%dT%H:%M:%S.%f%z', '%Y-%m-%dT%H:%M:%S%z'):
+                    try:
+                        dt = datetime.strptime(s, fmt)
+                        break
+                    except Exception:
+                        dt = None
+                if dt is None:
+                    return tstr
+
+                local_tz = datetime.now().astimezone().tzinfo
+                dt_local = dt.astimezone(local_tz).replace(microsecond=0)
+                return dt_local.isoformat()
+            except Exception:
+                return tstr
         for ev in events:
             if not isinstance(ev, dict):
                 continue
@@ -1402,7 +1438,11 @@ class KubeBlocksService(object):
             # 保留已有字段
             for key in ['event_id', 'opt_type', 'status', 'final_status', 'message', 'reason', 'create_time', 'end_time']:
                 if key in ev:
-                    item[key] = ev.get(key)
+                    val = ev.get(key)
+                    if key in ('create_time', 'end_time'):
+                        item[key] = _kb_time_to_local_rfc3339(val)
+                    else:
+                        item[key] = val
             # 补齐字段
             item['target'] = 'service'
             try:
