@@ -3388,8 +3388,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def get_kubeblocks_cluster_events(self, region_name, service_id, page, page_size):
         """
         获取 KubeBlocks 集群的事件（操作记录）列表
-        路径: /v2/cluster/kubeblocks/clusters/{service_id}/events?page=&page_size=
-        返回值: { list, number }
         """
         region_info = self.get_region_info(region_name)
         if not region_info:
@@ -3430,3 +3428,42 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(region_info.token)
         _, body = self._get(url, self.default_headers, region=region_name)
         return body
+
+    def get_kubeblocks_cluster_parameters(self, region_name, service_id, page=1, page_size=6, keyword=None):
+        """
+        获取 KubeBlocks 数据库参数列表
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += f"/v2/cluster/kubeblocks/clusters/{service_id}/parameters"
+
+        # 构建查询参数
+        params = []
+        if page:
+            params.append(f"page={page}")
+        if page_size:
+            params.append(f"page_size={page_size}")
+        if keyword and keyword.strip():
+            params.append(f"keyword={keyword.strip()}")
+
+        if params:
+            url += "?" + "&".join(params)
+
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def update_kubeblocks_cluster_parameters(self, region_name, service_id, body):
+        """
+        批量更新 KubeBlocks 数据库参数
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += f"/v2/cluster/kubeblocks/clusters/{service_id}/parameters"
+        self._set_headers(region_info.token)
+        res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, response_body

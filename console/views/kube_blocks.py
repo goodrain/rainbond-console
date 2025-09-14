@@ -193,3 +193,60 @@ class KubeBlocksClusterBackupListView(RegionTenantHeaderView):
         except Exception as e:
             logger.exception(e)
             return Response(general_message(500, 'request error', f'请求异常: {str(e)}'))
+
+class KubeBlocksClusterParametersView(RegionTenantHeaderView):
+    def get(self, request, team_name, region_name, service_id, *args, **kwargs):
+        """
+        获取 KubeBlocks 数据库参数列表（分页/搜索）
+        """
+        try:
+            # 获取查询参数
+            page = request.GET.get('page', 1)
+            page_size = request.GET.get('page_size', 6)
+            keyword = request.GET.get('keyword', '').strip() or None
+
+            status_code, data = kubeblocks_service.get_cluster_parameters(
+                region_name, service_id, page, page_size, keyword
+            )
+
+            if status_code == 200:
+                logger.debug(f"KubeBlocks 获取集群参数: {data}")
+                return Response(general_message(
+                    200,
+                    "查询成功",
+                    "获取参数列表成功",
+                    list=data.get('list', []),
+                    page=data.get('page', 1),
+                    total=data.get('number', 0)
+                ))
+            else:
+                msg_show = data.get("msg_show", "获取参数失败")
+                return Response(general_message(status_code, "查询失败", msg_show))
+
+        except Exception as e:
+            logger.exception(f"获取KubeBlocks集群参数异常: {str(e)}")
+            return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}"))
+
+    def post(self, request, team_name, region_name, service_id, *args, **kwargs):
+        """
+        批量更新 KubeBlocks 数据库参数
+        """
+        try:
+            # 获取请求体数据
+            body = request.data or {}
+
+            status_code, data = kubeblocks_service.update_cluster_parameters(
+                region_name, service_id, body
+            )
+
+            if status_code == 200:
+                # 与控制台通用返回结构对齐：更新结果放入 bean，前端读取 data.bean
+                logger.debug(f"KubeBlocks 更新集群参数: {data}")
+                return Response(general_message(200, "更新成功", "参数更新成功", bean=data))
+            else:
+                msg_show = data.get("msg_show", "更新参数失败")
+                return Response(general_message(status_code, "更新失败", msg_show))
+
+        except Exception as e:
+            logger.exception(f"更新KubeBlocks数据库参数异常: {str(e)}")
+            return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}"))
