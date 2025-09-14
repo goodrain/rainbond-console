@@ -1461,5 +1461,85 @@ class KubeBlocksService(object):
             item['syn_type'] = 1
             normalized.append(item)
         return normalized
- 
+
+    def get_cluster_parameters(self, region_name, service_id, page=1, page_size=20, keyword=None):
+        """
+        分页获取 KubeBlocks 数据库参数列表
+        """
+        if not region_name or not region_name.strip():
+            return 400, {"msg_show": "区域名称不能为空"}
+
+        if not service_id or not service_id.strip():
+            return 400, {"msg_show": "组件ID不能为空"}
+
+        try:
+            # 参数校验和默认值设置
+            try:
+                page = int(page) if page else 1
+                page = max(1, page)  # 页码最小为1
+            except (ValueError, TypeError):
+                page = 1
+
+            try:
+                page_size = int(page_size) if page_size else 20
+                page_size = max(1, min(page_size, 100))  # 限制在1-100之间
+            except (ValueError, TypeError):
+                page_size = 20
+
+            # 调用Region API
+            res, body = region_api.get_kubeblocks_cluster_parameters(
+                region_name, service_id, page, page_size, keyword
+            )
+            status_code = res.get("status", 500)
+
+            if status_code == 200:
+                return 200, body  # 透传原始数据
+            elif status_code == 404:
+                return 404, {"msg_show": "集群不存在"}
+            elif status_code == 403:
+                return 403, {"msg_show": "无权限"}
+            else:
+                msg_show = body.get("msg_show", "获取参数失败") if isinstance(body, dict) else "获取参数失败"
+                return status_code, {"msg_show": msg_show}
+
+        except Exception as e:
+            logger.exception("获取KubeBlocks集群参数异常: service_id=%s, region=%s, 错误=%s",
+                             service_id, region_name, str(e))
+            return 500, {"msg_show": f"请求异常: {str(e)}"}
+
+    def update_cluster_parameters(self, region_name, service_id, body):
+        """
+        批量更新 KubeBlocks 数据库参数
+        """
+        if not region_name or not region_name.strip():
+            return 400, {"msg_show": "区域名称不能为空"}
+
+        if not service_id or not service_id.strip():
+            return 400, {"msg_show": "组件ID不能为空"}
+
+        if not isinstance(body, dict):
+            return 400, {"msg_show": "请求体必须为JSON对象"}
+
+        try:
+            # 调用Region API进行更新
+            res, response_body = region_api.update_kubeblocks_cluster_parameters(
+                region_name, service_id, body
+            )
+            status_code = res.get("status", 500)
+
+            if status_code == 200:
+                return 200, response_body  # 透传原始数据，包含applied/invalids
+            elif status_code == 404:
+                return 404, {"msg_show": "集群不存在"}
+            elif status_code == 403:
+                return 403, {"msg_show": "无权限"}
+            else:
+                msg_show = response_body.get("msg_show", "更新参数失败") if isinstance(response_body, dict) else "更新参数失败"
+                return status_code, {"msg_show": msg_show}
+
+        except Exception as e:
+            logger.exception("更新KubeBlocks集群参数异常: service_id=%s, region=%s, 错误=%s",
+                             service_id, region_name, str(e))
+            return 500, {"msg_show": f"请求异常: {str(e)}"}
+
 kubeblocks_service = KubeBlocksService()
