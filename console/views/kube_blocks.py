@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+from django.db import IntegrityError
 
 from rest_framework.response import Response
 
@@ -7,9 +8,11 @@ from console.exception.bcode import ErrK8sComponentNameExists
 from console.services.kube_blocks_service import kubeblocks_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
+from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class KubeBlocksAddonsView(RegionTenantHeaderView):
@@ -250,3 +253,71 @@ class KubeBlocksClusterParametersView(RegionTenantHeaderView):
         except Exception as e:
             logger.exception(f"更新KubeBlocks数据库参数异常: {str(e)}")
             return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}"))
+
+class KubeBlocksClusterRestoreView(AppBaseView):
+    def post(self, request, *args, **kwargs):
+        """从备份恢复 KubeBlocks 集群（基于 serviceAlias 解析组件）"""
+        try:
+            body = request.data or {}
+            backup_name = body.get('backup_name')
+
+            # 参数验证
+            if not backup_name:
+                return Response(general_message(400, "参数错误", "备份名称不能为空"), status=400)
+
+            # 调用 Service 层（使用 AppBaseView 解析出的 self.region_name 与 self.service）
+            status_code, data = kubeblocks_service.restore_cluster_from_backup(
+                self.region_name,
+                self.service,
+                backup_name
+            )
+
+            if status_code == 200:
+                bean = data.get('bean', {})
+                new_k8s_component_name = bean.get('new_service')
+
+                # 根据 Region 返回的新集群名，更新组件英文名，重启 kubeblocks_component
+                if new_k8s_component_name and isinstance(new_k8s_component_name, str):
+                    try:
+                        old_k8s_component_name = self.service.k8s_component_name
+                        self.service.k8s_component_name = new_k8s_component_name
+
+                        region_api.update_service(
+                            self.service.service_region,
+                            self.tenant.tenant_name,
+                            self.service.service_alias,
+                            {"k8s_component_name": new_k8s_component_name}
+                        )
+
+                        self.service.save()
+                        logger.info(f"恢复成功，更新组件英文名: {self.service.service_alias} {old_k8s_component_name} -> {new_k8s_component_name}")
+
+                        # 更新服务信息后重启组件
+                        restart_body = {
+                            "operator": str(self.user.nick_name),
+                            "enterprise_id": self.tenant.enterprise_id
+                        }
+                        try:
+                            region_api.restart_service(
+                                self.service.service_region,
+                                self.tenant.tenant_name,
+                                self.service.service_alias,
+                                restart_body
+                            )
+                            logger.info(f"KubeBlocks 集群恢复后重启组件成功: {self.service.service_alias}")
+                        except region_api.CallApiError as e:
+                            logger.exception(f"KubeBlocks 集群恢复后重启组件失败: {self.service.service_alias}, 错误: {str(e)}")
+                        except region_api.CallApiFrequentError as e:
+                            logger.exception(f"KubeBlocks 集群恢复后重启组件操作过于频繁: {self.service.service_alias}, 错误: {str(e)}")
+
+                    except IntegrityError:
+                        raise ErrK8sComponentNameExists()
+
+                return Response(general_message(200, "恢复成功", "从备份恢复成功", bean=bean))
+            else:
+                msg_show = data.get("msg_show", "恢复失败")
+                return Response(general_message(status_code, "恢复失败", msg_show), status=status_code)
+
+        except Exception as e:
+            logger.exception(e)
+            return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}"), status=500)
