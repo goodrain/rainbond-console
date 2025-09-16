@@ -166,7 +166,7 @@ from console.views.sms_verification import SMSVerificationView
 from console.views.user_operation import RegisterByPhoneView, LoginByPhoneView
 from console.views.kube_blocks import (KubeBlocksAddonsView, KubeBlocksStorageClassesView, KubeBlocksBackupReposView,
                                   KubeBlocksComponentInfoView, KubeBlocksClusterDetailView, KubeBlocksClusterBackupView, KubeBlocksClusterBackupListView,
-                                  KubeBlocksClusterParametersView)
+                                  KubeBlocksClusterParametersView, KubeBlocksClusterRestoreView)
 
 urlpatterns = [
     # 升级
@@ -1095,6 +1095,8 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/component/(?P<service_id>[\w\-]+)/infos$', KubeBlocksComponentInfoView.as_view()),
     # KubeBlocks 集群参数管理（获取/更新）
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/clusters/(?P<service_id>[\w\-]+)/parameters$', KubeBlocksClusterParametersView.as_view()),
+    # KubeBlocks 集群从备份恢复（基于 AppBaseView 的 serviceAlias，前端统一使用此路由）
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/restores$', KubeBlocksClusterRestoreView.as_view()),
 
 ]
 

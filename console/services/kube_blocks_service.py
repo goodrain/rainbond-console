@@ -1541,5 +1541,38 @@ class KubeBlocksService(object):
             logger.exception("更新KubeBlocks集群参数异常: service_id=%s, region=%s, 错误=%s",
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
+    def restore_cluster_from_backup(self, region_name, service, backup_name):
+        """
+        从备份中恢复 KubeBlocks Cluster
+        """
+        if not region_name or not region_name.strip():
+            return 400, {"msg_show": "区域名称不能为空"}
+
+        if not service or not service.service_id:
+            return 400, {"msg_show": "组件信息无效"}
+
+        if not backup_name or not backup_name.strip():
+            return 400, {"msg_show": "备份名称不能为空"}
+
+        try:
+            # 修复参数顺序：传递完整的三个参数
+            res, body = region_api.restore_cluster_from_backup(
+                region_name,
+                service.service_id,
+                backup_name
+            )
+            status_code = res.get("status", 500)
+
+            if status_code == 200:
+                logger.info(f"KubeBlocks 集群恢复成功: service_id={service.service_id}, backup={backup_name}")
+                return 200, body
+            else:
+                msg_show = body.get("msg_show", "恢复失败") if isinstance(body, dict) else "恢复失败"
+                logger.error(f"KubeBlocks 集群恢复失败: service_id={service.service_id}, status={status_code}, msg={msg_show}")
+                return status_code, {"msg_show": msg_show}
+
+        except Exception as e:
+            logger.exception(f"KubeBlocks 集群恢复异常: service_id={service.service_id}, backup={backup_name}, 错误={str(e)}")
+            return 500, {"msg_show": f"恢复操作异常: {str(e)}"}
 
 kubeblocks_service = KubeBlocksService()
