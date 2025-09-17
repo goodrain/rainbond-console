@@ -1000,29 +1000,28 @@ class KubeBlocksService(object):
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
     
-    def get_backup_list(self, region_name, service_id):
+    def get_backup_list(self, region_name, service_id, page=None, page_size=None):
         """
         获取 KubeBlocks Cluster 的备份列表
         """
         if not region_name or not region_name.strip():
             return 400, {"msg_show": "区域名称不能为空"}
-            
+
         if not service_id or not service_id.strip():
             return 400, {"msg_show": "组件ID不能为空"}
-            
+
         try:
-            res, data = region_api.get_kubeblocks_backup_list(region_name, service_id)
-            status_code = res.get('status', 500)
-            
+            res, body = region_api.get_kubeblocks_backup_list(region_name, service_id, page, page_size)
+            status_code = res.get("status", 500)
+
             if status_code == 200:
-                backup_list = data.get('list', []) if isinstance(data, dict) else []
-                return 200, {"msg_show": "获取备份列表成功", "list": backup_list}
+                return 200, body
             else:
-                msg_show = data.get('msg_show', '获取备份列表失败') if isinstance(data, dict) else '获取备份列表失败'
+                msg_show = body.get("msg_show", "获取备份列表失败") if isinstance(body, dict) else "获取备份列表失败"
                 return status_code, {"msg_show": msg_show}
-                
+
         except Exception as e:
-            logger.exception("获取备份列表异常: service_id=%s, region=%s, 错误=%s", 
+            logger.exception("获取备份列表异常: service_id=%s, region=%s, 错误=%s",
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
     

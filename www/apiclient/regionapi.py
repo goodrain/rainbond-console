@@ -3344,7 +3344,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_kubeblocks_backup_list(self, region_name, service_id):
+    def get_kubeblocks_backup_list(self, region_name, service_id, page=None, page_size=None):
         """
         获取 KubeBlocks 集群的备份列表
         """
@@ -3353,6 +3353,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += f"/v2/cluster/kubeblocks/clusters/{service_id}/backups"
+
+        params = []
+        if page:
+            params.append(f"page={page}")
+        if page_size:
+            params.append(f"page_size={page_size}")
+
+        if params:
+            url += "?" + "&".join(params)
+
         self._set_headers(region_info.token)
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
