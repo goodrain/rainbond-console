@@ -1355,29 +1355,89 @@ class KubeBlocksService(object):
 
 
 
-    def get_cluster_events(self, region_name, service_id, page, page_size):
+    def get_cluster_events(self, region_name, service_id, tenant, service, page, page_size):
         """
-        获取 KubeBlocks 集群事件（操作记录）列表
-
-        返回:
-            (status_code, data) 其中 data 格式: { 'list': [...], 'number': int }
+        获取 KubeBlocks 集群事件列表
         """
         try:
             res, body = region_api.get_kubeblocks_cluster_events(region_name, service_id, page, page_size)
             status_code = res.get('status', 500) if isinstance(res, dict) else getattr(res, 'status', 500)
+
             if status_code == 200:
-                events = []
-                total = 0
-                if isinstance(body, dict):
-                    events = body.get('list', []) or []
-                    total = body.get('number', 0) or 0
-                return 200, { 'list': events, 'number': int(total) }
+                events = body.get('list', []) or []
+                total = body.get('number', 0) or 0
+
+                normalized_events = self.normalize_kb_events(events, tenant, service)
+                has_next = page * page_size < total
+
+                return normalized_events, int(total), has_next
             else:
-                msg_show = (body.get('msg_show') if isinstance(body, dict) else None) or '获取 KubeBlocks 事件失败'
-                return status_code, { 'msg_show': msg_show, 'list': [], 'number': 0 }
+                return [], 0, False
         except Exception as e:
             logger.exception("获取 KubeBlocks 事件异常: service_id=%s, region=%s, 错误=%s", service_id, region_name, str(e))
-            return 500, { 'msg_show': f'请求异常: {str(e)}', 'list': [], 'number': 0 }
+            return [], 0, False
+
+    def merge_region_and_kb_events(self, target, target_id, tenant, region_name, service, page, page_size):
+        """
+        合并 Region event 和 KubeBlocks event
+        """
+        from console.services.app_actions import event_service
+        from www.models.main import TenantServiceInfo
+        import json
+
+        window = page * page_size
+        
+        try:
+            # 获取 Region 事件
+            region_events, region_total, _ = event_service.get_target_events(
+                target, target_id, tenant, region_name, page, window
+            )
+            
+            # 获取 KB 事件（格式与 Region 事件一致）
+            kb_events, kb_total, _ = self.get_cluster_events(
+                region_name, target_id, tenant, service, page, window
+            )
+            
+            merged_map = {}
+            for ev in (region_events or []):
+                eid = ev.get('event_id')
+                if eid and eid not in merged_map:
+                    merged_map[eid] = ev
+            for ev in (kb_events or []):
+                eid = ev.get('event_id')
+                if eid and eid not in merged_map:
+                    merged_map[eid] = ev
+            
+            merged = list(merged_map.values())
+            merged.sort(key=lambda x: x.get('create_time', ''), reverse=True)
+            start = (page - 1) * page_size
+            end = page * page_size
+            page_list = merged[start:end]
+            total = int(region_total) + int(kb_total)
+            has_next = end < total
+            
+            for event in page_list:
+                if event.get("opt_type") == "INITIATING":
+                    msg = event.get("message", "")
+                    alias = msg.split(",") if msg else []
+                    relys = []
+                    for ali in alias:
+                        service_obj = TenantServiceInfo.objects.filter(
+                            service_alias=ali, tenant_id=tenant.tenant_id
+                        ).first()
+                        if service_obj:
+                            relys.append({
+                                "service_cname": service_obj.service_cname,
+                                "serivce_alias": service_obj.service_alias,
+                            })
+                    if relys:
+                        event["Message"] = "依赖的其他组件暂未运行 {0}".format(json.dumps(relys, ensure_ascii=False))
+            
+            return page_list, total, has_next
+            
+        except Exception as e:
+            logger.exception(f"合并 Region 和 KubeBlocks 事件失败: {e}")
+            raise
 
     def normalize_kb_events(self, events, tenant, service):
         """
