@@ -142,19 +142,27 @@ class KubeBlocksClusterBackupListView(RegionTenantHeaderView):
         获取备份列表
         """
         try:
-            status_code, data = kubeblocks_service.get_backup_list(region_name, service_id)
-            
+            page = request.GET.get('page')
+            page_size = request.GET.get('page_size')
+
+            status_code, data = kubeblocks_service.get_backup_list(region_name, service_id, page, page_size)
+
             if status_code == 200:
-                backup_list = data.get('list', [])
-                msg_show = data.get("msg_show", "获取备份列表成功")
-                return Response(general_message(200, 'success', msg_show, list=backup_list))
+                return Response(general_message(
+                    200,
+                    "查询成功",
+                    "获取备份列表成功",
+                    list=data.get('list', []),
+                    page=data.get('page', 1),
+                    total=data.get('number', 0)
+                ))
             else:
-                msg_show = data.get('msg_show', '获取备份列表失败')
-                return Response(general_message(status_code, 'failed', msg_show))
-            
+                msg_show = data.get("msg_show", "获取备份失败")
+                return Response(general_message(status_code, "查询失败", msg_show))
+
         except Exception as e:
-            logger.exception(e)
-            return Response(general_message(500, 'request error', f'请求异常: {str(e)}'))
+            logger.exception(f"获取KubeBlocks集群备份异常: {str(e)}")
+            return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}"))
 
     def post(self, request, team_name, region_name, service_id, *args, **kwargs):
         """
