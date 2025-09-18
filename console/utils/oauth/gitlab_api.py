@@ -247,7 +247,9 @@ class GitlabApiV4(GitlabApiV4MiXin, GitOAuth2Interface):
 
     def get_clone_user_password(self):
         access_token, _ = self._get_access_token()
-        return "oauth2", self.oauth_user.access_token
+        if not access_token:
+            raise ErrUnAuthnOauthService
+        return "oauth2", access_token
 
     def get_clone_url(self, url):
         name, password = self.get_clone_user_password()
