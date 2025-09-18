@@ -541,7 +541,7 @@ class TeamAppSortViewView(RegionTenantHeaderView):
         query = request.GET.get("query", "")
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
-        groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, query)
+        groups = group_repo.get_tenant_region_groups(self.team.tenant_id, self.response_region, query, app_ids=self.perm_apps)
         total = len(groups)
         app_num_dict = {"total": total}
         start = (page - 1) * page_size
