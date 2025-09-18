@@ -451,8 +451,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/last-record$', UploadRecordLastView.as_view(),
         perms.APP_OVERVIEW_CREATE),
     # 本地文件上传记录
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/record$', PackageUploadRecordView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/record$', PackageUploadRecordView.as_view()),
     # 本地文件创建组件
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build$', PackageCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 源码创建
