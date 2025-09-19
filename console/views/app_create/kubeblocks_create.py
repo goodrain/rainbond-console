@@ -20,18 +20,6 @@ from www.utils.return_message import general_message
 
 logger = logging.getLogger("default")
 
-# TODO 关于这个创建操作：
-# 可以调用现有的 service KubeBlocksService.create_cluster 实现
-# 故需要对 service 的创建逻辑进行调整
-# 不同于常规的组件创建需要 console 创建 -> create-check -> create-configFile ->
-#  create-configPort -> region_service -> deploy 的流程
-# 这里的流程直接完成 console 创建，create-configFile, create-configPort,
-# region_service, deploy, cluster 创建等步骤, 同时在 regions_service 创建之前获取到 cluster 的连接信息，
-# 添加到组件的连接信息中
-# 这块应该让前端跳过 create-check 开始的这些页面, 执行完之后直接跳转到组件详情
-# 或许可以复用 kubeblocks_service：(但是需要修改)
-# - add_database_env_vars
-# - create_cluster
 class KubeBlocksComponentCreateView(RegionTenantHeaderView):
     """
     KubeBlocks 组件一站式创建视图
@@ -47,37 +35,11 @@ class KubeBlocksComponentCreateView(RegionTenantHeaderView):
     @never_cache
     def post(self, request, *args, **kwargs):  # pylint: disable=unused-argument
         """
-        一站式创建 KubeBlocks 组件
+        一次性完成创建 KubeBlocks Component 的创建
         
         在单次API调用中完成从组件创建到部署的完整流程，
         与常规组件部署完成后返回相同格式的数据。
-        
-        Parameters (扁平结构，所有参数均为顶级字段):
-        
-        必填字段:
-        - cluster_name (str): 集群名称，同时作为Rainbond组件中文显示名称，必填
-        - database_type (str): 数据库类型（mysql、postgresql、redis等），必填
-        - version (str): 数据库版本，必填
-        - cpu (str): CPU配置（如：1、500m），必填
-        - memory (str): 内存配置（如：1Gi、2Gi），必填
-        - storage_size (str): 存储大小（如：10Gi、100Gi），必填
-        
-        应用分组相关字段:
-        - group_id (str/int): 应用分组ID，可选（空、-1、""、"0"时自动创建新应用）
-        - app_name (str): 新应用名称，仅在group_id为空时使用，可选
-        
-        可选配置字段:
-        - k8s_app (str): Kubernetes组件名称，可选（空时自动生成）
-        - storage_class (str): 存储类名称，可选
-        - replicas (int): 副本数量，默认1
-        - arch (str): 架构类型，默认amd64
-        - termination_policy (str): 删除策略，默认Delete
-        
-        备份相关字段:
-        - backup_repo (str): 备份仓库名称，不为空时启用备份，可选
-        - backup_schedule (dict): 备份调度配置，仅backup_repo不为空时生效，可选
-        - retention_period (str): 备份保留期，默认7d，仅backup_repo不为空时生效，可选
-        
+
         Returns:
         JSON 响应格式（与标准组件部署完成后格式一致）:
         {
@@ -90,19 +52,15 @@ class KubeBlocksComponentCreateView(RegionTenantHeaderView):
                     "service_cname": "组件显示名称",
                     "service_alias": "组件别名",
                     "status": "running",
-                    // 其他标准组件字段...
                 }
             }
         }
         """
         
-        # 按照实际 API 规范直接从请求体获取参数（扁平结构）
-        # 根据 @kubeblocks_api_doc.md 规范，所有参数均为顶级字段
-        service_cname = request.data.get("cluster_name", "").strip()  # cluster_name 作为组件中文显示名称
-        k8s_component_name = request.data.get("k8s_app", "")  # k8s_app 作为 K8s 组件英文名
-        group_id = request.data.get("group_id", -1)  # 应用分组ID（可选，可以是字符串或数字）
+        service_cname = request.data.get("cluster_name", "").strip()
+        k8s_component_name = request.data.get("k8s_app", "")
+        group_id = request.data.get("group_id", -1)
         
-        # 处理 group_id 字段（支持字符串和数字类型）
         if isinstance(group_id, str):
             if group_id in ["", "-1", "0"]:
                 group_id = -1
@@ -112,12 +70,10 @@ class KubeBlocksComponentCreateView(RegionTenantHeaderView):
                 except ValueError:
                     group_id = -1
         
-        # 检查 K8s 组件名称是否重复（如果指定了名称）
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             raise ErrK8sComponentNameExists
 
         try:
-            # 基础参数验证
             # 检查组件名称（必填）
             if not service_cname:
                 return Response(
@@ -135,13 +91,13 @@ class KubeBlocksComponentCreateView(RegionTenantHeaderView):
                         status=400
                     )
             
-            # 准备创建参数（直接使用请求体数据，符合扁平结构规范）
-            creation_params = dict(request.data)  # 获取所有请求参数
-            creation_params["service_cname"] = service_cname  # 确保组件显示名称正确
-            creation_params["k8s_component_name"] = k8s_component_name  # 确保 K8s 组件名称正确  
-            creation_params["group_id"] = group_id  # 使用处理后的应用组ID
+            # 准备创建参数
+            creation_params = dict(request.data)
+            creation_params["service_cname"] = service_cname
+            creation_params["k8s_component_name"] = k8s_component_name
+            creation_params["group_id"] = group_id
             
-            # 调用 KubeBlocks 服务执行完整创建流程
+            # 完整创建 KubeBlocks Component
             success, result_data, error_msg = kubeblocks_service.create_complete_kubeblocks_component(
                 tenant=self.tenant,
                 user=self.user,
@@ -167,7 +123,7 @@ class KubeBlocksComponentCreateView(RegionTenantHeaderView):
                 is_openapi=False
             )
             
-            # 返回与标准组件部署完成后相同格式的响应
+            # **返回与标准组件部署完成后相同格式的响应**
             return Response(
                 general_message(200, "success", "创建成功", bean=result_data)
             )

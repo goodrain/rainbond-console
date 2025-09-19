@@ -3478,7 +3478,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, response_body
 
-    def restore_cluster_from_backup(self, region_name, service_id, backup_name):
+    def restore_cluster_from_backup(self, region_name, old_service_id, new_service_id, backup_name):
         """
         从备份恢复 cluster
         """
@@ -3486,11 +3486,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += f"/v2/cluster/kubeblocks/clusters/{service_id}/restores"
+        url += f"/v2/cluster/kubeblocks/clusters/{old_service_id}/restores"
         self._set_headers(region_info.token)
 
         body = {
-            "backup_name": backup_name
+            "backup_name": backup_name,
+            "new_service_id": new_service_id
         }
 
         res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)

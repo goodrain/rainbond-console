@@ -13,6 +13,7 @@ from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from www.apiclient.regionapi import RegionInvokeApi
 from console.exception.main import ServiceHandleException
+from console.repositories.deploy_repo import deploy_repo
 from www.models.main import TenantServiceInfo
 
 logger = logging.getLogger("default")
@@ -29,7 +30,7 @@ class KubeBlocksService(object):
     @transaction.atomic
     def create_complete_kubeblocks_component(self, tenant, user, region_name, creation_params):
         """
-        一站式创建 KubeBlocks 组件的完整流程
+        一次性创建 KubeBlocks Component
         
         Args:
             tenant: 租户对象
@@ -52,7 +53,6 @@ class KubeBlocksService(object):
 
             # 第二阶段：创建KubeBlocks集群
             cluster_result = self._create_kubeblocks_cluster(tenant, user, region_name, new_service, creation_params)
-            
             # 第二阶段后：更新组件的 k8s_component_name
             self._update_k8s_component_name_from_cluster(new_service, cluster_result)
             
@@ -91,6 +91,132 @@ class KubeBlocksService(object):
                 self._cleanup_on_failure(new_service, tenant, region_name)
             
             return False, None, str(e)
+
+    def restore_component_from_backup(self, tenant, user, region_name, old_service, backup_name):
+        """
+        基于旧组件创建一个新的 KubeBlocks 组件，并从备份恢复到该新组件。
+
+        流程：
+        1) 创建新组件元数据（中文名追加 -restore）
+        2) 使用新组件 service_id 调用 restore 接口
+        3) 用返回的 new_service 更新新组件的 k8s_component_name，置为 complete
+        4) 将新组件加入旧组件所属应用
+        5) 在 Region 中创建新组件资源
+        6) 复制旧组件端口到新组件（先端口后连接信息）
+        7) 复制旧组件连接信息（环境变量）到新组件
+        8) 部署并创建部署关系
+        """
+        new_service = None
+        try:
+            # 创建新组件元数据 {service_cname}-restore
+            restore_cname = (old_service.service_cname or "").strip() + "-restore"
+            if len(restore_cname) > 100:
+                restore_cname = restore_cname[:100]
+
+            code, msg, new_service = app_service.create_kubeblocks_component(
+                region=region_name,
+                tenant=tenant,
+                user=user,
+                service_cname=restore_cname,
+                k8s_component_name="",
+                arch=getattr(old_service, 'arch', 'amd64') or 'amd64'
+            )
+            if code != 200 or not new_service:
+                return 500, {"msg_show": msg or "创建新组件失败"}
+
+            # 将备份恢复到新组件
+            status_code, region_restore_data = self.restore_cluster_from_backup(region_name, old_service, new_service, backup_name)
+            if status_code != 200:
+                raise ServiceHandleException(
+                    msg=region_restore_data.get("msg_show", "恢复失败") if isinstance(region_restore_data, dict) else "恢复失败",
+                    msg_show=region_restore_data.get("msg_show", "恢复失败") if isinstance(region_restore_data, dict) else "恢复失败"
+                )
+
+            # 更新新组件 k8s_component_name 与状态
+            if not isinstance(region_restore_data, dict):
+                region_restore_data = {}
+            bean = region_restore_data.setdefault('bean', {})
+            new_k8s_name = bean.get('new_service')
+            if isinstance(new_k8s_name, str) and new_k8s_name:
+                new_service.k8s_component_name = new_k8s_name
+            new_service.create_status = "complete"
+            new_service.action = True
+            new_service.save()
+
+            # 将新组件加入旧组件所属 group(应用)
+            group_info = self.group_service.get_service_group_info(old_service.service_id)
+            group_id = group_info.ID if group_info else None
+            self._add_to_application_group(tenant, region_name, group_id, new_service.service_id)
+
+            self._create_region_service(tenant, new_service, user.nick_name)
+
+            # 复制端口
+            old_ports = self.port_service.get_service_ports(old_service) or []
+            for p in old_ports:
+                try:
+                    self.port_service.add_service_port(
+                        tenant=tenant,
+                        service=new_service,
+                        container_port=int(p.container_port),
+                        protocol=p.protocol,
+                        port_alias=p.port_alias,
+                        is_inner_service=bool(p.is_inner_service),
+                        is_outer_service=bool(p.is_outer_service),
+                        user_name=user.nick_name
+                    )
+                except Exception as e:
+                    logger.exception("复制端口失败: new=%s old=%s port=%s error=%s",
+                                     new_service.service_id, old_service.service_id, p.container_port, str(e))
+                    raise ServiceHandleException(msg="复制端口失败", msg_show="复制端口失败")
+
+            old_envs = self.env_service.get_env_var(old_service) or []
+            for env in old_envs:
+                try:
+                    if getattr(env, 'container_port', 0):
+                        continue
+                    self.env_service.add_service_env_var(
+                        tenant=tenant,
+                        service=new_service,
+                        container_port=0,
+                        name=env.name,
+                        attr_name=env.attr_name,
+                        attr_value=env.attr_value,
+                        is_change=env.is_change,
+                        scope=env.scope,
+                        user_name=user.nick_name
+                    )
+                except Exception as e:
+                    logger.exception("复制环境变量失败: new=%s old=%s env=%s error=%s",
+                                     new_service.service_id, old_service.service_id, env.attr_name, str(e))
+                    raise ServiceHandleException(msg="复制环境变量失败", msg_show="复制环境变量失败")
+
+            self._deploy_component(tenant, new_service, user)
+            deploy_repo.create_deploy_relation_by_service_id(service_id=new_service.service_id)
+
+            # 构建返回结果
+            bean = region_restore_data.setdefault('bean', {})
+            bean['service_alias'] = new_service.service_alias
+            bean['service_id'] = new_service.service_id
+
+            group_info = self.group_service.get_service_group_info(new_service.service_id)
+            bean['group_id'] = group_info.ID
+
+            logger.info("从备份恢复完成，new_service=%s", new_service.service_alias)
+            return 200, region_restore_data
+
+        except Exception as e:
+            logger.exception("从备份恢复到新组件失败: %s", str(e))
+            # 删除新建的 cluster 与 kubeblocks component
+            try:
+                if new_service and getattr(new_service, 'service_id', None):
+                    self.delete_kubeblocks_cluster([new_service.service_id], region_name)
+                    try:
+                        new_service.delete()
+                    except Exception:
+                        pass
+            except Exception:
+                logger.exception("回滚失败")
+            return 500, {"msg_show": str(e) or "恢复失败"}
     
     def _create_component_metadata(self, tenant, user, region_name, params):
         """创建组件元数据"""
@@ -1600,14 +1726,15 @@ class KubeBlocksService(object):
             logger.exception("更新KubeBlocks集群参数异常: service_id=%s, region=%s, 错误=%s",
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
-    def restore_cluster_from_backup(self, region_name, service, backup_name):
+
+    def restore_cluster_from_backup(self, region_name,old_service, new_service, backup_name):
         """
         从备份中恢复 KubeBlocks Cluster
         """
         if not region_name or not region_name.strip():
             return 400, {"msg_show": "区域名称不能为空"}
 
-        if not service or not service.service_id:
+        if not (old_service and old_service.service_id and new_service and new_service.service_id):
             return 400, {"msg_show": "组件信息无效"}
 
         if not backup_name or not backup_name.strip():
@@ -1617,21 +1744,21 @@ class KubeBlocksService(object):
             # 修复参数顺序：传递完整的三个参数
             res, body = region_api.restore_cluster_from_backup(
                 region_name,
-                service.service_id,
+                old_service.service_id,
+                new_service.service_id,
                 backup_name
             )
             status_code = res.get("status", 500)
 
             if status_code == 200:
-                logger.info(f"KubeBlocks 集群恢复成功: service_id={service.service_id}, backup={backup_name}")
                 return 200, body
             else:
                 msg_show = body.get("msg_show", "恢复失败") if isinstance(body, dict) else "恢复失败"
-                logger.error(f"KubeBlocks 集群恢复失败: service_id={service.service_id}, status={status_code}, msg={msg_show}")
+                logger.error(f"KubeBlocks 集群恢复失败: service_id={old_service.service_id}, backup={backup_name}, status={status_code}, msg={msg_show}")
                 return status_code, {"msg_show": msg_show}
 
         except Exception as e:
-            logger.exception(f"KubeBlocks 集群恢复异常: service_id={service.service_id}, backup={backup_name}, 错误={str(e)}")
+            logger.exception(f"KubeBlocks 集群恢复异常: service_id={old_service.service_id}, backup={backup_name}, 错误={str(e)}")
             return 500, {"msg_show": f"恢复操作异常: {str(e)}"}
 
 kubeblocks_service = KubeBlocksService()
