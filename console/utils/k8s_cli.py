@@ -452,3 +452,96 @@ class K8sClient:
             "last_timestamp": str(event.last_timestamp) if event.last_timestamp else "",
             "count": event.count
         }
+
+    def get_pod_logs_stream(self, pod_name, namespace="rbd-system", container_name="", follow=True, tail_lines=100):
+        """
+        获取 Pod 日志流
+        :param pod_name: Pod 名称
+        :param namespace: 命名空间，默认为 rbd-system
+        :param container_name: 容器名称，为空时获取主容器日志
+        :param follow: 是否跟随日志
+        :param tail_lines: 显示最近多少行
+        """
+        log_response = None
+        try:
+            # 首先检查 Pod 是否存在
+            try:
+                pod = self.core_v1_api.read_namespaced_pod(name=pod_name, namespace=namespace)
+                if not pod:
+                    raise Exception(f"Pod {pod_name} not found in namespace {namespace}")
+            except Exception as e:
+                if "404" in str(e) or "NotFound" in str(e):
+                    raise Exception(f"Pod '{pod_name}' 不存在于命名空间 '{namespace}' 中")
+                else:
+                    raise e
+            
+            # 构建日志查询参数
+            kwargs = {
+                'name': pod_name,
+                'namespace': namespace,
+                'follow': follow,
+                'tail_lines': tail_lines,
+                '_preload_content': False,
+                'timestamps': True  # 添加时间戳
+            }
+            
+            # 如果指定了容器名称，则添加到参数中
+            if container_name:
+                # 验证容器是否存在
+                container_found = False
+                for container_status in pod.status.container_statuses or []:
+                    if container_status.name == container_name:
+                        container_found = True
+                        break
+                
+                if not container_found:
+                    raise Exception(f"容器 '{container_name}' 不存在于 Pod '{pod_name}' 中")
+                
+                kwargs['container'] = container_name
+            
+            logger.info(f"Starting log stream for pod {pod_name} with follow={follow}")
+            
+            # 获取日志流
+            log_response = self.core_v1_api.read_namespaced_pod_log(**kwargs)
+            
+            # 逐行读取日志
+            try:
+                line_count = 0
+                for line in log_response.stream():
+                    if line:
+                        decoded_line = line.decode('utf-8')
+                        line_count += 1
+                        logger.debug(f"Received log line {line_count} from pod {pod_name}: {decoded_line[:100]}...")
+                        yield decoded_line
+                    else:
+                        # 如果没有新日志，稍微等待一下避免CPU占用过高
+                        import time
+                        time.sleep(0.1)
+                        
+                logger.info(f"Log stream ended for pod {pod_name}, total lines: {line_count}")
+                        
+            except Exception as stream_e:
+                logger.error(f"Error reading log stream for pod {pod_name}: {str(stream_e)}")
+                yield f"日志流读取错误: {str(stream_e)}\n"
+                    
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"Failed to get logs for pod {pod_name}: {error_msg}")
+            
+            # 更友好的错误信息
+            if "404" in error_msg or "NotFound" in error_msg:
+                yield f"错误: Pod '{pod_name}' 不存在\n"
+            elif "container" in error_msg.lower():
+                yield f"错误: {error_msg}\n"
+            else:
+                yield f"获取日志失败: {error_msg}\n"
+        finally:
+            # 确保关闭日志流以释放资源
+            if log_response:
+                try:
+                    if hasattr(log_response, 'close'):
+                        log_response.close()
+                    elif hasattr(log_response, 'release_conn'):
+                        log_response.release_conn()
+                except Exception as cleanup_e:
+                    logger.warning(f"Failed to cleanup log response for pod {pod_name}: {str(cleanup_e)}")
