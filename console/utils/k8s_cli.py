@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 import base64
 import logging
-import tempfile
-import os
+import subprocess
+import yaml
+from datetime import datetime
 from kubernetes import client, config
 
 logger = logging.getLogger('default')
@@ -11,118 +11,338 @@ logger = logging.getLogger('default')
 class K8sClient:
     def __init__(self, kubeconfig_content):
         # 从 kubeconfig 字符串内容加载配置
+        self.kube_config = kubeconfig_content
+        kubeconfig_dict = yaml.safe_load(kubeconfig_content)
+        loader = config.kube_config.KubeConfigLoader(config_dict=kubeconfig_dict)
+
+        # 创建一个空的配置对象
+        configuration = client.Configuration()
+
+        # 将配置加载到 Configuration 对象中
+        loader.load_and_set(client_configuration=configuration)
+        configuration.timeout = 10
+        # 跳过证书验证
+        configuration.verify_ssl = False
+
+        # 创建 API 客户端
+        self.api_client = client.ApiClient(configuration=configuration)
+        self.core_v1_api = client.CoreV1Api(api_client=self.api_client)
+        self.custom_api = client.CustomObjectsApi(api_client=self.api_client)
+        self.storage_v1_api = client.StorageV1Api(api_client=self.api_client)
+
+    def _write_file(self, filename, content):
+        """写入文件"""
         try:
-            # 创建临时文件保存 kubeconfig
-            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
-                f.write(kubeconfig_content)
-                kubeconfig_path = f.name
-            
-            # 加载 kubeconfig
-            config.load_kube_config(config_file=kubeconfig_path)
-            
-            # 初始化 API 客户端
-            self.core_v1_api = client.CoreV1Api()
-            
-            # 清理临时文件
-            os.unlink(kubeconfig_path)
-            
+            with open(filename, 'w') as f:
+                f.write(content)
+            logger.info(f"Successfully wrote {filename}")
         except Exception as e:
-            logger.error(f"Failed to initialize K8s client: {str(e)}")
-            raise e
+            error_message = f"Failed to write {filename}: {e}"
+            logger.error(error_message)
+            raise Exception(error_message)
 
-    def _get_pod_status(self, pod):
-        """获取 Pod 状态"""
-        if not pod.status:
-            return "Unknown"
-        
-        if pod.status.phase:
-            return pod.status.phase
-        
-        return "Unknown"
-
-    def _get_container_info(self, container_status):
-        """获取容器信息"""
-        container_info = {
-            "name": container_status.name,
-            "image": container_status.image,
-            "ready": container_status.ready,
-            "restart_count": container_status.restart_count,
-        }
-        
-        if container_status.state:
-            if container_status.state.running:
-                container_info["state"] = "Running"
-                container_info["started_at"] = str(container_status.state.running.started_at) if container_status.state.running.started_at else ""
-            elif container_status.state.waiting:
-                container_info["state"] = "Waiting"
-                container_info["reason"] = container_status.state.waiting.reason or ""
-                container_info["message"] = container_status.state.waiting.message or ""
-            elif container_status.state.terminated:
-                container_info["state"] = "Terminated"
-                container_info["reason"] = container_status.state.terminated.reason or ""
-                container_info["exit_code"] = container_status.state.terminated.exit_code
+    def _run_subprocess(self, command_list):
+        """运行 subprocess 命令并检查返回码"""
+        try:
+            result = subprocess.run(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if result.returncode == 0:
+                return result.stdout.decode('utf-8')
             else:
-                container_info["state"] = "Unknown"
-        else:
-            container_info["state"] = "Unknown"
-            
-        return container_info
+                error_message = f"Command '{' '.join(command_list)}' failed: {result.stderr.decode('utf-8')}"
+                logger.error(error_message)
+                raise Exception(error_message)
+        except Exception as e:
+            error_message = f"Error running command '{' '.join(command_list)}': {str(e)}"
+            logger.error(error_message)
+            raise Exception(error_message)
 
-    def _get_event_info(self, event):
-        """获取事件信息"""
-        return {
-            "type": event.type,
-            "reason": event.reason,
-            "message": event.message,
-            "first_timestamp": str(event.first_timestamp) if event.first_timestamp else "",
-            "last_timestamp": str(event.last_timestamp) if event.last_timestamp else "",
-            "count": event.count,
-            "source_component": event.source.component if event.source else "",
-            "source_host": event.source.host if event.source else "",
-        }
+    def get_nodes(self):
+        """获取所有节点的信息"""
+        try:
+            node_list = self.core_v1_api.list_node()
+            nodes_dict = {}
+            for node in node_list.items:
+                status = self._get_node_status(node)
+                name = node.metadata.name
+                internal_ip, external_ip = self._get_node_ips(node)
+                os_image = node.status.node_info.os_image
+                roles = self._get_node_roles(node)
+                uptime = self._calculate_uptime(node.metadata.creation_timestamp)
+                installation_status = self._get_installation_status(name)
+                if installation_status:
+                    status = "NotReady"
+                nodes_dict[name] = {
+                    'status': status,
+                    'name': name,
+                    'internal_ip': internal_ip,
+                    'external_ip': external_ip,
+                    'os_image': os_image,
+                    'roles': ", ".join(roles),
+                    'uptime': uptime,
+                    'installation_status': installation_status
+                }
+
+            return nodes_dict
+
+        except Exception as e:
+            logger.error(f"Failed to retrieve nodes info: {str(e)}")
+            return {"error": str(e)}
+
+    def nodes_add_worker_rule(self, nodes):
+        """
+        为指定的节点增加 worker 标签
+        :param nodes: 节点名称列表
+        :return: 操作结果
+        """
+        try:
+            results = []
+            for node in nodes:
+                node_name = node.node_name
+                # 准备需要添加的标签，注意标签需要是字典形式
+                body = {
+                    "metadata": {
+                        "labels": {
+                            "node-role.kubernetes.io/worker": "true"
+                        }
+                    }
+                }
+                # 调用 Kubernetes API 进行节点的标签更新
+                self.core_v1_api.patch_node(node_name, body)
+                results.append({
+                    "node": node_name,
+                    "status": "success",
+                    "message": f"Worker label added to node {node_name}"
+                })
+            return results
+        except Exception as e:
+            logger.error(f"Failed to add worker label to nodes: {str(e)}")
+            return {"error": str(e)}
+
+    def _get_node_status(self, node):
+        """获取节点状态"""
+        status = "Unknown"
+        for condition in node.status.conditions:
+            if condition.type == "Ready":
+                status = "Ready" if condition.status == "True" else "NotReady"
+        return status
+
+    def _get_node_ips(self, node):
+        """获取节点 IP 地址"""
+        internal_ip, external_ip = None, None
+        for address in node.status.addresses:
+            if address.type == "InternalIP":
+                internal_ip = address.address
+            elif address.type == "ExternalIP":
+                external_ip = address.address
+        return internal_ip, external_ip
+
+    def _get_node_roles(self, node):
+        """获取节点角色"""
+        roles = []
+        labels = node.metadata.labels
+        if "node-role.kubernetes.io/control-plane" in labels:
+            roles.append("control-plane")
+        if "node-role.kubernetes.io/etcd" in labels:
+            roles.append("etcd")
+        if "node-role.kubernetes.io/worker" in labels:
+            roles.append("worker")
+        if "node-role.kubernetes.io/master" in labels:
+            roles.append("master")
+        if not roles:
+            roles.append("None")
+        return roles
+
+    def _calculate_uptime(self, creation_time):
+        """计算节点的存活时间"""
+        current_time = datetime.now(creation_time.tzinfo)
+        return str(current_time - creation_time).split('.')[0]  # 去除微秒部分
+
+    def _get_installation_status(self, node_name):
+        """获取节点的安装状态"""
+        try:
+            pod_list = self.core_v1_api.list_namespaced_pod(namespace="kube-system",
+                                                            field_selector=f"spec.nodeName={node_name}")
+            no_run_pods = [pod.metadata.name for pod in pod_list.items if pod.status.phase != "Running" and pod.status.phase != "Succeeded"]
+            if no_run_pods:
+                if len(no_run_pods) > 2:
+                    return "Waiting for pod start: {}...".format(",".join(no_run_pods[:2]))
+                return "Waiting for pod start: {}".format(",".join(no_run_pods))
+            else:
+                return ""
+        except Exception as e:
+            return f"Error retrieving installation status: {str(e)}"
+
+    def install_rainbond(self, values_content):
+        """安装 Rainbond"""
+        try:
+            self._write_file('kube.config', self.kube_config)
+            self._write_file('values.yaml', values_content)
+
+            # self._run_subprocess(
+            #     ["helm", "repo", "add", "rainbond", "https://openchart.goodrain.com/goodrain/rainbond"])
+            # self._run_subprocess(["helm", "repo", "update"])
+
+            self._run_subprocess([
+                "helm", "install", "rainbond",
+                # "rainbond/rainbond-cluster",
+                "./rainbond-chart",
+                "-n", "rbd-system",
+                "--create-namespace",
+                "--kubeconfig", "kube.config",
+                "-f", "values.yaml"
+            ])
+            logger.info("Successfully installed Rainbond using Helm")
+
+        except Exception as e:
+            self.uninstall_rainbond()
+            return str(e)
+
+    def uninstall_rainbond(self):
+        """卸载 Rainbond"""
+        try:
+            self._run_subprocess([
+                "helm", "uninstall", "rainbond",
+                "-n", "rbd-system",
+                "--kubeconfig", "kube.config"
+            ])
+            logger.info("Successfully uninstalled Rainbond.")
+        except Exception as e:
+            logger.error(f"Failed to uninstall Rainbond: {str(e)}")
+
+        # Step 2: Delete PVCs in rbd-system namespace using CoreV1Api
+        logger.info("Deleting PVCs in rbd-system namespace...")
+        try:
+            pvcs = self.core_v1_api.list_namespaced_persistent_volume_claim(namespace="rbd-system")
+            for pvc in pvcs.items:
+                self.core_v1_api.delete_namespaced_persistent_volume_claim(name=pvc.metadata.name,
+                                                                           namespace="rbd-system")
+            logger.info("Successfully deleted PVCs.")
+        except Exception as e:
+            logger.error(f"Failed to delete PVCs: {str(e)}")
+
+        # Step 3: Delete PVs related to rbd-system using CoreV1Api
+        logger.info("Deleting PVs related to rbd-system...")
+        try:
+            pvs = self.core_v1_api.list_persistent_volume()
+            for pv in pvs.items:
+                if pv.spec.claim_ref and pv.spec.claim_ref.namespace == "rbd-system":
+                    self.core_v1_api.delete_persistent_volume(name=pv.metadata.name)
+            logger.info("Successfully deleted PVs.")
+        except Exception as e:
+            logger.error(f"Failed to delete PVs: {str(e)}")
+
+        # Step 4: Delete CRDs related to Rainbond using CustomObjectsApi
+        logger.info("Deleting Rainbond-related CRDs...")
+        crds = [
+            "componentdefinitions.rainbond.io",
+            "helmapps.rainbond.io",
+            "rainbondclusters.rainbond.io",
+            "rainbondpackages.rainbond.io",
+            "rainbondvolumes.rainbond.io",
+            "rbdcomponents.rainbond.io",
+            "servicemonitors.monitoring.coreos.com",
+            "thirdcomponents.rainbond.io",
+            "rbdabilities.rainbond.io",
+            "rbdplugins.rainbond.io",
+            "servicemeshclasses.rainbond.io",
+            "servicemeshes.rainbond.io"
+        ]
+        for crd in crds:
+            try:
+                self.custom_api.delete_cluster_custom_object(
+                    group="apiextensions.k8s.io", version="v1", plural="customresourcedefinitions", name=crd
+                )
+            except client.exceptions.ApiException as e:
+                if e.status == 404:
+                    logger.warning(f"CRD {crd} not found.")
+                else:
+                    logger.error(f"Failed to delete CRD {crd}: {str(e)}")
+
+        logger.info("Successfully deleted CRDs.")
 
     def rb_components_status(self, third_db=False, third_hub=False):
-        """获取 Rainbond 组件状态"""
+        """获取命名空间 `rbd-system` 中所有相关服务的状态"""
         try:
-            namespace = "rbd-system"
-            pods = self.core_v1_api.list_namespaced_pod(namespace=namespace)
-            
-            components_status = []
-            rb_installed = False
-            
-            for pod in pods.items:
-                # 检查是否是 Rainbond 组件
-                if not pod.metadata.name.startswith('rbd-'):
-                    continue
-                    
-                rb_installed = True
-                
-                containers_info = []
-                if pod.status.container_statuses:
-                    containers_info = [self._get_container_info(container_status) 
-                                     for container_status in pod.status.container_statuses]
+            pod_list = self.core_v1_api.list_namespaced_pod(namespace="rbd-system")
+            services = [
+                "minio", "local-path-provisioner", "rainbond-operator", "rbd-gateway", "rbd-api", "rbd-chaos",
+                "rbd-monitor", "rbd-mq", "rbd-worker"
+            ]
+            if not third_db:
+                services.append("rbd-db")
+            if not third_hub:
+                services.append("rbd-hub")
 
-                component_status = {
-                    "name": pod.metadata.name,
-                    "status": self._get_pod_status(pod),
-                    "ready": self._is_pod_ready(pod),
-                    "node_name": pod.spec.node_name,
-                    "start_time": str(pod.status.start_time) if pod.status.start_time else "",
-                    "pod_ip": pod.status.pod_ip,
-                    "host_ip": pod.status.host_ip,
-                    "containers": containers_info,
-                    "namespace": namespace,
-                    "labels": pod.metadata.labels or {},
-                    "image": containers_info[0]["image"] if containers_info else "",
-                    "image_status": "存在" if containers_info else "不存在"
-                }
-                components_status.append(component_status)
-            
-            return components_status, rb_installed
-            
+            service_status = {service: [] for service in services}
+            rb_installed = True
+            for pod in pod_list.items:
+                for service in services:
+                    if pod.metadata.name.startswith(service):
+                        pod_info = self._get_pod_info(pod)
+                        service_status[service].append(pod_info)
+                        if pod_info.get("status") != "Running":
+                            rb_installed = False
+
+            # 对没有找到的服务，填充"不存在"的状态
+            for service in services:
+                if not service_status[service]:
+                    rb_installed = False
+                    service_status[service].append(self._get_missing_service_status())
+            return service_status, rb_installed
+
         except Exception as e:
-            logger.error(f"Failed to get Rainbond components status: {str(e)}")
-            return [], False
+            logger.error(f"Failed to retrieve services status: {str(e)}")
+            return {"error": str(e)}
+
+    def _get_pod_info(self, pod):
+        """获取 Pod 的信息"""
+        container_statuses = pod.status.container_statuses or []
+        container_detailed_status = pod.status.phase  # Default status if no issues
+        for container_status in container_statuses:
+            state = container_status.state
+            if state.waiting and state.waiting.reason:
+                container_detailed_status = state.waiting.reason
+                break
+            elif state.terminated and state.terminated.reason:
+                container_detailed_status = state.terminated.reason
+                break
+            elif state.running:
+                # 检查 ready 状态
+                if container_status.ready:
+                    container_detailed_status = "Running"
+                else:
+                    container_detailed_status = "NotReady"  # 当 ready 为 0/1 时设置状态为 Not Ready
+
+        # 获取镜像状态
+        if container_statuses:
+            container_status = container_statuses[0]
+            image = container_status.image
+            image_status = "正常" if image else "镜像缺失"
+        else:
+            image = ""
+            image_status = "镜像缺失"
+
+        return {
+            "pod_name": pod.metadata.name,
+            "status": container_detailed_status,
+            "node": pod.spec.node_name,
+            "start_time": str(pod.status.start_time) if pod.status.start_time else "",
+            "restarts": container_statuses[0].restart_count if container_statuses else 0,
+            "image": image,
+            "image_status": image_status
+        }
+
+    def _get_missing_service_status(self):
+        """返回服务不存在的状态"""
+        return {
+            "pod_name": "",
+            "status": "UnExist",
+            "node_name": "",
+            "start_time": "",
+            "restarts": 0,
+            "image": "",
+            "image_status": "不存在"
+        }
 
     def rb_component_event(self, component_name):
         """获取单个服务的状态和事件信息"""
@@ -158,97 +378,8 @@ class K8sClient:
             logger.error(f"Failed to retrieve status for component {component_name}: {str(e)}")
             return {"error": str(e)}
 
-    def get_pod_logs_stream(self, pod_name, namespace="rbd-system", container_name="", follow=True, tail_lines=100):
-        """
-        获取 Pod 日志流
-        :param pod_name: Pod 名称
-        :param namespace: 命名空间，默认为 rbd-system
-        :param container_name: 容器名称，为空时获取主容器日志
-        :param follow: 是否跟随日志
-        :param tail_lines: 显示最近多少行
-        """
-        log_response = None
-        try:
-            # 首先检查 Pod 是否存在
-            try:
-                pod = self.core_v1_api.read_namespaced_pod(name=pod_name, namespace=namespace)
-                if not pod:
-                    raise Exception(f"Pod {pod_name} not found in namespace {namespace}")
-            except Exception as e:
-                if "404" in str(e) or "NotFound" in str(e):
-                    raise Exception(f"Pod '{pod_name}' 不存在于命名空间 '{namespace}' 中")
-                else:
-                    raise e
-            
-            # 构建日志查询参数
-            kwargs = {
-                'name': pod_name,
-                'namespace': namespace,
-                'follow': follow,
-                'tail_lines': tail_lines,
-                '_preload_content': False
-            }
-            
-            # 如果指定了容器名称，则添加到参数中
-            if container_name:
-                # 验证容器是否存在
-                container_found = False
-                for container_status in pod.status.container_statuses or []:
-                    if container_status.name == container_name:
-                        container_found = True
-                        break
-                
-                if not container_found:
-                    raise Exception(f"容器 '{container_name}' 不存在于 Pod '{pod_name}' 中")
-                
-                kwargs['container'] = container_name
-            
-            # 获取日志流
-            log_response = self.core_v1_api.read_namespaced_pod_log(**kwargs)
-            
-            # 逐行读取日志
-            try:
-                for line in log_response.stream():
-                    if line:
-                        yield line.decode('utf-8')
-            except Exception as stream_e:
-                logger.error(f"Error reading log stream for pod {pod_name}: {str(stream_e)}")
-                yield f"日志流读取错误: {str(stream_e)}\n"
-                    
-        except Exception as e:
-            error_msg = str(e)
-            logger.error(f"Failed to get logs for pod {pod_name}: {error_msg}")
-            
-            # 更友好的错误信息
-            if "404" in error_msg or "NotFound" in error_msg:
-                yield f"错误: Pod '{pod_name}' 不存在\n"
-            elif "container" in error_msg.lower():
-                yield f"错误: {error_msg}\n"
-            else:
-                yield f"获取日志失败: {error_msg}\n"
-        finally:
-            # 确保关闭日志流以释放资源
-            if log_response:
-                try:
-                    if hasattr(log_response, 'close'):
-                        log_response.close()
-                    elif hasattr(log_response, 'release_conn'):
-                        log_response.release_conn()
-                except Exception as cleanup_e:
-                    logger.warning(f"Failed to cleanup log response for pod {pod_name}: {str(cleanup_e)}")
-
-    def _is_pod_ready(self, pod):
-        """检查 Pod 是否就绪"""
-        if not pod.status.conditions:
-            return False
-        
-        for condition in pod.status.conditions:
-            if condition.type == "Ready":
-                return condition.status == "True"
-        return False
-
     def rb_region_config(self):
-        """获取 region 配置信息"""
+        """获取单个服务的状态和事件信息"""
         try:
             region_config_dict = dict()
             region_config = self.core_v1_api.read_namespaced_config_map(name="region-config", namespace="rbd-system")
@@ -276,5 +407,48 @@ class K8sClient:
                 }
             return region_config_dict
         except Exception as e:
-            logger.error(f"Failed to get region config: {str(e)}")
-            return {}
+            logger.error(f"Failed to retrieve region config: {str(e)}")
+            return {"error": str(e)}
+
+
+    def _get_container_info(self, container_status):
+        """获取容器的信息"""
+        image = container_status.image
+        image_status = "正常" if image else "镜像缺失"
+
+        return {
+            "container_name": container_status.name,
+            "status": container_status.state.waiting.reason if container_status.state.waiting else
+            container_status.state.terminated.reason if container_status.state.terminated else
+            "Running" if container_status.state.running else "Unknown",
+            "restart_count": container_status.restart_count,
+            "image": image,
+            "image_status": image_status
+        }
+
+    def _get_pod_status(self, pod):
+        """获取 Pod 的状态"""
+        container_statuses = pod.status.container_statuses or []
+        container_detailed_status = pod.status.phase  # Default status if no issues
+        for container_status in container_statuses:
+            state = container_status.state
+            if state.waiting and state.waiting.reason:
+                container_detailed_status = state.waiting.reason
+                break
+            elif state.terminated and state.terminated.reason:
+                container_detailed_status = state.terminated.reason
+                break
+            elif state.running:
+                container_detailed_status = "Running"
+        return container_detailed_status
+
+    def _get_event_info(self, event):
+        """获取事件的信息"""
+        return {
+            "event_type": event.type,
+            "reason": event.reason,
+            "message": event.message,
+            "first_timestamp": str(event.first_timestamp) if event.first_timestamp else "",
+            "last_timestamp": str(event.last_timestamp) if event.last_timestamp else "",
+            "count": event.count
+        }
