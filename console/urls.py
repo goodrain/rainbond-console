@@ -132,7 +132,8 @@ from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, Mave
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView, RegionMonitor)
 from console.views.registry import HubRegistryView, HubRegistryImageView
 from console.views.rke2 import ClusterRKE, ClusterRKENode, ClusterNodeIP, ClusterRKEInstallRB, \
-    ClusterRKERBStatus, ClusterRKERBEvent, ClusterRKEUNInstallInstallRB, InstallRKECluster, RKERegionConfig
+    ClusterRKERBStatus, ClusterRKERBEvent, ClusterRKEUNInstallInstallRB, InstallRKECluster, RKERegionConfig, \
+    ClusterRBComponentLogSSE
 from console.views.role_prems import TeamAddUserView
 from console.views.service_docker import DockerContainerView
 from console.views.service_share import ServiceShareRecordView, ShareRecordView, ServiceGroupSharedApps, \
@@ -223,6 +224,8 @@ urlpatterns = [
     url(r'^cluster_uninstall$', ClusterRKEUNInstallInstallRB.as_view()),
     url(r'^rb_components_status$', ClusterRKERBStatus.as_view()),
     url(r'^rb_component_event$', ClusterRKERBEvent.as_view()),
+    # SSE 实时获取 Rainbond 组件日志
+    url(r'^rb_component_logs_sse$', ClusterRBComponentLogSSE.as_view()),
     url(r'^region_config$', RKERegionConfig.as_view()),
     url(r'^storage_statistics$', StorageStatistics.as_view()),
     # 判断是sso还是私有云
