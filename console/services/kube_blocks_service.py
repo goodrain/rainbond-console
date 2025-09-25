@@ -31,18 +31,6 @@ class KubeBlocksService(object):
     def create_complete_kubeblocks_component(self, tenant, user, region_name, creation_params):
         """
         一次性创建 KubeBlocks Component
-        
-        Args:
-            tenant: 租户对象
-            user: 用户对象  
-            region_name: 区域名称
-            creation_params: 创建参数，包含组件基础信息和集群配置
-            
-        Returns:
-            tuple: (success, data, error_msg)
-                - success: bool 是否成功
-                - data: dict 组件信息
-                - error_msg: str 错误信息
         """
         new_service = None
         try:
@@ -621,8 +609,6 @@ class KubeBlocksService(object):
         
         失败时抛出ServiceHandleException异常
         """
-        from console.exception.main import ServiceHandleException
-        
         try:
             request_data = {
                 "RBDService": {
@@ -1447,8 +1433,6 @@ class KubeBlocksService(object):
             total_memory = memory_mb * replicas
             total_cpu = cpu_cores * replicas
             
-            logger.debug(f"KubeBlocks 组件 {service_id} 资源信息: 内存={total_memory}MB, CPU={total_cpu}cores")
-            
             return {
                 "used_mem": int(total_memory),  # 使用分配的内存作为 used_mem
                 "used_cpu": round(total_cpu, 2)
@@ -1535,7 +1519,7 @@ class KubeBlocksService(object):
                     merged_map[eid] = ev
             
             merged = list(merged_map.values())
-            merged.sort(key=lambda x: x.get('create_time', ''), reverse=True)
+            merged.sort(key=lambda x: (x.get('create_time', ''), x.get('event_id', '')), reverse=True)
             start = (page - 1) * page_size
             end = page * page_size
             page_list = merged[start:end]
@@ -1569,26 +1553,20 @@ class KubeBlocksService(object):
         """
         将 KB 事件补齐为 UI/Console 统一结构（仅补齐必要字段）
 
-        填充/默认规则:
+        填充字段:
           - target: 'service'
           - target_id: service.service_id
           - tenant_id: tenant.tenant_id
           - user_name: 缺省 'system'
           - syn_type: 1 （KB 暂不提供详情日志）
-        保留（若存在）:
-          - event_id, opt_type, status, final_status, message, reason, create_time, end_time
         """
         normalized = []
         if not events:
             return normalized
 
         def _kb_time_to_local_rfc3339(tstr):
-            """仅转换 KB 的时间到本地时区 RFC3339(+HH:MM) 字符串。
-
-            兼容 Python 3.6：不使用 fromisoformat，采用 strptime(%z)。
-            - 支持 Z 结尾（转为 +0000）
-            - 支持带冒号偏移（+08:00 -> +0800）
-            - 失败则返回原字符串
+            """
+            仅转换 KB 的时间到本地时区 RFC3339(+HH:MM) 字符串。
             """
             try:
                 if not isinstance(tstr, str) or not tstr:
