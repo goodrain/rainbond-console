@@ -821,7 +821,7 @@ urlpatterns = [
     url(r'^market/plugins/install$', InstallMarketPlugin.as_view(), perms.TEAM_PLUGIN_MANAGE),
     url(r'^plugins$', InternalMarketPluginsView.as_view(), perms.TEAM_PLUGIN_MANAGE),
     url(r'^plugins/installable$', InstallableInteralPluginsView.as_view(), perms.TEAM_PLUGIN_MANAGE),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view(), perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/market_create$', CenterAppView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/cmd_create$', CmdInstallAppView.as_view(), perms.APP_OVERVIEW_CREATE),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/plugins$', CenterPluginAppView.as_view(), perms.TEAM_PLUGIN_MANAGE),
 
