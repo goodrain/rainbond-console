@@ -2909,33 +2909,40 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
             if "routes/http?" in path:
                 if data.get("websocket") != "" and service_alias:
-                    svc = service_repo.get_service_by_service_alias(service_alias)
-                    domains = domain_repo.get_service_domain_by_container_port(svc.service_id, int(port))
-                    if domains:
-                        domain_name = data.get("name")
-                        if domain_name:
-                            domain = domains[0]
-                            if domain.domain_name in domain_name:
-                                domain_hosts = data.get("match", {}).get("hosts", [])
-                                if domain_hosts:
-                                    domain.domain_name = domain_hosts[0]
-                                    domain.save()
+                    # 处理多个service_alias，用逗号分隔
+                    service_aliases = [alias.strip() for alias in service_alias.split(',') if alias.strip()]
+                    
+                    for single_service_alias in service_aliases:
+                        svc = service_repo.get_service_by_service_alias(single_service_alias)
+                        if not svc:
+                            continue
+                            
+                        domains = domain_repo.get_service_domain_by_container_port(svc.service_id, int(port))
+                        if domains:
+                            domain_name = data.get("name")
+                            if domain_name:
+                                domain = domains[0]
+                                if domain.domain_name in domain_name:
+                                    domain_hosts = data.get("match", {}).get("hosts", [])
+                                    if domain_hosts:
+                                        domain.domain_name = domain_hosts[0]
+                                        domain.save()
 
-                        gateway_rule = configuration_repo.get_configuration_by_rule_id(domains[0].http_rule_id)
-                        value_data = {
-                            "set_headers": [
-                                {"item_key": "WebSocket", "item_value": str(data.get("websocket"))},
-                            ]
-                        }
-                        value = json.dumps(value_data)
-                        if gateway_rule:
-                            gateway_rule.value = value
-                            gateway_rule.save()
-                        else:
-                            cf_dict = dict()
-                            cf_dict["rule_id"] = domains[0].http_rule_id
-                            cf_dict["value"] = value
-                            configuration_repo.add_configuration(**cf_dict)
+                            gateway_rule = configuration_repo.get_configuration_by_rule_id(domains[0].http_rule_id)
+                            value_data = {
+                                "set_headers": [
+                                    {"item_key": "WebSocket", "item_value": str(data.get("websocket"))},
+                                ]
+                            }
+                            value = json.dumps(value_data)
+                            if gateway_rule:
+                                gateway_rule.value = value
+                                gateway_rule.save()
+                            else:
+                                cf_dict = dict()
+                                cf_dict["rule_id"] = domains[0].http_rule_id
+                                cf_dict["value"] = value
+                                configuration_repo.add_configuration(**cf_dict)
             path = path.replace("appID=" + str(app_id), "appID=" + region_app_id) + "&intID=" + str(app_id)
 
         url = region.url + path
