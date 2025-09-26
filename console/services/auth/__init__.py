@@ -76,6 +76,7 @@ def jwtlogin(request, user):
     rotate_token(request)
     response_data = jwt_response_payload_handler(rotate_token, user, request)
     if api_settings.JWT_AUTH_COOKIE:
+        # 使用JWT配置的过期时间（已设置为10年）
         expiration = (datetime.utcnow() + api_settings.JWT_EXPIRATION_DELTA)
         response_data.set_cookie(api_settings.JWT_AUTH_COOKIE, rotate_token, expires=expiration, httponly=True)
 
