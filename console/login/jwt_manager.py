@@ -31,7 +31,7 @@ class JwtManager(object):
                     port=os.getenv("REDIS_PORT", 6379),
                     db=os.getenv("REDIS_DB", 0),
                     password=os.getenv("REDIS_PASSWORD", None))
-                cls.cache_time = os.getenv("JWT_CACHE_TIME", 3600)
+                cls.cache_time = int(os.getenv("JWT_CACHE_TIME", 86400 * 3650))  # 默认10年，相当于永久
 
         return JwtManager._instance
 

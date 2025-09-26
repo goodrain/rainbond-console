@@ -768,7 +768,8 @@ class LoginByPhoneView(BaseApiView):
             result = general_message(200, "login success", "登录成功", bean=response_data)
             response = Response(result)
             if api_settings.JWT_AUTH_COOKIE:
-                expiration = (datetime.now() + timedelta(days=30))
+                # 设置10年过期时间，相当于永久
+                expiration = (datetime.now() + timedelta(days=3650))
                 response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
             jwt_manager = JwtManager()
             jwt_manager.set(response_data["token"], user.user_id)

@@ -156,11 +156,11 @@ JWT_AUTH = {
     'JWT_VERIFY': True,
     'JWT_VERIFY_EXPIRATION': True,
     'JWT_LEEWAY': 0,
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=15),
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=3650),  # 设置为10年，相当于永久
     'JWT_AUDIENCE': None,
     'JWT_ISSUER': None,
     'JWT_ALLOW_REFRESH': False,
-    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=15),
+    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=3650),  # 设置为10年，相当于永久
     'JWT_AUTH_HEADER_PREFIX': 'GRJWT',
     'JWT_AUTH_COOKIE': "token",
 }

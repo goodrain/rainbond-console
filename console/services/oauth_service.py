@@ -94,7 +94,8 @@ class OAuthUserService(object):
                 token = jwt_encode_handler(payload)
                 response = Response({"data": {"bean": {"token": token}}}, status=200)
                 if api_settings.JWT_AUTH_COOKIE:
-                    expiration = (datetime.datetime.now() + datetime.timedelta(days=30))
+                    # 设置10年过期时间，相当于永久
+                    expiration = (datetime.datetime.now() + datetime.timedelta(days=3650))
                     response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
                 jwt_manager = JwtManager()
                 jwt_manager.set(token, login_user_to_use.user_id)
@@ -133,8 +134,8 @@ class OAuthUserService(object):
                 token = jwt_encode_handler(payload)
                 response = Response({"data": {"bean": {"token": token}}}, status=200)
                 if api_settings.JWT_AUTH_COOKIE:
-                     # 使用一致的过期时间，并添加 httponly
-                    expiration = (datetime.datetime.now() + datetime.timedelta(days=30))
+                    # 设置10年过期时间，相当于永久，并添加 httponly
+                    expiration = (datetime.datetime.now() + datetime.timedelta(days=3650))
                     response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
                 jwt_manager = JwtManager()
                 jwt_manager.set(token, effective_user.user_id)
