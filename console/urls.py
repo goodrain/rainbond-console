@@ -165,7 +165,7 @@ from console.views.sms_config import SMSConfigView
 from console.views.sms_verification import SMSVerificationView
 from console.views.user_operation import RegisterByPhoneView, LoginByPhoneView
 from console.views.kube_blocks import (KubeBlocksAddonsView, KubeBlocksStorageClassesView, KubeBlocksBackupReposView,
-                                  KubeBlocksComponentInfoView, KubeBlocksClusterDetailView, KubeBlocksClusterBackupView, KubeBlocksClusterBackupListView,
+                                  KubeBlocksClusterDetailView, KubeBlocksClusterBackupView, KubeBlocksClusterBackupListView,
                                   KubeBlocksClusterParametersView, KubeBlocksClusterRestoreView)
 
 urlpatterns = [
@@ -1091,8 +1091,6 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/clusters/(?P<service_id>[\w\-]+)/backup$', KubeBlocksClusterBackupView.as_view()),
     # 备份创建/获取/删除
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/clusters/(?P<service_id>[\w\-]+)/backups$', KubeBlocksClusterBackupListView.as_view()),
-    # 获取 KubeBlocks Component 信息
-    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/component/(?P<service_id>[\w\-]+)/infos$', KubeBlocksComponentInfoView.as_view()),
     # KubeBlocks 集群参数管理（获取/更新）
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/clusters/(?P<service_id>[\w\-]+)/parameters$', KubeBlocksClusterParametersView.as_view()),
     # KubeBlocks 集群从备份恢复（基于 AppBaseView 的 serviceAlias，前端统一使用此路由）

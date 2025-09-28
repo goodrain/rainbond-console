@@ -54,25 +54,6 @@ class KubeBlocksBackupReposView(RegionTenantHeaderView):
             return Response(general_message(500, "request error", f"请求异常: {str(e)}"), status=500)
 
 
-class KubeBlocksComponentInfoView(RegionTenantHeaderView):
-    def get(self, request, team_name, region_name, service_id, *args, **kwargs):
-        """
-        判断某个组件是否为 KubeBlocks 组件，并获取其数据库类型等关键信息
-        """
-        try:
-            status_code, data = kubeblocks_service.get_component_info(region_name, service_id)
-            
-            if status_code == 200:
-                bean = data.get("bean", {})
-                return Response(general_message(200, "查询成功", data.get("msg_show", "查询成功"), bean=bean))
-            else:
-                bean = data.get("bean", {"isKubeBlocksComponent": False})
-                msg_show = data.get("msg_show", "查询失败")
-                return Response(general_message(status_code, "查询失败", msg_show, bean=bean))
-                
-        except Exception as e:
-            logger.exception(e)
-            return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}", bean={"isKubeBlocksComponent": False}))
 
 class KubeBlocksClusterDetailView(RegionTenantHeaderView):
     def get(self, request, team_name, region_name, service_id, *args, **kwargs):

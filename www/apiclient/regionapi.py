@@ -3278,18 +3278,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, body=json.dumps(cluster_data), region=region_name)
         return res, body
 
-    def get_kubeblocks_component_info(self, region_name, service_id):
-        """
-        查询某个组件是否为 KubeBlocks 组件，并获取其数据库类型等关键信息
-        """
-        region_info = self.get_region_info(region_name)
-        if not region_info:
-            raise ServiceHandleException("region not found")
-        url = region_info.url
-        url += f"/v2/cluster/kubeblocks/component/{service_id}/infos"
-        self._set_headers(region_info.token)
-        res, body = self._get(url, self.default_headers, region=region_name)
-        return res, body
 
     def get_kubeblocks_cluster_detail(self, region_name, service_id):
         """
