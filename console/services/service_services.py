@@ -4,7 +4,7 @@ import logging
 from re import split as re_split
 
 from console.exception.main import RbdAppNotFound, ServiceHandleException
-from console.repositories.app import service_source_repo
+from console.repositories.app import service_source_repo, service_repo
 from console.utils.oauth.oauth_types import support_oauth_type
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db.base import BaseConnection
@@ -142,10 +142,46 @@ class BaseService(object):
     def status_multi_service(self, region, tenant_name, service_ids, enterprise_id):
         try:
             body = region_api.service_status(region, tenant_name, {"service_ids": service_ids, "enterprise_id": enterprise_id})
-            return body["list"]
+            status_list = body["list"]
+            
+            # 处理 KubeBlocks 组件状态和资源替换
+            status_list = self._process_kubeblocks_status(status_list, service_ids, region)
+            
+            return status_list
         except Exception as e:
             logger.exception(e)
             return []
+    
+    def _process_kubeblocks_status(self, status_list, service_ids, region):
+        """处理 KubeBlocks 组件状态和资源信息替换"""
+        try:
+            from console.enum.component_enum import is_kubeblocks
+            from console.services.kube_blocks_service import kubeblocks_service
+            
+            services = service_repo.get_services_by_service_ids(service_ids)
+            kubeblocks_services = [s for s in services if is_kubeblocks(s.extend_method)]
+            
+            if not kubeblocks_services:
+                return status_list
+                
+            kb_status_map = kubeblocks_service.get_multiple_kubeblocks_status_and_resources(
+                region, [s.service_id for s in kubeblocks_services])
+            logger.info(f"kubeblocks kb_status_map: {kb_status_map}")
+            # 替换状态列表中的 KubeBlocks 组件信息
+            for i, status in enumerate(status_list):
+                if status["service_id"] in kb_status_map:
+                    kb_info = kb_status_map[status["service_id"]]
+                    status_list[i] = {
+                        "service_id": status["service_id"],
+                        "status": kb_info.get("status", "failure"),
+                        "status_cn": kb_info.get("status_cn", "获取状态失败"),
+                        "used_mem": kb_info.get("used_mem", 0)
+                    }
+            
+            return status_list
+        except Exception as e:
+            logger.exception(f"处理 KubeBlocks 状态失败: {str(e)}")
+            return status_list
 
     def get_watch_managed(self, region_name, tenant_name, region_app_id):
         try:

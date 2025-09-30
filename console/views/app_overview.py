@@ -10,6 +10,7 @@ import os
 import pickle
 
 from console.constants import AppConstants, PluginCategoryConstants
+from console.enum.component_enum import is_kubeblocks
 from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
@@ -20,6 +21,7 @@ from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.app import app_service, package_upload_service
 from console.services.app_actions import ws_service
 from console.services.app_config import port_service
+from console.services.kube_blocks_service import kubeblocks_service
 from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
@@ -274,6 +276,11 @@ class AppStatusView(AppBaseView):
         bean = dict()
         bean["check_uuid"] = self.service.check_uuid
         status_map = app_service.get_service_status(self.tenant, self.service)
+        if is_kubeblocks(self.service.extend_method):
+            kubeblocks_status = kubeblocks_service.get_kubeblocks_service_status(
+                self.service.service_region, self.service.service_id)
+            if kubeblocks_status:
+                status_map = kubeblocks_status
         bean.update(status_map)
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
