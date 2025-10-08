@@ -55,14 +55,17 @@ class KubeBlocksBackupReposView(RegionTenantHeaderView):
 
 
 
-class KubeBlocksClusterDetailView(RegionTenantHeaderView):
-    def get(self, request, team_name, region_name, service_id, *args, **kwargs):
+class KubeBlocksClusterDetailView(AppBaseView):
+    def get(self, request, *args, **kwargs):
         """
         获取 Cluster detail
         """
         try:
-            status_code, data = kubeblocks_service.get_cluster_detail(region_name, service_id)
-            
+            status_code, data = kubeblocks_service.get_cluster_detail(
+                self.response_region,
+                self.service.service_id
+            )
+
             if status_code == 200:
                 bean = data.get("bean", {})
                 msg_show = data.get("msg_show", "查询成功")
@@ -70,19 +73,23 @@ class KubeBlocksClusterDetailView(RegionTenantHeaderView):
             else:
                 msg_show = data.get("msg_show", "查询失败")
                 return Response(general_message(status_code, "查询失败", msg_show))
-                
+
         except Exception as e:
             logger.exception(f"查询集群详情异常: {str(e)}")
             return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}"))
 
-    def put(self, request, team_name, region_name, service_id, *args, **kwargs):
+    def put(self, request, *args, **kwargs):
         """
-        伸缩 Cluster
+        伸缩 KubeBlocks 集群
         """
         try:
             expansion_body = request.data or {}
-            status_code, data = kubeblocks_service.expand_cluster(region_name, service_id, expansion_body)
-            
+            status_code, data = kubeblocks_service.expand_cluster(
+                self.response_region,
+                self.service.service_id,
+                expansion_body
+            )
+
             if status_code == 200:
                 bean = data.get('bean', {})
                 msg_show = data.get("msg_show", "伸缩成功")
@@ -90,21 +97,25 @@ class KubeBlocksClusterDetailView(RegionTenantHeaderView):
             else:
                 msg_show = data.get('msg_show', '伸缩失败')
                 return Response(general_message(status_code, 'failed', msg_show))
-                
+
         except Exception as e:
             logger.exception(e)
             return Response(general_message(500, 'request error', f'请求异常: {str(e)}'))
 
 
-class KubeBlocksClusterBackupView(RegionTenantHeaderView):
-    def put(self, request, team_name, region_name, service_id, *args, **kwargs):
+class KubeBlocksClusterBackupView(AppBaseView):
+    def put(self, request, *args, **kwargs):
         """
         更新 KubeBlocks 集群的备份配置
         """
         try:
             body = request.data or {}
-            status_code, data = kubeblocks_service.update_backup_config(region_name, service_id, body)
-            
+            status_code, data = kubeblocks_service.update_backup_config(
+                self.response_region,
+                self.service.service_id,
+                body
+            )
+
             if status_code == 200:
                 bean = data.get('bean', {})
                 msg_show = data.get("msg_show", "备份配置更新成功")
@@ -112,21 +123,27 @@ class KubeBlocksClusterBackupView(RegionTenantHeaderView):
             else:
                 msg_show = data.get('msg_show', '备份配置更新失败')
                 return Response(general_message(status_code, 'failed', msg_show))
-                
+
         except Exception as e:
             logger.exception(e)
             return Response(general_message(500, 'request error', f'请求异常: {str(e)}'))
 
-class KubeBlocksClusterBackupListView(RegionTenantHeaderView):
-    def get(self, request, team_name, region_name, service_id, *args, **kwargs):
+class KubeBlocksClusterBackupListView(AppBaseView):
+    def get(self, request, *args, **kwargs):
         """
         获取备份列表
+        自动获得: self.service, self.app, self.tenant, self.response_region
         """
         try:
             page = request.GET.get('page')
             page_size = request.GET.get('page_size')
 
-            status_code, data = kubeblocks_service.get_backup_list(region_name, service_id, page, page_size)
+            status_code, data = kubeblocks_service.get_backup_list(
+                self.response_region,
+                self.service.service_id,
+                page,
+                page_size
+            )
 
             if status_code == 200:
                 return Response(general_message(
@@ -145,13 +162,16 @@ class KubeBlocksClusterBackupListView(RegionTenantHeaderView):
             logger.exception(f"获取KubeBlocks集群备份异常: {str(e)}")
             return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}"))
 
-    def post(self, request, team_name, region_name, service_id, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         """
         创建手动备份
         """
         try:
-            status_code, data = kubeblocks_service.create_manual_backup(region_name, service_id)
-            
+            status_code, data = kubeblocks_service.create_manual_backup(
+                self.response_region,
+                self.service.service_id
+            )
+
             if status_code == 200:
                 bean = data.get('bean', {})
                 msg_show = data.get("msg_show", "手动备份已启动")
@@ -159,12 +179,12 @@ class KubeBlocksClusterBackupListView(RegionTenantHeaderView):
             else:
                 msg_show = data.get('msg_show', '手动备份启动失败')
                 return Response(general_message(status_code, 'failed', msg_show))
-            
+
         except Exception as e:
             logger.exception(e)
             return Response(general_message(500, 'request error', f'请求异常: {str(e)}'))
-    
-    def delete(self, request, team_name, region_name, service_id, *args, **kwargs):
+
+    def delete(self, request, *args, **kwargs):
         """
         删除备份
         """
@@ -172,7 +192,11 @@ class KubeBlocksClusterBackupListView(RegionTenantHeaderView):
             request_data = request.data or {}
             backups = request_data.get('backups', None)
 
-            status_code, data = kubeblocks_service.delete_backups(region_name, service_id, backups)
+            status_code, data = kubeblocks_service.delete_backups(
+                self.response_region,
+                self.service.service_id,
+                backups
+            )
 
             if status_code == 200:
                 deleted_list = data.get('list', [])
@@ -186,8 +210,8 @@ class KubeBlocksClusterBackupListView(RegionTenantHeaderView):
             logger.exception(e)
             return Response(general_message(500, 'request error', f'请求异常: {str(e)}'))
 
-class KubeBlocksClusterParametersView(RegionTenantHeaderView):
-    def get(self, request, team_name, region_name, service_id, *args, **kwargs):
+class KubeBlocksClusterParametersView(AppBaseView):
+    def get(self, request, *args, **kwargs):
         """
         获取 KubeBlocks 数据库参数列表（分页/搜索）
         """
@@ -198,11 +222,14 @@ class KubeBlocksClusterParametersView(RegionTenantHeaderView):
             keyword = request.GET.get('keyword', '').strip() or None
 
             status_code, data = kubeblocks_service.get_cluster_parameters(
-                region_name, service_id, page, page_size, keyword
+                self.response_region,
+                self.service.service_id,
+                page,
+                page_size,
+                keyword
             )
 
             if status_code == 200:
-                logger.debug(f"KubeBlocks 获取集群参数: {data}")
                 return Response(general_message(
                     200,
                     "查询成功",
@@ -219,7 +246,7 @@ class KubeBlocksClusterParametersView(RegionTenantHeaderView):
             logger.exception(f"获取KubeBlocks集群参数异常: {str(e)}")
             return Response(general_message(500, "后端服务异常", f"后端服务异常: {str(e)}"))
 
-    def post(self, request, team_name, region_name, service_id, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         """
         批量更新 KubeBlocks 数据库参数
         """
@@ -228,12 +255,12 @@ class KubeBlocksClusterParametersView(RegionTenantHeaderView):
             body = request.data or {}
 
             status_code, data = kubeblocks_service.update_cluster_parameters(
-                region_name, service_id, body
+                self.response_region,
+                self.service.service_id,
+                body
             )
 
             if status_code == 200:
-                # 与控制台通用返回结构对齐：更新结果放入 bean，前端读取 data.bean
-                logger.debug(f"KubeBlocks 更新集群参数: {data}")
                 return Response(general_message(200, "更新成功", "参数更新成功", bean=data))
             else:
                 msg_show = data.get("msg_show", "更新参数失败")

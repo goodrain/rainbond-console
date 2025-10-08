@@ -1085,14 +1085,14 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/storage_classes$', KubeBlocksStorageClassesView.as_view()),
     # 获取 BackupRepo
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/backup_repos$', KubeBlocksBackupReposView.as_view()),
-    # Cluster detail and expansion
-    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/clusters/(?P<service_id>[\w\-]+)$', KubeBlocksClusterDetailView.as_view()),
+    # Cluster detail and expansion (AppBaseView)
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/detail$', KubeBlocksClusterDetailView.as_view()),
     # 设置备份策略
-    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/clusters/(?P<service_id>[\w\-]+)/backup$', KubeBlocksClusterBackupView.as_view()),
-    # 备份创建/获取/删除
-    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/clusters/(?P<service_id>[\w\-]+)/backups$', KubeBlocksClusterBackupListView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/backup-config$', KubeBlocksClusterBackupView.as_view()),
+    # 备份创建/获取/删除 (AppBaseView)
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/backups$', KubeBlocksClusterBackupListView.as_view()),
     # KubeBlocks 集群参数管理（获取/更新）
-    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/clusters/(?P<service_id>[\w\-]+)/parameters$', KubeBlocksClusterParametersView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/parameters$', KubeBlocksClusterParametersView.as_view()),
     # KubeBlocks 集群从备份恢复（基于 AppBaseView 的 serviceAlias，前端统一使用此路由）
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/restores$', KubeBlocksClusterRestoreView.as_view()),
 
