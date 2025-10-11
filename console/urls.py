@@ -665,7 +665,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tar_image$', TarImageView.as_view(),
         perms.APP_OVERVIEW_PERMS),
     # 批量操作
-    url(r'^teams/(?P<tenantName>[\w\-]+)/batch_actions$', BatchActionView.as_view(), perms.APP_OVERVIEW_PERMS),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/batch_actions$', BatchActionView.as_view()),
     # 批量删除应用
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch_delete$', BatchDelete.as_view(), perms.APP_OVERVIEW_PERMS),
     # 二次确认删除应用
