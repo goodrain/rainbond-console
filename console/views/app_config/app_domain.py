@@ -243,13 +243,11 @@ class TenantCertificateManageView(RegionTenantHeaderView):
                                      ensure_ascii=False)
         domain_repo.get_certificate_by_pk(int(certificate_id))
 
-        domain_service.update_certificate(self.region, self.tenant, certificate_id, new_alias, certificate, private_key,
-                                          certificate_type)
         cert = domain_service.update_certificate(self.region, self.tenant, certificate_id, new_alias, certificate,
                                                  private_key,
                                                  certificate_type)
         new_information = json.dumps({
-            "证书名称": cert["alias"],
+            "证书名称": cert.alias,
             "证书类型": certificate_type,
             "公钥证书": certificate,
             "私钥": private_key
