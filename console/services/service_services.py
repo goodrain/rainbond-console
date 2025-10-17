@@ -164,9 +164,8 @@ class BaseService(object):
             if not kubeblocks_services:
                 return status_list
                 
-            kb_status_map = kubeblocks_service.get_multiple_kubeblocks_status_and_resources(
+            kb_status_map = kubeblocks_service.get_kubeblocks_components_info(
                 region, [s.service_id for s in kubeblocks_services])
-            logger.info(f"kubeblocks kb_status_map: {kb_status_map}")
             # 替换状态列表中的 KubeBlocks 组件信息
             for i, status in enumerate(status_list):
                 if status["service_id"] in kb_status_map:
