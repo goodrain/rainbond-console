@@ -14,6 +14,7 @@ from console.services.app_actions import app_manage_service
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_config.port_service import AppPortService
 from console.services.group_service import GroupService
+from console.repositories.group import group_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantServiceInfo
 
@@ -43,7 +44,7 @@ class KubeBlocksService(object):
             if not success:
                 logger.error("KubeBlocks集群创建失败，触发资源清理")
                 self._cleanup_on_failure(new_service, tenant, region_name)
-                return False, None, "KubeBlocks集群创建失败"
+                return False, cluster_result, "KubeBlocks集群创建失败"
 
             # 更新组件的 k8s_component_name
             self._update_component_name(new_service, cluster_result)
@@ -515,8 +516,6 @@ class KubeBlocksService(object):
                     msg_show="获取数据库连接信息为空"
                 )
 
-        except ServiceHandleException:
-            raise
         except Exception as e:
             raise ServiceHandleException(
                 msg=f"failed to call KubeBlocks API to get connection info: {str(e)}",
@@ -543,18 +542,20 @@ class KubeBlocksService(object):
                 msg_show="端口信息无效"
             )
         port_alias = "DB"
+        protocol = "tcp"
+
         # 检查端口是否已存在
         existing_ports = self.port_service.get_service_ports(service)
         if not existing_ports:
-            # 添加默认端口
+            # 添加端口
             code, msg, port_data = self.port_service.add_service_port(
                 tenant=tenant,
                 service=service,
                 container_port=port,
-                protocol="http",
+                protocol=protocol,
                 port_alias=port_alias,
                 is_inner_service=True,
-                is_outer_service=False,
+                is_outer_service=True,
                 k8s_service_name="",
                 user_name=user.nick_name
             )
@@ -566,6 +567,69 @@ class KubeBlocksService(object):
                     msg_show="端口配置失败",
                     status_code=code
                 )
+
+            # 开启对外服务
+            self._enable_port_outer_service(
+                tenant=tenant,
+                service=service,
+                region_name=region_name,
+                port=port_data,
+                user=user
+            )
+
+    def _enable_port_outer_service(self, tenant, service, region_name, port, user):
+        """
+        为指定端口开启对外服务
+        """
+        try:
+            app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
+            if app is None:
+                raise ServiceHandleException(
+                    msg=f"Application group not found for service_id={service.service_id}",
+                    msg_show="未找到组件所属的应用分组"
+                )
+
+            code, msg, port_data = self.port_service.manage_port(
+                tenant=tenant,
+                service=service,
+                region_name=region_name,
+                container_port=port.container_port,
+                action="open_outer",
+                protocol=port.protocol,
+                port_alias=port.port_alias,
+                k8s_service_name="",
+                user_name=user.nick_name,
+                app=app
+            )
+
+            if code != 200:
+                logger.error(f"开启对外服务失败: service={service.service_id}, port={port.container_port}, msg={msg}")
+                raise ServiceHandleException(
+                    msg=f"failed to open outer service: {msg}",
+                    msg_show="开启对外服务失败",
+                    status_code=code
+                )
+
+            # 同步端口状态到 Region
+            updated_port = self.port_service.get_service_port_by_port(service, port.container_port)
+            port_dict = updated_port.to_dict()
+
+            self.port_service.update_service_port(
+                tenant=tenant,
+                region_name=region_name,
+                service_alias=service.service_alias,
+                body=[port_dict],
+                user_name=user.nick_name
+            )
+
+        except ServiceHandleException:
+            raise
+        except Exception as e:
+            logger.exception(f"开启端口对外服务失败: service={service.service_id}, port={port.container_port}, error={str(e)}")
+            raise ServiceHandleException(
+                msg=f"failed to enable port outer service: {str(e)}",
+                msg_show="开启端口对外服务失败"
+            )
 
     def _deploy_component(self, tenant, new_service, user):
         """构建部署组件"""
@@ -713,7 +777,7 @@ class KubeBlocksService(object):
             old_ports = self.port_service.get_service_ports(old_service) or []
             for p in old_ports:
                 try:
-                    self.port_service.add_service_port(
+                    code, msg, new_port = self.port_service.add_service_port(
                         tenant=tenant,
                         service=new_service,
                         container_port=int(p.container_port),
@@ -723,6 +787,20 @@ class KubeBlocksService(object):
                         is_outer_service=bool(p.is_outer_service),
                         user_name=user.nick_name
                     )
+
+                    if code != 200:
+                        logger.error(f"复制端口失败: new={new_service.service_id}, port={p.container_port}, msg={msg}")
+                        raise ServiceHandleException(msg="copy port failed", msg_show="复制端口失败")
+
+                    if p.is_outer_service:
+                        self._enable_port_outer_service(
+                            tenant=tenant,
+                            service=new_service,
+                            region_name=region_name,
+                            port=new_port,
+                            user=user
+                        )
+
                 except Exception as e:
                     logger.exception("复制端口失败: new=%s old=%s port=%s error=%s",
                                      new_service.service_id, old_service.service_id, p.container_port, str(e))
