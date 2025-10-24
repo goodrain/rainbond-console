@@ -551,8 +551,11 @@ class GroupService(object):
             raise ServiceHandleException(msg="query status failure", msg_show="查询组件状态失败")
         for status in status_list:
             service_status[status["service_id"]] = status
-
         app_id_statuses = self.get_region_app_statuses(tenant_name, region, app_ids)
+        # 为包含 kubeBlocks_component 的应用重新计算状态，仅在应用中存在 kubeblocks_component 类型的组件时起作用
+        app_id_statuses = self._add_kubeblocks_component_status_to_app(
+            app_ids, service_list, service_status, app_id_statuses
+        )
         apps = dict()
         volumes = volume_repo.get_services_volumes(service_ids)
         service_volume = dict()
@@ -612,6 +615,38 @@ class GroupService(object):
                 key=lambda i: (1 if i["status"] == "RUNNING" else 2 if i["status"] == "ABNORMAL" else 3
                                if i["status"] == "STARTING" else 5 if i["status"] == "CLOSED" else 4, -i["used_mem"]))
         return re_app_list
+
+    @staticmethod
+    def _add_kubeblocks_component_status_to_app(app_ids, service_list, service_status, app_id_statuses):
+        """将 KubeBlocks 组件状态聚合进应用状态"""
+        from collections import defaultdict
+        from console.enum.component_enum import is_kubeblocks
+        from console.services.topological_services import topological_service
+        if app_id_statuses is None:
+            app_id_statuses = {}
+        if not service_list:
+            return app_id_statuses
+
+        app_components = defaultdict(list)
+        for service in service_list:
+            app_components[service.group_id].append(service)
+
+        for app_id in app_ids:
+            services = app_components.get(app_id)
+            if not services:
+                continue
+            if not any(is_kubeblocks(getattr(service, "extend_method", None)) for service in services):
+                continue
+
+            component_statuses = []
+            for service in services:
+                status = service_status.get(service.service_id, {}).get("status")
+                component_statuses.append(status if status else "failure")
+
+            app_status = topological_service.get_app_status(component_statuses)
+            app_id_statuses.setdefault(app_id, {"memory": 0, "cpu": 0})["status"] = app_status
+
+        return app_id_statuses
 
     @staticmethod
     def get_region_app_statuses(tenant_name, region_name, app_ids):
