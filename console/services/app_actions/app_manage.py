@@ -44,6 +44,7 @@ from console.services.service_services import base_service
 from console.utils import slug_util
 from console.utils.oauth.base.exception import NoAccessKeyErr
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
+from console.enum.component_enum import is_kubeblocks
 from django.conf import settings
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -123,6 +124,19 @@ class AppManageService(AppManageBase):
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, "操作过于频繁，请稍后再试"
+
+        # KubeBlocks 组件特殊处理
+        if is_kubeblocks(service.extend_method):
+            from console.services.kube_blocks_service import kubeblocks_service
+            code, msg = kubeblocks_service.manage_cluster_status(
+                service,
+                service.service_region,
+                oauth_instance=oauth_instance,
+                operation="start"
+            )
+            if code != 200:
+                return code, msg
+
         return 200, "操作成功"
 
     def pause(self, tenant, service, user):
@@ -171,6 +185,16 @@ class AppManageService(AppManageBase):
             except region_api.CallApiFrequentError:
                 raise ServiceHandleException(msg_show="操作过于频繁，请稍后重试", msg="wait a moment please", status_code=409)
 
+        # KubeBlocks 组件特殊处理
+        if is_kubeblocks(service.extend_method):
+            from console.services.kube_blocks_service import kubeblocks_service
+            kubeblocks_service.manage_cluster_status(
+                service,
+                service.service_region,
+                oauth_instance=None,
+                operation="stop"
+            )
+
     def restart(self, tenant, service, user, oauth_instance):
         if service.create_status == "complete":
             if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region, self.ResourceOperationReStart):
@@ -187,6 +211,19 @@ class AppManageService(AppManageBase):
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, "操作过于频繁，请稍后再试"
+
+        # KubeBlocks 组件特殊处理
+        if is_kubeblocks(service.extend_method):
+            from console.services.kube_blocks_service import kubeblocks_service
+            code, msg = kubeblocks_service.manage_cluster_status(
+                service,
+                service.service_region,
+                oauth_instance=oauth_instance,
+                operation="restart"
+            )
+            if code != 200:
+                return code, msg
+
         return 200, "操作成功"
 
     def deploy(self, tenant, service, user, oauth_instance=None, service_copy_path=None):
@@ -551,6 +588,30 @@ class AppManageService(AppManageBase):
         try:
             _, body = region_api.batch_operation_service(region_name, tenant.tenant_name, data)
             events = body["bean"]["batch_result"]
+
+            # KubeBlocks component 需要同步操作 Cluster (start/stop)
+            if action in ("start", "stop"):
+                kb_service_ids = [s.service_id for s in services if is_kubeblocks(s.extend_method)]
+                if kb_service_ids:
+                    try:
+                        from console.services.kube_blocks_service import kubeblocks_service
+                        code, msg = kubeblocks_service.manage_cluster_status(
+                            kb_service_ids,
+                            region_name,
+                            oauth_instance,
+                            operation=action
+                        )
+                        if code != 200:
+                            logger.warning(
+                                "KubeBlocks批量%s集群状态同步失败: service_ids=%s, code=%s, msg=%s",
+                                action, kb_service_ids, code, msg
+                            )
+                    except Exception as e:
+                        logger.exception(
+                            "KubeBlocks批量%s集群状态同步异常: service_ids=%s, error=%s",
+                            action, kb_service_ids, str(e)
+                        )
+
             return events
         except region_api.CallApiError as e:
             logger.exception(e)

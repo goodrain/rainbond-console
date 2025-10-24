@@ -1066,11 +1066,20 @@ class KubeBlocksService(object):
                              service_id, region_name, str(e))
             return 500, {"msg_show": f"请求异常: {str(e)}"}
 
-    def manage_cluster_status(self, service, region_name, oauth_instance, operation):
+    def manage_cluster_status(self, service_or_ids, region_name, oauth_instance, operation):
         """
         管理 KubeBlocks 集群状态
+
+        Args:
+            service_or_ids: service 对象(单个) 或 service_ids 列表(批量)
         """
-        res, body = region_api.manage_cluster_status(region_name, [service.service_id], operation)
+        # 支持单个 service 对象或批量 service_ids
+        if isinstance(service_or_ids, list):
+            service_ids = service_or_ids
+        else:
+            service_ids = [service_or_ids.service_id]
+
+        res, body = region_api.manage_cluster_status(region_name, service_ids, operation)
         status_code = 500
         message = ""
         try:
