@@ -11,6 +11,7 @@ from datetime import datetime
 from deprecated import deprecated
 
 from console.enum.app import GovernanceModeEnum, AppType
+from console.enum.component_enum import is_kubeblocks
 from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound, ErrK8sAppExists
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
@@ -30,6 +31,7 @@ from console.repositories.user_repo import user_repo
 from console.repositories.migration_repo import migrate_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.service_services import base_service
+from console.services.topological_services import topological_service
 from console.utils.shortcuts import get_object_or_404
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -553,7 +555,7 @@ class GroupService(object):
             service_status[status["service_id"]] = status
         app_id_statuses = self.get_region_app_statuses(tenant_name, region, app_ids)
         # 为包含 kubeBlocks_component 的应用重新计算状态，仅在应用中存在 kubeblocks_component 类型的组件时起作用
-        app_id_statuses = self._add_kubeblocks_component_status_to_app(
+        app_id_statuses = self._add_kubeblocks_component_status_to_apps(
             app_ids, service_list, service_status, app_id_statuses
         )
         apps = dict()
@@ -617,11 +619,9 @@ class GroupService(object):
         return re_app_list
 
     @staticmethod
-    def _add_kubeblocks_component_status_to_app(app_ids, service_list, service_status, app_id_statuses):
+    def _add_kubeblocks_component_status_to_apps(app_ids, service_list, service_status, app_id_statuses):
         """将 KubeBlocks 组件状态聚合进应用状态"""
         from collections import defaultdict
-        from console.enum.component_enum import is_kubeblocks
-        from console.services.topological_services import topological_service
         if app_id_statuses is None:
             app_id_statuses = {}
         if not service_list:
@@ -931,7 +931,45 @@ class GroupService(object):
         overrides = status.get("overrides", [])
         if overrides:
             status["overrides"] = [{override.split("=")[0]: override.split("=")[1]} for override in overrides]
+        status = GroupService._add_kubeblocks_component_status_to_app(tenant, region_name, app_id, status)
         return status
+
+    @staticmethod
+    def _add_kubeblocks_component_status_to_app(tenant, region_name, app_id, original_status):
+        """为包含 KubeBlocks 组件的单个应用补充完整状态"""
+        try:
+            service_relations = group_service_relation_repo.get_services_by_group(app_id)
+            if not service_relations:
+                return original_status
+
+            service_ids = [rel.service_id for rel in service_relations]
+            service_list = service_repo.get_services_by_service_ids(service_ids)
+            if not service_list:
+                return original_status
+
+            kb_components = [s for s in service_list if is_kubeblocks(getattr(s, "extend_method", None))]
+            if not kb_components:
+                return original_status
+
+            status_list = base_service.status_multi_service(
+                region_name, tenant.tenant_name, service_ids, tenant.enterprise_id
+            )
+            if not status_list:
+                return original_status
+
+            service_status = {s["service_id"]: s for s in status_list}
+            component_statuses = [
+                service_status.get(s.service_id, {}).get("status") or "failure"
+                for s in service_list
+            ]
+
+            app_status = topological_service.get_app_status(component_statuses)
+            original_status["status"] = app_status
+            return original_status
+
+        except Exception as e:
+            logger.exception(f"补充 KubeBlocks component 状态失败: app_id={app_id}, error={str(e)}")
+            return original_status
 
     @staticmethod
     def get_detect_process(tenant, region_name, app_id):
