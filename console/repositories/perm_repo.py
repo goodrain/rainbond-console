@@ -199,8 +199,88 @@ class UserKindRoleRepo(object):
                 user_roles.delete()
 
 
+class OptimizedRolePermRepo(object):
+    """
+    优化后的角色权限查询仓储
+    使用 JOIN 查询替代嵌套子查询，解决慢查询问题
+    """
+
+    def get_user_team_perm_codes(self, user_id, tenant_id, app_id=-1):
+        """
+        优化方法：获取用户在团队中的权限代码列表
+        使用 JOIN 查询替代嵌套子查询
+
+        Args:
+            user_id: 用户ID
+            tenant_id: 团队ID (kind_id)
+            app_id: 应用ID，默认 -1 表示全局权限
+
+        Returns:
+            list: 权限代码列表
+        """
+        from django.db import connection
+
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT DISTINCT rp.perm_code
+                FROM role_perms rp
+                INNER JOIN user_role ur ON rp.role_id = CAST(ur.role_id AS SIGNED)
+                INNER JOIN role_info ri ON ur.role_id = CAST(ri.ID AS CHAR)
+                WHERE ri.kind = %s
+                  AND ri.kind_id = %s
+                  AND ur.user_id = %s
+                  AND rp.app_id = %s
+            """, ['team', tenant_id, str(user_id), app_id])
+
+            results = cursor.fetchall()
+            return [row[0] for row in results]
+
+    def get_user_team_all_perms(self, user_id, tenant_id):
+        """
+        一次性获取用户在团队中的所有权限（全局 + 应用）
+
+        Args:
+            user_id: 用户ID
+            tenant_id: 团队ID
+
+        Returns:
+            dict: {
+                'global_perms': [权限代码列表],  # app_id = -1
+                'app_perms': {app_id: [权限代码列表]}
+            }
+        """
+        from django.db import connection
+
+        result = {
+            'global_perms': [],
+            'app_perms': {}
+        }
+
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT DISTINCT rp.perm_code, rp.app_id
+                FROM role_perms rp
+                INNER JOIN user_role ur ON rp.role_id = CAST(ur.role_id AS SIGNED)
+                INNER JOIN role_info ri ON ur.role_id = CAST(ri.ID AS CHAR)
+                WHERE ri.kind = %s
+                  AND ri.kind_id = %s
+                  AND ur.user_id = %s
+            """, ['team', tenant_id, str(user_id)])
+
+            for perm_code, app_id in cursor.fetchall():
+                if app_id == -1:
+                    result['global_perms'].append(perm_code)
+                else:
+                    if app_id not in result['app_perms']:
+                        result['app_perms'][app_id] = []
+                    result['app_perms'][app_id].append(perm_code)
+
+        return result
+
+
 perms_repo = PermsRepo()
 role_repo = RoleRepo()
 role_perm_relation_repo = RolePermRelationRepo()
 role_kind_repo = RoleKindRepo()
 user_kind_role_repo = UserKindRoleRepo()
+optimized_role_perm_repo = OptimizedRolePermRepo()
