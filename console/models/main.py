@@ -555,6 +555,9 @@ class ServiceRelPerms(BaseModel):
 class UserRole(BaseModel):
     class Meta:
         db_table = 'user_role'
+        indexes = [
+            models.Index(fields=['user_id'], name='idx_user_role_user'),
+        ]
 
     user_id = models.CharField(max_length=32, help_text='用户id')
     role_id = models.CharField(max_length=32, help_text='角色id')
@@ -574,6 +577,9 @@ class PermsInfo(BaseModel):
 class RolePerms(BaseModel):
     class Meta:
         db_table = 'role_perms'
+        indexes = [
+            models.Index(fields=['role_id', 'app_id'], name='idx_role_perms_role_app'),
+        ]
 
     role_id = models.IntegerField(help_text="角色id")
     perm_code = models.IntegerField(help_text='权限编码')
@@ -583,6 +589,9 @@ class RolePerms(BaseModel):
 class RoleInfo(BaseModel):
     class Meta:
         db_table = 'role_info'
+        indexes = [
+            models.Index(fields=['kind', 'kind_id'], name='idx_role_info_kind'),
+        ]
 
     name = models.CharField(max_length=32, help_text='角色名称')
     kind_id = models.CharField(max_length=64, help_text='角色所属范围id')
