@@ -1018,21 +1018,63 @@ class KubeBlocksService(object):
 
             if status_code == 200:
                 bean = body.get("bean", {})
+                self._sync_to_rainbond(service_id, bean)
                 return 200, {"msg_show": "查询成功", "bean": bean}
-            elif status_code == 404:
-                logger.error(f"集群不存在: service_id={service_id}")
-                return 404, {"msg_show": "集群不存在"}
-            elif status_code == 403:
-                logger.error(f"无权限访问集群: service_id={service_id}")
-                return 403, {"msg_show": "无权限"}
             else:
                 msg_show = body.get("msg_show", "查询失败") if isinstance(body, dict) else "查询失败"
-                logger.error(f"查询集群详情失败: status={status_code}, msg={msg_show}")
+                logger.error(f"查询 KubeBlocks Cluster 详情失败: status={status_code}, msg={msg_show}")
                 return status_code, {"msg_show": msg_show}
 
         except Exception as e:
-            logger.exception(f"查询集群详情异常: service_id={service_id}, region={region_name}, 错误={str(e)}")
+            logger.exception(f"查询 KubeBlocks Cluster 详情异常: service_id={service_id}, region={region_name}, 错误={str(e)}")
             return 500, {"msg_show": f"后端服务异常: {str(e)}"}
+
+    def _sync_to_rainbond(self, service_id, cluster_detail_bean):
+        """
+        同步 KubeBlocks Cluster 资源信息到 Rainbond 组件,
+        仅在资源配置发生变化时更新数据库
+        """
+        try:
+            service = TenantServiceInfo.objects.filter(service_id=service_id).first()
+            if not service:
+                return
+
+            resource_info = cluster_detail_bean.get("resource", {})
+            if not resource_info:
+                return
+
+            memory = resource_info.get("memory", 0)
+            cpu = resource_info.get("cpu", 0)
+
+            # 从 basic.replicas 数组的长度生成副本数
+            # 处理多 Component Cluster
+            basic_info = cluster_detail_bean.get("basic", {})
+            replicas_list = basic_info.get("replicas", [])
+            replicas = len(replicas_list) if replicas_list else 1
+
+            memory = int(memory) if memory else 0
+            cpu = int(cpu) if cpu else 0
+            replicas = int(replicas) if replicas else 1
+
+            has_changes = False
+
+            if service.min_memory != memory:
+                service.min_memory = memory
+                has_changes = True
+
+            if service.min_cpu != cpu:
+                service.min_cpu = cpu
+                has_changes = True
+
+            if service.min_node != replicas:
+                service.min_node = replicas
+                has_changes = True
+
+            if has_changes:
+                service.save(update_fields=['min_memory', 'min_cpu', 'min_node'])
+
+        except Exception as e:
+            logger.exception(f"同步 KubeBlocks 资源到 Rainbond 失败: service_id={service_id}, 错误={str(e)}")
 
     def expand_cluster(self, region_name, service_id, expansion_data):
         """

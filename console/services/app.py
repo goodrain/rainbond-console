@@ -505,9 +505,9 @@ class AppService(object):
         tenant_service.env = ","
 
         # 仅占位
-        tenant_service.min_node = 1
-        tenant_service.min_memory = 128  
-        tenant_service.min_cpu = 100    
+        tenant_service.min_node = 0
+        tenant_service.min_memory = 0  
+        tenant_service.min_cpu = 0    
         tenant_service.container_gpu = 0
         tenant_service.inner_port = 1    
         tenant_service.version = "latest"
@@ -518,7 +518,7 @@ class AppService(object):
         tenant_service.deploy_version = ""
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"  
-        tenant_service.total_memory = 128  
+        tenant_service.total_memory = 0  
         tenant_service.volume_mount_path = ""
         tenant_service.host_path = ""
         tenant_service.code_from = ""
