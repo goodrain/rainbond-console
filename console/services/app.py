@@ -388,7 +388,7 @@ class AppService(object):
 
         KubeBlocks 组件是一种特殊的组件类型，用于在 Rainbond 中集成 KubeBlocks
         该组件遵循标准的 Rainbond 组件创建流程，但其工作负载的实际构建和
-        生命周期由 KubeBlocks 和 Block Mechanica 负责，Rainbond 主要负责服务发现和连接管理。
+        生命周期由 KubeBlocks Operator 管理，Rainbond 主要负责服务发现和连接管理。
         """
         # 参数验证：检查组件名称是否合规
         service_cname = service_cname.rstrip().lstrip()

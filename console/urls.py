@@ -1077,8 +1077,7 @@ urlpatterns = [
     # 用户登录（手机号）
     url(r'^users/login-by-phone$', LoginByPhoneView.as_view()),
 
-    # KubeBlocks && Block Mechanica
-
+    # KubeBlocks 
     # 支持的数据库类型
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/supported_databases$', KubeBlocksAddonsView.as_view()),
     # 获取 StorageClass

@@ -290,7 +290,7 @@ class KubeBlocksService(object):
 
     def _build_cluster_request(self, cluster_params, new_service, namespace):
         """
-        构建 Block Mechanica 的 CreateClusterRequest 数据
+        构建创建 Cluster 的请求数据
         """
         cluster_data = {
             "name": cluster_params.get("k8s_component_name", "") or cluster_params["cluster_name"],
@@ -409,7 +409,7 @@ class KubeBlocksService(object):
 
     def _fetch_connection_info(self, region_name, service_id, msg_show="获取连接信息失败"):
         """
-        向 Block Mechanica 获取连接信息
+        获取指定Cluster的连接信息
         """
         request_data = {
             "RBDService": {
@@ -426,7 +426,7 @@ class KubeBlocksService(object):
         bean = body.get("bean", {})
         if not isinstance(bean, dict):
             raise ServiceHandleException(
-                msg="invalid connection info returned by Block Mechanica",
+                msg="invalid connection info returned",
                 msg_show=msg_show
             )
         return bean
@@ -487,7 +487,7 @@ class KubeBlocksService(object):
 
     def _get_database_connect_info(self, service, region_name, connect_ctx=None):
         """
-        从 Block Mechanica API 获取数据库连接信息
+        获取数据库连接信息
         """
         try:
             if connect_ctx is None:
@@ -498,7 +498,7 @@ class KubeBlocksService(object):
                 )
             elif not isinstance(connect_ctx, dict):
                 raise ServiceHandleException(
-                    msg="invalid connection info returned by Block Mechanica",
+                    msg="invalid connection info returned",
                     msg_show="获取数据库连接信息失败"
                 )
 
@@ -532,13 +532,13 @@ class KubeBlocksService(object):
             )
         if not isinstance(connect_ctx, dict):
             raise ServiceHandleException(
-                msg="invalid connection info returned by Block Mechanica",
+                msg="invalid connection info returned",
                 msg_show="端口信息无效"
             )
         port = connect_ctx.get("port")
         if not isinstance(port, int):
             raise ServiceHandleException(
-                msg="invalid port info returned by Block Mechanica",
+                msg="invalid port info returned",
                 msg_show="端口信息无效"
             )
         port_alias = "DB"
@@ -1141,7 +1141,7 @@ class KubeBlocksService(object):
         """
         删除 KubeBlocks 集群
 
-        通过 Block Mechanica API 删除与 Rainbond 组件关联的数据库集群
+        通过删除与 kubeblocks_component 关联的数据库集群
         静默处理
         """
         if not service_ids:
@@ -1536,11 +1536,9 @@ class KubeBlocksService(object):
                 item['tenant_id'] = tenant.tenant_id
             except Exception:
                 item['tenant_id'] = ''
-            # 透传来自 Block Mechanica 的操作者信息；若无则不设置，避免覆盖上游默认
             ev_user = ev.get('user_name')
             if isinstance(ev_user, str) and ev_user:
                 item['user_name'] = ev_user
-            # KB 事件当前不开放详情日志
             item['syn_type'] = 1
             normalized.append(item)
         return normalized
