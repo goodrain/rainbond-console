@@ -80,9 +80,10 @@ class EdgeCreateOverlay extends React.Component {
               width: '24px',
               height: '24px',
               fontSize: '20px',
-              color: '#4CAF50'
+              color: '#4CAF50',
+              pointerEvents: 'none'
             }}>
-              <i className="iconfont icon-lianjie"></i>
+              <i className="iconfont icon-jiahao"></i>
             </div>
           </foreignObject>
         </g>
