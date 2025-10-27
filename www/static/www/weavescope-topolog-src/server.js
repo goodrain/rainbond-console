@@ -74,7 +74,6 @@ var server = app.listen(port, function () {
   var host = server.address().address;
   var port = server.address().port;
 
-  console.log('Scope UI listening at http://%s:%s', host, port);
 });
 
 server.on('upgrade', backendProxy.ws.bind(backendProxy));
@@ -105,8 +104,6 @@ const proxyPathServer = http.createServer(function(req, res) {
   return pathProxy.web(req, res, {target: target});
 }).listen(pathProxyPort, function() {
   var pathProxyHost = proxyPathServer.address().address;
-  console.log('Scope Proxy Path UI listening at http://%s:%s/scoped/',
-              pathProxyHost, pathProxyPort);
 });
 
 proxyPathServer.on('upgrade', function(req, socket, head) {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import classNames from 'classnames';
-import { enterEdge, leaveEdge, setMonitorData } from '../actions/app-actions';
+import { enterEdge, leaveEdge, setMonitorData, showEdgeContextMenu } from '../actions/app-actions';
 import { NODE_BASE_SIZE } from '../constants/styles';
 
 
@@ -191,6 +191,7 @@ class Edge extends React.Component {
     super(props, context);
     this.handleMouseEnter = this.handleMouseEnter.bind(this);
     this.handleMouseLeave = this.handleMouseLeave.bind(this);
+    this.handleContextMenu = this.handleContextMenu.bind(this);
     this.saveRef = this.saveRef.bind(this);
     this.state = {
       showData: false,
@@ -239,24 +240,38 @@ class Edge extends React.Component {
       target,
       points
     } = this.props;
-    const className = classNames('edge', { highlighted, blurred, focused });
+
+    // 检查是否是选中的边线
+    const isSelected = this.props.selectedEdgeId === id;
+    const className = classNames('edge', { highlighted, blurred, focused, selected: isSelected });
     const thickness = (scale * 0.01) * NODE_BASE_SIZE;
     const strokeWidth = focused ? thickness * 3 : thickness;
-    const shouldRenderMarker = (focused || highlighted) && (source !== target);
+    const shouldRenderMarker = (focused || highlighted || isSelected) && (source !== target);
     const selectedNodeId = this.props.selectedNodeId
     const nodes = this.props.nodes.toJSON();
     const nodeData = nodes[target];
 
     // Draws the edge so that its thickness reflects the zoom scale.
     // Edge shadow is always made 10x thicker than the edge itself.
-    
+
     var monitor = this.props.nodeMonitorData.toJSON()||[];
     var monitorData = this.getMonitorData();
+
+    // 选中状态的样式
+    const shadowStyle = isSelected
+      ? { strokeWidth: 10 * strokeWidth, stroke: '#00b4ff', strokeOpacity: 0.4 }
+      : { strokeWidth: 10 * strokeWidth };
+
+    const linkStyle = isSelected
+      ? { strokeWidth: strokeWidth * 1.5, stroke: '#00b4ff' }
+      : { strokeWidth };
+
     return (
       <g
         id={id} className={className}
         onMouseEnter={this.handleMouseEnter}
         onMouseLeave={this.handleMouseLeave}
+        onContextMenu={this.handleContextMenu}
       >
         {
           nodeData && nodeData.lineTip && <foreignObject
@@ -268,14 +283,14 @@ class Edge extends React.Component {
               <span style={{borderRadius: '6px',  border:'1px solid #dedece', padding: '10px 20px', zIndex: 9999, background: '#fff'}}>{nodeData.lineTip}</span>
           </foreignObject>
         }
-        
-        <path className="shadow" d={path} style={{ strokeWidth: 10 * strokeWidth }} />
+
+        <path className="shadow" d={path} style={shadowStyle} />
         <path
           ref={this.saveRef}
           className="link"
           d={path}
           markerEnd={shouldRenderMarker ? 'url(#end-arrow)' : null}
-          style={{ strokeWidth }}
+          style={linkStyle}
         />
         {(!selectedNodeId && monitorData && monitorData.throughput_rate) && <Points monitor={monitor} data={monitorData} target={target} nodes={this.props.nodes} points={points} path={path} />}
       </g>
@@ -295,12 +310,26 @@ class Edge extends React.Component {
     var dispatch = this.props.dispatch;
     dispatch(setMonitorData(null));
   }
+
+  handleContextMenu(ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+
+
+    const position = {
+      x: ev.clientX,
+      y: ev.clientY
+    };
+
+    this.props.showEdgeContextMenu(this.props.id, position);
+  }
 }
 
 function mapStateToProps(state) {
   return {
     contrastMode: state.get('contrastMode'),
     selectedNodeId: state.get('selectedNodeId'),
+    selectedEdgeId: state.get('selectedEdgeId'),
     nodes: state.get('nodes'),
     nodeMonitorData: state.get('nodeMonitorData')
   };
@@ -308,5 +337,5 @@ function mapStateToProps(state) {
 
 export default connect(
   mapStateToProps,
-  { enterEdge, leaveEdge }
+  { enterEdge, leaveEdge, showEdgeContextMenu }
 )(Edge);

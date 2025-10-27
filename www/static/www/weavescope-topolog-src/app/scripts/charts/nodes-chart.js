@@ -3,13 +3,16 @@
 import * as d3 from 'd3';
 import React from 'react';
 import { connect } from 'react-redux';
-import { clickBackground } from '../actions/app-actions';
+import { clickBackground, updateEdgeCreate, finishEdgeCreate, cancelEdgeCreate, hideNodeContextMenu, hideEdgeContextMenu } from '../actions/app-actions';
 import ZoomableCanvas from '../components/zoomable-canvas';
 import {
   graphZoomLimitsSelector,
   graphZoomStateSelector
 } from '../selectors/graph-view/zoom';
 import NodesChartElements from './nodes-chart-elements';
+import EdgeCreateOverlay from '../components/edge-create-overlay';
+import NodeContextMenu from '../components/node-context-menu';
+import EdgeContextMenu from '../components/edge-context-menu';
 
 require('../../styles/nodeStyle.css');
 
@@ -30,6 +33,17 @@ const EdgeMarkerDefinition = ({ selectedNodeId }) => {
         orient="auto">
         <polygon className="link" points="0 0, 10 3.5, 0 7" />
       </marker>
+      <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+        <feOffset dx="0" dy="2" result="offsetblur"/>
+        <feComponentTransfer>
+          <feFuncA type="linear" slope="0.3"/>
+        </feComponentTransfer>
+        <feMerge>
+          <feMergeNode/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
     </defs>
   );
 };
@@ -39,20 +53,77 @@ class NodesChart extends React.Component {
     super(props, context);
 
     this.handleMouseClick = this.handleMouseClick.bind(this);
+    this.handleMouseMove = this.handleMouseMove.bind(this);
+    this.handleMouseUp = this.handleMouseUp.bind(this);
+    this.handleContextMenu = this.handleContextMenu.bind(this);
     this.loading = this.loading.bind(this);
   }
+
   componentDidMount() {
     window.addEventListener('message', (event) => {
       if (event.data.type === 'TRIGGER_CLICK_BACKGROUND') {
         this.props.clickBackground();
       }
     });
+
+    const svg = document.getElementById('canvas');
+    if (svg) {
+      svg.addEventListener('mousemove', this.handleMouseMove);
+      svg.addEventListener('mouseup', this.handleMouseUp);
+    }
   }
 
-  handleMouseClick() {
-    if (this.props.selectedNodeId) {
-      this.props.clickBackground();
+  componentWillUnmount() {
+    const svg = document.getElementById('canvas');
+    if (svg) {
+      svg.removeEventListener('mousemove', this.handleMouseMove);
+      svg.removeEventListener('mouseup', this.handleMouseUp);
     }
+  }
+
+  handleMouseMove(e) {
+    const { edgeCreation, updateEdgeCreate } = this.props;
+    if (edgeCreation && edgeCreation.get('isCreating')) {
+      const svg = e.currentTarget;
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const zoomContent = svg.querySelector('.zoom-content');
+      const ctm = zoomContent.getCTM();
+      const transformedPoint = pt.matrixTransform(ctm.inverse());
+
+      updateEdgeCreate({
+        x: transformedPoint.x,
+        y: transformedPoint.y
+      });
+    }
+  }
+
+  handleMouseUp(e) {
+    const { edgeCreation, cancelEdgeCreate } = this.props;
+    if (edgeCreation && edgeCreation.get('isCreating')) {
+      cancelEdgeCreate();
+    }
+  }
+
+  handleMouseClick(e) {
+    const { selectedNodeId, clickBackground, hideNodeContextMenu, hideEdgeContextMenu, edgeCreation, cancelEdgeCreate } = this.props;
+
+    hideNodeContextMenu();
+    hideEdgeContextMenu();
+
+    if (edgeCreation && edgeCreation.get('isCreating')) {
+      cancelEdgeCreate();
+      return;
+    }
+
+    if (selectedNodeId) {
+      clickBackground();
+    }
+  }
+
+  handleContextMenu(e) {
+    e.preventDefault();
   }
 
 
@@ -440,12 +511,16 @@ class NodesChart extends React.Component {
       <div className="nodes-chart">
         <ZoomableCanvas
           onClick={this.handleMouseClick}
+          onContextMenu={this.handleContextMenu}
           zoomLimitsSelector={graphZoomLimitsSelector}
           zoomStateSelector={graphZoomStateSelector}
           disabled={selectedNodeId}>
           <EdgeMarkerDefinition selectedNodeId={selectedNodeId} />
           <NodesChartElements />
+          <EdgeCreateOverlay />
         </ZoomableCanvas>
+        <NodeContextMenu />
+        <EdgeContextMenu />
       </div>
     );
   }
@@ -455,11 +530,19 @@ class NodesChart extends React.Component {
 function mapStateToProps(state) {
   return {
     selectedNodeId: state.get('selectedNodeId'),
+    edgeCreation: state.get('edgeCreation')
   };
 }
 
 
 export default connect(
   mapStateToProps,
-  { clickBackground }
+  {
+    clickBackground,
+    updateEdgeCreate,
+    finishEdgeCreate,
+    cancelEdgeCreate,
+    hideNodeContextMenu,
+    hideEdgeContextMenu
+  }
 )(NodesChart);

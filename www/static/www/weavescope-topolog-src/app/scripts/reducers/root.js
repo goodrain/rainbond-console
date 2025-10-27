@@ -94,7 +94,26 @@ export const initialState = makeMap({
   getpods:null,
   userPermission: null,
   teamName: null,
-  operator: null
+  operator: null,
+  edgeCreation: makeMap({
+    isCreating: false,
+    sourceNodeId: null,
+    sourcePosition: makeMap({ x: 0, y: 0 }),
+    currentMousePosition: makeMap({ x: 0, y: 0 })
+  }),
+  selectedEdgeId: null,
+  customEdges: makeOrderedMap(),
+  nodeContextMenu: makeMap({
+    visible: false,
+    nodeId: null,
+    nodeLabel: null,
+    position: makeMap({ x: 0, y: 0 })
+  }),
+  edgeContextMenu: makeMap({
+    visible: false,
+    edgeId: null,
+    position: makeMap({ x: 0, y: 0 })
+  })
 });
 
 function calcSelectType(topology) {
@@ -453,6 +472,12 @@ export function rootReducer(state = initialState, action) {
     }
 
     case ActionTypes.ENTER_EDGE: {
+      // Skip highlighting during edge creation mode
+      const isCreating = state.getIn(['edgeCreation', 'isCreating']);
+      if (isCreating) {
+        return state;
+      }
+
       // highlight adjacent nodes
       state = state.update('highlightedNodeIds', (highlightedNodeIds) => {
         highlightedNodeIds = highlightedNodeIds.clear();
@@ -476,6 +501,12 @@ export function rootReducer(state = initialState, action) {
       const adjacentNodes = getAdjacentNodes(state, nodeId);
 
       state = state.set('mouseOverNodeId', nodeId);
+
+      // Skip highlighting during edge creation mode
+      const isCreating = state.getIn(['edgeCreation', 'isCreating']);
+      if (isCreating) {
+        return state;
+      }
 
       // highlight adjacent nodes
       state = state.update('highlightedNodeIds', (highlightedNodeIds) => {
@@ -501,6 +532,12 @@ export function rootReducer(state = initialState, action) {
     }
 
     case ActionTypes.LEAVE_EDGE: {
+      // Skip clearing highlights during edge creation mode
+      const isCreating = state.getIn(['edgeCreation', 'isCreating']);
+      if (isCreating) {
+        return state;
+      }
+
       state = state.update('highlightedEdgeIds', highlightedEdgeIds => highlightedEdgeIds.clear());
       state = state.update('highlightedNodeIds', highlightedNodeIds => highlightedNodeIds.clear());
       return state;
@@ -508,6 +545,13 @@ export function rootReducer(state = initialState, action) {
 
     case ActionTypes.LEAVE_NODE: {
       state = state.set('mouseOverNodeId', null);
+
+      // Skip clearing highlights during edge creation mode
+      const isCreating = state.getIn(['edgeCreation', 'isCreating']);
+      if (isCreating) {
+        return state;
+      }
+
       state = state.update('highlightedEdgeIds', highlightedEdgeIds => highlightedEdgeIds.clear());
       state = state.update('highlightedNodeIds', highlightedNodeIds => highlightedNodeIds.clear());
       return state;
@@ -831,6 +875,97 @@ export function rootReducer(state = initialState, action) {
         containers: service ? service.Containers : null,
         errors
       });
+    }
+
+    case ActionTypes.START_EDGE_CREATE: {
+      const nodes = state.get('nodes');
+      const allNodeIds = nodes.keySeq().toSet();
+
+      state = state.update('highlightedNodeIds', () => allNodeIds);
+
+      const newState = state.mergeIn(['edgeCreation'], {
+        isCreating: true,
+        sourceNodeId: action.sourceNodeId,
+        sourcePosition: fromJS(action.sourcePosition),
+        currentMousePosition: fromJS(action.sourcePosition)
+      });
+
+      return newState;
+    }
+
+    case ActionTypes.UPDATE_EDGE_CREATE: {
+      return state.setIn(['edgeCreation', 'currentMousePosition'], fromJS(action.mousePosition));
+    }
+
+    case ActionTypes.FINISH_EDGE_CREATE: {
+
+      state = state.setIn(['customEdges', action.edgeId], makeMap({
+        id: action.edgeId,
+        source: action.sourceNodeId,
+        target: action.targetNodeId,
+        sourcePosition: fromJS(action.sourcePosition),
+        targetPosition: fromJS(action.targetPosition)
+      }));
+
+
+      state = state.mergeIn(['edgeCreation'], {
+        isCreating: false,
+        sourceNodeId: null
+      });
+
+      state = state.update('highlightedNodeIds', ids => ids.clear());
+      state = state.update('highlightedEdgeIds', ids => ids.clear());
+
+      return state;
+    }
+
+    case ActionTypes.CANCEL_EDGE_CREATE: {
+      state = state.update('highlightedNodeIds', ids => ids.clear());
+      return state.mergeIn(['edgeCreation'], {
+        isCreating: false,
+        sourceNodeId: null
+      });
+    }
+
+    case ActionTypes.SELECT_EDGE: {
+      return state.set('selectedEdgeId', action.edgeId);
+    }
+
+    case ActionTypes.DESELECT_EDGE: {
+      return state.set('selectedEdgeId', null);
+    }
+
+    case ActionTypes.DELETE_EDGE: {
+      state = state.deleteIn(['customEdges', action.edgeId]);
+      state = state.set('selectedEdgeId', null);
+      return state;
+    }
+
+    case ActionTypes.SHOW_NODE_CONTEXT_MENU: {
+      return state.mergeIn(['nodeContextMenu'], {
+        visible: true,
+        nodeId: action.nodeId,
+        nodeLabel: action.nodeLabel,
+        position: fromJS(action.position)
+      });
+    }
+
+    case ActionTypes.HIDE_NODE_CONTEXT_MENU: {
+      return state.setIn(['nodeContextMenu', 'visible'], false);
+    }
+
+    case ActionTypes.SHOW_EDGE_CONTEXT_MENU: {
+      state = state.set('selectedEdgeId', action.edgeId);
+      return state.mergeIn(['edgeContextMenu'], {
+        visible: true,
+        edgeId: action.edgeId,
+        position: fromJS(action.position)
+      });
+    }
+
+    case ActionTypes.HIDE_EDGE_CONTEXT_MENU: {
+      state = state.set('selectedEdgeId', null);
+      return state.setIn(['edgeContextMenu', 'visible'], false);
     }
 
     default: {
