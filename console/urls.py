@@ -37,7 +37,8 @@ from console.views.app_create.docker_run import DockerRunCreateView
 from console.views.app_create.image_repositories import TenantImageRepositories, TenantImageTags
 from console.views.app_create.multi_app import (MultiAppCheckView, MultiAppCreateView)
 from console.views.app_create.source_code import (AppCompileEnvView, SourceCodeCreateView, UploadRecordLastView,
-                                                  PackageUploadRecordView, PackageCreateView)
+                                                  PackageUploadRecordView, PackageCreateView, TarImageLoadView,
+                                                  TarImageLoadResultView, TarImageImportView)
 from console.views.app_create.source_outer import (ThirdPartyAppPodsView, ThirdPartyHealthzView, ThirdPartyServiceApiView,
                                                    ThirdPartyServiceCreateView, ThirdPartyUpdateSecretKeyView)
 from console.views.app_create.vm_run import VMRunCreateView
@@ -450,6 +451,15 @@ urlpatterns = [
         perms.APP_OVERVIEW_CREATE),
     # 本地文件上传记录
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/record$', PackageUploadRecordView.as_view()),
+    # 开始解析tar包镜像
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/tar-image/load$', TarImageLoadView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
+    # 查询tar包解析结果(包含镜像列表)
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/tar-image/load/(?P<load_id>[\w\-]+)$',
+        TarImageLoadResultView.as_view(), perms.APP_OVERVIEW_CREATE),
+    # 确认导入镜像到镜像仓库
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/tar-image/import$', TarImageImportView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     # 本地文件创建组件
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build$', PackageCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 源码创建
