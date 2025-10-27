@@ -18,6 +18,7 @@ from console.repositories.login_event import login_event_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.region_repo import region_repo
+from console.repositories.perm_repo import optimized_role_perm_repo
 # service
 from console.services.group_service import group_service
 from console.services.user_services import user_services
@@ -326,36 +327,45 @@ class TenantHeaderView(JWTAuthApiView):
             self.user_perms.append(100001)
             self.perm_apps = [-1]
         else:
-            # 获取团队角色
-            team_roles = RoleInfo.objects.filter(kind="team", kind_id=self.tenant.tenant_id)
-            if team_roles:
-                role_ids = team_roles.values_list("ID", flat=True)
-                team_user_roles = UserRole.objects.filter(user_id=self.user.user_id, role_id__in=role_ids)
-                if team_user_roles:
-                    team_user_role_ids = team_user_roles.values_list("role_id", flat=True)
-                    team_role_perms = RolePerms.objects.filter(role_id__in=team_user_role_ids)
-                    if team_role_perms:
-                        global_team_role_perms = team_role_perms.filter(app_id=-1)
-                        self.user_perms.extend(list(global_team_role_perms.values_list("perm_code", flat=True)))
-                        if global_team_role_perms.filter(perm_code=300002):
-                            self.perm_apps = [-1]
-                    if self.perm_app_id or self.perm_app_id == 0:
-                        app = ServiceGroup.objects.filter(ID=self.perm_app_id)
-                        if self.perm_app_id == 0 or (app and app[0].username == self.user.nick_name):
-                            app_perms = get_perms(copy.deepcopy(APP), "app", "app")
-                            code = [a[2] for a in app_perms]
-                            self.user_perms.extend(code)
-                        else:
-                            app_role_perms = team_role_perms.filter(app_id=self.perm_app_id)
-                            self.user_perms.extend(list(app_role_perms.values_list("perm_code", flat=True)))
-                    if not self.perm_apps:
-                        self.perm_apps = list(
-                            team_role_perms.filter(perm_code=300002).exclude(app_id=-1).values_list("app_id",
-                                                                                                    flat=True))
-                        app = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                          username=self.user.nick_name).values_list("ID", flat=True)
-                        self.perm_apps.extend(app)
-                        self.perm_apps = list(set(self.perm_apps))
+            # ========== 优化：使用 JOIN 查询替代嵌套子查询 ==========
+            # 一次性获取用户在团队中的所有权限（全局 + 应用）
+            all_perms = optimized_role_perm_repo.get_user_team_all_perms(
+                user_id=self.user.user_id,
+                tenant_id=self.tenant.tenant_id
+            )
+
+            # 添加全局团队权限（app_id = -1）
+            global_perm_codes = all_perms.get('global_perms', [])
+            self.user_perms.extend(global_perm_codes)
+
+            # 检查是否有全局应用管理权限（300002）
+            if 300002 in global_perm_codes:
+                self.perm_apps = [-1]
+
+            # 如果指定了特定应用ID
+            if self.perm_app_id or self.perm_app_id == 0:
+                app = ServiceGroup.objects.filter(ID=self.perm_app_id).first()
+                if self.perm_app_id == 0 or (app and app.username == self.user.nick_name):
+                    app_perms = get_perms(copy.deepcopy(APP), "app", "app")
+                    code = [a[2] for a in app_perms]
+                    self.user_perms.extend(code)
+                else:
+                    # 优化：使用 JOIN 查询获取应用权限
+                    app_perm_codes = all_perms.get('app_perms', {}).get(self.perm_app_id, [])
+                    self.user_perms.extend(app_perm_codes)
+
+            if not self.perm_apps:
+                # 收集所有有 300002 权限的应用
+                app_perms_dict = all_perms.get('app_perms', {})
+                self.perm_apps = [
+                    app_id for app_id, perm_codes in app_perms_dict.items()
+                    if 300002 in perm_codes
+                ]
+                # 添加用户创建的应用
+                app = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                  username=self.user.nick_name).values_list("ID", flat=True)
+                self.perm_apps.extend(app)
+                self.perm_apps = list(set(self.perm_apps))
         self.user_perms = list(set(self.user_perms))
 
     def initial(self, request, *args, **kwargs):
