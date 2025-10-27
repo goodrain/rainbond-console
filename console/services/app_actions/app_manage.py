@@ -239,6 +239,9 @@ class AppManageService(AppManageBase):
                     "lang": service.language,
                     "cmd": service.cmd,
                 }
+                # 如果是 dockerfile 类型且有 dockerfile_path，添加到构建参数中
+                if service.language == "dockerfile" and service.dockerfile:
+                    body["code_info"]["dockerfile_path"] = service.dockerfile
             else:
                 body["code_info"] = {
                     "repo_url": service.git_url,
@@ -247,6 +250,9 @@ class AppManageService(AppManageBase):
                     "lang": service.language,
                     "cmd": service.cmd,
                 }
+                # 如果是 dockerfile 类型且有 dockerfile_path，添加到构建参数中
+                if service.language == "dockerfile" and service.dockerfile:
+                    body["code_info"]["dockerfile_path"] = service.dockerfile
         if kind == "build_from_image" or kind == "build_from_market_image" or kind == "build_from_vm":
             body["image_info"] = {
                 "image_url": service.image,
