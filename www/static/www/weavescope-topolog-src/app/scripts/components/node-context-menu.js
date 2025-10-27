@@ -101,7 +101,7 @@ class NodeContextMenu extends React.Component {
 
   getMenuIcon(label) {
     const iconMap = {
-      '创建连线': 'icon-lianxian1',
+      '创建依赖': 'icon-lianxian1',
       '访问地址': 'icon-icon_web',
       'web终端': 'icon-terminalzhongduan',
       '构建组件': 'icon-dabaoxiazai',
@@ -113,13 +113,18 @@ class NodeContextMenu extends React.Component {
     return iconMap[label] || 'icon-lianxian1';
   }
 
-  renderMenuItem(label, onClick, isLast = false) {
+  renderMenuItem(label, onClick, menuType = 'normal') {
+    // menuType: 'create' | 'normal' | 'delete'
+    const isDelete = menuType === 'delete';
+    const isCreate = menuType === 'create';
+
     const itemStyle = {
       padding: '16px 24px',
       cursor: 'pointer',
-      borderBottom: isLast ? 'none' : '1px solid rgba(0,0,0,0.06)',
+      borderBottom: isCreate ? '1px solid rgba(0,0,0,0.1)' : 'none',
+      borderTop: isDelete ? '1px solid rgba(0,0,0,0.1)' : 'none',
       fontSize: '15px',
-      color: '#262626',
+      color: isDelete ? '#ff4d4f' : '#262626',
       fontWeight: '500',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       display: 'flex',
@@ -133,7 +138,8 @@ class NodeContextMenu extends React.Component {
       fontSize: '20px',
       transition: 'transform 0.3s ease',
       width: '24px',
-      textAlign: 'center'
+      textAlign: 'center',
+      color: isDelete ? '#ff4d4f' : 'inherit'
     };
 
     const arrowStyle = {
@@ -145,15 +151,19 @@ class NodeContextMenu extends React.Component {
       fontWeight: 'bold'
     };
 
+    const hoverColor = isDelete ? '#ff4d4f' : '#1890ff';
+    const hoverBgStart = isDelete ? 'rgba(255, 77, 79, 0.12)' : 'rgba(24, 144, 255, 0.12)';
+    const hoverBgEnd = isDelete ? 'rgba(255, 77, 79, 0.06)' : 'rgba(24, 144, 255, 0.06)';
+
     return (
       <div
         style={itemStyle}
         onMouseEnter={e => {
-          e.currentTarget.style.backgroundColor = 'rgba(24, 144, 255, 0.08)';
-          e.currentTarget.style.background = 'linear-gradient(135deg, rgba(24, 144, 255, 0.12) 0%, rgba(24, 144, 255, 0.06) 100%)';
-          e.currentTarget.style.color = '#1890ff';
+          e.currentTarget.style.backgroundColor = isDelete ? 'rgba(255, 77, 79, 0.08)' : 'rgba(24, 144, 255, 0.08)';
+          e.currentTarget.style.background = `linear-gradient(135deg, ${hoverBgStart} 0%, ${hoverBgEnd} 100%)`;
+          e.currentTarget.style.color = hoverColor;
           e.currentTarget.style.paddingLeft = '28px';
-          e.currentTarget.style.borderLeft = '3px solid #1890ff';
+          e.currentTarget.style.borderLeft = `3px solid ${hoverColor}`;
           const icon = e.currentTarget.querySelector('.menu-icon');
           const arrow = e.currentTarget.querySelector('.menu-arrow');
           if (icon) icon.style.transform = 'scale(1.15) rotate(8deg)';
@@ -165,7 +175,7 @@ class NodeContextMenu extends React.Component {
         onMouseLeave={e => {
           e.currentTarget.style.backgroundColor = 'white';
           e.currentTarget.style.background = 'white';
-          e.currentTarget.style.color = '#262626';
+          e.currentTarget.style.color = isDelete ? '#ff4d4f' : '#262626';
           e.currentTarget.style.paddingLeft = '24px';
           e.currentTarget.style.borderLeft = 'none';
           const icon = e.currentTarget.querySelector('.menu-icon');
@@ -242,26 +252,18 @@ class NodeContextMenu extends React.Component {
     const menuItems = [];
 
     // 创建连线 - 始终显示
-    menuItems.push({ label: '创建连线', onClick: this.handleCreateEdge });
+    menuItems.push({ label: '创建依赖', onClick: this.handleCreateEdge });
 
     // 访问 - 根据条件显示
     if (hasVisitUrl && curStatus === 'running') {
       menuItems.push({ label: '访问地址', onClick: this.handleVisit });
     }
 
-    // 终端 - 非undeploy状态且有权限
-    if (curStatus !== 'undeploy') {
-      menuItems.push({ label: 'web终端', onClick: this.handleTerminal });
-    }
-
     // 构建 - undeploy或closed状态且有构建权限
-    if ((curStatus === 'undeploy' || curStatus === 'closed')) {
-      menuItems.push({ label: '构建组件', onClick: this.handleBuild });
-    }
+    menuItems.push({ label: '构建组件', onClick: this.handleBuild });
+
     // 更新 - 其他状态且有更新权限
-    else {
-      menuItems.push({ label: '更新组件', onClick: this.handleUpdate });
-    }
+    menuItems.push({ label: '更新组件', onClick: this.handleUpdate });
 
     // 启动 - closed状态且有启动权限
     if (curStatus === 'closed') {
@@ -270,6 +272,11 @@ class NodeContextMenu extends React.Component {
     // 关闭 - 非undeploy状态且有停止权限
     else if (curStatus !== 'undeploy') {
       menuItems.push({ label: '关闭组件', onClick: this.handleStop });
+    }
+
+    // 终端 - 非undeploy状态且有权限
+    if (curStatus !== 'undeploy') {
+      menuItems.push({ label: 'web终端', onClick: this.handleTerminal });
     }
 
     // 删除 - 有删除权限
@@ -362,9 +369,15 @@ class NodeContextMenu extends React.Component {
         <div style={headerStyle}>
           <span style={{flex: 1}}>{nodeLabel}</span>
         </div>
-        {menuItems.map((item, index) =>
-          this.renderMenuItem(item.label, item.onClick, index === menuItems.length - 1)
-        )}
+        {menuItems.map((item, index) => {
+          let menuType = 'normal';
+          if (item.label === '创建依赖') {
+            menuType = 'create';
+          } else if (item.label === '删除组件') {
+            menuType = 'delete';
+          }
+          return this.renderMenuItem(item.label, item.onClick, menuType);
+        })}
       </div>
     );
   }

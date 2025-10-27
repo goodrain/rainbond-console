@@ -67,22 +67,27 @@ class EdgeCreateOverlay extends React.Component {
           />
           {/* iconfont 连线图标 */}
           <foreignObject
-            x="-12"
-            y="-12"
-            width="24"
-            height="24"
+            x="-20"
+            y="-20"
+            width="40"
+            height="40"
             style={{overflow: 'visible'}}
           >
             <div style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '24px',
-              height: '24px',
-              fontSize: '20px',
-              color: '#4CAF50'
+              width: '40px',
+              height: '40px',
+              pointerEvents: 'none'
             }}>
-              <i className="iconfont icon-lianjie"></i>
+              <i className="iconfont icon-jiahao" style={{
+                fontSize: '36px',
+                lineHeight: '40px',
+                color: '#4CAF50',
+                fontWeight: 'bold',
+                display: 'block'
+              }}></i>
             </div>
           </foreignObject>
         </g>
