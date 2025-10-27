@@ -22,10 +22,14 @@ class LangUpdate(AppBaseView):
     @never_cache
     def put(self, request, *args, **kwargs):
         lang = request.GET.get('lang', None)
+        dockerfile_path = request.data.get('dockerfile_path', '')
         if lang:
             self.service.language = lang
             if lang == 'dockerfile':
                 self.service.cmd = ''
+                # 保存 dockerfile_path 到 service 的 dockerfile 字段
+                if dockerfile_path:
+                    self.service.dockerfile = dockerfile_path
             self.service.save()
             return Response(general_message(200, "更新检测语言成功", "更新检测语言成功"), status=200)
         else:
