@@ -6,6 +6,13 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "11437424",
+      "name": "连线",
+      "font_class": "lianxian1",
+      "unicode": "e600",
+      "unicode_decimal": 58880
+    },
+    {
       "icon_id": "12269006",
       "name": "打包下载",
       "font_class": "dabaoxiazai",
