@@ -156,7 +156,7 @@ class BaseService(object):
         """处理 KubeBlocks 组件状态和资源信息替换"""
         try:
             from console.enum.component_enum import is_kubeblocks
-            from console.services.kube_blocks_service import kubeblocks_service
+            from console.services.kubeblocks_service import kubeblocks_service
             
             services = service_repo.get_services_by_service_ids(service_ids)
             kubeblocks_services = [s for s in services if is_kubeblocks(s.extend_method)]

@@ -3308,7 +3308,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def update_kubeblocks_backup_config(self, region_name, service_id, backup_config):
         """
         更新 KubeBlocks 集群的备份配置, 
-        仅对指定集群的备份策略生效, 不影响其他伸缩/资源配置
         """
         region_info = self.get_region_info(region_name)
         if not region_info:
@@ -3321,7 +3320,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def create_kubeblocks_manual_backup(self, region_name, service_id):
         """
-        创建 Cluster的手动备份
+        创建 Cluster 的手动备份
         """
         region_info = self.get_region_info(region_name)
         if not region_info:

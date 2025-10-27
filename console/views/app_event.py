@@ -7,7 +7,7 @@ import logging
 
 from console.constants import LogConstants
 from console.services.app_actions import event_service, log_service, ws_service
-from console.services.kube_blocks_service import kubeblocks_service
+from console.services.kubeblocks_service import kubeblocks_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from django.views.decorators.cache import never_cache
@@ -55,6 +55,7 @@ class AppEventView(AppBaseView):
         page_size = request.GET.get("page_size", 6)
         start_time = request.GET.get("start_time", None)
 
+        # kubeblocks_component 需要独立获取 event 并合并至 rainbond event
         try:
             if self.service.extend_method == 'kubeblocks_component':
                 events, total, has_next = kubeblocks_service.merge_region_and_kb_events(

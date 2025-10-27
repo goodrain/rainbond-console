@@ -21,7 +21,6 @@ from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.app import app_service, package_upload_service
 from console.services.app_actions import ws_service
 from console.services.app_config import port_service
-from console.services.kube_blocks_service import kubeblocks_service
 from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
@@ -30,6 +29,7 @@ from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import app_plugin_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.services.kubeblocks_service import kubeblocks_service
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
@@ -276,6 +276,7 @@ class AppStatusView(AppBaseView):
         bean = dict()
         bean["check_uuid"] = self.service.check_uuid
         status_map = app_service.get_service_status(self.tenant, self.service)
+        # kubeblocks_component 需要额外补充状态到 app status
         if is_kubeblocks(self.service.extend_method):
             kubeblocks_status = kubeblocks_service.get_kubeblocks_service_status(
                 self.service.service_region, self.service.service_id)

@@ -14,7 +14,6 @@ from console.services.app_config import (dependency_service, env_var_service, po
 from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
 from console.services.operation_log import operation_log_service, Operation
-from console.services.kube_blocks_service import kubeblocks_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderCloudEnterpriseCenterView)
 from django.db import transaction

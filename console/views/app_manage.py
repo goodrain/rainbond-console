@@ -24,7 +24,7 @@ from console.services.market_app_service import market_app_service
 from console.services.operation_log import operation_log_service, OperationType, InformationType, Operation
 from console.services.region_services import region_services
 from console.services.upgrade_services import upgrade_service
-from console.services.kube_blocks_service import kubeblocks_service
+from console.services.kubeblocks_service import kubeblocks_service
 from console.views.app_config.base import (AppBaseCloudEnterpriseCenterView, AppBaseView)
 from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderCloudEnterpriseCenterView,
                                 RegionTenantHeaderView)

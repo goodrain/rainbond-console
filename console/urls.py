@@ -164,9 +164,9 @@ from console.views.team_overview import UserTeamDetailsView
 from console.views.sms_config import SMSConfigView
 from console.views.sms_verification import SMSVerificationView
 from console.views.user_operation import RegisterByPhoneView, LoginByPhoneView
-from console.views.kube_blocks import (KubeBlocksAddonsView, KubeBlocksStorageClassesView, KubeBlocksBackupReposView,
-                                  KubeBlocksClusterDetailView, KubeBlocksClusterBackupView, KubeBlocksClusterBackupListView,
-                                  KubeBlocksClusterParametersView, KubeBlocksClusterRestoreView)
+from console.views.kubeblocks import (KubeBlocksAddonsView, KubeBlocksStorageClassesView, KubeBlocksBackupReposView,
+                                      KubeBlocksClusterDetailView, KubeBlocksClusterBackupView, KubeBlocksClusterBackupListView,
+                                      KubeBlocksClusterParametersView, KubeBlocksClusterRestoreView)
 
 urlpatterns = [
     # 升级

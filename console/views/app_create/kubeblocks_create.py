@@ -1,11 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-KubeBlocks 组件创建视图
-
-用于处理 KubeBlocks 组件的一站式创建请求，提供 REST API 接口供前端调用。
-与常规组件创建不同，此API在单次调用中完成组件创建、集群部署、连接配置等全部流程。
-"""
-
 import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
@@ -13,7 +6,7 @@ from rest_framework.response import Response
 from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import ServiceHandleException
 from console.services.app import app_service
-from console.services.kube_blocks_service import kubeblocks_service
+from console.services.kubeblocks_service import kubeblocks_service
 from console.services.operation_log import operation_log_service, OperationType
 from console.views.base import RegionTenantHeaderView
 from www.utils.return_message import general_message
@@ -21,17 +14,6 @@ from www.utils.return_message import general_message
 logger = logging.getLogger("default")
 
 class KubeBlocksComponentCreateView(RegionTenantHeaderView):
-    """
-    KubeBlocks 组件一站式创建视图
-    
-    处理 KubeBlocks 组件的完整创建流程，包括：
-    - 组件元数据创建
-    - KubeBlocks 集群创建  
-    - 连接信息配置
-    - Region 资源创建
-    - 组件构建部署
-    """
-    
     @never_cache
     def post(self, request, *args, **kwargs):  # pylint: disable=unused-argument
         """
@@ -39,24 +21,7 @@ class KubeBlocksComponentCreateView(RegionTenantHeaderView):
         
         在单次API调用中完成从组件创建到部署的完整流程，
         与常规组件部署完成后返回相同格式的数据。
-
-        Returns:
-        JSON 响应格式（与标准组件部署完成后格式一致）:
-        {
-            "code": 200,
-            "msg": "success",
-            "msg_show": "创建成功", 
-            "data": {
-                "bean": {
-                    "service_id": "组件ID",
-                    "service_cname": "组件显示名称",
-                    "service_alias": "组件别名",
-                    "status": "running",
-                }
-            }
-        }
         """
-        
         service_cname = request.data.get("cluster_name", "").strip()
         k8s_component_name = request.data.get("k8s_app", "")
         group_id = request.data.get("group_id", -1)
@@ -74,14 +39,14 @@ class KubeBlocksComponentCreateView(RegionTenantHeaderView):
             raise ErrK8sComponentNameExists
 
         try:
-            # 检查组件名称（必填）
+            # 检查组件名称
             if not service_cname:
                 return Response(
                     general_message(400, "cluster_name required", "组件名称不能为空"),
                     status=400
                 )
             
-            # 集群配置必填参数检查（直接从请求体获取）
+            # 集群配置必填参数检查
             required_cluster_fields = ["cluster_name", "database_type", "version", 
                                      "cpu", "memory", "storage_size"]
             for field in required_cluster_fields:

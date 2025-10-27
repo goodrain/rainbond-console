@@ -125,9 +125,9 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 return 409, "操作过于频繁，请稍后再试"
 
-        # KubeBlocks 组件特殊处理
+        # KubeBlocks Component 需要额外启动 Cluster
         if is_kubeblocks(service.extend_method):
-            from console.services.kube_blocks_service import kubeblocks_service
+            from console.services.kubeblocks_service import kubeblocks_service
             code, msg = kubeblocks_service.manage_cluster_status(
                 service,
                 service.service_region,
@@ -185,9 +185,9 @@ class AppManageService(AppManageBase):
             except region_api.CallApiFrequentError:
                 raise ServiceHandleException(msg_show="操作过于频繁，请稍后重试", msg="wait a moment please", status_code=409)
 
-        # KubeBlocks 组件特殊处理
+        # KubeBlocks Component 需要额外关闭 Cluster
         if is_kubeblocks(service.extend_method):
-            from console.services.kube_blocks_service import kubeblocks_service
+            from console.services.kubeblocks_service import kubeblocks_service
             kubeblocks_service.manage_cluster_status(
                 service,
                 service.service_region,
@@ -212,9 +212,9 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 return 409, "操作过于频繁，请稍后再试"
 
-        # KubeBlocks 组件特殊处理
+        # KubeBlocks Component 需要额外重启 Cluster
         if is_kubeblocks(service.extend_method):
-            from console.services.kube_blocks_service import kubeblocks_service
+            from console.services.kubeblocks_service import kubeblocks_service
             code, msg = kubeblocks_service.manage_cluster_status(
                 service,
                 service.service_region,
@@ -594,7 +594,7 @@ class AppManageService(AppManageBase):
                 kb_service_ids = [s.service_id for s in services if is_kubeblocks(s.extend_method)]
                 if kb_service_ids:
                     try:
-                        from console.services.kube_blocks_service import kubeblocks_service
+                        from console.services.kubeblocks_service import kubeblocks_service
                         code, msg = kubeblocks_service.manage_cluster_status(
                             kb_service_ids,
                             region_name,

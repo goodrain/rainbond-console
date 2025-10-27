@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from rest_framework.response import Response
 
 from console.exception.bcode import ErrK8sComponentNameExists
-from console.services.kube_blocks_service import kubeblocks_service
+from console.services.kubeblocks_service import kubeblocks_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
