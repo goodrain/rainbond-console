@@ -113,6 +113,12 @@ class TopologicalService(object):
                     "enterprise_id": enterprise_id
                 })
                 service_status_list = service_status_list["list"]
+
+                # 处理 KubeBlocks 组件状态
+                service_status_list = base_service._process_kubeblocks_status(
+                    service_status_list, all_service_id_list, region
+                )
+
                 if service_status_list:
                     service_status_map = {status_map["service_id"]: status_map for status_map in service_status_list}
             except Exception as e:
