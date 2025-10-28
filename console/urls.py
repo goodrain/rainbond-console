@@ -41,6 +41,7 @@ from console.views.app_create.source_code import (AppCompileEnvView, SourceCodeC
 from console.views.app_create.source_outer import (ThirdPartyAppPodsView, ThirdPartyHealthzView, ThirdPartyServiceApiView,
                                                    ThirdPartyServiceCreateView, ThirdPartyUpdateSecretKeyView)
 from console.views.app_create.vm_run import VMRunCreateView
+from console.views.app_create.kubeblocks_create import KubeBlocksComponentCreateView
 from console.views.app_event import (AppEventLogView, AppEventsLogView, AppEventsView, AppEventView, AppHistoryLogView,
                                      AppLogInstanceView, AppLogView)
 from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete, ChangeServiceNameView, ChangeServiceTypeView,
@@ -165,6 +166,9 @@ from console.views.team_overview import UserTeamDetailsView
 from console.views.sms_config import SMSConfigView
 from console.views.sms_verification import SMSVerificationView
 from console.views.user_operation import RegisterByPhoneView, LoginByPhoneView
+from console.views.kubeblocks import (KubeBlocksAddonsView, KubeBlocksStorageClassesView, KubeBlocksBackupReposView,
+                                      KubeBlocksClusterDetailView, KubeBlocksClusterBackupView, KubeBlocksClusterBackupListView,
+                                      KubeBlocksClusterParametersView, KubeBlocksClusterRestoreView)
 
 urlpatterns = [
     # 升级
@@ -473,6 +477,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/docker_compose$', DockerComposeCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 虚拟机镜像创建
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/vm_run$', VMRunCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
+    # KubeBlocks组件创建
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/kubeblocks$', KubeBlocksComponentCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 应用检测
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/check$', AppCheck.as_view(), perms.APP_OVERVIEW_CREATE),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/lang-update$', LangUpdate.as_view()),
@@ -1069,6 +1075,25 @@ urlpatterns = [
     url(r'^users/register-by-phone$', RegisterByPhoneView.as_view()),
     # 用户登录（手机号）
     url(r'^users/login-by-phone$', LoginByPhoneView.as_view()),
+
+    # KubeBlocks 
+    # 支持的数据库类型
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/supported_databases$', KubeBlocksAddonsView.as_view()),
+    # 获取 StorageClass
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/storage_classes$', KubeBlocksStorageClassesView.as_view()),
+    # 获取 BackupRepo
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/backup_repos$', KubeBlocksBackupReposView.as_view()),
+    # Cluster detail and expansion (AppBaseView)
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/detail$', KubeBlocksClusterDetailView.as_view()),
+    # 设置备份策略
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/backup-config$', KubeBlocksClusterBackupView.as_view()),
+    # 备份创建/获取/删除 (AppBaseView)
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/backups$', KubeBlocksClusterBackupListView.as_view()),
+    # KubeBlocks 集群参数管理（获取/更新）
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/parameters$', KubeBlocksClusterParametersView.as_view()),
+    # KubeBlocks 集群从备份恢复（基于 AppBaseView 的 serviceAlias，前端统一使用此路由）
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/restores$', KubeBlocksClusterRestoreView.as_view()),
+
 ]
 
 # 云市应用升级相关接口

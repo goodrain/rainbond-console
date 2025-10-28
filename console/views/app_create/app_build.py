@@ -59,6 +59,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                 new_service = app_service.create_region_service(self.tenant, self.service, self.user.nick_name)
 
             self.service = new_service
+
             if is_deploy:
                 try:
                     arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)
