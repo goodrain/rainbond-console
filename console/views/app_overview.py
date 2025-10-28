@@ -10,7 +10,6 @@ import os
 import pickle
 
 from console.constants import AppConstants, PluginCategoryConstants
-from console.enum.component_enum import is_kubeblocks
 from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import (MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.repositories.app import (service_repo, service_source_repo, service_webhooks_repo)
@@ -29,7 +28,6 @@ from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import app_plugin_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.services.kubeblocks_service import kubeblocks_service
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
@@ -276,12 +274,6 @@ class AppStatusView(AppBaseView):
         bean = dict()
         bean["check_uuid"] = self.service.check_uuid
         status_map = app_service.get_service_status(self.tenant, self.service)
-        # kubeblocks_component 需要额外补充状态到 app status
-        if is_kubeblocks(self.service.extend_method):
-            kubeblocks_status = kubeblocks_service.get_kubeblocks_service_status(
-                self.service.service_region, self.service.service_id)
-            if kubeblocks_status:
-                status_map = kubeblocks_status
         bean.update(status_map)
         result = general_message(200, "success", "查询成功", bean=bean)
         return Response(result, status=result["code"])
