@@ -18,8 +18,6 @@ class AppPodsView(AppBaseView):
         try:
             data = region_api.pod_detail(self.service.service_region, self.tenant.tenant_name, self.service.service_alias,
                                          pod_name)
-            if self.service.extend_method == "kubeblocks_component":
-                data = region_api.kubeblocks_cluster_pod_detail(self.service.service_region, self.service.service_id, pod_name)
             result = general_message(200, 'success', "查询成功", data.get("bean", None))
         except RegionApiBaseHttpClient.CallApiError as e:
             logger.exception(e)

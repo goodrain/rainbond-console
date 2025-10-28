@@ -9,7 +9,7 @@ from datetime import datetime
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 
-from console.enum.component_enum import is_state, is_support, ComponentType, is_kubeblocks
+from console.enum.component_enum import is_state, is_support, ComponentType
 from console.exception.main import (AbortRequest, AccountOverdueException, CallRegionAPIException, RbdAppNotFound,
                                     ResourceNotEnoughException, ServiceHandleException)
 from console.repositories.app import service_repo
@@ -24,7 +24,6 @@ from console.services.market_app_service import market_app_service
 from console.services.operation_log import operation_log_service, OperationType, InformationType, Operation
 from console.services.region_services import region_services
 from console.services.upgrade_services import upgrade_service
-from console.services.kubeblocks_service import kubeblocks_service
 from console.views.app_config.base import (AppBaseCloudEnterpriseCenterView, AppBaseView)
 from console.views.base import (CloudEnterpriseCenterView, JWTAuthApiView, RegionTenantHeaderCloudEnterpriseCenterView,
                                 RegionTenantHeaderView)
@@ -97,8 +96,6 @@ class StartAppView(AppBaseCloudEnterpriseCenterView):
         """
         try:
             code, msg = app_manage_service.start(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
-            if is_kubeblocks(self.service.extend_method):
-                code, msg = kubeblocks_service.manage_cluster_status(self.service, self.region_name, oauth_instance=self.oauth_instance, operation="start")
             bean = {}
             if code != 200:
                 return Response(general_message(code, "start app error", msg, bean=bean), status=code)
@@ -146,8 +143,6 @@ class StopAppView(AppBaseView):
 
         """
         app_manage_service.stop(self.tenant, self.service, self.user)
-        if is_kubeblocks(self.service.extend_method):
-            kubeblocks_service.manage_cluster_status(self.service, self.region_name, oauth_instance=None, operation="stop")
         result = general_message(200, "success", "操作成功", bean={})
         comment = operation_log_service.generate_component_comment(
             operation=Operation.STOP,
@@ -240,8 +235,6 @@ class ReStartAppView(AppBaseCloudEnterpriseCenterView):
 
         """
         code, msg = app_manage_service.restart(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
-        if is_kubeblocks(self.service.extend_method):
-            kubeblocks_service.manage_cluster_status(self.service, self.region_name, oauth_instance=self.oauth_instance, operation="restart")
         bean = {}
         if code != 200:
             return Response(general_message(code, "restart app error", msg, bean=bean), status=code)
@@ -720,11 +713,6 @@ class DeleteAppView(AppBaseView):
         bean = {}
         if code != 200:
             return Response(general_message(code, "delete service error", msg, bean=bean), status=code)
-
-        # 删除 KubeBlocks Cluster
-        service_id = self.service.service_id
-        kubeblocks_service.delete_kubeblocks_cluster([service_id], self.region_name)
-
         result = general_message(code, "success", "操作成功", bean=bean)
         comment = operation_log_service.generate_component_comment(
             operation=Operation.DELETE, module_name=self.service.service_cname)
@@ -789,9 +777,6 @@ class BatchDelete(RegionTenantHeaderView):
             msg_dict['service_id'] = service.service_id
             msg_dict['service_cname'] = service.service_cname
             msg_list.append(msg_dict)
-            # 删除 KubeBlocks Cluster
-            if code == 200:
-                kubeblocks_service.delete_kubeblocks_cluster([service.service_id], service.service_region)
         if app:
             self.app = app
             old_information = json.dumps(old_information, ensure_ascii=False)
