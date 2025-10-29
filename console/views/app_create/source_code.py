@@ -576,7 +576,8 @@ class TarImageLoadView(RegionTenantHeaderView):
         try:
             # 1. 获取上传的tar文件路径
             res, body = region_api.get_upload_file_dir(region, tenantName, event_id)
-            if res.status_code != 200:
+            if res.status != 200:
+                logger.info("-------------{}".format(res))
                 return Response(general_message(500, "failed to get upload files", "获取上传文件失败"), status=500)
 
             packages = body.get("bean", {}).get("packages", [])
@@ -600,7 +601,7 @@ class TarImageLoadView(RegionTenantHeaderView):
 
             res, body = region_api.load_tar_image(region, tenantName, load_data)
 
-            if res.status_code != 200:
+            if res.status != 200:
                 error_msg = body.get("msg", "启动解析任务失败")
                 return Response(general_message(500, "load task failed", error_msg), status=500)
 
@@ -652,7 +653,7 @@ class TarImageLoadResultView(RegionTenantHeaderView):
             # 调用region API查询解析结果
             res, body = region_api.get_tar_load_result(region, tenantName, load_id)
 
-            if res.status_code != 200:
+            if res.status != 200:
                 error_msg = body.get("msg", "查询解析结果失败")
                 return Response(general_message(500, "query failed", error_msg), status=500)
 
@@ -669,6 +670,7 @@ class TarImageLoadResultView(RegionTenantHeaderView):
             if result.get("status") == "success":
                 result_bean["images"] = result.get("images", [])  # 原始镜像列表
                 result_bean["metadata"] = result.get("metadata", {})  # 镜像元数据
+                result_bean["target_images"] = result.get("target_images", {})  # 镜像元数据
 
             return Response(general_message(200, "success", "查询成功", bean=result_bean), status=200)
 
@@ -732,7 +734,7 @@ class TarImageImportView(RegionTenantHeaderView):
 
             res, body = region_api.import_tar_images(region, tenantName, import_data)
 
-            if res.status_code != 200:
+            if res.status != 200:
                 error_msg = body.get("msg", "导入镜像失败")
                 return Response(general_message(500, "import failed", error_msg), status=500)
 
