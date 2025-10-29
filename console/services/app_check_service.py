@@ -431,6 +431,9 @@ class AppCheckService(object):
         if service_info.get("tar_images"):
             tar_images_bean = {"type": "tar_images", "key": "tar包镜像", "value": service_info.get("tar_images")}
             service_attr_list.append(tar_images_bean)
+        if service_info.get("dockerfiles"):
+            dockerfiles_bean = {"type": "dockerfiles", "key": "Dockerfile文件", "value": service_info.get("dockerfiles")}
+            service_attr_list.append(dockerfiles_bean)
         service_code_from = {}
         service_language = {}
         if service.service_source == AppConstants.SOURCE_CODE:
