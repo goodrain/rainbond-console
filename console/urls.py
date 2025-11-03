@@ -38,7 +38,7 @@ from console.views.app_create.image_repositories import TenantImageRepositories,
 from console.views.app_create.multi_app import (MultiAppCheckView, MultiAppCreateView)
 from console.views.app_create.source_code import (AppCompileEnvView, SourceCodeCreateView, UploadRecordLastView,
                                                   PackageUploadRecordView, PackageCreateView, TarImageLoadView,
-                                                  TarImageLoadResultView, TarImageImportView)
+                                                  TarImageLoadResultView)
 from console.views.app_create.source_outer import (ThirdPartyAppPodsView, ThirdPartyHealthzView, ThirdPartyServiceApiView,
                                                    ThirdPartyServiceCreateView, ThirdPartyUpdateSecretKeyView)
 from console.views.app_create.vm_run import VMRunCreateView
@@ -461,9 +461,6 @@ urlpatterns = [
     # 查询tar包解析结果(包含镜像列表)
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/tar-image/load/(?P<load_id>[\w\-]+)$',
         TarImageLoadResultView.as_view(), perms.APP_OVERVIEW_CREATE),
-    # 确认导入镜像到镜像仓库
-    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build/tar-image/import$', TarImageImportView.as_view(),
-        perms.APP_OVERVIEW_CREATE),
     # 本地文件创建组件
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/package_build$', PackageCreateView.as_view(), perms.APP_OVERVIEW_CREATE),
     # 源码创建
