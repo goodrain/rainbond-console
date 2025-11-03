@@ -576,7 +576,8 @@ class TarImageLoadView(RegionTenantHeaderView):
         try:
             # 1. 获取上传的tar文件路径
             res, body = region_api.get_upload_file_dir(region, tenantName, event_id)
-            if res.status_code != 200:
+            if res.status != 200:
+                logger.info("-------------{}".format(res))
                 return Response(general_message(500, "failed to get upload files", "获取上传文件失败"), status=500)
 
             packages = body.get("bean", {}).get("packages", [])
@@ -600,7 +601,7 @@ class TarImageLoadView(RegionTenantHeaderView):
 
             res, body = region_api.load_tar_image(region, tenantName, load_data)
 
-            if res.status_code != 200:
+            if res.status != 200:
                 error_msg = body.get("msg", "启动解析任务失败")
                 return Response(general_message(500, "load task failed", error_msg), status=500)
 
@@ -652,7 +653,7 @@ class TarImageLoadResultView(RegionTenantHeaderView):
             # 调用region API查询解析结果
             res, body = region_api.get_tar_load_result(region, tenantName, load_id)
 
-            if res.status_code != 200:
+            if res.status != 200:
                 error_msg = body.get("msg", "查询解析结果失败")
                 return Response(general_message(500, "query failed", error_msg), status=500)
 
@@ -669,9 +670,87 @@ class TarImageLoadResultView(RegionTenantHeaderView):
             if result.get("status") == "success":
                 result_bean["images"] = result.get("images", [])  # 原始镜像列表
                 result_bean["metadata"] = result.get("metadata", {})  # 镜像元数据
+                result_bean["target_images"] = result.get("target_images", {})  # 镜像元数据
 
             return Response(general_message(200, "success", "查询成功", bean=result_bean), status=200)
 
         except Exception as e:
             logger.exception(e)
             return Response(general_message(500, "internal error", f"查询解析结果失败: {str(e)}"), status=500)
+
+
+class TarImageImportView(RegionTenantHeaderView):
+    @never_cache
+    def post(self, request, tenantName, *args, **kwargs):
+        """
+        确认导入镜像到镜像仓库(同步执行)
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: load_id
+              description: 解析任务ID
+              required: true
+              type: string
+              paramType: form
+            - name: region
+              description: 集群
+              required: true
+              type: string
+              paramType: form
+            - name: images
+              description: 要导入的镜像列表(镜像名数组)
+              required: true
+              type: array
+              paramType: form
+            - name: namespace
+              description: 命名空间
+              required: false
+              type: string
+              paramType: form
+        """
+        load_id = request.data.get("load_id", None)
+        region = request.data.get("region", None)
+        images = request.data.get("images", [])  # 用户选择的镜像列表
+        namespace = request.data.get("namespace", tenantName)
+
+        if not load_id:
+            return Response(general_message(400, "load_id is required", "解析任务ID不能为空"), status=400)
+        if not region:
+            return Response(general_message(400, "region is required", "集群不能为空"), status=400)
+        if not images or len(images) == 0:
+            return Response(general_message(400, "images is required", "请选择要导入的镜像"), status=400)
+
+        try:
+            # 调用region API确认导入镜像
+            import_data = {
+                "load_id": load_id,
+                "images": images,
+                "namespace": namespace
+            }
+
+            res, body = region_api.import_tar_images(region, tenantName, import_data)
+
+            if res.status != 200:
+                error_msg = body.get("msg", "导入镜像失败")
+                return Response(general_message(500, "import failed", error_msg), status=500)
+
+            result = body.get("bean", {})
+
+            # 返回导入结果
+            result_bean = {
+                "imported_images": result.get("imported_images", []),  # 成功导入的镜像
+                "failed_images": result.get("failed_images", []),  # 失败的镜像
+                "message": result.get("message", "导入完成")
+            }
+
+            logger.info(f"Imported tar images, load_id: {load_id}, success: {len(result_bean['imported_images'])}, failed: {len(result_bean['failed_images'])}")
+
+            return Response(general_message(200, "success", "导入完成", bean=result_bean), status=200)
+
+        except Exception as e:
+            logger.exception(e)
+            return Response(general_message(500, "internal error", f"导入镜像失败: {str(e)}"), status=500)
