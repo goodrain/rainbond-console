@@ -356,6 +356,7 @@ class TenantServiceInfo(BaseModel):
     k8s_component_name = models.CharField(max_length=100, help_text="集群组件名称")
     job_strategy = models.CharField(max_length=2047, null=True, default="", help_text="job任务策略")
     arch = models.CharField(max_length=32, null=True, default="amd64", help_text="架构")
+    dockerfile = models.CharField(max_length=255, null=True, blank=True, default="", help_text="Dockerfile路径")
 
     def __unicode__(self):
         return self.service_alias
@@ -462,6 +463,7 @@ class TenantServiceInfoDelete(BaseModel):
     service_name = models.CharField(max_length=100, default='', help_text="组件名称（新加属性，数据中心使用）")
     k8s_component_name = models.CharField(max_length=100, help_text="集群组件名称")
     job_strategy = models.CharField(max_length=2047, null=True, default="", help_text="job任务策略")
+    dockerfile = models.CharField(max_length=255, null=True, blank=True, default="", help_text="Dockerfile路径")
     exec_user = models.CharField(max_length=128, default="", help_text="执行删除的用户")
     app_name = models.CharField(max_length=128, default="", help_text="应用名称")
     app_id = models.IntegerField(default=0, help_text="应用id")
