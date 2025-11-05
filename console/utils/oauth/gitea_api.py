@@ -59,7 +59,6 @@ class GiteaApiV1(GitOAuth2Interface):
             hashlib.sha256(code_verifier.encode('utf-8')).digest()
         ).decode('utf-8').rstrip('=')
 
-        logger.debug(f"Generated PKCE params - verifier length: {len(code_verifier)}, challenge length: {len(code_challenge)}")
         return code_verifier, code_challenge
 
     def get_auth_url(self, home_url=None):
@@ -131,13 +130,11 @@ class GiteaApiV1(GitOAuth2Interface):
             # 如果提供了 code_verifier，添加到请求中（PKCE）
             if code_verifier:
                 data["code_verifier"] = code_verifier
-                logger.info(f"Using PKCE code_verifier for token exchange")
 
             url = self.get_access_token_url(self.oauth_service.home_url)
 
             try:
                 logger.debug(f"Requesting access token from Gitea: {url}")
-                logger.debug(f"Token request data (without secrets): client_id={data['client_id']}, grant_type={data['grant_type']}, has_code_verifier={bool(code_verifier)}")
                 rst = self._session.post(url=url, headers=headers, json=data)
                 logger.debug(f"Gitea response status: {rst.status_code}")
             except Exception as e:
@@ -306,8 +303,6 @@ class GiteaApiV1(GitOAuth2Interface):
             }
             params.update(self.request_params)
             authorize_url = set_get_url(self.oauth_service.auth_url, params)
-            logger.info(f"Generated Gitea authorize URL with PKCE support")
-            logger.debug(f"PKCE code_challenge: {code_challenge}")
             return authorize_url
         else:
             raise NoOAuthServiceErr("no found oauth service")

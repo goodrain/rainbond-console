@@ -229,134 +229,97 @@ class OauthServiceInfo(EnterpriseAdminView):
 
 class OAuthServiceRedirect(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
-        logger.info(f"[OAuth Redirect] Received OAuth callback request")
-        logger.info(f"[OAuth Redirect] Full request path: {request.get_full_path()}")
-        logger.info(f"[OAuth Redirect] All GET parameters: {dict(request.GET)}")
-        logger.info(f"[OAuth Redirect] Request META - HTTP_REFERER: {request.META.get('HTTP_REFERER', 'N/A')}")
-
         code = request.GET.get("code")
         state = request.GET.get("state")
-
-        # 优先从 URL 参数获取 service_id（兼容旧方式）
         service_id = request.GET.get("service_id")
 
         # 如果 URL 参数中没有 service_id，尝试从 state 参数中解析（OAuth2 标准方式）
-        if not service_id:
-            if state:
-                try:
-                    state_data = json.loads(state)
-                    service_id = state_data.get("service_id")
-                    logger.info(f"[OAuth Redirect] Parsed service_id from state parameter: {service_id}")
-                except Exception as e:
-                    logger.error(f"[OAuth Redirect] Failed to parse state parameter: {e}, state: {state}")
+        if not service_id and state:
+            try:
+                state_data = json.loads(state)
+                service_id = state_data.get("service_id")
+            except Exception as e:
+                logger.error(f"Failed to parse state parameter: {e}")
 
+        # 检查 OAuth 错误
         error = request.GET.get("error")
-        error_description = request.GET.get("error_description")
-
-        logger.info(f"[OAuth Redirect] Request parameters - code: {code[:10] if code else None}..., service_id: {service_id}, has_state: {bool(state)}")
-
         if error:
-            logger.error(f"[OAuth Redirect] OAuth error returned - error: {error}, description: {error_description}")
+            error_description = request.GET.get("error_description")
+            logger.error(f"OAuth error: {error} - {error_description}")
 
         if not code:
-            logger.warning(f"[OAuth Redirect] Missing code parameter, redirecting to home")
-            logger.warning(f"[OAuth Redirect] This usually means: 1) User denied authorization, 2) OAuth server error, 3) Redirect URI mismatch")
+            logger.warning("Missing code parameter in OAuth callback")
             return HttpResponseRedirect("/")
 
         try:
             service = OAuthServices.objects.get(ID=service_id)
-            logger.info(f"[OAuth Redirect] Found OAuth service - ID: {service.ID}, name: {service.name}, type: {service.oauth_type}, enable: {service.enable}")
         except OAuthServices.DoesNotExist:
-            logger.error(f"[OAuth Redirect] OAuth service not found with ID: {service_id}")
+            logger.error(f"OAuth service not found: {service_id}")
             return HttpResponseRedirect("/")
         except Exception as e:
-            logger.exception(f"[OAuth Redirect] Error retrieving OAuth service: {e}")
+            logger.exception(f"Error retrieving OAuth service: {e}")
             return HttpResponseRedirect("/")
 
         route_mode = os.getenv("ROUTE_MODE", "hash")
-        logger.info(f"[OAuth Redirect] Route mode: {route_mode}")
 
-        # 构建重定向 URL，包含 service_id、code 和 state（重要：state 包含 PKCE 的 code_verifier）
+        # 构建重定向 URL，包含 service_id、code 和 state（state 包含 PKCE 的 code_verifier）
         from urllib.parse import urlencode
-        params = {
-            "service_id": service.ID,
-            "code": code
-        }
-        # 如果有 state 参数，也传递给前端（前端需要回传给后端用于 PKCE 验证）
+        params = {"service_id": service.ID, "code": code}
         if state:
             params["state"] = state
-            logger.info(f"[OAuth Redirect] Passing state to frontend for PKCE verification")
 
         query_string = urlencode(params)
-
-        if route_mode == "history":
-            redirect_url = f"/oauth/callback?{query_string}"
-        else:
-            redirect_url = f"/#/oauth/callback?{query_string}"
-
-        logger.info(f"[OAuth Redirect] Redirecting to: {redirect_url}")
+        redirect_url = f"/oauth/callback?{query_string}" if route_mode == "history" else f"/#/oauth/callback?{query_string}"
 
         return HttpResponseRedirect(redirect_url)
 
 
 class OAuthServerAuthorize(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
-        logger.info(f"[OAuth Authorize] Received authorization request")
-        logger.info(f"[OAuth Authorize] Full request path: {request.get_full_path()}")
-        logger.info(f"[OAuth Authorize] All GET parameters: {dict(request.GET)}")
-
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
         domain = request.GET.get("domain")
         state = request.GET.get("state")
 
-        logger.info(f"[OAuth Authorize] Extracted parameters - code: {code[:10] if code else None}..., service_id: {service_id}, has_state: {bool(state)}")
-
         # 尝试从 state 中解析 code_verifier（用于 PKCE）
         code_verifier = None
         if state:
             try:
-                logger.info(f"[OAuth Authorize] Attempting to parse state: {state[:50]}...")
                 state_data = json.loads(state)
                 code_verifier = state_data.get("code_verifier")
                 # 如果 state 中有 service_id 但 URL 参数中没有，使用 state 中的
                 if not service_id:
                     service_id = state_data.get("service_id")
-                logger.info(f"[OAuth Authorize] Parsed state - service_id: {service_id}, code_verifier: {code_verifier[:10] if code_verifier else None}...")
             except Exception as e:
-                logger.error(f"[OAuth Authorize] Failed to parse state: {e}, state: {state}")
-        else:
-            logger.warning(f"[OAuth Authorize] No state parameter received - PKCE will fail!")
+                logger.warning(f"Failed to parse state: {e}")
 
         home_split_url = None
         try:
             oauth_service = OAuthServices.objects.get(ID=service_id)
-            logger.info(f"[OAuth Authorize] Processing authorization for service: {oauth_service.name} (type: {oauth_service.oauth_type})")
             if not oauth_service.enable:
                  raise ServiceHandleException(msg="OAuth service disabled", msg_show="该 OAuth 服务已被禁用")
             if oauth_service.oauth_type == "enterprisecenter" and domain:
                 home_split_url = urlsplit(oauth_service.home_url)
                 oauth_service.proxy_home_url = home_split_url.scheme + "://" + domain + home_split_url.path
         except OAuthServices.DoesNotExist:
-            logger.error(f"[OAuth Authorize] OAuth service with ID {service_id} not found.")
+            logger.debug(f"OAuth service with ID {service_id} not found.")
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.exception(f"[OAuth Authorize] Error loading OAuth service: {e}")
+            logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
         except NoSupportOAuthType as e:
-            logger.error(f"[OAuth Authorize] Unsupported OAuth type: {oauth_service.oauth_type}")
+            logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             # 传递 code_verifier 参数（用于 PKCE）
-            logger.info(f"[OAuth Authorize] Requesting user info with code_verifier: {bool(code_verifier)}")
             oauth_user, access_token, refresh_token = api.get_user_info(code=code, code_verifier=code_verifier)
         except Exception as e:
-            logger.exception(f"[OAuth Authorize] Failed to get user info: {e}")
+            logger.exception(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": str(e)}
             return Response(rst, status=status.HTTP_200_OK)
         if api.is_communication_oauth():
@@ -426,46 +389,37 @@ class OAuthUserInfo(AlowAnyApiView):
 
 class OAuthServerUserAuthorize(JWTAuthApiView):
     def post(self, request, *args, **kwargs):
-        logger.info(f"[OAuth User Authorize] Received POST request")
-        logger.info(f"[OAuth User Authorize] Request data: {dict(request.data)}")
-
         login_user = request.user
         code = request.data.get("code")
         service_id = request.data.get("service_id")
         state = request.data.get("state")
 
-        logger.info(f"[OAuth User Authorize] Extracted - code: {code[:10] if code else None}..., service_id: {service_id}, has_state: {bool(state)}")
-
         # 尝试从 state 中解析 code_verifier（用于 PKCE）
         code_verifier = None
         if state:
             try:
-                logger.info(f"[OAuth User Authorize] Received state (length={len(state)}): {state}")
-                logger.info(f"[OAuth User Authorize] State repr: {repr(state)}")
                 state_data = json.loads(state)
                 code_verifier = state_data.get("code_verifier")
-                logger.info(f"[OAuth User Authorize] Parsed code_verifier from state")
             except Exception as e:
-                logger.error(f"[OAuth User Authorize] Failed to parse state: {e}")
-                logger.error(f"[OAuth User Authorize] Problematic state value: {repr(state)}")
+                logger.warning(f"Failed to parse state: {e}")
 
         try:
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
         except Exception as e:
-            logger.exception(f"[OAuth User Authorize] Failed to get OAuth service: {e}")
+            logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
         except NoSupportOAuthType as e:
-            logger.error(f"[OAuth User Authorize] Unsupported OAuth type: {e}")
+            logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             # 传递 code_verifier 参数（用于 PKCE）
             user, access_token, refresh_token = api.get_user_info(code=code, code_verifier=code_verifier)
         except Exception as e:
-            logger.exception(f"[OAuth User Authorize] Failed to get user info: {e}")
+            logger.exception(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
             return Response(rst, status=status.HTTP_200_OK)
 
