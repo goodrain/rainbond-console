@@ -285,6 +285,12 @@ class OAuthServerAuthorize(AlowAnyApiView):
         code_verifier = None
         if state:
             try:
+                # 检查 state 是否是 URL 编码的（以 %7B 开头，即 { 的编码）
+                if state.startswith('%7B') or state.startswith('%7b'):
+                    from urllib.parse import unquote
+                    state = unquote(state)
+                    logger.debug(f"Decoded URL-encoded state")
+
                 state_data = json.loads(state)
                 code_verifier = state_data.get("code_verifier")
                 # 如果 state 中有 service_id 但 URL 参数中没有，使用 state 中的
@@ -398,6 +404,12 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
         code_verifier = None
         if state:
             try:
+                # 检查 state 是否是 URL 编码的（以 %7B 开头，即 { 的编码）
+                if state.startswith('%7B') or state.startswith('%7b'):
+                    from urllib.parse import unquote
+                    state = unquote(state)
+                    logger.debug(f"Decoded URL-encoded state")
+
                 state_data = json.loads(state)
                 code_verifier = state_data.get("code_verifier")
             except Exception as e:
