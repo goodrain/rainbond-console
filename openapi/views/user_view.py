@@ -224,14 +224,14 @@ class CurrentUsersView(BaseOpenAPIView):
         if req.user:
             user_info = req.user.to_dict()
             res = {
-                "user_id": user_info["user_id"],
-                "email": user_info["email"],
-                "nick_name": user_info["nick_name"],
-                "real_name": user_info["real_name"],
-                "phone": user_info["phone"],
-                "is_active": user_info["is_active"],
-                "origion": user_info["origion"],
-                "enterprise_id": user_info["enterprise_id"]
+                "user_id": user_info.get("user_id", ""),
+                "email": user_info.get("email", ""),
+                "nick_name": user_info.get("nick_name", ""),
+                "real_name": user_info.get("real_name", ""),
+                "phone": user_info.get("phone", ""),
+                "is_active": user_info.get("is_active", False),
+                "origion": user_info.get("origion", ""),
+                "enterprise_id": user_info.get("enterprise_id", "")
             }
             return Response({"bean": res}, status=200)
         return Response(None, status=400)
