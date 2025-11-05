@@ -1002,7 +1002,7 @@ class UserOAuthServices(BaseModel):
     is_authenticated = models.NullBooleanField(null=True, default=False, help_text="is_authenticated")
     is_expired = models.NullBooleanField(null=True, default=False, help_text="is_expired")
     access_token = models.CharField(max_length=2047, null=True, help_text="access_token_url")
-    refresh_token = models.CharField(max_length=64, null=True, help_text="refresh_token")
+    refresh_token = models.CharField(max_length=2048, null=True, help_text="refresh_token")
     user_id = models.IntegerField(null=True, default=None, help_text="user_id")
     code = models.CharField(max_length=256, null=True, help_text="user_id")
 
