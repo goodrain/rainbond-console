@@ -85,6 +85,8 @@ from console.views.enterprise import (
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView,
                                              EnterpriseVisualMonitorView, EnterpriseAlertsView, EnterpriseConfigView)
+from console.views.gpu_views import (ClusterGPUOverviewView, NodeGPUDetailView, AvailableGPUModelsView, HAMiStatusView)
+from console.views.service_gpu_views import ServiceGPUConfigView
 from console.views.errlog import ErrLogView
 from console.views.file_upload import ConsoleUploadFileView
 from console.views.group import (
@@ -534,6 +536,8 @@ urlpatterns = [
     # 应用详情
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/detail', AppDetailView.as_view(),
         perms.APP_OVERVIEW_CREATE),
+    # GPU配置管理
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/gpu-config$', ServiceGPUConfigView.as_view()),
     # 是否安装性能分析插件
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/analyze_plugins', AppAnalyzePluginView.as_view()),
     # 应用简要信息
@@ -993,6 +997,15 @@ urlpatterns = [
     # 容器存储
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes/(?P<node_name>[\w\-.]+)/container$',
         ContainerDisk.as_view()),
+    # GPU 相关接口
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/gpu-overview$',
+        ClusterGPUOverviewView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/nodes/(?P<node_name>[\w\-.]+)/gpu$',
+        NodeGPUDetailView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/gpu-models$',
+        AvailableGPUModelsView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/hami-status$',
+        HAMiStatusView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/app/(?P<app_id>[\w\-]+)/components$', EnterpriseAppComponentsLView.as_view()),
     url(r'^enterprise/(?P<eid>[\w\-]+)/base-guidance$', BaseGuidance.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/storehub-check$', LocalComponentLibraryConfigCheck.as_view()),
