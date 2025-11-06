@@ -159,8 +159,8 @@ class OAuthRepo(object):
             rst = OAuthServices.objects.filter(eid=eid, is_console=True, user_id=user_id)
             return rst
 
-    def delete_oauth_service(self, service_id, user_id):
-        OAuthServices.objects.filter(ID=service_id, user_id=user_id).delete()
+    def delete_oauth_service(self, service_id):
+        OAuthServices.objects.filter(ID=service_id).delete()
 
 
 class UserOAuthRepo(object):
