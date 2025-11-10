@@ -223,6 +223,11 @@ class Node extends React.Component {
     ev.preventDefault();
     ev.stopPropagation();
 
+    // 如果是 internet 节点，不显示右键菜单
+    if (this.props.serviceAlias === 'internet') {
+      return;
+    }
+
     const rect = ev.currentTarget.ownerSVGElement.getBoundingClientRect();
     const position = {
       x: ev.clientX - rect.left,

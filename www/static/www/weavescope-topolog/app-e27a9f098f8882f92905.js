@@ -14069,6 +14069,11 @@ var Node = function (_React$Component) {
       ev.preventDefault();
       ev.stopPropagation();
 
+      // 如果是 internet 节点，不显示右键菜单
+      if (this.props.serviceAlias === 'internet') {
+        return;
+      }
+
       var rect = ev.currentTarget.ownerSVGElement.getBoundingClientRect();
       var position = {
         x: ev.clientX - rect.left,
@@ -30970,10 +30975,10 @@ var EdgeCreateOverlay = function (_React$Component) {
           _react2.default.createElement(
             'foreignObject',
             {
-              x: '-12',
-              y: '-12',
-              width: '24',
-              height: '24',
+              x: '-20',
+              y: '-20',
+              width: '40',
+              height: '40',
               style: { overflow: 'visible' }
             },
             _react2.default.createElement(
@@ -30982,13 +30987,17 @@ var EdgeCreateOverlay = function (_React$Component) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: '24px',
-                  height: '24px',
-                  fontSize: '20px',
-                  color: '#4CAF50',
+                  width: '40px',
+                  height: '40px',
                   pointerEvents: 'none'
                 } },
-              _react2.default.createElement('i', { className: 'iconfont icon-jiahao' })
+              _react2.default.createElement('i', { className: 'iconfont icon-jiahao', style: {
+                  fontSize: '36px',
+                  lineHeight: '40px',
+                  color: '#4CAF50',
+                  fontWeight: 'bold',
+                  display: 'block'
+                } })
             )
           )
         );
@@ -31367,7 +31376,7 @@ var NodeContextMenu = function (_React$Component) {
     key: 'getMenuIcon',
     value: function getMenuIcon(label) {
       var iconMap = {
-        '创建连线': 'icon-lianxian1',
+        '创建依赖': 'icon-lianxian1',
         '访问地址': 'icon-icon_web',
         'web终端': 'icon-terminalzhongduan',
         '构建组件': 'icon-dabaoxiazai',
@@ -31381,14 +31390,19 @@ var NodeContextMenu = function (_React$Component) {
   }, {
     key: 'renderMenuItem',
     value: function renderMenuItem(label, onClick) {
-      var isLast = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+      var menuType = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'normal';
+
+      // menuType: 'create' | 'normal' | 'delete'
+      var isDelete = menuType === 'delete';
+      var isCreate = menuType === 'create';
 
       var itemStyle = {
         padding: '16px 24px',
         cursor: 'pointer',
-        borderBottom: isLast ? 'none' : '1px solid rgba(0,0,0,0.06)',
+        borderBottom: isCreate ? '1px solid rgba(0,0,0,0.1)' : 'none',
+        borderTop: isDelete ? '1px solid rgba(0,0,0,0.1)' : 'none',
         fontSize: '15px',
-        color: '#262626',
+        color: isDelete ? '#ff4d4f' : '#262626',
         fontWeight: '500',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         display: 'flex',
@@ -31402,7 +31416,8 @@ var NodeContextMenu = function (_React$Component) {
         fontSize: '20px',
         transition: 'transform 0.3s ease',
         width: '24px',
-        textAlign: 'center'
+        textAlign: 'center',
+        color: isDelete ? '#ff4d4f' : 'inherit'
       };
 
       var arrowStyle = {
@@ -31414,16 +31429,20 @@ var NodeContextMenu = function (_React$Component) {
         fontWeight: 'bold'
       };
 
+      var hoverColor = isDelete ? '#ff4d4f' : '#1890ff';
+      var hoverBgStart = isDelete ? 'rgba(255, 77, 79, 0.12)' : 'rgba(24, 144, 255, 0.12)';
+      var hoverBgEnd = isDelete ? 'rgba(255, 77, 79, 0.06)' : 'rgba(24, 144, 255, 0.06)';
+
       return _react2.default.createElement(
         'div',
         {
           style: itemStyle,
           onMouseEnter: function onMouseEnter(e) {
-            e.currentTarget.style.backgroundColor = 'rgba(24, 144, 255, 0.08)';
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(24, 144, 255, 0.12) 0%, rgba(24, 144, 255, 0.06) 100%)';
-            e.currentTarget.style.color = '#1890ff';
+            e.currentTarget.style.backgroundColor = isDelete ? 'rgba(255, 77, 79, 0.08)' : 'rgba(24, 144, 255, 0.08)';
+            e.currentTarget.style.background = 'linear-gradient(135deg, ' + hoverBgStart + ' 0%, ' + hoverBgEnd + ' 100%)';
+            e.currentTarget.style.color = hoverColor;
             e.currentTarget.style.paddingLeft = '28px';
-            e.currentTarget.style.borderLeft = '3px solid #1890ff';
+            e.currentTarget.style.borderLeft = '3px solid ' + hoverColor;
             var icon = e.currentTarget.querySelector('.menu-icon');
             var arrow = e.currentTarget.querySelector('.menu-arrow');
             if (icon) icon.style.transform = 'scale(1.15) rotate(8deg)';
@@ -31435,7 +31454,7 @@ var NodeContextMenu = function (_React$Component) {
           onMouseLeave: function onMouseLeave(e) {
             e.currentTarget.style.backgroundColor = 'white';
             e.currentTarget.style.background = 'white';
-            e.currentTarget.style.color = '#262626';
+            e.currentTarget.style.color = isDelete ? '#ff4d4f' : '#262626';
             e.currentTarget.style.paddingLeft = '24px';
             e.currentTarget.style.borderLeft = 'none';
             var icon = e.currentTarget.querySelector('.menu-icon');
@@ -31480,13 +31499,14 @@ var NodeContextMenu = function (_React$Component) {
       }
 
       var nodeDetails = this.getNodeDetails();
-
+      console.log(nodeDetails, "nodeDetails=====");
       if (!nodeDetails) {
         return null;
       }
 
-      var curStatus = nodeDetails.cur_status;
-
+      var appStatus = nodeDetails.rank;
+      var isThirdParty = nodeDetails.cur_status;
+      var isKubeblocks = nodeDetails.service_source;
       // 计算 permissionObj (从 node-details.js 复制的逻辑)
       var permission = userPermission && userPermission.data || [];
       var team_name = teamName && teamName.tenantName || null;
@@ -31528,39 +31548,44 @@ var NodeContextMenu = function (_React$Component) {
 
       var menuItems = [];
 
-      // 创建连线 - 始终显示
-      menuItems.push({ label: '创建连线', onClick: this.handleCreateEdge });
+      // 根据 service_source 类型决定显示的菜单项
+      var isKubeblocksOrThirdParty = isKubeblocks === 'kubeblocks' || isThirdParty === 'third_party';
+      if (isKubeblocksOrThirdParty) {
+        // kubeblocks 或 third_party 类型：只显示 关闭/启动（互斥）、删除
 
-      // 访问 - 根据条件显示
-      if (hasVisitUrl && curStatus === 'running') {
-        menuItems.push({ label: '访问地址', onClick: this.handleVisit });
-      }
-
-      // 终端 - 非undeploy状态且有权限
-      if (curStatus !== 'undeploy') {
-        menuItems.push({ label: 'web终端', onClick: this.handleTerminal });
-      }
-
-      // 构建 - undeploy或closed状态且有构建权限
-      if (curStatus === 'undeploy' || curStatus === 'closed') {
-        menuItems.push({ label: '构建组件', onClick: this.handleBuild });
-      }
-      // 更新 - 其他状态且有更新权限
-      else {
-          menuItems.push({ label: '更新组件', onClick: this.handleUpdate });
-        }
-
-      // 启动 - closed状态且有启动权限
-      if (curStatus === 'closed') {
-        menuItems.push({ label: '启动组件', onClick: this.handleStart });
-      }
-      // 关闭 - 非undeploy状态且有停止权限
-      else if (curStatus !== 'undeploy') {
+        // 启动/关闭 - 互斥显示
+        if (appStatus == 'closed') {
+          menuItems.push({ label: '启动组件', onClick: this.handleStart });
+        } else if (appStatus != 'undeploy') {
           menuItems.push({ label: '关闭组件', onClick: this.handleStop });
         }
 
-      // 删除 - 有删除权限
-      menuItems.push({ label: '删除组件', onClick: this.handleDelete });
+        // 删除
+        menuItems.push({ label: '删除组件', onClick: this.handleDelete });
+      } else {
+        // 其他类型：显示 创建依赖、更新、关闭/启动、web终端、删除
+
+        // 创建依赖
+        menuItems.push({ label: '创建依赖', onClick: this.handleCreateEdge });
+
+        // 更新组件
+        menuItems.push({ label: '更新组件', onClick: this.handleUpdate });
+
+        // 启动/关闭 - 互斥显示
+        if (appStatus == 'closed') {
+          menuItems.push({ label: '启动组件', onClick: this.handleStart });
+        } else if (appStatus !== 'undeploy') {
+          menuItems.push({ label: '关闭组件', onClick: this.handleStop });
+        }
+
+        // web终端 - 非undeploy状态
+        if (appStatus != 'undeploy') {
+          menuItems.push({ label: 'web终端', onClick: this.handleTerminal });
+        }
+
+        // 删除
+        menuItems.push({ label: '删除组件', onClick: this.handleDelete });
+      }
 
       // 计算菜单位置，避免超出视口
       var menuWidth = 240;
@@ -31658,7 +31683,13 @@ var NodeContextMenu = function (_React$Component) {
           )
         ),
         menuItems.map(function (item, index) {
-          return _this2.renderMenuItem(item.label, item.onClick, index === menuItems.length - 1);
+          var menuType = 'normal';
+          if (item.label === '创建依赖') {
+            menuType = 'create';
+          } else if (item.label === '删除组件') {
+            menuType = 'delete';
+          }
+          return _this2.renderMenuItem(item.label, item.onClick, menuType);
         })
       );
     }
