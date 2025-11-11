@@ -212,6 +212,11 @@ class NodeContextMenu extends React.Component {
     var isThirdParty = nodeDetails.cur_status;
     var isKubeblocks = nodeDetails.service_source;
 
+    console.log(isThirdParty,"isThirdParty");
+    console.log(isKubeblocks,"isKubeblocks");
+
+    
+
     // 计算 permissionObj (从 node-details.js 复制的逻辑)
     const permission = userPermission && userPermission.data || [];
     const team_name = teamName && teamName.tenantName || null;
