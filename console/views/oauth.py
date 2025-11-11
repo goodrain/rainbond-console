@@ -322,8 +322,11 @@ class OAuthServerAuthorize(AlowAnyApiView):
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
-            # 传递 code_verifier 参数（用于 PKCE）
-            oauth_user, access_token, refresh_token = api.get_user_info(code=code, code_verifier=code_verifier)
+            # 只有 Gitea 需要 PKCE 的 code_verifier 参数
+            if oauth_service.oauth_type == 'gitea':
+                oauth_user, access_token, refresh_token = api.get_user_info(code=code, code_verifier=code_verifier)
+            else:
+                oauth_user, access_token, refresh_token = api.get_user_info(code=code)
         except Exception as e:
             logger.exception(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": str(e)}
@@ -428,8 +431,11 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
-            # 传递 code_verifier 参数（用于 PKCE）
-            user, access_token, refresh_token = api.get_user_info(code=code, code_verifier=code_verifier)
+            # 只有 Gitea 需要 PKCE 的 code_verifier 参数
+            if oauth_service.oauth_type == 'gitea':
+                user, access_token, refresh_token = api.get_user_info(code=code, code_verifier=code_verifier)
+            else:
+                user, access_token, refresh_token = api.get_user_info(code=code)
         except Exception as e:
             logger.exception(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
