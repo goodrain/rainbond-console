@@ -315,6 +315,7 @@ function goodrainData2scopeData(data = {}) {
       node.labelMinor = '';
       // 根据状态改变颜色用
       node.rank = node.cur_status;
+      node.service_source = item.service_source
       node.shape = 'hexagon';
       node.stack = true;
       node.stackNum = 1;
