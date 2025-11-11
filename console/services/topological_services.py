@@ -262,6 +262,7 @@ class TopologicalService(object):
         result['deploy_version'] = service.deploy_version
         result['total_memory'] = service.min_memory * service.min_node
         result['cur_status'] = 'Unknown'
+        result['service_source'] = service.service_source
         rel = ServiceGroupRelation.objects.filter(service_id=service.service_id)
         result['app_id'] = rel[0].group_id if rel else 0
 
