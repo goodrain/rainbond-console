@@ -170,6 +170,30 @@ class GiteaApiV1(GitOAuth2Interface):
                     if user_info:
                         logger.debug(f"Gitea access token is valid for user: {user_info.get('login')}")
                         return self.oauth_user.access_token, self.oauth_user.refresh_token
+                    else:
+                        # user_info 为 None，说明 token 验证失败，尝试刷新
+                        if self.oauth_user.refresh_token:
+                            try:
+                                logger.info("Attempting to refresh Gitea access token")
+                                self.refresh_access_token()
+
+                                # 刷新后再次验证
+                                user_info = self._request_user_info()
+                                if user_info:
+                                    logger.info("Successfully refreshed Gitea access token")
+                                    return self.access_token, self.refresh_token
+                                else:
+                                    logger.error("Refreshed token validation failed")
+                                    self.oauth_user.delete()
+                                    raise ErrExpiredAuthnOauthService
+                            except Exception as refresh_error:
+                                logger.error(f"Failed to refresh Gitea token: {refresh_error}")
+                                self.oauth_user.delete()
+                                raise ErrExpiredAuthnOauthService
+                        else:
+                            logger.warning("No refresh token available, deleting oauth user")
+                            self.oauth_user.delete()
+                            raise ErrExpiredAuthnOauthService
 
                 except Exception as e:
                     logger.warning(f"Gitea access token validation failed: {e}")
@@ -213,7 +237,7 @@ class GiteaApiV1(GitOAuth2Interface):
         url = self.get_access_token_url(self.oauth_service.home_url)
 
         logger.debug(f"Refreshing Gitea access token")
-        rst = self._session.post(url=url, headers=headers, json=data)
+        rst = self._session.post(url=url, headers=headers, json=data, timeout=10)
 
         if rst.status_code == 200:
             response_data = rst.json()
