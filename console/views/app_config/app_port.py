@@ -86,14 +86,28 @@ class AppPortView(AppBaseView):
                     port.is_outer_service = False
                     port_info["is_outer_service"] = False
             else:
-                bind_tcp_domains = domain_service.get_tcp_port_bind_domains(self.service, port.container_port)
-                if bind_tcp_domains:
+                # 从底层 API Gateway 获取 TCP/UDP 真实域名绑定
+                path = ("/api-gateway/v1/" + self.tenant_name + "/routes/tcp/domains?service_alias=" +
+                        self.service.service_alias + "&port=" + str(port.container_port))
+                body = region_api.api_gateway_get_proxy(self.region, self.tenant.tenant_id, path, None)
+                if body.get("list", []):
                     outer = False
                     tcp_domain_list = []
-                    for tcp_domain in bind_tcp_domains:
-                        if tcp_domain.is_outer_service:
-                            outer = True
-                        tcp_domain_list.append(tcp_domain.to_dict())
+                    # list 是 nodeport 列表（整数）
+                    for nodeport in body.get("list", []):
+                        # 拼接成 0.0.0.0:nodeport 格式
+                        tcp_domain_dict = {
+                            "protocol": port.protocol,
+                            "domain_name": "0.0.0.0:{}".format(nodeport),
+                            "container_port": port.container_port,
+                            "service_id": self.service.service_id,
+                            "service_name": self.service.service_alias,
+                            "service_alias": self.service.service_alias,
+                            "is_outer_service": True,
+                            "end_point": "0.0.0.0:{}".format(nodeport)
+                        }
+                        outer = True
+                        tcp_domain_list.append(tcp_domain_dict)
                     port_info["bind_tcp_domains"] = tcp_domain_list
                     port_info["is_outer_service"] = outer
                     port.is_outer_service = outer
