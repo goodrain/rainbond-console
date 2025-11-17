@@ -971,54 +971,14 @@ class TaskEvent(BaseModel):
 
 class TeamInvitation(BaseModel):
     """团队邀请信息"""
-
+    
     class Meta:
         db_table = 'team_invitation'
-
+        
     invitation_id = models.CharField(max_length=32, unique=True, help_text="邀请ID")
-    tenant_id = models.CharField(max_length=32, help_text="团队ID")
+    tenant_id = models.CharField(max_length=32, help_text="团队ID") 
     inviter_id = models.IntegerField(help_text="邀请人ID")
     role_id = models.IntegerField(help_text="角色ID", null=True, blank=True)
     expired_time = models.DateTimeField(help_text="过期时间")
     is_accepted = models.BooleanField(default=False, help_text="是否已接受邀请")
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
-
-
-class TenantGPUQuota(models.Model):
-    """团队GPU配额表"""
-
-    class Meta:
-        db_table = 'tenant_gpu_quota'
-
-    tenant_id = models.CharField(max_length=32, primary_key=True, help_text="租户ID")
-    gpu_limit = models.IntegerField(default=0, help_text="GPU卡数限制，0表示不限制")
-    gpu_memory_limit = models.BigIntegerField(default=0, help_text="GPU显存限制(MB)，0表示不限制")
-    create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
-    update_time = models.DateTimeField(auto_now=True, help_text="更新时间")
-
-    def __str__(self):
-        return f"GPU配额-{self.tenant_id}: {self.gpu_limit}卡, {self.gpu_memory_limit}MB"
-
-
-class TenantServiceGPU(models.Model):
-    """组件GPU配置表"""
-
-    class Meta:
-        db_table = 'tenant_service_gpu'
-
-    service_id = models.CharField(max_length=32, primary_key=True, help_text="服务ID")
-    enable_gpu = models.BooleanField(default=False, help_text="是否启用GPU")
-    gpu_count = models.IntegerField(default=0, help_text="GPU卡数")
-    gpu_memory = models.BigIntegerField(default=0, help_text="GPU显存(MB)")
-    gpu_cores = models.IntegerField(default=0, help_text="GPU算力百分比(0-100)")
-    gpu_model_preference = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="GPU型号偏好，逗号分隔"
-    )
-    create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
-    update_time = models.DateTimeField(auto_now=True, help_text="更新时间")
-
-    def __str__(self):
-        return f"GPU配置-{self.service_id}: {self.gpu_count}卡, {self.gpu_memory}MB"
