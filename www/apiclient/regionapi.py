@@ -3106,13 +3106,25 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         path = "/api-gateway/v1/" + tenant_name + "/routes/http?appID=&service_alias=" + service_name
         return self.api_gateway_post_proxy(region, tenant_name, path, body, app_id)
 
-    def delete_proxy(self, region_name, path):
+    def delete_proxy(self, region_name, path, data=None):
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url + path
         self._set_headers(region_info.token)
-        res, body = self._delete(url, self.default_headers, region=region_name)
+        if data:
+            res, body = self._delete(url, self.default_headers, region=region_name, body=json.dumps(data))
+        else:
+            res, body = self._delete(url, self.default_headers, region=region_name)
+        return body
+
+    def put_proxy(self, region_name, path, data):
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + path
+        self._set_headers(region_info.token)
+        res, body = self._put(url, self.default_headers, region=region_name, body=json.dumps(data))
         return body
 
     def sse_proxy(self, region_name, path):
