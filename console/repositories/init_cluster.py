@@ -47,9 +47,11 @@ class Cluster(object):
         cluster = self.get_rke_cluster_exclude_integrated()
         if create_status:
             cluster.create_status = create_status
-        if cluster_name:
+        # 只有在 cluster_name 为空时才允许更新
+        if cluster_name and not cluster.cluster_name:
             cluster.cluster_name = cluster_name
-        if cluster_id:
+        # 只有在 cluster_id 为空时才允许更新
+        if cluster_id and not cluster.cluster_id:
             cluster.cluster_id = cluster_id
         cluster.save()
         return cluster
