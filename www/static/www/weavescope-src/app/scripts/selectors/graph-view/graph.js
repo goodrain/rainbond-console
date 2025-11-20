@@ -55,8 +55,6 @@ const graphLayoutSelector = createSelector(
     // NOTE: We probably shouldn't log anything in a
     // computed property, but this is still useful.
     log(`graph layout calculation took ${timedLayouter.time}ms`);
-    // console.log("node", graph)
-    // console.log("graph", graph)
     return graph;
   }
 );

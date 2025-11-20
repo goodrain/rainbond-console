@@ -131,14 +131,12 @@ export function hoverMetric(metricType) {
 }
 
 export function unhoverMetric() {
-  console.log('10')
   return {
     type: ActionTypes.UNHOVER_METRIC,
   };
 }
 
 export function pinMetric(metricType) {
-  console.log('11')
   return (dispatch, getState) => {
     dispatch({
       type: ActionTypes.PIN_METRIC,
@@ -340,7 +338,6 @@ export function setResourceView() {
 }
 
 export function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
-  console.log('node click: ', nodeId, serviceAlias);
   return (dispatch, getState) => {
     const state = getState();
     const prevSelectedNodeId = state.get('selectedNodeId');
@@ -357,12 +354,10 @@ export function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
     });
     if (isDeselecting) {
       // 回到总览视图的逻辑
-      console.log('回到总览视图');
       window.parent && window.parent.clickBackground && window.parent.clickBackground();
     }else{
       // 切换组件的逻辑
       window.parent && window.parent.clickNode && window.parent.clickNode(nodeId,serviceAlias);
-      console.log('切换组件');
     }
     updateRoute(getState);
     getNodeDetails(
@@ -925,5 +920,222 @@ export function getImagesForService(orgId, serviceId) {
           errors
         });
       });
+  };
+}
+
+export function startEdgeCreate(sourceNodeId, sourcePosition) {
+  return {
+    type: ActionTypes.START_EDGE_CREATE,
+    sourceNodeId,
+    sourcePosition
+  };
+}
+
+export function updateEdgeCreate(mousePosition) {
+  return {
+    type: ActionTypes.UPDATE_EDGE_CREATE,
+    mousePosition
+  };
+}
+
+export function finishEdgeCreate(targetNodeId, targetPosition) {
+  return (dispatch, getState) => {
+
+    const state = getState();
+    const edgeCreation = state.get('edgeCreation');
+
+
+    if (!edgeCreation || !edgeCreation.get('isCreating')) {
+      dispatch({ type: ActionTypes.CANCEL_EDGE_CREATE });
+      return;
+    }
+
+    const sourceNodeId = edgeCreation.get('sourceNodeId');
+    const sourcePositionImmutable = edgeCreation.get('sourcePosition');
+
+
+    if (!sourceNodeId || sourceNodeId === targetNodeId) {
+      dispatch({ type: ActionTypes.CANCEL_EDGE_CREATE });
+      return;
+    }
+
+    const sourceNode = state.getIn(['nodes', sourceNodeId]);
+    const targetNode = state.getIn(['nodes', targetNodeId]);
+
+
+    if (!sourceNode || !targetNode) {
+      dispatch({ type: ActionTypes.CANCEL_EDGE_CREATE });
+      return;
+    }
+
+    const edgeId = `${sourceNodeId}-${targetNodeId}`;
+    const sourcePosition = {
+      x: sourcePositionImmutable.get('x'),
+      y: sourcePositionImmutable.get('y')
+    };
+
+    const edgeData = {
+      edgeId,
+      sourceNodeId,
+      targetNodeId,
+      sourceServiceAlias: sourceNode.get('service_alias'),
+      targetServiceAlias: targetNode.get('service_alias'),
+      sourceServiceCname: sourceNode.get('service_cname'),
+      targetServiceCname: targetNode.get('service_cname'),
+      sourceShape: sourceNode.get('shape'),
+      targetShape: targetNode.get('shape'),
+      sourceNode: sourceNode.toJS(),
+      targetNode: targetNode.toJS()
+    };
+
+
+    // 第一步：先dispatch action，让前端展示连线
+    dispatch({
+      type: ActionTypes.FINISH_EDGE_CREATE,
+      edgeId,
+      sourceNodeId,
+      targetNodeId,
+      sourcePosition,
+      targetPosition
+    });
+
+    // 第二步：在下一个事件循环中调用父组件接口
+    // 确保 Redux 状态已经更新，连线已经渲染到页面上
+    setTimeout(() => {
+
+      if (window.parent && window.parent.onEdgeCreated) {
+        window.parent.onEdgeCreated(edgeData);
+      }
+    }, 0);
+  };
+}
+
+export function cancelEdgeCreate() {
+  return {
+    type: ActionTypes.CANCEL_EDGE_CREATE
+  };
+}
+
+export function selectEdge(edgeId) {
+  return {
+    type: ActionTypes.SELECT_EDGE,
+    edgeId
+  };
+}
+
+export function deselectEdge() {
+  return {
+    type: ActionTypes.DESELECT_EDGE
+  };
+}
+
+export function deleteEdge(edgeId) {
+  return (dispatch, getState) => {
+
+    const state = getState();
+
+    // 先检查是否是自定义边线
+    const customEdges = state.get('customEdges');
+    let edge = customEdges ? customEdges.get(edgeId) : null;
+    let isCustomEdge = !!edge;
+
+    // 如果不是自定义边线,从 layoutEdges 中查找
+    if (!edge) {
+      const layoutNodesSelector = require('../selectors/graph-view/layout').layoutNodesSelector;
+      const layoutEdgesSelector = require('../selectors/graph-view/layout').layoutEdgesSelector;
+      const layoutEdges = layoutEdgesSelector(state);
+      edge = layoutEdges ? layoutEdges.get(edgeId) : null;
+    }
+
+
+    if (!edge) {
+      return;
+    }
+
+    const sourceNodeId = edge.get('source');
+    const targetNodeId = edge.get('target');
+    const sourceNode = state.getIn(['nodes', sourceNodeId]);
+    const targetNode = state.getIn(['nodes', targetNodeId]);
+
+    const edgeData = {
+      edgeId,
+      sourceNodeId,
+      targetNodeId,
+      sourceServiceAlias: sourceNode ? sourceNode.get('service_alias') : '',
+      targetServiceAlias: targetNode ? targetNode.get('service_alias') : '',
+      sourceServiceCname: sourceNode ? sourceNode.get('service_cname') : '',
+      targetServiceCname: targetNode ? targetNode.get('service_cname') : '',
+      sourceShape: sourceNode ? sourceNode.get('shape') : '',
+      targetShape: targetNode ? targetNode.get('shape') : '',
+      sourceNode: sourceNode ? sourceNode.toJS() : null,
+      targetNode: targetNode ? targetNode.toJS() : null
+    };
+
+
+    // 只有自定义边线才需要 dispatch DELETE_EDGE action
+    if (isCustomEdge) {
+      dispatch({
+        type: ActionTypes.DELETE_EDGE,
+        edgeId
+      });
+    }
+
+    if (window.parent && window.parent.onEdgeDeleted) {
+      window.parent.onEdgeDeleted(edgeData);
+
+      setTimeout(() => {
+        getNodesDelta(
+          getCurrentTopologyUrl(state),
+          activeTopologyOptionsSelector(state),
+          dispatch
+        );
+      }, 500);
+    }
+  };
+}
+
+export function showNodeContextMenu(nodeId, nodeLabel, position) {
+  return {
+    type: ActionTypes.SHOW_NODE_CONTEXT_MENU,
+    nodeId,
+    nodeLabel,
+    position
+  };
+}
+
+export function hideNodeContextMenu() {
+  return {
+    type: ActionTypes.HIDE_NODE_CONTEXT_MENU
+  };
+}
+
+export function showEdgeContextMenu(edgeId, position) {
+  return (dispatch) => {
+    // 先选中边线
+    dispatch({
+      type: ActionTypes.SELECT_EDGE,
+      edgeId
+    });
+
+    // 然后显示右键菜单
+    dispatch({
+      type: ActionTypes.SHOW_EDGE_CONTEXT_MENU,
+      edgeId,
+      position
+    });
+  };
+}
+
+export function hideEdgeContextMenu() {
+  return (dispatch) => {
+    // 隐藏菜单
+    dispatch({
+      type: ActionTypes.HIDE_EDGE_CONTEXT_MENU
+    });
+
+    // 取消边线选中状态
+    dispatch({
+      type: ActionTypes.DESELECT_EDGE
+    });
   };
 }

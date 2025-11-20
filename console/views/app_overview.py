@@ -726,7 +726,11 @@ class BuildSourceinfo(AppBaseView):
                 self.service.language = ""
                 self.service.save()
                 transaction.savepoint_commit(s_id)
+
+            # 保存原架构，用于判断是否发生变化
+            old_arch = self.service.arch
             self.service.arch = arch
+
             comment = operation_log_service.generate_component_comment(
                 operation=Operation.CHANGE,
                 module_name=self.service.service_cname,
@@ -746,7 +750,11 @@ class BuildSourceinfo(AppBaseView):
             )
 
             self.service.save()
-            arch_service.update_affinity_by_arch(arch, self.tenant, self.region_name, self.service)
+
+            # 只有当架构真的发生变化时，才更新 affinity，避免重置用户自定义的 affinity 配置
+            if old_arch != arch:
+                arch_service.update_affinity_by_arch(arch, self.tenant, self.region_name, self.service)
+
             result = general_message(200, "success", "修改成功")
         except Exception as e:
             logger.exception(e)

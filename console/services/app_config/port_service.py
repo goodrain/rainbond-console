@@ -729,21 +729,44 @@ class AppPortService(object):
                 for service_domain in service_domains:
                     service_domain.is_outer_service = False
                     service_domain.save()
-                    path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" + service.service_alias + "&port="+str(deal_port.container_port)
-                    region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
+
+            # 从 API Gateway 获取所有 HTTP 路由并删除
+            path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/http/domains?service_alias=" +
+                    service.service_alias + "&port=" + str(deal_port.container_port))
+            try:
+                body = region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
+                # 删除所有 HTTP 路由
+                if body.get("list", []):
+                    # 调用关闭端口的 API
+                    close_path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http/port?act=close&service_alias=" + service.service_alias + "&port=" + str(deal_port.container_port)
+                    region_api.api_gateway_get_proxy(region, tenant.tenant_id, close_path, app.app_id)
+            except Exception as e:
+                logger.exception(f"Failed to close HTTP routes: {e}")
         else:
             service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
                 service.service_id, deal_port.container_port)
             # 改变tcpdomain表中状态
-            out_port = 0
             if service_tcp_domains:
                 for service_tcp_domain in service_tcp_domains:
                     service_tcp_domain.is_outer_service = False
-                    out_port = service_tcp_domain.end_point.split(":")[1]
                     service_tcp_domain.save()
+
+            # 从 API Gateway 获取所有实际的路由
             svc = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, deal_port.container_port)
-            path = f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/{svc.k8s_service_name}-{out_port}"
-            region_api.delete_proxy(region.region_name, path)
+            path = ("/api-gateway/v1/" + tenant.tenant_name + "/routes/tcp/domains?service_alias=" +
+                    service.service_alias + "&port=" + str(deal_port.container_port))
+            try:
+                body = region_api.api_gateway_get_proxy(region, tenant.tenant_id, path, app.app_id)
+                # 删除所有路由
+                if body.get("list", []):
+                    for nodeport in body.get("list", []):
+                        delete_path = f"/v2/proxy-pass/gateway/{tenant.tenant_name}/routes/tcp/{svc.k8s_service_name}-{nodeport}"
+                        try:
+                            region_api.delete_proxy(region.region_name, delete_path)
+                        except Exception as e:
+                            logger.exception(f"Failed to delete route {delete_path}: {e}")
+            except Exception as e:
+                logger.exception(f"Failed to get routes from API Gateway: {e}")
         if service.create_status == "complete":
             from console.services.plugin import app_plugin_service
             app_plugin_service.update_config_if_have_entrance_plugin(tenant, service)

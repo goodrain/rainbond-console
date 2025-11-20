@@ -2,7 +2,7 @@ import classnames from "classnames";
 import { List as makeList, Map as makeMap } from "immutable";
 import React from "react";
 import { connect } from "react-redux";
-import { clickNode, enterNode, leaveNode } from "../actions/app-actions";
+import { clickNode, enterNode, leaveNode, showNodeContextMenu, finishEdgeCreate } from "../actions/app-actions";
 import MatchedResults from "../components/matched-results";
 import MatchedText from "../components/matched-text";
 import { NODE_BASE_SIZE } from "../constants/styles";
@@ -50,6 +50,7 @@ class Node extends React.Component {
     this.handleMouseClick = this.handleMouseClick.bind(this);
     this.handleMouseEnter = this.handleMouseEnter.bind(this);
     this.handleMouseLeave = this.handleMouseLeave.bind(this);
+    this.handleContextMenu = this.handleContextMenu.bind(this);
     this.saveShapeRef = this.saveShapeRef.bind(this);
   }
 
@@ -137,6 +138,7 @@ class Node extends React.Component {
       onClick: this.handleMouseClick,
       onMouseEnter: this.handleMouseEnter,
       onMouseLeave: this.handleMouseLeave,
+      onContextMenu: this.handleContextMenu,
     };
 
     return (
@@ -180,7 +182,24 @@ class Node extends React.Component {
   }
 
   handleMouseClick(ev) {
-    console.log(ev);
+    const { edgeCreation, finishEdgeCreate } = this.props;
+
+
+    // 如果正在创建边线，完成边线创建
+    if (edgeCreation && edgeCreation.get('isCreating')) {
+      ev.stopPropagation();
+
+      const rect = ev.currentTarget.ownerSVGElement ? ev.currentTarget.ownerSVGElement.getBoundingClientRect() : this.shapeRef.getBoundingClientRect();
+      const targetPosition = {
+        x: ev.clientX - rect.left,
+        y: ev.clientY - rect.top
+      };
+
+      finishEdgeCreate(this.props.id, targetPosition);
+      return;
+    }
+
+    // 正常的节点点击
     ev.stopPropagation();
     this.props.clickNode(
       this.props.id,
@@ -199,6 +218,24 @@ class Node extends React.Component {
     this.props.leaveNode(this.props.id);
     this.setState({ hovered: false });
   }
+
+  handleContextMenu(ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    // 如果是 internet 节点，不显示右键菜单
+    if (this.props.serviceAlias === 'internet') {
+      return;
+    }
+
+    const rect = ev.currentTarget.ownerSVGElement.getBoundingClientRect();
+    const position = {
+      x: ev.clientX - rect.left,
+      y: ev.clientY - rect.top
+    };
+
+    this.props.showNodeContextMenu(this.props.id, this.props.label, position);
+  }
 }
 
 function mapStateToProps(state) {
@@ -207,9 +244,14 @@ function mapStateToProps(state) {
     showingNetworks: state.get("showingNetworks"),
     currentTopology: state.get("currentTopology"),
     contrastMode: state.get("contrastMode"),
+    edgeCreation: state.get("edgeCreation")
   };
 }
 
-export default connect(mapStateToProps, { clickNode, enterNode, leaveNode })(
-  Node
-);
+export default connect(mapStateToProps, {
+  clickNode,
+  enterNode,
+  leaveNode,
+  showNodeContextMenu,
+  finishEdgeCreate
+})(Node);

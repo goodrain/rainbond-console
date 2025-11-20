@@ -315,6 +315,7 @@ function goodrainData2scopeData(data = {}) {
       node.labelMinor = '';
       // 根据状态改变颜色用
       node.rank = node.cur_status;
+      node.service_source = item.service_source
       node.shape = 'hexagon';
       node.stack = true;
       node.stackNum = 1;
@@ -391,6 +392,7 @@ export function handleOperatorInfo(data) {
       node.kind = item.kind;
       node.labelMinor = '';
       node.shape = 'hexagon';
+      node.service_source = item.service_source
       node.stack = true;
       node.stackNum = 1;
       node.runtime = item.runtime;
@@ -501,7 +503,8 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
       url,
       success: (res) => {
         res = res || {};
-
+        console.log(res,"getNodeDetails");
+        
         res.rank = res.cur_status;
         if (obj.id === 'The Internet') {
           res.cur_status = 'running';

@@ -424,9 +424,15 @@
       stroke: $weave-blue;
       stroke-opacity: 0;
     }
-    &.highlighted {
+    &.highlighted, &.selected {
       .shadow {
         stroke-opacity: $edge-highlight-opacity;
+      }
+    }
+    &.selected {
+      .link {
+        stroke: $weave-blue;
+        stroke-width: 2;
       }
     }
   }
@@ -1834,7 +1840,7 @@
   align-items: center;
   flex-direction: column;
   padding: 10px 10px 5px;
-  top: 74px;
+  top: 24px;
   left:0;
 
   .zoom-in, .zoom-out {

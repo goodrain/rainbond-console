@@ -173,7 +173,6 @@ describe('NodesLayout', () => {
     const result = NodesLayout.doLayout(
       nodeSets.initial4.nodes,
       nodeSets.initial4.edges);
-    // console.log('initial', result.get('nodes'));
     nodes = result.nodes.toJS();
 
     expect(nodes.n1.x).toBeLessThan(nodes.n2.x);
@@ -200,7 +199,6 @@ describe('NodesLayout', () => {
       options
     );
     nodes = result.nodes.toJS();
-    // console.log('remove 1 edge', nodes, result);
 
     resultCoords = getNodeCoordinates(result.nodes);
     expect(resultCoords).toEqual(coords);
@@ -231,7 +229,6 @@ describe('NodesLayout', () => {
     );
 
     nodes = result.nodes.toJS();
-    // console.log('re-add 1 edge', nodes, result);
 
     resultCoords = getNodeCoordinates(result.nodes);
     expect(resultCoords).toEqual(coords);
@@ -291,7 +288,6 @@ describe('NodesLayout', () => {
     );
 
     nodes = result.nodes.toJS();
-    // console.log('re-add 1 node', nodes);
 
     resultCoords = getNodeCoordinates(result.nodes);
     expect(resultCoords.slice(0, 2)).toEqual(coords.slice(0, 2));

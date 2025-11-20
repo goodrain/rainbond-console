@@ -261,8 +261,8 @@ class OptimizedRolePermRepo(object):
                 SELECT DISTINCT rp.perm_code, rp.app_id
                 FROM role_perms rp
                 INNER JOIN user_role ur ON rp.role_id = CAST(ur.role_id AS SIGNED)
-                INNER JOIN role_info ri ON ur.role_id = CAST(ri.ID AS CHAR)
-                WHERE ri.kind = %s
+                INNER JOIN role_info ri ON ur.role_id = CAST(ri.ID AS CHAR) COLLATE utf8mb4_unicode_ci
+                WHERE ri.kind = %s COLLATE utf8mb4_unicode_ci
                   AND ri.kind_id = %s
                   AND ur.user_id = %s
             """, ['team', tenant_id, str(user_id)])

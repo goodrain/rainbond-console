@@ -449,6 +449,9 @@ class AppCheckService(object):
             service_language = {"type": "language", "key": "代码语言", "value": service_info["language"]}
         if service_language:
             service_attr_list.append(service_language)
+        if service_info.get("dockerfiles"):
+            dockerfiles_bean = {"type": "dockerfiles", "key": "Dockerfile文件", "value": service_info.get("dockerfiles")}
+            service_attr_list.append(dockerfiles_bean)
         if service_code_from and service_code_from.get("value") != ":":
             service_attr_list.append(service_code_from)
         return service_attr_list

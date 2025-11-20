@@ -1650,6 +1650,24 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region)
         return res, body
 
+    def load_tar_image(self, region, tenant_name, data):
+        """开始异步解析tar包镜像"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/image/load"
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        return res, body
+
+    def get_tar_load_result(self, region, tenant_name, load_id):
+        """查询tar包解析结果(包含镜像列表)"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/image/load/" + load_id
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
     def backup_group_apps(self, region, tenant_name, body):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)

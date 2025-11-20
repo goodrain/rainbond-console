@@ -217,7 +217,7 @@ class EnterpriseOauthService(EnterpriseAdminView):
 class OauthServiceInfo(EnterpriseAdminView):
     def delete(self, request, service_id, *args, **kwargs):
         try:
-            oauth_repo.delete_oauth_service(service_id, self.user.user_id)
+            oauth_repo.delete_oauth_service(service_id)
             oauth_user_repo.delete_users_by_services_id(service_id)
             rst = {"data": {"bean": None}, "status": 200}
             return Response(rst, status=status.HTTP_200_OK)
@@ -230,15 +230,48 @@ class OauthServiceInfo(EnterpriseAdminView):
 class OAuthServiceRedirect(AlowAnyApiView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
-        if not code:
-            return HttpResponseRedirect("/")
+        state = request.GET.get("state")
         service_id = request.GET.get("service_id")
-        service = OAuthServices.objects.get(ID=service_id)
+
+        # 如果 URL 参数中没有 service_id，尝试从 state 参数中解析（OAuth2 标准方式）
+        if not service_id and state:
+            try:
+                state_data = json.loads(state)
+                service_id = state_data.get("service_id")
+            except Exception as e:
+                logger.error(f"Failed to parse state parameter: {e}")
+
+        # 检查 OAuth 错误
+        error = request.GET.get("error")
+        if error:
+            error_description = request.GET.get("error_description")
+            logger.error(f"OAuth error: {error} - {error_description}")
+
+        if not code:
+            logger.warning("Missing code parameter in OAuth callback")
+            return HttpResponseRedirect("/")
+
+        try:
+            service = OAuthServices.objects.get(ID=service_id)
+        except OAuthServices.DoesNotExist:
+            logger.error(f"OAuth service not found: {service_id}")
+            return HttpResponseRedirect("/")
+        except Exception as e:
+            logger.exception(f"Error retrieving OAuth service: {e}")
+            return HttpResponseRedirect("/")
+
         route_mode = os.getenv("ROUTE_MODE", "hash")
-        path = "/#/oauth/callback?service_id={}&code={}"
-        if route_mode == "history":
-            path = "/oauth/callback?service_id={}&code={}"
-        return HttpResponseRedirect(path.format(service.ID, code))
+
+        # 构建重定向 URL，包含 service_id、code 和 state（state 包含 PKCE 的 code_verifier）
+        from urllib.parse import urlencode
+        params = {"service_id": service.ID, "code": code}
+        if state:
+            params["state"] = state
+
+        query_string = urlencode(params)
+        redirect_url = f"/oauth/callback?{query_string}" if route_mode == "history" else f"/#/oauth/callback?{query_string}"
+
+        return HttpResponseRedirect(redirect_url)
 
 
 class OAuthServerAuthorize(AlowAnyApiView):
@@ -246,6 +279,26 @@ class OAuthServerAuthorize(AlowAnyApiView):
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
         domain = request.GET.get("domain")
+        state = request.GET.get("state")
+
+        # 尝试从 state 中解析 code_verifier（用于 PKCE）
+        code_verifier = None
+        if state:
+            try:
+                # 检查 state 是否是 URL 编码的（以 %7B 开头，即 { 的编码）
+                if state.startswith('%7B') or state.startswith('%7b'):
+                    from urllib.parse import unquote
+                    state = unquote(state)
+                    logger.debug(f"Decoded URL-encoded state")
+
+                state_data = json.loads(state)
+                code_verifier = state_data.get("code_verifier")
+                # 如果 state 中有 service_id 但 URL 参数中没有，使用 state 中的
+                if not service_id:
+                    service_id = state_data.get("service_id")
+            except Exception as e:
+                logger.warning(f"Failed to parse state: {e}")
+
         home_split_url = None
         try:
             oauth_service = OAuthServices.objects.get(ID=service_id)
@@ -269,7 +322,11 @@ class OAuthServerAuthorize(AlowAnyApiView):
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
-            oauth_user, access_token, refresh_token = api.get_user_info(code=code)
+            # 只有 Gitea 需要 PKCE 的 code_verifier 参数
+            if oauth_service.oauth_type == 'gitea':
+                oauth_user, access_token, refresh_token = api.get_user_info(code=code, code_verifier=code_verifier)
+            else:
+                oauth_user, access_token, refresh_token = api.get_user_info(code=code)
         except Exception as e:
             logger.exception(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": str(e)}
@@ -344,6 +401,23 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
         login_user = request.user
         code = request.data.get("code")
         service_id = request.data.get("service_id")
+        state = request.data.get("state")
+
+        # 尝试从 state 中解析 code_verifier（用于 PKCE）
+        code_verifier = None
+        if state:
+            try:
+                # 检查 state 是否是 URL 编码的（以 %7B 开头，即 { 的编码）
+                if state.startswith('%7B') or state.startswith('%7b'):
+                    from urllib.parse import unquote
+                    state = unquote(state)
+                    logger.debug(f"Decoded URL-encoded state")
+
+                state_data = json.loads(state)
+                code_verifier = state_data.get("code_verifier")
+            except Exception as e:
+                logger.warning(f"Failed to parse state: {e}")
+
         try:
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
         except Exception as e:
@@ -357,7 +431,11 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
-            user, access_token, refresh_token = api.get_user_info(code=code)
+            # 只有 Gitea 需要 PKCE 的 code_verifier 参数
+            if oauth_service.oauth_type == 'gitea':
+                user, access_token, refresh_token = api.get_user_info(code=code, code_verifier=code_verifier)
+            else:
+                user, access_token, refresh_token = api.get_user_info(code=code)
         except Exception as e:
             logger.exception(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
