@@ -60,11 +60,12 @@ class KubeBlocksService(object):
                 service_id=new_service.service_id
             )
 
-            # 配置连接信息（环境变量）
-            self._add_database_env_vars(tenant, user, region_name, new_service, connect_ctx=connect_ctx)
-
             # 配置端口信息,传递数据库类型
             database_type = creation_params.get('database_type', '')
+
+            # 配置连接信息（环境变量）
+            self._add_database_env_vars(tenant, user, region_name, new_service, connect_ctx=connect_ctx, database_type=database_type)
+
             self._configure_service_ports(tenant, user, region_name, new_service, connect_ctx=connect_ctx, database_type=database_type)
 
             # 构建部署组件
@@ -432,7 +433,7 @@ class KubeBlocksService(object):
             )
         return bean
 
-    def _add_database_env_vars(self, tenant, user, region_name, service, connect_ctx=None):
+    def _add_database_env_vars(self, tenant, user, region_name, service, connect_ctx=None, database_type=''):
         """
         为数据库组件添加环境变量
         """
@@ -445,17 +446,22 @@ class KubeBlocksService(object):
                 msg_show="获取数据库连接信息失败"
             )
 
+        # 根据数据库类型生成环境变量名前缀
+        db_type_upper = database_type.upper() if database_type else ''
+        password_attr_name = f"{db_type_upper}_DEFAULT_PASSWORD" if db_type_upper else "DEFAULT_PASSWORD"
+        username_attr_name = f"{db_type_upper}_DEFAULT_USERNAME" if db_type_upper else "DEFAULT_USERNAME"
+
         # 添加数据库连接信息
         env_vars = [
             {
                 "name": "Password",
-                "attr_name": "DEFAULT_PASSWORD",
+                "attr_name": password_attr_name,
                 "attr_value": connect_info.get("password", ""),
                 "scope": "outer"
             },
             {
                 "name": "Username",
-                "attr_name": "DEFAULT_USERNAME",
+                "attr_name": username_attr_name,
                 "attr_value": connect_info.get("username", "root"),
                 "scope": "outer"
             }
