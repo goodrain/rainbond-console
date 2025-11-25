@@ -434,7 +434,7 @@ class PlatformConfigService(ConfigService):
             "IS_ALARM": {
                 "value": None,
                 "desc": "是否展示报警",
-                "enable": True
+                "enable": False
             },
             ConfigKeyEnum.ENTERPRISE_EDITION.name: {
                 "value": "true",
