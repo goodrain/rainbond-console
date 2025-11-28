@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 import os
 import shutil
@@ -8,7 +9,9 @@ import zipfile
 
 import requests
 from console.exception.main import ServiceHandleException
+from django.apps import apps
 from django.conf import settings
+from django.db import connection, transaction
 from django.http import HttpResponse
 from www.utils.crypt import make_uuid
 
@@ -108,10 +111,6 @@ class PlatformDataBackupServices(object):
 
     def _smart_recover_console_data(self, file_name):
         """智能恢复控制台数据，处理重复键问题"""
-        import json
-        from django.apps import apps
-        from django.db import transaction, connection
-
         logger.info("Starting smart recovery for console data")
 
         try:
