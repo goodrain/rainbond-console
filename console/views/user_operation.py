@@ -37,6 +37,7 @@ from console.login.jwt_manager import JwtManager
 from console.services.user_service import user_service
 from console.exception.main import ServiceHandleException
 from rest_framework_jwt.views import jwt_response_payload_handler
+from console.services.sms_service import sms_service
 
 jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
 jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
@@ -426,12 +427,48 @@ class UserDetailsView(JWTAuthApiView):
         return Response(result, status=code)
 
     def post(self, request, *args, **kwargs):
-        self.user.real_name = request.data.get("real_name")
-        self.user.email = request.data.get("email")
-        self.user.logo = request.data.get("logo")
-        self.user.save()
-        result = general_message(200, "success", "用户信息更新成功")
-        return Response(result, status=status.HTTP_200_OK)
+        try:
+            # 只更新传了值的字段
+            if "real_name" in request.data:
+                self.user.real_name = request.data.get("real_name")
+            if "email" in request.data:
+                self.user.email = request.data.get("email")
+            if "logo" in request.data:
+                self.user.logo = request.data.get("logo")
+
+            # 处理手机号修改
+            if "phone" in request.data:
+                new_phone = request.data.get("phone")
+                if new_phone and new_phone != self.user.phone:
+                    # 获取验证码
+                    verification_code = request.data.get("verification_code")
+                    if not verification_code:
+                        result = general_message(400, "verification code required", "修改手机号需要提供验证码")
+                        return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+                    # 校验验证码
+                    try:
+                        sms_service.verify_code(new_phone, verification_code, "update_phone")
+                    except ServiceHandleException as e:
+                        result = general_message(e.status_code, e.msg, e.msg_show)
+                        return Response(result, status=e.status_code)
+
+                    # 检查新手机号是否已被其他用户使用
+                    existing_user = user_repo.get_user_by_phone(new_phone)
+                    if existing_user and existing_user.user_id != self.user.user_id:
+                        result = general_message(400, "phone already exists", "该手机号已被其他用户使用")
+                        return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+                    # 更新手机号
+                    self.user.phone = new_phone
+
+            self.user.save()
+            result = general_message(200, "success", "用户信息更新成功")
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(500, "update failed", "用户信息更新失败")
+            return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class UserFavoriteLCView(JWTAuthApiView):
     def get(self, request, enterprise_id):
