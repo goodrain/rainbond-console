@@ -86,6 +86,12 @@ class ConfigService(object):
 
         rst_datas["default_market_url"] = os.getenv("DEFAULT_APP_MARKET_URL", "")
         rst_datas["disable_logo"] = True if os.getenv("DISABLE_LOGO") == "true" else False
+
+        # 添加自定义字段，直接将每个字段展开到顶级
+        custom_fields = self.get_custom_fields()
+        for field in custom_fields:
+            rst_datas[field['key']] = {"enable": True, "value": field['value']}
+
         return rst_datas
 
     def update_config(self, key, value):
@@ -158,6 +164,104 @@ class ConfigService(object):
             rst.type = "string"
         rst.save()
         return {key.lower(): {"enable": rst.enable, "value": rst.value}}
+
+    def save_custom_fields(self, fields_dict):
+        """
+        保存自定义字段，每个字段单独存储一条记录
+        fields_dict: {'field_key': {'value': 'xxx', 'type': 'string'}, ...}
+        直接使用字段名的大写作为 key
+        """
+        from datetime import datetime
+
+        # 获取现有的所有自定义字段的 key（通过 desc 标识）
+        existing_configs = ConsoleSysConfig.objects.filter(
+            desc__startswith='自定义字段:',
+            enterprise_id=self.enterprise_id
+        )
+        existing_keys = {config.key for config in existing_configs}
+
+        # 保存或更新每个字段
+        current_keys = set()
+        for field_key, field_data in fields_dict.items():
+            # 直接使用字段名的大写作为 key
+            config_key = field_key.upper()
+            current_keys.add(config_key)
+
+            # 直接使用 value 和 type
+            field_value = field_data['value']
+            field_type = field_data['type']
+
+            # 如果是 bool 类型，enable 使用字段值；否则始终为 True
+            if field_type == 'bool':
+                enable_value = str(field_value).lower() in ('true', '1')
+            else:
+                enable_value = True
+
+            # 更新或创建配置
+            # 注意：key 字段有唯一索引，所以必须先检查是否存在
+            try:
+                obj = ConsoleSysConfig.objects.get(key=config_key)
+                # 如果存在，更新值
+                obj.type = field_type
+                obj.value = str(field_value)
+                obj.desc = f'自定义字段: {field_key}'
+                obj.enable = enable_value
+                obj.enterprise_id = self.enterprise_id
+                obj.save()
+            except ConsoleSysConfig.DoesNotExist:
+                # 如果不存在，创建新记录
+                ConsoleSysConfig.objects.create(
+                    key=config_key,
+                    type=field_type,
+                    value=str(field_value),
+                    desc=f'自定义字段: {field_key}',
+                    enable=enable_value,
+                    enterprise_id=self.enterprise_id,
+                    create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                )
+
+        # 删除不再存在的字段
+        keys_to_delete = existing_keys - current_keys
+        if keys_to_delete:
+            ConsoleSysConfig.objects.filter(
+                key__in=keys_to_delete,
+                enterprise_id=self.enterprise_id
+            ).delete()
+
+    def get_custom_fields(self):
+        """
+        获取所有自定义字段
+        返回: [{'key': 'xxx', 'value': 'xxx', 'type': 'string'}, ...]
+        """
+        # 通过 desc 标识查找自定义字段
+        # 如果有 enterprise_id 则按企业查询，否则查询所有
+        if self.enterprise_id:
+            configs = ConsoleSysConfig.objects.filter(
+                desc__startswith='自定义字段:',
+                enterprise_id=self.enterprise_id,
+                enable=True
+            )
+        else:
+            configs = ConsoleSysConfig.objects.filter(
+                desc__startswith='自定义字段:',
+                enable=True
+            )
+
+        logger.debug(f"get_custom_fields - enterprise_id: {self.enterprise_id}, configs count: {configs.count()}")
+
+        result = []
+        for config in configs:
+            # 从 desc 中提取原始字段名
+            original_key = config.desc.replace('自定义字段: ', '')
+
+            result.append({
+                'key': original_key,
+                'value': config.value,
+                'type': config.type
+            })
+
+        logger.debug(f"get_custom_fields - result: {result}")
+        return result
 
 
 class EnterpriseConfigService(ConfigService):
