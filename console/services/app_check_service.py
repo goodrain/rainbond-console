@@ -355,8 +355,14 @@ class AppCheckService(object):
                 if code != 200:
                     logger.error("save service check info port error {0}".format(msg))
                 if region_info:
-                    domain_service.create_default_gateway_rule(tenant, region_info, service, port_data, app.app_id)
-                port_service.defalut_open_outer(tenant, service, region_info, port_data, app)
+                    try:
+                        domain_service.create_default_gateway_rule(tenant, region_info, service, port_data, app.app_id)
+                    except Exception as e:
+                        logger.error("create default gateway rule failed: {0}".format(e))
+                try:
+                    port_service.defalut_open_outer(tenant, service, region_info, port_data, app)
+                except Exception as e:
+                    logger.error("defalut_open_outer failed: {0}".format(e))
         else:
             if service.service_source in [AppConstants.SOURCE_CODE, AppConstants.PACKAGE_BUILD]:
                 port_service.delete_service_port(tenant, service)
@@ -364,11 +370,17 @@ class AppCheckService(object):
                                                              service.service_alias.upper() + str(5000), True, True)
                 region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, service.service_region)
                 if region_info:
-                    domain_service.create_default_gateway_rule(tenant, region_info, service, t_port, app.app_id)
+                    try:
+                        domain_service.create_default_gateway_rule(tenant, region_info, service, t_port, app.app_id)
+                    except Exception as e:
+                        logger.error("create default gateway rule failed: {0}".format(e))
                 else:
                     logger.error("get region {0} from enterprise {1} failure".format(tenant.enterprise_id,
                                                                                      service.service_region))
-                port_service.defalut_open_outer(tenant, service, region_info, t_port, app)
+                try:
+                    port_service.defalut_open_outer(tenant, service, region_info, t_port, app)
+                except Exception as e:
+                    logger.error("defalut_open_outer failed: {0}".format(e))
 
         return 200, "success"
 
