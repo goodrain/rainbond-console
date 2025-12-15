@@ -75,7 +75,8 @@ class AppCheck(AppBaseView):
             check_brief_info = app_check_service.wrap_service_check_info(self.service, data)
             return Response(general_message(200, "success", "请求成功", bean=check_brief_info))
 
-        if data["service_info"] and len(data["service_info"]) < 2:
+        service_info_list = data.get("service_info") or []
+        if service_info_list and len(service_info_list) < 2:
             # No need to save env, ports and other information for multiple services here.
             logger.debug("start save check info ! {0}".format(self.service.create_status))
             app_check_service.save_service_check_info(self.tenant, self.app.ID, self.service, data)
