@@ -16,8 +16,8 @@ init_configuration() {
     exit 1
   fi
 
-  if [ ! -f "/opt/rainbond/k3s/agent/images/rbd-images.tar" ]; then
-    cp /tmp/rbd-images.tar /opt/rainbond/k3s/agent/images/rbd-images.tar
+  if [ ! -f "/opt/rainbond/k3s/agent/images/k3s-images.tar.zst" ]; then
+    cp /tmp/k3s-images-amd64.tar.zst /opt/rainbond/k3s/agent/images/k3s-images.tar.zst
   fi
 
   rainbond_cluster_yaml
@@ -57,7 +57,7 @@ EOF
 
 if [ ! -f "/opt/rainbond/k3s/server/static/rainbond-cluster.tgz" ] || \
    [ ! -f "/opt/rainbond/k3s/server/manifests/rainbond-cluster.yaml" ]; \
-   [ ! -f "/opt/rainbond/k3s/agent/images/rbd-images.tar" ]; then
+   [ ! -f "/opt/rainbond/k3s/agent/images/k3s-images.tar.zst" ]; then
     init_configuration
 else
   rainbond_cluster_yaml
