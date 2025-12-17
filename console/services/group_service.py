@@ -1005,6 +1005,9 @@ class GroupService(object):
 
     def get_watch_managed_data(self, tenant, region_name, app_id):
         from console.services.app import app_service
+        # 如果 app_id 为空，返回空数据
+        if not app_id:
+            return {"service": [], "config_map": [], "secret": []}
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         watch_managed_data = base_service.get_watch_managed(region_name, tenant.tenant_name, region_app_id)
         services = list()
