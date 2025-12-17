@@ -17,7 +17,7 @@ init_configuration() {
   fi
 
   if [ ! -f "/opt/rainbond/k3s/agent/images/k3s-images.tar.zst" ]; then
-    cp /tmp/k3s-images-amd64.tar.zst /opt/rainbond/k3s/agent/images/k3s-images.tar.zst
+    cp /tmp/k3s-images.tar.zst /opt/rainbond/k3s/agent/images/k3s-images.tar.zst
   fi
 
   rainbond_cluster_yaml
