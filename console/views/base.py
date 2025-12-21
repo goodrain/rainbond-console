@@ -67,13 +67,15 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
     def get_jwt_value(self, request):
         auth = get_authorization_header(request).split()
         auth_header_prefix = api_settings.JWT_AUTH_HEADER_PREFIX.lower()
+        # Also accept standard 'jwt' prefix for external tokens (e.g., from Rainbill portal)
+        valid_prefixes = [auth_header_prefix, 'jwt']
 
         if not auth:
             if api_settings.JWT_AUTH_COOKIE:
                 return request.COOKIES.get(api_settings.JWT_AUTH_COOKIE)
             return None
 
-        if smart_text(auth[0].lower()) != auth_header_prefix:
+        if smart_text(auth[0].lower()) not in valid_prefixes:
             return None
 
         if len(auth) == 1:
@@ -89,20 +91,25 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         Returns a two-tuple of `User` and token if a valid signature has been
         supplied using JWT-based authentication.  Otherwise returns `None`.
         """
-        # update request authentication info
-
         jwt_value = self.get_jwt_value(request)
         if jwt_value is None:
             msg = _('未提供验证信息')
             raise AuthenticationInfoHasExpiredError(msg)
 
-        # Check if the jwt is expired.If not, reset the expire time
-        jwt_manager = JwtManager()
-        if not jwt_manager.exists(jwt_value):
-            raise AuthenticationInfoHasExpiredError("token expired")
-
         try:
             payload = jwt_decode_handler(jwt_value)
+        except jwt.InvalidAudienceError:
+            # Fallback: Try decoding without audience verification for external portal tokens
+            try:
+                payload = jwt.decode(
+                    jwt_value.decode('utf-8') if isinstance(jwt_value, bytes) else jwt_value,
+                    settings.SECRET_KEY,
+                    algorithms=['HS256'],
+                    options={'verify_aud': False}
+                )
+            except Exception:
+                msg = _('认证信息错误,请求Token不合法')
+                raise AuthenticationInfoHasExpiredError(msg)
         except jwt.ExpiredSignature:
             msg = _('认证信息已过期')
             raise AuthenticationInfoHasExpiredError(msg)
@@ -114,7 +121,11 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
             raise AuthenticationInfoHasExpiredError(msg)
 
         user = self.authenticate_credentials(payload)
+        
+        # Store token in jwt_manager for session tracking
+        jwt_manager = JwtManager()
         jwt_manager.set(jwt_value, user.user_id)
+        
         login_event = LoginEvent(user, login_event_repo)
         login_event.active()
         return user, jwt_value
@@ -124,6 +135,10 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         Returns an active user that matches the payload's user id and email.
         """
         username = jwt_get_username_from_payload(payload)
+        # Fallback: try 'username' field for external JWT (e.g., from Rainbill portal)
+        if not username:
+            username = payload.get('username')
+        
         if not username:
             msg = _('认证信息不合法.')
             # raise exceptions.AuthenticationFailed(msg)

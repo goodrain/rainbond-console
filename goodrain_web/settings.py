@@ -160,7 +160,7 @@ JWT_AUTH = {
     'JWT_VERIFY_EXPIRATION': True,
     'JWT_LEEWAY': 0,
     'JWT_EXPIRATION_DELTA': datetime.timedelta(days=3650),  # 设置为10年，相当于永久
-    'JWT_AUDIENCE': None,
+    'JWT_AUDIENCE': None,  # Keep None to accept both old tokens and new portal tokens
     'JWT_ISSUER': None,
     'JWT_ALLOW_REFRESH': False,
     'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=3650),  # 设置为10年，相当于永久

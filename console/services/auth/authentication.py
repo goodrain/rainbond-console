@@ -10,6 +10,7 @@ logger = logging.getLogger('default')
 class InternalTokenAuthentication(authentication.BaseAuthentication):
     def authenticate(self, request):
         token = request.META.get('HTTP_X_INTERNAL_TOKEN')
+        
         if not token:
             return None
         
