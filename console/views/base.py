@@ -46,6 +46,7 @@ from rest_framework_jwt.settings import api_settings
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantEnterprise, Tenants, Users, TenantServiceInfo, ServiceGroup
 from console.login.jwt_manager import JwtManager
+from console.services.auth.authentication import InternalTokenAuthentication
 
 jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -184,7 +185,7 @@ class AlowAnyApiView(APIView):
 
 class JWTAuthApiView(APIView):
     permission_classes = (IsAuthenticated, )
-    authentication_classes = (JSONWebTokenAuthentication, )
+    authentication_classes = (InternalTokenAuthentication, JSONWebTokenAuthentication)
 
     def __init__(self, *args, **kwargs):
         super(JWTAuthApiView, self).__init__(*args, **kwargs)
