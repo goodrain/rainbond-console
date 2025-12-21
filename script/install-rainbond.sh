@@ -1,9 +1,9 @@
-# This script is used to install Rainbond standalone on Linux and MacOS
-
 #!/bin/bash
 
+# This script is used to install Rainbond standalone on Linux and MacOS
+
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v6.3.1-release'}
+RAINBOND_VERSION=${VERSION:-'v6.5.0-release'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 
 # Define colorful stdout
@@ -58,6 +58,33 @@ function send_error() {
 trap send_msg SIGINT
 
 ########################################
+# Required Commands Check
+# Check if all required commands are available
+########################################
+
+function check_required_commands() {
+    local missing_commands=()
+    local required_commands=("curl" "awk" "sed" "grep" "tar")
+
+    for cmd in "${required_commands[@]}"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            missing_commands+=("$cmd")
+        fi
+    done
+
+    if [ ${#missing_commands[@]} -gt 0 ]; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "缺少必需命令: ${missing_commands[*]}\n\t请安装这些命令后重试"
+        else
+            send_error "Missing required commands: ${missing_commands[*]}\n\tPlease install these commands and try again"
+        fi
+        exit 1
+    fi
+}
+
+check_required_commands
+
+########################################
 # OS Detect
 # Automatically check the operating system type.
 # Return Linux or Darwin.
@@ -69,7 +96,13 @@ if [ "${OS_TYPE}" == "Linux" ]; then
     if find /lib/modules/$(uname -r) -type f -name '*.ko*' | grep iptable_raw >/dev/null 2>&1; then
         if ! lsmod | grep iptable_raw >/dev/null 2>&1; then
             echo iptable_raw >/etc/modules-load.d/iptable_raw.conf
-            modprobe iptable_raw
+            if ! modprobe iptable_raw 2>/dev/null; then
+                if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                    send_warn "无法加载 iptable_raw 模块，可能影响网络功能"
+                else
+                    send_warn "Failed to load iptable_raw module, may affect network functionality"
+                fi
+            fi
         fi
     fi
 elif [ "${OS_TYPE}" == "Darwin" ]; then
@@ -163,15 +196,19 @@ function check_base_env() {
   fi
   
   # Check and disable firewalld
-  if command -v firewalld >/dev/null 2>&1 || systemctl list-unit-files | grep -q firewalld; then
-    if systemctl is-active --quiet firewalld; then
+  if systemctl list-unit-files 2>/dev/null | grep -q firewalld; then
+    if systemctl is-active --quiet firewalld 2>/dev/null; then
       if [ "$LANG" == "zh_CN.UTF-8" ]; then
         send_info "检测到 firewalld 正在运行，正在停止并禁用..."
       else
         send_info "firewalld is running, stopping and disabling..."
       fi
-      systemctl stop firewalld >/dev/null 2>&1
-      systemctl disable firewalld >/dev/null 2>&1
+      if ! systemctl stop firewalld >/dev/null 2>&1; then
+        send_warn "无法停止 firewalld，请手动停止"
+      fi
+      if ! systemctl disable firewalld >/dev/null 2>&1; then
+        send_warn "无法禁用 firewalld，请手动禁用"
+      fi
     fi
   fi
   
@@ -207,11 +244,18 @@ function check_base_env() {
     
     # Comment out swap entries in /etc/fstab to prevent re-enabling on reboot
     if [ -f /etc/fstab ]; then
-      sed -i.bak '/^[^#].*swap/s/^/#/' /etc/fstab
-      if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_info "已修改 /etc/fstab 防止重启后重新启用交换分区"
+      if sed -i.bak '/^[^#].*swap/s/^/#/' /etc/fstab 2>/dev/null; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+          send_info "已修改 /etc/fstab 防止重启后重新启用交换分区"
+        else
+          send_info "Modified /etc/fstab to prevent swap re-enabling on reboot"
+        fi
       else
-        send_info "Modified /etc/fstab to prevent swap re-enabling on reboot"
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+          send_warn "修改 /etc/fstab 失败，重启后可能重新启用 swap"
+        else
+          send_warn "Failed to modify /etc/fstab, swap may re-enable after reboot"
+        fi
       fi
     fi
     
@@ -368,6 +412,102 @@ function check_rainbond_container() {
   fi
 }
 
+########################################
+# Show Docker Command Function
+# Display the docker run command from existing container
+########################################
+
+function show_docker_command() {
+  # Check if rainbond container exists
+  if ! docker ps -a --filter "name=^rainbond$" --format '{{.Names}}' | grep -q "^rainbond$"; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      echo -e "${RED}错误: rainbond 容器不存在，请先运行安装脚本${NC}"
+    else
+      echo -e "${RED}Error: rainbond container does not exist, please run the installation script first${NC}"
+    fi
+    exit 1
+  fi
+
+  # Get container information
+  local IMAGE=$(docker inspect rainbond --format '{{.Config.Image}}' 2>/dev/null)
+  local EIP=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^EIP=' | cut -d'=' -f2)
+  local UUID=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^UUID=' | cut -d'=' -f2)
+
+  # Get volume mounts
+  local VOLUME_OPTS=$(docker inspect rainbond --format '{{range .Mounts}}{{if eq .Type "bind"}}-v {{.Source}}:{{.Destination}} {{else if eq .Type "volume"}}-v {{.Name}}:{{.Destination}} {{end}}{{end}}' 2>/dev/null)
+
+  # Display the command
+  echo -e "${GREEN}"
+  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    cat << EOF
+###############################################
+# 您可以复制并修改以下命令来重新部署:
+
+docker run --privileged -d \\
+  -p 7070:7070 \\
+  -p 80:80 \\
+  -p 443:443 \\
+  -p 6060:6060 \\
+  -p 30000-30010:30000-30010 \\
+  --name=rainbond \\
+  --restart=always \\
+  ${VOLUME_OPTS}\\
+  -e EIP=${EIP} \\
+  -e UUID=${UUID} \\
+  ${IMAGE}
+EOF
+  else
+    cat << EOF
+# You can copy and modify the following command to redeploy:
+
+docker run --privileged -d \\
+  -p 7070:7070 \\
+  -p 80:80 \\
+  -p 443:443 \\
+  -p 6060:6060 \\
+  -p 30000-30010:30000-30010 \\
+  --name=rainbond \\
+  --restart=always \\
+  ${VOLUME_OPTS}\\
+  -e EIP=${EIP} \\
+  -e UUID=${UUID} \\
+  ${IMAGE}
+EOF
+  fi
+  echo -e "${NC}"
+  exit 0
+}
+
+################################################################################
+# SECTION 4: Main Installation Flow
+################################################################################
+
+# Check for --show parameter
+if [ "${1:-}" = "--show" ]; then
+  show_docker_command
+fi
+
+# Display Rainbond ASCII banner at the very beginning
+echo -e "${GREEN}"
+cat << "EOF"
+██████   █████  ██ ███    ██ ██████   ██████  ███    ██ ██████
+██   ██ ██   ██ ██ ████   ██ ██   ██ ██    ██ ████   ██ ██   ██
+██████  ███████ ██ ██ ██  ██ ██████  ██    ██ ██ ██  ██ ██   ██
+██   ██ ██   ██ ██ ██  ██ ██ ██   ██ ██    ██ ██  ██ ██ ██   ██
+██   ██ ██   ██ ██ ██   ████ ██████   ██████  ██   ████ ██████
+EOF
+echo -e "${NC}"
+
+if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  echo -e "${GREEN}欢迎安装 Rainbond${NC}"
+  echo -e "${GREEN}版本: ${RAINBOND_VERSION}${NC}"
+  echo ""
+else
+  echo -e "${GREEN}Welcome to install Rainbond ${NC}"
+  echo -e "${GREEN}Version: ${RAINBOND_VERSION}${NC}"
+  echo ""
+fi
+
 # First check if Rainbond container is already running
 check_rainbond_container
 
@@ -405,7 +545,7 @@ else
 fi
 
 OS_INFO=$(uname -a)
-UUID=$(echo $OS_INFO | ${MD5_CMD} | cut -b 1-32)
+UUID=$(echo "$OS_INFO" | ${MD5_CMD} | cut -b 1-32)
 
 ########################################
 # Environment Check
@@ -467,14 +607,67 @@ start_docker_service_linux() {
     fi
 }
 
-# Function to handle Docker Desktop on macOS
-handle_docker_desktop_macos() {
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_error "检测到 Docker Desktop APP 已安装但未运行，请先启动 Docker Desktop APP 后重新执行脚本."
+# Function to check if OrbStack is installed
+check_orbstack_installed() {
+    command -v orb >/dev/null 2>&1 || [ -d "/Applications/OrbStack.app" ]
+}
+
+# Function to check if OrbStack is running
+check_orbstack_running() {
+    if command -v orb >/dev/null 2>&1; then
+        orb status >/dev/null 2>&1
     else
-        send_error "Docker Desktop APP is installed but not running. Please start Docker Desktop APP and re-run this script."
+        # Check if OrbStack process is running
+        pgrep -f "OrbStack" >/dev/null 2>&1
     fi
-    exit 1
+}
+
+# Function to handle OrbStack requirement on macOS
+handle_orbstack_macos() {
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        send_info "检查 OrbStack 安装状态..."
+    else
+        send_info "Checking OrbStack installation..."
+    fi
+
+    if ! check_orbstack_installed; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "macOS 上必须使用 OrbStack，请先安装 OrbStack 后重新执行脚本.\n\t下载地址: https://orbstack.dev/"
+        else
+            send_error "OrbStack is required on macOS. Please install OrbStack and re-run this script.\n\tDownload: https://orbstack.dev/"
+        fi
+        exit 1
+    fi
+
+    if ! check_orbstack_running; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "检测到 OrbStack 已安装但未运行，请先启动 OrbStack 后重新执行脚本."
+        else
+            send_error "OrbStack is installed but not running. Please start OrbStack and re-run this script."
+        fi
+        exit 1
+    fi
+
+    # Check if Docker is available through OrbStack
+    if ! docker info >/dev/null 2>&1; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "OrbStack 已运行，但 Docker 不可用。请检查 OrbStack 配置."
+        else
+            send_error "OrbStack is running, but Docker is not available. Please check OrbStack configuration."
+        fi
+        exit 1
+    fi
+
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        send_info "✓ OrbStack 检查通过"
+    else
+        send_info "✓ OrbStack check passed"
+    fi
+}
+
+# Function to handle Docker Desktop on macOS (deprecated, use OrbStack instead)
+handle_docker_desktop_macos() {
+    handle_orbstack_macos
 }
 
 # Function to create containerd systemd service file
@@ -773,9 +966,9 @@ install_docker_linux() {
 # Function to handle Docker installation requirement on macOS
 handle_docker_install_macos() {
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_error "未检测到 Docker 环境, 请先安装 Docker Desktop APP, 然后重新执行本脚本.\n\thttps://www.docker.com/products/docker-desktop/"
+        send_error "未检测到 Docker 环境, macOS 上必须使用 OrbStack, 请先安装 OrbStack 然后重新执行本脚本.\n\t下载地址: https://orbstack.dev/"
     else
-        send_error "Ops! Docker has not been installed.\nPlease visit the following website to get the latest Docker Desktop APP.\n\thttps://www.docker.com/products/docker-desktop/"
+        send_error "Ops! Docker has not been installed. OrbStack is required on macOS.\nPlease visit the following website to get OrbStack.\n\tDownload: https://orbstack.dev/"
     fi
     exit 1
 }
@@ -804,30 +997,23 @@ validate_docker_version() {
 
 # Main Docker management function
 manage_docker() {
+    # On macOS, check OrbStack first
+    if [ "${OS_TYPE}" = "Darwin" ]; then
+        handle_orbstack_macos
+        validate_docker_version
+        return
+    fi
+
+    # Linux logic
     if ! check_docker_running; then
         if check_docker_installed; then
-            case "${OS_TYPE}" in
-                "Linux")
-                    if ! start_docker_service_linux; then
-                        exit 1
-                    fi
-                    validate_docker_version
-                    ;;
-                "Darwin")
-                    handle_docker_desktop_macos
-                    validate_docker_version
-                    ;;
-            esac
+            if ! start_docker_service_linux; then
+                exit 1
+            fi
+            validate_docker_version
         else
             # Docker not installed
-            case "${OS_TYPE}" in
-                "Linux")
-                    install_docker_linux
-                    ;;
-                "Darwin")
-                    handle_docker_install_macos
-                    ;;
-            esac
+            install_docker_linux
         fi
     else
         # Docker is running, validate version
@@ -1056,7 +1242,7 @@ pull_success=false
 for retry in 1 2 3; do
   if docker pull ${RBD_IMAGE}; then
     pull_success=true
-    rbd_image_id=$(docker images | grep k3s | grep ${RAINBOND_VERSION} | awk '{print $3}')
+    rbd_image_id=$(docker images | grep k3s | grep "${RAINBOND_VERSION}" | awk '{print $3}')
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
       send_info "Rainbond 镜像获取成功，ID: ${rbd_image_id}"
     else
@@ -1093,66 +1279,260 @@ else
   send_info "Starting Rainbond container..."
 fi
 
-docker_run_meg=$(bash -c "$docker_run_cmd" 2>&1)
+if ! docker_run_meg=$(bash -c "$docker_run_cmd" 2>&1); then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+        send_error "Docker 容器启动命令执行失败: $docker_run_meg"
+    else
+        send_error "Docker container start command failed: $docker_run_meg"
+    fi
+    exit 1
+fi
 send_info "$docker_run_meg"
-sleep 3
 
-# Verify startup
-sleep 5  # 等待容器启动
-if docker ps --filter "name=rainbond" --filter "status=running" | grep -q "rainbond"; then
-  if [ "$LANG" == "zh_CN.UTF-8" ]; then
-    send_info "Rainbond 容器启动成功"
-  else
-    send_info "Rainbond container started successfully"
-  fi
+# Verify startup with retry loop
+if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  send_info "正在等待容器启动..."
 else
+  send_info "Waiting for container to start..."
+fi
+
+container_started=false
+MAX_WAIT_TIME=60  # Maximum wait time in seconds
+for i in $(seq 1 $MAX_WAIT_TIME); do
+  if docker ps --filter "name=rainbond" --filter "status=running" | grep -q "rainbond"; then
+    container_started=true
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      send_info "Rainbond 容器启动成功（耗时 ${i} 秒）"
+    else
+      send_info "Rainbond container started successfully (took ${i} seconds)"
+    fi
+    break
+  fi
+  # Show progress every 10 seconds
+  if [ $((i % 10)) -eq 0 ]; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      send_info "仍在等待容器启动... (${i}/${MAX_WAIT_TIME}秒)"
+    else
+      send_info "Still waiting for container to start... (${i}/${MAX_WAIT_TIME}s)"
+    fi
+  fi
+  sleep 1
+done
+
+if [ "$container_started" = false ]; then
   if [ "$LANG" == "zh_CN.UTF-8" ]; then
-    send_error "Rainbond 容器启动失败"
+    send_error "Rainbond 容器启动失败或超时（等待了 ${MAX_WAIT_TIME} 秒）"
   else
-    send_error "Rainbond container startup failed"
+    send_error "Rainbond container startup failed or timeout (waited ${MAX_WAIT_TIME} seconds)"
+  fi
+  exit 1
+fi
+
+# Wait for Rainbond services to be ready
+if [ "$LANG" == "zh_CN.UTF-8" ]; then
+  send_info "正在等待 Rainbond 服务启动..."
+else
+  send_info "Waiting for Rainbond services to start..."
+fi
+
+# Define expected pods (compatible with Bash 3.2+)
+pod_list=(
+  "local-path-provisioner"
+  "minio"
+  "rainbond-operator"
+  "rbd-api"
+  "rbd-app-ui"
+  "rbd-chaos"
+  "rbd-gateway"
+  "rbd-hub"
+  "rbd-monitor"
+  "rbd-mq"
+  "rbd-worker"
+)
+
+pod_ready_reported=""
+services_ready=false
+MAX_SERVICE_WAIT=120
+check_interval=5
+elapsed_time=0
+
+# Spinner characters
+spinner_chars=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+spinner_index=0
+
+while [ $elapsed_time -le $MAX_SERVICE_WAIT ]; do
+  pod_status=$(docker exec rainbond /bin/k3s kubectl get pod -n rbd-system --no-headers 2>/dev/null)
+
+  if [ -n "$pod_status" ]; then
+    all_ready=true
+
+    for prefix in "${pod_list[@]}"; do
+      if echo "$pod_status" | grep "^${prefix}" | grep 'Running' >/dev/null 2>&1; then
+        if ! echo "$pod_ready_reported" | grep -q "\b${prefix}\b"; then
+          printf "\r\033[K"  # Clear spinner line
+          echo -e "${GREEN}  ✓ ${prefix}${NC}"
+          pod_ready_reported="$pod_ready_reported $prefix"
+        fi
+      else
+        all_ready=false
+      fi
+    done
+
+    # Check web service if all pods ready
+    if [ "$all_ready" = true ]; then
+      if curl -s --connect-timeout 5 --max-time 10 "http://127.0.0.1:7070" >/dev/null 2>&1 || \
+         curl -s --connect-timeout 5 --max-time 10 "http://${EIP}:7070" >/dev/null 2>&1; then
+        printf "\r\033[K"  # Clear spinner line
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+          send_info "🎉 所有服务启动完成！"
+        else
+          send_info "🎉 All services are ready!"
+        fi
+        services_ready=true
+        break
+      fi
+    fi
+  fi
+
+  if [ $elapsed_time -ge $MAX_SERVICE_WAIT ]; then
+    break
+  fi
+
+  # Show spinner while waiting (5 seconds with 0.2 second intervals)
+  for i in $(seq 1 25); do
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      printf "\r  %s 等待服务启动..." "${spinner_chars[$spinner_index]}"
+    else
+      printf "\r  %s Waiting for services..." "${spinner_chars[$spinner_index]}"
+    fi
+    spinner_index=$(( (spinner_index + 1) % 10 ))
+    sleep 0.2
+  done
+
+  elapsed_time=$((elapsed_time + check_interval))
+done
+
+# Clear the spinner line
+printf "\r\033[K"
+
+if [ "$services_ready" = false ]; then
+  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    send_warn "Rainbond 服务启动超时（等待了 ${MAX_SERVICE_WAIT} 秒）"
+    send_info "服务可能仍在启动中，请使用以下命令检查状态："
+    echo -e "${YELLOW}    docker exec -it rainbond bash${NC}"
+    echo -e "${YELLOW}    kubectl get pod -n rbd-system${NC}"
+    echo -e "${YELLOW}    kubectl describe pod <pod-name> -n rbd-system${NC}"
+  else
+    send_warn "Rainbond services startup timeout (waited ${MAX_SERVICE_WAIT} seconds)"
+    send_info "Services may still be starting, please check status with:"
+    echo -e "${YELLOW}    docker exec -it rainbond bash${NC}"
+    echo -e "${YELLOW}    kubectl get pod -n rbd-system${NC}"
+    echo -e "${YELLOW}    kubectl describe pod <pod-name> -n rbd-system${NC}"
   fi
 fi
 
 if [ "$LANG" == "zh_CN.UTF-8" ]; then
-  echo -e ${GREEN}
-  cat <<EOF
+  echo -e "${GREEN}"
+  if [ "$services_ready" = true ]; then
+    cat <<EOF
 ###############################################
-# Rainbond 版本: $RAINBOND_VERSION
+# 🎉 Rainbond 安装成功！
+################################################
+# 版本: $RAINBOND_VERSION
 # 架构: $ARCH_TYPE
 # 操作系统: $OS_TYPE
-# Rainbond 文档: https://www.rainbond.com/docs
 ################################################
 # 访问 Rainbond:
-#     - 请等待 5 分钟左右系统完全启动，随后在浏览器中输入 http://$EIP:7070 访问 Rainbond.
-#     - 您可以通过以下命令观察启动进度: 
-#         - docker exec -it rainbond bash 
-#         - watch kubectl get pod -n rbd-system
-#     - 如遇问题，请阅读故障排除文档 https://www.rainbond.com/docs/troubleshooting/install
-# 如无法解决，请反馈至: 
-#     - https://www.rainbond.com/docs/support
+#     🌐 控制台地址: http://$EIP:7070
+#
+# 监控命令:
+#     docker exec -it rainbond bash
+#     kubectl get pod -n rbd-system
+#
+# 文档和支持:
+#     📖 文档: https://www.rainbond.com/docs
+#     🔧 故障排除: https://www.rainbond.com/docs/troubleshooting/install
+#     💬 支持: https://www.rainbond.com/docs/support
 ###############################################
 
 EOF
+  else
+    cat <<EOF
+###############################################
+# ⏳ Rainbond 容器已启动，服务仍在初始化中
+################################################
+# 版本: $RAINBOND_VERSION
+# 架构: $ARCH_TYPE
+# 操作系统: $OS_TYPE
+################################################
+# 访问 Rainbond:
+#     🌐 控制台地址: http://$EIP:7070
+#     ⚠️  请等待几分钟后访问
+#
+# 监控命令:
+#     docker exec -it rainbond bash
+#     kubectl get pod -n rbd-system
+#     kubectl describe pod <pod-name> -n rbd-system
+#
+# 文档和支持:
+#     📖 文档: https://www.rainbond.com/docs
+#     🔧 故障排除: https://www.rainbond.com/docs/troubleshooting/install
+#     💬 支持: https://www.rainbond.com/docs/support
+###############################################
+
+EOF
+  fi
   echo -e "${NC}"
 else
-  echo -e ${GREEN}
-  cat <<EOF
+  echo -e "${GREEN}"
+  if [ "$services_ready" = true ]; then
+    cat <<EOF
 ###############################################
-# Rainbond Version: $RAINBOND_VERSION
+# 🎉 Rainbond Installation Successful!
+################################################
+# Version: $RAINBOND_VERSION
 # Arch: $ARCH_TYPE
 # OS: $OS_TYPE
-# Rainbond Docs: https://www.rainbond.com/docs
 ################################################
 # Access Rainbond:
-#     - Please wait 5 minutes for system to fully start, then enter http://$EIP:7070 in the browser to access Rainbond.
-#     - You can observe the startup progress with the following commands:
-#         - docker exec -it rainbond bash 
-#         - kubectl get pod -n rbd-system
-#     - If you encounter problems, please read the troubleshooting document https://www.rainbond.com/docs/troubleshooting/install
-# If you cannot solve the problem, please feedback to: 
-#     - https://www.rainbond.com/docs/support
+#     🌐 Console: http://$EIP:7070
+#
+# Monitoring Commands:
+#     docker exec -it rainbond bash
+#     kubectl get pod -n rbd-system
+#
+# Documentation and Support:
+#     📖 Docs: https://www.rainbond.com/docs
+#     🔧 Troubleshooting: https://www.rainbond.com/docs/troubleshooting/install
+#     💬 Support: https://www.rainbond.com/docs/support
 ###############################################
 
 EOF
+  else
+    cat <<EOF
+###############################################
+# ⏳ Rainbond Container Started, Services Still Initializing
+################################################
+# Version: $RAINBOND_VERSION
+# Arch: $ARCH_TYPE
+# OS: $OS_TYPE
+################################################
+# Access Rainbond:
+#     🌐 Console: http://$EIP:7070
+#     ⚠️  Please wait a few minutes before accessing
+#
+# Monitoring Commands:
+#     docker exec -it rainbond bash
+#     kubectl get pod -n rbd-system
+#     kubectl describe pod <pod-name> -n rbd-system
+#
+# Documentation and Support:
+#     📖 Docs: https://www.rainbond.com/docs
+#     🔧 Troubleshooting: https://www.rainbond.com/docs/troubleshooting/install
+#     💬 Support: https://www.rainbond.com/docs/support
+###############################################
+
+EOF
+  fi
   echo -e "${NC}"
 fi

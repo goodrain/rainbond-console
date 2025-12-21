@@ -81,6 +81,38 @@ fatal() {
     exit 1
 }
 
+# check_required_ports checks if required ports are available
+check_required_ports() {
+    REQUIRED_PORTS="6443 9345 10250 2379 2380 2381 80 443 6060 7070 8443 7080 8889 9180"
+    OCCUPIED_PORTS=""
+
+    info "checking required ports availability"
+
+    for port in ${REQUIRED_PORTS}; do
+        # Check if port is in use using netstat or ss
+        if command -v ss >/dev/null 2>&1; then
+            if ss -tuln | grep -q ":${port} "; then
+                OCCUPIED_PORTS="${OCCUPIED_PORTS} ${port}"
+            fi
+        elif command -v netstat >/dev/null 2>&1; then
+            if netstat -tuln | grep -q ":${port} "; then
+                OCCUPIED_PORTS="${OCCUPIED_PORTS} ${port}"
+            fi
+        else
+            # Fallback: try to bind to the port using nc or /dev/tcp
+            if timeout 1 bash -c "echo >/dev/tcp/127.0.0.1/${port}" 2>/dev/null; then
+                OCCUPIED_PORTS="${OCCUPIED_PORTS} ${port}"
+            fi
+        fi
+    done
+
+    if [ -n "${OCCUPIED_PORTS}" ]; then
+        fatal "The following required ports are already in use:${OCCUPIED_PORTS}. Please stop services using these ports before installation."
+    else
+        info "all required ports are available"
+    fi
+}
+
 # check_target_mountpoint return success if the target directory is on a dedicated mount point
 check_target_mountpoint() {
     mountpoint -q "${INSTALL_RKE2_TAR_PREFIX}"
@@ -261,9 +293,6 @@ EOL
   if [ ! -f "/etc/rancher/rke2/registries.yaml" ]; then
     cat >/etc/rancher/rke2/registries.yaml <<EOL
 mirrors:
-  "docker.io":
-    endpoint:
-      - "https://docker.rainbond.cc"
   "goodrain.me":
     endpoint:
       - "https://goodrain.me"
@@ -863,6 +892,7 @@ start_rke2_systemd() {
 do_install() {
     parse_args "$@"
     setup_env
+    check_required_ports
     check_method_conflict
     setup_arch
     if [ -z "${INSTALL_RKE2_ARTIFACT_PATH}" ]; then
