@@ -151,6 +151,12 @@ class PlatformHealthService(object):
                     metric = item.get('metric', {})
                     instance = metric.get('instance', 'unknown')
                     host = metric.get('host', instance)  # 优先使用 host 字段，否则用 instance
+                    error_reason = metric.get('error_reason', '')
+
+                    # 构建 message
+                    message = f"数据库不可达 ({host})"
+                    if error_reason:
+                        message += f": {error_reason}"
 
                     issue = {
                         "priority": "P0",
@@ -158,7 +164,7 @@ class PlatformHealthService(object):
                         "name": "MySQL数据库",
                         "instance": instance,
                         "status": "down",
-                        "message": f"数据库不可达 ({host})",
+                        "message": message,
                         "metric": "mysql_up",
                         "value": 0
                     }
@@ -198,14 +204,22 @@ class PlatformHealthService(object):
 
             if result and len(result) > 0:
                 for item in result:
-                    storage_class = item.get('metric', {}).get('storage_class', 'unknown')
+                    metric = item.get('metric', {})
+                    storage_class = metric.get('storage_class', 'unknown')
+                    error_reason = metric.get('error_reason', '')
+
+                    # 构建 message
+                    message = "外部存储类不可用，无法创建PVC"
+                    if error_reason:
+                        message += f": {error_reason}"
+
                     issues.append({
                         "priority": "P0",
                         "category": "kubernetes",
                         "name": "集群存储",
                         "instance": storage_class,
                         "status": "down",
-                        "message": "外部存储类不可用，无法创建PVC",
+                        "message": message,
                         "metric": "cluster_storage_up",
                         "value": 0
                     })
@@ -420,14 +434,22 @@ class PlatformHealthService(object):
 
             if result and len(result) > 0:
                 for item in result:
-                    instance = item.get('metric', {}).get('instance', 'unknown')
+                    metric = item.get('metric', {})
+                    instance = metric.get('instance', 'unknown')
+                    error_reason = metric.get('error_reason', '')
+
+                    # 构建 message，如果有 error_reason 则添加
+                    message = error_message
+                    if error_reason:
+                        message += f": {error_reason}"
+
                     issues.append({
                         "priority": priority,
                         "category": category,
                         "name": component_name,
                         "instance": instance,
                         "status": "down",
-                        "message": error_message,
+                        "message": message,
                         "metric": metric_name,
                         "value": 0
                     })
