@@ -226,12 +226,14 @@ class PlatformHealthService(object):
                     metric = item.get('metric', {})
                     instance = metric.get('instance', 'unknown')
                     url = metric.get('url', '')  # 提取 url 字段
+                    error_reason = metric.get('error_reason', '')  # 提取 error_reason 字段
 
-                    # 将 url 融入 message
+                    # 构建 message，将 url 和 error_reason 融入
+                    message = "镜像仓库不可达"
                     if url:
-                        message = f"镜像仓库不可达 ({url})"
-                    else:
-                        message = "镜像仓库不可达"
+                        message += f" ({url})"
+                    if error_reason:
+                        message += f": {error_reason}"
 
                     issue = {
                         "priority": "P0",
