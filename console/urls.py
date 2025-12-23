@@ -75,6 +75,7 @@ from console.views.custom_configs import CustomConfigsCLView, CustomConfigsUserC
 from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
                                       NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage,
                                       EnterpriseRegionGatewayBatch, EnterpriseTeamNames, EnterpriseRegionLangVersion)
+from console.views.platform_health import PlatformHealthCheckView
 from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
                                       RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
 from console.views.enterprise import (
@@ -920,6 +921,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/operation-logs$', OperationLogView.as_view()),
 
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/platform-info$', EnterpriseInfoFileView.as_view()),
+    # 平台健康检查
+    url(r'^platform/health$', PlatformHealthCheckView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/backups$', BackupDataCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/backups/(?P<backup_name>[\w\-\.]+)$', BackupDateDownload.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/recover$', BackupRecoverCView.as_view()),

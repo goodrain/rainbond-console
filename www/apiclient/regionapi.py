@@ -1956,6 +1956,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, **kwargs)
         return res, body
 
+    def get_platform_health(self, enterprise_id, region_name):
+        """获取平台健康状态"""
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        url = url + "/v2/cluster/health"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10, retries=1)
+        return res, body
+
     def test_region_api(self, region_data):
         region = RegionConfig(**region_data)
         url = region.url + "/v2/show"
