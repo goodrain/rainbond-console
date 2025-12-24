@@ -84,6 +84,9 @@ class AppVolumeService(object):
         body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
         if body and hasattr(body, 'list') and body.list:
             for opt in body.list:
+                # 将 sharedcfs 类型的存储显示为"百度云"
+                if opt.get("volume_type") == "sharedcfs":
+                    opt["name_show"] = "百度云"
                 base_opts.append(opt)
         if os.getenv("USE_SAAS"):
             base_opts = [{"volume_type": "volcengine", "name_show": "火山云存储", "provisioner": ""}]
@@ -104,16 +107,30 @@ class AppVolumeService(object):
         volume_type: string 新的存储类型，没有合适的相同的存储则返回新的存储
         changed: bool 是否有合适的相同的存储
         ... 后续待补充
+
+        环境变量 PREFERRED_VOLUME_TYPE 可以设置首选的存储类型，
+        如果集群中有该类型的存储，优先使用它而不是模板中的存储类型
+        例如: PREFERRED_VOLUME_TYPE=sharedcfs
         """
         settings = {}
         if volume_type in self.simple_volume_type:
             settings["changed"] = False
             return settings
         opts = self.get_service_support_volume_options(tenant, service)
-        """
-        1、先确定是否有相同的存储类型
-        2、再确定是否有相同的存储提供方
-        """
+
+        # 检查是否设置了首选存储类型的环境变量
+        preferred_volume_type = os.getenv("PREFERRED_VOLUME_TYPE")
+        if preferred_volume_type:
+            # 检查首选存储类型在集群中是否可用
+            for opt in opts:
+                if opt["volume_type"] == preferred_volume_type:
+                    logger.info("Using preferred volume type '{}' instead of '{}' from template".format(
+                        preferred_volume_type, volume_type))
+                    settings["volume_type"] = preferred_volume_type
+                    settings["changed"] = True
+                    return settings
+
+        # 检查模板中的存储类型是否可用
         for opt in opts:
             if opt["volume_type"] == volume_type:
                 # get the same volume type
