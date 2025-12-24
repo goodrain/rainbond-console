@@ -134,7 +134,35 @@ class SMSService(object):
         # 保存验证码
         expires_at = timezone.now() + timedelta(minutes=5)
         sms_repo.create_verification(phone, code, purpose, expires_at)
-        
+
         return code
+
+    def verify_code(self, phone, code, purpose):
+        """校验验证码"""
+        if not phone or not code or not purpose:
+            raise ServiceHandleException(
+                msg="invalid parameters",
+                msg_show="参数不能为空",
+                status_code=400
+            )
+
+        # 获取有效的验证码
+        verification = sms_repo.get_valid_code(phone, purpose)
+        if not verification:
+            raise ServiceHandleException(
+                msg="verification code not found or expired",
+                msg_show="验证码不存在或已过期",
+                status_code=400
+            )
+
+        # 校验验证码
+        if verification.code != code:
+            raise ServiceHandleException(
+                msg="verification code error",
+                msg_show="验证码错误",
+                status_code=400
+            )
+
+        return True
 
 sms_service = SMSService()

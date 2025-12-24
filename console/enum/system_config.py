@@ -19,3 +19,4 @@ class ConfigKeyEnum(AutoNumber):
     SHOW_LANGUE = ()
     SHOW_K8S = ()
     SECURITY_RESTRICTIONS = ()
+    CUSTOM_FIELDS = ()
