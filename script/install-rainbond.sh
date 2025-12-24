@@ -370,12 +370,68 @@ function check_base_env() {
   fi
 }
 
+########################################
+# Container Helper Functions
+# Reusable functions for container operations
+########################################
+
+# Check if rainbond container exists
+# Returns: 0 if exists, 1 if not exists
+function container_exists() {
+  docker ps -a --filter "name=^rainbond$" --format '{{.Names}}' 2>/dev/null | grep -q "^rainbond$"
+}
+
+# Check if rainbond container is running
+# Returns: 0 if running, 1 if not running
+function container_is_running() {
+  docker ps --filter "name=^rainbond$" --filter "status=running" --format '{{.Names}}' 2>/dev/null | grep -q "^rainbond$"
+}
+
+# Get container IP address
+# Outputs: Container IP address or empty string
+function get_container_ip() {
+  docker inspect rainbond --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null
+}
+
+# Get EIP from container environment
+# Outputs: EIP value or empty string
+function get_container_eip() {
+  docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^EIP=' | cut -d'=' -f2
+}
+
+# Ensure container exists (exit with error if not)
+function require_container_exists() {
+  if ! container_exists; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      send_error "rainbond 容器不存在，请先运行安装脚本"
+    else
+      send_error "rainbond container does not exist, please run the installation script first"
+    fi
+    exit 1
+  fi
+}
+
+# Ensure container is running (exit with error if not)
+function require_container_running() {
+  require_container_exists
+
+  if ! container_is_running; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      send_error "rainbond 容器未运行，请先启动容器"
+    else
+      send_error "rainbond container is not running, please start the container first"
+    fi
+    exit 1
+  fi
+}
+
 function check_rainbond_container() {
   if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-    if docker ps -a --filter "name=^rainbond$" | grep -q "rainbond"; then
-      if docker ps --filter "name=^rainbond$" --filter "status=running" | grep -q "rainbond"; then
+    if container_exists; then
+      if container_is_running; then
         # Rainbond container is running, get EIP and exit
-        local get_eip=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^EIP=' | cut -d'=' -f2)
+        local get_eip
+        get_eip=$(get_container_eip)
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
           send_info "Rainbond 容器已在运行中.\n\t- 请在浏览器中输入 http://$get_eip:7070 访问 Rainbond."
         else
@@ -389,10 +445,11 @@ function check_rainbond_container() {
         else
           send_info "Rainbond container exists but not running, trying to start..."
         fi
-        
+
         if docker start rainbond; then
           sleep 3
-          local get_eip=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^EIP=' | cut -d'=' -f2)
+          local get_eip
+          get_eip=$(get_container_eip)
           if [ "$LANG" == "zh_CN.UTF-8" ]; then
             send_info "Rainbond 容器启动成功.\n\t- 请在浏览器中输入 http://$get_eip:7070 访问 Rainbond."
           else
@@ -419,19 +476,15 @@ function check_rainbond_container() {
 
 function show_docker_command() {
   # Check if rainbond container exists
-  if ! docker ps -a --filter "name=^rainbond$" --format '{{.Names}}' | grep -q "^rainbond$"; then
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
-      echo -e "${RED}错误: rainbond 容器不存在，请先运行安装脚本${NC}"
-    else
-      echo -e "${RED}Error: rainbond container does not exist, please run the installation script first${NC}"
-    fi
-    exit 1
-  fi
+  require_container_exists
 
   # Get container information
-  local IMAGE=$(docker inspect rainbond --format '{{.Config.Image}}' 2>/dev/null)
-  local EIP=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^EIP=' | cut -d'=' -f2)
-  local UUID=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^UUID=' | cut -d'=' -f2)
+  local IMAGE
+  local EIP
+  local UUID
+  IMAGE=$(docker inspect rainbond --format '{{.Config.Image}}' 2>/dev/null)
+  EIP=$(get_container_eip)
+  UUID=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^UUID=' | cut -d'=' -f2)
 
   # Get volume mounts
   local VOLUME_OPTS=$(docker inspect rainbond --format '{{range .Mounts}}{{if eq .Type "bind"}}-v {{.Source}}:{{.Destination}} {{else if eq .Type "volume"}}-v {{.Name}}:{{.Destination}} {{end}}{{end}}' 2>/dev/null)
@@ -478,13 +531,129 @@ EOF
   exit 0
 }
 
+########################################
+# Port Forward Function
+# Setup iptables port forwarding for Rainbond container
+########################################
+
+function setup_port_forward() {
+  # Only support Linux
+  if [ "${OS_TYPE}" != "Linux" ]; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      send -e "${RED}错误: 端口转发功能仅在 Linux 系统上支持${NC}"
+    else
+      echo -e "${RED}Error: Port forwarding is only supported on Linux${NC}"
+    fi
+    exit 1
+  fi
+
+  # Check if rainbond container exists and is running
+  require_container_running
+
+  # Get container IP
+  local CONTAINER_IP
+  CONTAINER_IP=$(get_container_ip)
+  if [ -z "$CONTAINER_IP" ]; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      echo -e "${RED}错误: 无法获取容器 IP 地址${NC}"
+    else
+      echo -e "${RED}Error: Failed to get container IP address${NC}"
+    fi
+    exit 1
+  fi
+
+  # Validate port parameters
+  local CONTAINER_PORT=$1
+  local HOST_PORT=$2
+
+  if [ -z "$CONTAINER_PORT" ] || [ -z "$HOST_PORT" ]; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      echo -e "${RED}错误: 缺少端口参数${NC}"
+      echo -e "${YELLOW}用法: $0 port-forward <容器端口> <宿主机端口>${NC}"
+      echo -e "${YELLOW}示例: $0 port-forward 30011 30011${NC}"
+    else
+      echo -e "${RED}Error: Missing port parameters${NC}"
+      echo -e "${YELLOW}Usage: $0 port-forward <container-port> <host-port>${NC}"
+      echo -e "${YELLOW}Example: $0 port-forward 30011 30011${NC}"
+    fi
+    exit 1
+  fi
+
+  # Validate port numbers
+  if ! [[ "$CONTAINER_PORT" =~ ^[0-9]+$ ]] || [ "$CONTAINER_PORT" -lt 1 ] || [ "$CONTAINER_PORT" -gt 65535 ]; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      echo -e "${RED}错误: 无效的容器端口号: $CONTAINER_PORT (必须是 1-65535 之间的数字)${NC}"
+    else
+      echo -e "${RED}Error: Invalid container port: $CONTAINER_PORT (must be a number between 1-65535)${NC}"
+    fi
+    exit 1
+  fi
+
+  if ! [[ "$HOST_PORT" =~ ^[0-9]+$ ]] || [ "$HOST_PORT" -lt 1 ] || [ "$HOST_PORT" -gt 65535 ]; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      echo -e "${RED}错误: 无效的宿主机端口号: $HOST_PORT (必须是 1-65535 之间的数字)${NC}"
+    else
+      echo -e "${RED}Error: Invalid host port: $HOST_PORT (must be a number between 1-65535)${NC}"
+    fi
+    exit 1
+  fi
+
+  # Check if iptables command exists
+  if ! command -v iptables >/dev/null 2>&1; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      echo -e "${RED}错误: 未找到 iptables 命令，请先安装 iptables${NC}"
+    else
+      echo -e "${RED}Error: iptables command not found, please install iptables first${NC}"
+    fi
+    exit 1
+  fi
+
+  if ! iptables -t nat -I DOCKER -p tcp --dport "${HOST_PORT}" -j DNAT --to-destination "${CONTAINER_IP}:${CONTAINER_PORT}" 2>/dev/null; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      echo -e "${RED}错误: 添加 NAT 规则失败${NC}"
+    else
+      echo -e "${RED}Error: Failed to add NAT rule${NC}"
+    fi
+    exit 1
+  fi
+
+  if ! iptables -I DOCKER -d "${CONTAINER_IP}" -p tcp --dport "${CONTAINER_PORT}" -j ACCEPT 2>/dev/null; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      echo -e "${YELLOW}警告: 添加 FILTER 规则失败，但 NAT 规则已添加${NC}"
+    else
+      echo -e "${YELLOW}Warning: Failed to add FILTER rule, but NAT rule has been added${NC}"
+    fi
+  fi
+
+  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    echo -e "${GREEN}✓ 端口转发配置成功！${NC}"
+    echo -e "${GREEN}您现在可以通过宿主机的 ${HOST_PORT} 端口访问容器的 ${CONTAINER_PORT} 端口${NC}"
+    echo ""
+    echo -e "${YELLOW}注意: 这些 iptables 规则在系统重启后会失效${NC}"
+    echo -e "${YELLOW}如需持久化，请使用 iptables-save 保存规则或在容器启动时使用 -p 参数${NC}"
+  else
+    echo -e "${GREEN}✓ Port forwarding configured successfully!${NC}"
+    echo -e "${GREEN}You can now access container port ${CONTAINER_PORT} via host port ${HOST_PORT}${NC}"
+    echo ""
+    echo -e "${YELLOW}Note: These iptables rules will be lost after system reboot${NC}"
+    echo -e "${YELLOW}To persist, use iptables-save or add -p parameter when starting the container${NC}"
+  fi
+
+  exit 0
+}
+
 ################################################################################
 # SECTION 4: Main Installation Flow
 ################################################################################
 
 # Check for --show parameter
-if [ "${1:-}" = "--show" ]; then
+if [ "${1:-}" = "show-command" ]; then
   show_docker_command
+fi
+
+# Check for port-forward parameter
+if [ "${1:-}" = "port-forward" ]; then
+  setup_port_forward "$2" "$3"
 fi
 
 # Display Rainbond ASCII banner at the very beginning
@@ -1437,21 +1606,14 @@ if [ "$LANG" == "zh_CN.UTF-8" ]; then
     cat <<EOF
 ###############################################
 # 🎉 Rainbond 安装成功！
-################################################
 # 版本: $RAINBOND_VERSION
 # 架构: $ARCH_TYPE
 # 操作系统: $OS_TYPE
-################################################
 # 访问 Rainbond:
 #     🌐 控制台地址: http://$EIP:7070
 #
-# 监控命令:
-#     docker exec -it rainbond bash
-#     kubectl get pod -n rbd-system
-#
 # 文档和支持:
 #     📖 文档: https://www.rainbond.com/docs
-#     🔧 故障排除: https://www.rainbond.com/docs/troubleshooting/install
 #     💬 支持: https://www.rainbond.com/docs/support
 ###############################################
 
@@ -1460,11 +1622,9 @@ EOF
     cat <<EOF
 ###############################################
 # ⏳ Rainbond 容器已启动，服务仍在初始化中
-################################################
 # 版本: $RAINBOND_VERSION
 # 架构: $ARCH_TYPE
 # 操作系统: $OS_TYPE
-################################################
 # 访问 Rainbond:
 #     🌐 控制台地址: http://$EIP:7070
 #     ⚠️  请等待几分钟后访问
@@ -1489,21 +1649,14 @@ else
     cat <<EOF
 ###############################################
 # 🎉 Rainbond Installation Successful!
-################################################
 # Version: $RAINBOND_VERSION
 # Arch: $ARCH_TYPE
 # OS: $OS_TYPE
-################################################
 # Access Rainbond:
 #     🌐 Console: http://$EIP:7070
 #
-# Monitoring Commands:
-#     docker exec -it rainbond bash
-#     kubectl get pod -n rbd-system
-#
 # Documentation and Support:
 #     📖 Docs: https://www.rainbond.com/docs
-#     🔧 Troubleshooting: https://www.rainbond.com/docs/troubleshooting/install
 #     💬 Support: https://www.rainbond.com/docs/support
 ###############################################
 
@@ -1512,11 +1665,9 @@ EOF
     cat <<EOF
 ###############################################
 # ⏳ Rainbond Container Started, Services Still Initializing
-################################################
 # Version: $RAINBOND_VERSION
 # Arch: $ARCH_TYPE
 # OS: $OS_TYPE
-################################################
 # Access Rainbond:
 #     🌐 Console: http://$EIP:7070
 #     ⚠️  Please wait a few minutes before accessing
