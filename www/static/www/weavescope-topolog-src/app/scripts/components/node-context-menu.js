@@ -203,7 +203,6 @@ class NodeContextMenu extends React.Component {
     }
 
     const nodeDetails = this.getNodeDetails();
-    console.log(nodeDetails, "nodeDetails=====");
 
     if (!nodeDetails) {
       return null;
@@ -211,9 +210,6 @@ class NodeContextMenu extends React.Component {
     var appStatus = nodeDetails.rank;
     var isThirdParty = nodeDetails.cur_status;
     var isKubeblocks = nodeDetails.service_source;
-
-    console.log(isThirdParty,"isThirdParty");
-    console.log(isKubeblocks,"isKubeblocks");
 
     
 

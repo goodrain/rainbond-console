@@ -93,7 +93,7 @@ const statusColorMap = {
   'undeploy' : 'rgb(112,128,144)',//未部署 石板灰
   'creating' : 'rgb(119,136,153)',//部署中 浅石板灰
 
-  'waitting': 'rgb(246,157,74)',
+  'waiting': 'rgb(246,157,74)',
 
   'starting' : 'rgb(246,157,74)',//开启中 道奇蓝
   'startting' : 'rgb(246,157,74)',//开启中 道奇蓝
