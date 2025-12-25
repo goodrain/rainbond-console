@@ -5,7 +5,7 @@ import '../../font/iconfont.css';
 
 class EdgeCreateOverlay extends React.Component {
   renderPlusIcons() {
-    const { layoutNodes, sourceNodeId, isCreating } = this.props;
+    const { layoutNodes, sourceNodeId, isCreating, nodes } = this.props;
 
     if (!isCreating || !layoutNodes || layoutNodes.size === 0) {
       return null;
@@ -14,6 +14,15 @@ class EdgeCreateOverlay extends React.Component {
     return layoutNodes.map((node, nodeId) => {
       if (nodeId === sourceNodeId) {
         return null;
+      }
+
+      // 过滤网关节点 - 网关不能创建依赖
+      const nodeData = nodes ? nodes.get(nodeId) : null;
+      if (nodeData) {
+        const serviceAlias = nodeData.get('service_alias');
+        if (serviceAlias === 'internet') {
+          return null;
+        }
       }
 
       const x = node.get('x');
@@ -139,7 +148,8 @@ function mapStateToProps(state) {
     sourceNodeId: edgeCreation.get('sourceNodeId'),
     sourcePosition: edgeCreation.get('sourcePosition'),
     currentMousePosition: edgeCreation.get('currentMousePosition'),
-    layoutNodes: layoutNodesSelector(state)
+    layoutNodes: layoutNodesSelector(state),
+    nodes: state.get('nodes')
   };
 }
 
