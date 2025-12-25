@@ -47,7 +47,11 @@ class AppVolumeService(object):
 
     default_volume_type = "local-path"
     if os.getenv("USE_SAAS"):
-        default_volume_type = "volcengine"
+        # SAAS 环境下，根据 CLOUD_PROVIDER 区分云厂商
+        if os.getenv("CLOUD_PROVIDER") == "hsy":
+            default_volume_type = "rook-ceph-rbd"
+        else:
+            default_volume_type = "volcengine"
     simple_volume_type = [default_volume_type, "config-file", "vm-file", "memoryfs", "local"]
 
     def json_service_volume(self, volume_type, volume_name, volume_path, mode, file_content, volume_cap):
@@ -81,6 +85,18 @@ class AppVolumeService(object):
 
     def get_service_support_volume_options(self, tenant, service):
         base_opts = [{"volume_type": "memoryfs", "name_show": "临时存储"}]
+
+        # 如果是 SAAS 环境，根据 CLOUD_PROVIDER 返回对应的云存储配置
+        if os.getenv("USE_SAAS"):
+            if os.getenv("CLOUD_PROVIDER") == "hsy":
+                # 百度云存储
+                base_opts = [{"volume_type": "rook-ceph-rbd", "name_show": "火数云存储", "provisioner": ""}]
+            else:
+                # 火山云存储（默认）
+                base_opts = [{"volume_type": "volcengine", "name_show": "火山云存储", "provisioner": ""}]
+            return base_opts
+
+        # 默认情况：从 region API 获取存储选项
         body = region_api.get_volume_options(service.service_region, tenant.tenant_name)
         if body and hasattr(body, 'list') and body.list:
             for opt in body.list:
@@ -88,8 +104,6 @@ class AppVolumeService(object):
                 if opt.get("volume_type") == "sharedcfs":
                     opt["name_show"] = "百度云"
                 base_opts.append(opt)
-        if os.getenv("USE_SAAS"):
-            base_opts = [{"volume_type": "volcengine", "name_show": "火山云存储", "provisioner": ""}]
 
         return base_opts
 
@@ -334,7 +348,10 @@ class AppVolumeService(object):
             if not check_results:
                 volume_type = "local-path"
                 if os.getenv("USE_SAAS"):
-                    volume_type = "volcengine"
+                    if os.getenv("CLOUD_PROVIDER") == "baidu":
+                        volume_type = "rook-ceph-rbd"
+                    else:
+                        volume_type = "volcengine"
                 volume_data["volume_type"] = volume_type
             settings = self.setting_volume_properties(tenant, service, volume_type, settings)
 
