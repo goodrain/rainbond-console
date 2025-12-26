@@ -81,7 +81,7 @@ from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNames
 from console.views.enterprise import (
     EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView, EnterpriseMonitor, EnterpriseMyTeams,
     EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView,
-    EnterpriseRegionTenantLimitView, EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView,
+    EnterpriseRegionTenantRUDView, EnterpriseRUDView, Enterprises, EnterpriseTeamOverView,
     EnterpriseTeams, EnterpriseUserTeamRoleView, EnterpriseUserTeams, HelmTokenView, HelmAddReginInfo, HelmInstallStatus, EnterpriseInfoFileView)
 from console.views.enterprise_active import (BindMarketEnterpriseAccessTokenView, BindMarketEnterpriseOptimizAccessTokenView)
 from console.views.enterprise_config import (EnterpriseAppStoreImageHubView, EnterpriseObjectStorageView,
@@ -958,8 +958,6 @@ urlpatterns = [
         EnterpriseConvertResource.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/tenants$',
         EnterpriseRegionTenantRUDView.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/tenants/(?P<tenant_name>[\w\-]+)/limit$',
-        EnterpriseRegionTenantLimitView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/dashboard/(?P<path>.*)',
         EnterpriseRegionDashboard.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/batch-gateway',

@@ -649,13 +649,6 @@ class TeamService(object):
             logger.error(body)
         return tenant_list, total
 
-    def set_tenant_resource_limit(self, eid, region_id, tenant_name, limit):
-        try:
-            region_api.set_tenant_resource_limit(eid, tenant_name, region_id, body=limit)
-        except RegionApiBaseHttpClient.CallApiError as e:
-            logger.exception(e)
-            raise ServiceHandleException(status_code=500, msg="", msg_show="设置租户限额失败")
-
     def update(self, tenant_id, data):
         team_repo.update_by_tenant_id(tenant_id, **data)
 
