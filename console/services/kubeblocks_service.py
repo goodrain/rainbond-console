@@ -60,11 +60,13 @@ class KubeBlocksService(object):
                 service_id=new_service.service_id
             )
 
-            # 配置连接信息（环境变量）
-            self._add_database_env_vars(tenant, user, region_name, new_service, connect_ctx=connect_ctx)
+            # 配置端口信息,传递数据库类型
+            database_type = creation_params.get('database_type', '')
 
-            # 配置端口信息
-            self._configure_service_ports(tenant, user, region_name, new_service, connect_ctx=connect_ctx)
+            # 配置连接信息（环境变量）
+            self._add_database_env_vars(tenant, user, region_name, new_service, connect_ctx=connect_ctx, database_type=database_type)
+
+            self._configure_service_ports(tenant, user, region_name, new_service, connect_ctx=connect_ctx, database_type=database_type)
 
             # 构建部署组件
             deploy_result = self._deploy_component(tenant, new_service, user)
@@ -431,7 +433,7 @@ class KubeBlocksService(object):
             )
         return bean
 
-    def _add_database_env_vars(self, tenant, user, region_name, service, connect_ctx=None):
+    def _add_database_env_vars(self, tenant, user, region_name, service, connect_ctx=None, database_type=''):
         """
         为数据库组件添加环境变量
         """
@@ -444,17 +446,22 @@ class KubeBlocksService(object):
                 msg_show="获取数据库连接信息失败"
             )
 
+        # 根据数据库类型生成环境变量名前缀
+        db_type_upper = database_type.upper() if database_type else ''
+        password_attr_name = f"{db_type_upper}_DEFAULT_PASSWORD" if db_type_upper else "DEFAULT_PASSWORD"
+        username_attr_name = f"{db_type_upper}_DEFAULT_USERNAME" if db_type_upper else "DEFAULT_USERNAME"
+
         # 添加数据库连接信息
         env_vars = [
             {
                 "name": "Password",
-                "attr_name": "DB_PASS",
+                "attr_name": password_attr_name,
                 "attr_value": connect_info.get("password", ""),
                 "scope": "outer"
             },
             {
                 "name": "Username",
-                "attr_name": "DB_USER",
+                "attr_name": username_attr_name,
                 "attr_value": connect_info.get("username", "root"),
                 "scope": "outer"
             }
@@ -522,7 +529,7 @@ class KubeBlocksService(object):
                 msg_show="获取数据库连接信息异常"
             )
 
-    def _configure_service_ports(self, tenant, user, region_name, service, connect_ctx=None):
+    def _configure_service_ports(self, tenant, user, region_name, service, connect_ctx=None, database_type=''):
         """配置服务端口"""
         if connect_ctx is None:
             connect_ctx = self._fetch_connection_info(
@@ -541,7 +548,9 @@ class KubeBlocksService(object):
                 msg="invalid port info returned",
                 msg_show="端口信息无效"
             )
-        port_alias = "DB"
+
+        # 根据数据库类型设置端口别名
+        port_alias = self._get_port_alias_by_database_type(database_type)
         protocol = "tcp"
 
         # 检查端口是否已存在
@@ -576,6 +585,29 @@ class KubeBlocksService(object):
                 port=port_data,
                 user=user
             )
+
+    def _get_port_alias_by_database_type(self, database_type):
+        """
+        根据数据库类型返回对应的端口别名
+
+        Args:
+            database_type: 数据库类型 (mysql, postgresql, redis, rabbitmq等)
+
+        Returns:
+            str: 端口别名
+        """
+        # 数据库类型到端口别名的映射
+        database_type_lower = database_type.lower() if database_type else ''
+
+        port_alias_mapping = {
+            'mysql': 'MYSQL',
+            'postgresql': 'POSTGRESQL',
+            'redis': 'REDIS',
+            'rabbitmq': 'RABBITMQ',
+        }
+
+        # 返回对应的别名,如果找不到则返回默认值 DB
+        return port_alias_mapping.get(database_type_lower, 'DB')
 
     def _enable_port_outer_service(self, tenant, service, region_name, port, user):
         """

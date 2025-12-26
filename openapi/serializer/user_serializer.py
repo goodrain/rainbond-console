@@ -39,6 +39,7 @@ class UpdateUserSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=35, required=False, help_text="邮件地址")
     phone = serializers.CharField(max_length=11, required=False, allow_blank=True, help_text="手机号码")
     is_active = serializers.NullBooleanField(required=False, help_text="激活状态")
+    real_name = serializers.CharField(max_length=64, required=False, allow_blank=True, help_text="真实姓名/显示名称")
 
 
 class CreateAdminUserReqSerializer(serializers.Serializer):

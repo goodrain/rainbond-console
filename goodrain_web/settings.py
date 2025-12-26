@@ -54,13 +54,15 @@ else:
 TEMPLATE_DEBUG = os.environ.get('TEMPLATE_DEBUG') or False
 
 SECRET_KEY = os.environ.get('SECRET_KEY') or get_hash_mac()
-DEFAULT_HANDLERS = [os.environ.get('DEFAULT_HANDLERS') or 'file_handler']
+# Ensure console logging is enabled by default for Docker environments
+DEFAULT_HANDLERS = ['file_handler', 'console']
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default="*").split(",", -1)
 
 MANAGE_SECRET_KEY = os.environ.get('MANAGE_SECRET_KEY', "")
+INTERNAL_API_TOKEN = os.environ.get('INTERNAL_API_TOKEN', "")
 
 EMAIL_HOST = '***'
 EMAIL_PORT = 465
@@ -75,6 +77,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated', ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'console.services.auth.authentication.InternalTokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ),
@@ -157,7 +160,7 @@ JWT_AUTH = {
     'JWT_VERIFY_EXPIRATION': True,
     'JWT_LEEWAY': 0,
     'JWT_EXPIRATION_DELTA': datetime.timedelta(days=3650),  # 设置为10年，相当于永久
-    'JWT_AUDIENCE': None,
+    'JWT_AUDIENCE': None,  # Keep None to accept both old tokens and new portal tokens
     'JWT_ISSUER': None,
     'JWT_ALLOW_REFRESH': False,
     'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=3650),  # 设置为10年，相当于永久

@@ -30,22 +30,6 @@ TEAM_OVERVIEW_APP_DESCRIBE = {
         }
     }
 }
-TEAM_OVERVIEW_RESOURCE_LIMIT = {
-    "__message": {
-        "get": {
-            "perms": [200003]
-        },
-        "post": {
-            "perms": [620002]
-        },
-        "put": {
-            "perms": [200003]
-        },
-        "delete": {
-            "perms": [200003]
-        }
-    }
-}
 APP_CREATE_PERMS = {
     "__message": {
         "get": {
@@ -340,23 +324,6 @@ APP_OVERVIEW_MONITOR = {
         },
         "delete": {
             "perms": [300025]
-        }
-    }
-}
-
-APP_OVERVIEW_SAFETY = {
-    "__message": {
-        "get": {
-            "perms": [300027]
-        },
-        "post": {
-            "perms": [300027]
-        },
-        "put": {
-            "perms": [300027]
-        },
-        "delete": {
-            "perms": [300027]
         }
     }
 }

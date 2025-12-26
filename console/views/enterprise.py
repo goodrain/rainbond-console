@@ -528,12 +528,16 @@ class EnterpriseRegionsRUDView(JWTAuthApiView):
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, region_id, *args, **kwargs):
+        # Get region information before deletion for logging
+        region = region_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
+        if not region:
+            raise ServiceHandleException(status_code=404, msg="集群已不存在")
+        old_information = region_services.json_region(region)
+
         try:
             region_repo.del_by_enterprise_region_id(enterprise_id, region_id)
         except RegionConfig.DoesNotExist:
             raise ServiceHandleException(status_code=404, msg="集群已不存在")
-        region = region_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
-        old_information = region_services.json_region(region)
         result = general_message(200, "success", "删除成功")
         comment = operation_log_service.generate_generic_comment(
             operation=Operation.DELETE, module=OperationModule.CLUSTER, module_name="{}".format(region.get("region_alias", "")))
@@ -554,18 +558,6 @@ class EnterpriseRegionTenantRUDView(EnterpriseAdminView):
             })
         return Response(result, status=status.HTTP_200_OK)
 
-
-class EnterpriseRegionTenantLimitView(EnterpriseAdminView):
-    def post(self, request, enterprise_id, region_id, tenant_name, *args, **kwargs):
-        team_services.set_tenant_resource_limit(enterprise_id, region_id, tenant_name, request.data)
-        team = team_services.get_tenant_by_tenant_name(tenant_name)
-        limit = request.data.get("limit_memory", 0)
-        team_alias = operation_log_service.process_team_name(team.tenant_alias, region_id, tenant_name)
-        comment = operation_log_service.generate_generic_comment(
-            operation=Operation.LIMIT, module=OperationModule.TEAM,
-            module_name="{} 的内存使用量为 {} MB".format(team_alias, limit))
-        operation_log_service.create_cluster_log(user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
-        return Response({}, status=status.HTTP_200_OK)
 
 
 class EnterpriseAppComponentsLView(JWTAuthApiView):

@@ -79,18 +79,8 @@ class ConfigRUDView(AlowAnyApiView):
         if isinstance(user, Users):
             data["enterprise_id"] = user.enterprise_id
             ent_config = EnterpriseConfigService(data["enterprise_id"]).initialization_or_get_config
-            data["title"] = ent_config["title"]
-            data["logo"] = ent_config["logo"]
-            data["favicon"] = ent_config["favicon"]
-            data["document"] = ent_config["document"]
-            data["header_color"] = ent_config["header_color"]
-            data["header_writing_color"] = ent_config["header_writing_color"]
-            data["sidebar_color"] = ent_config["sidebar_color"]
-            data["sidebar_writing_color"] = ent_config["sidebar_writing_color"]
-            data["footer"] = ent_config["footer"]
-            data["login_image"] = ent_config["login_image"]
-            data["official_demo"] = ent_config["official_demo"]
-            data["captcha_code"] = ent_config["captcha_code"]
+            # 更新企业配置（包括自定义字段）
+            data.update(ent_config)
         data["is_disable_logout"] = os.getenv('IS_DISABLE_LOGOUT', False)
         data["is_offline"] = os.getenv('IS_OFFLINE', False)
         data["sso_enable"] = os.getenv("SSO_ENABLE", False)
@@ -98,6 +88,7 @@ class ConfigRUDView(AlowAnyApiView):
         data["enable_yum_oauth"] = True if os.getenv("ENABLE_YUM_OAUTH") else False
         data["diy_customer"] = os.getenv("DIY_CUSTOMER", 'rainbond')
         data["is_delivery_version"] = True if os.getenv("IS_DELIVERY_VERSION") else False
+        data["portal_site"] = os.getenv("PORTAL_SITE", "")
         if os.getenv("USE_SAAS"):
             data["is_saas"] = True
         result = general_message(code, "query success", "Logo获取成功", bean=data, initialize_info=status)

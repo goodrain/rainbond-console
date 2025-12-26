@@ -19,7 +19,7 @@ ARG TARGETARCH
 COPY standalone/entrypoint.sh /entrypoint.sh
 COPY standalone/config.yaml /etc/rancher/k3s/config.yaml
 COPY standalone/registries.yaml /etc/rancher/k3s/registries.yaml
-COPY rbd-images-$TARGETARCH.tar /tmp/rbd-images.tar
+COPY k3s-images-$TARGETARCH.tar.zst /tmp/k3s-images.tar.zst
 
 COPY --from=base /tmp/rainbond-cluster.tgz /tmp/rainbond-cluster.tgz
 COPY --from=base /tmp/k3s /bin/k3s
@@ -35,4 +35,4 @@ VOLUME /opt/rainbond
 
 ENTRYPOINT [ "/entrypoint.sh" ]
 
-CMD [ "/bin/k3s", "server" ]
+CMD [ "/bin/k3s", "server", "--snapshotter=stargz"]

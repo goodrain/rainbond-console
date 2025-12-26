@@ -19,7 +19,6 @@ class TeamBaseInfoSerializer(serializers.Serializer):
     creater = serializers.IntegerField(help_text="租户创建者", default=0)
     limit_memory = serializers.IntegerField(help_text="内存大小单位（M）", default=1024)
     update_time = DateCharField(max_length=64, help_text="更新时间")
-    expired_time = DateCharField(max_length=64, help_text="过期时间")
     tenant_alias = serializers.CharField(max_length=64, allow_null=True, default='', help_text="团队别名")
     enterprise_id = serializers.CharField(max_length=32, allow_null=True, default='', help_text="企业id")
 

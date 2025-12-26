@@ -423,8 +423,8 @@ class EnterpriseServices(object):
         node_list = []
         all_node_roles = []
         cluster_role_count = {}
-        node_status = "NotReady"
         for node in nodes:
+            node_status = "NotReady"
             for cond in node["conditions"]:
                 if cond["type"] == "Ready" and cond["status"] == "True":
                     node_status = "Ready"

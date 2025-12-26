@@ -9,7 +9,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from console.enum.system_config import ConfigKeyEnum
-from console.exception.main import AbortRequest
+from console.exception.main import AbortRequest, ServiceHandleException
 from console.services.config_service import EnterpriseConfigService, ConfigService
 from console.services.enterprise_services import enterprise_services
 from console.services.operation_log import operation_log_service, OperationModule, Operation
@@ -17,7 +17,6 @@ from www.utils.return_message import general_message
 from console.utils.reqparse import bool_argument
 from console.utils.reqparse import parse_item
 from console.views.base import EnterpriseAdminView, JWTAuthApiView
-from console.enum.system_config import ConfigKeyEnum
 
 logger = logging.getLogger("default")
 
@@ -98,6 +97,91 @@ class EnterpriseConfigView(EnterpriseAdminView):
         ent_config_service.update_config_enable_status(ConfigKeyEnum.OFFICIAL_DEMO.name, enable_official_demo)
         config_service.update_config_value(ConfigKeyEnum.DOCUMENT.name, doc_url_value)
         config_service.update_config_enable_status(ConfigKeyEnum.OFFICIAL_DEMO.name, enable_official_demo)
+
+        # 处理自定义字段
+        custom_fields = request.data.get("custom_fields")
+        if custom_fields:
+            # 验证是否为列表
+            if not isinstance(custom_fields, list):
+                raise ServiceHandleException(
+                    msg="custom_fields must be a list",
+                    msg_show="custom_fields 必须是数组格式",
+                    status_code=400
+                )
+
+            # 验证每个字段
+            valid_types = ('int', 'string', 'bool')
+            validated_fields = {}
+
+            for idx, field_data in enumerate(custom_fields):
+                if not isinstance(field_data, dict):
+                    raise ServiceHandleException(
+                        msg=f"custom_fields[{idx}] must be a dict",
+                        msg_show=f"自定义字段第 {idx + 1} 项必须是对象",
+                        status_code=400
+                    )
+
+                # 检查必填字段
+                key = field_data.get('key')
+                value = field_data.get('value')
+                field_type = field_data.get('type')
+
+                if not key:
+                    raise ServiceHandleException(
+                        msg=f"custom_fields[{idx}].key is required",
+                        msg_show=f"自定义字段第 {idx + 1} 项缺少 key",
+                        status_code=400
+                    )
+
+                if value is None:
+                    raise ServiceHandleException(
+                        msg=f"custom_fields[{idx}].value is required",
+                        msg_show=f"自定义字段第 {idx + 1} 项缺少 value",
+                        status_code=400
+                    )
+
+                if not field_type:
+                    raise ServiceHandleException(
+                        msg=f"custom_fields[{idx}].type is required",
+                        msg_show=f"自定义字段第 {idx + 1} 项缺少 type",
+                        status_code=400
+                    )
+
+                # 检查 type 是否合法
+                if field_type not in valid_types:
+                    raise ServiceHandleException(
+                        msg=f"custom_fields[{idx}].type must be one of {valid_types}",
+                        msg_show=f"自定义字段第 {idx + 1} 项的 type 必须是 int、string 或 bool",
+                        status_code=400
+                    )
+
+                # 验证值的类型
+                if field_type == 'int' and value != '':
+                    try:
+                        int(value)
+                    except (ValueError, TypeError):
+                        raise ServiceHandleException(
+                            msg=f"custom_fields[{idx}].value must be a valid integer",
+                            msg_show=f"自定义字段 {key} 的值必须是有效的整数",
+                            status_code=400
+                        )
+
+                elif field_type == 'bool' and value != '':
+                    if str(value).lower() not in ('true', 'false', '0', '1'):
+                        raise ServiceHandleException(
+                            msg=f"custom_fields[{idx}].value must be a valid boolean",
+                            msg_show=f"自定义字段 {key} 的值必须是有效的布尔值 (true/false/0/1)",
+                            status_code=400
+                        )
+
+                # 保存为字典，key 为字段名，value 包含值和类型
+                validated_fields[key] = {
+                    'value': str(value),
+                    'type': field_type
+                }
+
+            # 保存每个自定义字段为单独的配置项（仅企业级）
+            ent_config_service.save_custom_fields(validated_fields)
 
         return Response(status=status.HTTP_200_OK)
 
