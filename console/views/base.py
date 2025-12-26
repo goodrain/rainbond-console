@@ -460,7 +460,7 @@ class TenantHeaderView(JWTAuthApiView):
                 self.perm_app_id = int(kwargs.get("group_id"))
             except Exception as e:
                 self.perm_app_id = -1
-        if request.data.get("group_id"):
+        if isinstance(request.data, dict) and request.data.get("group_id"):
             if request.data.get("is_demo"):
                 self.perm_app_id = -1
             else:
@@ -468,7 +468,7 @@ class TenantHeaderView(JWTAuthApiView):
                     self.perm_app_id = int(request.data.get("group_id"))
                 except Exception as e:
                     self.perm_app_id = -1
-        if request.data.get("app_id"):
+        if isinstance(request.data, dict) and request.data.get("app_id"):
             try:
                 self.perm_app_id = int(request.data.get("app_id"))
             except Exception as e:
