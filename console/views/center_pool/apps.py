@@ -205,10 +205,11 @@ class CenterAppCLView(JWTAuthApiView):
         need_install = request.GET.get("need_install", "")
         tenant_name = request.GET.get("tenant_name")
         arch = request.GET.get("arch", "")
+        is_plugin = request.GET.get("is_plugin", None)
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         apps, count, app_ids = market_app_service.get_visiable_apps(scope, app_name, is_complete, page,
-                                                           page_size, need_install, arch, tenant_name)
+                                                           page_size, need_install, arch, tenant_name, is_plugin)
         list = []
         for a in apps:
             app = a.to_dict()

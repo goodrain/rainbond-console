@@ -88,6 +88,7 @@ class ConfigRUDView(AlowAnyApiView):
         data["enable_yum_oauth"] = True if os.getenv("ENABLE_YUM_OAUTH") else False
         data["diy_customer"] = os.getenv("DIY_CUSTOMER", 'rainbond')
         data["is_delivery_version"] = True if os.getenv("IS_DELIVERY_VERSION") else False
+        data["portal_site"] = os.getenv("PORTAL_SITE", "")
         if os.getenv("USE_SAAS"):
             data["is_saas"] = True
         result = general_message(code, "query success", "Logo获取成功", bean=data, initialize_info=status)

@@ -2067,27 +2067,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         except RegionApiBaseHttpClient.CallApiError as e:
             return {'status': e.message['httpcode']}, e.message['body']
 
-    def set_tenant_resource_limit(self, enterprise_id, tenant_name, region, body):
-        """
-        设置租户资源限制。
-
-        Args:
-            enterprise_id (str): 企业 ID。
-            tenant_name (str): 租户名称。
-            region (str): 区域名称。
-            body (dict): 请求体，包含设置的资源限制信息。
-
-        Returns:
-            tuple: HTTP 响应元组，包含响应状态码和响应体。
-        """
-        region_info = self.get_enterprise_region_info(enterprise_id, region)
-        if not region_info:
-            raise ServiceHandleException("region not found")
-        url = region_info.url
-        url += "/v2/tenants/{0}/limit_resource".format(tenant_name)
-        res, body = self._post(url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
-        return res, body
-
     def create_service_monitor(self, enterprise_id, region, tenant_name, service_alias, body):
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:

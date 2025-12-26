@@ -1020,12 +1020,13 @@ class MarketAppService(object):
                           page_size=10,
                           need_install="",
                           arch="",
-                          tenant_name=""):
+                          tenant_name="",
+                          is_plugin=None):
         teams = []
         if (scope == "team" or scope == "") and tenant_name:
             teams = [tenant_name]
         apps, count = rainbond_app_repo.get_rainbond_ceneter_app_by(scope, app_name, teams, page, page_size,
-                                                                    need_install, arch)
+                                                                    need_install, arch, is_plugin)
         if not apps:
             return [], count, []
         for app in apps:

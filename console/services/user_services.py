@@ -160,6 +160,8 @@ class UserService(object):
             d["phone"] = data["phone"]
         if data.get("is_active", None) is not None:
             d["is_active"] = data["is_active"]
+        if data.get("real_name", None) is not None:
+            d["real_name"] = data["real_name"]
 
         Users.objects.filter(user_id=user_id).update(**d)
         if data.get("password", None) is not None:

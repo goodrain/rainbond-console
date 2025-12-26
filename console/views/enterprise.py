@@ -559,18 +559,6 @@ class EnterpriseRegionTenantRUDView(EnterpriseAdminView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class EnterpriseRegionTenantLimitView(EnterpriseAdminView):
-    def post(self, request, enterprise_id, region_id, tenant_name, *args, **kwargs):
-        team_services.set_tenant_resource_limit(enterprise_id, region_id, tenant_name, request.data)
-        team = team_services.get_tenant_by_tenant_name(tenant_name)
-        limit = request.data.get("limit_memory", 0)
-        team_alias = operation_log_service.process_team_name(team.tenant_alias, region_id, tenant_name)
-        comment = operation_log_service.generate_generic_comment(
-            operation=Operation.LIMIT, module=OperationModule.TEAM,
-            module_name="{} 的内存使用量为 {} MB".format(team_alias, limit))
-        operation_log_service.create_cluster_log(user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
-        return Response({}, status=status.HTTP_200_OK)
-
 
 class EnterpriseAppComponentsLView(JWTAuthApiView):
     def get(self, request, enterprise_id, app_id, *args, **kwargs):

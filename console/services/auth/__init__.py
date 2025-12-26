@@ -8,8 +8,7 @@ from django.middleware.csrf import rotate_token
 from django.contrib.auth import load_backend
 from django.utils.translation import LANGUAGE_SESSION_KEY
 from django.utils.crypto import constant_time_compare
-from rest_framework_jwt.settings import api_settings
-from rest_framework_jwt.views import jwt_response_payload_handler
+
 
 SESSION_KEY = '_auth_user_id'
 BACKEND_SESSION_KEY = '_auth_user_backend'
@@ -48,6 +47,8 @@ def login(request, user):
 
 
 def jwtlogin(request, user):
+    from rest_framework_jwt.settings import api_settings
+    from rest_framework_jwt.views import jwt_response_payload_handler
     """
     Persist a user id and a backend in the request. This way a user doesn't
     have to reauthenticate on every request. Note that data set during

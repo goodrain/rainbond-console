@@ -222,6 +222,9 @@ class GroupOperatorManagedView(RegionTenantHeaderView):
         纳管当前应用经用户Operator处理创建的资源
         """
         group_id = request.GET.get("group_id", None)
+        # 将空字符串转为 None，避免 IntegerField 转换错误
+        if group_id == '':
+            group_id = None
         code = 200
         operator_managed = group_service.get_watch_managed_data(self.tenant, self.region_name, group_id)
         result = general_message(code, "success", "获取成功", list=operator_managed)

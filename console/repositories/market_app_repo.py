@@ -84,7 +84,8 @@ class RainbondCenterAppRepository(object):
                                     page=1,
                                     page_size=10,
                                     need_install="",
-                                    arch=""):
+                                    arch="",
+                                    is_plugin=None):
         if scope:
             app = RainbondCenterApp.objects.filter(scope=scope)
             if scope == "team" and teams:
@@ -97,6 +98,14 @@ class RainbondCenterAppRepository(object):
             app = app.filter(arch=arch)
         if app_name:
             app = app.filter(app_name__icontains=app_name)
+        if is_plugin is not None:
+            # Filter by is_plugin field in RainbondCenterAppVersion
+            is_plugin_bool = is_plugin.lower() in ['true', '1', 'yes']
+            # Get app_ids that have at least one version with matching is_plugin value
+            app_ids_with_plugin = RainbondCenterAppVersion.objects.filter(
+                is_plugin=is_plugin_bool
+            ).values_list('app_id', flat=True).distinct()
+            app = app.filter(app_id__in=app_ids_with_plugin)
         start_row = (page - 1) * page_size
         end_row = page * page_size
         apps = app.order_by('-update_time')[start_row:end_row]
