@@ -25,7 +25,40 @@ class RainbondPluginStaticView(JWTAuthApiView):
 class RainbondPluginBackendView(JWTAuthApiView):
     def get(self, request, region_name, plugin_name, file_path, *args, **kwargs):
         path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
+        # 传递查询参数
+        query_string = request.META.get('QUERY_STRING', '')
+        if query_string:
+            path = path + "?" + query_string
         resp = region_api.get_proxy(region_name, path)
+        return Response(resp)
+
+    def post(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+        path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
+        # 传递查询参数
+        query_string = request.META.get('QUERY_STRING', '')
+        if query_string:
+            path = path + "?" + query_string
+        resp = region_api.post_proxy(region_name, path, request.data)
+        return Response(resp)
+
+    def put(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+        path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
+        # 传递查询参数
+        query_string = request.META.get('QUERY_STRING', '')
+        if query_string:
+            path = path + "?" + query_string
+        resp = region_api.put_proxy(region_name, path, request.data)
+        return Response(resp)
+
+    def delete(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+        path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
+        # 传递查询参数
+        query_string = request.META.get('QUERY_STRING', '')
+        if query_string:
+            path = path + "?" + query_string
+        # DELETE 请求可能携带请求体（虽然不常见，但有些 API 需要）
+        data = request.data if request.data else None
+        resp = region_api.delete_proxy(region_name, path, data)
         return Response(resp)
 
 class RainbondPluginStatusView(EnterpriseAdminView):
