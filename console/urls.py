@@ -129,7 +129,7 @@ from console.views.public_areas import (AllServiceInfo, GroupServiceView, Servic
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
                                         GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
 from console.views.rbd_ability import RainbondAbilityRUDView, RainbondAbilityLView
-from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView, RainbondPluginStaticView, RainbondPluginBackendView, RainbondPluginStatusView
+from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView, RainbondPluginStaticView, RainbondPluginBackendView, RainbondPluginStatusView, RainbondPluginFullProxyView
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView, RegionMonitor)
 from console.views.registry import HubRegistryView, HubRegistryImageView
@@ -962,6 +962,9 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/plugins$', RainbondPluginLView.as_view()),
     url(r'^regions/(?P<region_name>[\w\-]+)/plugins/(?P<plugin_name>[\w\-]+)/status$', RainbondPluginStatusView.as_view()),
     url(r'^regions/(?P<region_name>[\w\-]+)/static/plugins/(?P<plugin_name>[\w\-]+)$', RainbondPluginStaticView.as_view()),
+    # 完整代理路由 - 用于代理完整的 Web 应用（Grafana 等），保留所有 HTTP 响应头
+    url(r'^regions/(?P<region_name>[\w\-]+)/proxy/plugins/(?P<plugin_name>[\w\-]+)/(?P<file_path>.*)$', RainbondPluginFullProxyView.as_view()),
+    # 原有的 backend 路由 - 用于 JSON API 代理（保留向后兼容）
     url(r'^regions/(?P<region_name>[\w\-]+)/backend/plugins/(?P<plugin_name>[\w\-]+)/(?P<file_path>.*)$', RainbondPluginBackendView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities$', RainbondAbilityLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/abilities/(?P<ability_id>.*)$',

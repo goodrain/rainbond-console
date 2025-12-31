@@ -53,3 +53,54 @@ class RainbondObservablePluginLView(JWTAuthApiView):
                 elif plugin["name"] == "rainbond-large-screen":
                     res.append({"region_name": region.region_name, "urls": plugin["urls"], "name": "rainbond-large-screen"})
         return Response(general_message(200, "success", "查询成功", list=res))
+
+
+class RainbondPluginFullProxyView(JWTAuthApiView):
+    """
+    完整的 HTTP 代理视图，用于代理完整的 Web 应用（如 Grafana）
+
+    支持代理：
+    - HTML 页面
+    - 静态资源（CSS、JS、图片等）
+    - API 接口
+    - WebSocket 连接
+
+    与 RainbondPluginBackendView 的区别：
+    - RainbondPluginBackendView: 只适合代理 JSON API，会丢失 Content-Type
+    - RainbondPluginFullProxyView: 完整代理，保留所有 HTTP 响应头，适合代理完整的 Web 应用
+
+    调用链：
+    前端 -> Console (此视图) -> Region API (Go 反向代理) -> 插件服务 (Grafana 等)
+    """
+
+    def _handle_proxy(self, request, region_name, plugin_name, file_path):
+        """
+        统一的代理处理方法
+        使用 region_api.proxy() 实现完整的 HTTP 代理
+        """
+        # 构建后端路径
+        path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
+
+        # 添加查询参数
+        query_string = request.META.get('QUERY_STRING', '')
+        if query_string:
+            path = path + "?" + query_string
+
+        # 使用完整的 proxy 方法（保留所有 headers、content-type 等）
+        # 该方法在 www/apiclient/regionapibaseclient.py:309-382 中实现
+        return region_api.proxy(request, path, region_name)
+
+    def get(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+        return self._handle_proxy(request, region_name, plugin_name, file_path)
+
+    def post(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+        return self._handle_proxy(request, region_name, plugin_name, file_path)
+
+    def put(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+        return self._handle_proxy(request, region_name, plugin_name, file_path)
+
+    def delete(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+        return self._handle_proxy(request, region_name, plugin_name, file_path)
+
+    def patch(self, request, region_name, plugin_name, file_path, *args, **kwargs):
+        return self._handle_proxy(request, region_name, plugin_name, file_path)
