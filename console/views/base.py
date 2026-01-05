@@ -355,7 +355,8 @@ class TenantHeaderView(JWTAuthApiView):
             self.user_perms.extend(global_perm_codes)
 
             # 检查是否有全局应用管理权限（300002）
-            if 300002 in global_perm_codes:
+            # 同时检查企业级权限，让企业管理员也能看到所有应用
+            if 300002 in global_perm_codes or 300002 in self.user_perms:
                 self.perm_apps = [-1]
 
             # 如果指定了特定应用ID
