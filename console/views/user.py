@@ -22,6 +22,7 @@ from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.user_services import user_services
 from console.utils.reqparse import parse_item
+from console.utils.validation import normalize_name_for_k8s_namespace
 from console.views.base import (AlowAnyApiView, BaseApiView, EnterpriseAdminView, JWTAuthApiView, TeamOwnerView)
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -330,7 +331,9 @@ class EnterPriseUsersCLView(JWTAuthApiView):
             try:
                 regions = region_repo.get_usable_regions(enterprise_id)
                 if regions:
-                    team = team_services.create_team(user, enterprise, None, None, user_name)
+                    # 将用户名转换为符合 k8s namespace 规范的名称
+                    normalized_namespace = normalize_name_for_k8s_namespace(user_name)
+                    team = team_services.create_team(user, enterprise, None, None, normalized_namespace)
                     region_services.create_tenant_on_region(
                         enterprise_id, team.tenant_name, regions[0].region_name, team.namespace)
                     # 设置默认资源限额
