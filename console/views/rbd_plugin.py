@@ -29,8 +29,8 @@ class RainbondPluginBackendView(JWTAuthApiView):
         query_string = request.META.get('QUERY_STRING', '')
         if query_string:
             path = path + "?" + query_string
-        resp = region_api.get_proxy(region_name, path)
-        return Response(resp)
+        # 使用完整代理以支持文件下载，保留 Content-Type 等响应头
+        return region_api.proxy(request, path, region_name)
 
     def post(self, request, region_name, plugin_name, file_path, *args, **kwargs):
         path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
