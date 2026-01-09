@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+import os
 
 from console.enum.enterprise_enum import EnterpriseRolesEnum
 from console.exception.bcode import ErrEnterpriseNotFound, ErrUserNotFound
@@ -9,6 +10,7 @@ from console.exception.main import AbortRequest, ServiceHandleException
 from console.login.login_event import LoginEvent
 from console.repositories.login_event import login_event_repo
 from console.repositories.oauth_repo import oauth_user_repo
+from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.user_repo import user_repo
 from console.services.auth import login, logout
@@ -323,6 +325,21 @@ class EnterPriseUsersCLView(JWTAuthApiView):
             user = user_services.create_user_set_password(user_name, email, password, "admin add", enterprise, client_ip, phone,
                                                           real_name)
         result = general_message(200, "success", "添加用户成功")
+        # USE_SAAS 模式下，自动为新用户创建默认团队（和正常注册流程一致）
+        if os.getenv("USE_SAAS") and not tenant:
+            try:
+                regions = region_repo.get_usable_regions(enterprise_id)
+                if regions:
+                    team = team_services.create_team(user, enterprise, None, None, user_name)
+                    region_services.create_tenant_on_region(
+                        enterprise_id, team.tenant_name, regions[0].region_name, team.namespace)
+                    # 设置默认资源限额
+                    limit_quota = {"limit_memory": 10240, "limit_cpu": 4000, "limit_storage": 0}
+                    team_services.set_tenant_resource_limit(
+                        enterprise_id, regions[0].region_id, team.tenant_name, limit_quota)
+                    logger.info(f"Created default team for user {user_name} in USE_SAAS mode")
+            except Exception as e:
+                logger.warning(f"Failed to create default team for user {user_name}: {e}")
         if tenant:
             create_perm_param = {
                 "user_id": user.user_id,
