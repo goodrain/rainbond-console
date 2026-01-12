@@ -89,8 +89,9 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 try:
                     mkt = market.get(share_record.share_app_market_name, None)
                     if not mkt:
+                        user_id = self.user.user_id if os.getenv("USE_SAAS") else None
                         mkt = app_market_service.get_app_market_by_name(
-                            self.tenant.enterprise_id, share_record.share_app_market_name, raise_exception=True)
+                            self.tenant.enterprise_id, share_record.share_app_market_name, user_id=user_id, raise_exception=True)
                         market[share_record.share_app_market_name] = mkt
 
                     c_app = cloud_app.get(share_record.app_id, None)
@@ -202,8 +203,9 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
             store_id = share_record.share_app_market_name
             scope = share_record.scope
             if store_id:
+                user_id = self.user.user_id if os.getenv("USE_SAAS") else None
                 extend, market = app_market_service.get_app_market(
-                    self.tenant.enterprise_id, share_record.share_app_market_name, extend="true", raise_exception=True)
+                    self.tenant.enterprise_id, share_record.share_app_market_name, user_id=user_id, extend="true", raise_exception=True)
                 if market:
                     store_name = market.name
                     store_version = extend.get("version", store_version)
