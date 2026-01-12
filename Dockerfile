@@ -1,6 +1,6 @@
 ARG IMAGE_NAMESPACE=rainbond
 ARG VERSION=v6.0.0-release
-ARG IMAGE_VERSION
+ARG IMAGE_VERSION=v6.0.0-release
 
 # build ui
 FROM ${IMAGE_NAMESPACE}/rainbond-ui:${IMAGE_VERSION} AS ui
