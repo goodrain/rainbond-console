@@ -39,7 +39,6 @@ function send_msg() {
 function send_info() {
     info=$1
     echo -e "${GREEN}$(date "$TIME") INFO: $info${NC}"
-    send_msg "$info"
 }
 
 function send_warn() {
@@ -716,6 +715,8 @@ fi
 OS_INFO=$(uname -a)
 UUID=$(echo "$OS_INFO" | ${MD5_CMD} | cut -b 1-32)
 
+send_msg "Starting Rainbond installation"
+
 ########################################
 # Environment Check
 # Check docker is running or not.
@@ -1096,7 +1097,7 @@ install_docker_linux() {
     else
         send_info "Docker binary installation completed"
     fi
-    
+
     # Start containerd first, then Docker service
     if systemctl enable containerd && systemctl start containerd >/dev/null 2>&1; then
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
@@ -1105,7 +1106,7 @@ install_docker_linux() {
             send_info "containerd service started successfully"
         fi
         sleep 2
-        
+
         # Now start Docker service
         if systemctl enable docker.socket && systemctl enable docker && systemctl start docker >/dev/null 2>&1; then
             if [ "$LANG" == "zh_CN.UTF-8" ]; then
@@ -1590,6 +1591,7 @@ while [ $elapsed_time -le $MAX_SERVICE_WAIT ]; do
         else
           send_info "🎉 All services are ready!"
         fi
+        send_msg "Rainbond installation successfully"
         services_ready=true
         break
       fi

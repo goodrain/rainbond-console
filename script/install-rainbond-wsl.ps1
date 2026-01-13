@@ -1021,6 +1021,9 @@ function Show-Completion {
     $wslIp = (cmd /c "wsl -d $Distro -- hostname -I" 2>&1).Trim().Split()[0]
     $script:EIP = $wslIp
 
+    # Send success telemetry
+    Send-Telemetry -Message "WSL installation successfully"
+
     $completion = @"
 
 ========================================================================
