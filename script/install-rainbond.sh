@@ -3,7 +3,7 @@
 # This script is used to install Rainbond standalone on Linux and MacOS
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v6.5.0-release'}
+RAINBOND_VERSION=${VERSION:-'v6.5.1-release'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 
 # Define colorful stdout
@@ -39,7 +39,6 @@ function send_msg() {
 function send_info() {
     info=$1
     echo -e "${GREEN}$(date "$TIME") INFO: $info${NC}"
-    send_msg "$info"
 }
 
 function send_warn() {
@@ -716,6 +715,8 @@ fi
 OS_INFO=$(uname -a)
 UUID=$(echo "$OS_INFO" | ${MD5_CMD} | cut -b 1-32)
 
+send_msg "Starting Rainbond installation"
+
 ########################################
 # Environment Check
 # Check docker is running or not.
@@ -1096,7 +1097,7 @@ install_docker_linux() {
     else
         send_info "Docker binary installation completed"
     fi
-    
+
     # Start containerd first, then Docker service
     if systemctl enable containerd && systemctl start containerd >/dev/null 2>&1; then
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
@@ -1105,7 +1106,7 @@ install_docker_linux() {
             send_info "containerd service started successfully"
         fi
         sleep 2
-        
+
         # Now start Docker service
         if systemctl enable docker.socket && systemctl enable docker && systemctl start docker >/dev/null 2>&1; then
             if [ "$LANG" == "zh_CN.UTF-8" ]; then
@@ -1256,8 +1257,41 @@ function verify_eip() {
     fi
 }
 
+# Check if EIP is already set via environment variable
+if [ -n "$EIP" ]; then
+    # Validate the EIP value
+    if [[ $EIP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        if [ "$EIP" == "127.0.0.1" ]; then
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                send_error "环境变量 EIP 不能使用回环地址 127.0.0.1"
+            else
+                send_error "EIP environment variable cannot use loopback address 127.0.0.1"
+            fi
+            exit 1
+        elif [ "$EIP" == "0.0.0.0" ]; then
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                send_error "环境变量 EIP 不能使用 0.0.0.0"
+            else
+                send_error "EIP environment variable cannot use 0.0.0.0"
+            fi
+            exit 1
+        else
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                send_info "使用环境变量指定的 IP 地址: $EIP"
+            else
+                send_info "Using IP address from environment variable: $EIP"
+            fi
+        fi
+    else
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "环境变量 EIP 的值无效: $EIP (必须是有效的 IPv4 地址)"
+        else
+            send_error "Invalid EIP environment variable value: $EIP (must be a valid IPv4 address)"
+        fi
+        exit 1
+    fi
 # The user chooses the IP address to use
-if [ -n "$IPS" ]; then
+elif [ -n "$IPS" ]; then
     # Convert to indexed array
     declare -a ip_list=$(echo \($IPS\))
 
@@ -1521,7 +1555,7 @@ pod_list=(
 
 pod_ready_reported=""
 services_ready=false
-MAX_SERVICE_WAIT=120
+MAX_SERVICE_WAIT=240
 check_interval=5
 elapsed_time=0
 
@@ -1557,6 +1591,7 @@ while [ $elapsed_time -le $MAX_SERVICE_WAIT ]; do
         else
           send_info "🎉 All services are ready!"
         fi
+        send_msg "Rainbond installation successfully"
         services_ready=true
         break
       fi
