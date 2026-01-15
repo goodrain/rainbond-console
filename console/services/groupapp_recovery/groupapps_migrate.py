@@ -488,7 +488,7 @@ class GroupappsMigrateService(object):
                             service_name = service.service_alias
                             container_port = port.container_port
                             domain_name = str(service_name) + "-" + str(container_port) + "-" + str(
-                                tenant.tenant_name) + "-" + str(region.httpdomain)
+                                tenant.tenant_name) + "." + str(region.httpdomain)
                             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                             protocol = "http"
                             http_rule_id = make_uuid(domain_name)
