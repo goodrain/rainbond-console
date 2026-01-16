@@ -92,18 +92,6 @@ check_required_commands
 OS_TYPE=$(uname -s)
 if [ "${OS_TYPE}" == "Linux" ]; then
     MD5_CMD="md5sum"
-    if find /lib/modules/$(uname -r) -type f -name '*.ko*' | grep iptable_raw >/dev/null 2>&1; then
-        if ! lsmod | grep iptable_raw >/dev/null 2>&1; then
-            echo iptable_raw >/etc/modules-load.d/iptable_raw.conf
-            if ! modprobe iptable_raw 2>/dev/null; then
-                if [ "$LANG" == "zh_CN.UTF-8" ]; then
-                    send_warn "无法加载 iptable_raw 模块，可能影响网络功能"
-                else
-                    send_warn "Failed to load iptable_raw module, may affect network functionality"
-                fi
-            fi
-        fi
-    fi
 elif [ "${OS_TYPE}" == "Darwin" ]; then
     MD5_CMD="md5"
 else
@@ -116,14 +104,43 @@ else
     fi
 fi
 
-# Use root user to run this script, Ignore MacOS
+# Use root user or sudo to run this script, Ignore MacOS
 if [ "${OS_TYPE}" != "Darwin" ] && [ "$EUID" -ne 0 ]; then
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_error "请使用 root 用户运行此脚本"
+        send_error "请使用 root 用户或 sudo 运行此脚本\n\t示例: sudo bash $0"
         exit 1
     else
-        send_error "Please run this script as root user"
+        send_error "Please run this script as root user or with sudo\n\tExample: sudo bash $0"
         exit 1
+    fi
+fi
+
+# Check Linux kernel version (must be >= 4.x)
+if [ "${OS_TYPE}" == "Linux" ]; then
+    KERNEL_VERSION=$(uname -r | cut -d'.' -f1)
+    if [ "$KERNEL_VERSION" -lt 4 ] 2>/dev/null; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "Linux 内核版本过低，当前版本: $(uname -r)，要求最低版本: 4.x\n\t请升级内核后重试"
+        else
+            send_error "Linux kernel version is too low, current version: $(uname -r), minimum required: 4.x\n\tPlease upgrade the kernel and try again"
+        fi
+        exit 1
+    fi
+fi
+
+# Load iptable_raw module on Linux (requires root)
+if [ "${OS_TYPE}" == "Linux" ]; then
+    if find /lib/modules/$(uname -r) -type f -name '*.ko*' | grep iptable_raw >/dev/null 2>&1; then
+        if ! lsmod | grep iptable_raw >/dev/null 2>&1; then
+            echo iptable_raw >/etc/modules-load.d/iptable_raw.conf
+            if ! modprobe iptable_raw 2>/dev/null; then
+                if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                    send_warn "无法加载 iptable_raw 模块，可能影响网络功能"
+                else
+                    send_warn "Failed to load iptable_raw module, may affect network functionality"
+                fi
+            fi
+        fi
     fi
 fi
 
@@ -1647,6 +1664,13 @@ if [ "$LANG" == "zh_CN.UTF-8" ]; then
 # 访问 Rainbond:
 #     🌐 控制台地址: http://$EIP:7070
 #
+# ⚠️  重要提示:
+#     请确保以下端口已在防火墙/安全组中开放:
+#     - 7070: 控制台访问端口
+#     - 80:   HTTP 服务端口
+#     - 443:  HTTPS 服务端口
+#     - 6060: WebSocket 端口
+#
 # 文档和支持:
 #     📖 文档: https://www.rainbond.com/docs
 #     💬 支持: https://www.rainbond.com/docs/support
@@ -1663,6 +1687,13 @@ EOF
 # 访问 Rainbond:
 #     🌐 控制台地址: http://$EIP:7070
 #     ⚠️  请等待几分钟后访问
+#
+# ⚠️  重要提示:
+#     请确保以下端口已在防火墙/安全组中开放:
+#     - 7070: 控制台访问端口
+#     - 80:   HTTP 服务端口
+#     - 443:  HTTPS 服务端口
+#     - 6060: WebSocket 端口
 #
 # 监控命令:
 #     docker exec -it rainbond bash
@@ -1690,6 +1721,14 @@ else
 # Access Rainbond:
 #     🌐 Console: http://$EIP:7070
 #
+# ⚠️  Important:
+#     Please ensure the following ports are open
+#     in your firewall/security group:
+#     - 7070: Console access port
+#     - 80:   HTTP service port
+#     - 443:  HTTPS service port
+#     - 6060: WebSocket port
+#
 # Documentation and Support:
 #     📖 Docs: https://www.rainbond.com/docs
 #     💬 Support: https://www.rainbond.com/docs/support
@@ -1706,6 +1745,14 @@ EOF
 # Access Rainbond:
 #     🌐 Console: http://$EIP:7070
 #     ⚠️  Please wait a few minutes before accessing
+#
+# ⚠️  Important:
+#     Please ensure the following ports are open
+#     in your firewall/security group:
+#     - 7070: Console access port
+#     - 80:   HTTP service port
+#     - 443:  HTTPS service port
+#     - 6060: WebSocket port
 #
 # Monitoring Commands:
 #     docker exec -it rainbond bash
