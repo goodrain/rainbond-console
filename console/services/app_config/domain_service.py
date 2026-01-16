@@ -401,7 +401,7 @@ class DomainService(object):
         domain_info["rewrites"] = json.dumps(rewrites) if rewrites else []
         region = region_repo.get_region_by_region_name(service.service_region)
         # 判断类型（默认or自定义）
-        if domain_name != "{0}.{1}.{2}.{3}".format(httpdomain["container_port"], service.service_alias, tenant.tenant_name,
+        if domain_name != "{0}-{1}-{2}.{3}".format(service.service_alias, httpdomain["container_port"], tenant.tenant_name,
                                                    region.httpdomain):
             domain_info["type"] = 1
         # 高级路由
@@ -904,7 +904,7 @@ class DomainService(object):
             service_id = service.service_id
             service_name = service.service_alias
             container_port = port.container_port
-            domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "-" + str(
+            domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "." + str(
                 region_info.httpdomain)
 
             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')

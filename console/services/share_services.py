@@ -7,7 +7,7 @@ import time
 
 from console.appstore.appstore import app_store
 from console.enum.app import GovernanceModeEnum
-from console.enum.component_enum import is_singleton
+from console.enum.component_enum import is_singleton, is_kubeblocks
 from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
 from console.models.main import (PluginShareRecordEvent, RainbondCenterApp, RainbondCenterAppVersion, ServiceShareRecordEvent)
 from console.repositories.app import app_tag_repo
@@ -40,6 +40,8 @@ region_api = RegionInvokeApi()
 class ShareService(object):
     def check_service_source(self, team, team_name, group_id, region_name):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
+        # 过滤掉 kubeblocks 类型的组件
+        service_list = [s for s in service_list if not is_kubeblocks(s.extend_method)]
         k8s_resources_list = k8s_resources_repo.list_by_app_id(group_id)
         data = {"code": 400, "success": False, "msg_show": "当前应用内无组件和k8s资源", "list": list(), "bean": dict()}
         if k8s_resources_list:
@@ -229,6 +231,8 @@ class ShareService(object):
 
     def query_share_service_info(self, team, group_id, scope=None):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
+        # 过滤掉 kubeblocks 类型的组件
+        service_list = [s for s in service_list if not is_kubeblocks(s.extend_method)]
         if service_list:
             array_ids = [x.service_id for x in service_list]
             deploy_versions = self.get_team_service_deploy_version(service_list[0].service_region, team, array_ids)
@@ -419,6 +423,8 @@ class ShareService(object):
     # 查询应用内使用的插件列表
     def query_group_service_plugin_list(self, team, group_id):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
+        # 过滤掉 kubeblocks 类型的组件
+        service_list = [s for s in service_list if not is_kubeblocks(s.extend_method)]
         if service_list:
             service_ids = [x.service_id for x in service_list]
             plugins = plugin_service.get_plugins_by_service_ids(service_ids)

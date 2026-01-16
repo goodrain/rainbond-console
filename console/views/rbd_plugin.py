@@ -29,8 +29,8 @@ class RainbondPluginBackendView(JWTAuthApiView):
         query_string = request.META.get('QUERY_STRING', '')
         if query_string:
             path = path + "?" + query_string
-        resp = region_api.get_proxy(region_name, path)
-        return Response(resp)
+        # 使用完整代理以支持文件下载，保留 Content-Type 等响应头
+        return region_api.proxy(request, path, region_name)
 
     def post(self, request, region_name, plugin_name, file_path, *args, **kwargs):
         path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
@@ -38,8 +38,8 @@ class RainbondPluginBackendView(JWTAuthApiView):
         query_string = request.META.get('QUERY_STRING', '')
         if query_string:
             path = path + "?" + query_string
-        resp = region_api.post_proxy(region_name, path, request.data)
-        return Response(resp)
+        # 使用完整代理以支持文件上传，保留 Content-Type 等响应头
+        return region_api.proxy(request, path, region_name)
 
     def put(self, request, region_name, plugin_name, file_path, *args, **kwargs):
         path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
@@ -47,8 +47,8 @@ class RainbondPluginBackendView(JWTAuthApiView):
         query_string = request.META.get('QUERY_STRING', '')
         if query_string:
             path = path + "?" + query_string
-        resp = region_api.put_proxy(region_name, path, request.data)
-        return Response(resp)
+        # 使用完整代理以支持文件上传，保留 Content-Type 等响应头
+        return region_api.proxy(request, path, region_name)
 
     def delete(self, request, region_name, plugin_name, file_path, *args, **kwargs):
         path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
@@ -56,10 +56,8 @@ class RainbondPluginBackendView(JWTAuthApiView):
         query_string = request.META.get('QUERY_STRING', '')
         if query_string:
             path = path + "?" + query_string
-        # DELETE 请求可能携带请求体（虽然不常见，但有些 API 需要）
-        data = request.data if request.data else None
-        resp = region_api.delete_proxy(region_name, path, data)
-        return Response(resp)
+        # 使用完整代理，保留 Content-Type 等响应头
+        return region_api.proxy(request, path, region_name)
 
 class RainbondPluginStatusView(EnterpriseAdminView):
     def post(self, request, region_name, plugin_name, *args, **kwargs):

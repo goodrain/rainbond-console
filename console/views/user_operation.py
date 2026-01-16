@@ -378,7 +378,8 @@ class UserDetailsView(JWTAuthApiView):
         user_detail["phone"] = user.phone
         user_detail["is_sys_admin"] = user.is_sys_admin
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(user.enterprise_id)
-        user_detail["is_enterprise_active"] = enterprise.is_active
+        # Fix: Handle case where enterprise doesn't exist (e.g., after cross-cluster restore)
+        user_detail["is_enterprise_active"] = enterprise.is_active if enterprise else False
         user_detail["is_enterprise_admin"] = self.is_enterprise_admin
         # enterprise roles
         user_detail["roles"] = user_services.list_roles(user.enterprise_id, user.user_id)
