@@ -1,12 +1,17 @@
+import logging
+import re
+
 from django.views.decorators.cache import never_cache
 
 from console.repositories.app_config import domain_repo, port_repo
 from console.repositories.service_group_relation_repo import ServiceGroupRelationRepositry
+from console.services.gateway_api import gateway_api
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import general_message
 from rest_framework.response import Response
 
+logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 service_group_relation_repo = ServiceGroupRelationRepositry()
 
@@ -18,7 +23,30 @@ class AppApiGatewayView(RegionTenantHeaderView):
         service_alias = request.query_params.get('service_alias', "")
         port = request.query_params.get('port', "")
         path = request.get_full_path().replace("/console", "")
-        resp = region_api.api_gateway_post_proxy(self.region, self.tenant_name, path, request.data, app_id, service_alias, port)
+
+        # Check if this is a cert creation request
+        cert_match = re.search(r'/cert/([^/?]+)', path)
+        if cert_match:
+            cert_name = cert_match.group(1)
+            try:
+                resp = region_api.api_gateway_post_proxy(self.region, self.tenant_name, path, request.data, app_id, service_alias, port)
+            except Exception as e:
+                # If ApisixTls creation fails (e.g., domain conflict), clean up the secret and database record
+                logger.error("Failed to create ApisixTls for cert %s, cleaning up: %s", cert_name, str(e))
+                try:
+                    gateway_api.delete_gateway_tls(self.region.region_name, self.tenant_name, self.tenant.namespace, cert_name)
+                except Exception as del_err:
+                    logger.error("Failed to delete secret %s: %s", cert_name, str(del_err))
+                try:
+                    cert = domain_repo.get_certificate_by_alias(self.tenant.tenant_id, cert_name)
+                    if cert:
+                        cert.delete()
+                except Exception as db_err:
+                    logger.error("Failed to delete certificate record %s: %s", cert_name, str(db_err))
+                raise
+        else:
+            resp = region_api.api_gateway_post_proxy(self.region, self.tenant_name, path, request.data, app_id, service_alias, port)
+
         result = general_message(200, "success", "创建成功", bean=resp)
         return Response(result, status=result["code"])
 

@@ -5,7 +5,7 @@ import logging
 import os
 import random
 import string
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 
 import requests
 
@@ -842,8 +842,10 @@ class TeamService(object):
                     
                     images = []
                     for repo in repositories:
+                        # 使用 split("/", 1)[1] 保留完整的相对路径（如 zq/zq-ng）
+                        repo_name = repo["name"].split("/", 1)[1] if "/" in repo["name"] else repo["name"]
                         images.append({
-                            "name": repo["name"].split("/")[-1],
+                            "name": repo_name,
                             "namespace": namespace,
                             "description": repo.get("description", ""),
                             "is_public": not repo.get("private", True),
@@ -965,55 +967,7 @@ class TeamService(object):
                             "page": page,
                             "page_size": page_size
                         }
-            elif hub_type == "Harbor":
-                # Harbor API v2.0
-                api_url = "{}/api/v2.0/projects/{}/repositories/{}/artifacts?page={}&page_size={}&with_tag=true&with_label=false".format(
-                    base_url, namespace, name, page, page_size)
-                if search_key:
-                    api_url += "&q=tags=~{}".format(search_key)
 
-                auth = base64.b64encode(f"{username}:{password}".encode()).decode()
-                headers = {"Authorization": f"Basic {auth}"}
-                response = requests.get(
-                    api_url,
-                    headers=headers,
-                    verify=False,
-                    timeout=10
-                )
-                
-                if response.status_code == 200:
-                    total = int(response.headers.get('X-Total-Count', 0))
-                    artifacts = response.json()
-                    tags = []
-                    
-                    for artifact in artifacts:
-                        # Harbor可能返回多个tag，我们需要处理所有的tag
-                        artifact_tags = artifact.get('tags', [])
-                        # 获取镜像大小和架构信息
-                        extra_attrs = artifact.get('extra_attrs', {})
-                        size = artifact.get('size', 0)
-                        architecture = extra_attrs.get('architecture', '')
-                        os = extra_attrs.get('os', '')
-                        
-                        for tag in artifact_tags:
-                            tags.append({
-                                "name": tag.get('name'),
-                                "size": size,
-                                "digest": artifact.get('digest', ''),
-                                "created_at": artifact.get('push_time', ''),
-                                "updated_at": artifact.get('push_time', ''),
-                                "os": os,
-                                "architecture": architecture,
-                                "status": "active"
-                            })
-                    
-                    return {
-                        "tags": tags,
-                        "total": total,
-                        "page": page,
-                        "page_size": page_size
-                    }
-        
             raise ServiceHandleException(
                 msg="failed to get registry images, status:{}".format(response.status_code),
                 msg_show="获取镜像列表失败",
@@ -1121,53 +1075,91 @@ class TeamService(object):
                         }
             elif hub_type == "Harbor":
                 # Harbor API v2.0
-                api_url = "{}/api/v2.0/projects/{}/repositories/{}/artifacts?page={}&page_size={}&with_tag=true&with_label=false".format(
-                    base_url, namespace, name, page, page_size)
-                if search_key:
-                    api_url += "&q=tags=~{}".format(search_key)
-
+                # 先获取所有 artifacts，然后在客户端进行 tag 过滤和分页
                 auth = base64.b64encode(f"{username}:{password}".encode()).decode()
                 headers = {"Authorization": f"Basic {auth}"}
-                response = requests.get(
-                    api_url,
-                    headers=headers,
-                    verify=False,
-                    timeout=10
-                )
-                
-                if response.status_code == 200:
-                    total = int(response.headers.get('X-Total-Count', 0))
+
+                all_tags = []
+                current_page = 1
+                fetch_page_size = 100  # 每次获取较多数据以减少请求次数
+
+                # 对 name 进行双重 URL 编码，处理包含 / 的嵌套路径（如 zq/zq-ng）
+                # Harbor API 需要双重编码：zq/zq-ng -> zq%2Fzq-ng -> zq%252Fzq-ng
+                encoded_name = quote(quote(name, safe=''), safe='')
+
+                first_request = True
+                while True:
+                    api_url = "{}/api/v2.0/projects/{}/repositories/{}/artifacts?page={}&page_size={}&with_tag=true&with_label=false".format(
+                        base_url, namespace, encoded_name, current_page, fetch_page_size)
+
+                    logger.debug("Harbor API request: {}".format(api_url))
+                    response = requests.get(
+                        api_url,
+                        headers=headers,
+                        verify=False,
+                        timeout=10
+                    )
+
+                    if response.status_code != 200:
+                        # 第一次请求就失败，说明仓库或镜像不存在
+                        if first_request:
+                            logger.warning("Harbor API failed: status={}, url={}, response={}".format(
+                                response.status_code, api_url, response.text[:500] if response.text else ""))
+                            raise ServiceHandleException(
+                                msg="failed to get registry tags, status:{}".format(response.status_code),
+                                msg_show="获取镜像标签失败，请检查镜像是否存在",
+                                status_code=response.status_code)
+                        break
+                    first_request = False
+
                     artifacts = response.json()
-                    tags = []
-                    
+                    if not artifacts:
+                        break
+
                     for artifact in artifacts:
-                        # Harbor可能返回多个tag，我们需要处理所有的tag
-                        artifact_tags = artifact.get('tags', [])
-                        # 获取镜像大小和架构信息
+                        artifact_tags = artifact.get('tags') or []
                         extra_attrs = artifact.get('extra_attrs', {})
                         size = artifact.get('size', 0)
                         architecture = extra_attrs.get('architecture', '')
-                        os = extra_attrs.get('os', '')
-                        
+                        os_name = extra_attrs.get('os', '')
+
                         for tag in artifact_tags:
-                            tags.append({
-                                "name": tag.get('name'),
+                            tag_name = tag.get('name', '')
+                            all_tags.append({
+                                "name": tag_name,
                                 "size": size,
                                 "digest": artifact.get('digest', ''),
                                 "created_at": artifact.get('push_time', ''),
                                 "updated_at": artifact.get('push_time', ''),
-                                "os": os,
+                                "os": os_name,
                                 "architecture": architecture,
                                 "status": "active"
                             })
-                    
-                    return {
-                        "tags": tags,
-                        "total": total,
-                        "page": page,
-                        "page_size": page_size
-                    }
-        
+
+                    # 检查是否还有更多数据
+                    total_artifacts = int(response.headers.get('X-Total-Count', 0))
+                    if current_page * fetch_page_size >= total_artifacts:
+                        break
+                    current_page += 1
+
+                # 搜索过滤
+                if search_key:
+                    search_lower = search_key.lower()
+                    all_tags = [t for t in all_tags if search_lower in t['name'].lower()]
+
+                # 计算分页
+                total = len(all_tags)
+                start = (page - 1) * page_size
+                end = start + page_size
+                paginated_tags = all_tags[start:end]
+
+                return {
+                    "tags": paginated_tags,
+                    "total": total,
+                    "page": page,
+                    "page_size": page_size
+                }
+
             raise ServiceHandleException(
                 msg="failed to get registry tags, status:{}".format(response.status_code),
                 msg_show="获取镜像标签失败",
