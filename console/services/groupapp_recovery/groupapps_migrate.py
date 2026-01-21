@@ -433,22 +433,18 @@ class GroupappsMigrateService(object):
         port_list = []
         for port in tenant_service_ports:
             port.pop("ID")
-            k8s_service_name = port.get("k8s_service_name", "")
-            if k8s_service_name:
-                body = dict()
-                filter_port = port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
-                if filter_port and service.service_id:
-                    k8s_service_name = k8s_service_name + "-" + make_uuid(
-                    )[-4:] if service.service_id != filter_port.service_id else k8s_service_name
-                    # update port if k8s_service_name has changed.
-                    body = port
-                    body["k8s_service_name"] = k8s_service_name
-                if sync_flag and body:
-                    port_service.update_service_port(tenant, region_name, service.service_alias, [body])
+            # 直接使用 service 的 service_alias 作为 k8s_service_name
+            k8s_service_name = service.service_alias
+
+            if sync_flag:
+                body = port
+                body["k8s_service_name"] = k8s_service_name
+                port_service.update_service_port(tenant, region_name, service.service_alias, [body])
+
             new_port = TenantServicesPort(**port)
             new_port.service_id = service.service_id
             new_port.tenant_id = tenant.tenant_id
-            new_port.k8s_service_name = port.get("k8s_service_name")
+            new_port.k8s_service_name = k8s_service_name
             port_list.append(new_port)
 
             # make sure the value of X_HOST env is correct
