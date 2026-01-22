@@ -386,7 +386,7 @@ class NewComponents(object):
                             settings["volume_capacity"] = 10
                     if os.getenv("USE_SAAS"):
                         if os.getenv("CLOUD_PROVIDER") == "baidu":
-                            volume["volume_type"] = "rook-ceph-rbd"
+                            volume["volume_type"] = "cephfs-external"
                         else:
                             volume["volume_type"] = "volcengine"
                 volumes2.append(
