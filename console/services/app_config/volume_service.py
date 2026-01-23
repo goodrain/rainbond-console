@@ -48,8 +48,9 @@ class AppVolumeService(object):
     default_volume_type = "local-path"
     if os.getenv("USE_SAAS"):
         # SAAS 环境下，根据 CLOUD_PROVIDER 区分云厂商
-        if os.getenv("CLOUD_PROVIDER") == "hsy":
-            default_volume_type = "rook-ceph-rbd"
+        cloud_provider = os.getenv("CLOUD_PROVIDER", "")
+        if cloud_provider in ["baidu", "hsy"]:
+            default_volume_type = "cephfs-external"
         else:
             default_volume_type = "volcengine"
     simple_volume_type = [default_volume_type, "config-file", "vm-file", "memoryfs", "local"]
@@ -88,9 +89,11 @@ class AppVolumeService(object):
 
         # 如果是 SAAS 环境，根据 CLOUD_PROVIDER 返回对应的云存储配置
         if os.getenv("USE_SAAS"):
-            if os.getenv("CLOUD_PROVIDER") == "hsy":
-                # 百度云存储
-                base_opts = [{"volume_type": "rook-ceph-rbd", "name_show": "火数云存储", "provisioner": ""}]
+            cloud_provider = os.getenv("CLOUD_PROVIDER", "")
+            if cloud_provider == "hsy":
+                base_opts = [{"volume_type": "cephfs-external", "name_show": "火数云存储", "provisioner": ""}]
+            elif cloud_provider == "baidu":
+                base_opts = [{"volume_type": "cephfs-external", "name_show": "百度云存储", "provisioner": ""}]
             else:
                 # 火山云存储（默认）
                 base_opts = [{"volume_type": "volcengine", "name_show": "火山云存储", "provisioner": ""}]
@@ -348,8 +351,9 @@ class AppVolumeService(object):
             if not check_results:
                 volume_type = "local-path"
                 if os.getenv("USE_SAAS"):
-                    if os.getenv("CLOUD_PROVIDER") == "baidu":
-                        volume_type = "rook-ceph-rbd"
+                    cloud_provider = os.getenv("CLOUD_PROVIDER", "")
+                    if cloud_provider in ["baidu", "hsy"]:
+                        volume_type = "cephfs-external"
                     else:
                         volume_type = "volcengine"
                 volume_data["volume_type"] = volume_type
