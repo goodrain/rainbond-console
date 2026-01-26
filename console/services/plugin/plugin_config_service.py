@@ -2,6 +2,8 @@
 """
   Created on 18/3/5.
 """
+import json
+
 from console.repositories.plugin import config_group_repo, config_item_repo
 from django.forms import model_to_dict
 from console.constants import PluginMetaType
