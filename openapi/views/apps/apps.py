@@ -1628,22 +1628,18 @@ class SmartDeployTemplateView(TeamAPIView):
         else:
             # 应用不存在，先尝试查找，再创建
             # 先查找是否已存在同名应用（包括已删除的）
-            logger.info(f"[SMART-DEPLOY] Checking for existing app: {app_name}")
             existing_apps = group_repo.get_tenant_region_groups(
                 self.team.tenant_id,
                 self.region.region_name
             )
-            logger.info(f"[SMART-DEPLOY] Found {len(existing_apps)} total apps in database")
             existing_app = None
             for app in existing_apps:
                 if app.group_name == app_name:
                     existing_app = app
-                    logger.info(f"[SMART-DEPLOY] Found existing app: app_id={app.ID}, app_name={app_name}, status={app.status}")
                     break
 
             if existing_app:
                 # 使用已存在的应用
-                logger.info(f"[SMART-DEPLOY] Using existing app: {existing_app.ID}")
                 app_id = existing_app.ID
                 # 如果应用已删除，恢复它
                 if existing_app.status == "deleted":
@@ -1654,12 +1650,11 @@ class SmartDeployTemplateView(TeamAPIView):
                             app=existing_app,
                             user=self.user
                         )
-                        logger.info(f"[SMART-DEPLOY] Recovered deleted app: {app_name}")
+                        logger.info(f"Recovered deleted app: {app_name}")
                     except Exception as recover_error:
-                        logger.exception(f"[SMART-DEPLOY] Failed to recover app: {recover_error}")
+                        logger.exception(f"Failed to recover app: {recover_error}")
             else:
                 # 不存在，创建新应用
-                logger.info(f"[SMART-DEPLOY] No existing app found, creating new app: {app_name}")
                 try:
                     app_data = group_service.create_app(
                         tenant=self.team,
@@ -1670,17 +1665,15 @@ class SmartDeployTemplateView(TeamAPIView):
                         k8s_app=app_name
                     )
                     app_id = app_data["app_id"]
-                    logger.info("Created new app: app_id={}, app_name={}".format(app_id, app_name))
                 except ServiceHandleException as e:
                     # 检查是否是 k8s app name exists 错误
                     if hasattr(e, 'error_code') and e.error_code == 11011:
-                        logger.warning(f"App creation failed with k8s app name exists: {app_name}. Trying with suffix.")
+                        logger.warning(f"App '{app_name}' exists in k8s, trying with suffix")
 
                         # 尝试加后缀创建
                         for suffix in range(1, 100):
                             new_app_name = f"{app_name}-{suffix}"
                             try:
-                                logger.info(f"[SMART-DEPLOY] Attempting to create app with suffix: {new_app_name}")
                                 app_data = group_service.create_app(
                                     tenant=self.team,
                                     region_name=self.region.region_name,
@@ -1691,27 +1684,22 @@ class SmartDeployTemplateView(TeamAPIView):
                                 )
                                 app_id = app_data["app_id"]
                                 app_name = new_app_name
-                                logger.info(f"Created new app with suffix: app_id={app_id}, app_name={app_name}")
+                                logger.info(f"Created app '{app_name}' with suffix")
                                 break
                             except ServiceHandleException as create_error:
                                 error_code = getattr(create_error, 'error_code', None)
-                                logger.warning(f"Failed to create {new_app_name}: error_code={error_code}")
                                 if error_code == 11011:
                                     continue
                                 else:
-                                    logger.error(f"Unexpected error creating {new_app_name}: {create_error}")
                                     raise create_error
                         else:
                             # 尝试了100次都失败，返回错误
-                            logger.error(f"Failed to create app after 100 attempts")
                             raise ServiceHandleException(
                                 msg="failed to create app after 100 attempts",
                                 msg_show="创建应用失败：K8s中存在大量同名应用，请手动清理",
                                 status_code=500
                             )
                     else:
-                        # 其他错误，直接返回
-                        logger.error("Failed to create app: {}".format(e))
                         raise
                 except Exception as e:
                     logger.exception("Failed to create app: {}".format(e))
@@ -1767,9 +1755,6 @@ class SmartDeployTemplateView(TeamAPIView):
                     status=404
                 )
 
-            logger.info("Installing template: app_id={}, app_name={}, template_id={}, latest_version={}".format(
-                app_id, app_name, template_id, latest_version))
-
             market_app_service.install_app(
                 self.team,
                 self.region,
@@ -1782,9 +1767,6 @@ class SmartDeployTemplateView(TeamAPIView):
                 is_deploy=is_deploy,
                 dry_run=False
             )
-
-            logger.info("Template installed successfully: app_id={}, app_name={}, template_id={}, version={}".format(
-                app_id, app_name, template_id, latest_version))
 
             return Response(
                 general_message(
