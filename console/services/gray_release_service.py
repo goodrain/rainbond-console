@@ -208,6 +208,10 @@ class GrayReleaseService(object):
                 else:
                     logger.warning(f"[GrayRelease] Original service port not found, skipping original backend: {original_service.service_id}")
 
+            # 获取路由名称
+            original_name = domain.get("name", "")
+            if not original_name:
+                logger.error(f"[GrayRelease] Domain name not found in domain object: {domain}")
                 raise ServiceHandleException(
                     msg="route name not found",
                     msg_show="路由名称未找到",
@@ -246,7 +250,6 @@ class GrayReleaseService(object):
                 # 构建更新请求体
                 # 需要包含完整的路由配置
                 match_config = domain.get("match", {})
-                print(team.namespace)
                 update_body = {
                     "namespace": team.namespace,
                     "name": route_name,  # 使用从 original_name 解析出的路由名称
