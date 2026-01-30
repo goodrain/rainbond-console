@@ -1731,7 +1731,7 @@ class SmartDeployTemplateView(TeamAPIView):
                 versions = app_market_service.get_market_app_model_versions(market, template_id)
             else:
                 # 从本地获取最新版本
-                versions = rainbond_app_repo.get_rainbond_app_versions(template_id)
+                versions = rainbond_app_repo.get_rainbond_app_versions(template_id).order_by('-update_time')
 
             if not versions:
                 return None
