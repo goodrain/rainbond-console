@@ -438,7 +438,8 @@ class Configuration():
         # 判断是否为https请求
         wsurl_split_list = region_config.url.split(':')
         if wsurl_split_list[0] == "https":
-            verify_ssl = True
+            # 从环境变量控制是否启用SSL验证，默认本地开发环境禁用
+            verify_ssl = os.environ.get("REGION_SSL_VERIFY", "false").lower() == "true"
         # Default Base url
         self.host = region_config.url
 

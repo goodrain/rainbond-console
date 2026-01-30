@@ -53,7 +53,8 @@ class RegionApiBaseHttpClient(object):
         # 判断是否为https请求
         region_api_host = parse.urlparse(self.region.url)
         if region_api_host.scheme == "https":
-            verify_ssl = True
+            # 从环境变量控制是否启用SSL验证，默认本地开发环境禁用
+            verify_ssl = os.environ.get("REGION_SSL_VERIFY", "false").lower() == "true"
         self.host = region_api_host
         self.config = Configuration(
             verify_ssl=verify_ssl,

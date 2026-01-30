@@ -2,6 +2,12 @@
 import os
 import sys
 
+# Apply Python 3.10 compatibility patches
+try:
+    import fix_py310_compat
+except ImportError:
+    pass
+
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 

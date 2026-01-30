@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import time
+import requests
 
 from console.appstore.appstore import app_store
 from console.enum.app import GovernanceModeEnum
@@ -1008,7 +1009,7 @@ class ShareService(object):
         if service.get('dep_service_map_list'):
             service['dep_service_map_list'] = list(filter(filter_dep, service['dep_service_map_list']))
 
-    def complete(self, tenant, user, share_record, is_plugin, user_id):
+    def complete(self, tenant, user, share_record, is_plugin, user_id, region_name=None):
         app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
         app = rainbond_app_repo.get_rainbond_app_by_app_id(app_version.app_id)
         app_market_url = None
@@ -1021,6 +1022,11 @@ class ShareService(object):
                     share_type = info[1]
                 app_market_url = self.publish_app_to_public_market(tenant, share_record, user.nick_name, app_version,
                                                                    is_plugin, user_id, share_type)
+
+            # 检测企业级别发布中的流水线插件
+            if app_version.scope == "enterprise" and region_name:
+                self._handle_pipeline_plugin_for_enterprise(tenant, app_version, share_record, user_id, region_name)
+
             app_version.is_complete = True
             app_version.update_time = datetime.datetime.now()
             app_version.is_plugin = is_plugin
@@ -1077,6 +1083,128 @@ class ShareService(object):
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403, error_code=10407)
             else:
                 raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500, error_code=500)
+
+    def _handle_pipeline_plugin_for_enterprise(self, tenant, app_version, share_record, user_id, region_name):
+        """
+        处理企业级别发布中的流水线插件
+        通过region API获取插件列表，检测是否存在流水线插件，如果存在则调用相应接口
+        注意：只在模板已存在（非首次发布）时才调用接口
+        """
+        try:
+            # 检查是否是第一次发布该模板
+            # 查询是否存在该 app_id 的其他已完成版本（排除当前版本）
+            existing_versions = RainbondCenterAppVersion.objects.filter(
+                app_id=app_version.app_id,
+                scope="enterprise",
+                is_complete=True,
+                enterprise_id=tenant.enterprise_id
+            ).exclude(ID=app_version.ID).count()
+
+            if existing_versions == 0:
+                # 第一次发布该模板，不需要调用接口
+                logger.info("First version of template published, skip pipeline trigger: app_id={}, version={}".format(
+                    app_version.app_id, app_version.version))
+                return
+
+            logger.info("Not first version of template, checking pipeline plugin: app_id={}, version={}, existing_versions={}".format(
+                app_version.app_id, app_version.version, existing_versions))
+
+            # 先通过 rbd_plugin_service 获取插件列表（包含 URLs）
+            from console.services.plugin_service import rbd_plugin_service
+            plugins, _ = rbd_plugin_service.list_plugins(tenant.enterprise_id, region_name, official=False)
+
+            # 检测是否存在流水线插件
+            has_pipeline_plugin = False
+            pipeline_plugin_info = None
+            for plugin in plugins:
+                if plugin.get("category") == "rainbond-enterprise-pipeline":
+                    has_pipeline_plugin = True
+                    pipeline_plugin_info = plugin
+                    logger.info("Detected pipeline plugin in enterprise scope: name={}, category={}, urls={}".format(
+                        plugin.get("name", "unknown"), plugin.get("category"), plugin.get("urls", [])))
+                    break
+
+            # 如果存在流水线插件，调用接口
+            if has_pipeline_plugin:
+                self._call_pipeline_plugin_api(tenant, app_version, share_record, user_id, region_name, pipeline_plugin_info)
+            else:
+                logger.info("No pipeline plugin found, skip trigger: app_id={}, version={}".format(
+                    app_version.app_id, app_version.version))
+
+        except Exception as e:
+            logger.exception("Error handling pipeline plugin for enterprise: {}".format(e))
+            # 这里不抛出异常，避免影响主流程
+
+    def _call_pipeline_plugin_api(self, tenant, app_version, share_record, user_id, region_name, pipeline_plugin_info):
+        """
+        调用流水线插件模板版本触发接口
+        在模板发布成功后，调用此接口触发相关工作流
+        """
+        try:
+            # 获取插件的访问 URL
+            plugin_urls = pipeline_plugin_info.get("urls", [])
+            if not plugin_urls:
+                logger.warning("Pipeline plugin has no access URLs, skip trigger. plugin: {}".format(
+                    pipeline_plugin_info.get("name", "unknown")))
+                return
+
+            # 使用第一个可用的 URL
+            base_url = plugin_urls[0].rstrip('/')
+
+            # 构造完整的 API 路径
+            # POST /api/v1/workflows/templates/{uuid}/trigger-by-template-version
+            template_uuid = app_version.app_id
+            api_path = "/api/v1/workflows/templates/{}/trigger-by-template-version".format(template_uuid)
+            api_url = "{}{}".format(base_url, api_path)
+
+            logger.info("Triggering pipeline workflow for template: uuid={}, version={}, url={}".format(
+                template_uuid, app_version.version, api_url))
+
+            # 发送 POST 请求（无需 body）
+            response = requests.post(
+                api_url,
+                headers={"Content-Type": "application/json"},
+                timeout=10  # 10秒超时
+            )
+
+            # 解析响应
+            if response.status_code == 200:
+                result = response.json()
+                code = result.get("code", -1)
+                message = result.get("message", "")
+                data = result.get("data", {})
+
+                if code == 0:
+                    triggered = data.get("triggered", False)
+                    if triggered:
+                        execution_id = data.get("executionId", "")
+                        workflow_cr_name = data.get("workflowCrName", "")
+                        logger.info("Pipeline workflow triggered successfully: template={}, version={}, executionId={}, workflowCrName={}".format(
+                            template_uuid, app_version.version, execution_id, workflow_cr_name))
+                    else:
+                        # triggered=false 是正常情况（未配置触发器或触发器未启用）
+                        logger.info("Pipeline workflow not triggered: template={}, version={}, reason={}".format(
+                            template_uuid, app_version.version, data.get("message", "No trigger configured")))
+                else:
+                    # code != 0 表示错误
+                    logger.error("Pipeline workflow trigger failed: template={}, version={}, code={}, message={}".format(
+                        template_uuid, app_version.version, code, message))
+            else:
+                # HTTP 状态码非 200
+                logger.error("Pipeline workflow trigger HTTP error: template={}, version={}, status_code={}, response={}".format(
+                    template_uuid, app_version.version, response.status_code, response.text))
+
+        except requests.exceptions.Timeout:
+            logger.error("Pipeline workflow trigger timeout: template={}, version={}".format(
+                app_version.app_id, app_version.version))
+        except requests.exceptions.RequestException as e:
+            logger.error("Pipeline workflow trigger request failed: template={}, version={}, error={}".format(
+                app_version.app_id, app_version.version, str(e)))
+        except Exception as e:
+            logger.exception("Pipeline workflow trigger unexpected error: template={}, version={}, error={}".format(
+                app_version.app_id, app_version.version, str(e)))
+
+        # 注意：所有异常都被捕获，不会影响主流程
 
     @staticmethod
     def get_shared_services_list(service):
