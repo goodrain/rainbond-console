@@ -216,8 +216,8 @@ class UpdateGrayRatioView(TeamAppAPIView):
 
 
 class GrayReleaseListView(APIView):
-    authentication_classes = OpenAPIAuthentication.authentication_classes
-    permission_classes = OpenAPIPermissions.permission_classes
+    authentication_classes = [OpenAPIAuthentication]
+    permission_classes = [OpenAPIPermissions]
 
     @swagger_auto_schema(
         operation_description="查询平台下的灰度发布列表",
