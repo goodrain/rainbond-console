@@ -191,7 +191,7 @@ class UpdateGrayRatioView(TeamAppAPIView):
                 logger.info(f"Deleting original services from template: {record.original_upgrade_group_id}")
                 try:
                     from console.services.app_actions import app_manage_service
-                    from console.repositories.group import group_service
+                    from console.services.group_service import group_service
 
                     # Get all services in original upgrade group
                     original_group_services = group_service.get_group_services(record.original_upgrade_group_id)
