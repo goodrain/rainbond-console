@@ -1637,6 +1637,50 @@ class SmartDeployTemplateView(TeamAPIView):
                 )
                 app_id = app_data["app_id"]
                 logger.info("Created new app: app_id={}, app_name={}".format(app_id, app_name))
+            except ServiceHandleException as e:
+                # 检查是否是 k8s app name exists 错误（应用可能之前被删除但k8s资源未清理）
+                if hasattr(e, 'error_code') and e.error_code == 11011:
+                    logger.warning(f"App creation failed with k8s app name exists: {app_name}. Trying to reuse existing app.")
+
+                    # 尝试查找是否存在同名的应用（包括已删除的）
+                    from console.repositories.group import group_repo
+                    existing_apps = group_repo.list_by_team_and_region(
+                        self.team.tenant_id,
+                        self.region.region_name
+                    )
+
+                    # 查找匹配的应用（包括已删除的）
+                    for app in existing_apps:
+                        if app.group_name == app_name:
+                            logger.info(f"Found existing app: app_id={app.ID}, app_name={app_name}, status={app.status}")
+
+                            # 如果应用已删除，恢复它
+                            if app.status == "deleted":
+                                # 恢复已删除的应用
+                                from console.repositories.group import group_service
+                                try:
+                                    group_service.recover_app(
+                                        tenant=self.team,
+                                        region_name=self.region.region_name,
+                                        app=app,
+                                        user=self.user
+                                    )
+                                    logger.info(f"Recovered deleted app: {app_name}")
+                                except Exception as recover_error:
+                                    logger.exception(f"Failed to recover app: {recover_error}")
+                                    # 恢复失败，继续尝试使用该应用
+                                    pass
+
+                            app_id = app.ID
+                            break
+                    else:
+                        # 未找到任何同名应用，返回原错误
+                        logger.error(f"No existing app found with name: {app_name}")
+                        raise
+                else:
+                    # 其他错误，直接返回
+                    logger.error("Failed to create app: {}".format(e))
+                    raise
             except Exception as e:
                 logger.exception("Failed to create app: {}".format(e))
                 return Response(
