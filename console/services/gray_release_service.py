@@ -218,26 +218,42 @@ class GrayReleaseService(object):
                     status_code=500
                 )
 
-            # 直接使用 original_name 作为 route_name
-            route_name = original_name
-            region_app_id = str(app.ID)
+            # 按 | 分割，取中间部分
+            name_parts = original_name.split('|')
+            if len(name_parts) != 3:
+                logger.error(f"[GrayRelease] Invalid original_name format: {original_name}")
+                raise ServiceHandleException(
+                    msg="invalid route name format",
+                    msg_show="路由名称格式错误，应为: region_app_id|route_name|service_alias",
+                    status_code=500
+                )
 
-            logger.info(f"[GrayRelease] Using route_name: {route_name}, app_id: {region_app_id}")
+            region_app_id = name_parts[0]
+            route_name = name_parts[1]  # 中间部分是实际的路由名称
+            service_alias_suffix = name_parts[2]
+
+            logger.info(f"[GrayRelease] Parsed original_name: region_app_id={region_app_id}, route_name={route_name}, suffix={service_alias_suffix}")
+            logger.info(f"[GrayRelease] Updating route: {route_name}")
 
             # 使用 console API 更新域名权重
             try:
                 from www.apiclient.regionapi import RegionInvokeApi
+                from console.repositories.region_app import region_app_repo
                 region_api = RegionInvokeApi()
 
                 logger.info(f"[GrayRelease] Updating route via console API")
+                logger.info(f"[GrayRelease] Route name: {route_name}")
+
+                # 获取 region_app_id (需要转换回内部 app_id)
+                # 从 domain 中获取，或者使用解析出的 region_app_id
 
                 # 构建更新请求体
                 # 需要包含完整的路由配置
                 match_config = domain.get("match", {})
                 update_body = {
                     "namespace": team.namespace,
-                    "name": route_name,
-                    "app_id": region_app_id,
+                    "name": route_name,  # 使用从 original_name 解析出的路由名称
+                    "app_id": region_app_id,  # 使用从 original_name 解析出的区域应用ID
                     "section_name": domain.get("section_name", "default"),
                     "gateway_name": domain.get("gateway_name", "default"),
                     "gateway_namespace": domain.get("gateway_namespace", "rbd-system"),
