@@ -168,6 +168,11 @@ class UpdateGrayRatioView(TeamAppAPIView):
             logger.info(f"Found gray release record: ID={record.ID}, domain={record.domain_name}, "
                        f"current_ratio={record.gray_ratio}")
 
+            # Check if this is a full release (gray_ratio=100)
+            is_full_release = (gray_ratio == 100)
+
+            if is_full_release:
+                logger.info("Full release detected (gray_ratio=100), will delete original services after routing update")
             # Use the record to update gray ratio (doesn't rely on ServiceDomain table)
             result = gray_release_service.update_gray_ratio_by_record(
                 team=self.team,
@@ -175,10 +180,52 @@ class UpdateGrayRatioView(TeamAppAPIView):
                 user=self.user,
                 app=self.app,
                 record=record,
-                new_gray_ratio=gray_ratio
+                new_gray_ratio=gray_ratio,
+                is_full_release=is_full_release
             )
 
             logger.info("Gray ratio updated successfully: {0}".format(result))
+
+            # If full release, delete original services
+            if is_full_release and result.get("original_deleted", False):
+                logger.info(f"Deleting original services from template: {record.original_upgrade_group_id}")
+                try:
+                    from console.services.app_actions import app_manage_service
+                    from console.repositories.group import group_service
+
+                    # Get all services in original upgrade group
+                    original_group_services = group_service.get_group_services(record.original_upgrade_group_id)
+                    original_service_ids = [s.service_id for s in original_group_services]
+
+                    if original_service_ids:
+                        logger.info(f"Deleting {len(original_service_ids)} original services: {original_service_ids}")
+
+                        # Batch delete services
+                        success_count = 0
+                        for service_id in original_service_ids:
+                            from console.repositories.service_repo import service_repo
+                            service = service_repo.get_service_by_service_id(service_id)
+                            if service:
+                                code, msg = app_manage_service.batch_delete(
+                                    self.user, self.team, service, is_force=True
+                                )
+                                if code == 200:
+                                    success_count += 1
+                                    logger.info(f"Deleted original service: {service.service_cname} ({service_id})")
+                                else:
+                                    logger.warning(f"Failed to delete service {service_id}: {msg}")
+
+                        logger.info(f"Successfully deleted {success_count}/{len(original_service_ids)} original services")
+
+                        # Update gray release record status to completed
+                        from console.repositories.gray_release_repo import gray_release_repo
+                        from console.models.main import GrayReleaseStatus
+                        gray_release_repo.update_status(record, GrayReleaseStatus.COMPLETED)
+                        logger.info(f"Gray release marked as completed: record_id={record.ID}")
+
+                except Exception as e:
+                    logger.exception(f"Failed to delete original services: {e}")
+                    # Don't fail the request, just log the error
 
             # Return response
             response_data = {

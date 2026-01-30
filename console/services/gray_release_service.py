@@ -145,10 +145,13 @@ class GrayReleaseService(object):
 
     def _update_apisix_route_weights(self, team, region, app, domain,
                                      original_service, new_service,
-                                     original_weight, new_weight):
+                                     original_weight, new_weight, is_full_release=False):
         """
         Update ApisixRoute to configure weighted backends for gray release
         更新 ApisixRoute 配置，为灰度发布设置权重后端
+
+        Args:
+            is_full_release: If True, only use new backend (full release)
         """
         try:
             from www.apiclient.regionapi import RegionInvokeApi
@@ -158,50 +161,25 @@ class GrayReleaseService(object):
 
             logger.info(f"[GrayRelease] Updating ApisixRoute for weighted traffic distribution")
 
-            # 获取原始服务的端口信息
-            original_port = TenantServicesPort.objects.filter(
-                tenant_id=team.tenant_id,
-                service_id=original_service.service_id,
-                is_outer_service=True  # 只查找对外服务的端口
-            ).first()
-
-            if not original_port:
-                logger.error(f"[GrayRelease] No outer port found for original service: {original_service.service_id}")
-                raise ServiceHandleException(
-                    msg="original service has no outer port",
-                    msg_show="原始服务没有对外端口",
-                    status_code=400
-                )
-
-            # 获取新服务的端口信息（应该有相同的端口号）
+            # 获取新服务的端口信息
             new_port = TenantServicesPort.objects.filter(
                 tenant_id=team.tenant_id,
                 service_id=new_service.service_id,
-                container_port=original_port.container_port,
-                is_outer_service=True
+                is_outer_service=True  # 只查找对外服务的端口
             ).first()
 
             if not new_port:
-                logger.error(f"[GrayRelease] No matching outer port found for new service: {new_service.service_id}")
+                logger.error(f"[GrayRelease] No outer port found for new service: {new_service.service_id}")
                 raise ServiceHandleException(
-                    msg="new service has no matching outer port",
-                    msg_show=f"新服务没有对应的对外端口（端口{original_port.container_port}）",
+                    msg="new service has no outer port",
+                    msg_show="新服务没有对外端口",
                     status_code=400
                 )
 
             # 构建新的 backends 配置（包含权重）
             new_backends = []
 
-            # 添加原始服务 backend
-            if original_weight > 0:
-                new_backends.append({
-                    "serviceName": original_port.k8s_service_name,
-                    "servicePort": original_port.container_port,
-                    "weight": original_weight
-                })
-                logger.info(f"[GrayRelease] Added original backend: {original_port.k8s_service_name}:{original_port.container_port} (weight={original_weight})")
-
-            # 添加新服务 backend
+            # 添加新服务 backend (总是添加，权重为 new_weight)
             if new_weight > 0:
                 new_backends.append({
                     "serviceName": new_port.k8s_service_name,
@@ -210,13 +188,26 @@ class GrayReleaseService(object):
                 })
                 logger.info(f"[GrayRelease] Added new backend: {new_port.k8s_service_name}:{new_port.container_port} (weight={new_weight})")
 
-            # 获取路由名称
-            # original_name 格式: "region_app_id|route_name|service_alias"
-            # 例如: "2e6ada483efb49479cf207319425709e|gred1a7f-5000-default.172.31.16.5.nip.iop-ps-s|-gred1a7f"
-            # 需要按 | 分割，取中间部分作为实际的路由名称
-            original_name = domain.get("original_name", "")
-            if not original_name:
-                logger.error("[GrayRelease] Route name not found in domain config")
+            # 如果不是全量发布，添加原始服务 backend
+            if not is_full_release and original_weight > 0:
+                # 获取原始服务的端口信息
+                original_port = TenantServicesPort.objects.filter(
+                    tenant_id=team.tenant_id,
+                    service_id=original_service.service_id,
+                    is_outer_service=True,
+                    container_port=new_port.container_port  # 端口要一致
+                ).first()
+
+                if original_port:
+                    new_backends.append({
+                        "serviceName": original_port.k8s_service_name,
+                        "servicePort": original_port.container_port,
+                        "weight": original_weight
+                    })
+                    logger.info(f"[GrayRelease] Added original backend: {original_port.k8s_service_name}:{original_port.container_port} (weight={original_weight})")
+                else:
+                    logger.warning(f"[GrayRelease] Original service port not found, skipping original backend: {original_service.service_id}")
+
                 raise ServiceHandleException(
                     msg="route name not found",
                     msg_show="路由名称未找到",
@@ -862,7 +853,7 @@ class GrayReleaseService(object):
                 status_code=500
             )
 
-    def update_gray_ratio_by_record(self, team, region_name, user, app, record, new_gray_ratio):
+    def update_gray_ratio_by_record(self, team, region_name, user, app, record, new_gray_ratio, is_full_release=False):
         """
         Update gray ratio using gray release record
 
@@ -873,6 +864,7 @@ class GrayReleaseService(object):
             app: Application object
             record: GrayReleaseRecord object
             new_gray_ratio: New gray ratio (0-100)
+            is_full_release: Whether this is a full release (gray_ratio=100)
 
         Returns:
             dict: Updated gray release information
@@ -905,6 +897,9 @@ class GrayReleaseService(object):
 
             logger.info(f"Updating gray ratio via record: original={original_weight}%, new={new_weight}%")
 
+            if is_full_release:
+                logger.info(f"[GrayRelease] Full release detected, will only use new backend")
+
             # Get region object first
             from console.repositories.region_repo import region_repo
             region = region_repo.get_region_by_region_name(region_name)
@@ -925,7 +920,8 @@ class GrayReleaseService(object):
             self._update_apisix_route_weights(
                 team, region, app, domain,
                 original_service, new_service,
-                original_weight, new_weight
+                original_weight, new_weight,
+                is_full_release=is_full_release
             )
 
             # Update record
@@ -941,7 +937,8 @@ class GrayReleaseService(object):
                 "new_service_cname": new_service.service_cname,
                 "new_weight": new_weight,
                 "domain_name": record.domain_name,
-                "gray_ratio": new_gray_ratio
+                "gray_ratio": new_gray_ratio,
+                "original_deleted": is_full_release and new_gray_ratio == 100
             }
 
         except ServiceHandleException:
