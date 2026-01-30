@@ -1672,10 +1672,10 @@ class SmartDeployTemplateView(TeamAPIView):
                         logger.warning(f"App creation failed with k8s app name exists: {app_name}. Trying with suffix.")
 
                         # 尝试加后缀创建
-                        suffix = 1
-                        while suffix < 10:
+                        for suffix in range(1, 11):
                             new_app_name = f"{app_name}-{suffix}"
                             try:
+                                logger.info(f"Attempting to create app with suffix: {new_app_name}")
                                 app_data = group_service.create_app(
                                     tenant=self.team,
                                     region_name=self.region.region_name,
@@ -1688,13 +1688,16 @@ class SmartDeployTemplateView(TeamAPIView):
                                 logger.info(f"Created new app with suffix: app_id={app_id}, app_name={app_name}")
                                 break
                             except ServiceHandleException as create_error:
-                                if hasattr(create_error, 'error_code') and create_error.error_code == 11011:
-                                    suffix += 1
+                                error_code = getattr(create_error, 'error_code', None)
+                                logger.warning(f"Failed to create {new_app_name}: error_code={error_code}")
+                                if error_code == 11011:
                                     continue
                                 else:
-                                    raise
+                                    logger.error(f"Unexpected error creating {new_app_name}: {create_error}")
+                                    raise create_error
                         else:
                             # 尝试了10次都失败，返回错误
+                            logger.error(f"Failed to create app after 10 attempts")
                             raise ServiceHandleException(
                                 msg="failed to create app after 10 attempts",
                                 msg_show="创建应用失败：已尝试10次",
