@@ -390,6 +390,7 @@ class GrayReleaseListView(APIView):
                 result_list.append({
                     'id': record.ID,
                     'app_id': record.app_id,
+                    'team_id': record.tenant_id,
                     'app_name': record.app_name,
                     'template_id': record.template_id,
                     'template_name': record.template_name,
