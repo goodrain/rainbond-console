@@ -1643,8 +1643,7 @@ class SmartDeployTemplateView(TeamAPIView):
                     logger.warning(f"App creation failed with k8s app name exists: {app_name}. Trying to reuse existing app.")
 
                     # 尝试查找是否存在同名的应用（包括已删除的）
-                    from console.repositories.group import group_repo
-                    existing_apps = group_repo.list_by_team_and_region(
+                    existing_apps = group_repo.get_tenant_region_groups(
                         self.team.tenant_id,
                         self.region.region_name
                     )
