@@ -90,8 +90,8 @@ urlpatterns = [
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-release$', GrayReleaseView.as_view()),
     # 调整灰度比例
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-ratio$', UpdateGrayRatioView.as_view()),
-    # 查询团队下的灰度发布列表
-    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/gray-releases$', GrayReleaseListView.as_view()),
+    # 查询平台下的灰度发布列表
+    url(r'^v1/gray-releases$', GrayReleaseListView.as_view()),
 
     # 创建应用导入记录
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import$', AppModelImportEvent.as_view()),

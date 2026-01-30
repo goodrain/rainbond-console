@@ -8,6 +8,8 @@ from console.exception.main import ServiceHandleException
 from console.services.gray_release_service import gray_release_service
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+from openapi.auth.authentication import OpenAPIAuthentication
+from openapi.auth.permissions import OpenAPIPermissions
 from openapi.serializer.app_serializer import (
     GrayReleaseSerializer, GrayReleaseResponseSerializer,
     UpdateGrayRatioSerializer, UpdateGrayRatioResponseSerializer,
@@ -15,6 +17,7 @@ from openapi.serializer.app_serializer import (
 )
 from openapi.views.base import TeamAPIView, TeamAppAPIView
 from rest_framework import status
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from www.utils.return_message import general_message
 
@@ -212,12 +215,13 @@ class UpdateGrayRatioView(TeamAppAPIView):
             return Response(result_msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class GrayReleaseListView(TeamAPIView):
+class GrayReleaseListView(APIView):
+    authentication_classes = OpenAPIAuthentication.authentication_classes
+    permission_classes = OpenAPIPermissions.permission_classes
+
     @swagger_auto_schema(
-        operation_description="查询团队下的灰度发布列表",
+        operation_description="查询平台下的灰度发布列表",
         manual_parameters=[
-            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID", type=openapi.TYPE_STRING),
-            openapi.Parameter("region_name", openapi.IN_PATH, description="区域名称", type=openapi.TYPE_STRING),
             openapi.Parameter("status", openapi.IN_QUERY, description="状态筛选: active-灰度中, completed-已完成, cancelled-已取消", type=openapi.TYPE_STRING, required=False),
         ],
         responses={200: GrayReleaseListItemSerializer(many=True)},
@@ -225,21 +229,26 @@ class GrayReleaseListView(TeamAPIView):
     )
     def get(self, request, *args, **kwargs):
         """
-        Get gray release list for the team
+        Get gray release list for the whole platform
 
         Query parameters:
         - status: Filter by status (active, completed, cancelled)
         """
         try:
             from console.repositories.gray_release_repo import gray_release_repo
+            from console.models.main import GrayReleaseRecord
 
             status_filter = request.GET.get('status', None)
 
-            # Get gray release records
-            records = gray_release_repo.list_by_tenant(
-                self.team.tenant_id,
-                status=status_filter
-            )
+            # Get all gray release records
+            queryset = GrayReleaseRecord.objects.all()
+
+            # Filter by status if provided
+            if status_filter:
+                queryset = queryset.filter(status=status_filter)
+
+            # Order by update time descending
+            records = queryset.order_by('-update_time')
 
             # Convert to response format
             result_list = []
