@@ -322,16 +322,16 @@ class GrayReleaseService(object):
                 status_code=500
             )
 
-    def get_domain_by_name(self, team, region, app_id, domain_name):
+    def get_domain_by_name(self, team, region, app_id, route_name):
         """
-        Get domain from API Gateway by domain_name
-        域名数据不入库，需要从 API 网关获取
+        Get domain from API Gateway by route name
+        通过路由名称查找（而不是域名）
         """
         try:
             from www.apiclient.regionapi import RegionInvokeApi
             region_api = RegionInvokeApi()
 
-            logger.info(f"[GrayRelease] Getting domain from API Gateway: domain={domain_name}, app_id={app_id}, team={team.tenant_name}")
+            logger.info(f"[GrayRelease] Getting route from API Gateway: route_name={route_name}, app_id={app_id}")
 
             # 调用 API 网关获取路由列表
             response = region_api.get_api_gateway(region, team, app_id)
@@ -339,38 +339,31 @@ class GrayReleaseService(object):
 
             logger.info(f"[GrayRelease] API Gateway returned {len(domains)} routes")
 
-            # 查找匹配的域名
-            matched_domains = []
-            all_hosts = []  # 用于错误消息
+            # 查找匹配的路由
+            matched_routes = []
+            all_route_names = []  # 用于错误消息
             for domain in domains:
-                # 真正的域名在 match.hosts 字段中
-                match_info = domain.get("match", {})
-                hosts = match_info.get("hosts", [])
-                all_hosts.extend(hosts)
+                domain_route_name = domain.get("name", "")
+                all_route_names.append(domain_route_name)
 
-                # 检查是否有匹配的域名
-                if domain_name in hosts:
-                    matched_domains.append(domain)
-                    logger.info(f"[GrayRelease] Found matching domain: {domain_name} in route {domain.get('name')}")
+                # 检查路由名称是否匹配
+                if domain_route_name == route_name:
+                    matched_routes.append(domain)
+                    logger.info(f"[GrayRelease] Found matching route: {route_name}")
 
-            if not matched_domains:
-                logger.error(f"[GrayRelease] Domain not found: {domain_name}. Available domains: {all_hosts}")
+            if not matched_routes:
+                logger.error(f"[GrayRelease] Route not found: {route_name}. Available routes: {all_route_names}")
                 raise ServiceHandleException(
-                    msg="domain not found in api gateway",
-                    msg_show=f"API网关中未找到域名: {domain_name}。当前应用可用域名: {', '.join(all_hosts) if all_hosts else '无'}",
+                    msg="route not found in api gateway",
+                    msg_show=f"API网关中未找到路由: {route_name}。当前应用可用路由: {', '.join(all_route_names[:5])}{'...' if len(all_route_names) > 5 else ''}",
                     status_code=404
                 )
 
-            if len(matched_domains) > 1:
-                logger.error(f"[GrayRelease] Domain bound to multiple services: {domain_name}")
-                raise ServiceHandleException(
-                    msg="domain bound to multiple services",
-                    msg_show="域名绑定到多个服务，无法进行灰度发布",
-                    status_code=400
-                )
+            if len(matched_routes) > 1:
+                logger.warning(f"[GrayRelease] Found {len(matched_routes)} routes with same name: {route_name}, using first one")
 
-            logger.info(f"[GrayRelease] Successfully found domain: {domain_name}")
-            return matched_domains[0]
+            logger.info(f"[GrayRelease] Successfully found route: {route_name}")
+            return matched_routes[0]
 
         except Exception as e:
             if isinstance(e, ServiceHandleException):
