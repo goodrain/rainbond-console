@@ -406,3 +406,16 @@ class GrayReleaseListItemSerializer(serializers.Serializer):
     service_mappings = GrayReleaseServiceMappingSerializer(many=True, help_text="服务映射关系")
     create_time = serializers.CharField(help_text="创建时间")
     update_time = serializers.CharField(help_text="更新时间")
+
+
+class GrayRollbackSerializer(serializers.Serializer):
+    """灰度回滚请求序列化器"""
+    template_id = serializers.CharField(max_length=128, required=True, help_text="应用模板ID")
+
+
+class GrayRollbackResponseSerializer(serializers.Serializer):
+    """灰度回滚响应序列化器"""
+    app_id = serializers.IntegerField(help_text="应用ID")
+    app_name = serializers.CharField(max_length=128, help_text="应用名称")
+    domain_name = serializers.CharField(max_length=128, help_text="域名")
+    deleted_service_count = serializers.IntegerField(help_text="删除的服务数量")

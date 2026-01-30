@@ -466,7 +466,7 @@ class GrayReleaseService(object):
                     )
 
                 # Get app version (use the latest version)
-                app_versions = rainbond_app_repo.get_rainbond_app_versions(template_id)
+                app_versions = rainbond_app_repo.get_rainbond_app_versions(template_id).order_by('-update_time')
                 if not app_versions:
                     raise ServiceHandleException(
                         msg="template version not found",
@@ -1131,6 +1131,144 @@ class GrayReleaseService(object):
             raise ServiceHandleException(
                 msg="failed to update gray ratio: {0}".format(str(e)),
                 msg_show="更新灰度比例失败",
+                status_code=500
+            )
+
+
+    def rollback_gray_release(self, team, region_name, user, app, template_id):
+        """
+        Rollback gray release: switch all traffic to original services and delete new services
+
+        Args:
+            team: Team object
+            region_name: Region name
+            user: User object
+            app: Application object
+            template_id: Application template ID
+
+        Returns:
+            dict: Rollback result information
+        """
+        try:
+            # Find active gray release record
+            record = gray_release_repo.get_active_record_by_app_and_template(
+                team.tenant_id, app.ID, template_id
+            )
+
+            if not record:
+                raise ServiceHandleException(
+                    msg="no active gray release found",
+                    msg_show=f"未找到应用 {app.ID} 模板 {template_id} 的活跃灰度发布记录",
+                    status_code=404
+                )
+
+            logger.info(f"[GrayRollback] Found gray release record: ID={record.ID}, "
+                       f"domain={record.domain_name}, gray_ratio={record.gray_ratio}")
+
+            # Get services from record
+            original_service = TenantServiceInfo.objects.filter(
+                tenant_id=team.tenant_id,
+                service_id=record.original_service_id
+            ).first()
+
+            new_service = TenantServiceInfo.objects.filter(
+                tenant_id=team.tenant_id,
+                service_id=record.gray_service_id
+            ).first()
+
+            if not original_service:
+                raise ServiceHandleException(
+                    msg="original service not found",
+                    msg_show="原始服务不存在",
+                    status_code=404
+                )
+
+            # Get region object
+            from console.repositories.region_repo import region_repo
+            region = region_repo.get_region_by_region_name(region_name)
+            if not region:
+                raise ServiceHandleException(
+                    msg="region not found",
+                    msg_show="数据中心不存在",
+                    status_code=404
+                )
+
+            # Step 1: Switch all traffic back to original service (100% to original, 0% to new)
+            logger.info("[GrayRollback] Switching all traffic back to original service")
+
+            # Get domain configuration from API Gateway
+            domain = self.get_domain_by_name(team, region, app.ID, record.domain_name)
+
+            if new_service:
+                # Update route to remove new service backend (only keep original)
+                self._update_apisix_route_weights(
+                    team, region, app, domain,
+                    original_service, new_service,
+                    original_weight=100,
+                    new_weight=0,
+                    is_full_release=False  # Use False so original service backend is added
+                )
+            else:
+                logger.warning(f"[GrayRollback] New service not found: {record.gray_service_id}, skip route update")
+
+            # Step 2: Delete new services (from gray upgrade group)
+            logger.info(f"[GrayRollback] Deleting new services from upgrade group: {record.gray_upgrade_group_id}")
+            deleted_count = 0
+
+            if record.gray_upgrade_group_id:
+                # Get all services in gray upgrade group
+                gray_services = TenantServiceInfo.objects.filter(
+                    tenant_id=team.tenant_id,
+                    tenant_service_group_id=record.gray_upgrade_group_id
+                )
+
+                if gray_services:
+                    logger.info(f"[GrayRollback] Found {len(gray_services)} services in gray upgrade group")
+
+                    # Delete auto-created domains first
+                    gray_service_ids = [svc.service_id for svc in gray_services]
+                    self._delete_new_service_domains(team, region_name, gray_service_ids)
+
+                    # Batch delete services
+                    for service in gray_services:
+                        logger.info(f"[GrayRollback] Deleting gray service: {service.service_cname} ({service.service_id})")
+                        try:
+                            code, msg = self.app_manage.batch_delete(
+                                user, team, service, is_force=True
+                            )
+                            if code == 200:
+                                deleted_count += 1
+                                logger.info(f"[GrayRollback] Successfully deleted service: {service.service_cname}")
+                            else:
+                                logger.warning(f"[GrayRollback] Failed to delete service {service.service_id}: code={code}, msg={msg}")
+                        except Exception as e:
+                            logger.error(f"[GrayRollback] Error deleting service {service.service_id}: {e}")
+
+                    logger.info(f"[GrayRollback] Successfully deleted {deleted_count}/{len(gray_services)} gray services")
+                else:
+                    logger.warning(f"[GrayRollback] No services found in gray upgrade group {record.gray_upgrade_group_id}")
+            else:
+                logger.warning("[GrayRollback] No gray upgrade group ID in record")
+
+            # Step 3: Update gray release record status to cancelled
+            from console.models.main import GrayReleaseStatus
+            gray_release_repo.update_status(record, GrayReleaseStatus.CANCELLED)
+            logger.info(f"[GrayRollback] Gray release marked as cancelled: record_id={record.ID}")
+
+            return {
+                "app_id": app.ID,
+                "app_name": app.group_name,
+                "domain_name": record.domain_name,
+                "deleted_service_count": deleted_count
+            }
+
+        except ServiceHandleException:
+            raise
+        except Exception as e:
+            logger.error("Failed to rollback gray release: {0}".format(traceback.format_exc()))
+            raise ServiceHandleException(
+                msg="failed to rollback gray release: {0}".format(str(e)),
+                msg_show="灰度回滚失败",
                 status_code=500
             )
 

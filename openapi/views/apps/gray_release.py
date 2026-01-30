@@ -13,7 +13,8 @@ from openapi.auth.permissions import OpenAPIPermissions
 from openapi.serializer.app_serializer import (
     GrayReleaseSerializer, GrayReleaseResponseSerializer,
     UpdateGrayRatioSerializer, UpdateGrayRatioResponseSerializer,
-    GrayReleaseListItemSerializer
+    GrayReleaseListItemSerializer, GrayRollbackSerializer,
+    GrayRollbackResponseSerializer
 )
 from openapi.views.base import TeamAPIView, TeamAppAPIView
 from rest_framework import status
@@ -188,40 +189,45 @@ class UpdateGrayRatioView(TeamAppAPIView):
 
             # If full release, delete original services
             if is_full_release and result.get("original_deleted", False):
-                logger.info(f"Deleting original services from template: {record.original_upgrade_group_id}")
+                logger.info(f"Deleting original services from upgrade group: {record.original_upgrade_group_id}")
                 try:
                     from console.services.app_actions import app_manage_service
-                    from console.services.group_service import group_service
+                    from www.models.main import TenantServiceInfo
 
-                    # Get all services in original upgrade group
-                    original_group_services = group_service.get_group_services(record.original_upgrade_group_id)
-                    original_service_ids = [s.service_id for s in original_group_services]
+                    # Get all services in original upgrade group by tenant_service_group_id
+                    original_services = TenantServiceInfo.objects.filter(
+                        tenant_id=self.team.tenant_id,
+                        tenant_service_group_id=record.original_upgrade_group_id
+                    )
 
-                    if original_service_ids:
-                        logger.info(f"Deleting {len(original_service_ids)} original services: {original_service_ids}")
+                    if original_services:
+                        logger.info(f"Found {len(original_services)} services in upgrade group {record.original_upgrade_group_id}")
 
                         # Batch delete services
                         success_count = 0
-                        for service_id in original_service_ids:
-                            from console.repositories.service_repo import service_repo
-                            service = service_repo.get_service_by_service_id(service_id)
-                            if service:
+                        for service in original_services:
+                            logger.info(f"Deleting original service: {service.service_cname} ({service.service_id})")
+                            try:
                                 code, msg = app_manage_service.batch_delete(
                                     self.user, self.team, service, is_force=True
                                 )
                                 if code == 200:
                                     success_count += 1
-                                    logger.info(f"Deleted original service: {service.service_cname} ({service_id})")
+                                    logger.info(f"Successfully deleted service: {service.service_cname} ({service.service_id})")
                                 else:
-                                    logger.warning(f"Failed to delete service {service_id}: {msg}")
+                                    logger.warning(f"Failed to delete service {service.service_id}: code={code}, msg={msg}")
+                            except Exception as e:
+                                logger.error(f"Error deleting service {service.service_id}: {e}")
 
-                        logger.info(f"Successfully deleted {success_count}/{len(original_service_ids)} original services")
+                        logger.info(f"Successfully deleted {success_count}/{len(original_services)} original services")
 
                         # Update gray release record status to completed
                         from console.repositories.gray_release_repo import gray_release_repo
                         from console.models.main import GrayReleaseStatus
                         gray_release_repo.update_status(record, GrayReleaseStatus.COMPLETED)
                         logger.info(f"Gray release marked as completed: record_id={record.ID}")
+                    else:
+                        logger.warning(f"No services found in upgrade group {record.original_upgrade_group_id}")
 
                 except Exception as e:
                     logger.exception(f"Failed to delete original services: {e}")
@@ -258,6 +264,78 @@ class UpdateGrayRatioView(TeamAppAPIView):
                 500,
                 "failed",
                 "灰度比例更新失败: {0}".format(str(e))
+            )
+            return Response(result_msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class GrayRollbackView(TeamAppAPIView):
+    @swagger_auto_schema(
+        operation_description="灰度回滚：将流量全部切回旧版本，并删除新版本组件",
+        manual_parameters=[
+            openapi.Parameter("team_id", openapi.IN_PATH, description="团队ID", type=openapi.TYPE_STRING),
+            openapi.Parameter("region_name", openapi.IN_PATH, description="区域名称", type=openapi.TYPE_STRING),
+            openapi.Parameter("app_id", openapi.IN_PATH, description="应用ID", type=openapi.TYPE_INTEGER),
+        ],
+        request_body=GrayRollbackSerializer(),
+        responses={200: GrayRollbackResponseSerializer()},
+        tags=['openapi-apps'],
+    )
+    def post(self, request, app_id, *args, **kwargs):
+        """
+        Rollback gray release: switch all traffic to original services and delete new services
+
+        Parameters:
+        - template_id: Application template ID (group_key)
+        """
+        try:
+            serializer = GrayRollbackSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            data = serializer.data
+
+            template_id = data.get("template_id")
+
+            logger.info(
+                "Rolling back gray release for app {0}, template {1}".format(
+                    app_id, template_id
+                )
+            )
+
+            # Perform rollback
+            result = gray_release_service.rollback_gray_release(
+                team=self.team,
+                region_name=self.region_name,
+                user=self.user,
+                app=self.app,
+                template_id=template_id
+            )
+
+            logger.info("Gray release rollback completed successfully: {0}".format(result))
+
+            # Return response
+            response_data = {
+                "app_id": result["app_id"],
+                "app_name": result["app_name"],
+                "domain_name": result["domain_name"],
+                "deleted_service_count": result["deleted_service_count"]
+            }
+
+            result_msg = general_message(200, "success", "灰度回滚成功", bean=response_data)
+            return Response(result_msg, status=status.HTTP_200_OK)
+
+        except ServiceHandleException as e:
+            logger.error("Failed to rollback gray release: {0}".format(e))
+            result_msg = general_message(
+                e.status_code if hasattr(e, 'status_code') else 500,
+                "failed",
+                e.msg_show if hasattr(e, 'msg_show') else "灰度回滚失败"
+            )
+            return Response(result_msg, status=e.status_code if hasattr(e, 'status_code') else 500)
+        except Exception as e:
+            logger.exception("Unexpected error rolling back gray release")
+            result_msg = general_message(
+                500,
+                "failed",
+                "灰度回滚失败: {0}".format(str(e))
             )
             return Response(result_msg, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
