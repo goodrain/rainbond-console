@@ -305,6 +305,19 @@ class DeployAppSerializer(serializers.Serializer):
     group_version = serializers.CharField(max_length=128, required=False, help_text="生成模型的version")
 
 
+class SmartDeployAppSerializer(serializers.Serializer):
+    app_name = serializers.CharField(max_length=128, help_text="应用名称", required=True)
+    template_id = serializers.CharField(max_length=128, required=True, help_text="模板ID(app_model_key)")
+    is_deploy = serializers.BooleanField(default=True, help_text="是否立即构建部署")
+    market_name = serializers.CharField(
+        max_length=128,
+        required=False,
+        default="",
+        allow_blank=True,
+        help_text="应用市场名称，为空则使用本地企业组件库"
+    )
+
+
 class ChangeDeploySourceSerializer(serializers.Serializer):
     image = serializers.CharField(max_length=512, required=True, help_text="镜像地址")
 
@@ -321,3 +334,75 @@ class HelmChartSerializer(serializers.Serializer):
     chart_name = serializers.CharField(max_length=512, required=True, help_text="chart 包名称")
     version = serializers.CharField(max_length=512, required=True, help_text="安装版本")
     overrides = serializers.CharField(max_length=512, required=False, help_text="配置参数")
+
+
+def gray_ratio_validator(value):
+    if not isinstance(value, int):
+        raise serializers.ValidationError('灰度比例必须为整数')
+    if value < 0 or value > 100:
+        raise serializers.ValidationError('灰度比例必须在0-100之间')
+
+
+class GrayReleaseSerializer(serializers.Serializer):
+    template_id = serializers.CharField(max_length=128, required=True, help_text="应用模板ID")
+    domain_name = serializers.CharField(max_length=128, required=True, help_text="域名")
+    gray_ratio = serializers.IntegerField(required=True, validators=[gray_ratio_validator], help_text="灰度比例(0-100)")
+    market_name = serializers.CharField(max_length=128, required=False, allow_blank=True, help_text="市场名称")
+    install_from_cloud = serializers.BooleanField(default=False, help_text="是否从云端市场安装")
+
+
+class GrayReleaseResponseSerializer(serializers.Serializer):
+    app_id = serializers.IntegerField(help_text="应用ID")
+    app_name = serializers.CharField(max_length=128, help_text="应用名称")
+    original_service_id = serializers.CharField(max_length=64, help_text="原服务ID")
+    original_service_cname = serializers.CharField(max_length=64, help_text="原服务名称")
+    original_weight = serializers.IntegerField(help_text="原服务权重")
+    new_service_id = serializers.CharField(max_length=64, help_text="新服务ID")
+    new_service_cname = serializers.CharField(max_length=64, help_text="新服务名称")
+    new_weight = serializers.IntegerField(help_text="新服务权重")
+    domain_name = serializers.CharField(max_length=128, help_text="域名")
+    gray_ratio = serializers.IntegerField(help_text="灰度比例")
+
+
+class UpdateGrayRatioSerializer(serializers.Serializer):
+    template_id = serializers.CharField(max_length=128, required=True, help_text="应用模板ID")
+    gray_ratio = serializers.IntegerField(required=True, validators=[gray_ratio_validator], help_text="新的灰度比例(0-100)")
+
+
+class UpdateGrayRatioResponseSerializer(serializers.Serializer):
+    app_id = serializers.IntegerField(help_text="应用ID")
+    app_name = serializers.CharField(max_length=128, help_text="应用名称")
+    original_service_id = serializers.CharField(max_length=64, help_text="原服务ID")
+    original_service_cname = serializers.CharField(max_length=64, help_text="原服务名称")
+    original_weight = serializers.IntegerField(help_text="原服务权重")
+    new_service_id = serializers.CharField(max_length=64, help_text="新服务ID")
+    new_service_cname = serializers.CharField(max_length=64, help_text="新服务名称")
+    new_weight = serializers.IntegerField(help_text="新服务权重")
+    domain_name = serializers.CharField(max_length=128, help_text="域名")
+    gray_ratio = serializers.IntegerField(help_text="灰度比例")
+
+
+class GrayReleaseServiceMappingSerializer(serializers.Serializer):
+    """灰度发布服务映射序列化器"""
+    original_service_id = serializers.CharField(help_text="原始服务ID")
+    original_service_cname = serializers.CharField(help_text="原始服务名称")
+    original_service_alias = serializers.CharField(help_text="原始服务别名")
+    gray_service_id = serializers.CharField(help_text="灰度服务ID")
+    gray_service_cname = serializers.CharField(help_text="灰度服务名称")
+    gray_service_alias = serializers.CharField(help_text="灰度服务别名")
+
+
+class GrayReleaseListItemSerializer(serializers.Serializer):
+    """灰度发布列表项序列化器"""
+    id = serializers.IntegerField(help_text="记录ID")
+    app_id = serializers.IntegerField(help_text="应用ID")
+    app_name = serializers.CharField(max_length=128, help_text="应用名称")
+    template_id = serializers.CharField(max_length=128, help_text="模板ID")
+    template_name = serializers.CharField(max_length=255, help_text="模板名称")
+    template_version = serializers.CharField(max_length=64, help_text="模板版本")
+    domain_name = serializers.CharField(max_length=255, help_text="域名")
+    gray_ratio = serializers.IntegerField(help_text="灰度比例(0-100)")
+    status = serializers.CharField(max_length=20, help_text="状态: active-灰度中, completed-已完成, cancelled-已取消")
+    service_mappings = GrayReleaseServiceMappingSerializer(many=True, help_text="服务映射关系")
+    create_time = serializers.CharField(help_text="创建时间")
+    update_time = serializers.CharField(help_text="更新时间")

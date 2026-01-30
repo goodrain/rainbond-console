@@ -215,7 +215,8 @@ class MarketAppService(object):
                         market_app_version,
                         is_deploy,
                         install_from_cloud,
-                        market_name=None):
+                        market_name=None,
+                        skip_create_domain=False):
         service_list = []
         service_key_dep_key_map = {}
         key_service_map = {}
@@ -240,7 +241,7 @@ class MarketAppService(object):
                 app_map[app.get("service_share_uuid")] = app
                 app["update_time"] = market_app_version.update_time
                 ts = self.__save_component_meta(tenant, region, tenant_service_group, group_id, app, market_app_version,
-                                                market_app.app_id, market_name, install_from_cloud, user)
+                                                market_app.app_id, market_name, install_from_cloud, user, skip_create_domain)
 
                 service_list.append(ts)
                 old_new_id_map[app["service_id"]] = ts
@@ -427,7 +428,7 @@ class MarketAppService(object):
             raise e
 
     def __save_component_meta(self, tenant, region, tenant_service_group, application_id, app, market_app_version,
-                              market_app_id, market_name, install_from_cloud, user):
+                              market_app_id, market_name, install_from_cloud, user, skip_create_domain=False):
         start = datetime.datetime.now()
         app["update_time"] = market_app_version.update_time
         ts = self.__init_component_from_market_app(tenant, region.region_name, user, app, tenant_service_group.ID)
@@ -441,7 +442,7 @@ class MarketAppService(object):
         # first save env before save port
         self.__save_env(tenant, ts, app.get("service_env_map_list", []), app.get("service_connect_info_map_list", []))
         # save port
-        self.__save_port(tenant, region, ts, app.get("port_map_list", []), port_k8s_svc_name, application_id)
+        self.__save_port(tenant, region, ts, app.get("port_map_list", []), port_k8s_svc_name, application_id, skip_create_domain)
         # save volume
         self.__save_volume(tenant, ts, app["service_volume_map_list"])
 
@@ -831,7 +832,7 @@ class MarketAppService(object):
             k8s_service_name = service.service_alias + "-" + str(component_port)
         return k8s_service_name
 
-    def __save_port(self, tenant, region, service, ports, port_k8s_svc_name, app_id):
+    def __save_port(self, tenant, region, service, ports, port_k8s_svc_name, app_id, skip_create_domain=False):
         if not ports:
             return
         create_ports = []
@@ -852,7 +853,8 @@ class MarketAppService(object):
                 k8s_service_name=k8s_service_name,
             )
             create_ports.append(t_port)
-            if port.get("is_outer_service", False):
+            # Skip domain creation for gray release scenarios
+            if port.get("is_outer_service", False) and not skip_create_domain:
                 domain_service.create_default_gateway_rule(tenant, region, service, t_port, app_id)
         if len(create_ports) > 0:
             port_repo.bulk_create(create_ports)
@@ -1326,6 +1328,46 @@ class MarketAppService(object):
         except TenantEnterpriseToken.DoesNotExist:
             return None
 
+    def _get_gray_release_info_from_db(self, tenant_id, app_id, upgrade_app_models):
+        """
+        Get gray release information from database
+        Returns a dict mapping upgrade_key to gray release information
+        """
+        from console.repositories.gray_release_repo import gray_release_repo
+        from console.models.main import GrayReleaseStatus
+
+        gray_release_info = {}
+
+        # Get all active gray release records for this app
+        records = gray_release_repo.list_by_app(
+            tenant_id, app_id, status=GrayReleaseStatus.ACTIVE
+        )
+
+        # Map upgrade_group_id to gray release info
+        for record in records:
+            # Find the upgrade_key for original service group
+            for upgrade_key in upgrade_app_models:
+                upgrade_group_id = int(upgrade_key.split("-")[1])
+
+                if upgrade_group_id == record.original_upgrade_group_id:
+                    gray_release_info[upgrade_key] = {
+                        'is_gray_release': True,
+                        'gray_release_type': 'original',
+                        'gray_ratio': record.gray_ratio,
+                        'domain_name': record.domain_name,
+                        'record_id': record.ID
+                    }
+                elif upgrade_group_id == record.gray_upgrade_group_id:
+                    gray_release_info[upgrade_key] = {
+                        'is_gray_release': True,
+                        'gray_release_type': 'gray',
+                        'gray_ratio': record.gray_ratio,
+                        'domain_name': record.domain_name,
+                        'record_id': record.ID
+                    }
+
+        return gray_release_info
+
     def count_upgradeable_market_apps(self, tenant, region_name, application):
         apps = [app for app in self.get_market_apps_in_app(region_name, tenant, application) if app["can_upgrade"]]
         return len(apps)
@@ -1351,12 +1393,19 @@ class MarketAppService(object):
                         upgrade_app_models[upgrade_app_key]['version'], ss.version) == -1:
                     # The version of the component group is the version of the application
                     upgrade_app_models[upgrade_app_key] = {'version': component_group.group_version, 'component_source': ss}
-        iterator = self.yield_app_info(upgrade_app_models, tenant, application.ID)
+
+        # Get gray release info from database
+        gray_release_info = self._get_gray_release_info_from_db(tenant.tenant_id, application.ID, upgrade_app_models)
+
+        iterator = self.yield_app_info(upgrade_app_models, tenant, application.ID, gray_release_info)
         app_info_list = [app_info for app_info in iterator]
 
         return app_info_list
 
-    def yield_app_info(self, app_models, tenant, app_id):
+    def yield_app_info(self, app_models, tenant, app_id, gray_release_info=None):
+        if gray_release_info is None:
+            gray_release_info = {}
+
         for upgrade_key in app_models:
             app_model_key = upgrade_key.split("-")[0]
             upgrade_group_id = upgrade_key.split("-")[1]
@@ -1394,12 +1443,20 @@ class MarketAppService(object):
             not_upgrade_record = upgrade_service.get_app_not_upgrade_record(tenant.tenant_id, app_id, app_model_key)
             versions = self.__get_upgradeable_versions(tenant.enterprise_id, app_model_key, version,
                                                        component_source.get_template_update_time(), install_from_cloud, market)
+
+            # Add gray release information
+            gray_info = gray_release_info.get(upgrade_key, {})
             dat.update({
                 'current_version': version,
                 'can_upgrade': bool(versions),
                 'upgrade_versions': (set(versions) if versions else []),
                 'not_upgrade_record_id': not_upgrade_record.ID,
                 'not_upgrade_record_status': not_upgrade_record.status,
+                'is_gray_release': gray_info.get('is_gray_release', False),
+                'gray_release_type': gray_info.get('gray_release_type', None),
+                'gray_ratio': gray_info.get('gray_ratio', None),
+                'gray_domain_name': gray_info.get('domain_name', None),
+                'gray_record_id': gray_info.get('record_id', None),
             })
             yield dat
 
