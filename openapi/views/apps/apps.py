@@ -1628,19 +1628,22 @@ class SmartDeployTemplateView(TeamAPIView):
         else:
             # 应用不存在，先尝试查找，再创建
             # 先查找是否已存在同名应用（包括已删除的）
+            logger.info(f"[SMART-DEPLOY] Checking for existing app: {app_name}")
             existing_apps = group_repo.get_tenant_region_groups(
                 self.team.tenant_id,
                 self.region.region_name
             )
+            logger.info(f"[SMART-DEPLOY] Found {len(existing_apps)} total apps in database")
             existing_app = None
             for app in existing_apps:
                 if app.group_name == app_name:
                     existing_app = app
-                    logger.info(f"Found existing app: app_id={app.ID}, app_name={app_name}, status={app.status}")
+                    logger.info(f"[SMART-DEPLOY] Found existing app: app_id={app.ID}, app_name={app_name}, status={app.status}")
                     break
 
             if existing_app:
                 # 使用已存在的应用
+                logger.info(f"[SMART-DEPLOY] Using existing app: {existing_app.ID}")
                 app_id = existing_app.ID
                 # 如果应用已删除，恢复它
                 if existing_app.status == "deleted":
@@ -1651,18 +1654,20 @@ class SmartDeployTemplateView(TeamAPIView):
                             app=existing_app,
                             user=self.user
                         )
-                        logger.info(f"Recovered deleted app: {app_name}")
+                        logger.info(f"[SMART-DEPLOY] Recovered deleted app: {app_name}")
                     except Exception as recover_error:
-                        logger.exception(f"Failed to recover app: {recover_error}")
+                        logger.exception(f"[SMART-DEPLOY] Failed to recover app: {recover_error}")
             else:
                 # 不存在，创建新应用
+                logger.info(f"[SMART-DEPLOY] No existing app found, creating new app: {app_name}")
                 try:
                     app_data = group_service.create_app(
                         tenant=self.team,
                         region_name=self.region.region_name,
                         app_name=app_name,
                         note="通过智能部署模板创建",
-                        username=self.user.nick_name
+                        username=self.user.nick_name,
+                        k8s_app=app_name
                     )
                     app_id = app_data["app_id"]
                     logger.info("Created new app: app_id={}, app_name={}".format(app_id, app_name))
@@ -1675,13 +1680,14 @@ class SmartDeployTemplateView(TeamAPIView):
                         for suffix in range(1, 100):
                             new_app_name = f"{app_name}-{suffix}"
                             try:
-                                logger.info(f"Attempting to create app with suffix: {new_app_name}")
+                                logger.info(f"[SMART-DEPLOY] Attempting to create app with suffix: {new_app_name}")
                                 app_data = group_service.create_app(
                                     tenant=self.team,
                                     region_name=self.region.region_name,
                                     app_name=new_app_name,
                                     note="通过智能部署模板创建",
-                                    username=self.user.nick_name
+                                    username=self.user.nick_name,
+                                    k8s_app=new_app_name
                                 )
                                 app_id = app_data["app_id"]
                                 app_name = new_app_name
