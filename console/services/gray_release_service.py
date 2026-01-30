@@ -218,21 +218,32 @@ class GrayReleaseService(object):
                     status_code=500
                 )
 
-            # 按 | 分割，取中间部分
-            name_parts = original_name.split('|')
-            if len(name_parts) != 3:
-                logger.error(f"[GrayRelease] Invalid original_name format: {original_name}")
+            # 解析路由名称：去掉前面的数字ID和后面的服务标识
+            # 格式：41gre50f92-5000-default-172.31.16.5.nip.io-ps-s-gre50f92
+            # 需要得到：gre50f92-5000-default-172.31.16.5.nip.io-ps-s
+            import re
+            logger.info(f"[GrayRelease] Parsing route name: {original_name}")
+
+            # 去掉前面的数字
+            route_name = re.sub(r'^\d+', '', original_name)
+            logger.info(f"[GrayRelease] After removing prefix digits: {route_name}")
+
+            # 去掉后面的 -{服务名} 格式（如 -gre50f92）
+            # 匹配模式：最后一个连字符后跟字母数字字符串
+            route_name = re.sub(r'-[a-zA-Z0-9]+$', '', route_name)
+            logger.info(f"[GrayRelease] After removing suffix: {route_name}")
+
+            if not route_name:
+                logger.error(f"[GrayRelease] Failed to parse route name from: {original_name}")
                 raise ServiceHandleException(
-                    msg="invalid route name format",
-                    msg_show="路由名称格式错误，应为: region_app_id|route_name|service_alias",
+                    msg="failed to parse route name",
+                    msg_show="路由名称解析失败",
                     status_code=500
                 )
 
-            region_app_id = name_parts[0]
-            route_name = name_parts[1]  # 中间部分是实际的路由名称
-            service_alias_suffix = name_parts[2]
+            region_app_id = str(app.ID)
 
-            logger.info(f"[GrayRelease] Parsed original_name: region_app_id={region_app_id}, route_name={route_name}, suffix={service_alias_suffix}")
+            logger.info(f"[GrayRelease] Parsed route_name: {route_name}, app_id: {region_app_id}")
             logger.info(f"[GrayRelease] Updating route: {route_name}")
 
             # 使用 console API 更新域名权重
