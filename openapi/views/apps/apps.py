@@ -1657,7 +1657,6 @@ class SmartDeployTemplateView(TeamAPIView):
                             # 如果应用已删除，恢复它
                             if app.status == "deleted":
                                 # 恢复已删除的应用
-                                from console.repositories.group import group_service
                                 try:
                                     group_service.recover_app(
                                         tenant=self.team,
