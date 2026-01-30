@@ -344,26 +344,37 @@ class GrayReleaseService(object):
 
             logger.info(f"[GrayRelease] Getting route from API Gateway: route_name={route_name}, app_id={app_id}")
 
+            # 解析路由名称：去掉后面的服务标识部分
+            # 格式：41gre50f92-5000-default-172.31.16.5.nip.io-ps-s-gre50f92
+            # 实际：41gre50f92-5000-default-172.31.16.5.nip.io-ps-s
+            import re
+            parsed_route_name = re.sub(r'-[a-zA-Z0-9]+$', '', route_name)
+            logger.info(f"[GrayRelease] Parsed route_name: {route_name} -> {parsed_route_name}")
+
             # 调用 API 网关获取路由列表
             response = region_api.get_api_gateway(region, team, app_id)
             domains = response.get("list", [])
 
             logger.info(f"[GrayRelease] API Gateway returned {len(domains)} routes")
 
-            # 查找匹配的路由
+            # 查找匹配的路由（先用解析后的名称匹配，如果找不到再用原名称）
             matched_routes = []
             all_route_names = []  # 用于错误消息
             for domain in domains:
                 domain_route_name = domain.get("name", "")
                 all_route_names.append(domain_route_name)
 
-                # 检查路由名称是否匹配
-                if domain_route_name == route_name:
+                # 先用解析后的名称匹配
+                if domain_route_name == parsed_route_name:
                     matched_routes.append(domain)
-                    logger.info(f"[GrayRelease] Found matching route: {route_name}")
+                    logger.info(f"[GrayRelease] Found matching route: {parsed_route_name}")
+                # 再用原名称匹配（兼容）
+                elif domain_route_name == route_name:
+                    matched_routes.append(domain)
+                    logger.info(f"[GrayRelease] Found matching route with original name: {route_name}")
 
             if not matched_routes:
-                logger.error(f"[GrayRelease] Route not found: {route_name}. Available routes: {all_route_names}")
+                logger.error(f"[GrayRelease] Route not found. Tried: {route_name}, {parsed_route_name}. Available: {all_route_names}")
                 raise ServiceHandleException(
                     msg="route not found in api gateway",
                     msg_show=f"API网关中未找到路由: {route_name}。当前应用可用路由: {', '.join(all_route_names[:5])}{'...' if len(all_route_names) > 5 else ''}",
@@ -371,9 +382,9 @@ class GrayReleaseService(object):
                 )
 
             if len(matched_routes) > 1:
-                logger.warning(f"[GrayRelease] Found {len(matched_routes)} routes with same name: {route_name}, using first one")
+                logger.warning(f"[GrayRelease] Found {len(matched_routes)} routes with same name, using first one")
 
-            logger.info(f"[GrayRelease] Successfully found route: {route_name}")
+            logger.info(f"[GrayRelease] Successfully found route")
             return matched_routes[0]
 
         except Exception as e:
