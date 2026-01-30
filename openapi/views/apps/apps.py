@@ -1626,72 +1626,92 @@ class SmartDeployTemplateView(TeamAPIView):
                     is_deploy
                 )
         else:
-            # 应用不存在，创建新应用
-            try:
-                app_data = group_service.create_app(
-                    tenant=self.team,
-                    region_name=self.region.region_name,
-                    app_name=app_name,
-                    note="通过智能部署模板创建",
-                    username=self.user.nick_name
-                )
-                app_id = app_data["app_id"]
-                logger.info("Created new app: app_id={}, app_name={}".format(app_id, app_name))
-            except ServiceHandleException as e:
-                # 检查是否是 k8s app name exists 错误（应用可能之前被删除但k8s资源未清理）
-                if hasattr(e, 'error_code') and e.error_code == 11011:
-                    logger.warning(f"App creation failed with k8s app name exists: {app_name}. Trying to reuse existing app.")
+            # 应用不存在，先尝试查找，再创建
+            # 先查找是否已存在同名应用（包括已删除的）
+            existing_apps = group_repo.get_tenant_region_groups(
+                self.team.tenant_id,
+                self.region.region_name
+            )
+            existing_app = None
+            for app in existing_apps:
+                if app.group_name == app_name:
+                    existing_app = app
+                    logger.info(f"Found existing app: app_id={app.ID}, app_name={app_name}, status={app.status}")
+                    break
 
-                    # 尝试查找是否存在同名的应用（包括已删除的）
-                    existing_apps = group_repo.get_tenant_region_groups(
-                        self.team.tenant_id,
-                        self.region.region_name
+            if existing_app:
+                # 使用已存在的应用
+                app_id = existing_app.ID
+                # 如果应用已删除，恢复它
+                if existing_app.status == "deleted":
+                    try:
+                        group_service.recover_app(
+                            tenant=self.team,
+                            region_name=self.region.region_name,
+                            app=existing_app,
+                            user=self.user
+                        )
+                        logger.info(f"Recovered deleted app: {app_name}")
+                    except Exception as recover_error:
+                        logger.exception(f"Failed to recover app: {recover_error}")
+            else:
+                # 不存在，创建新应用
+                try:
+                    app_data = group_service.create_app(
+                        tenant=self.team,
+                        region_name=self.region.region_name,
+                        app_name=app_name,
+                        note="通过智能部署模板创建",
+                        username=self.user.nick_name
                     )
+                    app_id = app_data["app_id"]
+                    logger.info("Created new app: app_id={}, app_name={}".format(app_id, app_name))
+                except ServiceHandleException as e:
+                    # 检查是否是 k8s app name exists 错误
+                    if hasattr(e, 'error_code') and e.error_code == 11011:
+                        logger.warning(f"App creation failed with k8s app name exists: {app_name}. Trying with suffix.")
 
-                    # 查找匹配的应用
-                    found_app = None
-                    for app in existing_apps:
-                        if app.group_name == app_name:
-                            found_app = app
-                            logger.info(f"Found existing app: app_id={app.ID}, app_name={app_name}, status={app.status}")
-                            break
-
-                    if found_app:
-                        # 如果应用已删除，恢复它
-                        if found_app.status == "deleted":
+                        # 尝试加后缀创建
+                        suffix = 1
+                        while suffix < 10:
+                            new_app_name = f"{app_name}-{suffix}"
                             try:
-                                group_service.recover_app(
+                                app_data = group_service.create_app(
                                     tenant=self.team,
                                     region_name=self.region.region_name,
-                                    app=found_app,
-                                    user=self.user
+                                    app_name=new_app_name,
+                                    note="通过智能部署模板创建",
+                                    username=self.user.nick_name
                                 )
-                                logger.info(f"Recovered deleted app: {app_name}")
-                            except Exception as recover_error:
-                                logger.exception(f"Failed to recover app: {recover_error}")
+                                app_id = app_data["app_id"]
+                                app_name = new_app_name
+                                logger.info(f"Created new app with suffix: app_id={app_id}, app_name={app_name}")
+                                break
+                            except ServiceHandleException as create_error:
+                                if hasattr(create_error, 'error_code') and create_error.error_code == 11011:
+                                    suffix += 1
+                                    continue
+                                else:
+                                    raise
+                        else:
+                            # 尝试了10次都失败，返回错误
+                            raise ServiceHandleException(
+                                msg="failed to create app after 10 attempts",
+                                msg_show="创建应用失败：已尝试10次",
+                                status_code=500
+                            )
+                    else:
+                        # 其他错误，直接返回
+                        logger.error("Failed to create app: {}".format(e))
+                        raise
+                except Exception as e:
+                    logger.exception("Failed to create app: {}".format(e))
+                    return Response(
+                        general_message(500, "create app failed", "创建应用失败: {}".format(str(e))),
+                        status=500
+                    )
 
-                        app_id = found_app.ID
-                        # 直接跳到安装模板
-                        return self._install_template(
-                            app_id,
-                            app_name,
-                            template_id,
-                            market_name,
-                            install_from_cloud,
-                            is_deploy
-                        )
-
-                # 其他情况返回错误
-                logger.error("Failed to create app: {}".format(e))
-                raise
-            except Exception as e:
-                logger.exception("Failed to create app: {}".format(e))
-                return Response(
-                    general_message(500, "create app failed", "创建应用失败: {}".format(str(e))),
-                    status=500
-                )
-
-            # 在新应用中安装模板
+            # 安装模板
             return self._install_template(
                 app_id,
                 app_name,
