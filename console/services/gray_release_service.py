@@ -414,8 +414,15 @@ class GrayReleaseService(object):
         logger.info("Validated app {0} with ID {1}".format(app.group_name, app.ID))
 
     def install_template_to_app(self, team, region_name, user, app, template_id, market_name, install_from_cloud):
-        """Install application template to the original app (for gray release, skip domain creation)"""
+        """
+        Install application template to the original app (for gray release, skip domain creation)
+
+        Returns:
+            tuple: (tenant_service_group, events) - The created service group and deployment events
+        """
         try:
+            logger.info(f"[GrayRelease] install_template_to_app called: template_id={template_id}, install_from_cloud={install_from_cloud}")
+
             if install_from_cloud:
                 # Install from cloud market
                 if not market_name:
@@ -447,11 +454,13 @@ class GrayReleaseService(object):
 
                 # Install the template to the original app
                 # For gray release: skip_create_domain=True to avoid creating duplicate domains
-                market_app_service.install_service(
+                logger.info("[GrayRelease] Calling install_service with is_deploy=True for cloud installation")
+                tenant_service_group, events = market_app_service.install_service(
                     team, region_name, user, app.ID, app_model, app_version_info,
                     is_deploy=True, install_from_cloud=True, market_name=market_name,
                     skip_create_domain=True  # Gray release: don't create new domains
                 )
+                logger.info(f"[GrayRelease] install_service returned: events={events}")
             else:
                 # Install from local app model
                 from console.repositories.market_app_repo import rainbond_app_repo
@@ -477,13 +486,19 @@ class GrayReleaseService(object):
 
                 # Install from local template to the original app
                 # For gray release: skip_create_domain=True to avoid creating duplicate domains
-                market_app_service.install_service(
+                logger.info("[GrayRelease] Calling install_service with is_deploy=True for local installation")
+                tenant_service_group, events = market_app_service.install_service(
                     team, region_name, user, app.ID, app_model, app_version_info,
                     is_deploy=True, install_from_cloud=False,
                     skip_create_domain=True  # Gray release: don't create new domains
                 )
+                logger.info(f"[GrayRelease] install_service returned: events={events}")
 
-            logger.info("Installed template {0} to app {1}".format(template_id, app.group_name))
+            logger.info("[GrayRelease] Installed template {0} to app {1}, events count={2}".format(
+                template_id, app.group_name, len(events) if events else 0))
+
+            return tenant_service_group, events
+
         except ServiceHandleException:
             raise
         except Exception as e:
@@ -697,17 +712,22 @@ class GrayReleaseService(object):
             existing_service_ids = set(s.service_id for s in existing_services)
 
             # Step 2: Install template to the app
-            logger.info("Installing template {0} to app".format(template_id))
-            self.install_template_to_app(
+            logger.info("[GrayRelease] Installing template {0} to app".format(template_id))
+            logger.info(f"[GrayRelease] Install parameters: template_id={template_id}, market_name={market_name}, install_from_cloud={install_from_cloud}")
+
+            tenant_service_group, events = self.install_template_to_app(
                 team, region_name, user, app,
                 template_id, market_name, install_from_cloud
             )
+
+            logger.info(f"[GrayRelease] Template installation returned: tenant_service_group={tenant_service_group}, events={events}")
+            logger.info(f"[GrayRelease] Number of deployment events created: {len(events) if events else 0}")
 
             # Get newly installed service IDs
             all_services = group_service.get_group_services(app.ID)
             new_service_ids = [s.service_id for s in all_services if s.service_id not in existing_service_ids]
 
-            logger.info(f"[GrayRelease] Installed {len(new_service_ids)} new services")
+            logger.info(f"[GrayRelease] Installed {len(new_service_ids)} new services: {new_service_ids}")
 
             # Step 2.5: Delete domains created for new services (since skip_create_domain doesn't always work)
             logger.info("[GrayRelease] Checking and deleting auto-created domains for new services")
@@ -731,9 +751,22 @@ class GrayReleaseService(object):
                 domain_name, gray_ratio
             )
 
-            # Step 4: Start newly installed services
-            logger.info("Starting newly installed services")
-            self.start_new_services(team, region_name, app, user, new_service_ids)
+            # Step 4: Check deployment events
+            logger.info("[GrayRelease] Deployment events status:")
+            if events:
+                for event_id, service_id in events.items():
+                    logger.info(f"[GrayRelease] - Event {event_id} for service {service_id}")
+            else:
+                logger.warning("[GrayRelease] No deployment events returned from install_service!")
+                logger.warning("[GrayRelease] This means services were NOT automatically deployed/built")
+
+            # Note: Don't call start_new_services if events exist, as deploy already handles it
+            # Only start services if no events (meaning deployment didn't happen)
+            if not events:
+                logger.info("[GrayRelease] No deployment events, manually starting services")
+                self.start_new_services(team, region_name, app, user, new_service_ids)
+            else:
+                logger.info("[GrayRelease] Services are being deployed via events, skipping manual start")
 
             # Step 5: Create gray release record
             logger.info("Creating gray release record")
