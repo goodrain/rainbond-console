@@ -1113,11 +1113,25 @@ class ShareService(object):
             from console.services.plugin_service import rbd_plugin_service
             plugins, _ = rbd_plugin_service.list_plugins(tenant.enterprise_id, region_name, official=False)
 
+            logger.info("Retrieved {} plugins from region: enterprise_id={}, region_name={}".format(
+                len(plugins) if plugins else 0, tenant.enterprise_id, region_name))
+
+            # 打印所有插件的详细信息
+            if plugins:
+                for idx, plugin in enumerate(plugins):
+                    logger.info("Plugin {}: name={}, category={}, urls={}".format(
+                        idx + 1,
+                        plugin.get("name", "unknown"),
+                        plugin.get("category", "unknown"),
+                        plugin.get("urls", [])))
+
             # 检测是否存在流水线插件
             has_pipeline_plugin = False
             pipeline_plugin_info = None
             for plugin in plugins:
-                if plugin.get("category") == "rainbond-enterprise-pipeline":
+                plugin_category = plugin.get("category")
+                logger.debug("Checking plugin category: {} (target: rainbond-enterprise-pipeline)".format(plugin_category))
+                if plugin_category == "rainbond-enterprise-pipeline":
                     has_pipeline_plugin = True
                     pipeline_plugin_info = plugin
                     logger.info("Detected pipeline plugin in enterprise scope: name={}, category={}, urls={}".format(
@@ -1130,6 +1144,8 @@ class ShareService(object):
             else:
                 logger.info("No pipeline plugin found, skip trigger: app_id={}, version={}".format(
                     app_version.app_id, app_version.version))
+                logger.info("Expected category: 'rainbond-enterprise-pipeline', but none of {} plugins matched".format(
+                    len(plugins) if plugins else 0))
 
         except Exception as e:
             logger.exception("Error handling pipeline plugin for enterprise: {}".format(e))
