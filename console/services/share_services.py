@@ -1126,16 +1126,20 @@ class ShareService(object):
                         plugin.get("urls", [])))
 
             # 检测是否存在流水线插件
+            # 注意：Region API 返回的插件没有 category 字段，应该用 name 字段判断
             has_pipeline_plugin = False
             pipeline_plugin_info = None
             for plugin in plugins:
-                plugin_category = plugin.get("category")
-                logger.debug("Checking plugin category: {} (target: rainbond-enterprise-pipeline)".format(plugin_category))
-                if plugin_category == "rainbond-enterprise-pipeline":
+                plugin_name = plugin.get("name", "")
+                logger.info("Checking plugin: name={}, backend={}, urls={}".format(
+                    plugin_name, plugin.get("backend"), plugin.get("urls", [])))
+
+                # 使用 name 字段判断（而不是 category）
+                if plugin_name == "rainbond-enterprise-pipeline":
                     has_pipeline_plugin = True
                     pipeline_plugin_info = plugin
-                    logger.info("Detected pipeline plugin in enterprise scope: name={}, category={}, urls={}".format(
-                        plugin.get("name", "unknown"), plugin.get("category"), plugin.get("urls", [])))
+                    logger.info("Detected pipeline plugin in enterprise scope: name={}, backend={}, urls={}".format(
+                        plugin.get("name", "unknown"), plugin.get("backend"), plugin.get("urls", [])))
                     break
 
             # 如果存在流水线插件，调用接口
@@ -1157,15 +1161,23 @@ class ShareService(object):
         在模板发布成功后，调用此接口触发相关工作流
         """
         try:
-            # 获取插件的访问 URL
+            # 优先使用 backend 字段，如果没有再尝试 urls
+            backend_url = pipeline_plugin_info.get("backend")
             plugin_urls = pipeline_plugin_info.get("urls", [])
-            if not plugin_urls:
-                logger.warning("Pipeline plugin has no access URLs, skip trigger. plugin: {}".format(
+
+            base_url = None
+            if backend_url:
+                # 使用 backend 字段
+                base_url = backend_url.rstrip('/')
+                logger.info("Using plugin backend URL: {}".format(base_url))
+            elif plugin_urls:
+                # 使用 urls 字段的第一个 URL
+                base_url = plugin_urls[0].rstrip('/')
+                logger.info("Using plugin urls[0]: {}".format(base_url))
+            else:
+                logger.warning("Pipeline plugin has no backend or access URLs, skip trigger. plugin: {}".format(
                     pipeline_plugin_info.get("name", "unknown")))
                 return
-
-            # 使用第一个可用的 URL
-            base_url = plugin_urls[0].rstrip('/')
 
             # 构造完整的 API 路径
             # POST /api/v1/workflows/templates/{uuid}/trigger-by-template-version
