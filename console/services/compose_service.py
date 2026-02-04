@@ -153,9 +153,15 @@ class ComposeService(object):
         if service_dep_map:
             for key in list(service_dep_map.keys()):
                 dep_services_names = service_dep_map[key]
-                s = name_service_map[key]
+                s = name_service_map.get(key)
+                if not s:
+                    logger.warning("Service {} not found in name_service_map, skip dependency".format(key))
+                    continue
                 for dep_name in dep_services_names:
-                    dep_service = name_service_map[dep_name]
+                    dep_service = name_service_map.get(dep_name)
+                    if not dep_service:
+                        logger.warning("Dependency service {} not found for service {}, skip".format(dep_name, key))
+                        continue
                     code, msg, d = app_relation_service.add_service_dependency(
                         tenant, s, dep_service.service_id, open_inner=True)
                     if code != 200:
