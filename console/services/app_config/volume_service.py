@@ -417,7 +417,7 @@ class AppVolumeService(object):
             file_data = {
                 "service_id": service.service_id,
                 "volume_id": volume.ID,
-                "file_content": file_content,
+                "file_content": file_content if file_content is not None else "",
                 "volume_name": volume.volume_name
             }
             volume_repo.add_service_config_file(**file_data)
