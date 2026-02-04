@@ -311,6 +311,155 @@ class AppVolumeFileUploadView(AppBaseView):
 
         return Response(result, status=result["code"])
 
+    @never_cache
+    def put(self, request, *args, **kwargs):
+        """
+        通过上传文件的方式更新配置文件内容
+        ---
+        parameters:
+            - name: tenantName
+              description: 租户名
+              required: true
+              type: string
+              paramType: path
+            - name: serviceAlias
+              description: 组件别名
+              required: true
+              type: string
+              paramType: path
+            - name: volume_id
+              description: 持久化ID
+              required: true
+              type: string
+              paramType: query
+            - name: file
+              description: 配置文件
+              required: true
+              type: file
+              paramType: formData
+            - name: volume_path
+              description: 持久化路径（可选，不传则保持不变）
+              required: false
+              type: string
+              paramType: form
+            - name: mode
+              description: 文件权限（0-777，可选）
+              required: false
+              type: integer
+              paramType: form
+        """
+        # 获取 volume_id
+        volume_id = request.data.get("volume_id", None)
+        if not volume_id:
+            raise AbortRequest(msg="volume_id is required", msg_show="持久化ID不能为空")
+
+        # 获取 volume 对象
+        volume = volume_repo.get_service_volume_by_pk(volume_id)
+        if not volume:
+            raise AbortRequest(msg="volume not found", msg_show="持久化存储不存在")
+
+        # 验证是否为 config-file 类型
+        if volume.volume_type != 'config-file':
+            raise AbortRequest(msg="volume type error", msg_show="只支持配置文件类型的持久化存储")
+
+        # 获取上传的文件
+        uploaded_file = request.FILES.get('file', None)
+        if not uploaded_file:
+            raise AbortRequest(msg="file is required", msg_show="请上传配置文件")
+
+        # 读取文件内容
+        try:
+            new_file_content = uploaded_file.read().decode('utf-8')
+        except UnicodeDecodeError:
+            raise AbortRequest(msg="file encoding error", msg_show="文件编码错误，请确保文件是UTF-8编码")
+
+        # 获取其他参数
+        new_volume_path = request.data.get("volume_path", volume.volume_path)
+        mode = request.data.get("mode")
+        if mode is not None:
+            mode = ensure_volume_mode(mode)
+        else:
+            mode = volume.mode
+
+        # 获取现有配置
+        service_config = volume_repo.get_service_config_file(volume)
+        if not service_config:
+            raise AbortRequest(msg="config file not found", msg_show="配置文件不存在")
+
+        # 检查是否有变化
+        if (new_volume_path == volume.volume_path and
+            new_file_content == service_config.file_content and
+            mode == volume.mode):
+            raise AbortRequest(msg="no change", msg_show="没有变化，不需要修改")
+
+        # 记录旧信息
+        old_information = volume_service.json_service_volume(
+            volume_name=volume.volume_name,
+            volume_path=volume.volume_path,
+            mode=volume.mode,
+            file_content=service_config.file_content,
+            volume_type=volume.volume_type,
+            volume_cap=volume.volume_capacity)
+
+        # 记录新信息
+        new_information = volume_service.json_service_volume(
+            volume_name=volume.volume_name,
+            volume_path=new_volume_path,
+            mode=mode,
+            file_content=new_file_content,
+            volume_type=volume.volume_type,
+            volume_cap=volume.volume_capacity)
+
+        # 调用 region API 更新
+        data = {
+            "volume_name": volume.volume_name,
+            "volume_path": new_volume_path,
+            "volume_type": volume.volume_type,
+            "file_content": new_file_content,
+            "operator": self.user.nick_name,
+            "mode": mode,
+        }
+        res, body = region_api.upgrade_service_volumes(
+            self.service.service_region,
+            self.tenant.tenant_name,
+            self.service.service_alias,
+            data)
+
+        if res.status != 200:
+            raise AbortRequest(msg="update failed", msg_show="更新失败")
+
+        # 更新数据库
+        volume.volume_path = new_volume_path
+        volume.mode = mode
+        volume.save()
+
+        service_config.volume_name = volume.volume_name
+        service_config.file_content = new_file_content
+        service_config.save()
+
+        result = general_message(200, "success", "配置文件更新成功")
+
+        # 记录操作日志
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.CHANGE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=" 下的配置文件 {}".format(volume.volume_name))
+
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information,
+            new_information=new_information)
+
+        return Response(result, status=result["code"])
+
 
 class AppVolumeManageView(AppBaseView):
     @never_cache
