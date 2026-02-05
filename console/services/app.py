@@ -201,7 +201,7 @@ class AppService(object):
             "user_name": user_name,
             "password": password,
         }
-        return service_source_repo.create_service_source(**params)
+        return service_source_repo.update_or_create_service_source(**params)
 
     def __init_package_build_app(self, region):
         """
