@@ -3,7 +3,7 @@
 # This script is used to install Rainbond standalone on Linux and MacOS
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v6.5.0-release'}
+RAINBOND_VERSION=${VERSION:-'v6.5.1-release'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 
 # Define colorful stdout
@@ -39,7 +39,6 @@ function send_msg() {
 function send_info() {
     info=$1
     echo -e "${GREEN}$(date "$TIME") INFO: $info${NC}"
-    send_msg "$info"
 }
 
 function send_warn() {
@@ -93,18 +92,6 @@ check_required_commands
 OS_TYPE=$(uname -s)
 if [ "${OS_TYPE}" == "Linux" ]; then
     MD5_CMD="md5sum"
-    if find /lib/modules/$(uname -r) -type f -name '*.ko*' | grep iptable_raw >/dev/null 2>&1; then
-        if ! lsmod | grep iptable_raw >/dev/null 2>&1; then
-            echo iptable_raw >/etc/modules-load.d/iptable_raw.conf
-            if ! modprobe iptable_raw 2>/dev/null; then
-                if [ "$LANG" == "zh_CN.UTF-8" ]; then
-                    send_warn "无法加载 iptable_raw 模块，可能影响网络功能"
-                else
-                    send_warn "Failed to load iptable_raw module, may affect network functionality"
-                fi
-            fi
-        fi
-    fi
 elif [ "${OS_TYPE}" == "Darwin" ]; then
     MD5_CMD="md5"
 else
@@ -117,14 +104,43 @@ else
     fi
 fi
 
-# Use root user to run this script, Ignore MacOS
+# Use root user or sudo to run this script, Ignore MacOS
 if [ "${OS_TYPE}" != "Darwin" ] && [ "$EUID" -ne 0 ]; then
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_error "请使用 root 用户运行此脚本"
+        send_error "请使用 root 用户或 sudo 运行此脚本\n\t示例: sudo bash $0"
         exit 1
     else
-        send_error "Please run this script as root user"
+        send_error "Please run this script as root user or with sudo\n\tExample: sudo bash $0"
         exit 1
+    fi
+fi
+
+# Check Linux kernel version (must be >= 4.x)
+if [ "${OS_TYPE}" == "Linux" ]; then
+    KERNEL_VERSION=$(uname -r | cut -d'.' -f1)
+    if [ "$KERNEL_VERSION" -lt 4 ] 2>/dev/null; then
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "Linux 内核版本过低，当前版本: $(uname -r)，要求最低版本: 4.x\n\t请升级内核后重试"
+        else
+            send_error "Linux kernel version is too low, current version: $(uname -r), minimum required: 4.x\n\tPlease upgrade the kernel and try again"
+        fi
+        exit 1
+    fi
+fi
+
+# Load iptable_raw module on Linux (requires root)
+if [ "${OS_TYPE}" == "Linux" ]; then
+    if find /lib/modules/$(uname -r) -type f -name '*.ko*' | grep iptable_raw >/dev/null 2>&1; then
+        if ! lsmod | grep iptable_raw >/dev/null 2>&1; then
+            echo iptable_raw >/etc/modules-load.d/iptable_raw.conf
+            if ! modprobe iptable_raw 2>/dev/null; then
+                if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                    send_warn "无法加载 iptable_raw 模块，可能影响网络功能"
+                else
+                    send_warn "Failed to load iptable_raw module, may affect network functionality"
+                fi
+            fi
+        fi
     fi
 fi
 
@@ -716,6 +732,8 @@ fi
 OS_INFO=$(uname -a)
 UUID=$(echo "$OS_INFO" | ${MD5_CMD} | cut -b 1-32)
 
+send_msg "Starting Rainbond installation"
+
 ########################################
 # Environment Check
 # Check docker is running or not.
@@ -1096,7 +1114,7 @@ install_docker_linux() {
     else
         send_info "Docker binary installation completed"
     fi
-    
+
     # Start containerd first, then Docker service
     if systemctl enable containerd && systemctl start containerd >/dev/null 2>&1; then
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
@@ -1105,7 +1123,7 @@ install_docker_linux() {
             send_info "containerd service started successfully"
         fi
         sleep 2
-        
+
         # Now start Docker service
         if systemctl enable docker.socket && systemctl enable docker && systemctl start docker >/dev/null 2>&1; then
             if [ "$LANG" == "zh_CN.UTF-8" ]; then
@@ -1256,8 +1274,41 @@ function verify_eip() {
     fi
 }
 
+# Check if EIP is already set via environment variable
+if [ -n "$EIP" ]; then
+    # Validate the EIP value
+    if [[ $EIP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        if [ "$EIP" == "127.0.0.1" ]; then
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                send_error "环境变量 EIP 不能使用回环地址 127.0.0.1"
+            else
+                send_error "EIP environment variable cannot use loopback address 127.0.0.1"
+            fi
+            exit 1
+        elif [ "$EIP" == "0.0.0.0" ]; then
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                send_error "环境变量 EIP 不能使用 0.0.0.0"
+            else
+                send_error "EIP environment variable cannot use 0.0.0.0"
+            fi
+            exit 1
+        else
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                send_info "使用环境变量指定的 IP 地址: $EIP"
+            else
+                send_info "Using IP address from environment variable: $EIP"
+            fi
+        fi
+    else
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_error "环境变量 EIP 的值无效: $EIP (必须是有效的 IPv4 地址)"
+        else
+            send_error "Invalid EIP environment variable value: $EIP (must be a valid IPv4 address)"
+        fi
+        exit 1
+    fi
 # The user chooses the IP address to use
-if [ -n "$IPS" ]; then
+elif [ -n "$IPS" ]; then
     # Convert to indexed array
     declare -a ip_list=$(echo \($IPS\))
 
@@ -1521,7 +1572,7 @@ pod_list=(
 
 pod_ready_reported=""
 services_ready=false
-MAX_SERVICE_WAIT=120
+MAX_SERVICE_WAIT=240
 check_interval=5
 elapsed_time=0
 
@@ -1557,6 +1608,7 @@ while [ $elapsed_time -le $MAX_SERVICE_WAIT ]; do
         else
           send_info "🎉 All services are ready!"
         fi
+        send_msg "Rainbond installation successfully"
         services_ready=true
         break
       fi
@@ -1612,6 +1664,13 @@ if [ "$LANG" == "zh_CN.UTF-8" ]; then
 # 访问 Rainbond:
 #     🌐 控制台地址: http://$EIP:7070
 #
+# ⚠️  重要提示:
+#     请确保以下端口已在防火墙/安全组中开放:
+#     - 7070: 控制台访问端口
+#     - 80:   HTTP 服务端口
+#     - 443:  HTTPS 服务端口
+#     - 6060: WebSocket 端口
+#
 # 文档和支持:
 #     📖 文档: https://www.rainbond.com/docs
 #     💬 支持: https://www.rainbond.com/docs/support
@@ -1628,6 +1687,13 @@ EOF
 # 访问 Rainbond:
 #     🌐 控制台地址: http://$EIP:7070
 #     ⚠️  请等待几分钟后访问
+#
+# ⚠️  重要提示:
+#     请确保以下端口已在防火墙/安全组中开放:
+#     - 7070: 控制台访问端口
+#     - 80:   HTTP 服务端口
+#     - 443:  HTTPS 服务端口
+#     - 6060: WebSocket 端口
 #
 # 监控命令:
 #     docker exec -it rainbond bash
@@ -1655,6 +1721,14 @@ else
 # Access Rainbond:
 #     🌐 Console: http://$EIP:7070
 #
+# ⚠️  Important:
+#     Please ensure the following ports are open
+#     in your firewall/security group:
+#     - 7070: Console access port
+#     - 80:   HTTP service port
+#     - 443:  HTTPS service port
+#     - 6060: WebSocket port
+#
 # Documentation and Support:
 #     📖 Docs: https://www.rainbond.com/docs
 #     💬 Support: https://www.rainbond.com/docs/support
@@ -1671,6 +1745,14 @@ EOF
 # Access Rainbond:
 #     🌐 Console: http://$EIP:7070
 #     ⚠️  Please wait a few minutes before accessing
+#
+# ⚠️  Important:
+#     Please ensure the following ports are open
+#     in your firewall/security group:
+#     - 7070: Console access port
+#     - 80:   HTTP service port
+#     - 443:  HTTPS service port
+#     - 6060: WebSocket port
 #
 # Monitoring Commands:
 #     docker exec -it rainbond bash

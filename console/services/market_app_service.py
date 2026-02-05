@@ -757,26 +757,29 @@ class MarketAppService(object):
             # Process the k8s_service_name of each port
             component_port = port["container_port"]
             k8s_service_name = port.get("k8s_service_name") if port.get(
-                "k8s_service_name") else service.service_alias + "-" + str(component_port)
+                "k8s_service_name") else service.service_alias
             k8s_service_name = self.__handle_k8s_service_name(tenant, service, k8s_service_name, component_port)
             # Use component ID and port number as unique identification
-            port_k8s_svc_name["{}{}".format(service.service_id, component_port)] = k8s_service_name
-
+            port_k8s_svc_name["{}".format(service.service_id)] = k8s_service_name
             if not port.get("is_inner_service", False):
                 continue
             port_alias = port["port_alias"] if port.get("port_alias") else service.service_alias.upper() + str(
                 port["container_port"])
             env_prefix = port_alias.upper()
-            if not envs.get(env_prefix + "_HOST", ""):
-                host_value = k8s_service_name \
-                    if app.governance_mode != GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else "127.0.0.1"
+            host_value = k8s_service_name \
+                if app.governance_mode != GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else "127.0.0.1"
+            if envs.get(env_prefix + "_HOST"):
+                envs[env_prefix + "_HOST"]["attr_value"] = host_value
+            else:
                 outer_envs.append({
                     "name": "连接信息",
                     "attr_name": env_prefix + "_HOST",
                     "is_change": True,
                     "attr_value": host_value
                 })
-            if not envs.get(env_prefix + "_PORT", ""):
+            if envs.get(env_prefix + "_PORT"):
+                envs[env_prefix + "_PORT"]["attr_value"] = component_port
+            else:
                 outer_envs.append({
                     "name": "端口",
                     "attr_name": env_prefix + "_PORT",
@@ -838,7 +841,7 @@ class MarketAppService(object):
         create_ports = []
         for port in ports:
             component_port = port["container_port"]
-            k8s_service_name = port_k8s_svc_name.get("{}{}".format(service.service_id, component_port), "")
+            k8s_service_name = port.get("k8s_service_name", service.service_alias)
 
             t_port = TenantServicesPort(
                 tenant_id=tenant.tenant_id,
