@@ -7,6 +7,7 @@ import os
 import pickle
 import re
 import time
+import uuid
 
 from django.db import transaction
 
@@ -30,6 +31,7 @@ from console.services.app_import_and_export_service import import_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
 from console.services.k8s_resource import k8s_resource_service
+from console.services.app import app_market_service
 from console.services.market_app_service import market_app_service
 from console.services.plugin import app_plugin_service
 from console.services.region_services import region_services
@@ -51,7 +53,7 @@ from openapi.serializer.app_serializer import (
     ServiceGroupOperationsSerializer,
     TeamAppsCloseSerializers, DeployAppSerializer, ServicePortSerializer, ComponentUpdatePortReqSerializers,
     ComponentPortReqSerializers, UpdateAppAuthorizationPolicy, ServiceVolumeSerializer, ChangeDeploySourceSerializer,
-    HelmChartSerializer, UpdateAppPeerAuthentications)
+    HelmChartSerializer, UpdateAppPeerAuthentications, SmartDeployAppSerializer)
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
@@ -1519,3 +1521,370 @@ class HelmChart(TeamAPIView):
 
         result = general_message(200, "success", "成功")
         return Response(result, status=result["code"])
+
+
+class SmartDeployTemplateView(TeamAPIView):
+    """
+    智能部署应用模板接口
+    - 如果应用名称不存在，自动创建应用并安装模板
+    - 如果应用名称已存在：
+      * 检查应用中是否已安装该模板
+      * 已安装：执行升级逻辑（如果已是最新版本则忽略）
+      * 未安装：在该应用中安装模板
+    - 固定使用本地企业组件库（rainbond_center_app）
+    - 自动使用最新版本，无需手动指定版本
+    """
+    @swagger_auto_schema(
+        operation_description="智能部署应用模板（自动创建/安装/升级，使用最新版本）。支持从本地企业组件库或云端应用市场获取模板。",
+        request_body=SmartDeployAppSerializer(),
+        responses={
+            200: openapi.Response(
+                description="操作成功",
+                examples={
+                    "application/json": {
+                        "code": 200,
+                        "msg": "success",
+                        "msg_show": "模板安装成功",
+                        "bean": {
+                            "action": "install",  # install/upgrade/skip
+                            "template_id": "xxx",
+                            "template_version": "v1.0",
+                            "app_id": 123,
+                            "app_name": "my-app",
+                            "market_name": ""  # 空表示本地库，否则为云端市场名称
+                        }
+                    }
+                }
+            ),
+            400: openapi.Response(description="参数错误"),
+            404: openapi.Response(description="模板不存在"),
+        },
+        tags=['openapi-apps'],
+    )
+    def post(self, request, *args, **kwargs):
+        """
+        智能部署应用模板（使用最新版本）
+        """
+        serializer = SmartDeployAppSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.data
+
+        app_name = data["app_name"]
+        template_id = data["template_id"]
+        is_deploy = data.get("is_deploy", True)
+        market_name = data.get("market_name", "")
+
+        # 根据 market_name 判断是否从云端市场获取
+        # 为空或未指定时使用本地企业组件库
+        install_from_cloud = bool(market_name)
+
+        # 1. 检查应用名称是否存在
+        from console.repositories.group import group_repo
+        existing_app = group_repo.get_group_by_unique_key(
+            self.team.tenant_id,
+            self.region.region_name,
+            app_name
+        )
+
+        if existing_app:
+            # 应用已存在，检查是否已安装该模板
+            logger.info("App already exists: app_id={}, app_name={}".format(existing_app.ID, app_name))
+            app_id = existing_app.ID
+
+            # 检查模板是否已经安装
+            apps_in_app = market_app_service.get_market_apps_in_app(
+                self.region_name,
+                self.team,
+                existing_app
+            )
+
+            # 构建已安装模板的映射
+            installed_templates = {
+                app_info["app_model_id"]: app_info
+                for app_info in apps_in_app
+            }
+
+            if template_id in installed_templates:
+                # 已安装，执行升级逻辑
+                logger.info("Template already installed in app, checking for upgrade: template_id={}".format(template_id))
+                return self._upgrade_template(
+                    existing_app,
+                    template_id,
+                    installed_templates[template_id],
+                    install_from_cloud,
+                    market_name
+                )
+            else:
+                # 未安装，在现有应用中安装
+                logger.info("Template not installed in app, installing: template_id={}".format(template_id))
+                return self._install_template(
+                    app_id,
+                    app_name,
+                    template_id,
+                    market_name,
+                    install_from_cloud,
+                    is_deploy
+                )
+        else:
+            # 应用不存在，先尝试查找，再创建
+            # 先查找是否已存在同名应用（包括已删除的）
+            existing_apps = group_repo.get_tenant_region_groups(
+                self.team.tenant_id,
+                self.region.region_name
+            )
+            existing_app = None
+            for app in existing_apps:
+                if app.group_name == app_name:
+                    existing_app = app
+                    break
+
+            if existing_app:
+                # 使用已存在的应用
+                app_id = existing_app.ID
+                # 如果应用已删除，恢复它
+                if existing_app.status == "deleted":
+                    try:
+                        group_service.recover_app(
+                            tenant=self.team,
+                            region_name=self.region.region_name,
+                            app=existing_app,
+                            user=self.user
+                        )
+                        logger.info(f"Recovered deleted app: {app_name}")
+                    except Exception as recover_error:
+                        logger.exception(f"Failed to recover app: {recover_error}")
+            else:
+                # 不存在，创建新应用
+                try:
+                    app_data = group_service.create_app(
+                        tenant=self.team,
+                        region_name=self.region.region_name,
+                        app_name=app_name,
+                        note="通过智能部署模板创建",
+                        username=self.user.nick_name,
+                        k8s_app=app_name
+                    )
+                    app_id = app_data["app_id"]
+                except ServiceHandleException as e:
+                    # 检查是否是 k8s app name exists 错误
+                    if hasattr(e, 'error_code') and e.error_code == 11011:
+                        logger.warning(f"App '{app_name}' exists in k8s, trying with suffix")
+
+                        # 尝试加后缀创建
+                        for suffix in range(1, 100):
+                            new_app_name = f"{app_name}-{suffix}"
+                            try:
+                                app_data = group_service.create_app(
+                                    tenant=self.team,
+                                    region_name=self.region.region_name,
+                                    app_name=new_app_name,
+                                    note="通过智能部署模板创建",
+                                    username=self.user.nick_name,
+                                    k8s_app=new_app_name
+                                )
+                                app_id = app_data["app_id"]
+                                app_name = new_app_name
+                                logger.info(f"Created app '{app_name}' with suffix")
+                                break
+                            except ServiceHandleException as create_error:
+                                error_code = getattr(create_error, 'error_code', None)
+                                if error_code == 11011:
+                                    continue
+                                else:
+                                    raise create_error
+                        else:
+                            # 尝试了100次都失败，返回错误
+                            raise ServiceHandleException(
+                                msg="failed to create app after 100 attempts",
+                                msg_show="创建应用失败：K8s中存在大量同名应用，请手动清理",
+                                status_code=500
+                            )
+                    else:
+                        raise
+                except Exception as e:
+                    logger.exception("Failed to create app: {}".format(e))
+                    return Response(
+                        general_message(500, "create app failed", "创建应用失败: {}".format(str(e))),
+                        status=500
+                    )
+
+            # 安装模板
+            return self._install_template(
+                app_id,
+                app_name,
+                template_id,
+                market_name,
+                install_from_cloud,
+                is_deploy
+            )
+
+    def _get_latest_version(self, template_id, install_from_cloud, market_name):
+        """
+        获取模板的最新版本
+        """
+        try:
+            if install_from_cloud and market_name:
+                # 从云端市场获取最新版本
+                market = app_market_service.get_app_market_by_name(
+                    self.team.enterprise_id, market_name, raise_exception=True
+                )
+                versions = app_market_service.get_market_app_model_versions(market, template_id)
+            else:
+                # 从本地获取最新版本
+                versions = rainbond_app_repo.get_rainbond_app_versions(template_id).order_by('-update_time')
+
+            if not versions:
+                return None
+
+            # 返回最新版本（按更新时间倒序，第一个就是最新）
+            return versions[0].version
+        except Exception as e:
+            logger.exception("Failed to get latest version: {}".format(e))
+            return None
+
+    def _install_template(self, app_id, app_name, template_id, market_name, install_from_cloud, is_deploy):
+        """
+        安装模板到应用（使用最新版本）
+        """
+        try:
+            # 获取最新版本
+            latest_version = self._get_latest_version(template_id, install_from_cloud, market_name)
+            if not latest_version:
+                return Response(
+                    general_message(404, "template not found", "模板不存在"),
+                    status=404
+                )
+
+            market_app_service.install_app(
+                self.team,
+                self.region,
+                self.user,
+                app_id,
+                template_id,
+                latest_version,
+                market_name,
+                install_from_cloud,
+                is_deploy=is_deploy,
+                dry_run=False
+            )
+
+            return Response(
+                general_message(
+                    200,
+                    "success",
+                    "模板安装成功",
+                    bean={
+                        "action": "install",
+                        "app_id": app_id,
+                        "app_name": app_name,
+                        "template_id": template_id,
+                        "template_version": latest_version
+                    }
+                ),
+                status=200
+            )
+        except Exception as e:
+            logger.exception("Failed to install template: {}".format(e))
+            return Response(
+                general_message(500, "install failed", "模板安装失败: {}".format(str(e))),
+                status=500
+            )
+
+    def _upgrade_template(self, app, template_id, template_info, install_from_cloud, market_name):
+        """
+        升级应用中的模板（使用最新版本）
+        """
+        try:
+            # 获取最新版本
+            latest_version = self._get_latest_version(template_id, install_from_cloud, market_name)
+            if not latest_version:
+                return Response(
+                    general_message(404, "template not found", "模板不存在"),
+                    status=404
+                )
+
+            current_version = template_info.get("current_version")
+
+            logger.info("Upgrading template: app_id={}, template_id={}, current_version={}, latest_version={}".format(
+                app.ID, template_id, current_version, latest_version))
+
+            # 检查最新版本与当前版本是否相同
+            if latest_version == current_version:
+                return Response(
+                    general_message(
+                        200,
+                        "success",
+                        "当前已是最新版本，无需升级",
+                        bean={
+                            "action": "skip",
+                            "template_id": template_id,
+                            "current_version": current_version,
+                            "latest_version": latest_version
+                        }
+                    ),
+                    status=200
+                )
+
+            # 获取升级组ID
+            app_upgrade_group_id = template_info.get("upgrade_group_id")
+
+            # 获取模板信息
+            rainbond_app = rainbond_app_repo.get_rainbond_app_by_key_version(
+                group_key=template_id,
+                version=latest_version
+            )
+            ram_model_info = json.loads(rainbond_app.app_template)
+            component_keys = [cpt["service_key"] for cpt in ram_model_info["apps"]]
+
+            # 创建升级记录
+            record = upgrade_service.create_upgrade_record(
+                self.user.enterprise_id,
+                self.team,
+                app,
+                app_upgrade_group_id
+            )
+            app_upgrade_record = upgrade_repo.get_by_record_id(record["ID"])
+
+            # 执行升级
+            record, _ = upgrade_service.upgrade(
+                self.team,
+                self.region,
+                self.user,
+                app,
+                latest_version,
+                app_upgrade_record,
+                component_keys,
+            )
+
+            logger.info("Template upgraded successfully: app_id={}, template_id={}, current_version={}, new_version={}".format(
+                app.ID, template_id, current_version, latest_version))
+
+            return Response(
+                general_message(
+                    200,
+                    "success",
+                    "模板升级成功",
+                    bean={
+                        "action": "upgrade",
+                        "template_id": template_id,
+                        "current_version": current_version,
+                        "template_version": latest_version,
+                        "upgrade_record_id": record["ID"]
+                    }
+                ),
+                status=200
+            )
+        except ServiceHandleException as e:
+            logger.exception("Failed to upgrade template: {}".format(e))
+            if e.status_code == 404:
+                return Response(
+                    general_message(404, "template not found", "模板版本不存在"),
+                    status=404
+                )
+            raise e
+        except Exception as e:
+            logger.exception("Failed to upgrade template: {}".format(e))
+            return Response(
+                general_message(500, "upgrade failed", "模板升级失败: {}".format(str(e))),
+                status=500
+            )

@@ -19,8 +19,20 @@ class RainbondPluginService(object):
         region_apps_map = {}
 
         need_authz = False
+        logger.info("Calling region_api.list_plugins: enterprise_id={}, region_name={}, official={}".format(
+            enterprise_id, region_name, official))
         _, body = region_api.list_plugins(enterprise_id, region_name, official)
         plugins = body["list"] if body.get("list") else []
+        logger.info("region_api.list_plugins returned {} plugins from region".format(len(plugins)))
+
+        # Log raw plugin data from region API
+        for idx, plugin in enumerate(plugins):
+            logger.info("Raw plugin {} from region: name={}, category={}, alias={}".format(
+                idx + 1,
+                plugin.get("name", "unknown"),
+                plugin.get("category", "unknown"),
+                plugin.get("alias", "unknown")))
+
         for plugin in plugins:
             region_app_ids.append(plugin["region_app_id"])
             team_names.append(plugin["team_name"])

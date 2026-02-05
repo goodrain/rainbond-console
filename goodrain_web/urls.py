@@ -9,6 +9,7 @@ from django.views.static import serve
 
 from goodrain_web import settings
 from console.views.bill_proxy import BillProxyView
+from console.views.app_server_proxy import AppServerProxyView
 
 kwargs = {"document_root": settings.MEDIA_ROOT}
 
@@ -28,6 +29,7 @@ urlpatterns = [
     url(r'^$', IndexTemplateView.as_view()),
     url(r'^install-cluster.sh$', RKE2Install.as_view()),
     url(r'^console/', include('console.urls')),
+    url(r'^app-server/.*$', AppServerProxyView.as_view()),
     url(r'^api/.*$', BillProxyView.as_view()),
 ]
 if settings.IS_OPEN_API:

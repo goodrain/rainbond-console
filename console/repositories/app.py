@@ -253,6 +253,17 @@ class ServiceSourceRepository(object):
     def create_service_source(self, **params):
         return ServiceSourceInfo.objects.create(**params)
 
+    def update_or_create_service_source(self, **params):
+        """创建或更新服务源信息，避免重复键冲突"""
+        team_id = params.get('team_id')
+        service_id = params.get('service_id')
+        obj, created = ServiceSourceInfo.objects.update_or_create(
+            team_id=team_id,
+            service_id=service_id,
+            defaults=params
+        )
+        return obj
+
     def delete_service_source(self, team_id, service_id):
         ServiceSourceInfo.objects.filter(team_id=team_id, service_id=service_id).delete()
 

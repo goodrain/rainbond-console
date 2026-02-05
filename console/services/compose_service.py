@@ -98,30 +98,46 @@ class ComposeService(object):
             if data["check_status"] == "success":
                 if group_compose.create_status == "checking":
                     logger.debug("checking compose service install,save info into database")
-                # 先删除原来创建的组件
-                self.__delete_created_compose_info(tenant, group_compose.compose_id)
+
+                # 获取已存在的服务
+                existing_services = self.get_compose_services(group_compose.compose_id)
+                existing_map = {s.service_cname: s for s in existing_services}
+
                 # 保存compose检测结果
                 if data["check_status"] == "success":
                     service_info_list = data["service_info"]
                     service_dep_map = {}
                     # 组件列表
                     name_service_map = {}
+
                     for service_info in service_info_list:
                         service_cname = service_info.get("cname", service_info["image_alias"])
                         image = service_info["image"]["name"] + ":" + service_info["image"]["tag"]
-                        # 保存信息
-                        service = self.__init_compose_service(tenant, user, service_cname, image, region)
+
+                        # 判断服务是否已存在
+                        if service_cname in existing_map:
+                            # 复用已存在的服务
+                            service = existing_map[service_cname]
+                            # 更新服务配置
+                            service.image = image
+                            service.arch = arch
+                        else:
+                            # 创建新服务
+                            service = self.__init_compose_service(tenant, user, service_cname, image, region)
+                            service.arch = arch
+                            # 将新服务添加到组
+                            group_service.add_service_to_group(tenant, region, group_compose.group_id, service.service_id)
+
                         # 缓存创建的组件
                         service_list.append(service)
                         name_service_map[service_cname] = service
 
-                        group_service.add_service_to_group(tenant, region, group_compose.group_id, service.service_id)
-
+                        # 更新服务配置信息（端口、环境变量、卷等）
                         app_check_service.save_service_info(tenant, service, service_info)
-                        service.arch = arch
                         # save service info
                         service.save()
-                        # 创建组件构建源信息，存储账号密码
+
+                        # 创建或更新组件构建源信息，存储账号密码
                         envs = service_info.get("envs", [])
                         hub_user = group_compose.hub_user
                         hub_password = group_compose.hub_pass
@@ -131,6 +147,7 @@ class ComposeService(object):
                             if env.get("name", "") == "HUB_PASSWORD":
                                 hub_password = env.get("value")
                         app_service.create_service_source_info(tenant, service, hub_user, hub_password)
+
                         dependencies = service_info.get("depends", None)
                         if dependencies:
                             service_dep_map[service_cname] = dependencies
@@ -153,9 +170,15 @@ class ComposeService(object):
         if service_dep_map:
             for key in list(service_dep_map.keys()):
                 dep_services_names = service_dep_map[key]
-                s = name_service_map[key]
+                s = name_service_map.get(key)
+                if not s:
+                    logger.warning("Service {} not found in name_service_map, skip dependency".format(key))
+                    continue
                 for dep_name in dep_services_names:
-                    dep_service = name_service_map[dep_name]
+                    dep_service = name_service_map.get(dep_name)
+                    if not dep_service:
+                        logger.warning("Dependency service {} not found for service {}, skip".format(dep_name, key))
+                        continue
                     code, msg, d = app_relation_service.add_service_dependency(
                         tenant, s, dep_service.service_id, open_inner=True)
                     if code != 200:

@@ -1248,3 +1248,61 @@ class LoginEvent(BaseModel):
     client_ip = models.CharField(max_length=255, help_text="the ip address of the client")
     ip_locale_main = models.CharField(max_length=255)
     user_agent = models.CharField(max_length=255, help_text="user agent")
+
+
+class GrayReleaseStatus(object):
+    """灰度发布状态"""
+    ACTIVE = 'active'  # 灰度中
+    COMPLETED = 'completed'  # 已完成（已全量）
+    CANCELLED = 'cancelled'  # 已取消
+
+
+class GrayReleaseRecord(BaseModel):
+    """灰度发布记录表"""
+    class Meta:
+        db_table = 'gray_release_record'
+        indexes = [
+            models.Index(fields=['tenant_id', 'app_id']),
+            models.Index(fields=['tenant_id', 'status']),
+        ]
+
+    # 基本信息
+    tenant_id = models.CharField(max_length=32, help_text="租户ID")
+    region_name = models.CharField(max_length=64, help_text="数据中心")
+    app_id = models.IntegerField(help_text="应用ID")
+    app_name = models.CharField(max_length=128, help_text="应用名称")
+
+    # 模板信息
+    template_id = models.CharField(max_length=128, help_text="模板ID (group_key)")
+    template_name = models.CharField(max_length=255, help_text="模板名称")
+    template_version = models.CharField(max_length=64, help_text="模板版本")
+
+    # 服务组信息
+    original_upgrade_group_id = models.IntegerField(help_text="原始服务组ID")
+    gray_upgrade_group_id = models.IntegerField(help_text="灰度服务组ID")
+
+    # 主服务信息（用于流量分配的主要服务，通常是网关服务）
+    original_service_id = models.CharField(max_length=32, help_text="原始服务ID")
+    original_service_cname = models.CharField(max_length=100, help_text="原始服务名称")
+    gray_service_id = models.CharField(max_length=32, help_text="灰度服务ID")
+    gray_service_cname = models.CharField(max_length=100, help_text="灰度服务名称")
+
+    # 服务映射关系（JSON格式存储所有服务的对应关系）
+    # 格式: [{"original_service_id": "xxx", "original_service_cname": "web",
+    #         "gray_service_id": "yyy", "gray_service_cname": "web"}, ...]
+    service_mappings = models.TextField(help_text="服务映射关系（JSON格式）")
+
+    # 灰度配置
+    domain_name = models.CharField(max_length=255, help_text="域名")
+    gray_ratio = models.IntegerField(default=0, help_text="灰度比例 0-100")
+
+    # 状态
+    status = models.CharField(
+        max_length=20,
+        default=GrayReleaseStatus.ACTIVE,
+        help_text="状态: active-灰度中, completed-已完成, cancelled-已取消"
+    )
+
+    # 时间
+    create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now=True, help_text="更新时间")

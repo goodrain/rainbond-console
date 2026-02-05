@@ -504,7 +504,7 @@ class AppPortService(object):
                 # 在service_domain表中保存数据
                 service_name = service.service_alias
                 container_port = deal_port.container_port
-                domain_name = str(service_name) + "-" +str(container_port) + "-" + str(tenant.tenant_name) + "-" + str(
+                domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "." + str(
                     region.httpdomain)
                 domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol,
                                                    http_rule_id, tenant_id, service_alias, region_id)
@@ -604,7 +604,7 @@ class AppPortService(object):
                 # 在service_domain表中保存数据
                 service_name = service.service_alias
                 container_port = deal_port.container_port
-                domain_name = str(service_name) + "-" +str(container_port) + "-" + str(tenant.tenant_name) + "-" + str(
+                domain_name = str(service_name) + "-" + str(container_port) + "-" + str(tenant.tenant_name) + "." + str(
                     region.httpdomain)
                 domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port, protocol,
                                                    http_rule_id, tenant_id, service_alias, region_id)

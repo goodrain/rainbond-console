@@ -21,7 +21,8 @@ from console.views.app_config.app_label import (AppLabelAvailableView, AppLabelV
 from console.views.app_config.app_mnt import AppMntManageView, AppMntView
 from console.views.app_config.app_port import (AppPortManageView, AppPortView, AppTcpOuterManageView, TopologicalPortView)
 from console.views.app_config.app_probe import AppProbeView
-from console.views.app_config.app_volume import (AppVolumeManageView, AppVolumeOptionsView, AppVolumeView)
+from console.views.app_config.app_volume import (AppVolumeManageView, AppVolumeOptionsView, AppVolumeView,
+                                                  AppVolumeFileUploadView)
 from console.views.app_config.graph import (ComponentExchangeGraphsView, ComponentGraphListView, ComponentGraphView,
                                             ComponentInternalGraphsView)
 from console.views.app_config.service_monitor import (ComponentMetricsView, ComponentServiceMonitorEditView,
@@ -586,6 +587,8 @@ urlpatterns = [
     # 持久化路径配置
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes$', AppVolumeView.as_view(),
         perms.APP_OVERVIEW_STORAGE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes/upload$',
+        AppVolumeFileUploadView.as_view(), perms.APP_OVERVIEW_STORAGE),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/volumes/(?P<volume_id>[\w\-]+)$',
         AppVolumeManageView.as_view(), perms.APP_OVERVIEW_STORAGE),
     # 组件依赖

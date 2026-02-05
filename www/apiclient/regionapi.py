@@ -2989,6 +2989,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 region_app_id = name_split[0]
                 app_id = region_app_map.get(region_app_id)
                 domain["component_name"] = component_name
+                domain["original_name"] = name  # 保存原始的 name 格式（用于更新路由）
                 domain["name"] = f"{app_id}{name_split[1]}{name_split[2]}"
                 # 添加到结果集
                 domains.append(domain)

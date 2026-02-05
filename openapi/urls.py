@@ -10,7 +10,8 @@ from openapi.auth.authentication import OpenAPIAuthentication
 from openapi.auth.permissions import OpenAPIPermissions
 from openapi.views.admin_view import AdminInfoView, ListAdminsView
 from openapi.views.apps.apps import ListAppsView, AppModelImportEvent, AppTarballDirView, \
-    AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView, HelmChart
+    AppImportView, AppDeployView, AppChartInfo, DeleteApp, AppsPortView, HelmChart, SmartDeployTemplateView
+from openapi.views.apps.gray_release import GrayReleaseView, UpdateGrayRatioView, GrayReleaseListView, GrayRollbackView
 from openapi.views.enterprise_view import ResourceOverview
 
 from openapi.views.apps.apps import ListAppsView
@@ -83,6 +84,17 @@ urlpatterns = [
 
     # 应用部署
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/deploy$', AppDeployView.as_view()),
+    # 智能部署模板（自动判断安装或升级）
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/smart-deploy$', SmartDeployTemplateView.as_view()),
+    # 应用灰度发布
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-release$', GrayReleaseView.as_view()),
+    # 调整灰度比例
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-ratio$', UpdateGrayRatioView.as_view()),
+    # 灰度回滚
+    url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/apps/(?P<app_id>[\d\-]+)/gray-rollback$', GrayRollbackView.as_view()),
+    # 查询平台下的灰度发布列表
+    url(r'^v1/gray-releases$', GrayReleaseListView.as_view()),
+
     # 创建应用导入记录
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/app-model/import$', AppModelImportEvent.as_view()),
     # 应用包目录查询
