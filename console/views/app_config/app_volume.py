@@ -266,23 +266,25 @@ class AppVolumeFileUploadView(AppBaseView):
             volume_type=volume.volume_type,
             volume_cap=volume.volume_capacity)
 
-        # 调用 region API 更新
-        data = {
-            "volume_name": volume.volume_name,
-            "volume_path": volume.volume_path,
-            "volume_type": volume.volume_type,
-            "file_content": new_file_content,
-            "operator": self.user.nick_name,
-            "mode": volume.mode,
-        }
-        res, body = region_api.upgrade_service_volumes(
-            self.service.service_region,
-            self.tenant.tenant_name,
-            self.service.service_alias,
-            data)
+        # 只有在服务已经在数据中心创建完成后才调用 region API
+        if self.service.create_status == "complete":
+            # 调用 region API 更新
+            data = {
+                "volume_name": volume.volume_name,
+                "volume_path": volume.volume_path,
+                "volume_type": volume.volume_type,
+                "file_content": new_file_content,
+                "operator": self.user.nick_name,
+                "mode": volume.mode,
+            }
+            res, body = region_api.upgrade_service_volumes(
+                self.service.service_region,
+                self.tenant.tenant_name,
+                self.service.service_alias,
+                data)
 
-        if res.status != 200:
-            raise AbortRequest(msg="update failed", msg_show="更新失败")
+            if res.status != 200:
+                raise AbortRequest(msg="update failed", msg_show="更新失败")
 
         # 更新数据库
         service_config.file_content = new_file_content
@@ -424,44 +426,50 @@ class AppVolumeManageView(AppBaseView):
             file_content=file_content,
             volume_type=volume.volume_type,
             volume_cap=volume.volume_capacity)
-        data = {
-            "volume_name": volume.volume_name,
-            "volume_path": new_volume_path,
-            "volume_type": volume.volume_type,
-            "file_content": new_file_content,
-            "operator": self.user.nick_name,
-            "mode": mode,
-        }
-        res, body = region_api.upgrade_service_volumes(self.service.service_region, self.tenant.tenant_name,
-                                                       self.service.service_alias, data)
-        if res.status == 200:
-            volume.volume_path = new_volume_path
-            if mode is not None:
-                volume.mode = mode
-            volume.save()
-            if volume.volume_type == 'config-file':
-                service_config.volume_name = volume.volume_name
-                service_config.file_content = new_file_content
-                service_config.save()
-            result = general_message(200, "success", "修改成功")
-            src_suffix = " 下的配置文件 {}".format(
-                volume.volume_name) if volume.volume_type == "config-file" else " 下的存储 {}".format(
-                volume.volume_name)
-            comment = operation_log_service.generate_component_comment(
-                operation=Operation.CHANGE,
-                module_name=self.service.service_cname,
-                region=self.service.service_region,
-                team_name=self.tenant.tenant_name,
-                service_alias=self.service.service_alias,
-                suffix=src_suffix)
-            operation_log_service.create_component_log(
-                user=self.user,
-                comment=comment,
-                enterprise_id=self.user.enterprise_id,
-                team_name=self.tenant.tenant_name,
-                app_id=self.app.ID,
-                service_alias=self.service.service_alias,
-                old_information=old_information,
-                new_information=new_information)
-            return Response(result, status=result["code"])
-        return Response(general_message(405, "success", "修改失败"), status=405)
+
+        # 只有在服务已经在数据中心创建完成后才调用 region API
+        if self.service.create_status == "complete":
+            data = {
+                "volume_name": volume.volume_name,
+                "volume_path": new_volume_path,
+                "volume_type": volume.volume_type,
+                "file_content": new_file_content,
+                "operator": self.user.nick_name,
+                "mode": mode,
+            }
+            res, body = region_api.upgrade_service_volumes(self.service.service_region, self.tenant.tenant_name,
+                                                           self.service.service_alias, data)
+            if res.status != 200:
+                return Response(general_message(405, "update failed", "修改失败"), status=405)
+
+        # 更新数据库
+        volume.volume_path = new_volume_path
+        if mode is not None:
+            volume.mode = mode
+        volume.save()
+        if volume.volume_type == 'config-file':
+            service_config.volume_name = volume.volume_name
+            service_config.file_content = new_file_content
+            service_config.save()
+
+        result = general_message(200, "success", "修改成功")
+        src_suffix = " 下的配置文件 {}".format(
+            volume.volume_name) if volume.volume_type == "config-file" else " 下的存储 {}".format(
+            volume.volume_name)
+        comment = operation_log_service.generate_component_comment(
+            operation=Operation.CHANGE,
+            module_name=self.service.service_cname,
+            region=self.service.service_region,
+            team_name=self.tenant.tenant_name,
+            service_alias=self.service.service_alias,
+            suffix=src_suffix)
+        operation_log_service.create_component_log(
+            user=self.user,
+            comment=comment,
+            enterprise_id=self.user.enterprise_id,
+            team_name=self.tenant.tenant_name,
+            app_id=self.app.ID,
+            service_alias=self.service.service_alias,
+            old_information=old_information,
+            new_information=new_information)
+        return Response(result, status=result["code"])
