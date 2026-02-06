@@ -97,25 +97,33 @@ class TenantServiceEnvVarRepository(object):
         TenantServiceEnvVar.objects.filter(
             tenant_id=tenant_id, service_id=service_id, attr_name=attr_name).update(**update_params)
 
-    def update_or_create_env_var(self, tenant_id, service_id, attr_name, package_tool):
+    def update_or_create_env_var(self, tenant_id, service_id, attr_name, attr_value):
+        """
+        创建或更新构建时环境变量。
+        注意：此方法专用于构建变量，始终确保 scope 为 build。
+        """
         try:
             obj = TenantServiceEnvVar.objects.get(tenant_id=tenant_id, service_id=service_id, attr_name=attr_name)
-            setattr(obj, "attr_value", package_tool)
+            obj.attr_value = attr_value
+            obj.scope = "build"  # 确保更新时也设置为构建时变量
             obj.save()
         except TenantServiceEnvVar.DoesNotExist:
             TenantServiceEnvVar.objects.create(
                 tenant_id=tenant_id,
                 service_id=service_id,
                 attr_name=attr_name,
-                attr_value=package_tool,
+                attr_value=attr_value,
+                name=attr_name,
+                scope="build",
                 create_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     def get_build_envs(self, tenant_id, service_id):
         envs = {}
         default_envs = Q(attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
         prefix_start_env = Q(attr_name__startswith="BUILD_")
+        cnb_prefix_env = Q(attr_name__startswith="CNB_")  # CNB 构建参数
         build_start_env = Q(scope="build")
-        build_envs = self.get_service_env(tenant_id, service_id).filter(default_envs | prefix_start_env | build_start_env)
+        build_envs = self.get_service_env(tenant_id, service_id).filter(default_envs | prefix_start_env | cnb_prefix_env | build_start_env)
         for benv in build_envs:
             attr_name = benv.attr_name
             if attr_name.startswith("BUILD_"):

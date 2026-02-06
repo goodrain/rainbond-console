@@ -484,6 +484,16 @@ class AppBuildEnvView(AppBaseView):
                 old_build_env_dict[build_env.attr_name] = build_env.attr_value
                 build_env.delete()
         old_information = json.dumps(old_build_env_dict, ensure_ascii=False)
+
+        # 检查是否有 CNB 构建参数，自动设置 BUILD_TYPE=cnb
+        cnb_params = [
+            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
+            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
+        ]
+        has_cnb_params = any(key in build_env_dict for key in cnb_params)
+        if has_cnb_params and "BUILD_TYPE" not in build_env_dict:
+            build_env_dict["BUILD_TYPE"] = "cnb"
+
         for key, value in list(build_env_dict.items()):
             name = "构建运行时环境变量"
             attr_name = key

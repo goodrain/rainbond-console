@@ -1040,9 +1040,29 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
         lang = request.data.get("lang", "")
         package_tool = request.data.get("package_tool", "")
         dist = request.data.get("dist", "")
+        # CNB 构建相关参数
+        cnb_framework = request.data.get("cnb_framework", "")
+        cnb_build_script = request.data.get("cnb_build_script", "")
+        cnb_output_dir = request.data.get("cnb_output_dir", "")
+        cnb_node_version = request.data.get("cnb_node_version", "")
+        # CNB Mirror 配置参数
+        cnb_mirror_source = request.data.get("cnb_mirror_source", "")
+        cnb_mirror_npmrc = request.data.get("cnb_mirror_npmrc", "")
+        cnb_mirror_yarnrc = request.data.get("cnb_mirror_yarnrc", "")
+        cnb_mirror_pnpmrc = request.data.get("cnb_mirror_pnpmrc", "")
         # 修改语言和包依赖
         if lang:
-            code, msg = app_manage_service.change_lang_and_package_tool(self.tenant, self.service, lang, package_tool, dist)
+            code, msg = app_manage_service.change_lang_and_package_tool(
+                self.tenant, self.service, lang, package_tool, dist,
+                cnb_framework=cnb_framework,
+                cnb_build_script=cnb_build_script,
+                cnb_output_dir=cnb_output_dir,
+                cnb_node_version=cnb_node_version,
+                cnb_mirror_source=cnb_mirror_source,
+                cnb_mirror_npmrc=cnb_mirror_npmrc,
+                cnb_mirror_yarnrc=cnb_mirror_yarnrc,
+                cnb_mirror_pnpmrc=cnb_mirror_pnpmrc
+            )
             if code != 200:
                 return Response(status=code, data=general_message(code, "failed", "操作失败"))
         return Response(status=200, data=general_message(200, "succeed", "操作成功"))

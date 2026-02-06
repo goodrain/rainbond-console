@@ -275,6 +275,7 @@ class AppManageService(AppManageBase):
                     "server_type": service.server_type,
                     "lang": service.language,
                     "cmd": service.cmd,
+                    "build_type": body["envs"].get("BUILD_TYPE", "") or body["envs"].get("TYPE", ""),
                 }
                 # 如果是 dockerfile 类型且有 dockerfile_path，添加到构建参数中
                 if service.language == "dockerfile" and service.dockerfile:
@@ -286,6 +287,7 @@ class AppManageService(AppManageBase):
                     "server_type": service.server_type,
                     "lang": service.language,
                     "cmd": service.cmd,
+                    "build_type": body["envs"].get("BUILD_TYPE", "") or body["envs"].get("TYPE", ""),
                 }
                 # 如果是 dockerfile 类型且有 dockerfile_path，添加到构建参数中
                 if service.language == "dockerfile" and service.dockerfile:
@@ -694,6 +696,7 @@ class AppManageService(AppManageBase):
                 source_code["server_type"] = service.server_type
                 source_code["lang"] = service.language
                 source_code["cmd"] = service.cmd
+                source_code["build_type"] = envs.get("BUILD_TYPE", "") or envs.get("TYPE", "")
                 if service.oauth_service_id:
                     try:
                         oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service.oauth_service_id)
@@ -1397,12 +1400,18 @@ class AppManageService(AppManageBase):
         except Exception as e:
             logger.exception(e)
 
-    def change_lang_and_package_tool(self, tenant, service, lang, package_tool, dist):
+    def change_lang_and_package_tool(self, tenant, service, lang, package_tool, dist,
+                                      cnb_framework="", cnb_build_script="", cnb_output_dir="",
+                                      cnb_node_version="", cnb_mirror_source="",
+                                      cnb_mirror_npmrc="", cnb_mirror_yarnrc="", cnb_mirror_pnpmrc=""):
         serivce_params = {"language": lang}
         try:
             service_repo.update(tenant.tenant_id, service.service_id, **serivce_params)
-            env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_PACKAGE_TOOL", package_tool)
-            if dist and lang == "NodeJSStatic":
+            # 传统构建参数（兼容老组件）
+            if package_tool:
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_PACKAGE_TOOL", package_tool)
+            # 处理静态站点输出目录（支持 Node.js 前端项目）
+            if dist and ("Node" in lang or "static" in lang.lower()):
                 tenantServiceEnvVar = {}
                 tenantServiceEnvVar["tenant_id"] = service.tenant_id
                 tenantServiceEnvVar["service_id"] = service.service_id
@@ -1413,6 +1422,30 @@ class AppManageService(AppManageBase):
                 tenantServiceEnvVar["is_change"] = True
                 tenantServiceEnvVar["scope"] = "scope"
                 env_var_repo.add_service_env(**tenantServiceEnvVar)
+            # CNB 构建参数
+            has_cnb_params = (cnb_framework or cnb_build_script or cnb_output_dir or cnb_node_version or
+                              cnb_mirror_source or cnb_mirror_npmrc or cnb_mirror_yarnrc or cnb_mirror_pnpmrc)
+            if has_cnb_params:
+                # 设置 BUILD_TYPE 为 cnb，让 Builder 知道使用 CNB 构建
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_TYPE", "cnb")
+            if cnb_framework:
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_FRAMEWORK", cnb_framework)
+            if cnb_build_script:
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_BUILD_SCRIPT", cnb_build_script)
+            if cnb_output_dir:
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_OUTPUT_DIR", cnb_output_dir)
+            if cnb_node_version:
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_NODE_VERSION", cnb_node_version)
+            # CNB Mirror 配置
+            if cnb_mirror_source:
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_MIRROR_SOURCE", cnb_mirror_source)
+            # 保存三个配置文件内容（当使用平台全局配置时）
+            if cnb_mirror_npmrc:
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_MIRROR_NPMRC", cnb_mirror_npmrc)
+            if cnb_mirror_yarnrc:
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_MIRROR_YARNRC", cnb_mirror_yarnrc)
+            if cnb_mirror_pnpmrc:
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_MIRROR_PNPMRC", cnb_mirror_pnpmrc)
         except Exception as e:
             logger.exception(e)
             return 507, "failed"

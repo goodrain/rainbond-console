@@ -461,12 +461,236 @@ class AppCheckService(object):
             service_language = {"type": "language", "key": "代码语言", "value": service_info["language"]}
         if service_language:
             service_attr_list.append(service_language)
+
+        # 优先使用结构化的 runtime_info，如果不存在则从 envs 中提取 (向后兼容)
+        runtime_info = service_info.get("runtime_info")
+        if runtime_info:
+            # 使用新的结构化 runtime_info
+            self._append_runtime_info(runtime_info, service_attr_list)
+        else:
+            # 回退到从环境变量中提取 (向后兼容)
+            envs_dict = self._extract_envs_dict(service_info)
+            self._append_framework_info(envs_dict, service_attr_list)
+            self._append_node_version_info(envs_dict, service_attr_list)
+            self._append_package_manager_info(envs_dict, service_attr_list)
+            self._append_config_files_info(envs_dict, service_attr_list)
+
         if service_info.get("dockerfiles"):
             dockerfiles_bean = {"type": "dockerfiles", "key": "Dockerfile文件", "value": service_info.get("dockerfiles")}
             service_attr_list.append(dockerfiles_bean)
         if service_code_from and service_code_from.get("value") != ":":
             service_attr_list.append(service_code_from)
         return service_attr_list
+
+    def _append_runtime_info(self, runtime_info, service_attr_list):
+        """
+        从结构化的 runtime_info 中提取检测信息并添加到服务属性列表。
+
+        Args:
+            runtime_info: 结构化的运行时信息字典
+            service_attr_list: 服务属性列表
+        """
+        if not runtime_info or not isinstance(runtime_info, dict):
+            return
+
+        # 添加框架信息
+        framework = runtime_info.get("framework")
+        if framework:
+            framework_info = {
+                "name": framework.get("name", ""),
+                "display_name": framework.get("display_name", framework.get("name", "")),
+                "version": framework.get("version", ""),
+                "type": framework.get("type", ""),
+            }
+            # 从 build_config 中提取构建相关信息
+            build_config = runtime_info.get("build_config")
+            if build_config:
+                framework_info["output_dir"] = build_config.get("output_dir", "")
+                framework_info["build_script"] = build_config.get("build_command", "")
+                framework_info["start_cmd"] = build_config.get("start_command", "")
+
+            framework_bean = {
+                "type": "framework",
+                "key": "框架",
+                "value": framework_info.get("display_name", framework_info.get("name", "")),
+                "data": framework_info
+            }
+            service_attr_list.append(framework_bean)
+            logger.debug("CNB framework detected from runtime_info: %s", framework.get("name"))
+
+        # 添加语言版本信息
+        language_version = runtime_info.get("language_version")
+        if language_version:
+            version_info = {
+                "version": language_version,
+                "source": runtime_info.get("version_source", ""),
+                "language": runtime_info.get("language", ""),
+            }
+            version_bean = {
+                "type": "node_version",
+                "key": "运行时版本",
+                "value": language_version,
+                "data": version_info
+            }
+            service_attr_list.append(version_bean)
+
+        # 添加包管理器信息
+        package_manager = runtime_info.get("package_manager")
+        if package_manager:
+            pm_info = {
+                "manager": package_manager.get("name", ""),
+                "version": package_manager.get("version", ""),
+                "lock_file": package_manager.get("lock_file", ""),
+            }
+            pm_bean = {
+                "type": "package_manager",
+                "key": "包管理器",
+                "value": package_manager.get("name", ""),
+                "data": pm_info
+            }
+            service_attr_list.append(pm_bean)
+
+        # 添加配置文件信息
+        config_files = runtime_info.get("config_files")
+        if config_files:
+            has_npmrc = config_files.get("has_npmrc", False)
+            has_yarnrc = config_files.get("has_yarnrc", False)
+            has_pnpmrc = config_files.get("has_pnpmrc", False)
+
+            if has_npmrc or has_yarnrc or has_pnpmrc:
+                config_items = []
+                if has_npmrc:
+                    config_items.append(".npmrc")
+                if has_yarnrc:
+                    config_items.append(".yarnrc")
+                if has_pnpmrc:
+                    config_items.append(".pnpmrc")
+
+                config_bean = {
+                    "type": "config_files",
+                    "key": "配置文件",
+                    "value": ", ".join(config_items),
+                    "data": {
+                        "has_npmrc": has_npmrc,
+                        "has_yarnrc": has_yarnrc,
+                        "has_pnpmrc": has_pnpmrc,
+                    }
+                }
+                service_attr_list.append(config_bean)
+
+    def _extract_envs_dict(self, service_info):
+        """
+        从 service_info 中提取环境变量为字典格式。
+
+        Args:
+            service_info: 服务信息字典
+
+        Returns:
+            dict: 环境变量名称-值对
+        """
+        if not service_info or not isinstance(service_info, dict):
+            return {}
+
+        envs = service_info.get("envs")
+        if not envs or not isinstance(envs, list):
+            return {}
+
+        return {
+            env.get("name", ""): env.get("value", "")
+            for env in envs
+            if isinstance(env, dict)
+        }
+
+    def _append_framework_info(self, envs_dict, service_attr_list):
+        """添加框架检测信息到服务属性列表。"""
+        framework_name = envs_dict.get("BUILD_FRAMEWORK")
+        if not framework_name:
+            return
+
+        framework_info = {
+            "name": framework_name,
+            "display_name": envs_dict.get("BUILD_FRAMEWORK_DISPLAY_NAME", framework_name),
+            "version": envs_dict.get("BUILD_FRAMEWORK_VERSION", ""),
+            "type": envs_dict.get("BUILD_RUNTIME_TYPE", ""),
+            "output_dir": envs_dict.get("BUILD_OUTPUT_DIR", ""),
+            "build_script": envs_dict.get("BUILD_BUILD_CMD", ""),
+            "start_cmd": envs_dict.get("BUILD_START_CMD", ""),
+        }
+        framework_bean = {
+            "type": "framework",
+            "key": "框架",
+            "value": framework_info.get("display_name", framework_info.get("name", "")),
+            "data": framework_info
+        }
+        service_attr_list.append(framework_bean)
+        logger.debug("CNB framework detected: %s", framework_name)
+
+    def _append_node_version_info(self, envs_dict, service_attr_list):
+        """添加 Node.js 版本信息到服务属性列表。"""
+        node_version = envs_dict.get("BUILD_RUNTIMES")
+        if not node_version:
+            return
+
+        version_info = {
+            "version": node_version,
+            "original": envs_dict.get("BUILD_NODE_VERSION_ORIGINAL", ""),
+            "source": envs_dict.get("BUILD_NODE_VERSION_SOURCE", ""),
+        }
+        version_bean = {
+            "type": "node_version",
+            "key": "Node.js版本",
+            "value": node_version,
+            "data": version_info
+        }
+        service_attr_list.append(version_bean)
+
+    def _append_package_manager_info(self, envs_dict, service_attr_list):
+        """添加包管理器信息到服务属性列表。"""
+        package_tool = envs_dict.get("BUILD_PACKAGE_TOOL")
+        if not package_tool:
+            return
+
+        pm_info = {
+            "manager": package_tool,
+            "version": envs_dict.get("BUILD_PACKAGE_MANAGER_VERSION", ""),
+            "lock_file": envs_dict.get("BUILD_PACKAGE_LOCK_FILE", ""),
+        }
+        pm_bean = {
+            "type": "package_manager",
+            "key": "包管理器",
+            "value": package_tool,
+            "data": pm_info
+        }
+        service_attr_list.append(pm_bean)
+
+    def _append_config_files_info(self, envs_dict, service_attr_list):
+        """添加配置文件检测信息到服务属性列表。"""
+        has_npmrc = envs_dict.get("BUILD_HAS_NPMRC") == "true"
+        has_yarnrc = envs_dict.get("BUILD_HAS_YARNRC") == "true"
+        has_pnpmrc = envs_dict.get("BUILD_HAS_PNPMRC") == "true"
+
+        if not (has_npmrc or has_yarnrc or has_pnpmrc):
+            return
+
+        config_items = []
+        if has_npmrc:
+            config_items.append(".npmrc")
+        if has_yarnrc:
+            config_items.append(".yarnrc")
+        if has_pnpmrc:
+            config_items.append(".pnpmrc")
+
+        config_bean = {
+            "type": "config_files",
+            "key": "配置文件",
+            "value": ", ".join(config_items),
+            "data": {
+                "has_npmrc": has_npmrc,
+                "has_yarnrc": has_yarnrc,
+                "has_pnpmrc": has_pnpmrc,
+            }
+        }
+        service_attr_list.append(config_bean)
 
 
 app_check_service = AppCheckService()
