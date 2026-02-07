@@ -70,7 +70,7 @@ class ComposeService(object):
             return 404, "未找到对应的compose内容", None
         body = dict()
         body["tenant_id"] = tenant.tenant_id
-        body["source_type"] = "docker-compose-project"
+        body["source_type"] = "docker-compose"
         body["event_id"] = group_compose.compose_content  # compose_content字段临时存储的是event_id
         body["compose_file_path"] = getattr(group_compose, 'compose_file_path', 'docker-compose.yml')
         body["username"] = group_compose.hub_user
