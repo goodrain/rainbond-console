@@ -183,7 +183,7 @@ class AppCheckService(object):
             except ErrComponentPortExists:
                 logger.error('upgrade component port by code check failure due to component port exists')
             lang = data["service_info"][0]["language"]
-            if lang == "dockerfile":
+            if lang == "dockerfile" or lang == "static":
                 service.cmd = ""
             elif service.service_source == AppConstants.SOURCE_CODE:
                 service.cmd = "start web"
