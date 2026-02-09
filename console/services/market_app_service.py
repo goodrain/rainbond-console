@@ -19,7 +19,7 @@ from console.exception.bcode import (ErrAppConfigGroupExists, ErrK8sServiceNameE
 from console.exception.main import (AbortRequest, ErrVolumePath, MarketAppLost, RbdAppNotFound, ServiceHandleException)
 from console.models.main import (AppMarket, AppUpgradeRecord, RainbondCenterApp, RainbondCenterAppVersion)
 from console.repositories.app import (app_market_repo, app_tag_repo, service_source_repo)
-from console.repositories.app_config import (env_var_repo, extend_repo, port_repo, volume_repo)
+from console.repositories.app_config import (env_var_repo, extend_repo, port_repo, volume_repo, dep_relation_repo)
 from console.repositories.base import BaseConnection
 from console.repositories.group import group_repo, tenant_service_group_repo
 from console.repositories.market_app_repo import (app_import_record_repo, rainbond_app_repo)
@@ -116,6 +116,8 @@ class MarketAppService(object):
             app_upgrade.preinstall()
         else:
             app_upgrade.install()
+        # If the app template contains platform_plugin info, create RBDPlugin CR
+        self._create_rbdplugin_if_needed(tenant, region, app_template)
         return market_app.app_name
 
     def get_app_template(self, app_model_key, install_from_cloud, market_name, region, tenant, user, version):
@@ -138,6 +140,57 @@ class MarketAppService(object):
         app_template["update_time"] = app_version.update_time
         app_template["arch"] = app_version.arch
         return app_template, market_app
+
+    def _create_rbdplugin_if_needed(self, tenant, region, app_template):
+        """If app_template contains platform_plugin info, create RBDPlugin CR via region API"""
+        platform_plugin = app_template.get("platform_plugin")
+        if not platform_plugin or not platform_plugin.get("is_platform_plugin"):
+            return
+        try:
+            frontend_component_name = platform_plugin.get("frontend_component", "")
+            namespace = tenant.namespace
+            frontend_service = ""
+            backend_service = ""
+
+            # Find frontend component by service_cname and build FQDN
+            if frontend_component_name:
+                frontend_cpt = TenantServiceInfo.objects.filter(
+                    tenant_id=tenant.tenant_id, service_cname=frontend_component_name
+                ).first()
+                if frontend_cpt:
+                    frontend_ports = port_repo.get_service_ports(tenant.tenant_id, frontend_cpt.service_id)
+                    if frontend_ports:
+                        fp = frontend_ports[0]
+                        frontend_service = "{}.{}.svc.cluster.local:{}".format(
+                            fp.k8s_service_name, namespace, fp.container_port)
+
+                    # Find backend: get frontend's dependencies
+                    deps = dep_relation_repo.get_service_dependencies(tenant.tenant_id, frontend_cpt.service_id)
+                    if deps:
+                        backend_cpt_id = deps[0].dep_service_id
+                        backend_ports = port_repo.get_service_ports(tenant.tenant_id, backend_cpt_id)
+                        if backend_ports:
+                            bp = backend_ports[0]
+                            backend_service = "{}.{}.svc.cluster.local:{}".format(
+                                bp.k8s_service_name, namespace, bp.container_port)
+
+            plugin_data = {
+                "plugin_id": platform_plugin.get("plugin_id", ""),
+                "plugin_name": platform_plugin.get("plugin_name", ""),
+                "plugin_type": platform_plugin.get("plugin_type", ""),
+                "frontend_component": frontend_component_name,
+                "entry_path": platform_plugin.get("entry_path", ""),
+                "plugin_views": platform_plugin.get("inject_position", []),
+                "menu_title": platform_plugin.get("menu_title", ""),
+                "route_path": platform_plugin.get("route_path", ""),
+                "namespace": namespace,
+                "frontend_service": frontend_service,
+                "backend_service": backend_service,
+            }
+            region_api.create_rbdplugin(tenant.enterprise_id, region.region_name, plugin_data)
+            logger.info("Created RBDPlugin CR for plugin: %s", plugin_data.get("plugin_id"))
+        except Exception as e:
+            logger.warning("Failed to create RBDPlugin CR: %s", e)
 
     def install_app_by_cmd(self, tenant, region, user, app_id, app_model_key, version, market_domain, market_id):
         app = group_repo.get_group_by_id(app_id)
@@ -184,6 +237,7 @@ class MarketAppService(object):
                 "",
                 is_deploy=True)
             app_upgrade.install()
+            self._create_rbdplugin_if_needed(tenant, region, app_template)
             return app_template["group_name"]
         return
 
@@ -1730,6 +1784,8 @@ class MarketAppService(object):
             market_name,
             is_deploy=is_deploy)
         app_upgrade.install_plugins()
+        # If the app template contains platform_plugin info, create RBDPlugin CR
+        self._create_rbdplugin_if_needed(tenant, region, app_template)
         return market_app.app_name
 
     def get_plugin_install_status(self, tenant, region, user, app_model_key, version, market_name, install_from_cloud):
