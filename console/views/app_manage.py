@@ -1049,7 +1049,9 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
         cnb_mirror_source = request.data.get("cnb_mirror_source", "")
         cnb_mirror_npmrc = request.data.get("cnb_mirror_npmrc", "")
         cnb_mirror_yarnrc = request.data.get("cnb_mirror_yarnrc", "")
-        cnb_mirror_pnpmrc = request.data.get("cnb_mirror_pnpmrc", "")
+        # 配置文件检测标志
+        has_npmrc = request.data.get("has_npmrc", "")
+        has_yarnrc = request.data.get("has_yarnrc", "")
         # 修改语言和包依赖
         if lang:
             code, msg = app_manage_service.change_lang_and_package_tool(
@@ -1061,7 +1063,8 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
                 cnb_mirror_source=cnb_mirror_source,
                 cnb_mirror_npmrc=cnb_mirror_npmrc,
                 cnb_mirror_yarnrc=cnb_mirror_yarnrc,
-                cnb_mirror_pnpmrc=cnb_mirror_pnpmrc
+                has_npmrc=has_npmrc,
+                has_yarnrc=has_yarnrc
             )
             if code != 200:
                 return Response(status=code, data=general_message(code, "failed", "操作失败"))

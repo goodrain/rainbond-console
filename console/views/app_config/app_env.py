@@ -488,7 +488,7 @@ class AppBuildEnvView(AppBaseView):
         # 检查是否有 CNB 构建参数，自动设置 BUILD_TYPE=cnb
         cnb_params = [
             "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
+            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC"
         ]
         has_cnb_params = any(key in build_env_dict for key in cnb_params)
         if has_cnb_params and "BUILD_TYPE" not in build_env_dict:

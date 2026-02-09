@@ -555,16 +555,13 @@ class AppCheckService(object):
         if config_files:
             has_npmrc = config_files.get("has_npmrc", False)
             has_yarnrc = config_files.get("has_yarnrc", False)
-            has_pnpmrc = config_files.get("has_pnpmrc", False)
 
-            if has_npmrc or has_yarnrc or has_pnpmrc:
+            if has_npmrc or has_yarnrc:
                 config_items = []
                 if has_npmrc:
                     config_items.append(".npmrc")
                 if has_yarnrc:
                     config_items.append(".yarnrc")
-                if has_pnpmrc:
-                    config_items.append(".pnpmrc")
 
                 config_bean = {
                     "type": "config_files",
@@ -573,7 +570,6 @@ class AppCheckService(object):
                     "data": {
                         "has_npmrc": has_npmrc,
                         "has_yarnrc": has_yarnrc,
-                        "has_pnpmrc": has_pnpmrc,
                     }
                 }
                 service_attr_list.append(config_bean)
@@ -667,9 +663,8 @@ class AppCheckService(object):
         """添加配置文件检测信息到服务属性列表。"""
         has_npmrc = envs_dict.get("BUILD_HAS_NPMRC") == "true"
         has_yarnrc = envs_dict.get("BUILD_HAS_YARNRC") == "true"
-        has_pnpmrc = envs_dict.get("BUILD_HAS_PNPMRC") == "true"
 
-        if not (has_npmrc or has_yarnrc or has_pnpmrc):
+        if not (has_npmrc or has_yarnrc):
             return
 
         config_items = []
@@ -677,8 +672,6 @@ class AppCheckService(object):
             config_items.append(".npmrc")
         if has_yarnrc:
             config_items.append(".yarnrc")
-        if has_pnpmrc:
-            config_items.append(".pnpmrc")
 
         config_bean = {
             "type": "config_files",
@@ -687,7 +680,6 @@ class AppCheckService(object):
             "data": {
                 "has_npmrc": has_npmrc,
                 "has_yarnrc": has_yarnrc,
-                "has_pnpmrc": has_pnpmrc,
             }
         }
         service_attr_list.append(config_bean)
