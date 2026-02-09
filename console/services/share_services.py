@@ -750,6 +750,20 @@ class ShareService(object):
                 app_template["group_dev_status"] = ""
                 app_template["governance_mode"] = governance_mode
                 app_template["k8s_resources"] = share_k8s_resources
+                # 平台插件信息
+                is_platform_plugin = share_version_info.get("is_platform_plugin", False)
+                if is_platform_plugin:
+                    app_template["platform_plugin"] = {
+                        "is_platform_plugin": True,
+                        "plugin_id": share_version_info.get("plugin_id", ""),
+                        "plugin_name": share_version_info.get("plugin_name", ""),
+                        "plugin_type": share_version_info.get("plugin_type", ""),
+                        "frontend_component": share_version_info.get("frontend_component", ""),
+                        "entry_path": share_version_info.get("entry_path", ""),
+                        "inject_position": share_version_info.get("inject_position", []),
+                        "menu_title": share_version_info.get("menu_title", ""),
+                        "route_path": share_version_info.get("route_path", ""),
+                    }
             except Exception as e:
                 if sid:
                     transaction.savepoint_rollback(sid)
