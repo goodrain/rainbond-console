@@ -269,25 +269,31 @@ class AppManageService(AppManageBase):
                     git_url = instance.get_clone_url(service.git_url)
                 except NoAccessKeyErr:
                     return 400, "该组件代码仓库认证信息已过期，请重新认证", ""
+                build_type = body["envs"].get("BUILD_TYPE", "") or body["envs"].get("TYPE", "")
+                # CNB 构建的容器镜像自带 entrypoint，不需要 "start web" 等 slug 启动命令
+                cmd = "" if build_type == "cnb" else service.cmd
                 body["code_info"] = {
                     "repo_url": git_url,
                     "branch": service.code_version,
                     "server_type": service.server_type,
                     "lang": service.language,
-                    "cmd": service.cmd,
-                    "build_type": body["envs"].get("BUILD_TYPE", "") or body["envs"].get("TYPE", ""),
+                    "cmd": cmd,
+                    "build_type": build_type,
                 }
                 # 如果是 dockerfile 类型且有 dockerfile_path，添加到构建参数中
                 if service.language == "dockerfile" and service.dockerfile:
                     body["code_info"]["dockerfile_path"] = service.dockerfile
             else:
+                build_type = body["envs"].get("BUILD_TYPE", "") or body["envs"].get("TYPE", "")
+                # CNB 构建的容器镜像自带 entrypoint，不需要 "start web" 等 slug 启动命令
+                cmd = "" if build_type == "cnb" else service.cmd
                 body["code_info"] = {
                     "repo_url": service.git_url,
                     "branch": service.code_version,
                     "server_type": service.server_type,
                     "lang": service.language,
-                    "cmd": service.cmd,
-                    "build_type": body["envs"].get("BUILD_TYPE", "") or body["envs"].get("TYPE", ""),
+                    "cmd": cmd,
+                    "build_type": build_type,
                 }
                 # 如果是 dockerfile 类型且有 dockerfile_path，添加到构建参数中
                 if service.language == "dockerfile" and service.dockerfile:
@@ -695,8 +701,10 @@ class AppManageService(AppManageBase):
                 source_code["branch"] = service.code_version
                 source_code["server_type"] = service.server_type
                 source_code["lang"] = service.language
-                source_code["cmd"] = service.cmd
-                source_code["build_type"] = envs.get("BUILD_TYPE", "") or envs.get("TYPE", "")
+                build_type = envs.get("BUILD_TYPE", "") or envs.get("TYPE", "")
+                # CNB 构建的容器镜像自带 entrypoint，不需要 "start web" 等 slug 启动命令
+                source_code["cmd"] = "" if build_type == "cnb" else service.cmd
+                source_code["build_type"] = build_type
                 if service.oauth_service_id:
                     try:
                         oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service.oauth_service_id)
