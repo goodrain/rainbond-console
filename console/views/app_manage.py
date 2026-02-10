@@ -1045,6 +1045,7 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
         cnb_build_script = request.data.get("cnb_build_script", "")
         cnb_output_dir = request.data.get("cnb_output_dir", "")
         cnb_node_version = request.data.get("cnb_node_version", "")
+        cnb_node_env = request.data.get("cnb_node_env", "")
         # CNB Mirror 配置参数
         cnb_mirror_source = request.data.get("cnb_mirror_source", "")
         cnb_mirror_npmrc = request.data.get("cnb_mirror_npmrc", "")
@@ -1060,6 +1061,7 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
                 cnb_build_script=cnb_build_script,
                 cnb_output_dir=cnb_output_dir,
                 cnb_node_version=cnb_node_version,
+                cnb_node_env=cnb_node_env,
                 cnb_mirror_source=cnb_mirror_source,
                 cnb_mirror_npmrc=cnb_mirror_npmrc,
                 cnb_mirror_yarnrc=cnb_mirror_yarnrc,

@@ -1410,7 +1410,7 @@ class AppManageService(AppManageBase):
 
     def change_lang_and_package_tool(self, tenant, service, lang, package_tool, dist,
                                       cnb_framework="", cnb_build_script="", cnb_output_dir="",
-                                      cnb_node_version="", cnb_mirror_source="",
+                                      cnb_node_version="", cnb_node_env="", cnb_mirror_source="",
                                       cnb_mirror_npmrc="", cnb_mirror_yarnrc="",
                                       has_npmrc="", has_yarnrc=""):
         serivce_params = {"language": lang}
@@ -1433,7 +1433,7 @@ class AppManageService(AppManageBase):
                 env_var_repo.add_service_env(**tenantServiceEnvVar)
             # CNB 构建参数
             has_cnb_params = (cnb_framework or cnb_build_script or cnb_output_dir or cnb_node_version or
-                              cnb_mirror_source or cnb_mirror_npmrc or cnb_mirror_yarnrc)
+                              cnb_node_env or cnb_mirror_source or cnb_mirror_npmrc or cnb_mirror_yarnrc)
             if has_cnb_params:
                 # 设置 BUILD_TYPE 为 cnb，让 Builder 知道使用 CNB 构建
                 env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_TYPE", "cnb")
@@ -1445,6 +1445,8 @@ class AppManageService(AppManageBase):
                 env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_OUTPUT_DIR", cnb_output_dir)
             if cnb_node_version:
                 env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_NODE_VERSION", cnb_node_version)
+            if cnb_node_env:
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_NODE_ENV", cnb_node_env)
             # CNB Mirror 配置
             if cnb_mirror_source:
                 env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_MIRROR_SOURCE", cnb_mirror_source)
