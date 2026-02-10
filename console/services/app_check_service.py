@@ -316,7 +316,7 @@ class AppCheckService(object):
         working_dir = service_info.get("working_dir", "")
         logger.info("[compose-debug] service={0}, working_dir={1}".format(service.service_cname, working_dir))
         if working_dir:
-            self.__save_k8s_attribute(tenant, service, "workingDir", working_dir)
+            self.__save_k8s_attribute(tenant, service, "workingDir", working_dir, save_type="string")
 
     def __save_compile_env(self, tenant, service, language):
         # 删除原有 compile env
@@ -427,7 +427,7 @@ class AppCheckService(object):
         """Save compose entrypoint as K8s command via ComponentK8sAttribute."""
         self.__save_k8s_attribute(tenant, service, "cmd", json.dumps(command))
 
-    def __save_k8s_attribute(self, tenant, service, name, value):
+    def __save_k8s_attribute(self, tenant, service, name, value, save_type="json"):
         """Save a K8s attribute to console DB only. Region sync happens later in create_region_service."""
         logger.info("[compose-debug] __save_k8s_attribute called: service={0}, name={1}, value={2}".format(
             service.service_id, name, value))
@@ -441,7 +441,7 @@ class AppCheckService(object):
                     tenant_id=tenant.tenant_id,
                     component_id=service.service_id,
                     name=name,
-                    save_type="json",
+                    save_type=save_type,
                     attribute_value=value,
                 )
                 logger.info("[compose-debug] created k8s attribute {0} for service {1}".format(name, service.service_id))
