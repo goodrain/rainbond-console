@@ -21,10 +21,15 @@ class ComponentK8sAttributeService(object):
         attributes = k8s_attribute_repo.list_by_component_ids(component_ids)
         for attribute in attributes:
             if attribute.save_type == "json":
-                attribute.attribute_value = [{
-                    "key": key,
-                    "value": value
-                } for key, value in json.loads(attribute.attribute_value).items()]
+                parsed = json.loads(attribute.attribute_value)
+                if isinstance(parsed, dict):
+                    attribute.attribute_value = [{
+                        "key": key,
+                        "value": value
+                    } for key, value in parsed.items()]
+                else:
+                    # arrays (args, cmd) and plain strings (workingDir) pass through as-is
+                    attribute.attribute_value = parsed
             result.append(attribute.to_dict())
         return result
 

@@ -28,6 +28,7 @@ from console.repositories.app import (app_market_repo, service_repo, service_sou
 from console.repositories.app_config import dep_relation_repo
 from console.repositories.app_config import domain_repo as http_rule_repo
 from console.repositories.app_config import (env_var_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo)
+from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.repositories.probe_repo import probe_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_group_relation_repo import \
@@ -853,11 +854,32 @@ class AppService(object):
         data["job_strategy"] = service.job_strategy
         # create in region
         region_api.create_service(service.service_region, tenant.tenant_name, data)
+        # sync k8s attributes from console DB to region DB
+        self.__sync_k8s_attributes_to_region(tenant, service)
         # conponent install complete
         service.create_status = "complete"
         service.save()
         arch_service.update_affinity_by_arch(service.arch, tenant, service.service_region, service)
         return service
+
+    def __sync_k8s_attributes_to_region(self, tenant, service):
+        """Sync k8s attributes from console DB to region DB after component is registered in region."""
+        try:
+            attrs = k8s_attribute_repo.get_by_component_id(service.service_id)
+            logger.info("[compose-debug] sync k8s attributes to region: service={0}, count={1}".format(
+                service.service_id, attrs.count()))
+            for attr in attrs:
+                body = {"name": attr.name, "save_type": attr.save_type, "attribute_value": attr.attribute_value}
+                logger.info("[compose-debug] syncing k8s attribute to region: name={0}, value={1}".format(
+                    attr.name, attr.attribute_value))
+                try:
+                    region_api.create_component_k8s_attribute(
+                        tenant.tenant_name, service.service_region, service.service_alias, body)
+                    logger.info("[compose-debug] synced k8s attribute {0} to region OK".format(attr.name))
+                except Exception as e:
+                    logger.warning("[compose-debug] sync k8s attribute {0} to region FAILED: {1}".format(attr.name, e))
+        except Exception as e:
+            logger.warning("[compose-debug] query k8s attributes for sync FAILED: {0}".format(e))
 
     def __init_stream_rule_for_region(self, tenant, service, rule, user_name):
 

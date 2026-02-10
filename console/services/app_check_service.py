@@ -199,9 +199,13 @@ class AppCheckService(object):
 
     def save_service_check_info(self, tenant, app_id, service, data):
         # save the detection properties but does not throw any exception.
+        logger.info("[compose-debug] save_service_check_info called, check_status={0}, create_status={1}".format(
+            data.get("check_status"), service.create_status))
         if data["check_status"] == "success" and service.create_status == "checking":
             logger.debug("checking service info install,save info into database")
             service_info_list = data["service_info"]
+            logger.info("[compose-debug] service_info_list length={0}, keys={1}".format(
+                len(service_info_list), list(service_info_list[0].keys()) if service_info_list else "empty"))
             sid = None
             try:
                 sid = transaction.savepoint()
@@ -270,6 +274,8 @@ class AppCheckService(object):
 
     def save_service_info(self, tenant, service, check_service_info):
         service_info = check_service_info
+        logger.info("[compose-debug] save_service_info called for service={0}, all keys={1}".format(
+            service.service_cname, list(service_info.keys())))
         service.language = service_info.get("language", "")
         memory = service_info.get("memory", 128)
         service.min_memory = memory - memory % 32
@@ -279,8 +285,10 @@ class AppCheckService(object):
             service_info.get("service_type", ComponentType.stateless_multiple.value)))
         service.extend_method = service_info.get("service_type", ComponentType.stateless_multiple.value)
         args = service_info.get("args", None)
+        logger.info("[compose-debug] service={0}, args={1}".format(service.service_cname, args))
         if args:
             service.cmd = " ".join(args)
+            self.__save_k8s_attribute(tenant, service, "args", json.dumps(args))
         else:
             service.cmd = ""
         image = service_info.get("image", None)
@@ -301,8 +309,14 @@ class AppCheckService(object):
         self.__save_volume(tenant, service, volumes)
         # save compose entrypoint as K8s command via ComponentK8sAttribute
         command = service_info.get("command", None)
+        logger.info("[compose-debug] service={0}, command={1}".format(service.service_cname, command))
         if command:
             self.__save_k8s_command(tenant, service, command)
+        # save working_dir as K8s workingDir via ComponentK8sAttribute
+        working_dir = service_info.get("working_dir", "")
+        logger.info("[compose-debug] service={0}, working_dir={1}".format(service.service_cname, working_dir))
+        if working_dir:
+            self.__save_k8s_attribute(tenant, service, "workingDir", working_dir)
 
     def __save_compile_env(self, tenant, service, language):
         # 删除原有 compile env
@@ -410,28 +424,30 @@ class AppCheckService(object):
                         logger.warning("Volume Path {0} error".format(volume["volume_path"]))
 
     def __save_k8s_command(self, tenant, service, command):
-        """Save compose entrypoint as K8s command via ComponentK8sAttribute.
+        """Save compose entrypoint as K8s command via ComponentK8sAttribute."""
+        self.__save_k8s_attribute(tenant, service, "cmd", json.dumps(command))
 
-        Note: entrypoint: [""] in compose means "clear the image ENTRYPOINT".
-        We store this as a single empty string so the worker can set
-        container.Command = [""] in the K8s pod spec.
-        """
-        cmd_value = " ".join(command)
+    def __save_k8s_attribute(self, tenant, service, name, value):
+        """Save a K8s attribute to console DB only. Region sync happens later in create_region_service."""
+        logger.info("[compose-debug] __save_k8s_attribute called: service={0}, name={1}, value={2}".format(
+            service.service_id, name, value))
         try:
-            existing = k8s_attribute_repo.get_by_component_id_name(service.service_id, "cmd")
+            existing = k8s_attribute_repo.get_by_component_id_name(service.service_id, name)
             if existing.exists():
-                k8s_attribute_repo.update(service.service_id, "cmd", attribute_value=cmd_value)
+                k8s_attribute_repo.update(service.service_id, name, attribute_value=value)
+                logger.info("[compose-debug] updated k8s attribute {0} for service {1}".format(name, service.service_id))
             else:
                 k8s_attribute_repo.create(
                     tenant_id=tenant.tenant_id,
                     component_id=service.service_id,
-                    name="cmd",
-                    save_type="string",
-                    attribute_value=cmd_value,
+                    name=name,
+                    save_type="json",
+                    attribute_value=value,
                 )
-            logger.info("saved K8s command for service {0}: {1!r}".format(service.service_cname, cmd_value))
+                logger.info("[compose-debug] created k8s attribute {0} for service {1}".format(name, service.service_id))
         except Exception as e:
-            logger.error("save K8s command for service {0} failed: {1}".format(service.service_cname, e))
+            logger.error("[compose-debug] save K8s attribute {0} for service {1} FAILED: {2}".format(
+                name, service.service_id, e))
 
     def wrap_service_check_info(self, service, data):
         rt_info = dict()
