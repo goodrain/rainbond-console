@@ -12,6 +12,7 @@ from console.exception.main import ErrVolumePath, ServiceHandleException
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.group import group_repo
+from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config import (compile_env_service, domain_service, env_var_service, label_service, port_service,
@@ -298,6 +299,10 @@ class AppCheckService(object):
         self.__save_env(tenant, service, envs)
         self.__save_port(tenant, service, ports)
         self.__save_volume(tenant, service, volumes)
+        # save compose entrypoint as K8s command via ComponentK8sAttribute
+        command = service_info.get("command", None)
+        if command:
+            self.__save_k8s_command(tenant, service, command)
 
     def __save_compile_env(self, tenant, service, language):
         # 删除原有 compile env
@@ -351,7 +356,8 @@ class AppCheckService(object):
                     port["protocol"] = "tcp"
                 code, msg, port_data = port_service.add_service_port(
                     tenant, service, int(port["container_port"]), port["protocol"],
-                    service.service_alias.upper() + str(port["container_port"]), True, True)
+                    service.service_alias.upper() + str(port["container_port"]), True, True,
+                    k8s_service_name=service.k8s_component_name if service.k8s_component_name else None)
                 if code != 200:
                     logger.error("save service check info port error {0}".format(msg))
                 if region_info:
@@ -402,6 +408,30 @@ class AppCheckService(object):
                                                           volume_name, None, settings)
                     except ErrVolumePath:
                         logger.warning("Volume Path {0} error".format(volume["volume_path"]))
+
+    def __save_k8s_command(self, tenant, service, command):
+        """Save compose entrypoint as K8s command via ComponentK8sAttribute.
+
+        Note: entrypoint: [""] in compose means "clear the image ENTRYPOINT".
+        We store this as a single empty string so the worker can set
+        container.Command = [""] in the K8s pod spec.
+        """
+        cmd_value = " ".join(command)
+        try:
+            existing = k8s_attribute_repo.get_by_component_id_name(service.service_id, "cmd")
+            if existing.exists():
+                k8s_attribute_repo.update(service.service_id, "cmd", attribute_value=cmd_value)
+            else:
+                k8s_attribute_repo.create(
+                    tenant_id=tenant.tenant_id,
+                    component_id=service.service_id,
+                    name="cmd",
+                    save_type="string",
+                    attribute_value=cmd_value,
+                )
+            logger.info("saved K8s command for service {0}: {1!r}".format(service.service_cname, cmd_value))
+        except Exception as e:
+            logger.error("save K8s command for service {0} failed: {1}".format(service.service_cname, e))
 
     def wrap_service_check_info(self, service, data):
         rt_info = dict()
