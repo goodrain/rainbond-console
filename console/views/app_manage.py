@@ -1046,6 +1046,7 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
         cnb_output_dir = request.data.get("cnb_output_dir", "")
         cnb_node_version = request.data.get("cnb_node_version", "")
         cnb_node_env = request.data.get("cnb_node_env", "")
+        cnb_start_script = request.data.get("cnb_start_script", "")
         # CNB Mirror 配置参数
         cnb_mirror_source = request.data.get("cnb_mirror_source", "")
         cnb_mirror_npmrc = request.data.get("cnb_mirror_npmrc", "")
@@ -1066,7 +1067,8 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
                 cnb_mirror_npmrc=cnb_mirror_npmrc,
                 cnb_mirror_yarnrc=cnb_mirror_yarnrc,
                 has_npmrc=has_npmrc,
-                has_yarnrc=has_yarnrc
+                has_yarnrc=has_yarnrc,
+                cnb_start_script=cnb_start_script
             )
             if code != 200:
                 return Response(status=code, data=general_message(code, "failed", "操作失败"))
