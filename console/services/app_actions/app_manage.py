@@ -1447,12 +1447,9 @@ class AppManageService(AppManageBase):
                 env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_NODE_VERSION", cnb_node_version)
             if cnb_node_env:
                 env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_NODE_ENV", cnb_node_env)
-            # CNB Start Script - map to package-manager-specific BP env var
+            # CNB Start Script - 统一存为 CNB_START_SCRIPT，由 Builder 转换为 BP_NPM_START_SCRIPT
             if cnb_start_script:
-                bp_start_script_key = "BP_NPM_START_SCRIPT"
-                if package_tool == "pnpm":
-                    bp_start_script_key = "BP_PNPM_START_SCRIPT"
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, bp_start_script_key, cnb_start_script)
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_START_SCRIPT", cnb_start_script)
             # CNB Mirror 配置
             if cnb_mirror_source:
                 env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_MIRROR_SOURCE", cnb_mirror_source)

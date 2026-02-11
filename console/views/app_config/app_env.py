@@ -488,18 +488,12 @@ class AppBuildEnvView(AppBaseView):
         # 检查是否有 CNB 构建参数，自动设置 BUILD_TYPE=cnb
         cnb_params = [
             "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_NODE_ENV", "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC"
+            "CNB_NODE_ENV", "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC",
+            "CNB_START_SCRIPT"
         ]
         has_cnb_params = any(key in build_env_dict for key in cnb_params)
         if has_cnb_params and "BUILD_TYPE" not in build_env_dict:
             build_env_dict["BUILD_TYPE"] = "cnb"
-
-        # cnb_start_script → BP_NPM_START_SCRIPT / BP_PNPM_START_SCRIPT
-        cnb_start_script = build_env_dict.pop("cnb_start_script", "")
-        if cnb_start_script:
-            package_tool = build_env_dict.get("BUILD_PACKAGE_TOOL", "npm")
-            bp_key = "BP_PNPM_START_SCRIPT" if package_tool == "pnpm" else "BP_NPM_START_SCRIPT"
-            build_env_dict[bp_key] = cnb_start_script
 
         for key, value in list(build_env_dict.items()):
             name = "构建运行时环境变量"
