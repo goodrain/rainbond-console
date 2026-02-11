@@ -2406,6 +2406,27 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
 
+    def get_license_cluster_id(self, enterprise_id, region_name):
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        url = url + "/v2/license/cluster-id"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
+        return body
+
+    def activate_license(self, enterprise_id, region_name, license_code):
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        url = url + "/v2/license/activate"
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, body=json.dumps({"license": license_code}), region=region_name, timeout=10)
+        return body
+
+    def get_license_status(self, enterprise_id, region_name):
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        url = url + "/v2/license/status"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
+        return body
+
     def list_app_statuses_by_app_ids(self, tenant_name, region_name, body):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{tenant_name}/appstatuses".format(tenant_name=tenant_name)

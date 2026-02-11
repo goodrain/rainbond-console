@@ -26,15 +26,19 @@ class LicenseService(object):
         bean = resp["bean"]
         resp = {
             "authz_code": authz.value,
-            "end_time": bean.get("end_time", ""),
+            "valid": bean.get("valid", False),
+            "reason": bean.get("reason", ""),
+            "code": bean.get("code", ""),
             "company": bean.get("company", ""),
             "contact": bean.get("contact", ""),
-            "expect_cluster": bean.get("expect_cluster", 0),
-            "actual_cluster": bean.get("actual_cluster", 0),
-            "expect_node": bean.get("expect_node", 0),
-            "actual_node": bean.get("actual_node", 0),
-            "expect_memory": bean.get("expect_memory", 0),
-            "actual_memory": bean.get("actual_memory", 0),
+            "tier": bean.get("tier", ""),
+            "cluster_id": bean.get("cluster_id", ""),
+            "start_at": bean.get("start_at", 0),
+            "expire_at": bean.get("expire_at", 0),
+            "subscribe_until": bean.get("subscribe_until", 0),
+            "node_limit": bean.get("node_limit", 0),
+            "memory_limit": bean.get("memory_limit", 0),
+            "cpu_limit": bean.get("cpu_limit", 0),
         }
         return authz.value, resp
 
@@ -46,6 +50,18 @@ class LicenseService(object):
             "value": config[0].value
         }
         return config_dict
+
+    def get_cluster_id(self, enterprise_id, region_name):
+        body = region_api.get_license_cluster_id(enterprise_id, region_name)
+        return body
+
+    def activate_license(self, enterprise_id, region_name, license_code):
+        body = region_api.activate_license(enterprise_id, region_name, license_code)
+        return body
+
+    def get_license_status(self, enterprise_id, region_name):
+        body = region_api.get_license_status(enterprise_id, region_name)
+        return body
 
 
 license_service = LicenseService()

@@ -96,7 +96,7 @@ from console.views.group import (
 from console.views.helm_app import HelmAppView, HelmRepo, HelmCenterApp, HelmChart, CommandInstallHelm, HelmList, \
     HelmRepoAdd, UploadHelmChart, UploadHelmChartValueResource, UploadHelmChartValue
 from console.views.jwt_token_view import JWTTokenView
-from console.views.license import LicenseLView
+from console.views.license import LicenseLView, LicenseClusterIDView, LicenseActivateView, LicenseStatusView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
 from console.views.k8s_resource import AppK8sResourceListView, AppK8ResourceView
 from console.views.log_proxy import LogProxyView
@@ -200,6 +200,9 @@ urlpatterns = [
     url(r'^perms$', PermsInfoLView.as_view()),
     url(r'^custom_configs$', CustomConfigsCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/licenses$', LicenseLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/license/cluster-id$', LicenseClusterIDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/license/activate$', LicenseActivateView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/license/status$', LicenseStatusView.as_view()),
     # 超分比例
     url(r"^over_score$", OverScore.as_view()),
     # OAuth
