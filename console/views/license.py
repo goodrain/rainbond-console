@@ -42,9 +42,9 @@ class LicenseClusterIDView(JWTAuthApiView):
 class LicenseActivateView(JWTAuthApiView):
     def post(self, request, enterprise_id, region_name, *args, **kwargs):
         try:
-            license_code = request.data.get("license")
+            license_code = request.data.get("license_code")
             if not license_code:
-                result = general_message(400, "error", "license field is required")
+                result = general_message(400, "error", "license_code field is required")
                 return Response(result, status=400)
             body = license_service.activate_license(enterprise_id, region_name, license_code)
             bean = body.get("bean", {}) if body else {}

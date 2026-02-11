@@ -163,6 +163,10 @@ class MarketAppService(object):
                         fp = frontend_ports[0]
                         frontend_service = "{}.{}.svc.cluster.local:{}".format(
                             fp.k8s_service_name, namespace, fp.container_port)
+                        # Append entry_path to frontend_service so the full URL is stored
+                        entry_path = platform_plugin.get("entry_path", "")
+                        if entry_path:
+                            frontend_service = frontend_service.rstrip("/") + "/" + entry_path.lstrip("/")
 
                     # Find backend: get frontend's dependencies
                     deps = dep_relation_repo.get_service_dependencies(tenant.tenant_id, frontend_cpt.service_id)

@@ -2417,7 +2417,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
         url = url + "/v2/license/activate"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, body=json.dumps({"license": license_code}), region=region_name, timeout=10)
+        res, body = self._post(
+            url,
+            self.default_headers,
+            body=json.dumps({"license_code": license_code, "enterprise_id": enterprise_id}),
+            region=region_name,
+            timeout=10)
         return body
 
     def get_license_status(self, enterprise_id, region_name):
