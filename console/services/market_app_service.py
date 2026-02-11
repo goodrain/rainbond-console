@@ -53,7 +53,7 @@ from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 # model
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceEnvVar, TenantServiceInfo,
-                             TenantServicesPort, Users, ServiceGroup, Tenants)
+                             TenantServicesPort, Users, ServiceGroup, Tenants, ServiceGroupRelation)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -117,7 +117,7 @@ class MarketAppService(object):
         else:
             app_upgrade.install()
         # If the app template contains platform_plugin info, create RBDPlugin CR
-        self._create_rbdplugin_if_needed(tenant, region, app_template)
+        self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
         return market_app.app_name
 
     def get_app_template(self, app_model_key, install_from_cloud, market_name, region, tenant, user, version):
@@ -141,7 +141,7 @@ class MarketAppService(object):
         app_template["arch"] = app_version.arch
         return app_template, market_app
 
-    def _create_rbdplugin_if_needed(self, tenant, region, app_template):
+    def _create_rbdplugin_if_needed(self, tenant, region, app_template, app_id):
         """If app_template contains platform_plugin info, create RBDPlugin CR via region API"""
         platform_plugin = app_template.get("platform_plugin")
         if not platform_plugin or not platform_plugin.get("is_platform_plugin"):
@@ -152,10 +152,16 @@ class MarketAppService(object):
             frontend_service = ""
             backend_service = ""
 
-            # Find frontend component by service_cname and build FQDN
+            # Get service_ids belonging to this app to avoid cross-app name collision
+            app_service_ids = ServiceGroupRelation.objects.filter(
+                group_id=app_id, tenant_id=tenant.tenant_id
+            ).values_list("service_id", flat=True)
+
+            # Find frontend component by service_cname within this app
             if frontend_component_name:
                 frontend_cpt = TenantServiceInfo.objects.filter(
-                    tenant_id=tenant.tenant_id, service_cname=frontend_component_name
+                    tenant_id=tenant.tenant_id, service_cname=frontend_component_name,
+                    service_id__in=app_service_ids
                 ).first()
                 if frontend_cpt:
                     frontend_ports = port_repo.get_service_ports(tenant.tenant_id, frontend_cpt.service_id)
@@ -241,7 +247,7 @@ class MarketAppService(object):
                 "",
                 is_deploy=True)
             app_upgrade.install()
-            self._create_rbdplugin_if_needed(tenant, region, app_template)
+            self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
             return app_template["group_name"]
         return
 
@@ -1789,7 +1795,7 @@ class MarketAppService(object):
             is_deploy=is_deploy)
         app_upgrade.install_plugins()
         # If the app template contains platform_plugin info, create RBDPlugin CR
-        self._create_rbdplugin_if_needed(tenant, region, app_template)
+        self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
         return market_app.app_name
 
     def get_plugin_install_status(self, tenant, region, user, app_model_key, version, market_name, install_from_cloud):
