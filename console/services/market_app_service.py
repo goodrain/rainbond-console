@@ -25,6 +25,7 @@ from console.repositories.group import group_repo, tenant_service_group_repo
 from console.repositories.market_app_repo import (app_import_record_repo, rainbond_app_repo)
 from console.repositories.plugin import plugin_repo
 from console.repositories.plugin.plugin import plugin_version_repo
+from console.repositories.region_app import region_app_repo
 from console.repositories.service_repo import service_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
@@ -117,7 +118,7 @@ class MarketAppService(object):
         else:
             app_upgrade.install()
         # If the app template contains platform_plugin info, create RBDPlugin CR
-        self._create_rbdplugin_if_needed(tenant, region, app_template)
+        self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
         return market_app.app_name
 
     def get_app_template(self, app_model_key, install_from_cloud, market_name, region, tenant, user, version):
@@ -141,7 +142,7 @@ class MarketAppService(object):
         app_template["arch"] = app_version.arch
         return app_template, market_app
 
-    def _create_rbdplugin_if_needed(self, tenant, region, app_template):
+    def _create_rbdplugin_if_needed(self, tenant, region, app_template, app_id=None):
         """If app_template contains platform_plugin info, create RBDPlugin CR via region API"""
         platform_plugin = app_template.get("platform_plugin")
         if not platform_plugin or not platform_plugin.get("is_platform_plugin"):
@@ -178,6 +179,14 @@ class MarketAppService(object):
                             backend_service = "{}.{}.svc.cluster.local:{}".format(
                                 bp.k8s_service_name, namespace, bp.container_port)
 
+            # Resolve region_app_id from app_id
+            region_app_id = ""
+            if app_id:
+                try:
+                    region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
+                except Exception:
+                    logger.warning("Failed to get region_app_id for app_id: %s", app_id)
+
             plugin_data = {
                 "plugin_id": platform_plugin.get("plugin_id", ""),
                 "plugin_name": platform_plugin.get("plugin_name", ""),
@@ -190,6 +199,7 @@ class MarketAppService(object):
                 "namespace": namespace,
                 "frontend_service": frontend_service,
                 "backend_service": backend_service,
+                "app_id": region_app_id,
             }
             region_api.create_rbdplugin(tenant.enterprise_id, region.region_name, plugin_data)
             logger.info("Created RBDPlugin CR for plugin: %s", plugin_data.get("plugin_id"))
@@ -241,7 +251,7 @@ class MarketAppService(object):
                 "",
                 is_deploy=True)
             app_upgrade.install()
-            self._create_rbdplugin_if_needed(tenant, region, app_template)
+            self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
             return app_template["group_name"]
         return
 
@@ -1789,7 +1799,7 @@ class MarketAppService(object):
             is_deploy=is_deploy)
         app_upgrade.install_plugins()
         # If the app template contains platform_plugin info, create RBDPlugin CR
-        self._create_rbdplugin_if_needed(tenant, region, app_template)
+        self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
         return market_app.app_name
 
     def get_plugin_install_status(self, tenant, region, user, app_model_key, version, market_name, install_from_cloud):
