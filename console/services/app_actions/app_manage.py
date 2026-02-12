@@ -1419,6 +1419,7 @@ class AppManageService(AppManageBase):
             # 传统构建参数（兼容老组件）
             if package_tool:
                 env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_PACKAGE_TOOL", package_tool)
+                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_PACKAGE_TOOL", package_tool)
             # 处理静态站点输出目录（支持 Node.js 前端项目）
             if dist and ("Node" in lang or "static" in lang.lower()):
                 tenantServiceEnvVar = {}
