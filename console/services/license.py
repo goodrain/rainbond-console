@@ -1,4 +1,6 @@
 # -*- coding: utf8 -*-
+import base64
+import json
 import os
 import logging
 
@@ -12,6 +14,27 @@ logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 
+def _decode_authz_code(authz_code):
+    """Decode base64 authz_code to extract plugin info locally (no verification)."""
+    try:
+        data = base64.b64decode(authz_code)
+        return json.loads(data)
+    except Exception:
+        return {}
+
+
+def _build_plugins_list(plugin_mapping, plugin_names):
+    """Build plugins list from plugin_mapping + plugin_names."""
+    plugins = []
+    for pid, app_key in plugin_mapping.items():
+        plugins.append({
+            "plugin_id": pid,
+            "app_key": app_key,
+            "name": plugin_names.get(pid, pid),
+        })
+    return plugins
+
+
 class LicenseService(object):
     def get_licenses(self, enterprise_id):
         authz = ConsoleSysConfig.objects.filter(key="AUTHZ_CODE").first()
@@ -20,10 +43,15 @@ class LicenseService(object):
         regions = region_repo.get_usable_regions(enterprise_id)
         region = regions.first()
         if not region:
+            # No cluster: decode authz_code locally for plugin info
+            token = _decode_authz_code(authz.value)
+            pm = token.get("plugin_mapping", {})
+            pn = token.get("plugin_names", {})
             return authz.value, {
                 "authz_code": authz.value,
                 "valid": False,
                 "reason": "no_region",
+                "plugins": _build_plugins_list(pm, pn),
             }
         bean = {}
         try:
@@ -42,6 +70,8 @@ class LicenseService(object):
                     bean = body.get("bean", {}) if body else {}
                 except Exception as e:
                     logger.warning("auto-activate license on region %s failed: %s", region.region_name, e)
+        plugin_mapping = bean.get("plugin_mapping", {})
+        plugin_names = bean.get("plugin_names", {})
         resp = {
             "authz_code": authz.value,
             "valid": bean.get("valid", False),
@@ -52,7 +82,8 @@ class LicenseService(object):
             "contact": bean.get("contact", ""),
             "tier": bean.get("tier", ""),
             "cluster_id": bean.get("cluster_id", ""),
-            "plugin_mapping": bean.get("plugin_mapping", {}),
+            "plugin_mapping": plugin_mapping,
+            "plugins": _build_plugins_list(plugin_mapping, plugin_names),
             "start_at": bean.get("start_at", 0),
             "expire_at": bean.get("expire_at", 0),
             "subscribe_until": bean.get("subscribe_until", 0),

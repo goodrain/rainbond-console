@@ -20,12 +20,14 @@ class PlatformPluginService(object):
         """
         # 1. Get license status for plugin_mapping and access_key
         plugin_mapping = {}
+        plugin_names = {}
         access_key = ""
         try:
             body = license_service.get_license_status(
                 enterprise_id, region_name)
             bean = body.get("bean", {}) if body else {}
             plugin_mapping = bean.get("plugin_mapping", {})
+            plugin_names = bean.get("plugin_names", {})
             access_key = bean.get("access_key", "")
         except Exception as e:
             logger.warning("Failed to get license status: %s", e)
@@ -69,7 +71,7 @@ class PlatformPluginService(object):
             plugin_info = {
                 "plugin_id": plugin_id,
                 "app_key": app_key,
-                "plugin_name": plugin_id,
+                "plugin_name": plugin_names.get(plugin_id, plugin_id),
                 "description": "",
                 "logo": "",
                 "installed": False,
