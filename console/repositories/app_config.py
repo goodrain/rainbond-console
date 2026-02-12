@@ -82,7 +82,15 @@ class TenantServiceEnvVarRepository(object):
         TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id).delete()
 
     def delete_service_build_env(self, tenant_id, service_id):
-        TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, scope="build").delete()
+        # 排除 CNB_* 和 BUILD_TYPE 变量，避免重新检测时误删用户设置的 CNB 构建参数
+        # BUILD_TYPE 由 change_lang_and_package_tool 设置，检测不产生此变量
+        TenantServiceEnvVar.objects.filter(
+            tenant_id=tenant_id, service_id=service_id, scope="build"
+        ).exclude(
+            attr_name__startswith="CNB_"
+        ).exclude(
+            attr_name="BUILD_TYPE"
+        ).delete()
 
     def delete_service_env_by_attr_name(self, tenant_id, service_id, attr_name):
         TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, attr_name=attr_name).delete()
