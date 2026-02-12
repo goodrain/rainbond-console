@@ -3,6 +3,7 @@ import logging
 
 from console.services.license import license_service
 from console.utils.restful_client import get_market_client
+from console.repositories.region_app import region_app_repo
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
@@ -40,7 +41,22 @@ class PlatformPluginService(object):
         except Exception as e:
             logger.warning("Failed to list region plugins: %s", e)
 
-        # 3. Fetch market info for each plugin in plugin_mapping
+        # 3. Map region_app_id → console app_id for installed plugins
+        region_app_id_map = {}
+        region_app_ids = []
+        for p in installed_plugins.values():
+            raid = p.get("region_app_id", "")
+            if raid:
+                region_app_ids.append(raid)
+        if region_app_ids:
+            try:
+                region_apps = region_app_repo.list_by_region_app_ids(region_name, region_app_ids)
+                for ra in region_apps:
+                    region_app_id_map[ra.region_app_id] = ra.app_id
+            except Exception as e:
+                logger.warning("Failed to map region_app_ids: %s", e)
+
+        # 4. Fetch market info for each plugin in plugin_mapping
         result = []
         market_client = None
         if access_key:
@@ -59,6 +75,8 @@ class PlatformPluginService(object):
                 "installed": False,
                 "status": "",
                 "version": "",
+                "team_name": "",
+                "app_id": -1,
             }
 
             # Try to get app info from market
@@ -78,6 +96,9 @@ class PlatformPluginService(object):
                 plugin_info["installed"] = True
                 p = installed_plugins[plugin_id]
                 plugin_info["status"] = p.get("status", "")
+                plugin_info["team_name"] = p.get("team_name", "")
+                raid = p.get("region_app_id", "")
+                plugin_info["app_id"] = region_app_id_map.get(raid, -1)
 
             result.append(plugin_info)
 
