@@ -319,7 +319,6 @@ class ServiceShareInfoView(RegionTenantHeaderView):
         """
         data = dict()
         scope = request.GET.get("scope")
-        plugin_id = request.GET.get("plugin_id")
         share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -329,7 +328,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             return Response(result, status=400)
         if not scope:
             scope = share_record.scope
-        service_info_list = share_service.query_share_service_info(team=self.team, group_id=share_record.group_id, scope=scope, plugin_id=plugin_id)
+        service_info_list = share_service.query_share_service_info(team=self.team, group_id=share_record.group_id, scope=scope)
         data["share_service_list"] = service_info_list
         plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
         data["share_plugin_list"] = plugins

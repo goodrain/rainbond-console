@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+import hashlib
 import json
 import logging
 import os
@@ -10,7 +11,8 @@ from console.appstore.appstore import app_store
 from console.enum.app import GovernanceModeEnum
 from console.enum.component_enum import is_singleton, is_kubeblocks
 from console.exception.main import (AbortRequest, RbdAppNotFound, ServiceHandleException)
-from console.models.main import (PluginShareRecordEvent, RainbondCenterApp, RainbondCenterAppVersion, ServiceShareRecordEvent)
+from console.models.main import (PluginShareRecordEvent, RainbondCenterApp, RainbondCenterAppVersion,
+                                 ServiceShareRecordEvent, ServiceSourceInfo)
 from console.repositories.app import app_tag_repo
 from console.repositories.app_config import mnt_repo, volume_repo
 from console.repositories.app_config_group import (app_config_group_item_repo, app_config_group_repo,
@@ -230,7 +232,7 @@ class ShareService(object):
         logger.debug("======>get services deploy version failure")
         return None
 
-    def query_share_service_info(self, team, group_id, scope=None, plugin_id=None):
+    def query_share_service_info(self, team, group_id, scope=None):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         # 过滤掉 kubeblocks 类型的组件
         service_list = [s for s in service_list if not is_kubeblocks(s.extend_method)]
@@ -276,9 +278,6 @@ class ShareService(object):
                 data['service_key'] = service.service_id
                 # service_share_uuid The build policy cannot be changed
                 data["service_share_uuid"] = "{0}+{1}".format(data['service_key'], data['service_id'])
-                # For platform plugin publish, override service_share_uuid with plugin_id
-                if plugin_id:
-                    data["service_share_uuid"] = "{0}+{1}".format(plugin_id, data['service_id'])
                 data['need_share'] = True
                 data['category'] = service.category
                 data['language'] = service.language
@@ -820,6 +819,44 @@ class ShareService(object):
                     version_list = base_service.get_apps_deploy_versions(services[0]["service_region"], share_team.tenant_name,
                                                                          service_ids)
                     delivered_type_map = {v["service_id"]: v["delivered_type"] for v in version_list}
+
+                    # For platform plugin publish, generate stable service_share_uuid
+                    # so that the same plugin produces identical UUIDs across publishes.
+                    # Priority: 1) original UUID from ServiceSourceInfo (installed from template)
+                    #           2) hash(plugin_id + service_cname) for first-time publish
+                    is_platform_plugin = share_version_info.get("is_platform_plugin", False)
+                    platform_plugin_id = share_version_info.get("plugin_id", "")
+                    if is_platform_plugin and platform_plugin_id:
+                        # Batch-load service source info for all components
+                        source_uuid_map = {}
+                        sources = ServiceSourceInfo.objects.filter(
+                            service_id__in=service_ids
+                        ).values_list("service_id", "service_share_uuid")
+                        for sid, suuid in sources:
+                            if suuid:
+                                source_uuid_map[sid] = suuid
+
+                        uuid_remap = {}
+                        for service in services:
+                            old_uuid = service["service_share_uuid"]
+                            # Use original UUID from installation source if available
+                            original = source_uuid_map.get(service["service_id"])
+                            if original:
+                                new_uuid = original
+                            else:
+                                # First publish: deterministic hash from plugin_id + service_cname
+                                stable_key = hashlib.md5(
+                                    (platform_plugin_id + ":" + service["service_cname"]).encode()
+                                ).hexdigest()
+                                new_uuid = "{0}+{1}".format(stable_key, stable_key)
+                            uuid_remap[old_uuid] = new_uuid
+                            service["service_share_uuid"] = new_uuid
+                        # Update dependency references
+                        for service in services:
+                            for dep in service.get("dep_service_map_list", []):
+                                old_key = dep.get("dep_service_key", "")
+                                if old_key in uuid_remap:
+                                    dep["dep_service_key"] = uuid_remap[old_key]
 
                     dep_service_keys = {service['service_share_uuid'] for service in services}
 
