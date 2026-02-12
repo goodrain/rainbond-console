@@ -832,9 +832,9 @@ class ShareService(object):
                         sources = ServiceSourceInfo.objects.filter(
                             service_id__in=service_ids
                         ).values_list("service_id", "service_share_uuid")
-                        for sid, suuid in sources:
+                        for svc_id, suuid in sources:
                             if suuid:
-                                source_uuid_map[sid] = suuid
+                                source_uuid_map[svc_id] = suuid
 
                         uuid_remap = {}
                         for service in services:
