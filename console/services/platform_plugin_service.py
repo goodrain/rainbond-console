@@ -111,7 +111,7 @@ class PlatformPluginService(object):
                 # Get latest version separately
                 try:
                     versions_resp = market_client.get_user_app_versions(
-                        app_id=app_key, market_domain=MARKET_DOMAIN, _return_http_data_only=True)
+                        app_id=app_key, market_domain=MARKET_DOMAIN, query_all=False, _return_http_data_only=True)
                     if versions_resp and versions_resp.versions:
                         plugin_info["version"] = versions_resp.versions[0].app_version or ""
                 except Exception as e:
