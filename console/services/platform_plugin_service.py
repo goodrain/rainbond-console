@@ -113,7 +113,7 @@ class PlatformPluginService(object):
                     versions_resp = market_client.get_user_app_versions(
                         app_id=app_key, market_domain=MARKET_DOMAIN, _return_http_data_only=True)
                     if versions_resp and versions_resp.versions:
-                        plugin_info["version"] = versions_resp.versions[0].version or ""
+                        plugin_info["version"] = versions_resp.versions[0].app_version or ""
                 except Exception as e:
                     logger.warning("Failed to get market app versions for %s: %s", app_key, e)
 
@@ -161,7 +161,7 @@ class PlatformPluginService(object):
         versions_data = app_store.get_app_versions(market, app_key)
         if not versions_data or not versions_data.versions:
             raise ServiceHandleException(msg="no versions found", msg_show="应用市场中未找到该插件的版本")
-        latest_version = versions_data.versions[0].version
+        latest_version = versions_data.versions[0].app_version
 
         # 4. Find or create the "rbd-plugins" team
         tenant = self._ensure_plugin_team(enterprise_id, region_name, user)
