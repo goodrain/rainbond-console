@@ -106,9 +106,16 @@ class PlatformPluginService(object):
                         plugin_info["plugin_name"] = getattr(app, "name", "") or plugin_id
                         plugin_info["description"] = getattr(app, "desc", "") or ""
                         plugin_info["logo"] = getattr(app, "logo", "") or ""
-                        plugin_info["version"] = getattr(app, "version", "") or ""
                 except Exception as e:
                     logger.warning("Failed to get market app info for %s: %s", app_key, e)
+                # Get latest version separately
+                try:
+                    versions_resp = market_client.get_user_app_versions(
+                        app_id=app_key, market_domain=MARKET_DOMAIN, _return_http_data_only=True)
+                    if versions_resp and versions_resp.versions:
+                        plugin_info["version"] = versions_resp.versions[0].version or ""
+                except Exception as e:
+                    logger.warning("Failed to get market app versions for %s: %s", app_key, e)
 
             # Check install status from RBDPlugin CRs
             if plugin_id in installed_plugins:
