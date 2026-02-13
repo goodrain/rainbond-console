@@ -152,9 +152,9 @@ class PlatformPluginService(object):
 
         # 3. Get latest version from market
         versions_data = app_store.get_app_versions(market, app_key)
-        if not versions_data:
+        if not versions_data or not versions_data.versions:
             raise ServiceHandleException(msg="no versions found", msg_show="应用市场中未找到该插件的版本")
-        latest_version = versions_data[0].version
+        latest_version = versions_data.versions[0].version
 
         # 4. Find or create the "rbd-plugins" team
         tenant = self._ensure_plugin_team(enterprise_id, region_name, user)
