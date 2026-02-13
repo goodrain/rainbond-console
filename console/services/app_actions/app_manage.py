@@ -1432,11 +1432,10 @@ class AppManageService(AppManageBase):
                 tenantServiceEnvVar["is_change"] = True
                 tenantServiceEnvVar["scope"] = "scope"
                 env_var_repo.add_service_env(**tenantServiceEnvVar)
-            # CNB 构建参数
-            has_cnb_params = (cnb_framework or cnb_build_script or cnb_output_dir or cnb_node_version or
-                              cnb_node_env or cnb_mirror_source or cnb_mirror_npmrc or cnb_mirror_yarnrc)
-            if has_cnb_params:
-                # 设置 BUILD_TYPE 为 cnb，让 Builder 知道使用 CNB 构建
+            # Node.js/NodeJSStatic/static 语言新建组件始终使用 CNB 构建
+            # 基于语言类型判断，不依赖具体 CNB 参数是否存在，避免框架未识别时意外回退到 slug
+            # 注意：此函数仅在创建流程中调用（Create 页面），不影响已有 slug 组件的重建
+            if "Node" in lang or lang.lower() == "static":
                 env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_TYPE", "cnb")
             if cnb_framework:
                 env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_FRAMEWORK", cnb_framework)
