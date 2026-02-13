@@ -4,6 +4,7 @@ import logging
 from rest_framework.response import Response
 
 from console.views.base import JWTAuthApiView
+from console.exception.main import ServiceHandleException
 from www.utils.return_message import general_message
 from console.services.license import license_service
 
@@ -21,7 +22,11 @@ class LicenseLView(JWTAuthApiView):
 
     def post(self, request, enterprise_id, *args, **kwargs):
         authz_code = request.data.get("authz_code")
-        config = license_service.update_license(enterprise_id, authz_code)
+        try:
+            config = license_service.update_license(enterprise_id, authz_code)
+        except ServiceHandleException as e:
+            result = general_message(e.status_code, "error", e.msg_show)
+            return Response(result, status=e.status_code)
         result = general_message(200, "success", "更新成功", bean=config)
         return Response(result, status=result["code"])
 

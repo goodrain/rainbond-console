@@ -96,19 +96,28 @@ class LicenseService(object):
         return authz.value, resp
 
     def update_license(self, enterprise_id, authz_code):
-        config = ConsoleSysConfig.objects.update_or_create(key="AUTHZ_CODE", enterprise_id=enterprise_id, defaults={"value": authz_code})
-        # Try to activate on all available regions
+        # Try to activate on all available regions first
         regions = region_repo.get_usable_regions(enterprise_id)
         for region in regions:
             try:
-                region_api.activate_license(enterprise_id, region.region_name, authz_code)
+                body = region_api.activate_license(enterprise_id, region.region_name, authz_code)
+                bean = body.get("bean", {}) if body else {}
+                if not bean.get("valid"):
+                    reason = bean.get("reason", "unknown")
+                    logger.warning("license activation failed on region %s: %s", region.region_name, reason)
+                    raise ServiceHandleException(msg=reason, msg_show="授权码无效: " + reason, status_code=400)
                 logger.info("license activated on region %s", region.region_name)
+            except ServiceHandleException:
+                raise
             except Exception as e:
                 logger.warning("failed to activate license on region %s: %s", region.region_name, e)
+                raise ServiceHandleException(msg=str(e), msg_show="激活授权码失败: " + str(e), status_code=500)
+        # All regions activated successfully, save authz_code
+        config = ConsoleSysConfig.objects.update_or_create(key="AUTHZ_CODE", enterprise_id=enterprise_id, defaults={"value": authz_code})
         config_dict = {
             "id": config[0].ID,
             "key": config[0].key,
-            "value": config[0].value
+            "value": config[0].value,
         }
         return config_dict
 
