@@ -5,7 +5,7 @@ import logging
 from console.appstore.appstore import app_store
 from console.exception.main import ServiceHandleException
 from console.models.main import AppMarket
-from console.repositories.group import group_repo
+from console.repositories.group import group_repo, tenant_service_group_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
 from console.services.app import app_market_service
@@ -93,6 +93,8 @@ class PlatformPluginService(object):
                 "installed": False,
                 "status": "",
                 "version": "",
+                "installed_version": "",
+                "upgradeable": False,
                 "team_name": "",
                 "app_id": -1,
             }
@@ -124,7 +126,16 @@ class PlatformPluginService(object):
                 plugin_info["status"] = p.get("status", "")
                 plugin_info["team_name"] = p.get("team_name", "")
                 raid = p.get("region_app_id", "")
-                plugin_info["app_id"] = region_app_id_map.get(raid, -1)
+                console_app_id = region_app_id_map.get(raid, -1)
+                plugin_info["app_id"] = console_app_id
+                # Get installed version from tenant_service_group
+                if console_app_id > 0:
+                    cgroups = tenant_service_group_repo.get_group_by_app_id(console_app_id)
+                    if cgroups:
+                        plugin_info["installed_version"] = cgroups.last().group_version or ""
+                # Compare versions
+                if plugin_info["version"] and plugin_info["installed_version"]:
+                    plugin_info["upgradeable"] = plugin_info["version"] != plugin_info["installed_version"]
 
             result.append(plugin_info)
 
