@@ -54,7 +54,7 @@ from django.db.models import Q
 from www.apiclient.regionapi import RegionInvokeApi
 # model
 from www.models.main import (TenantEnterprise, TenantEnterpriseToken, TenantServiceEnvVar, TenantServiceInfo,
-                             TenantServicesPort, Users, ServiceGroup, Tenants)
+                             TenantServicesPort, Users, ServiceGroup, Tenants, ServiceGroupRelation)
 from www.models.plugin import ServicePluginConfigVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -153,10 +153,16 @@ class MarketAppService(object):
             frontend_service = ""
             backend_service = ""
 
-            # Find frontend component by service_cname and build FQDN
+            # Get service_ids belonging to this app to avoid cross-app name collision
+            app_service_ids = ServiceGroupRelation.objects.filter(
+                group_id=app_id, tenant_id=tenant.tenant_id
+            ).values_list("service_id", flat=True)
+
+            # Find frontend component by service_cname within this app
             if frontend_component_name:
                 frontend_cpt = TenantServiceInfo.objects.filter(
-                    tenant_id=tenant.tenant_id, service_cname=frontend_component_name
+                    tenant_id=tenant.tenant_id, service_cname=frontend_component_name,
+                    service_id__in=app_service_ids
                 ).first()
                 if frontend_cpt:
                     frontend_ports = port_repo.get_service_ports(tenant.tenant_id, frontend_cpt.service_id)
