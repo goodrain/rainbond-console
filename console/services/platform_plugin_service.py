@@ -92,7 +92,7 @@ class PlatformPluginService(object):
                 "logo": "",
                 "installed": False,
                 "status": "",
-                "version": "",
+                "latest_version": "",
                 "installed_version": "",
                 "upgradeable": False,
                 "team_name": "",
@@ -115,7 +115,7 @@ class PlatformPluginService(object):
                     versions_resp = market_client.get_user_app_versions(
                         app_id=app_key, market_domain=MARKET_DOMAIN, query_all=False, _return_http_data_only=True)
                     if versions_resp and versions_resp.versions:
-                        plugin_info["version"] = versions_resp.versions[0].app_version or ""
+                        plugin_info["latest_version"] = versions_resp.versions[0].app_version or ""
                 except Exception as e:
                     logger.warning("Failed to get market app versions for %s: %s", app_key, e)
 
@@ -134,8 +134,8 @@ class PlatformPluginService(object):
                     if cgroups:
                         plugin_info["installed_version"] = cgroups.last().group_version or ""
                 # Compare versions
-                if plugin_info["version"] and plugin_info["installed_version"]:
-                    plugin_info["upgradeable"] = plugin_info["version"] != plugin_info["installed_version"]
+                if plugin_info["latest_version"] and plugin_info["installed_version"]:
+                    plugin_info["upgradeable"] = plugin_info["latest_version"] != plugin_info["installed_version"]
 
             result.append(plugin_info)
 
