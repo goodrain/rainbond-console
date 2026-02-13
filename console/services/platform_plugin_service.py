@@ -23,7 +23,7 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 MARKET_HOST = "https://hub.grapps.cn"
-MARKET_DOMAIN = "rainbond"
+MARKET_DOMAIN = "enterprise"
 PLUGIN_TEAM_NAME = "rbd-plugins"
 PLUGIN_TEAM_ALIAS = "平台插件"
 
