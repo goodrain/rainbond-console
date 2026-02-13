@@ -100,10 +100,11 @@ class PlatformPluginService(object):
             # Try to get app info from market
             if market_client and app_key:
                 try:
-                    app = market_client.get_app_detail(app_key)
+                    app = market_client.get_user_app_detail(
+                        app_id=app_key, market_domain=MARKET_DOMAIN, _return_http_data_only=True)
                     if app:
-                        plugin_info["plugin_name"] = app.app_name or plugin_id
-                        plugin_info["description"] = getattr(app, "describe", "") or ""
+                        plugin_info["plugin_name"] = getattr(app, "name", "") or plugin_id
+                        plugin_info["description"] = getattr(app, "desc", "") or ""
                         plugin_info["logo"] = getattr(app, "logo", "") or ""
                         plugin_info["version"] = getattr(app, "version", "") or ""
                 except Exception as e:
