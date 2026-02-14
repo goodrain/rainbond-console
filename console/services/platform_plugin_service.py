@@ -181,7 +181,7 @@ class PlatformPluginService(object):
         region = region_repo.get_enterprise_region_by_region_name(enterprise_id, region_name)
         if not region:
             raise ServiceHandleException(msg="region not found", msg_show="集群不存在")
-        app = self._ensure_plugin_app(tenant, region_name, plugin_name, enterprise_id)
+        app = self._ensure_plugin_app(tenant, region_name, plugin_name, enterprise_id, plugin_id)
 
         # 6. Get app template from market
         market_app, app_version = app_market_service.cloud_app_model_to_db_model(
@@ -228,13 +228,13 @@ class PlatformPluginService(object):
         region_services.create_tenant_on_region(enterprise_id, tenant.tenant_name, region_name, PLUGIN_TEAM_NAME)
         return tenant
 
-    def _ensure_plugin_app(self, tenant, region_name, plugin_name, eid):
+    def _ensure_plugin_app(self, tenant, region_name, plugin_name, eid, plugin_id):
         """Find or create an app group for the plugin under the rbd-plugins team."""
         apps = group_repo.get_tenant_region_groups(tenant.tenant_id, region_name)
         for app in apps:
             if app.group_name == plugin_name:
                 return app
-        result = group_service.create_app(tenant, region_name, plugin_name, eid=eid)
+        result = group_service.create_app(tenant, region_name, plugin_name, eid=eid, k8s_app=plugin_id)
         return group_repo.get_group_by_id(result["app_id"])
 
 
