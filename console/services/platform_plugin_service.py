@@ -97,6 +97,9 @@ class PlatformPluginService(object):
                 "upgradeable": False,
                 "team_name": "",
                 "app_id": -1,
+                "name": plugin_id,
+                "plugin_type": "",
+                "plugin_views": [],
             }
 
             # Try to get app info from market
@@ -128,6 +131,8 @@ class PlatformPluginService(object):
                 raid = p.get("region_app_id", "")
                 console_app_id = region_app_id_map.get(raid, -1)
                 plugin_info["app_id"] = console_app_id
+                plugin_info["plugin_type"] = p.get("plugin_type", "")
+                plugin_info["plugin_views"] = p.get("plugin_views", [])
                 # Get installed version from tenant_service_group
                 if console_app_id > 0:
                     cgroups = tenant_service_group_repo.get_group_by_app_id(console_app_id)
