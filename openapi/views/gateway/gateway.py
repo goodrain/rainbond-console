@@ -22,8 +22,10 @@ from openapi.views.base import BaseOpenAPIView, TeamAppAPIView
 from openapi.views.exceptions import ErrAppNotFound
 from rest_framework import status
 from rest_framework.response import Response
+from www.apiclient.regionapi import RegionInvokeApi
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class ListAppGatewayHTTPRuleView(TeamAppAPIView):
@@ -92,6 +94,15 @@ class ListAppGatewayHTTPRuleView(TeamAppAPIView):
         if not tenant_service_port.is_outer_service:
             return Response({"msg": "没有开启对外端口"}, status=status.HTTP_400_BAD_REQUEST)
         data = domain_service.bind_httpdomain(self.team, self.request.user, service, httpdomain, True)
+
+        # 调用新 gateway API 创建 APISIX 路由，使域名实际生效
+        try:
+            region_api.api_gateway_bind_http_domain(
+                service.service_alias, self.region, self.team.tenant_name,
+                [httpdomain["domain_name"]], tenant_service_port, app_id)
+        except Exception as e:
+            logger.warning("create apisix route failed: %s", str(e))
+
         configuration = httpdomain.get("configuration", None)
         if configuration:
             domain_service.update_http_rule_config(self.team, self.region_name, data.http_rule_id, configuration)
