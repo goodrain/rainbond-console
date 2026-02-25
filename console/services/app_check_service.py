@@ -305,6 +305,11 @@ class AppCheckService(object):
         self.__save_compile_env(tenant, service, service.language)
         # save env
         self.__save_env(tenant, service, envs)
+        # 从 runtime_info 中提取 CNB 构建参数并保存为环境变量
+        # 这样 build_envs API 直接返回精确值，前端无需二次解析
+        runtime_info = service_info.get("runtime_info")
+        if runtime_info:
+            self._save_cnb_env_from_runtime_info(tenant, service, runtime_info)
         self.__save_port(tenant, service, ports)
         self.__save_volume(tenant, service, volumes)
         # save compose entrypoint as K8s command via ComponentK8sAttribute
@@ -619,6 +624,53 @@ class AppCheckService(object):
                     }
                 }
                 service_attr_list.append(config_bean)
+
+    def _save_cnb_env_from_runtime_info(self, tenant, service, runtime_info: dict) -> None:
+        """
+        从 runtime_info 中提取关键字段，保存为 CNB_* 环境变量。
+        这样 build_envs API 直接返回精确值，前端无需二次解析。
+        """
+        cnb_envs = {}
+
+        # 精确版本（如 "20.20.0"，由后端 MatchCNBVersion 解析）
+        language_version = runtime_info.get("language_version")
+        if language_version:
+            cnb_envs["CNB_NODE_VERSION"] = language_version
+
+        # 框架
+        framework = runtime_info.get("framework")
+        if framework:
+            cnb_envs["CNB_FRAMEWORK"] = framework.get("name", "")
+
+        # 构建配置
+        build_config = runtime_info.get("build_config")
+        if build_config:
+            if build_config.get("output_dir"):
+                cnb_envs["CNB_OUTPUT_DIR"] = build_config["output_dir"]
+            if build_config.get("build_command"):
+                cnb_envs["CNB_BUILD_SCRIPT"] = build_config["build_command"]
+
+        # 包管理器
+        package_manager = runtime_info.get("package_manager")
+        if package_manager:
+            cnb_envs["CNB_PACKAGE_TOOL"] = package_manager.get("name", "")
+
+        # 配置文件检测标志
+        config_files = runtime_info.get("config_files")
+        if config_files:
+            if config_files.get("has_npmrc"):
+                cnb_envs["BUILD_HAS_NPMRC"] = "true"
+            if config_files.get("has_yarnrc"):
+                cnb_envs["BUILD_HAS_YARNRC"] = "true"
+
+        # Mirror 来源：有项目配置文件时默认用项目配置
+        has_project_config = config_files and (config_files.get("has_npmrc") or config_files.get("has_yarnrc"))
+        cnb_envs["CNB_MIRROR_SOURCE"] = "project" if has_project_config else "global"
+
+        for name, value in cnb_envs.items():
+            if value:
+                env_var_service.add_service_build_env_var(
+                    tenant, service, 0, name, name, value, True)
 
     def _extract_envs_dict(self, service_info):
         """

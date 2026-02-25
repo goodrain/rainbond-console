@@ -2808,6 +2808,24 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
         return body
 
+    def get_cnb_versions(self, enterprise_id, region, lang="nodejs"):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/cnb/versions?lang={0}".format(lang)
+        res, body = self._get(url, self.default_headers, region=region_info.region_name)
+        return body
+
+    def get_cnb_frameworks(self, enterprise_id, region, lang="nodejs"):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/cnb/frameworks?lang={0}".format(lang)
+        res, body = self._get(url, self.default_headers, region=region_info.region_name)
+        return body
+
     def post_proxy(self, region_name, path, data):
         region_info = self.get_region_info(region_name)
         if not region_info:

@@ -62,10 +62,6 @@ class GitCodeService(object):
             parsed_git_url = git_url_parse(service.git_url, False)
             if service.code_from.startswith("gitlab") and service.code_from != "gitlab_manual":
                 code_type = "gitlab"
-            else:
-                if parsed_git_url.host:
-                    if parsed_git_url.host.endswith('github.com'):
-                        code_type = "github"
             code, msg, branchs = self.get_code_branch(
                 user, code_type, service.git_url, service.git_project_id, current_branch=service.code_version)
             if code != 200:
@@ -82,8 +78,6 @@ class GitCodeService(object):
                 if git_project_id is None:
                     return 400, "gitlab检测需提供检测的代码ID", None
                 branches = self.__get_gitlab_branchs(git_project_id)
-            elif code_type == "github":
-                branches = self.__get_github_branchs(user, parsed_git_url)
             else:
                 branches = [current_branch]
         else:

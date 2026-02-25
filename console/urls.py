@@ -75,7 +75,8 @@ from console.views.code_repo import ServiceCodeBranch
 from console.views.custom_configs import CustomConfigsCLView, CustomConfigsUserCLView
 from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
                                       NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage,
-                                      EnterpriseRegionGatewayBatch, EnterpriseTeamNames, EnterpriseRegionLangVersion)
+                                      EnterpriseRegionGatewayBatch, EnterpriseTeamNames, EnterpriseRegionLangVersion,
+                                      EnterpriseRegionCNBVersions, EnterpriseRegionCNBFrameworks)
 from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
                                       RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
 from console.views.enterprise import (
@@ -954,6 +955,10 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)$', EnterpriseRegionsRUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/lang_version',
         EnterpriseRegionLangVersion.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/cnb/versions',
+        EnterpriseRegionCNBVersions.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/cnb/frameworks',
+        EnterpriseRegionCNBFrameworks.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/namespace',
         EnterpriseRegionNamespace.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/resource',
