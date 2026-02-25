@@ -22,7 +22,7 @@ from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
 from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.perm_services import user_kind_role_service
-from console.services.region_lang_version import region_lang_version
+from console.services.region_lang_version import region_lang_version, region_cnb_config
 from console.services.region_resource_processing import region_resource
 from console.services.region_services import region_services
 from console.services.team_services import team_services
@@ -1065,3 +1065,29 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
             return Response(data, status=405)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result.get("code", 200))
+
+
+class EnterpriseRegionCNBVersions(JWTAuthApiView):
+    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+        try:
+            lang = request.GET.get("lang", "nodejs")
+            data = region_cnb_config.show_cnb_versions(enterprise_id, region_id, lang)
+            result = general_message(200, "success", "获取成功", list=data.get("list", []))
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(400, "failed", "获取CNB版本列表失败")
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EnterpriseRegionCNBFrameworks(JWTAuthApiView):
+    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+        try:
+            lang = request.GET.get("lang", "nodejs")
+            data = region_cnb_config.show_cnb_frameworks(enterprise_id, region_id, lang)
+            result = general_message(200, "success", "获取成功", list=data.get("list", []))
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.exception(e)
+            result = general_message(400, "failed", "获取CNB框架列表失败")
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
