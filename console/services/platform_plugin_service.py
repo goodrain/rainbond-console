@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+import time
 
 from console.appstore.appstore import app_store
 from console.exception.main import ServiceHandleException
@@ -26,6 +27,10 @@ MARKET_HOST = "https://hub.grapps.cn"
 MARKET_DOMAIN = "enterprise"
 PLUGIN_TEAM_NAME = "rbd-plugins"
 PLUGIN_TEAM_ALIAS = "平台插件"
+
+# Module-level cache for market unreachable state with expiry
+_market_unreachable_until = 0  # Unix timestamp, 0 means not unreachable
+_MARKET_RETRY_INTERVAL = 300  # Retry after 5 minutes
 
 
 class PlatformPluginService(object):
@@ -77,7 +82,11 @@ class PlatformPluginService(object):
         # 4. Fetch market info for each plugin in plugin_mapping
         result = []
         market_client = None
-        if access_key:
+        global _market_unreachable_until
+        now = time.time()
+        if _market_unreachable_until > now:
+            logger.debug("Skipping market requests - market marked unreachable until %s", _market_unreachable_until)
+        elif access_key:
             try:
                 market_client = get_market_client(access_key, MARKET_HOST)
             except Exception as e:
@@ -114,6 +123,7 @@ class PlatformPluginService(object):
                 except Exception as e:
                     logger.warning("Failed to get market app info for %s: %s", app_key, e)
                     market_client = None
+                    _market_unreachable_until = time.time() + _MARKET_RETRY_INTERVAL
                 # Get latest version separately
                 if market_client:
                     try:
@@ -124,6 +134,7 @@ class PlatformPluginService(object):
                     except Exception as e:
                         logger.warning("Failed to get market app versions for %s: %s", app_key, e)
                         market_client = None
+                        _market_unreachable_until = time.time() + _MARKET_RETRY_INTERVAL
 
             # Check install status from RBDPlugin CRs
             if plugin_id in installed_plugins:
