@@ -75,7 +75,8 @@ from console.views.code_repo import ServiceCodeBranch
 from console.views.custom_configs import CustomConfigsCLView, CustomConfigsUserCLView
 from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
                                       NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage,
-                                      EnterpriseRegionGatewayBatch, EnterpriseTeamNames, EnterpriseRegionLangVersion)
+                                      EnterpriseRegionGatewayBatch, EnterpriseTeamNames, EnterpriseRegionLangVersion,
+                                      EnterpriseRegionCNBVersions, EnterpriseRegionCNBFrameworks)
 from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
                                       RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
 from console.views.enterprise import (
@@ -96,7 +97,7 @@ from console.views.group import (
 from console.views.helm_app import HelmAppView, HelmRepo, HelmCenterApp, HelmChart, CommandInstallHelm, HelmList, \
     HelmRepoAdd, UploadHelmChart, UploadHelmChartValueResource, UploadHelmChartValue
 from console.views.jwt_token_view import JWTTokenView
-from console.views.license import LicenseLView
+from console.views.license import LicenseLView, LicenseClusterIDView, LicenseActivateView, LicenseStatusView
 from console.views.k8s_attribute import ComponentK8sAttributeView, ComponentK8sAttributeListView
 from console.views.k8s_resource import AppK8sResourceListView, AppK8ResourceView
 from console.views.log_proxy import LogProxyView
@@ -131,6 +132,7 @@ from console.views.public_areas import (AllServiceInfo, GroupServiceView, Servic
                                         GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
 from console.views.rbd_ability import RainbondAbilityRUDView, RainbondAbilityLView
 from console.views.rbd_plugin import RainbondPluginLView, RainbondOfficialPluginLView, RainbondPluginStaticView, RainbondPluginBackendView, RainbondPluginStatusView, RainbondPluginFullProxyView
+from console.views.platform_plugin import PlatformPluginLView, PlatformPluginInstallView
 from console.views.region import (GetRegionFeature, GetRegionPublicKeyView, MavenSettingRUDView, MavenSettingView,
                                   OpenRegionView, QyeryRegionView, RegQuyView, RegUnopenView, RegionMonitor)
 from console.views.registry import HubRegistryView, HubRegistryImageView
@@ -200,6 +202,9 @@ urlpatterns = [
     url(r'^perms$', PermsInfoLView.as_view()),
     url(r'^custom_configs$', CustomConfigsCLView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/licenses$', LicenseLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/license/cluster-id$', LicenseClusterIDView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/license/activate$', LicenseActivateView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/license/status$', LicenseStatusView.as_view()),
     # 超分比例
     url(r"^over_score$", OverScore.as_view()),
     # OAuth
@@ -950,6 +955,10 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)$', EnterpriseRegionsRUDView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/lang_version',
         EnterpriseRegionLangVersion.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/cnb/versions',
+        EnterpriseRegionCNBVersions.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/cnb/frameworks',
+        EnterpriseRegionCNBFrameworks.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/namespace',
         EnterpriseRegionNamespace.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/resource',
@@ -963,6 +972,8 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/batch-gateway',
         EnterpriseRegionGatewayBatch.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/plugins$', RainbondPluginLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-plugins$', PlatformPluginLView.as_view()),
+    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/platform-plugins/(?P<plugin_id>[\w\-]+)/install$', PlatformPluginInstallView.as_view()),
     url(r'^regions/(?P<region_name>[\w\-]+)/plugins/(?P<plugin_name>[\w\-]+)/status$', RainbondPluginStatusView.as_view()),
     url(r'^regions/(?P<region_name>[\w\-]+)/static/plugins/(?P<plugin_name>[\w\-]+)$', RainbondPluginStaticView.as_view()),
     # 完整代理路由 - 用于代理完整的 Web 应用（Grafana 等），保留所有 HTTP 响应头

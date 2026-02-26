@@ -16,6 +16,7 @@ from console.repositories.perm_repo import perms_repo
 from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_invitation_repo, team_repo
 from console.repositories.user_repo import user_repo
+from console.services.config_service import platform_config_service
 from console.services.enterprise_services import enterprise_services
 from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.perm_services import (user_kind_perm_service, user_kind_role_service)
@@ -125,6 +126,18 @@ class TenantServiceView(BaseApiView):
               paramType: body
         """
         try:
+            # Check if registration is enabled
+            try:
+                register_config = platform_config_service.get_config_by_key("IS_REGIST")
+                if register_config and register_config.enable is False:
+                    return Response(
+                        general_message(403, "registration is closed", "注册功能已关闭"),
+                        status=403
+                    )
+            except Exception as e:
+                logger.warning("Failed to check registration status: %s", e)
+                # If config check fails, allow registration (fail open for backward compatibility)
+
             import copy
             querydict = copy.copy(request.data)
             client_ip = request.META.get("REMOTE_ADDR", None)
@@ -708,6 +721,18 @@ class RegisterByPhoneView(BaseApiView):
               paramType: form
         """
         try:
+            # Check if registration is enabled
+            try:
+                register_config = platform_config_service.get_config_by_key("IS_REGIST")
+                if register_config and register_config.enable is False:
+                    return Response(
+                        general_message(403, "registration is closed", "注册功能已关闭"),
+                        status=403
+                    )
+            except Exception as e:
+                logger.warning("Failed to check registration status: %s", e)
+                # If config check fails, allow registration (fail open for backward compatibility)
+
             phone = request.data.get("phone")
             code = request.data.get("code")
             nick_name = request.data.get("nick_name")

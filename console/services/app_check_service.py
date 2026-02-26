@@ -12,6 +12,7 @@ from console.exception.main import ErrVolumePath, ServiceHandleException
 from console.repositories.app import service_source_repo
 from console.repositories.app_config import service_endpoints_repo
 from console.repositories.group import group_repo
+from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config import (compile_env_service, domain_service, env_var_service, label_service, port_service,
@@ -183,7 +184,7 @@ class AppCheckService(object):
             except ErrComponentPortExists:
                 logger.error('upgrade component port by code check failure due to component port exists')
             lang = data["service_info"][0]["language"]
-            if lang == "dockerfile":
+            if lang == "dockerfile" or lang == "static":
                 service.cmd = ""
             elif service.service_source == AppConstants.SOURCE_CODE:
                 service.cmd = "start web"
@@ -198,9 +199,13 @@ class AppCheckService(object):
 
     def save_service_check_info(self, tenant, app_id, service, data):
         # save the detection properties but does not throw any exception.
+        logger.info("[compose-debug] save_service_check_info called, check_status={0}, create_status={1}".format(
+            data.get("check_status"), service.create_status))
         if data["check_status"] == "success" and service.create_status == "checking":
             logger.debug("checking service info install,save info into database")
             service_info_list = data["service_info"]
+            logger.info("[compose-debug] service_info_list length={0}, keys={1}".format(
+                len(service_info_list), list(service_info_list[0].keys()) if service_info_list else "empty"))
             sid = None
             try:
                 sid = transaction.savepoint()
@@ -269,6 +274,8 @@ class AppCheckService(object):
 
     def save_service_info(self, tenant, service, check_service_info):
         service_info = check_service_info
+        logger.info("[compose-debug] save_service_info called for service={0}, all keys={1}".format(
+            service.service_cname, list(service_info.keys())))
         service.language = service_info.get("language", "")
         memory = service_info.get("memory", 128)
         service.min_memory = memory - memory % 32
@@ -278,8 +285,10 @@ class AppCheckService(object):
             service_info.get("service_type", ComponentType.stateless_multiple.value)))
         service.extend_method = service_info.get("service_type", ComponentType.stateless_multiple.value)
         args = service_info.get("args", None)
+        logger.info("[compose-debug] service={0}, args={1}".format(service.service_cname, args))
         if args:
             service.cmd = " ".join(args)
+            self.__save_k8s_attribute(tenant, service, "args", json.dumps(args))
         else:
             service.cmd = ""
         image = service_info.get("image", None)
@@ -296,8 +305,23 @@ class AppCheckService(object):
         self.__save_compile_env(tenant, service, service.language)
         # save env
         self.__save_env(tenant, service, envs)
+        # 从 runtime_info 中提取 CNB 构建参数并保存为环境变量
+        # 这样 build_envs API 直接返回精确值，前端无需二次解析
+        runtime_info = service_info.get("runtime_info")
+        if runtime_info:
+            self._save_cnb_env_from_runtime_info(tenant, service, runtime_info)
         self.__save_port(tenant, service, ports)
         self.__save_volume(tenant, service, volumes)
+        # save compose entrypoint as K8s command via ComponentK8sAttribute
+        command = service_info.get("command", None)
+        logger.info("[compose-debug] service={0}, command={1}".format(service.service_cname, command))
+        if command:
+            self.__save_k8s_command(tenant, service, command)
+        # save working_dir as K8s workingDir via ComponentK8sAttribute
+        working_dir = service_info.get("working_dir", "")
+        logger.info("[compose-debug] service={0}, working_dir={1}".format(service.service_cname, working_dir))
+        if working_dir:
+            self.__save_k8s_attribute(tenant, service, "workingDir", working_dir, save_type="string")
 
     def __save_compile_env(self, tenant, service, language):
         # 删除原有 compile env
@@ -351,7 +375,8 @@ class AppCheckService(object):
                     port["protocol"] = "tcp"
                 code, msg, port_data = port_service.add_service_port(
                     tenant, service, int(port["container_port"]), port["protocol"],
-                    service.service_alias.upper() + str(port["container_port"]), True, True)
+                    service.service_alias.upper() + str(port["container_port"]), True, True,
+                    k8s_service_name=service.k8s_component_name if service.k8s_component_name else None)
                 if code != 200:
                     logger.error("save service check info port error {0}".format(msg))
                 if region_info:
@@ -402,6 +427,32 @@ class AppCheckService(object):
                                                           volume_name, None, settings)
                     except ErrVolumePath:
                         logger.warning("Volume Path {0} error".format(volume["volume_path"]))
+
+    def __save_k8s_command(self, tenant, service, command):
+        """Save compose entrypoint as K8s command via ComponentK8sAttribute."""
+        self.__save_k8s_attribute(tenant, service, "cmd", json.dumps(command))
+
+    def __save_k8s_attribute(self, tenant, service, name, value, save_type="json"):
+        """Save a K8s attribute to console DB only. Region sync happens later in create_region_service."""
+        logger.info("[compose-debug] __save_k8s_attribute called: service={0}, name={1}, value={2}".format(
+            service.service_id, name, value))
+        try:
+            existing = k8s_attribute_repo.get_by_component_id_name(service.service_id, name)
+            if existing.exists():
+                k8s_attribute_repo.update(service.service_id, name, attribute_value=value)
+                logger.info("[compose-debug] updated k8s attribute {0} for service {1}".format(name, service.service_id))
+            else:
+                k8s_attribute_repo.create(
+                    tenant_id=tenant.tenant_id,
+                    component_id=service.service_id,
+                    name=name,
+                    save_type=save_type,
+                    attribute_value=value,
+                )
+                logger.info("[compose-debug] created k8s attribute {0} for service {1}".format(name, service.service_id))
+        except Exception as e:
+            logger.error("[compose-debug] save K8s attribute {0} for service {1} FAILED: {2}".format(
+                name, service.service_id, e))
 
     def wrap_service_check_info(self, service, data):
         rt_info = dict()
@@ -461,12 +512,275 @@ class AppCheckService(object):
             service_language = {"type": "language", "key": "代码语言", "value": service_info["language"]}
         if service_language:
             service_attr_list.append(service_language)
+
+        # 优先使用结构化的 runtime_info，如果不存在则从 envs 中提取 (向后兼容)
+        runtime_info = service_info.get("runtime_info")
+        if runtime_info:
+            # 使用新的结构化 runtime_info
+            self._append_runtime_info(runtime_info, service_attr_list)
+        else:
+            # 回退到从环境变量中提取 (向后兼容)
+            envs_dict = self._extract_envs_dict(service_info)
+            self._append_framework_info(envs_dict, service_attr_list)
+            self._append_node_version_info(envs_dict, service_attr_list)
+            self._append_package_manager_info(envs_dict, service_attr_list)
+            self._append_config_files_info(envs_dict, service_attr_list)
+
         if service_info.get("dockerfiles"):
             dockerfiles_bean = {"type": "dockerfiles", "key": "Dockerfile文件", "value": service_info.get("dockerfiles")}
             service_attr_list.append(dockerfiles_bean)
         if service_code_from and service_code_from.get("value") != ":":
             service_attr_list.append(service_code_from)
         return service_attr_list
+
+    def _append_runtime_info(self, runtime_info, service_attr_list):
+        """
+        从结构化的 runtime_info 中提取检测信息并添加到服务属性列表。
+
+        Args:
+            runtime_info: 结构化的运行时信息字典
+            service_attr_list: 服务属性列表
+        """
+        if not runtime_info or not isinstance(runtime_info, dict):
+            return
+
+        # 添加框架信息
+        framework = runtime_info.get("framework")
+        if framework:
+            framework_info = {
+                "name": framework.get("name", ""),
+                "display_name": framework.get("display_name", framework.get("name", "")),
+                "version": framework.get("version", ""),
+                "type": framework.get("type", ""),
+            }
+            # 从 build_config 中提取构建相关信息
+            build_config = runtime_info.get("build_config")
+            if build_config:
+                framework_info["output_dir"] = build_config.get("output_dir", "")
+                framework_info["build_script"] = build_config.get("build_command", "")
+                framework_info["start_cmd"] = build_config.get("start_command", "")
+
+            framework_bean = {
+                "type": "framework",
+                "key": "框架",
+                "value": framework_info.get("display_name", framework_info.get("name", "")),
+                "data": framework_info
+            }
+            service_attr_list.append(framework_bean)
+            logger.debug("CNB framework detected from runtime_info: %s", framework.get("name"))
+
+        # 添加语言版本信息
+        language_version = runtime_info.get("language_version")
+        if language_version:
+            version_info = {
+                "version": language_version,
+                "source": runtime_info.get("version_source", ""),
+                "language": runtime_info.get("language", ""),
+            }
+            version_bean = {
+                "type": "node_version",
+                "key": "运行时版本",
+                "value": language_version,
+                "data": version_info
+            }
+            service_attr_list.append(version_bean)
+
+        # 添加包管理器信息
+        package_manager = runtime_info.get("package_manager")
+        if package_manager:
+            pm_info = {
+                "manager": package_manager.get("name", ""),
+                "version": package_manager.get("version", ""),
+                "lock_file": package_manager.get("lock_file", ""),
+            }
+            pm_bean = {
+                "type": "package_manager",
+                "key": "包管理器",
+                "value": package_manager.get("name", ""),
+                "data": pm_info
+            }
+            service_attr_list.append(pm_bean)
+
+        # 添加配置文件信息
+        config_files = runtime_info.get("config_files")
+        if config_files:
+            has_npmrc = config_files.get("has_npmrc", False)
+            has_yarnrc = config_files.get("has_yarnrc", False)
+
+            if has_npmrc or has_yarnrc:
+                config_items = []
+                if has_npmrc:
+                    config_items.append(".npmrc")
+                if has_yarnrc:
+                    config_items.append(".yarnrc")
+
+                config_bean = {
+                    "type": "config_files",
+                    "key": "配置文件",
+                    "value": ", ".join(config_items),
+                    "data": {
+                        "has_npmrc": has_npmrc,
+                        "has_yarnrc": has_yarnrc,
+                    }
+                }
+                service_attr_list.append(config_bean)
+
+    def _save_cnb_env_from_runtime_info(self, tenant, service, runtime_info: dict) -> None:
+        """
+        从 runtime_info 中提取关键字段，保存为 CNB_* 环境变量。
+        这样 build_envs API 直接返回精确值，前端无需二次解析。
+        """
+        cnb_envs = {}
+
+        # 精确版本（如 "20.20.0"，由后端 MatchCNBVersion 解析）
+        language_version = runtime_info.get("language_version")
+        if language_version:
+            cnb_envs["CNB_NODE_VERSION"] = language_version
+
+        # 框架
+        framework = runtime_info.get("framework")
+        if framework:
+            cnb_envs["CNB_FRAMEWORK"] = framework.get("name", "")
+
+        # 构建配置
+        build_config = runtime_info.get("build_config")
+        if build_config:
+            if build_config.get("output_dir"):
+                cnb_envs["CNB_OUTPUT_DIR"] = build_config["output_dir"]
+            if build_config.get("build_command"):
+                cnb_envs["CNB_BUILD_SCRIPT"] = build_config["build_command"]
+
+        # 包管理器
+        package_manager = runtime_info.get("package_manager")
+        if package_manager:
+            cnb_envs["CNB_PACKAGE_TOOL"] = package_manager.get("name", "")
+
+        # 配置文件检测标志
+        config_files = runtime_info.get("config_files")
+        if config_files:
+            if config_files.get("has_npmrc"):
+                cnb_envs["BUILD_HAS_NPMRC"] = "true"
+            if config_files.get("has_yarnrc"):
+                cnb_envs["BUILD_HAS_YARNRC"] = "true"
+
+        # Mirror 来源：有项目配置文件时默认用项目配置
+        has_project_config = config_files and (config_files.get("has_npmrc") or config_files.get("has_yarnrc"))
+        cnb_envs["CNB_MIRROR_SOURCE"] = "project" if has_project_config else "global"
+
+        for name, value in cnb_envs.items():
+            if value:
+                env_var_service.add_service_build_env_var(
+                    tenant, service, 0, name, name, value, True)
+
+    def _extract_envs_dict(self, service_info):
+        """
+        从 service_info 中提取环境变量为字典格式。
+
+        Args:
+            service_info: 服务信息字典
+
+        Returns:
+            dict: 环境变量名称-值对
+        """
+        if not service_info or not isinstance(service_info, dict):
+            return {}
+
+        envs = service_info.get("envs")
+        if not envs or not isinstance(envs, list):
+            return {}
+
+        return {
+            env.get("name", ""): env.get("value", "")
+            for env in envs
+            if isinstance(env, dict)
+        }
+
+    def _append_framework_info(self, envs_dict, service_attr_list):
+        """添加框架检测信息到服务属性列表。"""
+        framework_name = envs_dict.get("BUILD_FRAMEWORK")
+        if not framework_name:
+            return
+
+        framework_info = {
+            "name": framework_name,
+            "display_name": envs_dict.get("BUILD_FRAMEWORK_DISPLAY_NAME", framework_name),
+            "version": envs_dict.get("BUILD_FRAMEWORK_VERSION", ""),
+            "type": envs_dict.get("BUILD_RUNTIME_TYPE", ""),
+            "output_dir": envs_dict.get("BUILD_OUTPUT_DIR", ""),
+            "build_script": envs_dict.get("BUILD_BUILD_CMD", ""),
+            "start_cmd": envs_dict.get("BUILD_START_CMD", ""),
+        }
+        framework_bean = {
+            "type": "framework",
+            "key": "框架",
+            "value": framework_info.get("display_name", framework_info.get("name", "")),
+            "data": framework_info
+        }
+        service_attr_list.append(framework_bean)
+        logger.debug("CNB framework detected: %s", framework_name)
+
+    def _append_node_version_info(self, envs_dict, service_attr_list):
+        """添加 Node.js 版本信息到服务属性列表。"""
+        node_version = envs_dict.get("BUILD_RUNTIMES")
+        if not node_version:
+            return
+
+        version_info = {
+            "version": node_version,
+            "original": envs_dict.get("BUILD_NODE_VERSION_ORIGINAL", ""),
+            "source": envs_dict.get("BUILD_NODE_VERSION_SOURCE", ""),
+        }
+        version_bean = {
+            "type": "node_version",
+            "key": "Node.js版本",
+            "value": node_version,
+            "data": version_info
+        }
+        service_attr_list.append(version_bean)
+
+    def _append_package_manager_info(self, envs_dict, service_attr_list):
+        """添加包管理器信息到服务属性列表。"""
+        package_tool = envs_dict.get("BUILD_PACKAGE_TOOL")
+        if not package_tool:
+            return
+
+        pm_info = {
+            "manager": package_tool,
+            "version": envs_dict.get("BUILD_PACKAGE_MANAGER_VERSION", ""),
+            "lock_file": envs_dict.get("BUILD_PACKAGE_LOCK_FILE", ""),
+        }
+        pm_bean = {
+            "type": "package_manager",
+            "key": "包管理器",
+            "value": package_tool,
+            "data": pm_info
+        }
+        service_attr_list.append(pm_bean)
+
+    def _append_config_files_info(self, envs_dict, service_attr_list):
+        """添加配置文件检测信息到服务属性列表。"""
+        has_npmrc = envs_dict.get("BUILD_HAS_NPMRC") == "true"
+        has_yarnrc = envs_dict.get("BUILD_HAS_YARNRC") == "true"
+
+        if not (has_npmrc or has_yarnrc):
+            return
+
+        config_items = []
+        if has_npmrc:
+            config_items.append(".npmrc")
+        if has_yarnrc:
+            config_items.append(".yarnrc")
+
+        config_bean = {
+            "type": "config_files",
+            "key": "配置文件",
+            "value": ", ".join(config_items),
+            "data": {
+                "has_npmrc": has_npmrc,
+                "has_yarnrc": has_yarnrc,
+            }
+        }
+        service_attr_list.append(config_bean)
 
 
 app_check_service = AppCheckService()

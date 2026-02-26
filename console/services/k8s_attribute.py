@@ -12,19 +12,31 @@ region_api = RegionInvokeApi()
 class ComponentK8sAttributeService(object):
     def get_by_component_ids_and_name(self, component_id, name):
         attributes = k8s_attribute_repo.get_by_component_id_name(component_id, name)
-        if attributes and attributes[0].save_type == "json":
-            attributes[0].attribute_value = json.loads(attributes[0].attribute_value)
+        if attributes and attributes[0].save_type == "json" and attributes[0].attribute_value:
+            try:
+                attributes[0].attribute_value = json.loads(attributes[0].attribute_value)
+            except (json.JSONDecodeError, ValueError):
+                pass
         return attributes
 
     def list_by_component_ids(self, component_ids):
         result = []
         attributes = k8s_attribute_repo.list_by_component_ids(component_ids)
         for attribute in attributes:
-            if attribute.save_type == "json":
-                attribute.attribute_value = [{
-                    "key": key,
-                    "value": value
-                } for key, value in json.loads(attribute.attribute_value).items()]
+            if attribute.save_type == "json" and attribute.attribute_value:
+                try:
+                    parsed = json.loads(attribute.attribute_value)
+                except (json.JSONDecodeError, ValueError):
+                    result.append(attribute.to_dict())
+                    continue
+                if isinstance(parsed, dict):
+                    attribute.attribute_value = [{
+                        "key": key,
+                        "value": value
+                    } for key, value in parsed.items()]
+                else:
+                    # arrays (args, cmd) and plain strings (workingDir) pass through as-is
+                    attribute.attribute_value = parsed
             result.append(attribute.to_dict())
         return result
 

@@ -785,7 +785,7 @@ class PluginService(object):
     def get_tenant_plugins(self, region, tenant):
         return plugin_repo.get_tenant_plugins(tenant.tenant_id, region)
 
-    def build_plugin(self, region, plugin, plugin_version, user, tenant, event_id, image_info=None):
+    def build_plugin(self, region, plugin, plugin_version, user, tenant, event_id, image_info=None, arch="amd64"):
 
         build_data = dict()
 
@@ -803,6 +803,7 @@ class PluginService(object):
         build_data["tenant_id"] = tenant.tenant_id
         build_data["ImageInfo"] = image_info
         build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
+        build_data["arch"] = arch  # 添加架构字段
         origin = plugin.origin
         if origin == "local_market":
             plugin_from = "yb"

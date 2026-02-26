@@ -50,6 +50,7 @@ class PluginBuildView(PluginBaseView):
               paramType: form
         """
         update_info = request.data.get("update_info", None)
+        arch = request.data.get("arch", "amd64")  # 获取架构参数，默认 amd64
         if self.plugin_version.build_status == "building":
             return Response(general_message(409, "too offen", "构建中，请稍后再试"), status=409)
         if update_info:
@@ -65,7 +66,7 @@ class PluginBuildView(PluginBaseView):
         }
         try:
             plugin_service.build_plugin(self.response_region, self.plugin, self.plugin_version, self.user, self.tenant,
-                                        event_id, image_info)
+                                        event_id, image_info, arch)
             self.plugin_version.build_status = "building"
             self.plugin_version.event_id = event_id
             self.plugin_version.save()

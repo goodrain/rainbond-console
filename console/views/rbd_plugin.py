@@ -2,7 +2,7 @@
 from rest_framework.response import Response
 from django.http import HttpResponse
 
-from console.views.base import EnterpriseAdminView, JWTAuthApiView
+from console.views.base import AlowAnyApiView, EnterpriseAdminView, JWTAuthApiView
 from console.services.plugin_service import rbd_plugin_service
 from www.utils.return_message import general_message
 from www.apiclient.regionapi import RegionInvokeApi
@@ -16,7 +16,7 @@ class RainbondPluginLView(JWTAuthApiView):
         return Response(general_message(200, "success", "查询成功", list=plugins))
 
 
-class RainbondPluginStaticView(JWTAuthApiView):
+class RainbondPluginStaticView(AlowAnyApiView):
     def get(self, request, region_name, plugin_name, *args, **kwargs):
         path = "/v2/platform/static/plugins/" + plugin_name
         resp = region_api.get_proxy(region_name, path, check_status=False)

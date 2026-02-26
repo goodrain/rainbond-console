@@ -488,7 +488,7 @@ class TenantServiceEnv(BaseModel):
     service_id = models.CharField(max_length=32, help_text="组件id")
     language = models.CharField(max_length=40, null=True, blank=True, help_text="代码语言")
     check_dependency = models.CharField(max_length=100, null=True, blank=True, help_text="检测运行环境依赖")
-    user_dependency = models.CharField(max_length=1000, null=True, blank=True, help_text="用户自定义运行环境依赖")
+    user_dependency = models.TextField(null=True, blank=True, help_text="用户自定义运行环境依赖")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text="创建时间")
 
 

@@ -2406,6 +2406,32 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
 
+    def get_license_cluster_id(self, enterprise_id, region_name):
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        url = url + "/v2/license/cluster-id"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
+        return body
+
+    def activate_license(self, enterprise_id, region_name, license_code):
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        url = url + "/v2/license/activate"
+        self._set_headers(token)
+        res, body = self._post(
+            url,
+            self.default_headers,
+            body=json.dumps({"license_code": license_code, "enterprise_id": enterprise_id}),
+            region=region_name,
+            timeout=10)
+        return body
+
+    def get_license_status(self, enterprise_id, region_name):
+        url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
+        url = url + "/v2/license/status"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
+        return body
+
     def list_app_statuses_by_app_ids(self, tenant_name, region_name, body):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{tenant_name}/appstatuses".format(tenant_name=tenant_name)
@@ -2703,6 +2729,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 
+    def create_rbdplugin(self, enterprise_id, region_name, plugin_data):
+        region_info = self.get_enterprise_region_info(enterprise_id, region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/plugins"
+        res, body = self._post(url, self.default_headers, json.dumps(plugin_data), region=region_name, timeout=10)
+        return res, body
+
     def list_abilities(self, enterprise_id, region_name):
         region_info = self.get_enterprise_region_info(enterprise_id, region_name)
         if not region_info:
@@ -2772,6 +2806,24 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url
         url += "/v2/cluster/langVersion"
         res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
+        return body
+
+    def get_cnb_versions(self, enterprise_id, region, lang="nodejs"):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/cnb/versions?lang={0}".format(lang)
+        res, body = self._get(url, self.default_headers, region=region_info.region_name)
+        return body
+
+    def get_cnb_frameworks(self, enterprise_id, region, lang="nodejs"):
+        region_info = self.get_enterprise_region_info(enterprise_id, region)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/cnb/frameworks?lang={0}".format(lang)
+        res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return body
 
     def post_proxy(self, region_name, path, data):

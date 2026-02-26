@@ -43,21 +43,25 @@ class ComposeService(object):
         except yaml.YAMLError:
             return 400, "yaml内容格式不正确", {}
 
-    def create_group_compose(self, tenant, region, group_id, compose_content, hub_user="", hub_pass=""):
-        # 将yaml格式信息转成json数据
+    def create_group_compose(self, tenant, region, group_id, event_id, compose_file_path, hub_user="", hub_pass=""):
+        # 存储上传事件ID和compose文件路径
         group_compose_data = {
             "hub_user": hub_user,
             "hub_pass": hub_pass,
             "group_id": group_id,
             "team_id": tenant.tenant_id,
             "region": region,
-            "compose_content": compose_content,
+            "compose_content": event_id,  # 临时存储event_id在compose_content字段
             "compose_id": make_uuid(),
             "create_status": "creating",
             "create_time": current_time_str("%Y-%m-%d %H:%M:%S"),
         }
 
         group_compose = compose_repo.create_group_compose(**group_compose_data)
+        # 将compose_file_path存储到group_compose对象中（如果模型支持）
+        if hasattr(group_compose, 'compose_file_path'):
+            group_compose.compose_file_path = compose_file_path
+            group_compose.save()
         return 200, "创建groupcompose成功", group_compose
 
     def check_compose(self, region, tenant, compose_id):
@@ -67,7 +71,8 @@ class ComposeService(object):
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = "docker-compose"
-        body["source_body"] = group_compose.compose_content
+        body["event_id"] = group_compose.compose_content  # compose_content字段临时存储的是event_id
+        body["compose_file_path"] = getattr(group_compose, 'compose_file_path', 'docker-compose.yml')
         body["username"] = group_compose.hub_user
         body["password"] = group_compose.hub_pass
         body["namespace"] = tenant.namespace
@@ -197,6 +202,7 @@ class ComposeService(object):
         tenant_service.service_id = make_uuid()
         tenant_service.service_cname = service_cname
         tenant_service.service_alias = "gr" + tenant_service.service_id[-6:]
+        tenant_service.k8s_component_name = service_cname
         tenant_service.creater = user.pk
         tenant_service.image = image
         tenant_service.service_region = region
