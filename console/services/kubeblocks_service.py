@@ -36,6 +36,9 @@ class KubeBlocksService(object):
         """
         new_service = None
         try:
+            # 在创建组件之前，先验证和自动适配架构
+            creation_params = self._validate_and_adapt_arch(region_name, creation_params)
+
             # 创建组件元数据和基础配置
             new_service = self._create_component_metadata(tenant, user, region_name, creation_params)
 
@@ -87,6 +90,89 @@ class KubeBlocksService(object):
                 self._cleanup_on_failure(new_service, tenant, region_name)
 
             return False, None, str(e)
+
+    def _validate_and_adapt_arch(self, region_name, creation_params):
+        """
+        验证和自动适配架构
+
+        在创建组件之前检查架构兼容性，避免创建后才发现不匹配。
+        如果用户未指定架构，自动选择集群支持的架构。
+
+        Args:
+            region_name: 区域名称
+            creation_params: 创建参数
+
+        Returns:
+            更新后的 creation_params（包含验证/适配后的 arch）
+
+        Raises:
+            ServiceHandleException: 架构不匹配时抛出
+        """
+        try:
+            # 获取集群支持的架构列表
+            res, body = region_api.get_cluster_nodes_arch(region_name)
+            available_archs = list(set(body.get("list", [])))
+
+            if not available_archs:
+                error_msg = f"集群 {region_name} 未返回可用架构列表，无法创建组件"
+                logger.error(error_msg)
+                raise ServiceHandleException(
+                    msg="cluster architecture list is empty",
+                    msg_show="集群架构列表为空，请检查集群配置",
+                    status_code=500,
+                    error_code=500
+                )
+
+            logger.info(f"集群 {region_name} 支持的架构列表: {available_archs}")
+
+            # 获取用户指定的架构（如果有）
+            user_specified_arch = creation_params.get('arch', '').strip()
+
+            if user_specified_arch:
+                # 用户指定了架构，验证是否在支持列表中
+                if user_specified_arch not in available_archs:
+                    available_archs_str = ", ".join(available_archs)
+                    error_msg = f"app arch does not match build node arch: {user_specified_arch} not in [{available_archs_str}]"
+                    error_msg_show = f"指定的架构不受支持：组件架构为 {user_specified_arch}，集群可用架构为 [{available_archs_str}]"
+                    raise ServiceHandleException(
+                        msg=error_msg,
+                        msg_show=error_msg_show,
+                        status_code=400,
+                        error_code=400
+                    )
+                logger.info(f"使用用户指定的架构: {user_specified_arch}")
+                creation_params['arch'] = user_specified_arch
+            else:
+                # 用户未指定架构，自动选择
+                if len(available_archs) == 1:
+                    # 只有一种架构，直接使用
+                    selected_arch = available_archs[0]
+                    logger.info(f"集群只支持单一架构，自动选择: {selected_arch}")
+                else:
+                    # 多种架构，优先选择 amd64，否则选择第一个
+                    if 'amd64' in available_archs:
+                        selected_arch = 'amd64'
+                        logger.info(f"集群支持多架构，优先选择 amd64")
+                    else:
+                        selected_arch = available_archs[0]
+                        logger.info(f"集群支持多架构但不包含 amd64，选择第一个可用架构: {selected_arch}")
+
+                creation_params['arch'] = selected_arch
+
+            return creation_params
+
+        except ServiceHandleException:
+            # 重新抛出业务异常
+            raise
+        except Exception as e:
+            logger.exception(f"验证架构时发生异常: {str(e)}")
+            # 发生异常时抛出错误，而不是使用默认值
+            raise ServiceHandleException(
+                msg=f"failed to validate architecture: {str(e)}",
+                msg_show="验证架构时发生异常，请检查集群配置",
+                status_code=500,
+                error_code=500
+            )
 
     def _create_component_metadata(self, tenant, user, region_name, params):
         """
