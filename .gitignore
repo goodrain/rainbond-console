@@ -147,3 +147,5 @@ static
 !www/static
 
 local_allinone.sh
+.agents/
+.claude/knowledge/
