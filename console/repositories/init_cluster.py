@@ -7,10 +7,31 @@ from console.models.main import RKECluster, RKEClusterNode
 
 
 class Cluster(object):
+    def get_latest_pending_cluster(self):
+        return RKECluster.objects.exclude(create_status="interconnected").order_by("-ID").first()
+
+    def get_recyclable_cluster(self):
+        return RKECluster.objects.filter(cluster_id="", cluster_name="").order_by("-ID").first()
+
+    def recycle_cluster(self, cluster):
+        RKEClusterNode.objects.filter(cluster_id=cluster.cluster_id).delete()
+        cluster.event_id = uuid.uuid4().hex
+        cluster.create_status = "initializing"
+        cluster.server_host = ""
+        cluster.config = ""
+        cluster.third_db = False
+        cluster.third_hub = False
+        cluster.save()
+        return cluster
+
     def get_rke_cluster_exclude_integrated(self):
-        clusters = RKECluster.objects.exclude(create_status="interconnected")
-        if clusters.exists():
-            return clusters[0]
+        cluster = self.get_latest_pending_cluster()
+        if cluster:
+            return cluster
+
+        cluster = self.get_recyclable_cluster()
+        if cluster:
+            return self.recycle_cluster(cluster)
         return self.init_cluster()
 
     def get_rke_cluster(self, event_id="", cluster_id="", cluster_name=""):
