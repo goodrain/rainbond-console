@@ -2,244 +2,229 @@
 """CNB 构建相关测试"""
 from unittest import TestCase
 
+from console.utils.cnb_build import (
+    extract_cnb_envs_from_runtime_info,
+    has_cnb_build_params,
+    is_cnb_language,
+    sanitize_build_env_dict_for_language,
+)
+
+
+class CNBLanguageDetectionTestCase(TestCase):
+    def test_nodejs_language_is_cnb(self):
+        self.assertTrue(is_cnb_language("Node.js"))
+
+    def test_static_language_is_cnb(self):
+        self.assertTrue(is_cnb_language("static"))
+
+    def test_java_language_is_not_cnb(self):
+        self.assertFalse(is_cnb_language("java-maven"))
+
+    def test_dockerfile_node_language_is_not_cnb(self):
+        self.assertFalse(is_cnb_language("dockerfile,Node.js"))
+
 
 class CNBParamsDetectionTestCase(TestCase):
-    """测试 CNB 参数检测逻辑"""
+    def test_node_language_detects_cnb_params(self):
+        self.assertTrue(has_cnb_build_params({"CNB_FRAMEWORK": "nextjs"}, "Node.js"))
 
-    def test_has_cnb_params_with_framework(self):
-        """测试：有 CNB_FRAMEWORK 时应检测到 CNB 参数"""
-        build_env_dict = {"CNB_FRAMEWORK": "nextjs"}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        self.assertTrue(has_cnb_params)
+    def test_non_cnb_language_ignores_stale_cnb_params(self):
+        self.assertFalse(has_cnb_build_params({"CNB_FRAMEWORK": "nextjs"}, "java-maven"))
 
-    def test_has_cnb_params_with_build_script(self):
-        """测试：有 CNB_BUILD_SCRIPT 时应检测到 CNB 参数"""
-        build_env_dict = {"CNB_BUILD_SCRIPT": "build"}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        self.assertTrue(has_cnb_params)
+    def test_empty_build_env_dict_has_no_cnb_params(self):
+        self.assertFalse(has_cnb_build_params({}, "Node.js"))
 
-    def test_has_cnb_params_with_output_dir(self):
-        """测试：有 CNB_OUTPUT_DIR 时应检测到 CNB 参数"""
-        build_env_dict = {"CNB_OUTPUT_DIR": "dist"}
+    def test_each_supported_cnb_param_is_detected_for_node_language(self):
         cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
+            "CNB_FRAMEWORK",
+            "CNB_BUILD_SCRIPT",
+            "CNB_OUTPUT_DIR",
+            "CNB_NODE_VERSION",
+            "CNB_NODE_ENV",
+            "CNB_MIRROR_SOURCE",
+            "CNB_MIRROR_NPMRC",
+            "CNB_MIRROR_YARNRC",
+            "CNB_MIRROR_PNPMRC",
+            "CNB_START_SCRIPT",
         ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        self.assertTrue(has_cnb_params)
-
-    def test_has_cnb_params_with_node_version(self):
-        """测试：有 CNB_NODE_VERSION 时应检测到 CNB 参数"""
-        build_env_dict = {"CNB_NODE_VERSION": "20.20.0"}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        self.assertTrue(has_cnb_params)
-
-    def test_has_cnb_params_with_mirror_source(self):
-        """测试：有 CNB_MIRROR_SOURCE 时应检测到 CNB 参数"""
-        build_env_dict = {"CNB_MIRROR_SOURCE": "global"}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        self.assertTrue(has_cnb_params)
-
-    def test_has_cnb_params_with_mirror_npmrc(self):
-        """测试：有 CNB_MIRROR_NPMRC 时应检测到 CNB 参数"""
-        build_env_dict = {"CNB_MIRROR_NPMRC": "registry=https://registry.npmmirror.com"}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        self.assertTrue(has_cnb_params)
-
-    def test_has_cnb_params_with_mirror_yarnrc(self):
-        """测试：有 CNB_MIRROR_YARNRC 时应检测到 CNB 参数"""
-        build_env_dict = {"CNB_MIRROR_YARNRC": 'registry "https://registry.npmmirror.com"'}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        self.assertTrue(has_cnb_params)
-
-    def test_has_cnb_params_with_mirror_pnpmrc(self):
-        """测试：有 CNB_MIRROR_PNPMRC 时应检测到 CNB 参数"""
-        build_env_dict = {"CNB_MIRROR_PNPMRC": "registry=https://registry.npmmirror.com"}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        self.assertTrue(has_cnb_params)
-
-    def test_no_cnb_params(self):
-        """测试：没有 CNB 参数时应返回 False"""
-        build_env_dict = {"BUILD_PACKAGE_TOOL": "npm", "BUILD_RUNTIMES": "20.x"}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        self.assertFalse(has_cnb_params)
-
-    def test_empty_build_env_dict(self):
-        """测试：空的构建环境变量字典"""
-        build_env_dict = {}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        self.assertFalse(has_cnb_params)
+        for key in cnb_params:
+            with self.subTest(key=key):
+                self.assertTrue(has_cnb_build_params({key: "demo-value"}, "Node.js"))
 
 
 class BuildTypeAutoSetTestCase(TestCase):
-    """测试 BUILD_TYPE 自动设置逻辑"""
-
-    def test_auto_set_build_type_cnb(self):
-        """测试：当有 CNB 参数且没有 BUILD_TYPE 时，应自动设置为 cnb"""
+    def test_auto_set_build_type_cnb_for_node_language(self):
         build_env_dict = {"CNB_FRAMEWORK": "nextjs"}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        if has_cnb_params and "BUILD_TYPE" not in build_env_dict:
+        if has_cnb_build_params(build_env_dict, "Node.js") and "BUILD_TYPE" not in build_env_dict:
             build_env_dict["BUILD_TYPE"] = "cnb"
-
         self.assertEqual(build_env_dict.get("BUILD_TYPE"), "cnb")
 
-    def test_preserve_existing_build_type(self):
-        """测试：当已有 BUILD_TYPE 时，不应覆盖"""
-        build_env_dict = {"CNB_FRAMEWORK": "nextjs", "BUILD_TYPE": "dockerfile"}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        if has_cnb_params and "BUILD_TYPE" not in build_env_dict:
+    def test_do_not_auto_set_build_type_for_java_language(self):
+        build_env_dict = {"CNB_FRAMEWORK": "nextjs"}
+        if has_cnb_build_params(build_env_dict, "java-maven") and "BUILD_TYPE" not in build_env_dict:
             build_env_dict["BUILD_TYPE"] = "cnb"
-
-        self.assertEqual(build_env_dict.get("BUILD_TYPE"), "dockerfile")
-
-    def test_no_build_type_without_cnb_params(self):
-        """测试：没有 CNB 参数时，不应设置 BUILD_TYPE"""
-        build_env_dict = {"BUILD_PACKAGE_TOOL": "npm"}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        if has_cnb_params and "BUILD_TYPE" not in build_env_dict:
-            build_env_dict["BUILD_TYPE"] = "cnb"
-
         self.assertNotIn("BUILD_TYPE", build_env_dict)
 
-    def test_auto_set_with_only_mirror_config(self):
-        """测试：仅配置 mirror 时也应自动设置 BUILD_TYPE=cnb"""
-        build_env_dict = {"CNB_MIRROR_NPMRC": "registry=https://registry.npmmirror.com"}
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC", "CNB_MIRROR_PNPMRC"
+
+class BuildEnvSanitizeTestCase(TestCase):
+    def test_java_build_envs_strip_stale_cnb_markers(self):
+        build_env_dict = sanitize_build_env_dict_for_language({
+            "CNB_FRAMEWORK": "nextjs",
+            "CNB_NODE_VERSION": "20.20.0",
+            "BUILD_TYPE": "cnb",
+            "BUILD_RUNTIMES": "17"
+        }, "java-maven")
+        self.assertNotIn("CNB_FRAMEWORK", build_env_dict)
+        self.assertNotIn("CNB_NODE_VERSION", build_env_dict)
+        self.assertNotIn("BUILD_TYPE", build_env_dict)
+        self.assertEqual(build_env_dict["BUILD_RUNTIMES"], "17")
+
+    def test_java_build_envs_strip_runtime_aliases_used_by_builder(self):
+        build_env_dict = sanitize_build_env_dict_for_language({
+            "TYPE": "cnb",
+            "HAS_NPMRC": "true",
+            "HAS_YARNRC": "true",
+            "RUNTIMES": "17"
+        }, "java-maven")
+        self.assertNotIn("TYPE", build_env_dict)
+        self.assertNotIn("HAS_NPMRC", build_env_dict)
+        self.assertNotIn("HAS_YARNRC", build_env_dict)
+        self.assertEqual(build_env_dict["RUNTIMES"], "17")
+
+    def test_non_cnb_languages_strip_stale_cnb_markers(self):
+        stale_envs = {
+            "CNB_FRAMEWORK": "nextjs",
+            "CNB_NODE_VERSION": "20.20.0",
+            "CNB_MIRROR_SOURCE": "project",
+            "BUILD_TYPE": "cnb",
+            "TYPE": "cnb",
+            "HAS_NPMRC": "true",
+            "HAS_YARNRC": "true",
+            "RUNTIMES": "demo"
+        }
+        languages = [
+            "dockerfile",
+            "java-maven",
+            "java-war",
+            "java-jar",
+            "Python",
+            "PHP",
+            "Go",
+            ".NetCore"
         ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        if has_cnb_params and "BUILD_TYPE" not in build_env_dict:
-            build_env_dict["BUILD_TYPE"] = "cnb"
+        for language in languages:
+            with self.subTest(language=language):
+                build_env_dict = sanitize_build_env_dict_for_language(stale_envs, language)
+                self.assertNotIn("CNB_FRAMEWORK", build_env_dict)
+                self.assertNotIn("CNB_NODE_VERSION", build_env_dict)
+                self.assertNotIn("CNB_MIRROR_SOURCE", build_env_dict)
+                self.assertNotIn("BUILD_TYPE", build_env_dict)
+                self.assertNotIn("TYPE", build_env_dict)
+                self.assertNotIn("HAS_NPMRC", build_env_dict)
+                self.assertNotIn("HAS_YARNRC", build_env_dict)
+                self.assertEqual(build_env_dict["RUNTIMES"], "demo")
 
-        self.assertEqual(build_env_dict.get("BUILD_TYPE"), "cnb")
+    def test_node_build_envs_preserve_cnb_markers(self):
+        build_env_dict = sanitize_build_env_dict_for_language({
+            "CNB_FRAMEWORK": "nextjs",
+            "BUILD_TYPE": "cnb"
+        }, "Node.js")
+        self.assertEqual(build_env_dict["CNB_FRAMEWORK"], "nextjs")
+        self.assertEqual(build_env_dict["BUILD_TYPE"], "cnb")
 
+    def test_static_build_envs_preserve_cnb_markers(self):
+        build_env_dict = sanitize_build_env_dict_for_language({
+            "CNB_FRAMEWORK": "react",
+            "CNB_OUTPUT_DIR": "build",
+            "BUILD_TYPE": "cnb"
+        }, "static")
+        self.assertEqual(build_env_dict["CNB_FRAMEWORK"], "react")
+        self.assertEqual(build_env_dict["CNB_OUTPUT_DIR"], "build")
+        self.assertEqual(build_env_dict["BUILD_TYPE"], "cnb")
 
-class CNBMirrorConfigTestCase(TestCase):
-    """测试 CNB Mirror 配置相关逻辑"""
-
-    def test_mirror_source_project(self):
-        """测试：mirror source 为 project"""
-        build_env_dict = {"CNB_MIRROR_SOURCE": "project"}
-        self.assertEqual(build_env_dict.get("CNB_MIRROR_SOURCE"), "project")
-
-    def test_mirror_source_global(self):
-        """测试：mirror source 为 global"""
-        build_env_dict = {"CNB_MIRROR_SOURCE": "global"}
-        self.assertEqual(build_env_dict.get("CNB_MIRROR_SOURCE"), "global")
-
-    def test_all_mirror_configs(self):
-        """测试：同时配置所有 mirror 文件"""
-        build_env_dict = {
+    def test_node_build_envs_preserve_common_mirror_fields(self):
+        build_env_dict = sanitize_build_env_dict_for_language({
             "CNB_MIRROR_SOURCE": "global",
             "CNB_MIRROR_NPMRC": "registry=https://registry.npmmirror.com",
             "CNB_MIRROR_YARNRC": 'registry "https://registry.npmmirror.com"',
-            "CNB_MIRROR_PNPMRC": "registry=https://registry.npmmirror.com"
-        }
+            "CNB_MIRROR_PNPMRC": "registry=https://registry.npmmirror.com",
+        }, "Node.js")
+        self.assertEqual(build_env_dict["CNB_MIRROR_SOURCE"], "global")
         self.assertIn("CNB_MIRROR_NPMRC", build_env_dict)
         self.assertIn("CNB_MIRROR_YARNRC", build_env_dict)
         self.assertIn("CNB_MIRROR_PNPMRC", build_env_dict)
 
-
-class CNBFrameworkValidationTestCase(TestCase):
-    """测试 CNB 框架配置验证"""
-
-    def test_valid_static_frameworks(self):
-        """测试：静态框架列表"""
-        static_frameworks = ["vue", "react", "vite", "nextjs", "nuxt", "umi", "cra", "vue-cli", "gatsby", "docusaurus"]
-        for framework in static_frameworks:
-            build_env_dict = {"CNB_FRAMEWORK": framework}
-            self.assertEqual(build_env_dict.get("CNB_FRAMEWORK"), framework)
-
-    def test_valid_server_frameworks(self):
-        """测试：服务端框架列表"""
-        server_frameworks = ["express", "nestjs", "koa", "fastify", "remix"]
-        for framework in server_frameworks:
-            build_env_dict = {"CNB_FRAMEWORK": framework}
-            self.assertEqual(build_env_dict.get("CNB_FRAMEWORK"), framework)
+    def test_node_build_envs_preserve_known_node_versions(self):
+        versions = ["18.20.7", "18.20.8", "20.19.6", "20.20.0", "22.21.1", "22.22.0", "24.12.0", "24.13.0"]
+        for version in versions:
+            with self.subTest(version=version):
+                build_env_dict = sanitize_build_env_dict_for_language({
+                    "CNB_NODE_VERSION": version
+                }, "Node.js")
+                self.assertEqual(build_env_dict["CNB_NODE_VERSION"], version)
 
 
-class CNBOutputDirTestCase(TestCase):
-    """测试 CNB 输出目录配置"""
+class RuntimeInfoExtractTestCase(TestCase):
+    def test_extract_nodejs_cnb_envs_from_runtime_info(self):
+        runtime_info = {
+            "language": "nodejs",
+            "language_version": "20.20.0",
+            "framework": {"name": "nextjs"},
+            "build_config": {"output_dir": ".next", "build_command": "build"},
+            "package_manager": {"name": "pnpm"},
+            "config_files": {"has_npmrc": True, "has_yarnrc": False}
+        }
+        cnb_envs = extract_cnb_envs_from_runtime_info(runtime_info)
+        self.assertEqual(cnb_envs["CNB_FRAMEWORK"], "nextjs")
+        self.assertEqual(cnb_envs["CNB_NODE_VERSION"], "20.20.0")
+        self.assertEqual(cnb_envs["CNB_OUTPUT_DIR"], ".next")
+        self.assertEqual(cnb_envs["CNB_BUILD_SCRIPT"], "build")
+        self.assertEqual(cnb_envs["CNB_PACKAGE_TOOL"], "pnpm")
+        self.assertEqual(cnb_envs["BUILD_HAS_NPMRC"], "true")
+        self.assertEqual(cnb_envs["CNB_MIRROR_SOURCE"], "project")
 
-    def test_default_output_dirs(self):
-        """测试：常见框架的默认输出目录"""
+    def test_java_runtime_info_does_not_generate_cnb_envs(self):
+        runtime_info = {
+            "language": "java-maven",
+            "language_version": "17"
+        }
+        self.assertEqual(extract_cnb_envs_from_runtime_info(runtime_info), {})
+
+    def test_static_runtime_info_without_framework_has_no_extra_cnb_envs(self):
+        runtime_info = {
+            "language": "static"
+        }
+        self.assertEqual(extract_cnb_envs_from_runtime_info(runtime_info), {})
+
+    def test_extract_static_framework_contract(self):
+        runtime_info = {
+            "language": "static",
+            "framework": {"name": "react"},
+            "build_config": {"output_dir": "build", "build_command": "build"}
+        }
+        cnb_envs = extract_cnb_envs_from_runtime_info(runtime_info)
+        self.assertEqual(cnb_envs["CNB_FRAMEWORK"], "react")
+        self.assertEqual(cnb_envs["CNB_OUTPUT_DIR"], "build")
+        self.assertEqual(cnb_envs["CNB_BUILD_SCRIPT"], "build")
+        self.assertNotIn("CNB_NODE_VERSION", cnb_envs)
+
+    def test_extract_known_framework_output_dir_examples(self):
         framework_output_dirs = {
             "vue": "dist",
             "react": "build",
             "vite": "dist",
             "nextjs": ".next",
             "nuxt": ".output",
-            "umi": "dist",
-            "cra": "build",
             "gatsby": "public",
             "docusaurus": "build"
         }
-        for framework, expected_dir in framework_output_dirs.items():
-            build_env_dict = {"CNB_FRAMEWORK": framework, "CNB_OUTPUT_DIR": expected_dir}
-            self.assertEqual(build_env_dict.get("CNB_OUTPUT_DIR"), expected_dir)
-
-
-class CNBNodeVersionTestCase(TestCase):
-    """测试 CNB Node.js 版本配置"""
-
-    def test_valid_node_versions(self):
-        """测试：有效的 Node.js 版本"""
-        valid_versions = ["18.20.7", "18.20.8", "20.19.6", "20.20.0", "22.21.1", "22.22.0", "24.12.0", "24.13.0"]
-        for version in valid_versions:
-            build_env_dict = {"CNB_NODE_VERSION": version}
-            self.assertEqual(build_env_dict.get("CNB_NODE_VERSION"), version)
-
-    def test_empty_node_version(self):
-        """测试：空的 Node.js 版本应使用默认值"""
-        build_env_dict = {}
-        # 默认不设置版本，由 CNB 自动检测
-        self.assertNotIn("CNB_NODE_VERSION", build_env_dict)
+        for framework, output_dir in framework_output_dirs.items():
+            with self.subTest(framework=framework):
+                runtime_info = {
+                    "language": "nodejs",
+                    "framework": {"name": framework},
+                    "build_config": {"output_dir": output_dir}
+                }
+                cnb_envs = extract_cnb_envs_from_runtime_info(runtime_info)
+                self.assertEqual(cnb_envs["CNB_FRAMEWORK"], framework)
+                self.assertEqual(cnb_envs["CNB_OUTPUT_DIR"], output_dir)
