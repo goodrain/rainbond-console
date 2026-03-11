@@ -123,6 +123,7 @@ class AppUpgrade(MarketApp):
         self._install_predeploy()
 
     def install(self):
+        events = []
         # install plugins
         self.install_plugins()
 
@@ -141,7 +142,8 @@ class AppUpgrade(MarketApp):
             raise ServiceHandleException("unexpected error", "安装遇到了故障, 暂无法执行, 请稍后重试")
 
         if self.is_deploy:
-            self._install_deploy()
+            events = self._install_deploy()
+        return events
 
     def upgrade(self):
         # install plugins
@@ -279,7 +281,7 @@ class AppUpgrade(MarketApp):
 
     def _install_deploy(self):
         try:
-            _ = self.deploy()
+            return self.deploy()
         except ErrTenantLackOfMemory as e:
             logger.exception(e)
             raise ErrTenantLackOfMemory()

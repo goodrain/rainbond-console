@@ -19,6 +19,7 @@ from console.services.app_actions import app_manage_service
 from console.services.app_actions.app_deploy import AppDeployService
 from console.services.app_actions.exception import ErrServiceSourceNotFound
 from console.services.app_config.env_service import AppEnvVarService
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.operation_log import operation_log_service, OperationType, InformationType, Operation
@@ -283,13 +284,23 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
               paramType: path
 
         """
+        tracker = None
         try:
             group_version = request.data.get("group_version", None)
-            code, msg, _ = app_deploy_service.deploy(
+            tracker = enterprise_first_deploy_service.begin_tracking(
+                enterprise_id=self.tenant.enterprise_id,
+                tenant_name=self.tenant.tenant_name,
+                region_name=self.service.service_region,
+                deploy_type=enterprise_first_deploy_service.get_deploy_type(self.service.service_source),
+                operator=self.user.nick_name,
+                source_language=self.service.language or "")
+            code, msg, event_id = app_deploy_service.deploy(
                 self.tenant, self.service, self.user, version=group_version, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
+                enterprise_first_deploy_service.mark_failure(tracker)
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
+            enterprise_first_deploy_service.bind_events(tracker, [event_id])
             result = general_message(code, "success", "操作成功", bean=bean)
             comment = operation_log_service.generate_component_comment(
                 operation=Operation.DEPLOY,
@@ -307,11 +318,14 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
             self.service.update_time = datetime.now()
             self.service.save()
         except ErrServiceSourceNotFound as e:
+            enterprise_first_deploy_service.mark_failure(tracker)
             logger.exception(e)
             return Response(general_message(412, e.message, "无法找到云市应用的构建源"), status=412)
         except ResourceNotEnoughException as re:
+            enterprise_first_deploy_service.mark_failure(tracker)
             raise re
         except AccountOverdueException as re:
+            enterprise_first_deploy_service.mark_failure(tracker)
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
         return Response(result, status=result["code"])
