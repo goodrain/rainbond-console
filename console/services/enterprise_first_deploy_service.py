@@ -8,6 +8,7 @@ from datetime import datetime
 import requests
 
 from console.repositories.first_deploy_repo import enterprise_first_deploy_repo
+from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantEnterprise
 
@@ -45,7 +46,7 @@ class EnterpriseFirstDeployService(object):
                 self._finalize_record(record, payload, self.STATUS_FAILURE)
             self._report_if_needed(record, payload)
             if payload.get("status") == self.STATUS_PENDING and payload.get("event_ids"):
-                self._start_sync_thread(record.key, tenant_name, region_name)
+                transaction.on_commit(lambda: self._start_sync_thread(record.key, tenant_name, region_name))
             return None
 
         payload = self._build_payload(
@@ -63,7 +64,7 @@ class EnterpriseFirstDeployService(object):
                 self._finalize_record(record, existing, self.STATUS_FAILURE)
             self._report_if_needed(record, existing)
             if existing.get("status") == self.STATUS_PENDING and existing.get("event_ids"):
-                self._start_sync_thread(record.key, tenant_name, region_name)
+                transaction.on_commit(lambda: self._start_sync_thread(record.key, tenant_name, region_name))
             return None
         return {
             "enterprise_id": enterprise_id,
@@ -90,7 +91,7 @@ class EnterpriseFirstDeployService(object):
             return
 
         enterprise_first_deploy_repo.update_payload(record, payload)
-        self._start_sync_thread(record.key, tracker["tenant_name"], tracker["region_name"])
+        transaction.on_commit(lambda: self._start_sync_thread(record.key, tracker["tenant_name"], tracker["region_name"]))
 
     def mark_success(self, tracker):
         if not tracker:
@@ -161,8 +162,8 @@ class EnterpriseFirstDeployService(object):
         events = body.get("list") or []
         status_map = {}
         for event in events:
-            event_id = event.get("EventID")
-            status = event.get("Status")
+            event_id = event.get("EventID") or event.get("event_id")
+            status = event.get("Status") or event.get("status")
             if event_id and status:
                 status_map[str(event_id)] = status
 
@@ -237,7 +238,8 @@ class EnterpriseFirstDeployService(object):
             while time.time() < deadline:
                 record = enterprise_first_deploy_repo.get_by_key(key)
                 if not record:
-                    return
+                    time.sleep(self.POLL_INTERVAL)
+                    continue
                 payload = enterprise_first_deploy_repo.load_payload(record)
                 status = self._sync_record(record, payload, tenant_name, region_name)
                 if status in self.FINAL_STATUSES:
