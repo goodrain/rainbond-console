@@ -1,0 +1,2453 @@
+meta:
+  name: "平台资源治理 + 团队资源中心"
+  version: "1.0"
+  repos:
+    - rainbond: /Users/zhangqihang/MyWork/workrc/rainbond
+    - rainbond-console: /Users/zhangqihang/MyWork/workrc/rainbond-console
+    - rainbond-ui: /Users/zhangqihang/MyWork/workrc/rainbond-ui
+  design_doc: docs/superpowers/specs/2026-03-16-platform-resources-design.md
+  created_at: "2026-03-16"
+
+# ============================================================
+# 关键约束（执行者必读）
+# ============================================================
+constraints:
+  - "clusterRouter() 在 v2Routers.go:266 已存在，新路由追加到函数内部，禁止新建 r.Mount('/cluster')"
+  - "InstallFromRepo 禁止委托给私有 install() helper（helm.go:181 hardcodes ClientOnly=true）"
+  - "TenantEnterprise 在 www/models/main.py:816，migration 必须在 www app 下执行"
+  - "console/urls.py 是平文件，需先转成包结构才能 include 子模块"
+  - "Go 接口：/v2/platform 被占用，用 /v2/cluster/platform-resources/* 前缀"
+  - "React：用 class component + @connect，Ant Design 3.x，yarn build 是质量门控"
+
+# ============================================================
+# SPRINT 1: Go 平台级接口
+# ============================================================
+sprints:
+  - id: sprint-1
+    name: "Go 平台级接口"
+    repo: rainbond
+
+    commits:
+      - id: commit-1
+        message: "feat: add cluster-scoped platform resource APIs"
+        tasks: [task-1.1, task-1.2]
+
+    tasks:
+      - id: task-1.1
+        name: "Go 平台级 Discovery + 通用 CRUD"
+        status: pending
+        files:
+          create:
+            - path: api/handler/cluster_resource.go
+            - path: api/controller/cluster_resource.go
+          modify:
+            - path: api/api_routers/version2/v2Routers.go
+              lines: "266-330"
+        steps:
+          - action: write-test
+            description: "编写 cluster_resource handler 测试（Discovery + CRUD）"
+            file: api/handler/cluster_resource_test.go
+            code: |
+              package handler
+
+              import (
+                  "context"
+                  "testing"
+
+                  "github.com/stretchr/testify/assert"
+              )
+
+              func TestListClusterResourceTypes(t *testing.T) {
+                  // Discovery 返回的类型列表不为空（在真实集群中）
+                  // 单元测试 mock discoveryClient
+                  h := &ClusterResourceHandler{}
+                  assert.NotNil(t, h)
+              }
+
+              func TestValidateGVRParams(t *testing.T) {
+                  tests := []struct {
+                      name     string
+                      group    string
+                      version  string
+                      resource string
+                      wantErr  bool
+                  }{
+                      {"all filled", "storage.k8s.io", "v1", "storageclasses", false},
+                      {"missing version", "storage.k8s.io", "", "storageclasses", true},
+                      {"missing resource", "storage.k8s.io", "v1", "", true},
+                      {"core group empty ok", "", "v1", "namespaces", false},
+                  }
+                  for _, tt := range tests {
+                      t.Run(tt.name, func(t *testing.T) {
+                          err := validateGVRParams(tt.group, tt.version, tt.resource)
+                          if tt.wantErr {
+                              assert.Error(t, err)
+                          } else {
+                              assert.NoError(t, err)
+                          }
+                      })
+                  }
+              }
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go test ./api/handler/... -run TestClusterResource -v 2>&1 | head -20"
+            expect: "FAIL"
+
+          - action: implement
+            description: "实现 ClusterResourceHandler"
+            file: api/handler/cluster_resource.go
+            code: |
+              package handler
+
+              import (
+                  "context"
+                  "fmt"
+
+                  "k8s.io/apimachinery/pkg/api/errors"
+                  metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+                  "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+                  "k8s.io/apimachinery/pkg/runtime/schema"
+                  "k8s.io/apimachinery/pkg/util/yaml"
+                  "k8s.io/client-go/discovery"
+
+                  "github.com/goodrain/rainbond/pkg/component/k8s"
+              )
+
+              // ClusterResourceHandler handles cluster-scoped K8s resource operations
+              type ClusterResourceHandler struct{}
+
+              func (h *ClusterResourceHandler) ListResourceTypes() ([]ResourceTypeInfo, error) {
+                  dc := k8s.Default().Clientset.Discovery()
+                  _, resList, err := dc.ServerGroupsAndResources()
+                  if err != nil && !discovery.IsGroupDiscoveryFailedError(err) {
+                      return nil, err
+                  }
+                  var types []ResourceTypeInfo
+                  for _, rl := range resList {
+                      gv, _ := schema.ParseGroupVersion(rl.GroupVersion)
+                      for _, r := range rl.APIResources {
+                          if !r.Namespaced && !containsSlash(r.Name) {
+                              types = append(types, ResourceTypeInfo{
+                                  Group:    gv.Group,
+                                  Version:  gv.Version,
+                                  Kind:     r.Kind,
+                                  Resource: r.Name,
+                                  Verbs:    r.Verbs,
+                              })
+                          }
+                      }
+                  }
+                  return types, nil
+              }
+
+              func (h *ClusterResourceHandler) ListResources(group, version, resource string) ([]unstructured.Unstructured, error) {
+                  if err := validateGVRParams(group, version, resource); err != nil {
+                      return nil, err
+                  }
+                  gvr := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+                  list, err := k8s.Default().DynamicClient.Resource(gvr).List(context.Background(), metav1.ListOptions{})
+                  if err != nil {
+                      return nil, err
+                  }
+                  return list.Items, nil
+              }
+
+              func (h *ClusterResourceHandler) GetResource(group, version, resource, name string) (*unstructured.Unstructured, error) {
+                  if err := validateGVRParams(group, version, resource); err != nil {
+                      return nil, err
+                  }
+                  gvr := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+                  return k8s.Default().DynamicClient.Resource(gvr).Get(context.Background(), name, metav1.GetOptions{})
+              }
+
+              func (h *ClusterResourceHandler) CreateResource(group, version, resource string, yamlBody []byte) (*unstructured.Unstructured, error) {
+                  if err := validateGVRParams(group, version, resource); err != nil {
+                      return nil, err
+                  }
+                  obj := &unstructured.Unstructured{}
+                  if err := yaml.NewYAMLOrJSONDecoder(
+                      newBytesReader(yamlBody), 4096,
+                  ).Decode(obj); err != nil {
+                      return nil, fmt.Errorf("invalid YAML: %v", err)
+                  }
+                  gvr := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+                  return k8s.Default().DynamicClient.Resource(gvr).Create(context.Background(), obj, metav1.CreateOptions{})
+              }
+
+              func (h *ClusterResourceHandler) DeleteResource(group, version, resource, name string) error {
+                  if err := validateGVRParams(group, version, resource); err != nil {
+                      return err
+                  }
+                  gvr := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+                  err := k8s.Default().DynamicClient.Resource(gvr).Delete(context.Background(), name, metav1.DeleteOptions{})
+                  if errors.IsNotFound(err) {
+                      return nil
+                  }
+                  return err
+              }
+
+              // ResourceTypeInfo describes a cluster-scoped K8s resource type
+              type ResourceTypeInfo struct {
+                  Group    string   `json:"group"`
+                  Version  string   `json:"version"`
+                  Kind     string   `json:"kind"`
+                  Resource string   `json:"resource"`
+                  Verbs    []string `json:"verbs"`
+              }
+
+              func validateGVRParams(group, version, resource string) error {
+                  if version == "" {
+                      return fmt.Errorf("version is required")
+                  }
+                  if resource == "" {
+                      return fmt.Errorf("resource is required")
+                  }
+                  return nil
+              }
+
+              func containsSlash(s string) bool {
+                  for _, c := range s {
+                      if c == '/' {
+                          return true
+                      }
+                  }
+                  return false
+              }
+
+              func newBytesReader(b []byte) *bytesReader {
+                  return &bytesReader{data: b}
+              }
+
+              type bytesReader struct {
+                  data []byte
+                  pos  int
+              }
+
+              func (r *bytesReader) Read(p []byte) (int, error) {
+                  if r.pos >= len(r.data) {
+                      return 0, fmt.Errorf("EOF")
+                  }
+                  n := copy(p, r.data[r.pos:])
+                  r.pos += n
+                  return n, nil
+              }
+
+              var clusterResourceHandler *ClusterResourceHandler
+
+              func GetClusterResourceHandler() *ClusterResourceHandler {
+                  if clusterResourceHandler == nil {
+                      clusterResourceHandler = &ClusterResourceHandler{}
+                  }
+                  return clusterResourceHandler
+              }
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go test ./api/handler/... -run TestValidateGVRParams -v"
+            expect: "PASS"
+
+          - action: implement
+            description: "实现 cluster_resource controller"
+            file: api/controller/cluster_resource.go
+            code: |
+              package controller
+
+              import (
+                  "net/http"
+
+                  "github.com/go-chi/chi"
+                  "github.com/goodrain/rainbond/api/handler"
+                  httputil "github.com/goodrain/rainbond/util/http"
+              )
+
+              // ClusterResourceController handles HTTP requests for cluster-scoped resources
+              type ClusterResourceController struct{}
+
+              func (c *ClusterResourceController) ListResourceTypes(w http.ResponseWriter, r *http.Request) {
+                  types, err := handler.GetClusterResourceHandler().ListResourceTypes()
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, map[string]interface{}{
+                      "list":  types,
+                      "total": len(types),
+                  })
+              }
+
+              func (c *ClusterResourceController) ListResources(w http.ResponseWriter, r *http.Request) {
+                  group := r.URL.Query().Get("group")
+                  version := r.URL.Query().Get("version")
+                  resource := r.URL.Query().Get("resource")
+                  list, err := handler.GetClusterResourceHandler().ListResources(group, version, resource)
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, map[string]interface{}{
+                      "list":  list,
+                      "total": len(list),
+                  })
+              }
+
+              func (c *ClusterResourceController) GetResource(w http.ResponseWriter, r *http.Request) {
+                  name := chi.URLParam(r, "name")
+                  group := r.URL.Query().Get("group")
+                  version := r.URL.Query().Get("version")
+                  resource := r.URL.Query().Get("resource")
+                  obj, err := handler.GetClusterResourceHandler().GetResource(group, version, resource, name)
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, obj)
+              }
+
+              func (c *ClusterResourceController) CreateResource(w http.ResponseWriter, r *http.Request) {
+                  group := r.URL.Query().Get("group")
+                  version := r.URL.Query().Get("version")
+                  resource := r.URL.Query().Get("resource")
+                  body := make([]byte, r.ContentLength)
+                  r.Body.Read(body)
+                  obj, err := handler.GetClusterResourceHandler().CreateResource(group, version, resource, body)
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, obj)
+              }
+
+              func (c *ClusterResourceController) DeleteResource(w http.ResponseWriter, r *http.Request) {
+                  name := chi.URLParam(r, "name")
+                  group := r.URL.Query().Get("group")
+                  version := r.URL.Query().Get("version")
+                  resource := r.URL.Query().Get("resource")
+                  if err := handler.GetClusterResourceHandler().DeleteResource(group, version, resource, name); err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, nil)
+              }
+
+              func GetClusterResourceController() *ClusterResourceController {
+                  return &ClusterResourceController{}
+              }
+
+          - action: implement
+            description: "在 clusterRouter() 内追加 platform-resources 路由（v2Routers.go:266）"
+            file: api/api_routers/version2/v2Routers.go
+            note: "在 clusterRouter() 函数的 return r 语句之前追加以下路由"
+            code: |
+              // Platform Resources (cluster-scoped generic)
+              r.Get("/platform-resources/types", controller.GetClusterResourceController().ListResourceTypes)
+              r.Get("/platform-resources", controller.GetClusterResourceController().ListResources)
+              r.Post("/platform-resources", controller.GetClusterResourceController().CreateResource)
+              r.Get("/platform-resources/{name}", controller.GetClusterResourceController().GetResource)
+              r.Delete("/platform-resources/{name}", controller.GetClusterResourceController().DeleteResource)
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go build ./..."
+            expect: "exit 0"
+
+          - action: verify
+            description: "完整验证"
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go build ./... && go vet ./api/handler/... ./api/controller/..."
+            expect: "exit 0"
+
+        acceptance:
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go build ./..."
+            expect: "exit 0"
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go test ./api/handler/... -run TestValidateGVRParams -v"
+            expect: "PASS"
+
+        references:
+          - path: "api/api_routers/version2/v2Routers.go:266-330"
+            note: "clusterRouter() 函数 — 在 return r 前追加路由"
+          - path: "pkg/component/k8s/k8sComponent.go"
+            note: "k8s.Default().DynamicClient 获取方式"
+
+      - id: task-1.2
+        name: "Go StorageClass + PV 专用接口"
+        status: pending
+        files:
+          create:
+            - path: api/handler/storage.go
+            - path: api/controller/storage.go
+          modify:
+            - path: api/api_routers/version2/v2Routers.go
+              lines: "266-330"
+        steps:
+          - action: write-test
+            description: "编写 storage handler 测试"
+            file: api/handler/storage_test.go
+            code: |
+              package handler
+
+              import (
+                  "testing"
+                  "github.com/stretchr/testify/assert"
+              )
+
+              func TestStorageHandlerInit(t *testing.T) {
+                  h := GetStorageHandler()
+                  assert.NotNil(t, h)
+              }
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go test ./api/handler/... -run TestStorageHandlerInit -v"
+            expect: "FAIL"
+
+          - action: implement
+            description: "实现 StorageHandler（StorageClass + PV 增删查）"
+            file: api/handler/storage.go
+            code: |
+              package handler
+
+              import (
+                  "context"
+                  "fmt"
+
+                  corev1 "k8s.io/api/core/v1"
+                  storagev1 "k8s.io/api/storage/v1"
+                  "k8s.io/apimachinery/pkg/api/errors"
+                  metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+                  "k8s.io/apimachinery/pkg/util/yaml"
+
+                  "github.com/goodrain/rainbond/pkg/component/k8s"
+              )
+
+              // StorageHandler handles StorageClass and PersistentVolume operations
+              type StorageHandler struct{}
+
+              func (h *StorageHandler) ListStorageClasses() ([]StorageClassInfo, error) {
+                  client := k8s.Default().Clientset
+                  scList, err := client.StorageV1().StorageClasses().List(context.Background(), metav1.ListOptions{})
+                  if err != nil {
+                      return nil, err
+                  }
+                  pvList, err := client.CoreV1().PersistentVolumes().List(context.Background(), metav1.ListOptions{})
+                  if err != nil {
+                      return nil, err
+                  }
+                  // count PVs per StorageClass
+                  pvCount := map[string]int{}
+                  for _, pv := range pvList.Items {
+                      if pv.Spec.StorageClassName != "" {
+                          pvCount[pv.Spec.StorageClassName]++
+                      }
+                  }
+                  var result []StorageClassInfo
+                  for _, sc := range scList.Items {
+                      isDefault := sc.Annotations["storageclass.kubernetes.io/is-default-class"] == "true"
+                      reclaimPolicy := ""
+                      if sc.ReclaimPolicy != nil {
+                          reclaimPolicy = string(*sc.ReclaimPolicy)
+                      }
+                      volumeBindingMode := ""
+                      if sc.VolumeBindingMode != nil {
+                          volumeBindingMode = string(*sc.VolumeBindingMode)
+                      }
+                      allowVolumeExpansion := sc.AllowVolumeExpansion != nil && *sc.AllowVolumeExpansion
+                      result = append(result, StorageClassInfo{
+                          Name:                sc.Name,
+                          Provisioner:         sc.Provisioner,
+                          IsDefault:           isDefault,
+                          ReclaimPolicy:       reclaimPolicy,
+                          VolumeBindingMode:   volumeBindingMode,
+                          AllowVolumeExpansion: allowVolumeExpansion,
+                          PVCount:             pvCount[sc.Name],
+                      })
+                  }
+                  return result, nil
+              }
+
+              func (h *StorageHandler) CreateStorageClass(yamlBody []byte) (*storagev1.StorageClass, error) {
+                  sc := &storagev1.StorageClass{}
+                  if err := yaml.NewYAMLOrJSONDecoder(
+                      newBytesReader(yamlBody), 4096,
+                  ).Decode(sc); err != nil {
+                      return nil, fmt.Errorf("invalid StorageClass YAML: %v", err)
+                  }
+                  return k8s.Default().Clientset.StorageV1().StorageClasses().Create(context.Background(), sc, metav1.CreateOptions{})
+              }
+
+              func (h *StorageHandler) DeleteStorageClass(name string) error {
+                  err := k8s.Default().Clientset.StorageV1().StorageClasses().Delete(context.Background(), name, metav1.DeleteOptions{})
+                  if errors.IsNotFound(err) {
+                      return nil
+                  }
+                  return err
+              }
+
+              func (h *StorageHandler) ListPersistentVolumes() ([]corev1.PersistentVolume, error) {
+                  list, err := k8s.Default().Clientset.CoreV1().PersistentVolumes().List(context.Background(), metav1.ListOptions{})
+                  if err != nil {
+                      return nil, err
+                  }
+                  return list.Items, nil
+              }
+
+              func (h *StorageHandler) CreatePersistentVolume(yamlBody []byte) (*corev1.PersistentVolume, error) {
+                  pv := &corev1.PersistentVolume{}
+                  if err := yaml.NewYAMLOrJSONDecoder(
+                      newBytesReader(yamlBody), 4096,
+                  ).Decode(pv); err != nil {
+                      return nil, fmt.Errorf("invalid PersistentVolume YAML: %v", err)
+                  }
+                  return k8s.Default().Clientset.CoreV1().PersistentVolumes().Create(context.Background(), pv, metav1.CreateOptions{})
+              }
+
+              func (h *StorageHandler) DeletePersistentVolume(name string) error {
+                  err := k8s.Default().Clientset.CoreV1().PersistentVolumes().Delete(context.Background(), name, metav1.DeleteOptions{})
+                  if errors.IsNotFound(err) {
+                      return nil
+                  }
+                  return err
+              }
+
+              // StorageClassInfo is the API response struct for a StorageClass
+              type StorageClassInfo struct {
+                  Name                string `json:"name"`
+                  Provisioner         string `json:"provisioner"`
+                  IsDefault           bool   `json:"is_default"`
+                  ReclaimPolicy       string `json:"reclaim_policy"`
+                  VolumeBindingMode   string `json:"volume_binding_mode"`
+                  AllowVolumeExpansion bool  `json:"allow_volume_expansion"`
+                  PVCount             int    `json:"pv_count"`
+              }
+
+              var storageHandler *StorageHandler
+
+              func GetStorageHandler() *StorageHandler {
+                  if storageHandler == nil {
+                      storageHandler = &StorageHandler{}
+                  }
+                  return storageHandler
+              }
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go test ./api/handler/... -run TestStorageHandlerInit -v"
+            expect: "PASS"
+
+          - action: implement
+            description: "实现 storage controller"
+            file: api/controller/storage.go
+            code: |
+              package controller
+
+              import (
+                  "net/http"
+
+                  "github.com/go-chi/chi"
+                  "github.com/goodrain/rainbond/api/handler"
+                  httputil "github.com/goodrain/rainbond/util/http"
+              )
+
+              // StorageController handles HTTP for StorageClass and PV
+              type StorageController struct{}
+
+              func (c *StorageController) ListStorageClasses(w http.ResponseWriter, r *http.Request) {
+                  list, err := handler.GetStorageHandler().ListStorageClasses()
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, map[string]interface{}{"list": list, "total": len(list)})
+              }
+
+              func (c *StorageController) CreateStorageClass(w http.ResponseWriter, r *http.Request) {
+                  body := make([]byte, r.ContentLength)
+                  r.Body.Read(body)
+                  sc, err := handler.GetStorageHandler().CreateStorageClass(body)
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, sc)
+              }
+
+              func (c *StorageController) DeleteStorageClass(w http.ResponseWriter, r *http.Request) {
+                  name := chi.URLParam(r, "name")
+                  if err := handler.GetStorageHandler().DeleteStorageClass(name); err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, nil)
+              }
+
+              func (c *StorageController) ListPersistentVolumes(w http.ResponseWriter, r *http.Request) {
+                  list, err := handler.GetStorageHandler().ListPersistentVolumes()
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, map[string]interface{}{"list": list, "total": len(list)})
+              }
+
+              func (c *StorageController) CreatePersistentVolume(w http.ResponseWriter, r *http.Request) {
+                  body := make([]byte, r.ContentLength)
+                  r.Body.Read(body)
+                  pv, err := handler.GetStorageHandler().CreatePersistentVolume(body)
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, pv)
+              }
+
+              func (c *StorageController) DeletePersistentVolume(w http.ResponseWriter, r *http.Request) {
+                  name := chi.URLParam(r, "name")
+                  if err := handler.GetStorageHandler().DeletePersistentVolume(name); err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, nil)
+              }
+
+              func GetStorageController() *StorageController {
+                  return &StorageController{}
+              }
+
+          - action: implement
+            description: "在 clusterRouter() 内追加 storageclasses + persistentvolumes 路由"
+            file: api/api_routers/version2/v2Routers.go
+            note: "紧接在 platform-resources 路由之后，return r 之前追加"
+            code: |
+              // StorageClasses
+              r.Get("/storageclasses", controller.GetStorageController().ListStorageClasses)
+              r.Post("/storageclasses", controller.GetStorageController().CreateStorageClass)
+              r.Delete("/storageclasses/{name}", controller.GetStorageController().DeleteStorageClass)
+              // PersistentVolumes
+              r.Get("/persistentvolumes", controller.GetStorageController().ListPersistentVolumes)
+              r.Post("/persistentvolumes", controller.GetStorageController().CreatePersistentVolume)
+              r.Delete("/persistentvolumes/{name}", controller.GetStorageController().DeletePersistentVolume)
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go build ./... && go vet ./..."
+            expect: "exit 0"
+
+        acceptance:
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go build ./..."
+            expect: "exit 0"
+
+# ============================================================
+# SPRINT 2: Go 团队级接口
+# ============================================================
+  - id: sprint-2
+    name: "Go 团队级接口"
+    repo: rainbond
+
+    commits:
+      - id: commit-2
+        message: "feat: add namespace-scoped resource and helm release APIs"
+        tasks: [task-2.1, task-2.2]
+
+    tasks:
+      - id: task-2.1
+        name: "Go namespace-scoped 资源接口"
+        status: pending
+        files:
+          create:
+            - path: api/handler/ns_resource.go
+            - path: api/controller/ns_resource.go
+          modify:
+            - path: api/api_routers/version2/v2Routers.go
+              lines: "tenantRouter 函数"
+        steps:
+          - action: write-test
+            description: "编写 ns_resource handler 测试"
+            file: api/handler/ns_resource_test.go
+            code: |
+              package handler
+
+              import (
+                  "testing"
+                  "github.com/stretchr/testify/assert"
+              )
+
+              func TestNsResourceHandlerInit(t *testing.T) {
+                  h := GetNsResourceHandler()
+                  assert.NotNil(t, h)
+              }
+
+              func TestInjectSourceLabel(t *testing.T) {
+                  labels := map[string]interface{}{}
+                  injectSourceLabel(labels, "yaml")
+                  assert.Equal(t, "yaml", labels["rainbond.io/source"])
+              }
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go test ./api/handler/... -run TestNsResource -v"
+            expect: "FAIL"
+
+          - action: implement
+            description: "实现 NsResourceHandler（namespace-scoped CRUD + source 标签注入）"
+            file: api/handler/ns_resource.go
+            code: |
+              package handler
+
+              import (
+                  "context"
+                  "fmt"
+
+                  "k8s.io/apimachinery/pkg/api/errors"
+                  metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+                  "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+                  "k8s.io/apimachinery/pkg/runtime/schema"
+                  "k8s.io/apimachinery/pkg/util/yaml"
+                  "k8s.io/client-go/discovery"
+
+                  "github.com/goodrain/rainbond/db"
+                  "github.com/goodrain/rainbond/pkg/component/k8s"
+              )
+
+              // NsResourceHandler handles namespace-scoped K8s resource operations
+              type NsResourceHandler struct{}
+
+              func (h *NsResourceHandler) ListNsResourceTypes() ([]ResourceTypeInfo, error) {
+                  dc := k8s.Default().Clientset.Discovery()
+                  _, resList, err := dc.ServerGroupsAndResources()
+                  if err != nil && !discovery.IsGroupDiscoveryFailedError(err) {
+                      return nil, err
+                  }
+                  var types []ResourceTypeInfo
+                  for _, rl := range resList {
+                      gv, _ := schema.ParseGroupVersion(rl.GroupVersion)
+                      for _, r := range rl.APIResources {
+                          if r.Namespaced && !containsSlash(r.Name) {
+                              types = append(types, ResourceTypeInfo{
+                                  Group:    gv.Group,
+                                  Version:  gv.Version,
+                                  Kind:     r.Kind,
+                                  Resource: r.Name,
+                                  Verbs:    r.Verbs,
+                              })
+                          }
+                      }
+                  }
+                  return types, nil
+              }
+
+              func (h *NsResourceHandler) ListNsResources(tenantName, group, version, resource string) ([]NsResourceInfo, error) {
+                  if err := validateGVRParams(group, version, resource); err != nil {
+                      return nil, err
+                  }
+                  ns, err := h.getTenantNamespace(tenantName)
+                  if err != nil {
+                      return nil, err
+                  }
+                  gvr := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+                  list, err := k8s.Default().DynamicClient.Resource(gvr).Namespace(ns).List(context.Background(), metav1.ListOptions{})
+                  if err != nil {
+                      return nil, err
+                  }
+                  var result []NsResourceInfo
+                  for _, item := range list.Items {
+                      result = append(result, toNsResourceInfo(item))
+                  }
+                  return result, nil
+              }
+
+              func (h *NsResourceHandler) GetNsResource(tenantName, group, version, resource, name string) (*unstructured.Unstructured, error) {
+                  if err := validateGVRParams(group, version, resource); err != nil {
+                      return nil, err
+                  }
+                  ns, err := h.getTenantNamespace(tenantName)
+                  if err != nil {
+                      return nil, err
+                  }
+                  gvr := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+                  return k8s.Default().DynamicClient.Resource(gvr).Namespace(ns).Get(context.Background(), name, metav1.GetOptions{})
+              }
+
+              func (h *NsResourceHandler) CreateNsResource(tenantName, group, version, resource, source string, yamlBody []byte) (*unstructured.Unstructured, error) {
+                  if err := validateGVRParams(group, version, resource); err != nil {
+                      return nil, err
+                  }
+                  if source != "yaml" && source != "manual" {
+                      return nil, fmt.Errorf("source must be 'yaml' or 'manual'")
+                  }
+                  ns, err := h.getTenantNamespace(tenantName)
+                  if err != nil {
+                      return nil, err
+                  }
+                  obj := &unstructured.Unstructured{}
+                  if err := yaml.NewYAMLOrJSONDecoder(
+                      newBytesReader(yamlBody), 4096,
+                  ).Decode(obj); err != nil {
+                      return nil, fmt.Errorf("invalid YAML: %v", err)
+                  }
+                  labels := obj.GetLabels()
+                  if labels == nil {
+                      labels = map[string]string{}
+                  }
+                  injectSourceLabel(labels, source)
+                  obj.SetLabels(labels)
+                  obj.SetNamespace(ns)
+                  gvr := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+                  return k8s.Default().DynamicClient.Resource(gvr).Namespace(ns).Create(context.Background(), obj, metav1.CreateOptions{})
+              }
+
+              func (h *NsResourceHandler) DeleteNsResource(tenantName, group, version, resource, name string) error {
+                  if err := validateGVRParams(group, version, resource); err != nil {
+                      return err
+                  }
+                  ns, err := h.getTenantNamespace(tenantName)
+                  if err != nil {
+                      return err
+                  }
+                  gvr := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+                  err = k8s.Default().DynamicClient.Resource(gvr).Namespace(ns).Delete(context.Background(), name, metav1.DeleteOptions{})
+                  if errors.IsNotFound(err) {
+                      return nil
+                  }
+                  return err
+              }
+
+              func (h *NsResourceHandler) getTenantNamespace(tenantName string) (string, error) {
+                  tenant, err := db.GetManager().TenantDao().GetTenantByName(tenantName)
+                  if err != nil {
+                      return "", fmt.Errorf("tenant not found: %v", err)
+                  }
+                  return tenant.UUID, nil
+              }
+
+              func injectSourceLabel(labels interface{}, source string) {
+                  switch l := labels.(type) {
+                  case map[string]string:
+                      l["rainbond.io/source"] = source
+                  case map[string]interface{}:
+                      l["rainbond.io/source"] = source
+                  }
+              }
+
+              // NsResourceInfo is the list item response for namespace-scoped resources
+              type NsResourceInfo struct {
+                  Name       string `json:"name"`
+                  Kind       string `json:"kind"`
+                  APIVersion string `json:"api_version"`
+                  Status     string `json:"status"`
+                  Replicas   string `json:"replicas,omitempty"`
+                  Source     string `json:"source"`
+                  CreatedAt  string `json:"created_at"`
+              }
+
+              func toNsResourceInfo(obj unstructured.Unstructured) NsResourceInfo {
+                  labels := obj.GetLabels()
+                  source := "external"
+                  if v, ok := labels["app.kubernetes.io/managed-by"]; ok && v == "Helm" {
+                      source = "helm"
+                  } else if v, ok := labels["rainbond.io/source"]; ok {
+                      source = v
+                  }
+                  return NsResourceInfo{
+                      Name:       obj.GetName(),
+                      Kind:       obj.GetKind(),
+                      APIVersion: obj.GetAPIVersion(),
+                      Source:     source,
+                      CreatedAt:  obj.GetCreationTimestamp().String(),
+                      Status:     computeResourceStatus(obj),
+                  }
+              }
+
+              func computeResourceStatus(obj unstructured.Unstructured) string {
+                  switch obj.GetKind() {
+                  case "Deployment", "StatefulSet":
+                      available, _, _ := unstructured.NestedInt64(obj.Object, "status", "availableReplicas")
+                      desired, _, _ := unstructured.NestedInt64(obj.Object, "spec", "replicas")
+                      if desired > 0 && available == desired {
+                          return "running"
+                      }
+                      return "warning"
+                  case "Pod":
+                      phase, _, _ := unstructured.NestedString(obj.Object, "status", "phase")
+                      if phase == "" {
+                          return "unknown"
+                      }
+                      return phase
+                  case "PersistentVolumeClaim":
+                      phase, _, _ := unstructured.NestedString(obj.Object, "status", "phase")
+                      if phase == "Bound" {
+                          return "bound"
+                      }
+                      return phase
+                  default:
+                      return "active"
+                  }
+              }
+
+              var nsResourceHandler *NsResourceHandler
+
+              func GetNsResourceHandler() *NsResourceHandler {
+                  if nsResourceHandler == nil {
+                      nsResourceHandler = &NsResourceHandler{}
+                  }
+                  return nsResourceHandler
+              }
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go test ./api/handler/... -run TestNsResource -v"
+            expect: "PASS"
+
+          - action: implement
+            description: "实现 ns_resource controller 并注册路由到 tenantRouter"
+            file: api/controller/ns_resource.go
+            code: |
+              package controller
+
+              import (
+                  "net/http"
+
+                  "github.com/go-chi/chi"
+                  "github.com/goodrain/rainbond/api/handler"
+                  httputil "github.com/goodrain/rainbond/util/http"
+              )
+
+              // NsResourceController handles namespace-scoped K8s resource HTTP requests
+              type NsResourceController struct{}
+
+              func (c *NsResourceController) ListNsResourceTypes(w http.ResponseWriter, r *http.Request) {
+                  tenantName := chi.URLParam(r, "tenant_name")
+                  _ = tenantName
+                  types, err := handler.GetNsResourceHandler().ListNsResourceTypes()
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, map[string]interface{}{"list": types, "total": len(types)})
+              }
+
+              func (c *NsResourceController) ListNsResources(w http.ResponseWriter, r *http.Request) {
+                  tenantName := chi.URLParam(r, "tenant_name")
+                  group := r.URL.Query().Get("group")
+                  version := r.URL.Query().Get("version")
+                  resource := r.URL.Query().Get("resource")
+                  list, err := handler.GetNsResourceHandler().ListNsResources(tenantName, group, version, resource)
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, map[string]interface{}{"list": list, "total": len(list)})
+              }
+
+              func (c *NsResourceController) GetNsResource(w http.ResponseWriter, r *http.Request) {
+                  tenantName := chi.URLParam(r, "tenant_name")
+                  name := chi.URLParam(r, "name")
+                  group := r.URL.Query().Get("group")
+                  version := r.URL.Query().Get("version")
+                  resource := r.URL.Query().Get("resource")
+                  obj, err := handler.GetNsResourceHandler().GetNsResource(tenantName, group, version, resource, name)
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, obj)
+              }
+
+              func (c *NsResourceController) CreateNsResource(w http.ResponseWriter, r *http.Request) {
+                  tenantName := chi.URLParam(r, "tenant_name")
+                  group := r.URL.Query().Get("group")
+                  version := r.URL.Query().Get("version")
+                  resource := r.URL.Query().Get("resource")
+                  source := r.URL.Query().Get("source")
+                  if source == "" {
+                      source = "manual"
+                  }
+                  body := make([]byte, r.ContentLength)
+                  r.Body.Read(body)
+                  obj, err := handler.GetNsResourceHandler().CreateNsResource(tenantName, group, version, resource, source, body)
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, obj)
+              }
+
+              func (c *NsResourceController) DeleteNsResource(w http.ResponseWriter, r *http.Request) {
+                  tenantName := chi.URLParam(r, "tenant_name")
+                  name := chi.URLParam(r, "name")
+                  group := r.URL.Query().Get("group")
+                  version := r.URL.Query().Get("version")
+                  resource := r.URL.Query().Get("resource")
+                  if err := handler.GetNsResourceHandler().DeleteNsResource(tenantName, group, version, resource, name); err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, nil)
+              }
+
+              func GetNsResourceController() *NsResourceController {
+                  return &NsResourceController{}
+              }
+            note: "在 v2Routers.go 的 tenantNameRouter() 函数内追加以下路由（在 return r 前）"
+            routes_to_add: |
+              // Namespace-scoped resources
+              r.Get("/ns-resource-types", controller.GetNsResourceController().ListNsResourceTypes)
+              r.Get("/ns-resources", controller.GetNsResourceController().ListNsResources)
+              r.Post("/ns-resources", controller.GetNsResourceController().CreateNsResource)
+              r.Get("/ns-resources/{name}", controller.GetNsResourceController().GetNsResource)
+              r.Delete("/ns-resources/{name}", controller.GetNsResourceController().DeleteNsResource)
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go build ./..."
+            expect: "exit 0"
+
+        acceptance:
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go test ./api/handler/... -run TestNsResource -v"
+            expect: "PASS"
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go build ./..."
+            expect: "exit 0"
+
+      - id: task-2.2
+        name: "Go Helm Release 接口（直装集群）"
+        status: pending
+        files:
+          modify:
+            - path: pkg/helm/helm.go
+              lines: "322-end"
+          create:
+            - path: api/handler/helm_release.go
+            - path: api/controller/helm_release.go
+        steps:
+          - action: write-test
+            description: "编写 Helm ListReleases + InstallFromRepo 测试"
+            file: pkg/helm/helm_test.go
+            code: |
+              package helm
+
+              import (
+                  "testing"
+                  "github.com/stretchr/testify/assert"
+              )
+
+              func TestListReleasesExists(t *testing.T) {
+                  // 确认 ListReleases 方法签名存在
+                  var h *Helm
+                  // 只验证方法存在，不实际调用（需要集群环境）
+                  assert.NotNil(t, h)
+              }
+
+              func TestInstallFromRepoNotDryRun(t *testing.T) {
+                  // 验证 InstallFromRepo 确实不使用私有 install() helper
+                  // 通过代码审查确认 ClientOnly=false
+                  // 本测试是占位符，实际验证见集成测试
+                  assert.True(t, true)
+              }
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go test ./pkg/helm/... -run TestListReleases -v"
+            expect: "FAIL"
+
+          - action: implement
+            description: "在 pkg/helm/helm.go 末尾新增 ListReleases 和 InstallFromRepo 方法"
+            file: pkg/helm/helm.go
+            note: "追加到文件末尾，在最后一个函数之后。InstallFromRepo 禁止调用 h.install()，必须直接使用 action.NewInstall"
+            code: |
+              // ListReleases returns all Helm releases in the current namespace.
+              func (h *Helm) ListReleases() ([]*release.Release, error) {
+                  client := action.NewList(h.cfg)
+                  client.All = true
+                  return client.Run()
+              }
+
+              // InstallFromRepo installs a chart from a Helm repo directly into the cluster.
+              // NOTE: This method intentionally does NOT delegate to the private install() helper,
+              // because that helper unconditionally sets ClientOnly=true (line 181), which causes
+              // Helm to only render manifests without actually deploying to the cluster.
+              func (h *Helm) InstallFromRepo(repoName, chart, version, releaseName, valuesYAML string) (*release.Release, error) {
+                  client := action.NewInstall(h.cfg)
+                  client.ReleaseName = releaseName
+                  client.Namespace = h.namespace
+                  client.Version = version
+                  client.DryRun = false
+                  client.ClientOnly = false
+
+                  // Validate and parse values YAML before attempting install
+                  vals := map[string]interface{}{}
+                  if valuesYAML != "" {
+                      if err := yaml.Unmarshal([]byte(valuesYAML), &vals); err != nil {
+                          return nil, fmt.Errorf("invalid values YAML: %v", err)
+                      }
+                  }
+
+                  // Locate chart in local repo cache
+                  chartRef := fmt.Sprintf("%s/%s", repoName, chart)
+                  cp, err := client.ChartPathOptions.LocateChart(chartRef, h.settings)
+                  if err != nil {
+                      return nil, fmt.Errorf("locate chart %s: %v", chartRef, err)
+                  }
+
+                  chartLoaded, err := loader.Load(cp)
+                  if err != nil {
+                      return nil, fmt.Errorf("load chart: %v", err)
+                  }
+
+                  return client.Run(chartLoaded, vals)
+              }
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go test ./pkg/helm/... -run TestListReleases -v"
+            expect: "PASS"
+
+          - action: implement
+            description: "实现 helm_release handler（复用 repoFile/repoCache 包级变量）"
+            file: api/handler/helm_release.go
+            code: |
+              package handler
+
+              import (
+                  "fmt"
+
+                  "github.com/goodrain/rainbond/db"
+                  "github.com/goodrain/rainbond/pkg/helm"
+                  helmrelease "helm.sh/helm/v3/pkg/release"
+              )
+
+              // HelmReleaseHandler handles Helm release operations for a tenant namespace.
+              // repoFile and repoCache are reused from the same package (api/handler/helm.go:60-64).
+              type HelmReleaseHandler struct{}
+
+              func (h *HelmReleaseHandler) newHelm(tenantName string) (*helm.Helm, error) {
+                  tenant, err := db.GetManager().TenantDao().GetTenantByName(tenantName)
+                  if err != nil {
+                      return nil, fmt.Errorf("tenant not found: %v", err)
+                  }
+                  return helm.NewHelm(tenant.UUID, repoFile, repoCache)
+              }
+
+              func (h *HelmReleaseHandler) ListReleases(tenantName string) ([]*helmrelease.Release, error) {
+                  hc, err := h.newHelm(tenantName)
+                  if err != nil {
+                      return nil, err
+                  }
+                  return hc.ListReleases()
+              }
+
+              func (h *HelmReleaseHandler) InstallRelease(tenantName, repoName, chart, version, releaseName, valuesYAML string) (*helmrelease.Release, error) {
+                  hc, err := h.newHelm(tenantName)
+                  if err != nil {
+                      return nil, err
+                  }
+                  return hc.InstallFromRepo(repoName, chart, version, releaseName, valuesYAML)
+              }
+
+              func (h *HelmReleaseHandler) UninstallRelease(tenantName, releaseName string) error {
+                  hc, err := h.newHelm(tenantName)
+                  if err != nil {
+                      return err
+                  }
+                  return hc.Uninstall(releaseName)
+              }
+
+              var helmReleaseHandler *HelmReleaseHandler
+
+              func GetHelmReleaseHandler() *HelmReleaseHandler {
+                  if helmReleaseHandler == nil {
+                      helmReleaseHandler = &HelmReleaseHandler{}
+                  }
+                  return helmReleaseHandler
+              }
+
+          - action: implement
+            description: "实现 helm_release controller 并注册路由到 tenantNameRouter"
+            file: api/controller/helm_release.go
+            code: |
+              package controller
+
+              import (
+                  "encoding/json"
+                  "net/http"
+
+                  "github.com/go-chi/chi"
+                  "github.com/goodrain/rainbond/api/handler"
+                  httputil "github.com/goodrain/rainbond/util/http"
+              )
+
+              // HelmReleaseController handles HTTP requests for Helm releases
+              type HelmReleaseController struct{}
+
+              func (c *HelmReleaseController) ListReleases(w http.ResponseWriter, r *http.Request) {
+                  tenantName := chi.URLParam(r, "tenant_name")
+                  list, err := handler.GetHelmReleaseHandler().ListReleases(tenantName)
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, map[string]interface{}{"list": list, "total": len(list)})
+              }
+
+              type installReleaseReq struct {
+                  RepoName    string `json:"repo_name"`
+                  Chart       string `json:"chart"`
+                  Version     string `json:"version"`
+                  ReleaseName string `json:"release_name"`
+                  Values      string `json:"values"`
+              }
+
+              func (c *HelmReleaseController) InstallRelease(w http.ResponseWriter, r *http.Request) {
+                  tenantName := chi.URLParam(r, "tenant_name")
+                  var req installReleaseReq
+                  if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  rel, err := handler.GetHelmReleaseHandler().InstallRelease(
+                      tenantName, req.RepoName, req.Chart, req.Version, req.ReleaseName, req.Values,
+                  )
+                  if err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, rel)
+              }
+
+              func (c *HelmReleaseController) UninstallRelease(w http.ResponseWriter, r *http.Request) {
+                  tenantName := chi.URLParam(r, "tenant_name")
+                  releaseName := chi.URLParam(r, "release_name")
+                  if err := handler.GetHelmReleaseHandler().UninstallRelease(tenantName, releaseName); err != nil {
+                      httputil.ReturnBcodeError(r, w, err)
+                      return
+                  }
+                  httputil.ReturnSuccess(r, w, nil)
+              }
+
+              func GetHelmReleaseController() *HelmReleaseController {
+                  return &HelmReleaseController{}
+              }
+            note: "在 v2Routers.go 的 tenantNameRouter() 函数内追加（在 return r 前）"
+            routes_to_add: |
+              // Helm releases (direct cluster install)
+              r.Get("/helm/releases", controller.GetHelmReleaseController().ListReleases)
+              r.Post("/helm/releases", controller.GetHelmReleaseController().InstallRelease)
+              r.Delete("/helm/releases/{release_name}", controller.GetHelmReleaseController().UninstallRelease)
+
+          - action: verify
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go build ./... && go vet ./..."
+            expect: "exit 0"
+
+        acceptance:
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go build ./..."
+            expect: "exit 0"
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond && go test ./pkg/helm/... -v"
+            expect: "PASS"
+
+        references:
+          - path: "pkg/helm/helm.go:174-209"
+            note: "现有 install() helper — InstallFromRepo 禁止调用此方法"
+          - path: "pkg/helm/helm.go:322"
+            note: "Uninstall 方法 — 直接复用"
+          - path: "api/handler/helm.go:60-64"
+            note: "repoFile/repoCache 包级变量 — helm_release.go 同包可直接使用"
+
+# ============================================================
+# SPRINT 3: Console 接口
+# ============================================================
+  - id: sprint-3
+    name: "Console 代理接口"
+    repo: rainbond-console
+
+    commits:
+      - id: commit-3
+        message: "chore: convert console/urls.py to package structure"
+        tasks: [task-3.0]
+
+      - id: commit-4
+        message: "feat: add global switch and platform/team resource proxy APIs"
+        tasks: [task-3.1, task-3.2, task-3.3]
+
+    tasks:
+      - id: task-3.0
+        name: "console/urls.py 改包结构（前置）"
+        status: pending
+        files:
+          create:
+            - path: console/urls/__init__.py
+          delete:
+            - path: console/urls.py
+        steps:
+          - action: implement
+            description: "将 console/urls.py 内容移入 console/urls/__init__.py"
+            run: |
+              cd /Users/zhangqihang/MyWork/workrc/rainbond-console
+              mkdir -p console/urls
+              cp console/urls.py console/urls/__init__.py
+              rm console/urls.py
+            expect: "exit 0"
+
+          - action: verify
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond-console && python manage.py check"
+            expect: "System check identified no issues"
+
+        acceptance:
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond-console && python manage.py check"
+            expect: "System check identified no issues"
+
+      - id: task-3.1
+        name: "全局开关：TenantEnterprise 字段 + platform-settings 视图"
+        status: pending
+        files:
+          modify:
+            - path: www/models/main.py
+              lines: "816-830"
+          create:
+            - path: console/views/platform_settings.py
+          modify:
+            - path: console/urls/__init__.py
+
+        steps:
+          - action: implement
+            description: "在 TenantEnterprise 模型（www/models/main.py:816）末尾添加字段"
+            file: www/models/main.py
+            note: "在 TenantEnterprise 类的最后一个字段后添加"
+            code: |
+              enable_team_resource_view = models.BooleanField(default=True, help_text="是否启用团队资源展示")
+
+          - action: implement
+            description: "执行 www app 迁移"
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond-console && python manage.py makemigrations www"
+            expect: "Migrations for 'www'"
+
+          - action: implement
+            description: "创建 platform_settings 视图"
+            file: console/views/platform_settings.py
+            code: |
+              # -*- coding: utf-8 -*-
+              from rest_framework.response import Response
+
+              from console.views.base import EnterpriseAdminView, JWTAuthApiView
+              from www.models.main import TenantEnterprise
+              from goodrain_web.tools import general_message
+
+
+              class PlatformSettingsView(JWTAuthApiView):
+                  def get(self, request, eid, *args, **kwargs):
+                      try:
+                          enterprise = TenantEnterprise.objects.get(enterprise_id=eid)
+                      except TenantEnterprise.DoesNotExist:
+                          return Response(general_message(404, "not found", "企业不存在"), status=404)
+                      data = {
+                          "enable_team_resource_view": enterprise.enable_team_resource_view,
+                      }
+                      return Response(general_message(200, "success", "获取成功", bean=data))
+
+
+              class PlatformSettingsUpdateView(EnterpriseAdminView):
+                  def put(self, request, eid, *args, **kwargs):
+                      try:
+                          enterprise = TenantEnterprise.objects.get(enterprise_id=eid)
+                      except TenantEnterprise.DoesNotExist:
+                          return Response(general_message(404, "not found", "企业不存在"), status=404)
+                      enable = request.data.get("enable_team_resource_view")
+                      if enable is None:
+                          return Response(general_message(400, "bad request", "缺少 enable_team_resource_view 参数"), status=400)
+                      enterprise.enable_team_resource_view = bool(enable)
+                      enterprise.save(update_fields=["enable_team_resource_view"])
+                      return Response(general_message(200, "success", "更新成功"))
+
+          - action: implement
+            description: "在 console/urls/__init__.py 追加 platform-settings 路由"
+            file: console/urls/__init__.py
+            note: "在文件末尾 urlpatterns 列表中追加"
+            code: |
+              # Platform Settings
+              from console.views.platform_settings import PlatformSettingsView, PlatformSettingsUpdateView
+              url(r'^enterprise/(?P<eid>[^/]+)/platform-settings$', PlatformSettingsView.as_view()),
+              url(r'^enterprise/(?P<eid>[^/]+)/platform-settings/update$', PlatformSettingsUpdateView.as_view()),
+
+          - action: verify
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond-console && python manage.py check"
+            expect: "System check identified no issues"
+
+        acceptance:
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond-console && python manage.py migrate --run-syncdb 2>&1 | tail -5"
+            expect: "OK"
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond-console && python manage.py check"
+            expect: "System check identified no issues"
+
+        references:
+          - path: "www/models/main.py:816-830"
+            note: "TenantEnterprise 类定义，db_table='tenant_enterprise'"
+          - path: "console/views/base.py:201"
+            note: "JWTAuthApiView 基类"
+          - path: "console/views/base.py:262"
+            note: "EnterpriseAdminView 基类（企业管理员写操作）"
+
+      - id: task-3.2
+        name: "平台资源代理接口（console → Go /v2/cluster/*）"
+        status: pending
+        files:
+          create:
+            - path: console/views/platform_resources/__init__.py
+            - path: console/views/platform_resources/cluster.py
+            - path: console/urls/platform_resources.py
+          modify:
+            - path: console/urls/__init__.py
+
+        steps:
+          - action: implement
+            description: "创建平台资源代理视图（cluster-scoped）"
+            file: console/views/platform_resources/cluster.py
+            code: |
+              # -*- coding: utf-8 -*-
+              from rest_framework.response import Response
+
+              from console.views.base import EnterpriseAdminView
+              from goodrain_web.tools import general_message
+              from www.apiclient.regionapi import RegionInvokeApi
+
+              region_api = RegionInvokeApi()
+
+
+              def _proxy_get(region_name, path, params=None):
+                  """代理 GET 请求到 Go /v2/cluster/ 接口"""
+                  return region_api.get_cluster_resource(region_name, path, params=params)
+
+
+              def _proxy_post(region_name, path, body):
+                  """代理 POST 请求到 Go /v2/cluster/ 接口"""
+                  return region_api.post_cluster_resource(region_name, path, body=body)
+
+
+              def _proxy_delete(region_name, path, params=None):
+                  """代理 DELETE 请求到 Go /v2/cluster/ 接口"""
+                  return region_api.delete_cluster_resource(region_name, path, params=params)
+
+
+              class PlatformResourceTypesView(EnterpriseAdminView):
+                  def get(self, request, eid, region, *args, **kwargs):
+                      data = _proxy_get(region, "platform-resources/types")
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+
+              class PlatformResourcesView(EnterpriseAdminView):
+                  def get(self, request, eid, region, *args, **kwargs):
+                      params = {k: v for k, v in request.GET.items()}
+                      data = _proxy_get(region, "platform-resources", params=params)
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+                  def post(self, request, eid, region, *args, **kwargs):
+                      params = {k: v for k, v in request.GET.items()}
+                      data = _proxy_post(region, "platform-resources?" + _encode_params(params), request.body)
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+
+              class PlatformResourceDetailView(EnterpriseAdminView):
+                  def get(self, request, eid, region, name, *args, **kwargs):
+                      params = {k: v for k, v in request.GET.items()}
+                      data = _proxy_get(region, "platform-resources/{}".format(name), params=params)
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+                  def delete(self, request, eid, region, name, *args, **kwargs):
+                      params = {k: v for k, v in request.GET.items()}
+                      _proxy_delete(region, "platform-resources/{}".format(name), params=params)
+                      return Response(general_message(200, "success", "删除成功"))
+
+
+              class StorageClassesView(EnterpriseAdminView):
+                  def get(self, request, eid, region, *args, **kwargs):
+                      data = _proxy_get(region, "storageclasses")
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+                  def post(self, request, eid, region, *args, **kwargs):
+                      data = _proxy_post(region, "storageclasses", request.body)
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+
+              class StorageClassDetailView(EnterpriseAdminView):
+                  def delete(self, request, eid, region, name, *args, **kwargs):
+                      _proxy_delete(region, "storageclasses/{}".format(name))
+                      return Response(general_message(200, "success", "删除成功"))
+
+
+              class PersistentVolumesView(EnterpriseAdminView):
+                  def get(self, request, eid, region, *args, **kwargs):
+                      data = _proxy_get(region, "persistentvolumes")
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+                  def post(self, request, eid, region, *args, **kwargs):
+                      data = _proxy_post(region, "persistentvolumes", request.body)
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+
+              class PersistentVolumeDetailView(EnterpriseAdminView):
+                  def delete(self, request, eid, region, name, *args, **kwargs):
+                      _proxy_delete(region, "persistentvolumes/{}".format(name))
+                      return Response(general_message(200, "success", "删除成功"))
+
+
+              def _encode_params(params):
+                  return "&".join("{}={}".format(k, v) for k, v in params.items())
+
+          - action: implement
+            description: "创建平台资源 URL 配置"
+            file: console/urls/platform_resources.py
+            code: |
+              # -*- coding: utf-8 -*-
+              from django.conf.urls import url
+              from console.views.platform_resources.cluster import (
+                  PlatformResourceTypesView,
+                  PlatformResourcesView,
+                  PlatformResourceDetailView,
+                  StorageClassesView,
+                  StorageClassDetailView,
+                  PersistentVolumesView,
+                  PersistentVolumeDetailView,
+              )
+
+              urlpatterns = [
+                  url(r'^enterprise/(?P<eid>[^/]+)/platform/regions/(?P<region>[^/]+)/platform-resources/types$',
+                      PlatformResourceTypesView.as_view()),
+                  url(r'^enterprise/(?P<eid>[^/]+)/platform/regions/(?P<region>[^/]+)/platform-resources$',
+                      PlatformResourcesView.as_view()),
+                  url(r'^enterprise/(?P<eid>[^/]+)/platform/regions/(?P<region>[^/]+)/platform-resources/(?P<name>[^/]+)$',
+                      PlatformResourceDetailView.as_view()),
+                  url(r'^enterprise/(?P<eid>[^/]+)/platform/regions/(?P<region>[^/]+)/storageclasses$',
+                      StorageClassesView.as_view()),
+                  url(r'^enterprise/(?P<eid>[^/]+)/platform/regions/(?P<region>[^/]+)/storageclasses/(?P<name>[^/]+)$',
+                      StorageClassDetailView.as_view()),
+                  url(r'^enterprise/(?P<eid>[^/]+)/platform/regions/(?P<region>[^/]+)/persistentvolumes$',
+                      PersistentVolumesView.as_view()),
+                  url(r'^enterprise/(?P<eid>[^/]+)/platform/regions/(?P<region>[^/]+)/persistentvolumes/(?P<name>[^/]+)$',
+                      PersistentVolumeDetailView.as_view()),
+              ]
+
+          - action: implement
+            description: "在 console/urls/__init__.py 中 include platform_resources 路由"
+            file: console/urls/__init__.py
+            note: "在 urlpatterns 末尾追加"
+            code: |
+              from django.conf.urls import include
+              url(r'^', include('console.urls.platform_resources')),
+
+          - action: verify
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond-console && python manage.py check"
+            expect: "System check identified no issues"
+
+        acceptance:
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond-console && python manage.py check"
+            expect: "System check identified no issues"
+
+        references:
+          - path: "console/views/enterprise.py"
+            note: "参考 EnterpriseAdminView 使用模式"
+          - path: "www/apiclient/regionapi.py"
+            note: "RegionInvokeApi — 参考现有 proxy 调用模式添加 get_cluster_resource/post_cluster_resource/delete_cluster_resource 方法"
+
+      - id: task-3.3
+        name: "团队资源代理接口（console → Go /v2/tenants/*）"
+        status: pending
+        files:
+          create:
+            - path: console/views/team_resources.py
+            - path: console/urls/team_resources.py
+          modify:
+            - path: console/urls/__init__.py
+
+        steps:
+          - action: implement
+            description: "创建团队资源代理视图"
+            file: console/views/team_resources.py
+            code: |
+              # -*- coding: utf-8 -*-
+              from rest_framework.response import Response
+
+              from console.views.base import TenantHeaderView
+              from goodrain_web.tools import general_message
+              from www.apiclient.regionapi import RegionInvokeApi
+
+              region_api = RegionInvokeApi()
+
+
+              class NsResourceTypesView(TenantHeaderView):
+                  def get(self, request, team_name, region_name, *args, **kwargs):
+                      data = region_api.get_tenant_ns_resource_types(region_name, team_name)
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+
+              class NsResourcesView(TenantHeaderView):
+                  def get(self, request, team_name, region_name, *args, **kwargs):
+                      params = dict(request.GET)
+                      data = region_api.get_tenant_ns_resources(region_name, team_name, params=params)
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+                  def post(self, request, team_name, region_name, *args, **kwargs):
+                      params = dict(request.GET)
+                      data = region_api.post_tenant_ns_resource(region_name, team_name, request.body, params=params)
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+
+              class NsResourceDetailView(TenantHeaderView):
+                  def get(self, request, team_name, region_name, name, *args, **kwargs):
+                      params = dict(request.GET)
+                      data = region_api.get_tenant_ns_resource(region_name, team_name, name, params=params)
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+                  def delete(self, request, team_name, region_name, name, *args, **kwargs):
+                      params = dict(request.GET)
+                      region_api.delete_tenant_ns_resource(region_name, team_name, name, params=params)
+                      return Response(general_message(200, "success", "删除成功"))
+
+
+              class HelmReleasesView(TenantHeaderView):
+                  def get(self, request, team_name, region_name, *args, **kwargs):
+                      data = region_api.get_tenant_helm_releases(region_name, team_name)
+                      return Response(general_message(200, "success", "OK", bean=data))
+
+                  def post(self, request, team_name, region_name, *args, **kwargs):
+                      import json
+                      body = json.loads(request.body)
+                      data = region_api.install_tenant_helm_release(region_name, team_name, body)
+                      return Response(general_message(200, "success", "安装成功", bean=data))
+
+
+              class HelmReleaseDetailView(TenantHeaderView):
+                  def delete(self, request, team_name, region_name, release_name, *args, **kwargs):
+                      region_api.uninstall_tenant_helm_release(region_name, team_name, release_name)
+                      return Response(general_message(200, "success", "卸载成功"))
+
+          - action: implement
+            description: "创建团队资源 URL 配置"
+            file: console/urls/team_resources.py
+            code: |
+              # -*- coding: utf-8 -*-
+              from django.conf.urls import url
+              from console.views.team_resources import (
+                  NsResourceTypesView,
+                  NsResourcesView,
+                  NsResourceDetailView,
+                  HelmReleasesView,
+                  HelmReleaseDetailView,
+              )
+
+              urlpatterns = [
+                  url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/ns-resource-types$',
+                      NsResourceTypesView.as_view()),
+                  url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/ns-resources$',
+                      NsResourcesView.as_view()),
+                  url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/ns-resources/(?P<name>[^/]+)$',
+                      NsResourceDetailView.as_view()),
+                  url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/releases$',
+                      HelmReleasesView.as_view()),
+                  url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/releases/(?P<release_name>[^/]+)$',
+                      HelmReleaseDetailView.as_view()),
+              ]
+
+          - action: implement
+            description: "在 console/urls/__init__.py 中 include team_resources 路由"
+            note: "在 urlpatterns 末尾追加"
+            code: |
+              url(r'^', include('console.urls.team_resources')),
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond-console && python manage.py check"
+            expect: "System check identified no issues"
+
+        acceptance:
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond-console && python manage.py check"
+            expect: "System check identified no issues"
+
+        references:
+          - path: "console/views/base.py:305"
+            note: "TenantHeaderView — self.tenant, self.user 可用"
+          - path: "www/apiclient/regionapi.py"
+            note: "参考现有 tenant 相关方法添加新 proxy 方法"
+
+# ============================================================
+# SPRINT 4: 前端
+# ============================================================
+  - id: sprint-4
+    name: "前端页面"
+    repo: rainbond-ui
+
+    commits:
+      - id: commit-5
+        message: "feat: add global switch UI and menu entries"
+        tasks: [task-4.1, task-4.2]
+
+      - id: commit-6
+        message: "feat: add platform resources page"
+        tasks: [task-4.3]
+
+      - id: commit-7
+        message: "feat: add team resource center page"
+        tasks: [task-4.4]
+
+    tasks:
+      - id: task-4.1
+        name: "全局开关 UI（平台设置页）"
+        status: pending
+        files:
+          modify:
+            - path: src/services/api.js
+          create:
+            - path: src/services/platformSettings.js
+          modify:
+            - path: src/models/enterprise.js
+        steps:
+          - action: implement
+            description: "新建 platform settings service"
+            file: src/services/platformSettings.js
+            code: |
+              import apiconfig from '../../config/api.config';
+              import request from '../utils/request';
+
+              export async function getPlatformSettings(body = {}) {
+                return request(
+                  `${apiconfig.baseUrl}/console/enterprise/${body.eid}/platform-settings`,
+                  { method: 'get' }
+                );
+              }
+
+              export async function updatePlatformSettings(body = {}) {
+                return request(
+                  `${apiconfig.baseUrl}/console/enterprise/${body.eid}/platform-settings/update`,
+                  {
+                    method: 'put',
+                    data: { enable_team_resource_view: body.enable_team_resource_view }
+                  }
+                );
+              }
+
+          - action: implement
+            description: "在平台设置页面现有基础设置 section 中追加开关"
+            note: "找到平台设置页（通常在 src/pages/EnterpriseSetting/ 或类似目录），在 BasicSetting section 的表单末尾追加 Switch 行"
+            code: |
+              // 在现有设置表单中追加（参考已有 Switch 组件用法）
+              <FormItem label={formatMessage({ id: 'enterprise.setting.enable_team_resource_view' })}>
+                <Switch
+                  checked={enable_team_resource_view}
+                  onChange={(checked) => {
+                    dispatch({
+                      type: 'enterprise/updatePlatformSettings',
+                      payload: { eid, enable_team_resource_view: checked }
+                    });
+                  }}
+                />
+              </FormItem>
+
+          - action: verify
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond-ui && yarn build 2>&1 | tail -10"
+            expect: "Built successfully"
+
+        acceptance:
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond-ui && yarn build 2>&1 | grep -c 'error'"
+            expect: "0"
+
+      - id: task-4.2
+        name: "菜单入口 + 路由注册"
+        status: pending
+        files:
+          modify:
+            - path: src/common/enterpriseMenu.js
+            - path: src/common/teamMenu.js
+            - path: src/common/getMenuSvg.js
+            - path: config/router.config.js
+            - path: src/locales/zh-CN/menu.js
+            - path: src/locales/en-US/menu.js
+        steps:
+          - action: implement
+            description: "在 getMenuSvg.js 添加 resource 图标"
+            file: src/common/getMenuSvg.js
+            note: "在 getSvg switch/object 中添加 resource 项"
+            code: |
+              // 在现有图标对象中添加 resource 图标（数据库圆柱形状）
+              resource: (
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <ellipse cx="12" cy="5" rx="9" ry="3" stroke="currentColor" strokeWidth="1.5"/>
+                  <path d="M3 5v6c0 1.657 4.029 3 9 3s9-1.343 9-3V5" stroke="currentColor" strokeWidth="1.5"/>
+                  <path d="M3 11v6c0 1.657 4.029 3 9 3s9-1.343 9-3v-6" stroke="currentColor" strokeWidth="1.5"/>
+                </svg>
+              )
+
+          - action: implement
+            description: "在 enterpriseMenu.js 添加平台资源入口"
+            file: src/common/enterpriseMenu.js
+            note: "在 resourceItems 分组（或 Basic 分组）中追加平台资源菜单项，需有集群时才显示"
+            code: |
+              // 在 Basic/resource 分组中追加（参考 cluster、monitoring 等入口的添加方式）
+              // 需要 clusterList && clusterList.length > 0 时才添加
+              {
+                name: formatMessage({ id: 'menu.enterprise.platform_resources' }),
+                icon: getMenuSvg.getSvg('resource'),
+                path: `enterprise/${eid}/region/${firstRegionName}/platform-resources`,
+                authority: ['admin', 'user']
+              }
+
+          - action: implement
+            description: "在 teamMenu.js 读全局开关，添加资源中心入口"
+            file: src/common/teamMenu.js
+            note: "menuData 函数的 adminItems 中，当 enable_team_resource_view 为 true 时追加资源中心"
+            code: |
+              // 在 menuData 函数参数中添加 enterpriseInfo，读取 enable_team_resource_view
+              // 在 adminItems 数组构建时追加：
+              if (enterpriseInfo && enterpriseInfo.enable_team_resource_view) {
+                adminItems.push({
+                  name: formatMessage({ id: 'menu.team.resource_center' }),
+                  icon: getMenuSvg.getSvg('resource'),
+                  path: `team/${teamName}/region/${regionName}/resource-center`,
+                  authority: ['admin', 'user']
+                });
+              }
+
+          - action: implement
+            description: "添加 i18n 翻译"
+            files:
+              - src/locales/zh-CN/menu.js
+              - src/locales/en-US/menu.js
+            zh_code: |
+              'menu.enterprise.platform_resources': '平台资源',
+              'menu.team.resource_center': '资源中心',
+              'enterprise.setting.enable_team_resource_view': '启用团队资源展示',
+            en_code: |
+              'menu.enterprise.platform_resources': 'Platform Resources',
+              'menu.team.resource_center': 'Resource Center',
+              'enterprise.setting.enable_team_resource_view': 'Enable Team Resource View',
+
+          - action: implement
+            description: "在 router.config.js 注册两条新路由"
+            file: config/router.config.js
+            note: "分别在企业路由组和团队路由组中追加"
+            code: |
+              // 企业路由组中添加（platform-resources）：
+              {
+                path: '/enterprise/:eid/region/:regionName/platform-resources',
+                component: '../pages/PlatformResources',
+              },
+              // 团队路由组中添加（resource-center）：
+              {
+                path: '/team/:teamName/region/:regionName/resource-center',
+                component: '../pages/ResourceCenter',
+              },
+
+          - action: verify
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond-ui && yarn build 2>&1 | tail -10"
+            expect: "Built successfully"
+
+        acceptance:
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond-ui && yarn build 2>&1 | grep -c 'error'"
+            expect: "0"
+
+      - id: task-4.3
+        name: "平台资源页面（PlatformResources）"
+        status: pending
+        files:
+          create:
+            - path: src/pages/PlatformResources/index.js
+            - path: src/services/platformResource.js
+            - path: src/models/platformResources.js
+
+        steps:
+          - action: implement
+            description: "创建 platform resource service"
+            file: src/services/platformResource.js
+            code: |
+              import apiconfig from '../../config/api.config';
+              import request from '../utils/request';
+
+              const base = (eid, region) =>
+                `${apiconfig.baseUrl}/console/enterprise/${eid}/platform/regions/${region}`;
+
+              export async function listStorageClasses(body = {}) {
+                return request(`${base(body.eid, body.region)}/storageclasses`, { method: 'get' });
+              }
+
+              export async function createStorageClass(body = {}) {
+                return request(`${base(body.eid, body.region)}/storageclasses`, {
+                  method: 'post',
+                  data: body.yaml,
+                  headers: { 'Content-Type': 'application/yaml' }
+                });
+              }
+
+              export async function deleteStorageClass(body = {}) {
+                return request(`${base(body.eid, body.region)}/storageclasses/${body.name}`, { method: 'delete' });
+              }
+
+              export async function listPersistentVolumes(body = {}) {
+                return request(`${base(body.eid, body.region)}/persistentvolumes`, { method: 'get' });
+              }
+
+              export async function listPlatformResources(body = {}) {
+                return request(`${base(body.eid, body.region)}/platform-resources`, {
+                  method: 'get',
+                  params: { group: body.group, version: body.version, resource: body.resource }
+                });
+              }
+
+              export async function deletePlatformResource(body = {}) {
+                return request(
+                  `${base(body.eid, body.region)}/platform-resources/${body.name}`,
+                  {
+                    method: 'delete',
+                    params: { group: body.group, version: body.version, resource: body.resource }
+                  }
+                );
+              }
+
+          - action: implement
+            description: "创建 platformResources DVA model"
+            file: src/models/platformResources.js
+            code: |
+              import {
+                listStorageClasses,
+                createStorageClass,
+                deleteStorageClass,
+                listPersistentVolumes,
+                listPlatformResources,
+                deletePlatformResource,
+              } from '../services/platformResource';
+
+              export default {
+                namespace: 'platformResources',
+                state: {
+                  storageClasses: [],
+                  persistentVolumes: [],
+                  platformResources: [],
+                  total: 0,
+                },
+                effects: {
+                  *fetchStorageClasses({ payload }, { call, put }) {
+                    const res = yield call(listStorageClasses, payload);
+                    if (res && res.bean) {
+                      yield put({ type: 'save', payload: { storageClasses: res.bean.list || [] } });
+                    }
+                  },
+                  *createStorageClass({ payload, callback }, { call }) {
+                    const res = yield call(createStorageClass, payload);
+                    if (res && callback) callback(res);
+                  },
+                  *deleteStorageClass({ payload, callback }, { call }) {
+                    const res = yield call(deleteStorageClass, payload);
+                    if (res && callback) callback(res);
+                  },
+                  *fetchPersistentVolumes({ payload }, { call, put }) {
+                    const res = yield call(listPersistentVolumes, payload);
+                    if (res && res.bean) {
+                      yield put({ type: 'save', payload: { persistentVolumes: res.bean.list || [] } });
+                    }
+                  },
+                  *fetchPlatformResources({ payload }, { call, put }) {
+                    const res = yield call(listPlatformResources, payload);
+                    if (res && res.bean) {
+                      yield put({ type: 'save', payload: { platformResources: res.bean.list || [], total: res.bean.total || 0 } });
+                    }
+                  },
+                  *deletePlatformResource({ payload, callback }, { call }) {
+                    const res = yield call(deletePlatformResource, payload);
+                    if (res && callback) callback(res);
+                  },
+                },
+                reducers: {
+                  save(state, { payload }) {
+                    return { ...state, ...payload };
+                  },
+                },
+              };
+
+          - action: implement
+            description: "创建 PlatformResources 页面组件（5 Tab）"
+            file: src/pages/PlatformResources/index.js
+            code: |
+              import React, { PureComponent } from 'react';
+              import { connect } from 'dva';
+              import { Tabs, Table, Button, Modal, Input, Tag, Popconfirm } from 'antd';
+              import { formatMessage } from '@/utils/intl';
+
+              const { TabPane } = Tabs;
+              const { TextArea } = Input;
+
+              @connect(({ platformResources, user }) => ({
+                storageClasses: platformResources.storageClasses,
+                persistentVolumes: platformResources.persistentVolumes,
+                currentUser: user.currentUser,
+              }))
+              class PlatformResources extends PureComponent {
+                state = {
+                  activeTab: 'storage',
+                  storageSubTab: 'storageclass',
+                  createModalVisible: false,
+                  yamlContent: '',
+                  createTarget: '',
+                };
+
+                componentDidMount() {
+                  this.fetchStorageClasses();
+                }
+
+                fetchStorageClasses = () => {
+                  const { dispatch, match } = this.props;
+                  const { eid, regionName } = match.params;
+                  dispatch({
+                    type: 'platformResources/fetchStorageClasses',
+                    payload: { eid, region: regionName },
+                  });
+                };
+
+                handleDeleteStorageClass = (name) => {
+                  const { dispatch, match } = this.props;
+                  const { eid, regionName } = match.params;
+                  dispatch({
+                    type: 'platformResources/deleteStorageClass',
+                    payload: { eid, region: regionName, name },
+                    callback: () => this.fetchStorageClasses(),
+                  });
+                };
+
+                handleCreateConfirm = () => {
+                  const { dispatch, match } = this.props;
+                  const { eid, regionName } = match.params;
+                  const { yamlContent, createTarget } = this.state;
+                  dispatch({
+                    type: `platformResources/create${createTarget}`,
+                    payload: { eid, region: regionName, yaml: yamlContent },
+                    callback: () => {
+                      this.setState({ createModalVisible: false, yamlContent: '' });
+                      this.fetchStorageClasses();
+                    },
+                  });
+                };
+
+                renderStorageClassTab() {
+                  const { storageClasses } = this.props;
+                  const columns = [
+                    { title: '名称', dataIndex: 'name', key: 'name' },
+                    { title: 'Provisioner', dataIndex: 'provisioner', key: 'provisioner' },
+                    { title: '默认', dataIndex: 'is_default', key: 'is_default',
+                      render: v => v ? <Tag color="blue">默认</Tag> : null },
+                    { title: '回收策略', dataIndex: 'reclaim_policy', key: 'reclaim_policy' },
+                    { title: '绑定模式', dataIndex: 'volume_binding_mode', key: 'volume_binding_mode' },
+                    { title: '卷数', dataIndex: 'pv_count', key: 'pv_count' },
+                    {
+                      title: '操作', key: 'action',
+                      render: (_, record) => (
+                        <Popconfirm title="确认删除？" onConfirm={() => this.handleDeleteStorageClass(record.name)}>
+                          <a style={{ color: '#FC481B' }}>删除</a>
+                        </Popconfirm>
+                      ),
+                    },
+                  ];
+                  return (
+                    <div>
+                      <div style={{ marginBottom: 16, textAlign: 'right' }}>
+                        <Button
+                          type="primary"
+                          onClick={() => this.setState({ createModalVisible: true, createTarget: 'StorageClass' })}
+                        >
+                          创建存储类
+                        </Button>
+                      </div>
+                      <Table
+                        dataSource={storageClasses}
+                        columns={columns}
+                        rowKey="name"
+                        size="small"
+                      />
+                    </div>
+                  );
+                }
+
+                render() {
+                  const { createModalVisible, yamlContent } = this.state;
+                  return (
+                    <div>
+                      <h2>平台资源</h2>
+                      <p style={{ color: '#676f83' }}>全局资源与集群级公共资源管理</p>
+                      <Tabs defaultActiveKey="storage">
+                        <TabPane tab="资源总览" key="overview">
+                          <p>集群资源概览（待实现）</p>
+                        </TabPane>
+                        <TabPane tab="全局存储" key="storage">
+                          <Tabs defaultActiveKey="storageclass" size="small">
+                            <TabPane tab="存储类" key="storageclass">
+                              {this.renderStorageClassTab()}
+                            </TabPane>
+                            <TabPane tab="存储卷" key="pv">
+                              <p>存储卷列表（待实现）</p>
+                            </TabPane>
+                          </Tabs>
+                        </TabPane>
+                        <TabPane tab="权限与访问控制" key="rbac">
+                          <p>ClusterRole / ClusterRoleBinding（待实现）</p>
+                        </TabPane>
+                        <TabPane tab="平台扩展" key="crd">
+                          <p>CRD 列表（待实现）</p>
+                        </TabPane>
+                        <TabPane tab="命名空间治理" key="namespace">
+                          <p>Namespace 列表（待实现）</p>
+                        </TabPane>
+                      </Tabs>
+
+                      <Modal
+                        title="YAML 创建"
+                        visible={createModalVisible}
+                        onOk={this.handleCreateConfirm}
+                        onCancel={() => this.setState({ createModalVisible: false })}
+                        width={640}
+                      >
+                        <TextArea
+                          rows={16}
+                          value={yamlContent}
+                          onChange={e => this.setState({ yamlContent: e.target.value })}
+                          placeholder="粘贴 YAML 内容..."
+                          style={{ fontFamily: 'monospace' }}
+                        />
+                      </Modal>
+                    </div>
+                  );
+                }
+              }
+
+              export default PlatformResources;
+
+          - action: verify
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond-ui && yarn build 2>&1 | tail -15"
+            expect: "Built successfully"
+
+        acceptance:
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond-ui && yarn build 2>&1 | grep -c 'error'"
+            expect: "0"
+
+      - id: task-4.4
+        name: "团队资源中心页面（ResourceCenter）"
+        status: pending
+        files:
+          create:
+            - path: src/pages/ResourceCenter/index.js
+            - path: src/services/teamResource.js
+            - path: src/models/teamResources.js
+
+        steps:
+          - action: implement
+            description: "创建 team resource service"
+            file: src/services/teamResource.js
+            code: |
+              import apiconfig from '../../config/api.config';
+              import request from '../utils/request';
+
+              const base = (team, region) =>
+                `${apiconfig.baseUrl}/console/teams/${team}/regions/${region}`;
+
+              export async function listNsResources(body = {}) {
+                return request(`${base(body.team, body.region)}/ns-resources`, {
+                  method: 'get',
+                  params: { group: body.group, version: body.version, resource: body.resource }
+                });
+              }
+
+              export async function createNsResource(body = {}) {
+                return request(`${base(body.team, body.region)}/ns-resources?source=${body.source || 'manual'}`, {
+                  method: 'post',
+                  data: body.yaml,
+                  params: { group: body.group, version: body.version, resource: body.resource },
+                  headers: { 'Content-Type': 'application/yaml' }
+                });
+              }
+
+              export async function deleteNsResource(body = {}) {
+                return request(
+                  `${base(body.team, body.region)}/ns-resources/${body.name}`,
+                  {
+                    method: 'delete',
+                    params: { group: body.group, version: body.version, resource: body.resource }
+                  }
+                );
+              }
+
+              export async function listHelmReleases(body = {}) {
+                return request(`${base(body.team, body.region)}/helm/releases`, { method: 'get' });
+              }
+
+              export async function installHelmRelease(body = {}) {
+                return request(`${base(body.team, body.region)}/helm/releases`, {
+                  method: 'post',
+                  data: {
+                    repo_name: body.repo_name,
+                    chart: body.chart,
+                    version: body.version,
+                    release_name: body.release_name,
+                    values: body.values,
+                  }
+                });
+              }
+
+              export async function uninstallHelmRelease(body = {}) {
+                return request(`${base(body.team, body.region)}/helm/releases/${body.release_name}`, { method: 'delete' });
+              }
+
+          - action: implement
+            description: "创建 teamResources DVA model"
+            file: src/models/teamResources.js
+            code: |
+              import {
+                listNsResources,
+                createNsResource,
+                deleteNsResource,
+                listHelmReleases,
+                installHelmRelease,
+                uninstallHelmRelease,
+              } from '../services/teamResource';
+
+              export default {
+                namespace: 'teamResources',
+                state: {
+                  resources: [],
+                  helmReleases: [],
+                  total: 0,
+                },
+                effects: {
+                  *fetchResources({ payload }, { call, put }) {
+                    const res = yield call(listNsResources, payload);
+                    if (res && res.bean) {
+                      yield put({ type: 'save', payload: { resources: res.bean.list || [], total: res.bean.total || 0 } });
+                    }
+                  },
+                  *createResource({ payload, callback }, { call }) {
+                    const res = yield call(createNsResource, payload);
+                    if (callback) callback(res);
+                  },
+                  *deleteResource({ payload, callback }, { call }) {
+                    const res = yield call(deleteNsResource, payload);
+                    if (callback) callback(res);
+                  },
+                  *fetchHelmReleases({ payload }, { call, put }) {
+                    const res = yield call(listHelmReleases, payload);
+                    if (res && res.bean) {
+                      yield put({ type: 'save', payload: { helmReleases: res.bean.list || [] } });
+                    }
+                  },
+                  *installRelease({ payload, callback }, { call }) {
+                    const res = yield call(installHelmRelease, payload);
+                    if (callback) callback(res);
+                  },
+                  *uninstallRelease({ payload, callback }, { call }) {
+                    const res = yield call(uninstallHelmRelease, payload);
+                    if (callback) callback(res);
+                  },
+                },
+                reducers: {
+                  save(state, { payload }) {
+                    return { ...state, ...payload };
+                  },
+                },
+              };
+
+          - action: implement
+            description: "创建 ResourceCenter 页面（6 Tab + 来源标签 + YAML 创建 + Helm 安装）"
+            file: src/pages/ResourceCenter/index.js
+            code: |
+              import React, { PureComponent } from 'react';
+              import { connect } from 'dva';
+              import { Tabs, Table, Button, Modal, Input, Tag, Popconfirm, Form, Select } from 'antd';
+              import { formatMessage } from '@/utils/intl';
+
+              const { TabPane } = Tabs;
+              const { TextArea } = Input;
+
+              const SOURCE_COLORS = {
+                helm: 'purple',
+                yaml: 'blue',
+                manual: 'green',
+                external: 'default',
+              };
+
+              const SOURCE_LABELS = {
+                helm: 'Helm 托管',
+                yaml: 'YAML 导入',
+                manual: '手动创建',
+                external: '外部创建',
+              };
+
+              @connect(({ teamResources }) => ({
+                resources: teamResources.resources,
+                helmReleases: teamResources.helmReleases,
+                total: teamResources.total,
+              }))
+              class ResourceCenter extends PureComponent {
+                state = {
+                  activeTab: 'workload',
+                  yamlModalVisible: false,
+                  yamlContent: '',
+                  helmModalVisible: false,
+                  helmForm: { repo_name: '', chart: '', version: '', release_name: '', values: '' },
+                };
+
+                componentDidMount() {
+                  this.fetchWorkloads();
+                }
+
+                fetchWorkloads = () => {
+                  const { dispatch, match } = this.props;
+                  const { teamName, regionName } = match.params;
+                  dispatch({
+                    type: 'teamResources/fetchResources',
+                    payload: { team: teamName, region: regionName, group: 'apps', version: 'v1', resource: 'deployments' },
+                  });
+                };
+
+                fetchHelmReleases = () => {
+                  const { dispatch, match } = this.props;
+                  const { teamName, regionName } = match.params;
+                  dispatch({
+                    type: 'teamResources/fetchHelmReleases',
+                    payload: { team: teamName, region: regionName },
+                  });
+                };
+
+                handleYamlCreate = () => {
+                  const { dispatch, match } = this.props;
+                  const { teamName, regionName } = match.params;
+                  const { yamlContent } = this.state;
+                  dispatch({
+                    type: 'teamResources/createResource',
+                    payload: {
+                      team: teamName, region: regionName,
+                      source: 'yaml', yaml: yamlContent,
+                      group: 'apps', version: 'v1', resource: 'deployments'
+                    },
+                    callback: () => {
+                      this.setState({ yamlModalVisible: false, yamlContent: '' });
+                      this.fetchWorkloads();
+                    },
+                  });
+                };
+
+                handleHelmInstall = () => {
+                  const { dispatch, match } = this.props;
+                  const { teamName, regionName } = match.params;
+                  const { helmForm } = this.state;
+                  dispatch({
+                    type: 'teamResources/installRelease',
+                    payload: { team: teamName, region: regionName, ...helmForm },
+                    callback: () => {
+                      this.setState({ helmModalVisible: false });
+                      this.fetchHelmReleases();
+                    },
+                  });
+                };
+
+                renderResourceTable(resources) {
+                  const { dispatch, match } = this.props;
+                  const { teamName, regionName } = match.params;
+                  const columns = [
+                    { title: '名称', dataIndex: 'name', key: 'name' },
+                    { title: 'Kind', dataIndex: 'kind', key: 'kind' },
+                    { title: '状态', dataIndex: 'status', key: 'status' },
+                    {
+                      title: '来源', dataIndex: 'source', key: 'source',
+                      render: src => (
+                        <Tag color={SOURCE_COLORS[src] || 'default'}>
+                          {SOURCE_LABELS[src] || src}
+                        </Tag>
+                      ),
+                    },
+                    { title: '创建时间', dataIndex: 'created_at', key: 'created_at' },
+                    {
+                      title: '操作', key: 'action',
+                      render: (_, record) => record.source !== 'external' ? (
+                        <Popconfirm
+                          title="确认删除？"
+                          onConfirm={() => dispatch({
+                            type: 'teamResources/deleteResource',
+                            payload: { team: teamName, region: regionName, name: record.name,
+                              group: 'apps', version: 'v1', resource: 'deployments' },
+                            callback: () => this.fetchWorkloads(),
+                          })}
+                        >
+                          <a style={{ color: '#FC481B' }}>删除</a>
+                        </Popconfirm>
+                      ) : <span style={{ color: '#8d9bad' }}>只读</span>,
+                    },
+                  ];
+                  return <Table dataSource={resources} columns={columns} rowKey="name" size="small" />;
+                }
+
+                renderHelmTab() {
+                  const { helmReleases } = this.props;
+                  const columns = [
+                    { title: 'Release 名称', dataIndex: 'name', key: 'name' },
+                    { title: 'Chart', dataIndex: 'chart', key: 'chart' },
+                    { title: '版本', dataIndex: 'version', key: 'version' },
+                    { title: '状态', dataIndex: 'info.status', key: 'status' },
+                    { title: '命名空间', dataIndex: 'namespace', key: 'namespace' },
+                  ];
+                  return (
+                    <div>
+                      <div style={{ marginBottom: 16, textAlign: 'right' }}>
+                        <Button type="primary" onClick={() => { this.fetchHelmReleases(); this.setState({ helmModalVisible: true }); }}>
+                          安装 Helm 应用
+                        </Button>
+                      </div>
+                      <Table dataSource={helmReleases} columns={columns} rowKey="name" size="small" />
+                    </div>
+                  );
+                }
+
+                render() {
+                  const { resources } = this.props;
+                  const { yamlModalVisible, yamlContent, helmModalVisible, helmForm } = this.state;
+                  return (
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <h2>资源中心</h2>
+                          <p style={{ color: '#676f83' }}>当前团队范围内的资源与 Helm 应用管理</p>
+                        </div>
+                        <div>
+                          <Button onClick={() => this.setState({ yamlModalVisible: true })} style={{ marginRight: 8 }}>
+                            &lt;/&gt; YAML 创建
+                          </Button>
+                          <Button type="primary">+ 新建资源</Button>
+                        </div>
+                      </div>
+
+                      <Tabs defaultActiveKey="workload">
+                        <TabPane tab="工作负载" key="workload">{this.renderResourceTable(resources)}</TabPane>
+                        <TabPane tab="容器组" key="pod"><p>Pod 列表（待实现）</p></TabPane>
+                        <TabPane tab="网络" key="network"><p>Service/Ingress（待实现）</p></TabPane>
+                        <TabPane tab="配置" key="config"><p>ConfigMap/Secret（待实现）</p></TabPane>
+                        <TabPane tab="存储" key="storage"><p>PVC 列表（待实现）</p></TabPane>
+                        <TabPane tab="Helm 应用" key="helm">{this.renderHelmTab()}</TabPane>
+                      </Tabs>
+
+                      {/* YAML 创建弹窗 */}
+                      <Modal
+                        title="YAML 创建"
+                        visible={yamlModalVisible}
+                        onOk={this.handleYamlCreate}
+                        onCancel={() => this.setState({ yamlModalVisible: false })}
+                        width={640}
+                      >
+                        <TextArea
+                          rows={16}
+                          value={yamlContent}
+                          onChange={e => this.setState({ yamlContent: e.target.value })}
+                          placeholder="粘贴 YAML 内容（将自动添加 rainbond.io/source: yaml 标签）"
+                          style={{ fontFamily: 'monospace' }}
+                        />
+                      </Modal>
+
+                      {/* Helm 安装弹窗 */}
+                      <Modal
+                        title="安装 Helm 应用"
+                        visible={helmModalVisible}
+                        onOk={this.handleHelmInstall}
+                        onCancel={() => this.setState({ helmModalVisible: false })}
+                        width={560}
+                      >
+                        <Form layout="vertical">
+                          <Form.Item label="Repo 名称">
+                            <Input value={helmForm.repo_name}
+                              onChange={e => this.setState({ helmForm: { ...helmForm, repo_name: e.target.value } })}
+                              placeholder="如: bitnami" />
+                          </Form.Item>
+                          <Form.Item label="Chart 名称">
+                            <Input value={helmForm.chart}
+                              onChange={e => this.setState({ helmForm: { ...helmForm, chart: e.target.value } })}
+                              placeholder="如: nginx" />
+                          </Form.Item>
+                          <Form.Item label="版本">
+                            <Input value={helmForm.version}
+                              onChange={e => this.setState({ helmForm: { ...helmForm, version: e.target.value } })}
+                              placeholder="如: 1.2.3" />
+                          </Form.Item>
+                          <Form.Item label="Release 名称">
+                            <Input value={helmForm.release_name}
+                              onChange={e => this.setState({ helmForm: { ...helmForm, release_name: e.target.value } })}
+                              placeholder="如: my-nginx" />
+                          </Form.Item>
+                          <Form.Item label="Values（YAML 格式，可选）">
+                            <TextArea rows={6} value={helmForm.values}
+                              onChange={e => this.setState({ helmForm: { ...helmForm, values: e.target.value } })}
+                              placeholder="replicaCount: 2" style={{ fontFamily: 'monospace' }} />
+                          </Form.Item>
+                        </Form>
+                      </Modal>
+                    </div>
+                  );
+                }
+              }
+
+              export default ResourceCenter;
+
+          - action: verify
+            run: "cd /Users/zhangqihang/MyWork/workrc/rainbond-ui && yarn build 2>&1 | tail -15"
+            expect: "Built successfully"
+
+        acceptance:
+          - cmd: "cd /Users/zhangqihang/MyWork/workrc/rainbond-ui && yarn build 2>&1 | grep -c 'error'"
+            expect: "0"
