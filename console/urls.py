@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 
-from django.conf.urls import url, include
+from django.conf.urls import url
 
 import console.utils.perms_route_config as perms
 from console.captcha.captcha_code import CaptchaView
@@ -1165,7 +1165,4 @@ urlpatterns += [
         AppstoreChart.as_view()),
     url(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/tasks/helm_region_install$",
         HelmRegionInstall.as_view()),
-
-    # Platform resources
-    url(r'^platform/', include('console.urls.platform_resources')),
 ]
