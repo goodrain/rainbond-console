@@ -1308,3 +1308,13 @@ class GrayReleaseRecord(BaseModel):
     # 时间
     create_time = models.DateTimeField(auto_now_add=True, help_text="创建时间")
     update_time = models.DateTimeField(auto_now=True, help_text="更新时间")
+
+
+class PlatformFeatureFlag(BaseModel):
+    """平台功能开关表"""
+    class Meta:
+        db_table = 'platform_feature_flags'
+
+    feature_name = models.CharField(max_length=100, unique=True, help_text="功能名称")
+    enabled = models.BooleanField(default=False, help_text="是否启用")
+    description = models.TextField(blank=True, null=True, help_text="功能描述")
