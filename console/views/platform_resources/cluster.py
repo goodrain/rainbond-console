@@ -13,33 +13,29 @@ region_api = RegionInvokeApi()
 _STORAGE_CONFIG_KEY = "default_storage_class_{region}"
 
 
-def _encode_params(params):
-    return "&".join("{}={}".format(k, v) for k, v in params.items())
-
-
 class PlatformResourceTypesView(EnterpriseAdminView):
     def get(self, request, eid, region, *args, **kwargs):
         res, data = region_api.get_cluster_resource(region, "platform-resources/types")
-        return Response(general_message(200, "success", "OK", bean=data))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
 
 class PlatformResourcesView(EnterpriseAdminView):
     def get(self, request, eid, region, *args, **kwargs):
         params = {k: v for k, v in request.GET.items()}
         res, data = region_api.get_cluster_resource(region, "platform-resources", params=params)
-        return Response(general_message(200, "success", "OK", bean=data))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
     def post(self, request, eid, region, *args, **kwargs):
         params = {k: v for k, v in request.GET.items()}
         res, data = region_api.post_cluster_resource(region, "platform-resources", request.body, params=params)
-        return Response(general_message(200, "success", "OK", bean=data))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
 
 class PlatformResourceDetailView(EnterpriseAdminView):
     def get(self, request, eid, region, name, *args, **kwargs):
         params = {k: v for k, v in request.GET.items()}
         res, data = region_api.get_cluster_resource(region, "platform-resources/{}".format(name), params=params)
-        return Response(general_message(200, "success", "OK", bean=data))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
     def delete(self, request, eid, region, name, *args, **kwargs):
         params = {k: v for k, v in request.GET.items()}
@@ -50,11 +46,11 @@ class PlatformResourceDetailView(EnterpriseAdminView):
 class StorageClassesView(EnterpriseAdminView):
     def get(self, request, eid, region, *args, **kwargs):
         res, data = region_api.get_cluster_resource(region, "storageclasses")
-        return Response(general_message(200, "success", "OK", bean=data))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
     def post(self, request, eid, region, *args, **kwargs):
         res, data = region_api.post_cluster_resource(region, "storageclasses", request.body)
-        return Response(general_message(200, "success", "OK", bean=data))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
 
 class StorageClassDetailView(EnterpriseAdminView):
@@ -66,11 +62,11 @@ class StorageClassDetailView(EnterpriseAdminView):
 class PersistentVolumesView(EnterpriseAdminView):
     def get(self, request, eid, region, *args, **kwargs):
         res, data = region_api.get_cluster_resource(region, "persistentvolumes")
-        return Response(general_message(200, "success", "OK", bean=data))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
     def post(self, request, eid, region, *args, **kwargs):
         res, data = region_api.post_cluster_resource(region, "persistentvolumes", request.body)
-        return Response(general_message(200, "success", "OK", bean=data))
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
 
 class PersistentVolumeDetailView(EnterpriseAdminView):
@@ -92,7 +88,7 @@ class StorageConfigView(EnterpriseAdminView):
         """从 K8s 实时获取指定 StorageClass 的详情，失败时返回 None"""
         try:
             res, data = region_api.get_cluster_resource(region, "storageclasses")
-            sc_list = data.get("list", []) if isinstance(data, dict) else []
+            sc_list = (data.get("bean") or {}).get("list", [])
             for sc in sc_list:
                 if sc.get("name") == sc_name:
                     return sc
