@@ -3561,3 +3561,118 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, response_body
+
+    def get_cluster_resource(self, region_name, path, params=None):
+        """代理 GET 请求到 /v2/cluster/{path}"""
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/" + path
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def post_cluster_resource(self, region_name, path, body, params=None):
+        """代理 POST 请求到 /v2/cluster/{path}"""
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/" + path
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(region_info.token)
+        res, response_body = self._post(url, self.default_headers, body=body, region=region_name)
+        return res, response_body
+
+    def delete_cluster_resource(self, region_name, path, params=None):
+        """代理 DELETE 请求到 /v2/cluster/{path}"""
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/" + path
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(region_info.token)
+        res, body = self._delete(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_tenant_ns_resource_types(self, region_name, tenant_name):
+        """获取 namespace-scoped 资源类型列表"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/ns-resource-types".format(tenant_name)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_tenant_ns_resources(self, region_name, tenant_name, params=None):
+        """获取 namespace-scoped 资源列表"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/ns-resources".format(tenant_name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_tenant_ns_resource(self, region_name, tenant_name, name, params=None):
+        """获取单个 namespace-scoped 资源"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/ns-resources/{}".format(tenant_name, name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def post_tenant_ns_resource(self, region_name, tenant_name, body, params=None):
+        """创建 namespace-scoped 资源"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/ns-resources".format(tenant_name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        res, response_body = self._post(url, self.default_headers, body=body, region=region_name)
+        return res, response_body
+
+    def delete_tenant_ns_resource(self, region_name, tenant_name, name, params=None):
+        """删除 namespace-scoped 资源"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/ns-resources/{}".format(tenant_name, name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_tenant_helm_releases(self, region_name, tenant_name):
+        """获取 Helm release 列表"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/releases".format(tenant_name)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def install_tenant_helm_release(self, region_name, tenant_name, body):
+        """安装 Helm release"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/releases".format(tenant_name)
+        self._set_headers(token)
+        res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, response_body
+
+    def uninstall_tenant_helm_release(self, region_name, tenant_name, release_name):
+        """卸载 Helm release"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/releases/{}".format(tenant_name, release_name)
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region_name)
+        return res, body

@@ -824,6 +824,7 @@ class TenantEnterprise(BaseModel):
     enterprise_token = models.CharField(max_length=256, blank=True, null=True, default='', help_text="企业身份token")
     is_active = models.IntegerField(default=0, help_text="是否在云市上激活, 0:未激活, 1:已激活")
     logo = models.CharField(max_length=128, blank=True, null=True, default='', help_text="企业logo")
+    enable_team_resource_view = models.BooleanField(default=True, help_text="是否启用团队资源展示")
 
     def __unicode__(self):
         return self.to_dict()

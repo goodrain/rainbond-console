@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 
-from django.conf.urls import url
+from django.conf.urls import include, url
 
 import console.utils.perms_route_config as perms
 from console.captcha.captcha_code import CaptchaView
@@ -166,6 +166,7 @@ from console.views.user_operation import TenantServiceView, SendResetEmail, Pass
 from console.views.webhook import WebHooksDeploy, ImageWebHooksDeploy, CustomWebHooksDeploy, GetWebHooksUrl, \
     ImageWebHooksTrigger, WebHooksStatus, UpdateSecretKey
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
+from console.views.platform_settings import PlatformSettingsView, PlatformSettingsUpdateView
 from console.views.team_overview import UserTeamDetailsView
 from console.views.sms_config import SMSConfigView
 from console.views.sms_verification import SMSVerificationView
@@ -1165,4 +1166,15 @@ urlpatterns += [
         AppstoreChart.as_view()),
     url(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/tasks/helm_region_install$",
         HelmRegionInstall.as_view()),
+]
+
+urlpatterns += [
+    # Platform Settings
+    url(r'^enterprise/(?P<eid>[^/]+)/platform-settings$', PlatformSettingsView.as_view()),
+    url(r'^enterprise/(?P<eid>[^/]+)/platform-settings/update$', PlatformSettingsUpdateView.as_view()),
+]
+
+urlpatterns += [
+    url(r'^', include('console.urls.platform_resources')),
+    url(r'^', include('console.urls.team_resources')),
 ]
