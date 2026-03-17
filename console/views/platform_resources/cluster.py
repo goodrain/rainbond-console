@@ -37,6 +37,11 @@ class PlatformResourceDetailView(EnterpriseAdminView):
         res, data = region_api.get_cluster_resource(region, "platform-resources/{}".format(name), params=params)
         return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
+    def put(self, request, eid, region, name, *args, **kwargs):
+        params = {k: v for k, v in request.GET.items()}
+        res, data = region_api.put_cluster_resource(region, "platform-resources/{}".format(name), request.body, params=params)
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+
     def delete(self, request, eid, region, name, *args, **kwargs):
         params = {k: v for k, v in request.GET.items()}
         region_api.delete_cluster_resource(region, "platform-resources/{}".format(name), params=params)

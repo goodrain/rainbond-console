@@ -3601,6 +3601,19 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region_name)
         return res, body
 
+    def put_cluster_resource(self, region_name, path, body, params=None):
+        """代理 PUT 请求到 /v2/cluster/{path}"""
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/" + path
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(region_info.token)
+        res, response_body = self._put(url, self.default_headers, body=body, region=region_name)
+        return res, response_body
+
     def get_tenant_ns_resource_types(self, region_name, tenant_name):
         """获取 namespace-scoped 资源类型列表"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
