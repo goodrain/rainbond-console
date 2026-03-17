@@ -9,6 +9,7 @@ from console.views.platform_resources.cluster import (
     StorageClassDetailView,
     PersistentVolumesView,
     PersistentVolumeDetailView,
+    StorageConfigView,
 )
 
 urlpatterns = [
@@ -26,4 +27,6 @@ urlpatterns = [
         PersistentVolumesView.as_view()),
     url(r'^enterprise/(?P<eid>[^/]+)/platform/regions/(?P<region>[^/]+)/persistentvolumes/(?P<name>[^/]+)$',
         PersistentVolumeDetailView.as_view()),
+    url(r'^enterprise/(?P<eid>[^/]+)/platform/regions/(?P<region>[^/]+)/storage-config$',
+        StorageConfigView.as_view()),
 ]
