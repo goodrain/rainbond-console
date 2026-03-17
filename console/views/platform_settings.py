@@ -2,7 +2,7 @@
 from rest_framework.response import Response
 
 from console.views.base import EnterpriseAdminView, JWTAuthApiView
-from goodrain_web.tools import general_message
+from www.utils.return_message import general_message
 from www.models.main import TenantEnterprise
 
 
