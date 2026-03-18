@@ -155,7 +155,7 @@ from console.views.team import UserFuzSerView, TeamUserDetaislView, TeamCheckRes
     NotJoinTeamUserView, UserDelView, TeamNameModView, TeamSortDomainQueryView, TeamDelView, TeamExitView, \
     TeamRegionInitView, ApplicantsView, RegisterStatusView, MonitorAlarmStatusView, EnterpriseInfoView, \
     InitDefaultInfoView, AdminAddUserView, CertificateView, TeamUserCanJoin, TeamsPermissionCreateApp, JoinTeamView, \
-    UserApplyStatusView
+    UserApplyStatusView, ClusterNamespacesView
 from console.views.upgrade import UpgradeView, UpgradeVersionLView, UpgradeVersionRView, UpgradeVersionImagesView
 from console.views.user import CheckSourceView, UserLogoutView, UserPemTraView, AdministratorJoinTeamView, \
     EnterPriseUsersCLView, EnterPriseUsersUDView, AdminUserView, AdminUserLCView, \
@@ -296,6 +296,8 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/pemtransfer$', UserPemTraView.as_view(), perms.TEAM_MEMBER_PERMS),
     # 新建团队
     url(r'^teams/add-teams$', AddTeamView.as_view()),
+    # 获取集群中未被 Rainbond 管理的 namespace 列表
+    url(r'^teams/cluster/namespaces$', ClusterNamespacesView.as_view()),
     # 获取团队下所有用户
     url(r'^teams/(?P<team_name>[\w\-]+)/users$', TeamUserView.as_view(), perms.TEAM_MEMBER_PERMS),
     # 获取企业下未加入当前团队的用户列表

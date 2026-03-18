@@ -1199,3 +1199,31 @@ class TeamRegistryAuthRUDView(RegionTenantHeaderView):
         team_services.delete_registry_auth(self.tenant, self.region_name, secret_id, self.user.user_id)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
+
+
+class ClusterNamespacesView(JWTAuthApiView):
+    def get(self, request, *args, **kwargs):
+        """
+        获取集群中未被 Rainbond 管理的 namespace 列表（含创建时间）
+        ---
+        parameters:
+            - name: region
+              description: 集群名称
+              required: true
+              type: string
+              paramType: query
+        """
+        region = request.GET.get("region", "")
+        if not region:
+            return Response(general_message(400, "failed", "region 参数不能为空"), status=400)
+        try:
+            res, body = region_api.list_namespaces(self.user.enterprise_id, region, "unmanaged", format="detail")
+            if res.get("status", 200) != 200:
+                return Response(general_message(500, "failed", "获取 namespace 列表失败"), status=500)
+            return Response(general_message(200, "success", "success", bean=body))
+        except ServiceHandleException as e:
+            logger.exception(e)
+            return Response(general_message(500, "failed", e.msg_show), status=500)
+        except Exception as e:
+            logger.exception(e)
+            return Response(general_message(500, "failed", "获取 namespace 列表失败"), status=500)
