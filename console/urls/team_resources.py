@@ -7,6 +7,11 @@ from console.views.team_resources import (
     NsResourceDetailView,
     HelmReleasesView,
     HelmReleaseDetailView,
+    ResourceCenterWorkloadDetailView,
+    ResourceCenterPodDetailView,
+    ResourceCenterEventsView,
+    ResourceCenterPodLogsView,
+    ResourceCenterWSInfoView,
 )
 
 urlpatterns = [
@@ -20,4 +25,14 @@ urlpatterns = [
         HelmReleasesView.as_view()),
     url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/releases/(?P<release_name>[^/]+)$',
         HelmReleaseDetailView.as_view()),
+    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/workloads/(?P<resource>[^/]+)/(?P<name>[^/]+)$',
+        ResourceCenterWorkloadDetailView.as_view()),
+    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/pods/(?P<pod_name>[^/]+)$',
+        ResourceCenterPodDetailView.as_view()),
+    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/events$',
+        ResourceCenterEventsView.as_view()),
+    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/pods/(?P<pod_name>[^/]+)/logs$',
+        ResourceCenterPodLogsView.as_view()),
+    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/ws-info$',
+        ResourceCenterWSInfoView.as_view()),
 ]

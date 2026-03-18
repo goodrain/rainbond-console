@@ -3665,6 +3665,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, self.default_headers, body=body, region=region_name)
         return res, response_body
 
+    def put_tenant_ns_resource(self, region_name, tenant_name, name, body, params=None):
+        """更新 namespace-scoped 资源"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/ns-resources/{}".format(tenant_name, name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        res, response_body = self._put(url, self.default_headers, body=body, region=region_name)
+        return res, response_body
+
     def delete_tenant_ns_resource(self, region_name, tenant_name, name, params=None):
         """删除 namespace-scoped 资源"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
@@ -3699,3 +3710,44 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._delete(url, self.default_headers, region=region_name)
         return res, body
+
+    def get_resource_center_workload_detail(self, region_name, tenant_name, resource, name, params=None):
+        """获取资源中心工作负载详情"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/resource-center/workloads/{}/{}".format(tenant_name, resource, name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_resource_center_pod_detail(self, region_name, tenant_name, pod_name):
+        """获取资源中心容器组详情"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/resource-center/pods/{}".format(tenant_name, pod_name)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_resource_center_events(self, region_name, tenant_name, params=None):
+        """获取资源中心对象事件"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/resource-center/events".format(tenant_name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_resource_center_pod_log(self, region_name, tenant_name, pod_name, params=None):
+        """获取资源中心容器组日志流"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/resource-center/pods/{}/logs".format(tenant_name, pod_name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        resp, _ = self._get(url, self.default_headers, region=region_name, preload_content=False)
+        return resp
