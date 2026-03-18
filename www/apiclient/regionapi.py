@@ -1982,14 +1982,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return res, body
 
-    def list_namespaces(self, enterprise_id, region, content, format=''):
+    def list_namespaces(self, enterprise_id, region, content, namespace_format=''):
+        from urllib.parse import urlencode
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/cluster/namespace?eid={0}&content={1}".format(enterprise_id, content)
-        if format:
-            url += "&format={0}".format(format)
+        params = {"eid": enterprise_id, "content": content}
+        if namespace_format:
+            params["format"] = namespace_format
+        url += "/v2/cluster/namespace?" + urlencode(params)
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return res, body
 

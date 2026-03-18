@@ -1217,9 +1217,7 @@ class ClusterNamespacesView(JWTAuthApiView):
         if not region:
             return Response(general_message(400, "failed", "region 参数不能为空"), status=400)
         try:
-            res, body = region_api.list_namespaces(self.user.enterprise_id, region, "unmanaged", format="detail")
-            if res.get("status", 200) != 200:
-                return Response(general_message(500, "failed", "获取 namespace 列表失败"), status=500)
+            _, body = region_api.list_namespaces(self.user.enterprise_id, region, "unmanaged", namespace_format="detail")
             return Response(general_message(200, "success", "success", bean=body))
         except ServiceHandleException as e:
             logger.exception(e)
