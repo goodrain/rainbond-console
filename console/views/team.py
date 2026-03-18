@@ -144,7 +144,10 @@ class AddTeamView(JWTAuthApiView):
             team_alias = request.data.get("team_alias", None)
             useable_regions = request.data.get("useable_regions", "")
             namespace = request.data.get("namespace", "")
+            bind_existing_namespace = request.data.get("bind_existing_namespace", False)
             logo = request.data.get("logo", "")
+            if bind_existing_namespace and not namespace:
+                return Response(general_message(400, "failed", "namespace 不能为空"), status=400)
             if not is_qualified_name(namespace):
                 raise ErrQualifiedName(msg="invalid namespace name", msg_show="命名空间只能由小写字母、数字或"-"组成，并且必须以字母开始、以数字或字母结尾")
             regions = []
@@ -164,7 +167,8 @@ class AddTeamView(JWTAuthApiView):
                 exist_namespace_region_names = []
                 for r in regions:
                     try:
-                        region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, r, team.namespace)
+                        region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, r, team.namespace,
+                                                                bind_existing_namespace)
                     except ErrNamespaceExists:
                         exist_namespace_region_names.append(r)
                     except ServiceHandleException as e:

@@ -107,13 +107,19 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def create_tenant(self, region, tenant_name, tenant_id, enterprise_id, namespace):
+    def create_tenant(self, region, tenant_name, tenant_id, enterprise_id, namespace, bind_existing=False):
         """创建租户"""
         url, token = self.__get_region_access_info(tenant_name, region)
         cloud_enterprise_id = client_auth_service.get_region_access_enterprise_id_by_tenant(tenant_name, region)
         if cloud_enterprise_id:
             enterprise_id = cloud_enterprise_id
-        data = {"tenant_id": tenant_id, "tenant_name": tenant_name, "eid": enterprise_id, "namespace": namespace}
+        data = {
+            "tenant_id": tenant_id,
+            "tenant_name": tenant_name,
+            "eid": enterprise_id,
+            "namespace": namespace,
+            "bind_existing_namespace": bind_existing,
+        }
         url += "/v2/tenants"
 
         self._set_headers(token)
@@ -123,7 +129,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             return res, body
         except RegionApiBaseHttpClient.CallApiError as e:
             if "namespace exists" in e.message['body'].get('msg', ""):
-                raise ErrNamespaceExists
+                raise ErrNamespaceExists()
             return {'status': e.message['httpcode']}, e.message['body']
 
     def delete_tenant(self, region, tenant_name):
