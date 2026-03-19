@@ -2,12 +2,37 @@
 from django.http.response import StreamingHttpResponse
 from rest_framework.response import Response
 
+from console.repositories.helm import helm_repo
 from console.services.app_actions import ws_service
 from console.views.base import TenantHeaderView
 from www.utils.return_message import general_message
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
+
+
+def build_helm_install_body(body):
+    payload = dict(body or {})
+    source_type = payload.get("source_type") or "store"
+    if source_type != "store":
+        return payload
+
+    repo_name = payload.get("repo_name")
+    if not repo_name:
+        return payload
+
+    repo = helm_repo.get_helm_repo_by_name(repo_name)
+    if not repo:
+        return payload
+
+    chart_name = payload.get("chart_name") or payload.get("chart")
+    payload["source_type"] = "repo"
+    payload["repo_url"] = payload.get("repo_url") or repo.get("repo_url")
+    if chart_name:
+        payload["chart_name"] = chart_name
+    payload["username"] = payload.get("username") or repo.get("username", "")
+    payload["password"] = payload.get("password") or repo.get("password", "")
+    return payload
 
 
 class NsResourceTypesView(TenantHeaderView):
@@ -51,9 +76,16 @@ class HelmReleasesView(TenantHeaderView):
         return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
     def post(self, request, team_name, region_name, *args, **kwargs):
-        body = request.data or {}
+        body = build_helm_install_body(request.data or {})
         res, data = region_api.install_tenant_helm_release(region_name, team_name, body)
         return Response(general_message(200, "success", "安装成功", bean=data.get("bean")))
+
+
+class HelmChartPreviewView(TenantHeaderView):
+    def post(self, request, team_name, region_name, *args, **kwargs):
+        body = build_helm_install_body(request.data or {})
+        res, data = region_api.preview_tenant_helm_chart(region_name, team_name, body)
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
 
 class HelmReleaseDetailView(TenantHeaderView):

@@ -3703,6 +3703,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, response_body
 
+    def preview_tenant_helm_chart(self, region_name, tenant_name, body):
+        """预览 Helm chart 信息与 values"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/chart-preview".format(tenant_name)
+        self._set_headers(token)
+        res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, response_body
+
     def uninstall_tenant_helm_release(self, region_name, tenant_name, release_name):
         """卸载 Helm release"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
