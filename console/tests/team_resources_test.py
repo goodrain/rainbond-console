@@ -46,3 +46,47 @@ class HelmReleasesViewTestCase(TestCase):
 
         install_mock.assert_called_once_with("demo-region", "demo-team", payload)
         self.assertEqual(response.data["data"]["bean"]["release_name"], "demo-release")
+
+    def test_post_enriches_store_install_with_saved_repo_metadata(self):
+        payload = {
+            "source_type": "store",
+            "repo_name": "bitnami",
+            "chart": "argo-cd",
+            "version": "7.8.0",
+            "release_name": "demo-release",
+            "values": "server:\\n  extraArgs: []"
+        }
+        expected_payload = {
+            "source_type": "repo",
+            "repo_name": "bitnami",
+            "repo_url": "https://charts.bitnami.com/bitnami",
+            "chart": "argo-cd",
+            "chart_name": "argo-cd",
+            "version": "7.8.0",
+            "release_name": "demo-release",
+            "values": "server:\\n  extraArgs: []",
+            "username": "demo-user",
+            "password": "demo-pass"
+        }
+        view = HelmReleasesView()
+        factory = APIRequestFactory()
+        request = view.initialize_request(factory.post("/console/team-resources/helm/releases", payload, format="json"))
+
+        with mock.patch.object(team_resources, "helm_repo", create=True) as helm_repo_mock:
+            helm_repo_mock.get_helm_repo_by_name.return_value = {
+                "repo_name": "bitnami",
+                "repo_url": "https://charts.bitnami.com/bitnami",
+                "username": "demo-user",
+                "password": "demo-pass"
+            }
+            with mock.patch.object(team_resources.region_api,
+                                   "install_tenant_helm_release",
+                                   return_value=({}, {
+                                       "bean": {
+                                           "release_name": "demo-release"
+                                       }
+                                   })) as install_mock:
+                response = view.post(request, "demo-team", "demo-region")
+
+        install_mock.assert_called_once_with("demo-region", "demo-team", expected_payload)
+        self.assertEqual(response.data["data"]["bean"]["release_name"], "demo-release")
