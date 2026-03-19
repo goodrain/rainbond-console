@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import json as jsonlib
-
 from django.http.response import StreamingHttpResponse
 from rest_framework.response import Response
 
@@ -53,7 +51,7 @@ class HelmReleasesView(TenantHeaderView):
         return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
     def post(self, request, team_name, region_name, *args, **kwargs):
-        body = jsonlib.loads(request.body)
+        body = request.data or {}
         res, data = region_api.install_tenant_helm_release(region_name, team_name, body)
         return Response(general_message(200, "success", "安装成功", bean=data.get("bean")))
 
