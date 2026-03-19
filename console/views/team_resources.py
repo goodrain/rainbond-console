@@ -11,8 +11,22 @@ from www.apiclient.regionapi import RegionInvokeApi
 region_api = RegionInvokeApi()
 
 
-def build_helm_install_body(body):
+def get_team_resource_namespace(view, fallback=None):
+    tenant = getattr(view, "tenant", None)
+    if tenant is not None:
+        namespace = getattr(tenant, "namespace", None)
+        if namespace:
+            return namespace
+        tenant_name = getattr(tenant, "tenant_name", None)
+        if tenant_name:
+            return tenant_name
+    return fallback
+
+
+def build_helm_install_body(body, namespace=None):
     payload = dict(body or {})
+    if namespace and not payload.get("namespace"):
+        payload["namespace"] = namespace
     source_type = payload.get("source_type") or "store"
     if source_type != "store":
         return payload
@@ -76,25 +90,29 @@ class NsResourceDetailView(TenantHeaderView):
 
 class HelmReleasesView(TenantHeaderView):
     def get(self, request, team_name, region_name, *args, **kwargs):
-        res, data = region_api.get_tenant_helm_releases(region_name, team_name)
+        namespace = get_team_resource_namespace(self, team_name)
+        res, data = region_api.get_tenant_helm_releases(region_name, team_name, namespace=namespace)
         return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
     def post(self, request, team_name, region_name, *args, **kwargs):
-        body = build_helm_install_body(request.data or {})
+        namespace = get_team_resource_namespace(self, team_name)
+        body = build_helm_install_body(request.data or {}, namespace=namespace)
         res, data = region_api.install_tenant_helm_release(region_name, team_name, body)
         return Response(general_message(200, "success", "安装成功", bean=data.get("bean")))
 
 
 class HelmChartPreviewView(TenantHeaderView):
     def post(self, request, team_name, region_name, *args, **kwargs):
-        body = build_helm_install_body(request.data or {})
+        namespace = get_team_resource_namespace(self, team_name)
+        body = build_helm_install_body(request.data or {}, namespace=namespace)
         res, data = region_api.preview_tenant_helm_chart(region_name, team_name, body)
         return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
 
 class HelmReleaseDetailView(TenantHeaderView):
     def delete(self, request, team_name, region_name, release_name, *args, **kwargs):
-        region_api.uninstall_tenant_helm_release(region_name, team_name, release_name)
+        namespace = get_team_resource_namespace(self, team_name)
+        region_api.uninstall_tenant_helm_release(region_name, team_name, release_name, namespace=namespace)
         return Response(general_message(200, "success", "卸载成功"))
 
 

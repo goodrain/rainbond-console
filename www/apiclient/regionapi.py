@@ -3693,10 +3693,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_tenant_helm_releases(self, region_name, tenant_name):
+    def get_tenant_helm_releases(self, region_name, tenant_name, namespace=None):
         """获取 Helm release 列表"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/helm/releases".format(tenant_name)
+        if namespace:
+            url += "?namespace={}".format(namespace)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
@@ -3717,10 +3719,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, response_body
 
-    def uninstall_tenant_helm_release(self, region_name, tenant_name, release_name):
+    def uninstall_tenant_helm_release(self, region_name, tenant_name, release_name, namespace=None):
         """卸载 Helm release"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/helm/releases/{}".format(tenant_name, release_name)
+        if namespace:
+            url += "?namespace={}".format(namespace)
         self._set_headers(token)
         res, body = self._delete(url, self.default_headers, region=region_name)
         return res, body

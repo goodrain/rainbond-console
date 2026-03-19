@@ -16,13 +16,31 @@ django.setup()
 
 from console.views import base as base_views  # noqa: E402
 from console.views.team_resources import HelmReleasesView  # noqa: E402
+from console.views.team_resources import HelmReleaseDetailView  # noqa: E402
 from console.views.team_resources import NsResourceDetailView  # noqa: E402
 from console.views import team_resources  # noqa: E402
 from www.apiclient.regionapi import RegionInvokeApi  # noqa: E402
 
 
 class HelmReleasesViewTestCase(TestCase):
-    def test_post_reuses_parsed_request_data_for_helm_install(self):
+    def test_get_uses_team_namespace_for_helm_release_lookup(self):
+        view = HelmReleasesView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
+        request = APIRequestFactory().get("/console/team-resources/helm/releases")
+
+        with mock.patch.object(team_resources.region_api,
+                               "get_tenant_helm_releases",
+                               return_value=({}, {
+                                   "bean": {
+                                       "list": []
+                                   }
+                               })) as list_mock:
+            response = view.get(request, "demo-team", "demo-region")
+
+        list_mock.assert_called_once_with("demo-region", "demo-team", namespace="demo-ns")
+        self.assertEqual(response.status_code, 200)
+
+    def test_post_uses_team_namespace_for_helm_install(self):
         payload = {
             "name": "demo-release",
             "chart_name": "apache",
@@ -31,7 +49,9 @@ class HelmReleasesViewTestCase(TestCase):
                 "replicaCount": 1
             }
         }
+        expected_payload = dict(payload, namespace="demo-ns")
         view = HelmReleasesView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
         factory = APIRequestFactory()
         request = view.initialize_request(factory.post("/console/team-resources/helm/releases", payload, format="json"))
 
@@ -47,7 +67,7 @@ class HelmReleasesViewTestCase(TestCase):
                                })) as install_mock:
             response = view.post(request, "demo-team", "demo-region")
 
-        install_mock.assert_called_once_with("demo-region", "demo-team", payload)
+        install_mock.assert_called_once_with("demo-region", "demo-team", expected_payload)
         self.assertEqual(response.data["data"]["bean"]["release_name"], "demo-release")
 
     def test_post_enriches_store_install_with_saved_repo_metadata(self):
@@ -68,10 +88,12 @@ class HelmReleasesViewTestCase(TestCase):
             "version": "7.8.0",
             "release_name": "demo-release",
             "values": "server:\\n  extraArgs: []",
+            "namespace": "demo-ns",
             "username": "demo-user",
             "password": "demo-pass"
         }
         view = HelmReleasesView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
         factory = APIRequestFactory()
         request = view.initialize_request(factory.post("/console/team-resources/helm/releases", payload, format="json"))
 
@@ -85,14 +107,25 @@ class HelmReleasesViewTestCase(TestCase):
             with mock.patch.object(team_resources.region_api,
                                    "install_tenant_helm_release",
                                    return_value=({}, {
-                                       "bean": {
-                                           "release_name": "demo-release"
-                                       }
-                                   })) as install_mock:
+                                   "bean": {
+                                       "release_name": "demo-release"
+                                   }
+                               })) as install_mock:
                 response = view.post(request, "demo-team", "demo-region")
 
         install_mock.assert_called_once_with("demo-region", "demo-team", expected_payload)
         self.assertEqual(response.data["data"]["bean"]["release_name"], "demo-release")
+
+    def test_delete_uses_team_namespace_for_helm_release_uninstall(self):
+        view = HelmReleaseDetailView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
+        request = APIRequestFactory().delete("/console/team-resources/helm/releases/demo-release")
+
+        with mock.patch.object(team_resources.region_api, "uninstall_tenant_helm_release", return_value=({}, {})) as delete_mock:
+            response = view.delete(request, "demo-team", "demo-region", "demo-release")
+
+        delete_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", namespace="demo-ns")
+        self.assertEqual(response.status_code, 200)
 
 
 class NsResourceDetailViewTestCase(TestCase):
