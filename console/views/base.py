@@ -461,17 +461,22 @@ class TenantHeaderView(JWTAuthApiView):
                 self.perm_app_id = int(kwargs.get("group_id"))
             except Exception as e:
                 self.perm_app_id = -1
-        if isinstance(request.data, dict) and request.data.get("group_id"):
-            if request.data.get("is_demo"):
+        request_data = None
+        try:
+            request_data = request.data
+        except exceptions.UnsupportedMediaType:
+            request_data = None
+        if isinstance(request_data, dict) and request_data.get("group_id"):
+            if request_data.get("is_demo"):
                 self.perm_app_id = -1
             else:
                 try:
-                    self.perm_app_id = int(request.data.get("group_id"))
+                    self.perm_app_id = int(request_data.get("group_id"))
                 except Exception as e:
                     self.perm_app_id = -1
-        if isinstance(request.data, dict) and request.data.get("app_id"):
+        if isinstance(request_data, dict) and request_data.get("app_id"):
             try:
-                self.perm_app_id = int(request.data.get("app_id"))
+                self.perm_app_id = int(request_data.get("app_id"))
             except Exception as e:
                 self.perm_app_id = -1
         # 根据服务别名获取服务信息，并设置权限应用ID

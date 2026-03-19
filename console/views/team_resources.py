@@ -49,7 +49,9 @@ class NsResourcesView(TenantHeaderView):
 
     def post(self, request, team_name, region_name, *args, **kwargs):
         params = {k: v for k, v in request.GET.items()}
-        res, data = region_api.post_tenant_ns_resource(region_name, team_name, request.body, params=params)
+        content_type = request.META.get("CONTENT_TYPE")
+        res, data = region_api.post_tenant_ns_resource(
+            region_name, team_name, request.body, params=params, content_type=content_type)
         return Response(general_message(200, "success", "OK", bean=data.get("bean")))
 
 
@@ -61,7 +63,9 @@ class NsResourceDetailView(TenantHeaderView):
 
     def put(self, request, team_name, region_name, name, *args, **kwargs):
         params = {k: v for k, v in request.GET.items()}
-        res, data = region_api.put_tenant_ns_resource(region_name, team_name, name, request.body, params=params)
+        content_type = request.META.get("CONTENT_TYPE")
+        res, data = region_api.put_tenant_ns_resource(
+            region_name, team_name, name, request.body, params=params, content_type=content_type)
         return Response(general_message(200, "success", "更新成功", bean=data.get("bean")))
 
     def delete(self, request, team_name, region_name, name, *args, **kwargs):

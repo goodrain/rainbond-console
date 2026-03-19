@@ -3654,7 +3654,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def post_tenant_ns_resource(self, region_name, tenant_name, body, params=None):
+    def post_tenant_ns_resource(self, region_name, tenant_name, body, params=None, content_type=None):
         """创建 namespace-scoped 资源"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/ns-resources".format(tenant_name)
@@ -3662,10 +3662,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             query = "&".join("{}={}".format(k, v) for k, v in params.items())
             url = url + "?" + query
         self._set_headers(token)
-        res, response_body = self._post(url, self.default_headers, body=body, region=region_name)
+        headers = self.default_headers.copy()
+        if content_type:
+            headers["Content-Type"] = content_type
+        res, response_body = self._post(url, headers, body=body, region=region_name)
         return res, response_body
 
-    def put_tenant_ns_resource(self, region_name, tenant_name, name, body, params=None):
+    def put_tenant_ns_resource(self, region_name, tenant_name, name, body, params=None, content_type=None):
         """更新 namespace-scoped 资源"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/ns-resources/{}".format(tenant_name, name)
@@ -3673,7 +3676,10 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             query = "&".join("{}={}".format(k, v) for k, v in params.items())
             url = url + "?" + query
         self._set_headers(token)
-        res, response_body = self._put(url, self.default_headers, body=body, region=region_name)
+        headers = self.default_headers.copy()
+        if content_type:
+            headers["Content-Type"] = content_type
+        res, response_body = self._put(url, headers, body=body, region=region_name)
         return res, response_body
 
     def delete_tenant_ns_resource(self, region_name, tenant_name, name, params=None):
