@@ -56,7 +56,7 @@ EOF
 }
 
 if [ ! -f "/opt/rainbond/k3s/server/static/rainbond-cluster.tgz" ] || \
-   [ ! -f "/opt/rainbond/k3s/server/manifests/rainbond-cluster.yaml" ]; \
+   [ ! -f "/opt/rainbond/k3s/server/manifests/rainbond-cluster.yaml" ] || \
    [ ! -f "/opt/rainbond/k3s/agent/images/k3s-images.tar.zst" ]; then
     init_configuration
 else
