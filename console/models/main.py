@@ -172,6 +172,7 @@ class TeamHelmReleaseSource(BaseModel):
     repo_url = models.CharField(max_length=255, null=True, blank=True, default="", help_text="仓库地址")
     chart_name = models.CharField(max_length=128, null=True, blank=True, default="", help_text="chart 名称")
     chart_version = models.CharField(max_length=64, null=True, blank=True, default="", help_text="chart 版本")
+    values_yaml = models.TextField(null=True, blank=True, default="", help_text="用户提交的 values.yaml")
     creator = models.CharField(max_length=64, null=True, blank=True, default="", help_text="操作人")
     create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
     update_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text="更新时间")

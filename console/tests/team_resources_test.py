@@ -161,6 +161,7 @@ class HelmReleasesViewTestCase(TestCase):
         self.assertEqual(kwargs["repo_url"], "https://charts.bitnami.com/bitnami")
         self.assertEqual(kwargs["chart_name"], "argo-cd")
         self.assertEqual(kwargs["chart_version"], "7.8.0")
+        self.assertEqual(kwargs["values_yaml"], "server:\\n  extraArgs: []")
         self.assertEqual(response.data["data"]["bean"]["release_name"], "demo-release")
 
     def test_delete_uses_team_namespace_for_helm_release_uninstall(self):
@@ -197,6 +198,63 @@ class HelmReleasesViewTestCase(TestCase):
             response = view.put(request, "demo-team", "demo-region", "demo-release")
 
         upgrade_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", expected_payload)
+        self.assertEqual(response.status_code, 200)
+
+    def test_put_persists_upgrade_source_after_success(self):
+        payload = {
+            "source_type": "store",
+            "repo_name": "bitnami",
+            "chart": "argo-cd",
+            "version": "7.9.0",
+            "values": "server:\\n  ingress:\\n    enabled: true"
+        }
+        expected_payload = {
+            "source_type": "repo",
+            "repo_name": "bitnami",
+            "repo_url": "https://charts.bitnami.com/bitnami",
+            "chart": "argo-cd",
+            "chart_name": "argo-cd",
+            "version": "7.9.0",
+            "values": "server:\\n  ingress:\\n    enabled: true",
+            "namespace": "demo-ns",
+            "username": "demo-user",
+            "password": "demo-pass"
+        }
+        view = HelmReleaseDetailView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
+        factory = APIRequestFactory()
+        request = view.initialize_request(factory.put("/console/team-resources/helm/releases/demo-release", payload, format="json"))
+
+        with mock.patch.object(team_resources, "helm_repo", create=True) as helm_repo_mock:
+            helm_repo_mock.get_helm_repo_by_name.return_value = {
+                "repo_name": "bitnami",
+                "repo_url": "https://charts.bitnami.com/bitnami",
+                "username": "demo-user",
+                "password": "demo-pass"
+            }
+            with mock.patch.object(team_resources, "helm_release_source_repo", create=True) as source_repo_mock:
+                with mock.patch.object(team_resources.region_api,
+                                       "upgrade_tenant_helm_release",
+                                       return_value=({}, {
+                                           "bean": {
+                                               "name": "demo-release"
+                                           }
+                                       })) as upgrade_mock:
+                    response = view.put(request, "demo-team", "demo-region", "demo-release")
+
+        upgrade_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", expected_payload)
+        source_repo_mock.save_or_update.assert_called_once()
+        _, kwargs = source_repo_mock.save_or_update.call_args
+        self.assertEqual(kwargs["team_name"], "demo-team")
+        self.assertEqual(kwargs["region_name"], "demo-region")
+        self.assertEqual(kwargs["namespace"], "demo-ns")
+        self.assertEqual(kwargs["release_name"], "demo-release")
+        self.assertEqual(kwargs["source_type"], "store")
+        self.assertEqual(kwargs["repo_name"], "bitnami")
+        self.assertEqual(kwargs["repo_url"], "https://charts.bitnami.com/bitnami")
+        self.assertEqual(kwargs["chart_name"], "argo-cd")
+        self.assertEqual(kwargs["chart_version"], "7.9.0")
+        self.assertEqual(kwargs["values_yaml"], "server:\\n  ingress:\\n    enabled: true")
         self.assertEqual(response.status_code, 200)
 
     def test_get_uses_team_namespace_for_helm_release_history(self):
@@ -283,6 +341,7 @@ class HelmReleasesViewTestCase(TestCase):
                 "repo_url": "https://charts.example.com",
                 "chart_name": "nginx",
                 "chart_version": "1.2.3",
+                "values_yaml": "service:\n  type: LoadBalancer",
                 "upgrade_mode": "manual_select"
             }
             with mock.patch.object(team_resources.region_api,
@@ -290,12 +349,13 @@ class HelmReleasesViewTestCase(TestCase):
                                    return_value=({}, {
                                        "bean": {
                                            "summary": {
-                                               "name": "demo-release",
-                                               "namespace": "demo-ns",
-                                               "chart": "nginx",
-                                               "chart_version": "1.2.3"
-                                           }
-                                       }
+                                                "name": "demo-release",
+                                                "namespace": "demo-ns",
+                                                "chart": "nginx",
+                                                "chart_version": "1.2.3",
+                                                "values": "exampleValue: common-chart"
+                                            }
+                                        }
                                    }),
                                    create=True):
                 response = view.get(request, "demo-team", "demo-region", "demo-release")
@@ -304,6 +364,7 @@ class HelmReleasesViewTestCase(TestCase):
         self.assertEqual(summary["source_info"]["source_type"], "repo")
         self.assertEqual(summary["source_info"]["repo_name"], "custom")
         self.assertEqual(summary["source_info"]["upgrade_mode"], "manual_select")
+        self.assertEqual(summary["values"], "service:\n  type: LoadBalancer")
 
     def test_get_defaults_legacy_source_info_when_record_missing(self):
         view = HelmReleaseDetailView()

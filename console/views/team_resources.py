@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
+import yaml
 from django.http.response import StreamingHttpResponse
 from rest_framework.response import Response
 
@@ -72,6 +73,18 @@ def get_request_operator(request):
     )
 
 
+def normalize_helm_values_yaml(*candidates):
+    for value in candidates:
+        if value in (None, ""):
+            continue
+        if isinstance(value, (dict, list)):
+            return yaml.safe_dump(value, default_flow_style=False, allow_unicode=True)
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return str(value)
+    return ""
+
+
 def build_helm_release_source_info(record=None, release=None):
     release = release or {}
     record = record or {}
@@ -111,6 +124,7 @@ def persist_helm_release_source(request, team_name, region_name, namespace, raw_
             install_body.get("chart"),
         ),
         chart_version=first_non_empty(raw_body.get("version"), install_body.get("version")),
+        values_yaml=normalize_helm_values_yaml(raw_body.get("values"), install_body.get("values")),
         creator=get_request_operator(request),
     )
 
@@ -138,6 +152,9 @@ def enrich_helm_release_detail(bean, region_name, namespace, release_name):
         record = helm_release_source_repo.get_by_release(region_name, item_namespace, release_name)
     except Exception as e:
         logger.exception("get helm release source failed: %s", e)
+    values_yaml = normalize_helm_values_yaml((record or {}).get("values_yaml"))
+    if values_yaml:
+        summary["values"] = values_yaml
     summary["source_info"] = build_helm_release_source_info(record, summary)
     bean["summary"] = summary
     return bean
@@ -218,8 +235,21 @@ class HelmReleaseDetailView(TenantHeaderView):
 
     def put(self, request, team_name, region_name, release_name, *args, **kwargs):
         namespace = get_team_resource_namespace(self, team_name)
+        raw_body = dict(request.data or {})
         body = build_helm_install_body(request.data or {}, namespace=namespace)
         res, data = region_api.upgrade_tenant_helm_release(region_name, team_name, release_name, body)
+        try:
+            persist_helm_release_source(
+                request=request,
+                team_name=team_name,
+                region_name=region_name,
+                namespace=namespace,
+                raw_body=raw_body,
+                install_body=body,
+                response_body=dict((data or {}).get("bean") or {}, release_name=release_name),
+            )
+        except Exception as e:
+            logger.exception("persist helm release source failed: %s", e)
         return Response(general_message(200, "success", "升级成功", bean=data.get("bean")))
 
     def delete(self, request, team_name, region_name, release_name, *args, **kwargs):
