@@ -682,7 +682,13 @@ class ComponentEnvsUView(TeamAppServiceAPIView):
         serializers = ComponentEnvsSerializers(data=request.data)
         serializers.is_valid(raise_exception=True)
         envs = serializers.data.get("envs")
+        logger.info("[PurchaseEnvConsoleOpenAPI] PUT component envs request tenant=%s region=%s app_id=%s service_id=%s service_alias=%s envs=%s",
+                    self.team.tenant_name, self.region_name, self.app.ID, self.service.service_id, self.service.service_alias,
+                    json.dumps(envs, ensure_ascii=False))
         rst = env_var_service.update_or_create_envs(self.team, self.service, envs)
+        logger.info("[PurchaseEnvConsoleOpenAPI] PUT component envs result tenant=%s region=%s app_id=%s service_id=%s service_alias=%s envs=%s",
+                    self.team.tenant_name, self.region_name, self.app.ID, self.service.service_id, self.service.service_alias,
+                    json.dumps(rst, ensure_ascii=False))
         serializers = ComponentEnvsSerializers(data=rst)
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)
