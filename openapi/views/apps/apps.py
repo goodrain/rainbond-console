@@ -61,6 +61,7 @@ from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamApp
                                 BaseOpenAPIView)
 from openapi.views.exceptions import ErrAppNotFound
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid, make_uuid3
@@ -679,16 +680,23 @@ class ComponentEnvsUView(TeamAppServiceAPIView):
         tags=['openapi-apps'],
     )
     def put(self, request, *args, **kwargs):
+        logger.error("[PURCHASE_ENV_CONSOLE_OPENAPI_RAW] component env upsert raw request tenant=%s region=%s app_id=%s service_id=%s service_alias=%s raw_request_data=%s",
+                     self.team.tenant_name, self.region_name, self.app.ID, self.service.service_id, self.service.service_alias,
+                     json.dumps(request.data, ensure_ascii=False))
         serializers = ComponentEnvsSerializers(data=request.data)
-        serializers.is_valid(raise_exception=True)
+        if not serializers.is_valid():
+            logger.error("[PURCHASE_ENV_CONSOLE_OPENAPI_RAW] component env upsert validation failed tenant=%s region=%s app_id=%s service_id=%s service_alias=%s errors=%s raw_request_data=%s",
+                         self.team.tenant_name, self.region_name, self.app.ID, self.service.service_id, self.service.service_alias,
+                         json.dumps(serializers.errors, ensure_ascii=False), json.dumps(request.data, ensure_ascii=False))
+            raise ValidationError(serializers.errors)
         envs = serializers.data.get("envs")
-        logger.info("[PurchaseEnvConsoleOpenAPI] PUT component envs request tenant=%s region=%s app_id=%s service_id=%s service_alias=%s envs=%s",
-                    self.team.tenant_name, self.region_name, self.app.ID, self.service.service_id, self.service.service_alias,
-                    json.dumps(envs, ensure_ascii=False))
+        logger.error("[PURCHASE_ENV_CONSOLE_OPENAPI_RAW] component env upsert parsed request tenant=%s region=%s app_id=%s service_id=%s service_alias=%s envs=%s",
+                     self.team.tenant_name, self.region_name, self.app.ID, self.service.service_id, self.service.service_alias,
+                     json.dumps(envs, ensure_ascii=False))
         rst = env_var_service.update_or_create_envs(self.team, self.service, envs)
-        logger.info("[PurchaseEnvConsoleOpenAPI] PUT component envs result tenant=%s region=%s app_id=%s service_id=%s service_alias=%s envs=%s",
-                    self.team.tenant_name, self.region_name, self.app.ID, self.service.service_id, self.service.service_alias,
-                    json.dumps(rst, ensure_ascii=False))
+        logger.error("[PURCHASE_ENV_CONSOLE_OPENAPI_RAW] component env upsert result tenant=%s region=%s app_id=%s service_id=%s service_alias=%s result=%s",
+                     self.team.tenant_name, self.region_name, self.app.ID, self.service.service_id, self.service.service_alias,
+                     json.dumps(rst, ensure_ascii=False))
         serializers = ComponentEnvsSerializers(data=rst)
         serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=200)

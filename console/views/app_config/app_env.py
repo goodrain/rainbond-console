@@ -63,8 +63,8 @@ class AppEnvView(AppBaseView):
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         env_name = request.GET.get("env_name", None)
-        logger.info("[PurchaseEnvConsole] GET app envs request tenant=%s service_alias=%s service_id=%s env_type=%s env_name=%s page=%s page_size=%s region=%s",
-                    self.tenant.tenant_name, self.service.service_alias, self.service.service_id, env_type, env_name, page, page_size, self.service.service_region)
+        logger.error("[PURCHASE_ENV_CONSOLE_RAW] GET app envs request tenant=%s service_alias=%s service_id=%s env_type=%s env_name=%s page=%s page_size=%s region=%s",
+                     self.tenant.tenant_name, self.service.service_alias, self.service.service_id, env_type, env_name, page, page_size, self.service.service_region)
 
         if not env_type:
             return Response(general_message(400, "param error", "参数异常"), status=400)
@@ -189,8 +189,8 @@ class AppEnvView(AppBaseView):
             bean = {"total": total}
 
         result = general_message(200, "success", "查询成功", bean=bean, list=env_list)
-        logger.info("[PurchaseEnvConsole] GET app envs result tenant=%s service_alias=%s service_id=%s env_type=%s total=%s envs=%s",
-                    self.tenant.tenant_name, self.service.service_alias, self.service.service_id, env_type, bean.get("total"), _env_items_for_log(env_list))
+        logger.error("[PURCHASE_ENV_CONSOLE_RAW] GET app envs result tenant=%s service_alias=%s service_id=%s env_type=%s total=%s envs=%s",
+                     self.tenant.tenant_name, self.service.service_alias, self.service.service_id, env_type, bean.get("total"), _env_items_for_log(env_list))
         return Response(result, status=result["code"])
 
     @never_cache
@@ -241,8 +241,9 @@ class AppEnvView(AppBaseView):
         attr_value = request.data.get("attr_value", "")
         scope = request.data.get('scope', "")
         is_change = request.data.get('is_change', True)
-        logger.info("[PurchaseEnvConsole] POST app env request tenant=%s service_alias=%s service_id=%s scope=%s name=%s attr_name=%s attr_value=%s is_change=%s region=%s",
-                    self.tenant.tenant_name, self.service.service_alias, self.service.service_id, scope, name, attr_name, attr_value, is_change, self.service.service_region)
+        logger.error("[PURCHASE_ENV_CONSOLE_RAW] POST app env request tenant=%s service_alias=%s service_id=%s scope=%s name=%s attr_name=%s attr_value=%s is_change=%s region=%s raw_request_data=%s",
+                     self.tenant.tenant_name, self.service.service_alias, self.service.service_id, scope, name, attr_name, attr_value, is_change, self.service.service_region,
+                     json.dumps(request.data, ensure_ascii=False))
         # try:
         if not scope or not attr_name:
             return Response(general_message(400, "params error", "参数异常"), status=400)
@@ -251,15 +252,15 @@ class AppEnvView(AppBaseView):
         code, msg, data = env_var_service.add_service_env_var(self.tenant, self.service, 0, name, attr_name, attr_value,
                                                               is_change, scope, self.user.nick_name)
         if code != 200:
-            logger.info("[PurchaseEnvConsole] POST app env result tenant=%s service_alias=%s service_id=%s code=%s msg=%s existing_env=%s",
-                        self.tenant.tenant_name, self.service.service_alias, self.service.service_id, code, msg,
-                        json.dumps(data.to_dict(), ensure_ascii=False) if data else "{}")
+            logger.error("[PURCHASE_ENV_CONSOLE_RAW] POST app env result tenant=%s service_alias=%s service_id=%s code=%s msg=%s existing_env=%s",
+                         self.tenant.tenant_name, self.service.service_alias, self.service.service_id, code, msg,
+                         json.dumps(data.to_dict(), ensure_ascii=False) if data else "{}")
             result = general_message(code, "add env error", msg)
             return Response(result, status=code)
         result = general_message(code, msg, "环境变量添加成功", bean=data.to_dict())
-        logger.info("[PurchaseEnvConsole] POST app env success tenant=%s service_alias=%s service_id=%s created_env=%s",
-                    self.tenant.tenant_name, self.service.service_alias, self.service.service_id,
-                    json.dumps(data.to_dict(), ensure_ascii=False))
+        logger.error("[PURCHASE_ENV_CONSOLE_RAW] POST app env success tenant=%s service_alias=%s service_id=%s created_env=%s",
+                     self.tenant.tenant_name, self.service.service_alias, self.service.service_id,
+                     json.dumps(data.to_dict(), ensure_ascii=False))
         new_information = env_var_service.json_service_env_var(attr_name=attr_name, attr_value=attr_value, name=name)
         comment = operation_log_service.generate_component_comment(
             operation=Operation.ADD,
