@@ -246,7 +246,7 @@ def name_validator(value):
 
 
 class ComponentEnvsBaseSerializers(serializers.Serializer):
-    note = serializers.CharField(max_length=100, required=False, help_text="备注")
+    note = serializers.CharField(max_length=100, required=False, allow_blank=True, help_text="备注")
     name = serializers.CharField(max_length=100, validators=[name_validator], help_text="环境变量名")
     value = serializers.CharField(max_length=1024, help_text="环境变量值")
     is_change = serializers.BooleanField(default=True, help_text="是否可改变")
