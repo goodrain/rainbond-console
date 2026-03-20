@@ -171,6 +171,26 @@ class HelmReleasesViewTestCase(TestCase):
         history_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", namespace="demo-ns")
         self.assertEqual(response.status_code, 200)
 
+    def test_get_uses_team_namespace_for_helm_release_detail(self):
+        view = HelmReleaseDetailView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
+        request = APIRequestFactory().get("/console/team-resources/helm/releases/demo-release")
+
+        with mock.patch.object(team_resources.region_api,
+                               "get_tenant_helm_release_detail",
+                               return_value=({}, {
+                                   "bean": {
+                                       "summary": {
+                                           "name": "demo-release"
+                                       }
+                                   }
+                               }),
+                               create=True) as detail_mock:
+            response = view.get(request, "demo-team", "demo-region", "demo-release")
+
+        detail_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", namespace="demo-ns")
+        self.assertEqual(response.status_code, 200)
+
     def test_post_uses_team_namespace_for_helm_release_rollback(self):
         payload = {"revision": 2}
         view = HelmReleaseRollbackView()

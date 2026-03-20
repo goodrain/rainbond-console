@@ -3729,6 +3729,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
+    def get_tenant_helm_release_detail(self, region_name, tenant_name, release_name, namespace=None):
+        """获取 Helm release 详情"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/releases/{}".format(tenant_name, release_name)
+        if namespace:
+            url += "?namespace={}".format(namespace)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
     def upgrade_tenant_helm_release(self, region_name, tenant_name, release_name, body):
         """升级 Helm release"""
         url, token = self.__get_region_access_info(tenant_name, region_name)

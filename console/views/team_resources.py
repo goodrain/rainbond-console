@@ -110,6 +110,11 @@ class HelmChartPreviewView(TenantHeaderView):
 
 
 class HelmReleaseDetailView(TenantHeaderView):
+    def get(self, request, team_name, region_name, release_name, *args, **kwargs):
+        namespace = get_team_resource_namespace(self, team_name)
+        res, data = region_api.get_tenant_helm_release_detail(region_name, team_name, release_name, namespace=namespace)
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+
     def put(self, request, team_name, region_name, release_name, *args, **kwargs):
         namespace = get_team_resource_namespace(self, team_name)
         body = build_helm_install_body(request.data or {}, namespace=namespace)
