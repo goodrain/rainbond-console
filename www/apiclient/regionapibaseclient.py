@@ -6,6 +6,7 @@ import json
 import logging
 import multiprocessing
 import os
+import re
 import socket
 import ssl
 
@@ -21,6 +22,39 @@ from django.http import HttpResponse, QueryDict
 from urllib3.exceptions import MaxRetryError
 
 logger = logging.getLogger('default')
+
+HELM_OWNERSHIP_CONFLICT_RE = re.compile(
+    r'(?P<kind>[A-Za-z]+)\s+"(?P<name>[^"]+)"\s+in namespace\s+"(?P<namespace>[^"]+)"\s+'
+    r'exists and cannot be imported into the current release: invalid ownership metadata;.*?'
+    r'meta\.helm\.sh/release-name": must be set to "(?P<release_name>[^"]+)";.*?'
+    r'meta\.helm\.sh/release-namespace": must be set to "(?P<release_namespace>[^"]+)"',
+    re.IGNORECASE)
+
+
+def build_region_error_msg_show(message):
+    msg_show = build_helm_ownership_conflict_msg_show(message)
+    if msg_show:
+        return msg_show
+    return message
+
+
+def build_helm_ownership_conflict_msg_show(message):
+    if not message:
+        return None
+    if "cannot be imported into the current release" not in message or "invalid ownership metadata" not in message:
+        return None
+
+    match = HELM_OWNERSHIP_CONFLICT_RE.search(message)
+    if not match:
+        return "命名空间中已存在同名资源，且缺少 Helm 接管元数据，请先删除冲突资源或补齐 Helm 元数据后重试"
+
+    details = match.groupdict()
+    return (
+        '命名空间 {namespace} 中已存在资源 {kind}/{name}，且缺少 Helm 接管元数据，'
+        'Release {release_name} 无法继续安装。请先删除该资源，或补齐 Helm 元数据后重试：'
+        'app.kubernetes.io/managed-by=Helm，'
+        'meta.helm.sh/release-name={release_name}，'
+        'meta.helm.sh/release-namespace={release_namespace}。').format(**details)
 
 
 class RegionApiBaseHttpClient(object):
@@ -93,7 +127,11 @@ class RegionApiBaseHttpClient(object):
             if not body:
                 raise ServiceHandleException(msg="request region api body is nil", msg_show="集群请求网络异常", status_code=status)
             if "code" in body:
-                raise ServiceHandleException(msg=body.get("msg"), status_code=status, error_code=body.get("code"))
+                raise ServiceHandleException(
+                    msg=body.get("msg"),
+                    msg_show=build_region_error_msg_show(body.get("msg")),
+                    status_code=status,
+                    error_code=body.get("code"))
             if status == 409:
                 raise self.CallApiFrequentError(self.apitype, url, method, res, body)
             if status == 401 and isinstance(body, dict) and body.get("bean", {}).get("code", -1) == 10400:
