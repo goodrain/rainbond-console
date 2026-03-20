@@ -17,6 +17,8 @@ django.setup()
 from console.views import base as base_views  # noqa: E402
 from console.views.team_resources import HelmReleasesView  # noqa: E402
 from console.views.team_resources import HelmReleaseDetailView  # noqa: E402
+from console.views.team_resources import HelmReleaseHistoryView  # noqa: E402
+from console.views.team_resources import HelmReleaseRollbackView  # noqa: E402
 from console.views.team_resources import NsResourceDetailView  # noqa: E402
 from console.views import team_resources  # noqa: E402
 from www.apiclient.regionapi import RegionInvokeApi  # noqa: E402
@@ -125,6 +127,63 @@ class HelmReleasesViewTestCase(TestCase):
             response = view.delete(request, "demo-team", "demo-region", "demo-release")
 
         delete_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", namespace="demo-ns")
+        self.assertEqual(response.status_code, 200)
+
+    def test_put_uses_team_namespace_for_helm_release_upgrade(self):
+        payload = {
+            "source_type": "repo",
+            "chart_url": "https://charts.example.com/nginx-1.2.3.tgz",
+            "version": "1.2.3",
+            "values": "service:\n  type: ClusterIP"
+        }
+        expected_payload = dict(payload, namespace="demo-ns")
+        view = HelmReleaseDetailView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
+        factory = APIRequestFactory()
+        request = view.initialize_request(factory.put("/console/team-resources/helm/releases/demo-release", payload, format="json"))
+
+        with mock.patch.object(team_resources.region_api,
+                               "upgrade_tenant_helm_release",
+                               return_value=({}, {
+                                   "bean": {
+                                       "name": "demo-release"
+                                   }
+                               })) as upgrade_mock:
+            response = view.put(request, "demo-team", "demo-region", "demo-release")
+
+        upgrade_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", expected_payload)
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_uses_team_namespace_for_helm_release_history(self):
+        view = HelmReleaseHistoryView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
+        request = APIRequestFactory().get("/console/team-resources/helm/releases/demo-release/history")
+
+        with mock.patch.object(team_resources.region_api,
+                               "get_tenant_helm_release_history",
+                               return_value=({}, {
+                                   "bean": {
+                                       "list": []
+                                   }
+                               })) as history_mock:
+            response = view.get(request, "demo-team", "demo-region", "demo-release")
+
+        history_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", namespace="demo-ns")
+        self.assertEqual(response.status_code, 200)
+
+    def test_post_uses_team_namespace_for_helm_release_rollback(self):
+        payload = {"revision": 2}
+        view = HelmReleaseRollbackView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
+        factory = APIRequestFactory()
+        request = view.initialize_request(factory.post("/console/team-resources/helm/releases/demo-release/rollback", payload, format="json"))
+
+        with mock.patch.object(team_resources.region_api,
+                               "rollback_tenant_helm_release",
+                               return_value=({}, {})) as rollback_mock:
+            response = view.post(request, "demo-team", "demo-region", "demo-release")
+
+        rollback_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", dict(payload, namespace="demo-ns"))
         self.assertEqual(response.status_code, 200)
 
 

@@ -110,10 +110,33 @@ class HelmChartPreviewView(TenantHeaderView):
 
 
 class HelmReleaseDetailView(TenantHeaderView):
+    def put(self, request, team_name, region_name, release_name, *args, **kwargs):
+        namespace = get_team_resource_namespace(self, team_name)
+        body = build_helm_install_body(request.data or {}, namespace=namespace)
+        res, data = region_api.upgrade_tenant_helm_release(region_name, team_name, release_name, body)
+        return Response(general_message(200, "success", "升级成功", bean=data.get("bean")))
+
     def delete(self, request, team_name, region_name, release_name, *args, **kwargs):
         namespace = get_team_resource_namespace(self, team_name)
         region_api.uninstall_tenant_helm_release(region_name, team_name, release_name, namespace=namespace)
         return Response(general_message(200, "success", "卸载成功"))
+
+
+class HelmReleaseHistoryView(TenantHeaderView):
+    def get(self, request, team_name, region_name, release_name, *args, **kwargs):
+        namespace = get_team_resource_namespace(self, team_name)
+        res, data = region_api.get_tenant_helm_release_history(region_name, team_name, release_name, namespace=namespace)
+        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+
+
+class HelmReleaseRollbackView(TenantHeaderView):
+    def post(self, request, team_name, region_name, release_name, *args, **kwargs):
+        namespace = get_team_resource_namespace(self, team_name)
+        body = dict(request.data or {})
+        if namespace and not body.get("namespace"):
+            body["namespace"] = namespace
+        res, data = region_api.rollback_tenant_helm_release(region_name, team_name, release_name, body)
+        return Response(general_message(200, "success", "回滚成功", bean=data.get("bean")))
 
 
 class ResourceCenterWorkloadDetailView(TenantHeaderView):
