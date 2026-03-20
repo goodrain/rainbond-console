@@ -158,6 +158,25 @@ class AppHelmOverrides(BaseModel):
     overrides = models.TextField(help_text="helm应用安装参数", default="")
 
 
+class TeamHelmReleaseSource(BaseModel):
+    class Meta:
+        db_table = "team_helm_release_source"
+        unique_together = (("region_name", "namespace", "release_name"),)
+
+    team_name = models.CharField(max_length=64, help_text="团队名称")
+    region_name = models.CharField(max_length=64, help_text="集群名称")
+    namespace = models.CharField(max_length=128, help_text="命名空间")
+    release_name = models.CharField(max_length=128, help_text="helm release 名称")
+    source_type = models.CharField(max_length=32, help_text="安装来源类型")
+    repo_name = models.CharField(max_length=128, null=True, blank=True, default="", help_text="仓库名称")
+    repo_url = models.CharField(max_length=255, null=True, blank=True, default="", help_text="仓库地址")
+    chart_name = models.CharField(max_length=128, null=True, blank=True, default="", help_text="chart 名称")
+    chart_version = models.CharField(max_length=64, null=True, blank=True, default="", help_text="chart 版本")
+    creator = models.CharField(max_length=64, null=True, blank=True, default="", help_text="操作人")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text="更新时间")
+
+
 class RainbondCenterAppInherit(BaseModel):
     """云市应用组继承关系"""
 

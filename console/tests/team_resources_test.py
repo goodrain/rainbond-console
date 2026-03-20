@@ -118,6 +118,51 @@ class HelmReleasesViewTestCase(TestCase):
         install_mock.assert_called_once_with("demo-region", "demo-team", expected_payload)
         self.assertEqual(response.data["data"]["bean"]["release_name"], "demo-release")
 
+    def test_post_persists_install_source_after_success(self):
+        payload = {
+            "source_type": "store",
+            "repo_name": "bitnami",
+            "chart": "argo-cd",
+            "version": "7.8.0",
+            "release_name": "demo-release",
+            "values": "server:\\n  extraArgs: []"
+        }
+        view = HelmReleasesView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
+        factory = APIRequestFactory()
+        request = view.initialize_request(factory.post("/console/team-resources/helm/releases", payload, format="json"))
+
+        with mock.patch.object(team_resources, "helm_repo", create=True) as helm_repo_mock:
+            helm_repo_mock.get_helm_repo_by_name.return_value = {
+                "repo_name": "bitnami",
+                "repo_url": "https://charts.bitnami.com/bitnami",
+                "username": "demo-user",
+                "password": "demo-pass"
+            }
+            with mock.patch.object(team_resources, "helm_release_source_repo", create=True) as source_repo_mock:
+                with mock.patch.object(team_resources.region_api,
+                                       "install_tenant_helm_release",
+                                       return_value=({}, {
+                                           "bean": {
+                                               "release_name": "demo-release"
+                                           }
+                                       })) as install_mock:
+                    response = view.post(request, "demo-team", "demo-region")
+
+        install_mock.assert_called_once()
+        source_repo_mock.save_or_update.assert_called_once()
+        _, kwargs = source_repo_mock.save_or_update.call_args
+        self.assertEqual(kwargs["team_name"], "demo-team")
+        self.assertEqual(kwargs["region_name"], "demo-region")
+        self.assertEqual(kwargs["namespace"], "demo-ns")
+        self.assertEqual(kwargs["release_name"], "demo-release")
+        self.assertEqual(kwargs["source_type"], "store")
+        self.assertEqual(kwargs["repo_name"], "bitnami")
+        self.assertEqual(kwargs["repo_url"], "https://charts.bitnami.com/bitnami")
+        self.assertEqual(kwargs["chart_name"], "argo-cd")
+        self.assertEqual(kwargs["chart_version"], "7.8.0")
+        self.assertEqual(response.data["data"]["bean"]["release_name"], "demo-release")
+
     def test_delete_uses_team_namespace_for_helm_release_uninstall(self):
         view = HelmReleaseDetailView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
@@ -189,6 +234,116 @@ class HelmReleasesViewTestCase(TestCase):
             response = view.get(request, "demo-team", "demo-region", "demo-release")
 
         detail_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", namespace="demo-ns")
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_enriches_helm_release_list_with_source_info(self):
+        view = HelmReleasesView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
+        request = APIRequestFactory().get("/console/team-resources/helm/releases")
+
+        with mock.patch.object(team_resources, "helm_release_source_repo", create=True) as source_repo_mock:
+            source_repo_mock.list_by_releases.return_value = {
+                "demo-ns/demo-release": {
+                    "source_type": "store",
+                    "repo_name": "bitnami",
+                    "repo_url": "https://charts.bitnami.com/bitnami",
+                    "chart_name": "argo-cd",
+                    "chart_version": "7.8.0",
+                    "upgrade_mode": "store_locked"
+                }
+            }
+            with mock.patch.object(team_resources.region_api,
+                                   "get_tenant_helm_releases",
+                                   return_value=({}, {
+                                       "bean": {
+                                           "list": [{
+                                               "name": "demo-release",
+                                               "namespace": "demo-ns",
+                                               "chart": "argo-cd",
+                                               "chart_version": "7.8.0"
+                                           }]
+                                       }
+                                   })) as list_mock:
+                response = view.get(request, "demo-team", "demo-region")
+
+        list_mock.assert_called_once_with("demo-region", "demo-team", namespace="demo-ns")
+        release = response.data["data"]["bean"]["list"][0]
+        self.assertEqual(release["source_info"]["source_type"], "store")
+        self.assertEqual(release["source_info"]["upgrade_mode"], "store_locked")
+
+    def test_get_enriches_helm_release_detail_with_source_info(self):
+        view = HelmReleaseDetailView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
+        request = APIRequestFactory().get("/console/team-resources/helm/releases/demo-release")
+
+        with mock.patch.object(team_resources, "helm_release_source_repo", create=True) as source_repo_mock:
+            source_repo_mock.get_by_release.return_value = {
+                "source_type": "repo",
+                "repo_name": "custom",
+                "repo_url": "https://charts.example.com",
+                "chart_name": "nginx",
+                "chart_version": "1.2.3",
+                "upgrade_mode": "manual_select"
+            }
+            with mock.patch.object(team_resources.region_api,
+                                   "get_tenant_helm_release_detail",
+                                   return_value=({}, {
+                                       "bean": {
+                                           "summary": {
+                                               "name": "demo-release",
+                                               "namespace": "demo-ns",
+                                               "chart": "nginx",
+                                               "chart_version": "1.2.3"
+                                           }
+                                       }
+                                   }),
+                                   create=True):
+                response = view.get(request, "demo-team", "demo-region", "demo-release")
+
+        summary = response.data["data"]["bean"]["summary"]
+        self.assertEqual(summary["source_info"]["source_type"], "repo")
+        self.assertEqual(summary["source_info"]["repo_name"], "custom")
+        self.assertEqual(summary["source_info"]["upgrade_mode"], "manual_select")
+
+    def test_get_defaults_legacy_source_info_when_record_missing(self):
+        view = HelmReleaseDetailView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
+        request = APIRequestFactory().get("/console/team-resources/helm/releases/demo-release")
+
+        with mock.patch.object(team_resources, "helm_release_source_repo", create=True) as source_repo_mock:
+            source_repo_mock.get_by_release.return_value = None
+            with mock.patch.object(team_resources.region_api,
+                                   "get_tenant_helm_release_detail",
+                                   return_value=({}, {
+                                       "bean": {
+                                           "summary": {
+                                               "name": "demo-release",
+                                               "namespace": "demo-ns"
+                                           }
+                                       }
+                                   }),
+                                   create=True):
+                response = view.get(request, "demo-team", "demo-region", "demo-release")
+
+        summary = response.data["data"]["bean"]["summary"]
+        self.assertEqual(summary["source_info"]["source_type"], "legacy")
+        self.assertEqual(summary["source_info"]["upgrade_mode"], "manual_select")
+
+    def test_delete_cleans_up_saved_install_source_after_success(self):
+        view = HelmReleaseDetailView()
+        view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
+        request = APIRequestFactory().delete("/console/team-resources/helm/releases/demo-release")
+
+        with mock.patch.object(team_resources, "helm_release_source_repo", create=True) as source_repo_mock:
+            with mock.patch.object(team_resources.region_api, "uninstall_tenant_helm_release", return_value=({}, {})) as delete_mock:
+                response = view.delete(request, "demo-team", "demo-region", "demo-release")
+
+        delete_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", namespace="demo-ns")
+        source_repo_mock.delete_by_release.assert_called_once_with(
+            region_name="demo-region",
+            namespace="demo-ns",
+            release_name="demo-release"
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_post_uses_team_namespace_for_helm_release_rollback(self):

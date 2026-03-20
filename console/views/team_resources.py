@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from django.http.response import StreamingHttpResponse
 from rest_framework.response import Response
 
 from console.repositories.helm import helm_repo
+from console.repositories.helm_release_source import helm_release_source_repo
 from console.services.app_actions import ws_service
 from console.views.base import TenantHeaderView
 from www.utils.return_message import general_message
 from www.apiclient.regionapi import RegionInvokeApi
 
 region_api = RegionInvokeApi()
+logger = logging.getLogger("default")
 
 
 def get_team_resource_namespace(view, fallback=None):
@@ -47,6 +51,96 @@ def build_helm_install_body(body, namespace=None):
     payload["username"] = payload.get("username") or repo.get("username", "")
     payload["password"] = payload.get("password") or repo.get("password", "")
     return payload
+
+
+def first_non_empty(*values):
+    for value in values:
+        if value:
+            return value
+    return ""
+
+
+def get_request_operator(request):
+    try:
+        user = getattr(request, "user", None)
+    except Exception:
+        return ""
+    return first_non_empty(
+        getattr(user, "nick_name", ""),
+        getattr(user, "username", ""),
+        getattr(user, "user_id", ""),
+    )
+
+
+def build_helm_release_source_info(record=None, release=None):
+    release = release or {}
+    record = record or {}
+    source_type = record.get("source_type") or "legacy"
+    return {
+        "source_type": source_type,
+        "repo_name": record.get("repo_name") or "",
+        "repo_url": record.get("repo_url") or "",
+        "chart_name": record.get("chart_name") or release.get("chart") or "",
+        "chart_version": record.get("chart_version") or release.get("chart_version") or "",
+        "upgrade_mode": "store_locked" if source_type == "store" else "manual_select",
+    }
+
+
+def persist_helm_release_source(request, team_name, region_name, namespace, raw_body, install_body, response_body):
+    release_name = first_non_empty(
+        (response_body or {}).get("release_name"),
+        install_body.get("release_name"),
+        raw_body.get("release_name"),
+        raw_body.get("name"),
+    )
+    if not release_name:
+        return
+    source_type = (raw_body.get("source_type") or "store").strip() or "store"
+    helm_release_source_repo.save_or_update(
+        team_name=team_name,
+        region_name=region_name,
+        namespace=namespace,
+        release_name=release_name,
+        source_type=source_type,
+        repo_name=first_non_empty(raw_body.get("repo_name"), install_body.get("repo_name")),
+        repo_url=first_non_empty(raw_body.get("repo_url"), install_body.get("repo_url")),
+        chart_name=first_non_empty(
+            raw_body.get("chart_name"),
+            raw_body.get("chart"),
+            install_body.get("chart_name"),
+            install_body.get("chart"),
+        ),
+        chart_version=first_non_empty(raw_body.get("version"), install_body.get("version")),
+        creator=get_request_operator(request),
+    )
+
+
+def enrich_helm_release_list(bean, region_name, namespace):
+    releases = (bean or {}).get("list") or []
+    release_names = [item.get("name") for item in releases if item.get("name")]
+    source_map = {}
+    try:
+        source_map = helm_release_source_repo.list_by_releases(region_name, namespace, release_names)
+    except Exception as e:
+        logger.exception("list helm release source failed: %s", e)
+    for item in releases:
+        item_namespace = item.get("namespace") or namespace
+        key = "{}/{}".format(item_namespace, item.get("name"))
+        item["source_info"] = build_helm_release_source_info(source_map.get(key), item)
+    return bean
+
+
+def enrich_helm_release_detail(bean, region_name, namespace, release_name):
+    summary = ((bean or {}).get("summary")) or {}
+    item_namespace = summary.get("namespace") or namespace
+    record = None
+    try:
+        record = helm_release_source_repo.get_by_release(region_name, item_namespace, release_name)
+    except Exception as e:
+        logger.exception("get helm release source failed: %s", e)
+    summary["source_info"] = build_helm_release_source_info(record, summary)
+    bean["summary"] = summary
+    return bean
 
 
 class NsResourceTypesView(TenantHeaderView):
@@ -92,12 +186,18 @@ class HelmReleasesView(TenantHeaderView):
     def get(self, request, team_name, region_name, *args, **kwargs):
         namespace = get_team_resource_namespace(self, team_name)
         res, data = region_api.get_tenant_helm_releases(region_name, team_name, namespace=namespace)
-        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+        bean = enrich_helm_release_list(data.get("bean") or {}, region_name, namespace)
+        return Response(general_message(200, "success", "OK", bean=bean))
 
     def post(self, request, team_name, region_name, *args, **kwargs):
         namespace = get_team_resource_namespace(self, team_name)
-        body = build_helm_install_body(request.data or {}, namespace=namespace)
+        raw_body = dict(request.data or {})
+        body = build_helm_install_body(raw_body, namespace=namespace)
         res, data = region_api.install_tenant_helm_release(region_name, team_name, body)
+        try:
+            persist_helm_release_source(request, team_name, region_name, namespace, raw_body, body, data.get("bean") or {})
+        except Exception as e:
+            logger.exception("persist helm release source failed: %s", e)
         return Response(general_message(200, "success", "安装成功", bean=data.get("bean")))
 
 
@@ -113,7 +213,8 @@ class HelmReleaseDetailView(TenantHeaderView):
     def get(self, request, team_name, region_name, release_name, *args, **kwargs):
         namespace = get_team_resource_namespace(self, team_name)
         res, data = region_api.get_tenant_helm_release_detail(region_name, team_name, release_name, namespace=namespace)
-        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+        bean = enrich_helm_release_detail(data.get("bean") or {}, region_name, namespace, release_name)
+        return Response(general_message(200, "success", "OK", bean=bean))
 
     def put(self, request, team_name, region_name, release_name, *args, **kwargs):
         namespace = get_team_resource_namespace(self, team_name)
@@ -124,6 +225,14 @@ class HelmReleaseDetailView(TenantHeaderView):
     def delete(self, request, team_name, region_name, release_name, *args, **kwargs):
         namespace = get_team_resource_namespace(self, team_name)
         region_api.uninstall_tenant_helm_release(region_name, team_name, release_name, namespace=namespace)
+        try:
+            helm_release_source_repo.delete_by_release(
+                region_name=region_name,
+                namespace=namespace,
+                release_name=release_name,
+            )
+        except Exception as e:
+            logger.exception("delete helm release source failed: %s", e)
         return Response(general_message(200, "success", "卸载成功"))
 
 
