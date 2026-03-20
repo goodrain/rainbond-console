@@ -67,6 +67,36 @@ class AppEnvVarService(object):
     def json_service_env_var(self, attr_name, attr_value, name):
         return json.dumps({"变量名": attr_name, "变量值": attr_value, "说明": name}, ensure_ascii=False)
 
+    def env_to_log(self, env):
+        if not env:
+            return "{}"
+        if hasattr(env, "to_dict"):
+            return json.dumps(env.to_dict(), ensure_ascii=False)
+        return json.dumps({
+            "ID": getattr(env, "ID", None),
+            "tenant_id": getattr(env, "tenant_id", None),
+            "service_id": getattr(env, "service_id", None),
+            "name": getattr(env, "name", None),
+            "attr_name": getattr(env, "attr_name", None),
+            "attr_value": getattr(env, "attr_value", None),
+            "scope": getattr(env, "scope", None),
+            "container_port": getattr(env, "container_port", None),
+            "is_change": getattr(env, "is_change", None),
+        }, ensure_ascii=False)
+
+    def envs_to_log(self, envs):
+        return json.dumps([
+            {
+                "ID": getattr(env, "ID", None),
+                "name": getattr(env, "name", None),
+                "attr_name": getattr(env, "attr_name", None),
+                "attr_value": getattr(env, "attr_value", None),
+                "scope": getattr(env, "scope", None),
+                "container_port": getattr(env, "container_port", None),
+                "is_change": getattr(env, "is_change", None),
+            } for env in envs
+        ], ensure_ascii=False)
+
     def add_service_env_var(self,
                             tenant,
                             service,
@@ -77,10 +107,14 @@ class AppEnvVarService(object):
                             is_change,
                             scope="outer",
                             user_name=''):
+        logger.info("[PurchaseEnvConsole] add_service_env_var request tenant=%s service_alias=%s service_id=%s create_status=%s scope=%s name=%s attr_name=%s attr_value=%s is_change=%s",
+                    tenant.tenant_name, service.service_alias, service.service_id, service.create_status, scope, name, attr_name, attr_value, is_change)
         attr_name = str(attr_name).strip()
         attr_value = str(attr_value).strip()
         is_pass, msg = self.check_env_attr_name(attr_name)
         if not is_pass:
+            logger.info("[PurchaseEnvConsole] add_service_env_var invalid name tenant=%s service_id=%s attr_name=%s msg=%s",
+                        tenant.tenant_name, service.service_id, attr_name, msg)
             return 400, msg, None
         if len(str(attr_value)) > 65532:
             attr_value = str(attr_value)[:65532]
@@ -95,6 +129,8 @@ class AppEnvVarService(object):
         tenantServiceEnvVar["scope"] = scope
         env = env_var_repo.get_service_env_by_attr_name(service.tenant_id, service.service_id, attr_name)
         if env:
+            logger.info("[PurchaseEnvConsole] add_service_env_var existing env tenant=%s service_alias=%s service_id=%s attr_name=%s existing_env=%s",
+                        tenant.tenant_name, service.service_alias, service.service_id, attr_name, self.env_to_log(env))
             return 412, "环境变量{0}已存在".format(attr_name), env
         # 判断是否需要再region端添加
         if service.create_status == "complete":
@@ -112,8 +148,13 @@ class AppEnvVarService(object):
                 "enterprise_id": tenant.enterprise_id,
                 "operator": user_name
             }
+            logger.info("[PurchaseEnvConsole] add_service_env_var sync region request tenant=%s service_alias=%s service_id=%s region=%s body=%s",
+                        tenant.tenant_name, service.service_alias, service.service_id, service.service_region,
+                        json.dumps(attr, ensure_ascii=False))
             region_api.add_service_env(service.service_region, tenant.tenant_name, service.service_alias, attr)
         new_env = env_var_repo.add_service_env(**tenantServiceEnvVar)
+        logger.info("[PurchaseEnvConsole] add_service_env_var created env tenant=%s service_alias=%s service_id=%s env=%s",
+                    tenant.tenant_name, service.service_alias, service.service_id, self.env_to_log(new_env))
         return 200, 'success', new_env
 
     def get_env_var(self, service):
@@ -210,13 +251,20 @@ class AppEnvVarService(object):
         env = env_var_repo.get_env_by_ids_and_env_id(tenant.tenant_id, service.service_id, env_id)
         if not env:
             return 404, "环境变量不存在", None
+        logger.info("[PurchaseEnvConsole] update_env_by_env_id request tenant=%s service_alias=%s service_id=%s env_id=%s old_env=%s new_name=%s new_value=%s",
+                    tenant.tenant_name, service.service_alias, service.service_id, env_id, self.env_to_log(env), name, attr_value)
         update_params = {"name": name, "attr_value": attr_value}
         if service.create_status == "complete":
             body = {"env_name": env.attr_name, "env_value": attr_value, "scope": env.scope, "operator": user_name}
+            logger.info("[PurchaseEnvConsole] update_env_by_env_id sync region request tenant=%s service_alias=%s service_id=%s region=%s body=%s",
+                        tenant.tenant_name, service.service_alias, service.service_id, service.service_region,
+                        json.dumps(body, ensure_ascii=False))
             region_api.update_service_env(service.service_region, tenant.tenant_name, service.service_alias, body)
         env_var_repo.update_env_var(tenant.tenant_id, service.service_id, env.attr_name, **update_params)
         env.name = name
         env.attr_value = attr_value
+        logger.info("[PurchaseEnvConsole] update_env_by_env_id success tenant=%s service_alias=%s service_id=%s updated_env=%s",
+                    tenant.tenant_name, service.service_alias, service.service_id, self.env_to_log(env))
         return 200, "success", env
 
     def delete_service_env(self, tenant, service):
@@ -238,13 +286,20 @@ class AppEnvVarService(object):
     def update_or_create_envs(self, team, service, envs):
         has_envs = env_var_repo.get_service_env(service.tenant_id, service.service_id)
         env_attr_names = {env.attr_name: env for env in has_envs}
+        logger.info("[PurchaseEnvConsole] update_or_create_envs request tenant=%s service_alias=%s service_id=%s incoming_envs=%s existing_envs=%s",
+                    team.tenant_name, service.service_alias, service.service_id,
+                    json.dumps(envs, ensure_ascii=False), self.envs_to_log(has_envs))
         for env in envs:
             if env["name"] in list(env_attr_names.keys()):
+                logger.info("[PurchaseEnvConsole] update_or_create_envs choose update tenant=%s service_alias=%s service_id=%s env_name=%s env_id=%s",
+                            team.tenant_name, service.service_alias, service.service_id, env["name"], env_attr_names[env["name"]].ID)
                 code, msg, env = self.update_env_by_env_id(team, service, str(env_attr_names[env["name"]].ID), env["note"],
                                                            env["value"])
                 if code != 200:
                     raise ServiceHandleException(status_code=code, msg="update or create envs error", msg_show=msg)
             else:
+                logger.info("[PurchaseEnvConsole] update_or_create_envs choose create tenant=%s service_alias=%s service_id=%s env_name=%s",
+                            team.tenant_name, service.service_alias, service.service_id, env["name"])
                 code, msg, env = self.add_service_env_var(team, service, 0, env["note"], env["name"], env["value"],
                                                           env["is_change"], env["scope"])
                 if code != 200:
@@ -259,6 +314,8 @@ class AppEnvVarService(object):
                 "is_change": env.is_change,
                 "scope": env.scope,
             })
+        logger.info("[PurchaseEnvConsole] update_or_create_envs result tenant=%s service_alias=%s service_id=%s total_envs=%s",
+                    team.tenant_name, service.service_alias, service.service_id, json.dumps(dt, ensure_ascii=False))
         return {"envs": dt}
 
     def get_all_envs_incloud_depend_env(self, tenant, service):
