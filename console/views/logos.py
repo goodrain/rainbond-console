@@ -78,7 +78,7 @@ class ConfigRUDView(AlowAnyApiView):
             data["shadow"] = shadow
         if isinstance(user, Users):
             data["enterprise_id"] = user.enterprise_id
-            ent_config = EnterpriseConfigService(data["enterprise_id"]).initialization_or_get_config
+            ent_config = EnterpriseConfigService(data["enterprise_id"], user.user_id).initialization_or_get_config
             # 更新企业配置（包括自定义字段）
             data.update(ent_config)
         data["is_disable_logout"] = os.getenv('IS_DISABLE_LOGOUT', False)
@@ -430,4 +430,4 @@ class UserSourceView(AlowAnyApiView):
         except Exception as e:
             logger.exception(e)
             result = error_message(str(e))
-            return Response(result, status=500) 
+            return Response(result, status=500)

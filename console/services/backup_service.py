@@ -85,7 +85,7 @@ class GroupAppBackupService(object):
         return use_custom_svc
 
     def backup_group_apps(self, tenant, user, region_name, group_id, mode, note, force=False):
-        s3_config = EnterpriseConfigService(tenant.enterprise_id).get_cloud_obj_storage_info()
+        s3_config = EnterpriseConfigService(tenant.enterprise_id, user.user_id).get_cloud_obj_storage_info()
         if mode == "full-online" and not s3_config:
             raise ErrObjectStorageInfoNotFound
         services = group_service.get_group_services(group_id)
