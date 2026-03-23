@@ -15,6 +15,7 @@ from console.services.app_config import env_var_service
 from console.services.app_config import volume_service
 from console.services.app_config import domain_service
 from console.services.region_services import region_services
+from console.services.source_component_service import source_component_service
 from console.services.team_services import team_services
 from console.services.group_service import group_service
 from console.services.app_config.component_logs import component_log_service
@@ -272,103 +273,21 @@ class McpComponentView(BaseOpenAPIView):
             branch = serializer.validated_data["branch"]
             username = serializer.validated_data.get("username", "")
             password = serializer.validated_data.get("password", "")
-
-            # 校验组件英文名称
-            if app_service.is_k8s_component_name_duplicate(app_id, service_cname):
-                return Response(general_message(400, "component name exists", "组件英文名称已存在"), status=http_status.HTTP_400_BAD_REQUEST)
-
-            code, msg_show, component = app_service.create_source_code_app(
-                region=app.region_name,
-                tenant=team,
+            result = source_component_service.auto_create_component(
+                team=team,
+                app=app,
                 user=self.user,
-                service_code_from="gitlab_manual",
                 service_cname=service_cname,
-                service_code_clone_url=repo_url,
-                service_code_id="",
-                service_code_version=branch,
-                server_type="git",
+                code_from="gitlab_manual",
+                git_url=repo_url,
+                code_version=branch,
+                username=username,
+                password=password,
                 k8s_component_name=service_cname,
-                check_uuid=None,
-                event_id=make_uuid(),
-                oauth_service_id=None,
-                git_full_name=None
             )
-            
-            if code != 200:
-                return Response(general_message(code, "create failed", msg_show), status=code)
-
-            # 添加组件到应用
-            code, msg_show = group_service.add_service_to_group(
-                team,
-                app.region_name,
-                app_id,
-                component.service_id
-            )
-            if code != 200:
-                return Response(general_message(code, "add to app failed", msg_show), status=code)
-
-            if username or password:
-                app_service.create_service_source_info(team, component, username, password)
-
-            # 2. 开始代码检测
-            code, msg, check_info = app_check_service.check_service(team, component, False, "", self.user)
-            if code != 200:
-                return Response(general_message(code, "check failed", msg), status=code)
-
-            try:
-                # 3. 循环获取检测结果
-                max_retries = 30  # 最大重试次数
-                retry_count = 0
-                while retry_count < max_retries:
-                    try:
-                        check_uuid = check_info.get("check_uuid")
-                        res, body = region_api.get_service_check_info(app.region_name, team.tenant_name, check_uuid)
-                        bean = body["bean"]
-                        if not bean["check_status"]:
-                            bean["check_status"] = "checking"
-                        bean["check_status"] = bean["check_status"].lower()
-                        status = bean.get("check_status", "")
-                        if status == "checking" or status == "":
-                            time.sleep(2)  # 等待2秒后重试
-                            retry_count += 1
-                            continue
-                        elif status == "success":
-                            if bean["service_info"] and len(bean["service_info"]) < 2:
-                                app_check_service.save_service_check_info(team, app.ID, component, bean)
-                            app_check_service.wrap_service_check_info(component, bean)
-                            break
-                        else:
-                            return Response(general_message(500, "check failed", "代码检测失败"), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
-                    except region_api.CallApiError:
-                        time.sleep(2)  # 如果API调用失败，等待2秒后重试
-                        retry_count += 1
-                        continue
-
-                if retry_count >= max_retries:
-                    return Response(general_message(500, "check timeout", "代码检测超时"), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-                # 4. 开始构建
-                app_service.create_region_service(team, component, self.user.nick_name)
-                arch_service.update_affinity_by_arch(component.arch, team, app.region_name, component)
-
-                app_manage_service.deploy(team, component, self.user)
-
-                # 返回组件信息
-                result = {
-                    "service_id": component.service_id,
-                    "service_cname": component.service_cname,
-                    "update_time": component.update_time,
-                }
-                
-                return Response(general_message(200, "success", "创建成功", bean=result), status=http_status.HTTP_200_OK)
-            except region_api.CallApiError as e:
-                print(e)
-                return Response(general_message(500, "region error", "集群接口调用失败"), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
-            except ServiceHandleException as e:
-                return Response(general_message(e.status_code, e.msg, e.msg_show), status=e.status_code)
-            except Exception as e:
-                print(e)
-                return Response(general_message(500, "error", "创建失败"), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(general_message(200, "success", "创建成功", bean=result), status=http_status.HTTP_200_OK)
+        except ServiceHandleException as e:
+            return Response(general_message(e.status_code, e.msg, e.msg_show), status=e.status_code)
         except Exception as e:
             return Response(general_message(500, "error", str(e)), status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
 
