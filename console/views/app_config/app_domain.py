@@ -603,7 +603,7 @@ class HttpStrategyView(RegionTenantHeaderView):
         if auto_ssl:
             auto_ssl = True
         if auto_ssl:
-            auto_ssl_configs = EnterpriseConfigService(self.tenant.enterprise_id).get_auto_ssl_info()
+            auto_ssl_configs = EnterpriseConfigService(self.tenant.enterprise_id, self.user.user_id).get_auto_ssl_info()
             if not auto_ssl_configs:
                 result = general_message(400, "failed", "未找到自动分发证书相关配置")
                 return Response(result, status=400)
