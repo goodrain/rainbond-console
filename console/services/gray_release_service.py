@@ -14,6 +14,11 @@ from console.services.app_config.domain_service import DomainService
 from console.services.app import app_market_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
+from console.services.gray_release_route_utils import (
+    extract_actual_route_name,
+    extract_region_app_id,
+    route_name_candidates,
+)
 from django.db import transaction
 from django.forms.models import model_to_dict
 from www.models.main import ServiceDomain, TenantServiceInfo
@@ -82,7 +87,8 @@ class GrayReleaseService(object):
                 deleted_count = 0
                 for route in routes:
                     backends = route.get("backends", [])
-                    route_name = route.get("name", "")
+                    route_name = extract_actual_route_name(route)
+                    display_name = route.get("name", "")
 
                     # 检查是否是新服务的路由
                     if len(backends) != 1:
@@ -104,15 +110,10 @@ class GrayReleaseService(object):
                         for port in ports:
                             if port.k8s_service_name == backend_service_name:
                                 # 找到了新服务的路由，删除它
-                                logger.info(f"[GrayRelease] Found auto-created route for new service {new_service.service_alias}: {route_name}")
+                                logger.info(f"[GrayRelease] Found auto-created route for new service {new_service.service_alias}: {display_name}")
                                 logger.info(f"[GrayRelease] Backend: {backend_service_name}")
 
-                                # 从 route_name 中提取 region_app_id (格式: region_app_id|actual_name|...)
-                                region_app_id = ""
-                                if "|" in route_name:
-                                    parts = route_name.split("|", 1)
-                                    if len(parts) >= 1:
-                                        region_app_id = parts[0]
+                                region_app_id = extract_region_app_id(route)
 
                                 try:
                                     logger.info(f"[GrayRelease] Deleting route: {route_name}")
@@ -209,7 +210,7 @@ class GrayReleaseService(object):
                     logger.warning(f"[GrayRelease] Original service port not found, skipping original backend: {original_service.service_id}")
 
             # 获取路由名称
-            original_name = domain.get("name", "")
+            original_name = domain.get("original_name", "") or domain.get("name", "")
             if not original_name:
                 logger.error(f"[GrayRelease] Domain name not found in domain object: {domain}")
                 raise ServiceHandleException(
@@ -218,20 +219,8 @@ class GrayReleaseService(object):
                     status_code=500
                 )
 
-            # 解析路由名称：去掉前面的数字ID和后面的服务标识
-            # 格式：41gre50f92-5000-default-172.31.16.5.nip.io-ps-s-gre50f92
-            # 需要得到：gre50f92-5000-default-172.31.16.5.nip.io-ps-s
-            import re
-            logger.info(f"[GrayRelease] Parsing route name: {original_name}")
-
-            # 去掉前面的数字
-            route_name = re.sub(r'^\d+', '', original_name)
-            logger.info(f"[GrayRelease] After removing prefix digits: {route_name}")
-
-            # 去掉后面的 -{服务名} 格式（如 -gre50f92）
-            # 匹配模式：最后一个连字符后跟字母数字字符串
-            route_name = re.sub(r'-[a-zA-Z0-9]+$', '', route_name)
-            logger.info(f"[GrayRelease] After removing suffix: {route_name}")
+            logger.info(f"[GrayRelease] Resolving route name from: {original_name}")
+            route_name = extract_actual_route_name(domain)
 
             if not route_name:
                 logger.error(f"[GrayRelease] Failed to parse route name from: {original_name}")
@@ -241,7 +230,7 @@ class GrayReleaseService(object):
                     status_code=500
                 )
 
-            region_app_id = str(app.ID)
+            region_app_id = extract_region_app_id(domain) or str(app.ID)
 
             logger.info(f"[GrayRelease] Parsed route_name: {route_name}, app_id: {region_app_id}")
             logger.info(f"[GrayRelease] Updating route: {route_name}")
@@ -344,13 +333,6 @@ class GrayReleaseService(object):
 
             logger.info(f"[GrayRelease] Getting route from API Gateway: route_name={route_name}, app_id={app_id}")
 
-            # 解析路由名称：去掉后面的服务标识部分
-            # 格式：41gre50f92-5000-default-172.31.16.5.nip.io-ps-s-gre50f92
-            # 实际：41gre50f92-5000-default-172.31.16.5.nip.io-ps-s
-            import re
-            parsed_route_name = re.sub(r'-[a-zA-Z0-9]+$', '', route_name)
-            logger.info(f"[GrayRelease] Parsed route_name: {route_name} -> {parsed_route_name}")
-
             # 调用 API 网关获取路由列表
             response = region_api.get_api_gateway(region, team, app_id)
             domains = response.get("list", [])
@@ -361,20 +343,15 @@ class GrayReleaseService(object):
             matched_routes = []
             all_route_names = []  # 用于错误消息
             for domain in domains:
-                domain_route_name = domain.get("name", "")
-                all_route_names.append(domain_route_name)
+                candidates = route_name_candidates(domain)
+                all_route_names.extend([candidate for candidate in candidates if candidate not in all_route_names])
 
-                # 先用解析后的名称匹配
-                if domain_route_name == parsed_route_name:
+                if route_name in candidates:
                     matched_routes.append(domain)
-                    logger.info(f"[GrayRelease] Found matching route: {parsed_route_name}")
-                # 再用原名称匹配（兼容）
-                elif domain_route_name == route_name:
-                    matched_routes.append(domain)
-                    logger.info(f"[GrayRelease] Found matching route with original name: {route_name}")
+                    logger.info(f"[GrayRelease] Found matching route: {route_name}")
 
             if not matched_routes:
-                logger.error(f"[GrayRelease] Route not found. Tried: {route_name}, {parsed_route_name}. Available: {all_route_names}")
+                logger.error(f"[GrayRelease] Route not found. Tried: {route_name}. Available: {all_route_names}")
                 raise ServiceHandleException(
                     msg="route not found in api gateway",
                     msg_show=f"API网关中未找到路由: {route_name}。当前应用可用路由: {', '.join(all_route_names[:5])}{'...' if len(all_route_names) > 5 else ''}",
