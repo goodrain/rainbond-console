@@ -13,6 +13,7 @@ from console.services.app_actions import app_manage_service, event_service
 from console.services.app_config import (dependency_service, env_var_service, port_service, probe_service, volume_service)
 from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.operation_log import operation_log_service, Operation
 from console.views.app_config.base import AppBaseView
 from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderCloudEnterpriseCenterView)
@@ -47,6 +48,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
         """
         probe = None
         is_deploy = request.data.get("is_deploy", True)
+        tracker = None
         try:
             # if not check_account_quota(self.user.user_id, self.region.region_name, "deploy"):
             #     raise ServiceHandleException(msg="not enough quota", error_code=20002)
@@ -61,15 +63,31 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
             self.service = new_service
 
             if is_deploy:
+                tracker = enterprise_first_deploy_service.begin_tracking(
+                    enterprise_id=self.tenant.enterprise_id,
+                    tenant_name=self.tenant.tenant_name,
+                    region_name=self.service.service_region,
+                    deploy_type=enterprise_first_deploy_service.get_deploy_type(self.service.service_source),
+                    operator=self.user.nick_name,
+                    source_language=self.service.language or "")
                 try:
                     arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)
-                    app_manage_service.deploy(self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
+                    code, msg, event_id = app_manage_service.deploy(
+                        self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
+                    if code != 200:
+                        enterprise_first_deploy_service.mark_failure(tracker)
+                        result = general_message(code, "deploy app error", msg)
+                        return Response(result, status=code)
+                    enterprise_first_deploy_service.bind_events(tracker, [event_id])
                 except ErrInsufficientResource as e:
+                    enterprise_first_deploy_service.mark_failure(tracker)
                     result = general_message(e.error_code, e.msg, e.msg_show)
                     return Response(result, status=e.status_code)
                 except ServiceHandleException as e:
+                    enterprise_first_deploy_service.mark_failure(tracker)
                     raise e
                 except Exception as e:
+                    enterprise_first_deploy_service.mark_failure(tracker)
                     logger.exception(e)
                     err = ErrComponentBuildFailed()
                     result = general_message(err.error_code, e, err.msg_show)

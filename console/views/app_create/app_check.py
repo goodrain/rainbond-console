@@ -10,6 +10,7 @@ from console.serializer import TenantServiceUpdateSerilizer
 from console.services.app_config import env_var_service
 from console.services.app import app_service
 from console.services.app_check_service import app_check_service
+from console.utils.cnb_build import is_cnb_language
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.views.app_config.base import AppBaseView
 from django.views.decorators.cache import never_cache
@@ -26,13 +27,13 @@ class LangUpdate(AppBaseView):
         dockerfile_path = request.data.get('dockerfile_path', '')
         if lang:
             self.service.language = lang
+            if not is_cnb_language(lang):
+                app_check_service.cleanup_cnb_build_envs(self.tenant, self.service, remove_build_type=True)
             if lang == 'dockerfile':
                 self.service.cmd = ''
                 # 保存 dockerfile_path 到 service 的 dockerfile 字段
                 if dockerfile_path:
                     self.service.dockerfile = dockerfile_path
-                # 清理 CNB/Node.js 检测阶段产生的 build 环境变量（BUILD_FRAMEWORK, BUILD_RUNTIMES 等）
-                # 这些变量对 dockerfile 构建无意义
                 env_var_service.delete_service_build_env(self.tenant, self.service)
             self.service.save()
             return Response(general_message(200, "更新检测语言成功", "更新检测语言成功"), status=200)

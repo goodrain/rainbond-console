@@ -115,7 +115,7 @@ class GroupappsMigrateService(object):
         if not backup_record:
             raise ErrBackupRecordNotFound
 
-        s3_info = EnterpriseConfigService(user.enterprise_id).get_cloud_obj_storage_info()
+        s3_info = EnterpriseConfigService(user.enterprise_id, user.user_id).get_cloud_obj_storage_info()
         if backup_record.mode == "full-online" and not s3_info:
             raise ErrObjectStorageInfoNotFound
 

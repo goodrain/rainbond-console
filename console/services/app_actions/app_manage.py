@@ -41,6 +41,7 @@ from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.exception import ErrChangeServiceType
 from console.services.group_service import group_service
 from console.services.service_services import base_service
+from console.utils.cnb_build import sanitize_build_env_dict_for_language
 from console.utils import slug_util
 from console.utils.oauth.base.exception import NoAccessKeyErr
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
@@ -239,7 +240,10 @@ class AppManageService(AppManageBase):
         body["action"] = "deploy"
         if service.build_upgrade:
             body["action"] = "upgrade"
-        body["envs"] = env_var_repo.get_build_envs(tenant.tenant_id, service.service_id)
+        body["envs"] = sanitize_build_env_dict_for_language(
+            env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
+            service.language
+        )
         kind = self.__get_service_kind(service)
         body["kind"] = kind
         body["arch"] = service.arch
@@ -686,7 +690,10 @@ class AppManageService(AppManageBase):
             service_dict["action"] = 'deploy'
             if service.build_upgrade:
                 service_dict["action"] = 'upgrade'
-            envs = env_var_repo.get_build_envs(tenant.tenant_id, service.service_id)
+            envs = sanitize_build_env_dict_for_language(
+                env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
+                service.language
+            )
             service_dict["envs"] = envs
             kind = self.__get_service_kind(service)
             service_dict["kind"] = kind

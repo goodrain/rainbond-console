@@ -37,6 +37,7 @@ from console.services.app_config.app_relation_service import \
 from console.services.app_config.component_graph import component_graph_service
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config_group import app_config_group_service
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.group_service import group_service
 from console.services.market_app.app_upgrade import AppUpgrade
 # market app
@@ -78,6 +79,7 @@ class MarketAppService(object):
                     install_from_cloud,
                     is_deploy=False,
                     dry_run=False):
+        tracker = None
         app = group_repo.get_group_by_id(app_id)
         if dry_run:
             app = ServiceGroup.objects.first()
@@ -113,10 +115,23 @@ class MarketAppService(object):
             install_from_cloud,
             market_name,
             is_deploy=is_deploy)
-        if dry_run:
-            app_upgrade.preinstall()
-        else:
-            app_upgrade.install()
+        if is_deploy and not dry_run:
+            tracker = enterprise_first_deploy_service.begin_tracking(
+                enterprise_id=tenant.enterprise_id,
+                tenant_name=tenant.tenant_name,
+                region_name=region.region_name,
+                deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_APP_MARKET,
+                operator=user.nick_name)
+        try:
+            if dry_run:
+                app_upgrade.preinstall()
+                events = []
+            else:
+                events = app_upgrade.install()
+        except Exception as e:
+            enterprise_first_deploy_service.mark_failure(tracker)
+            raise
+        enterprise_first_deploy_service.bind_events(tracker, self._extract_event_ids(events))
         # If the app template contains platform_plugin info, create RBDPlugin CR
         self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
         return market_app.app_name
@@ -1851,6 +1866,23 @@ class MarketAppService(object):
             tags = image_and_tag[1].rsplit("_")
             build_time = tags[len(tags) - 2] if len(tags) > 2 else ""
         return build_time
+
+    @staticmethod
+    def _extract_event_ids(events):
+        if not events:
+            return []
+        if isinstance(events, dict):
+            return [event_id for event_id in list(events.keys()) if event_id]
+
+        event_ids = []
+        for event in events:
+            if isinstance(event, dict):
+                event_id = event.get("event_id") or event.get("EventID")
+            else:
+                event_id = getattr(event, "event_id", None)
+            if event_id:
+                event_ids.append(event_id)
+        return event_ids
 
     @staticmethod
     def __upgradable_versions(component_source, versions):

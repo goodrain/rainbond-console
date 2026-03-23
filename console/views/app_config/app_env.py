@@ -8,6 +8,7 @@ import logging
 from console.repositories.app_config import compile_env_repo, env_var_repo
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.operation_log import operation_log_service, Operation
+from console.utils.cnb_build import CNB_BUILD_ENV_NAMES, has_cnb_build_params, is_cnb_language, sanitize_build_env_dict_for_language
 from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.views.app_config.base import AppBaseView
@@ -454,9 +455,18 @@ class AppBuildEnvView(AppBaseView):
         # 获取组件构建时环境变量
         build_env_dict = dict()
         build_envs = env_var_service.get_service_build_envs(self.service)
+        if build_envs and not is_cnb_language(self.service.language):
+            for build_env in build_envs:
+                if build_env.attr_name in CNB_BUILD_ENV_NAMES:
+                    build_env.delete()
+                    continue
+                if build_env.attr_name == "BUILD_TYPE" and str(build_env.attr_value or "").lower() == "cnb":
+                    build_env.delete()
+            build_envs = env_var_service.get_service_build_envs(self.service)
         if build_envs:
             for build_env in build_envs:
                 build_env_dict[build_env.attr_name] = build_env.attr_value
+        build_env_dict = sanitize_build_env_dict_for_language(build_env_dict, self.service.language)
         result = general_message(200, "success", "查询成功", bean=build_env_dict)
         return Response(result, status=result["code"])
 
@@ -470,6 +480,7 @@ class AppBuildEnvView(AppBaseView):
         :return:
         """
         build_env_dict = request.data.get("build_env_dict", None)
+        build_env_dict = sanitize_build_env_dict_for_language(build_env_dict, self.service.language)
         build_envs = env_var_service.get_service_build_envs(self.service)
         # 传入为空，清除
         if not build_env_dict:
@@ -485,14 +496,7 @@ class AppBuildEnvView(AppBaseView):
                 build_env.delete()
         old_information = json.dumps(old_build_env_dict, ensure_ascii=False)
 
-        # 检查是否有 CNB 构建参数，自动设置 BUILD_TYPE=cnb
-        cnb_params = [
-            "CNB_FRAMEWORK", "CNB_BUILD_SCRIPT", "CNB_OUTPUT_DIR", "CNB_NODE_VERSION",
-            "CNB_NODE_ENV", "CNB_MIRROR_SOURCE", "CNB_MIRROR_NPMRC", "CNB_MIRROR_YARNRC",
-            "CNB_START_SCRIPT"
-        ]
-        has_cnb_params = any(key in build_env_dict for key in cnb_params)
-        if has_cnb_params and "BUILD_TYPE" not in build_env_dict:
+        if has_cnb_build_params(build_env_dict, self.service.language) and "BUILD_TYPE" not in build_env_dict:
             build_env_dict["BUILD_TYPE"] = "cnb"
 
         for key, value in list(build_env_dict.items()):
