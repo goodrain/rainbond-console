@@ -60,10 +60,27 @@ class AppVersionService(object):
     HIDDEN_TEMPLATE_SCOPE = "team"
     TRACKED_COMPONENT_FIELDS = (
         ("service_env_map_list", "环境变量"),
+        ("service_connect_info_map_list", "连接信息"),
         ("port_map_list", "端口"),
         ("service_volume_map_list", "存储卷"),
         ("probes", "探针"),
     )
+    OTHER_COMPONENT_FIELD_LABELS = {
+        "deploy_version": "构建版本",
+        "service_related_plugin_config": "插件配置",
+        "dep_service_map_list": "依赖组件",
+        "mnt_relation_list": "依赖存储",
+        "component_graphs": "监控图表",
+        "component_monitors": "监控指标",
+        "component_k8s_attributes": "K8s 属性",
+        "extend_method_map": "伸缩配置",
+        "labels": "标签",
+        "cmd": "启动命令",
+        "image": "镜像",
+        "service_source": "组件来源",
+        "k8s_component_name": "K8s 组件名",
+        "version": "组件版本",
+    }
 
     @staticmethod
     def _build_hidden_template_name(app):
@@ -279,6 +296,8 @@ class AppVersionService(object):
     def _format_field_item_identity(self, field_key, item):
         if field_key == "service_env_map_list":
             return item.get("attr_name") or "unknown"
+        if field_key == "service_connect_info_map_list":
+            return item.get("attr_name") or "unknown"
         if field_key == "port_map_list":
             return "{0}/{1}/{2}".format(
                 item.get("container_port") or "",
@@ -333,6 +352,24 @@ class AppVersionService(object):
             stripped.pop(field_key, None)
         return stripped
 
+    def _build_component_other_changes(self, current_component, previous_component):
+        current_component_base = self._strip_tracked_component_fields(current_component)
+        previous_component_base = self._strip_tracked_component_fields(previous_component)
+        changed_keys = sorted(set(current_component_base.keys()) | set(previous_component_base.keys()))
+        other_changes = []
+        for key in changed_keys:
+            current_value = current_component_base.get(key)
+            previous_value = previous_component_base.get(key)
+            if current_value == previous_value:
+                continue
+            other_changes.append({
+                "field_key": key,
+                "field_label": self.OTHER_COMPONENT_FIELD_LABELS.get(key, key),
+                "before": previous_value,
+                "after": current_value,
+            })
+        return other_changes
+
     def _build_component_diff_details(self, current_template, previous_template):
         current_map = self._component_map(current_template)
         previous_map = self._component_map(previous_template)
@@ -357,13 +394,13 @@ class AppVersionService(object):
                 )
                 if field_change:
                     field_changes.append(field_change)
-            current_component_base = self._strip_tracked_component_fields(current_component)
-            previous_component_base = self._strip_tracked_component_fields(previous_component)
-            has_other_changes = current_component_base != previous_component_base
+            other_changes = self._build_component_other_changes(current_component, previous_component)
+            has_other_changes = bool(other_changes)
             updated_components.append({
                 "component_name": self._format_component_name(current_component),
                 "field_changes": field_changes,
                 "has_other_changes": has_other_changes,
+                "other_changes": other_changes,
             })
         return {
             "added_components": added_components,

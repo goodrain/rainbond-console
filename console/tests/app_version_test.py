@@ -202,6 +202,54 @@ class AppVersionServiceComponentDiffDetailTestCase(TestCase):
         self.assertEqual(probe_change["updated"][0]["before"]["path"], "/health")
         self.assertEqual(probe_change["updated"][0]["after"]["path"], "/healthz")
 
+    def test_build_component_diff_details_tracks_connect_envs_and_other_changes(self):
+        current_template = {
+            "apps": [
+                {
+                    "service_alias": "web",
+                    "service_env_map_list": [],
+                    "service_connect_info_map_list": [
+                        {"attr_name": "DATABASE_URL", "attr_value": "mysql://new"},
+                    ],
+                    "port_map_list": [],
+                    "service_volume_map_list": [],
+                    "probes": [],
+                    "deploy_version": "build-2",
+                },
+            ]
+        }
+        previous_template = {
+            "apps": [
+                {
+                    "service_alias": "web",
+                    "service_env_map_list": [],
+                    "service_connect_info_map_list": [
+                        {"attr_name": "DATABASE_URL", "attr_value": "mysql://old"},
+                    ],
+                    "port_map_list": [],
+                    "service_volume_map_list": [],
+                    "probes": [],
+                    "deploy_version": "build-1",
+                },
+            ]
+        }
+
+        diff_detail = app_version_service._build_component_diff_details(current_template, previous_template)
+
+        self.assertEqual(len(diff_detail["updated_components"]), 1)
+        updated_component = diff_detail["updated_components"][0]
+        field_changes = {item["field_key"]: item for item in updated_component["field_changes"]}
+        self.assertEqual(field_changes["service_connect_info_map_list"]["field_label"], "连接信息")
+        self.assertEqual(
+            [item["identity"] for item in field_changes["service_connect_info_map_list"]["updated"]],
+            ["DATABASE_URL"],
+        )
+
+        other_changes = {item["field_key"]: item for item in updated_component["other_changes"]}
+        self.assertEqual(other_changes["deploy_version"]["field_label"], "构建版本")
+        self.assertEqual(other_changes["deploy_version"]["before"], "build-1")
+        self.assertEqual(other_changes["deploy_version"]["after"], "build-2")
+
 
 class AppVersionServiceSnapshotDetailTestCase(TestCase):
     def test_get_snapshot_detail_includes_previous_version_and_field_diff(self):
