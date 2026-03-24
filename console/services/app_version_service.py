@@ -5,13 +5,20 @@ import json
 import time
 
 from console.enum.app import GovernanceModeEnum
-from console.models.main import RainbondCenterApp, RainbondCenterAppVersion, AppUpgradeSnapshot, AppUpgradeRecord, UpgradeStatus, AppUpgradeRecordType
+from console.models.main import (
+    RainbondCenterAppVersion,
+    AppUpgradeSnapshot,
+    AppUpgradeRecord,
+    UpgradeStatus,
+    AppUpgradeRecordType,
+)
 from console.exception.main import ServiceHandleException
 from console.repositories.app_snapshot import app_snapshot_repo
 from console.repositories.app_version_repo import app_version_template_relation_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.share_repo import share_repo
 from console.services.group_service import group_service
+from console.services.market_app.enum import ActionType
 from console.services.market_app_service import market_app_service
 from console.services.backup_service import groupapp_backup_service
 from console.services.market_app.app_restore import AppRestore
@@ -25,6 +32,15 @@ class AppVersionRollbackRestore(AppRestore):
         self.current_snapshot_version = current_version
         self.target_snapshot_version = target_version
         super(AppVersionRollbackRestore, self).__init__(tenant, region, user, app, component_group, app_upgrade_record)
+
+    def _create_component(self, snap, now_volumes):
+        component = super(AppVersionRollbackRestore, self)._create_component(snap, now_volumes)
+        if component.action_type in (None, "", "nothing", ActionType.NOTHING.value):
+            # App-version snapshots represent a full runtime baseline. Restoring them
+            # must trigger a redeploy, otherwise the app record is created but no
+            # region event is produced and rollback never actually runs.
+            component.action_type = ActionType.UPDATE.value
+        return component
 
     def create_rollback_record(self):
         rollback_record = self.upgrade_record.to_dict()
@@ -132,10 +148,21 @@ class AppVersionService(object):
         services = share_service.query_share_service_info(team=tenant, group_id=app.ID, scope="team")
         plugins = share_service.get_group_services_used_plugins(group_id=app.ID)
         plugins = share_service.get_plugins_group_items(plugins) if plugins else []
-        return self._assemble_app_template(tenant, region, app, hidden_app_id, version, services, plugins, list(share_service.get_k8s_resources(app.ID)))
+        return self._assemble_app_template(
+            tenant,
+            region,
+            app,
+            hidden_app_id,
+            version,
+            services,
+            plugins,
+            list(share_service.get_k8s_resources(app.ID)),
+        )
 
     def _build_app_template_from_share_info(self, tenant, region, user, app, hidden_app_id, version, share_info):
-        services = share_info.get("share_service_list") or share_service.query_share_service_info(team=tenant, group_id=app.ID, scope="team")
+        services = share_info.get("share_service_list") or share_service.query_share_service_info(
+            team=tenant, group_id=app.ID, scope="team"
+        )
         plugins = share_info.get("share_plugin_list") or share_service.get_group_services_used_plugins(group_id=app.ID)
         plugins = share_service.get_plugins_group_items(plugins) if plugins else []
         k8s_resources = share_info.get("share_k8s_resources")

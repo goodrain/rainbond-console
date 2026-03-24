@@ -305,6 +305,37 @@ class AppRestoreSnapshotCompatibilityTestCase(TestCase):
         self.assertEqual(component.action_type, "nothing")
 
 
+class AppVersionRollbackRestoreActionTypeTestCase(TestCase):
+    def test_create_component_forces_update_action_for_legacy_snapshot(self):
+        restore = app_version_service_module.AppVersionRollbackRestore.__new__(
+            app_version_service_module.AppVersionRollbackRestore
+        )
+        restore.support_labels = []
+        snap = {
+            "service_base": {"service_id": "service-id"},
+            "service_source": None,
+            "service_env_vars": [],
+            "service_ports": [],
+            "service_volumes": [],
+            "service_config_file": [],
+            "service_probes": [],
+            "service_monitors": [],
+            "component_graphs": [],
+            "service_labels": [],
+            "component_k8s_attributes": [],
+            "action_type": "nothing",
+        }
+
+        with mock.patch.object(
+            app_restore_module,
+            "TenantServiceInfo",
+            return_value=mock.Mock(service_id="service-id"),
+        ):
+            component = restore._create_component(snap, {})
+
+        self.assertEqual(component.action_type, app_restore_module.ActionType.UPDATE.value)
+
+
 class NewAppUpdateComponentsTestCase(TestCase):
     def test_update_components_overwrites_service_sources_when_snapshot_missing_source(self):
         new_app = new_app_module.NewApp.__new__(new_app_module.NewApp)
