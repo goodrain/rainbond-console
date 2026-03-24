@@ -20,10 +20,20 @@ class AppVersionSnapshotListView(ApplicationView):
         return MessageResponse(msg="success", list=versions, bean={"has_template": bool(app_version_service.get_relation(self.app.ID))})
 
     def post(self, request, group_id, *args, **kwargs):
+        version = parse_item(request, "version", default="")
         version_alias = parse_item(request, "version_alias", default="")
         app_version_info = parse_item(request, "app_version_info", default="")
+        share_service_list = parse_item(request, "share_service_list", default=None)
+        share_plugin_list = parse_item(request, "share_plugin_list", default=None)
+        share_k8s_resources = parse_item(request, "share_k8s_resources", default=None)
         version = app_version_service.create_snapshot(
-            self.tenant, self.region, self.user, self.app, version_alias=version_alias, app_version_info=app_version_info
+            self.tenant, self.region, self.user, self.app, version=version, version_alias=version_alias,
+            app_version_info=app_version_info,
+            share_info={
+                "share_service_list": share_service_list,
+                "share_plugin_list": share_plugin_list,
+                "share_k8s_resources": share_k8s_resources,
+            }
         )
         return MessageResponse(msg="success", msg_show="创建快照成功", bean=version)
 

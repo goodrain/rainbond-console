@@ -144,6 +144,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
               paramType: path
         """
         scope = request.data.get("scope")
+        snapshot_mode = request.data.get("snapshot_mode", False)
         market_name = None
         if scope == "goodrain":
             target = request.data.get("target")
@@ -169,6 +170,10 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 team=self.team, team_name=team_name, group_id=group_id, region_name=self.response_region)
             if data and data["code"] == 400:
                 return Response(data, status=data["code"])
+            if snapshot_mode:
+                app = group_service.get_group_or_404(self.tenant, self.response_region, int(group_id))
+                _, hidden_template = app_version_service.get_or_create_hidden_template(self.tenant, self.user, app)
+                snapshot_app_id = hidden_template.app_id if hidden_template else snapshot_app_id
             fields_dict = {
                 "group_share_id": make_uuid(),
                 "group_id": group_id,

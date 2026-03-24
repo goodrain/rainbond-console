@@ -6,6 +6,7 @@ import time
 
 from console.enum.app import GovernanceModeEnum
 from console.models.main import RainbondCenterApp, RainbondCenterAppVersion, AppUpgradeSnapshot, AppUpgradeRecord, UpgradeStatus, AppUpgradeRecordType
+from console.exception.main import ServiceHandleException
 from console.repositories.app_snapshot import app_snapshot_repo
 from console.repositories.app_version_repo import app_version_template_relation_repo
 from console.repositories.market_app_repo import rainbond_app_repo
@@ -117,6 +118,18 @@ class AppVersionService(object):
         services = share_service.query_share_service_info(team=tenant, group_id=app.ID, scope="team")
         plugins = share_service.get_group_services_used_plugins(group_id=app.ID)
         plugins = share_service.get_plugins_group_items(plugins) if plugins else []
+        return self._assemble_app_template(tenant, region, app, hidden_app_id, version, services, plugins, list(share_service.get_k8s_resources(app.ID)))
+
+    def _build_app_template_from_share_info(self, tenant, region, user, app, hidden_app_id, version, share_info):
+        services = share_info.get("share_service_list") or share_service.query_share_service_info(team=tenant, group_id=app.ID, scope="team")
+        plugins = share_info.get("share_plugin_list") or share_service.get_group_services_used_plugins(group_id=app.ID)
+        plugins = share_service.get_plugins_group_items(plugins) if plugins else []
+        k8s_resources = share_info.get("share_k8s_resources")
+        if k8s_resources is None:
+            k8s_resources = list(share_service.get_k8s_resources(app.ID))
+        return self._assemble_app_template(tenant, region, app, hidden_app_id, version, services, plugins, k8s_resources)
+
+    def _assemble_app_template(self, tenant, region, app, hidden_app_id, version, services, plugins, k8s_resources):
         service_ids_keys_map = {svc["service_id"]: svc["service_key"] for svc in services}
         app_template = {
             "template_version": "v2",
@@ -125,7 +138,7 @@ class AppVersionService(object):
             "group_version": version,
             "group_dev_status": "",
             "governance_mode": app.governance_mode if app.governance_mode else GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name,
-            "k8s_resources": list(share_service.get_k8s_resources(app.ID)),
+            "k8s_resources": k8s_resources,
             "app_config_groups": share_service.config_groups(region.region_name, service_ids_keys_map),
             "ingress_http_routes": share_service._list_http_ingresses(tenant, service_ids_keys_map),
             "plugins": plugins,
@@ -316,13 +329,21 @@ class AppVersionService(object):
             "change_summary": change_summary,
         }
 
-    def create_snapshot(self, tenant, region, user, app, version_alias="", app_version_info=""):
+    def create_snapshot(self, tenant, region, user, app, version="", version_alias="", app_version_info="", share_info=None):
         relation, hidden_app = self.get_or_create_hidden_template(tenant, user, app)
         latest_version = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
             source=self.HIDDEN_TEMPLATE_SOURCE
         ).order_by("-create_time").first()
-        next_version = self._next_version(latest_version.version if latest_version else None)
-        app_template = self._build_app_template(tenant, region, user, app, relation.app_model_id, next_version)
+        next_version = version or self._next_version(latest_version.version if latest_version else None)
+        if rainbond_app_repo.get_app_version(relation.app_model_id, next_version):
+            raise ServiceHandleException(msg="snapshot version exists", msg_show="版本号已存在", status_code=400)
+        share_info = share_info or {}
+        if share_info.get("share_service_list") or share_info.get("share_plugin_list") or share_info.get("share_k8s_resources"):
+            app_template = self._build_app_template_from_share_info(
+                tenant, region, user, app, relation.app_model_id, next_version, share_info
+            )
+        else:
+            app_template = self._build_app_template(tenant, region, user, app, relation.app_model_id, next_version)
         if latest_version:
             latest_template = json.loads(latest_version.app_template)
             change_summary = self._summarize_diff(app_template, latest_template)
