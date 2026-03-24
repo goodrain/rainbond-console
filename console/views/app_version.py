@@ -35,7 +35,10 @@ class AppVersionSnapshotListView(ApplicationView):
                 "share_k8s_resources": share_k8s_resources,
             }
         )
-        return MessageResponse(msg="success", msg_show="创建快照成功", bean=version)
+        msg_show = "创建快照成功"
+        if version and version.get("created") is False:
+            msg_show = "当前没有新的变更，无需创建快照"
+        return MessageResponse(msg="success", msg_show=msg_show, bean=version)
 
 
 class AppVersionSnapshotDetailView(ApplicationView):

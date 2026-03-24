@@ -22,7 +22,7 @@ django.setup()
 from console.exception.main import ServiceHandleException  # noqa: E402
 from console.services import app_version_service as app_version_service_module  # noqa: E402
 from console.services.app_version_service import app_version_service  # noqa: E402
-from console.views.app_version import AppVersionSnapshotDetailView  # noqa: E402
+from console.views.app_version import AppVersionSnapshotDetailView, AppVersionSnapshotListView  # noqa: E402
 
 
 class AppVersionServiceDeleteSnapshotTestCase(TestCase):
@@ -90,3 +90,46 @@ class AppVersionSnapshotDetailViewDeleteTestCase(TestCase):
         self.assertEqual(response.data["msg"], "success")
         self.assertEqual(response.data["msg_show"], "删除成功")
         delete_mock.assert_called_once_with(42, 11)
+
+
+class AppVersionSnapshotListViewPostTestCase(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.view = AppVersionSnapshotListView()
+        self.view.tenant = mock.Mock()
+        self.view.region = mock.Mock()
+        self.view.user = mock.Mock()
+        self.view.app = mock.Mock(ID=42)
+
+    def make_request(self, payload):
+        return self.view.initialize_request(
+            self.factory.post(
+                "/console/teams/demo-team/groups/42/app-versions",
+                payload,
+                format="json",
+            )
+        )
+
+    def test_post_returns_no_change_message_when_snapshot_not_created(self):
+        request = self.make_request(
+            {
+                "version": "1.0.3",
+                "app_version_info": "demo",
+                "share_service_list": [],
+                "share_plugin_list": [],
+                "share_k8s_resources": [],
+            }
+        )
+        expected_result = {"version": "1.0.2", "created": False}
+
+        with mock.patch.object(
+            app_version_service_module.app_version_service,
+            "create_snapshot",
+            return_value=expected_result,
+        ) as create_mock:
+            response = self.view.post(request, 42)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["bean"], expected_result)
+        self.assertEqual(response.data["msg_show"], "当前没有新的变更，无需创建快照")
+        create_mock.assert_called_once()

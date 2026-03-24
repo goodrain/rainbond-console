@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import os
 import sys
 from types import ModuleType
@@ -15,7 +16,7 @@ from rest_framework.test import APIRequestFactory  # noqa: E402
 django.setup()
 
 from console.views import service_share  # noqa: E402
-from console.views.service_share import ServiceShareRecordView  # noqa: E402
+from console.views.service_share import ServiceShareInfoView, ServiceShareRecordView  # noqa: E402
 
 
 class ServiceShareRecordViewTestCase(TestCase):
@@ -75,3 +76,61 @@ class ServiceShareRecordViewTestCase(TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.data["msg"], "boom")
         self.assertEqual(response.data["msg_show"], "系统异常")
+
+
+class ServiceShareInfoViewTestCase(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.view = ServiceShareInfoView()
+        self.view.team = mock.Mock(tenant_id=1, tenant_name="demo-team")
+
+    def make_request(self):
+        return self.view.initialize_request(
+            self.factory.get("/console/teams/demo-team/share/30/info")
+        )
+
+    def test_get_returns_snapshot_template_payload(self):
+        request = self.make_request()
+        share_record = mock.Mock(
+            app_id="hidden-app-id",
+            share_version="1.0.3",
+            scope="team",
+            is_success=False,
+            step=1,
+            group_id=30,
+        )
+        snapshot_version = mock.Mock(
+            source=service_share.app_version_service.HIDDEN_TEMPLATE_SOURCE,
+            app_template=json.dumps(
+                {
+                    "apps": [{"service_cname": "web"}],
+                    "plugins": [{"plugin_id": "demo-plugin"}],
+                    "k8s_resources": [{"name": "demo-configmap"}],
+                }
+            ),
+        )
+
+        with mock.patch.object(
+            service_share.share_service,
+            "get_service_share_record_by_ID",
+            return_value=share_record,
+        ), mock.patch.object(
+            service_share.rainbond_app_repo,
+            "get_app_version",
+            return_value=snapshot_version,
+        ):
+            response = self.view.get(request, "demo-team", "30")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["data"]["bean"]["share_service_list"],
+            [{"service_cname": "web"}],
+        )
+        self.assertEqual(
+            response.data["data"]["bean"]["share_plugin_list"],
+            [{"plugin_id": "demo-plugin"}],
+        )
+        self.assertEqual(
+            response.data["data"]["bean"]["share_k8s_resources"],
+            [{"name": "demo-configmap"}],
+        )
