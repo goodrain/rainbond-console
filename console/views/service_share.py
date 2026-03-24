@@ -14,6 +14,7 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
 from console.services.app_version_service import app_version_service
+from console.services.group_service import group_service
 from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.share_services import share_service
 from console.utils.reqparse import parse_argument
@@ -194,7 +195,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             raise e
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(getattr(e, "message", str(e)))
             return Response(result, status=500)
 
 
