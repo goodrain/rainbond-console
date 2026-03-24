@@ -1421,10 +1421,12 @@ class ShareService(object):
             if preferred_app_id:
                 preferred_app = next((item for item in app_list if item.get("app_id") == preferred_app_id), None)
                 if preferred_app:
+                    preferred_versions = preferred_app.get("versions") or []
+                    default_version = ((preferred_versions[0] if preferred_versions else {}) or {}).get("version")
                     dt["last_shared_app"] = {
                         "app_name": preferred_app.get("app_name"),
                         "app_id": preferred_app.get("app_id"),
-                        "version": preferred_version or (preferred_app.get("versions", [{}])[0] or {}).get("version"),
+                        "version": preferred_version or default_version,
                         "pic": preferred_app.get("pic"),
                         "app_describe": preferred_app.get("app_describe"),
                         "dev_status": preferred_app.get("dev_status"),

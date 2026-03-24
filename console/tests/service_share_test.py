@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
+import collections
 import json
 import os
 import sys
 from types import ModuleType
 from unittest import TestCase, mock
+
+for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
+    if not hasattr(collections, attr):
+        setattr(collections, attr, getattr(collections.abc, attr))
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
@@ -15,6 +20,7 @@ from rest_framework.test import APIRequestFactory  # noqa: E402
 
 django.setup()
 
+from console.services.share_services import share_service as share_service_instance  # noqa: E402
 from console.views import service_share  # noqa: E402
 from console.views.service_share import ServiceShareInfoView, ServiceShareRecordView  # noqa: E402
 
@@ -134,3 +140,37 @@ class ServiceShareInfoViewTestCase(TestCase):
             response.data["data"]["bean"]["share_k8s_resources"],
             [{"name": "demo-configmap"}],
         )
+
+
+class ShareServicePreferredAppTestCase(TestCase):
+    def test_get_last_shared_app_ignores_missing_versions_for_preferred_local_app(self):
+        tenant = mock.Mock(tenant_name="demo-team")
+        app_list = [{
+            "app_name": "demo-app",
+            "app_id": "app-1",
+            "versions": [],
+            "pic": "demo-pic",
+            "app_describe": "demo describe",
+            "dev_status": "complete",
+            "scope": "team",
+            "tags": [],
+        }]
+
+        with mock.patch.object(
+                service_share.share_repo, "get_last_shared_app_version_by_group_id", return_value=None), \
+                mock.patch.object(
+                    share_service_instance, "get_team_local_apps_versions", return_value=app_list), \
+                mock.patch.object(share_service_instance, "_patch_rainbond_apps_tag", return_value=None):
+            data = share_service_instance.get_last_shared_app_and_app_list(
+                enterprise_id="eid",
+                tenant=tenant,
+                group_id=27,
+                scope="local",
+                market_name=None,
+                user_id=None,
+                preferred_app_id="app-1",
+                preferred_version=None,
+            )
+
+        self.assertEqual(data["last_shared_app"]["app_id"], "app-1")
+        self.assertIsNone(data["last_shared_app"]["version"])
