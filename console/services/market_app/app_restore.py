@@ -207,7 +207,8 @@ class AppRestore(MarketApp):
         # component
         component = TenantServiceInfo(**snap["service_base"])
         # component source
-        component_source = ServiceSourceInfo(**snap["service_source"])
+        service_source = snap.get("service_source")
+        component_source = ServiceSourceInfo(**service_source) if service_source else None
         # environment
         envs = [TenantServiceEnvVar(**env) for env in snap["service_env_vars"]]
         # ports

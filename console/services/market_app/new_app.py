@@ -176,7 +176,8 @@ class NewApp(object):
         labels = []
         k8s_attributes = []
         for cpt in self.new_components:
-            component_sources.append(cpt.component_source)
+            if cpt.component_source:
+                component_sources.append(cpt.component_source)
             envs.extend(cpt.envs)
             ports.extend(cpt.ports)
             http_rules.extend(cpt.http_rules)
@@ -230,7 +231,8 @@ class NewApp(object):
         k8s_attributes = []
         # TODO(huangrh): merged with _save_components
         for cpt in self.update_components:
-            sources.append(cpt.component_source)
+            if cpt.component_source:
+                sources.append(cpt.component_source)
             envs.extend(cpt.envs)
             ports.extend(cpt.ports)
             volumes.extend(cpt.volumes)
@@ -247,7 +249,7 @@ class NewApp(object):
         components = [cpt.component for cpt in self.update_components]
         component_ids = [cpt.component_id for cpt in components]
         service_repo.bulk_update(components)
-        service_source_repo.bulk_update(sources)
+        service_source_repo.overwrite_by_component_ids(component_ids, sources)
         extend_repo.bulk_create_or_update(extend_infos)
         env_var_repo.overwrite_by_component_ids(component_ids, envs)
         port_repo.overwrite_by_component_ids(component_ids, ports)

@@ -22,6 +22,8 @@ django.setup()
 from console.exception.main import ServiceHandleException  # noqa: E402
 from console.services import app_version_service as app_version_service_module  # noqa: E402
 from console.services.app_version_service import app_version_service  # noqa: E402
+from console.services.market_app import app_restore as app_restore_module  # noqa: E402
+from console.services.market_app import new_app as new_app_module  # noqa: E402
 from console.views.app_version import AppVersionSnapshotDetailView, AppVersionSnapshotListView  # noqa: E402
 
 
@@ -271,3 +273,77 @@ class AppVersionSnapshotListViewPostTestCase(TestCase):
         self.assertEqual(response.data["data"]["bean"], expected_result)
         self.assertEqual(response.data["msg_show"], "当前没有新的变更，无需创建快照")
         create_mock.assert_called_once()
+
+
+class AppRestoreSnapshotCompatibilityTestCase(TestCase):
+    def test_create_component_allows_snapshot_without_service_source(self):
+        restore = app_restore_module.AppRestore.__new__(app_restore_module.AppRestore)
+        restore.support_labels = []
+        snap = {
+            "service_base": {"service_id": "service-id"},
+            "service_source": None,
+            "service_env_vars": [],
+            "service_ports": [],
+            "service_volumes": [],
+            "service_config_file": [],
+            "service_probes": [],
+            "service_monitors": [],
+            "component_graphs": [],
+            "service_labels": [],
+            "component_k8s_attributes": [],
+            "action_type": "nothing",
+        }
+
+        with mock.patch.object(
+            app_restore_module,
+            "TenantServiceInfo",
+            return_value=mock.Mock(service_id="service-id"),
+        ):
+            component = restore._create_component(snap, {})
+
+        self.assertIsNone(component.component_source)
+        self.assertEqual(component.action_type, "nothing")
+
+
+class NewAppUpdateComponentsTestCase(TestCase):
+    def test_update_components_overwrites_service_sources_when_snapshot_missing_source(self):
+        new_app = new_app_module.NewApp.__new__(new_app_module.NewApp)
+        component = mock.Mock(component_id="service-id")
+        new_app.update_components = [
+            mock.Mock(
+                component=component,
+                component_source=None,
+                envs=[],
+                ports=[],
+                volumes=[],
+                config_files=[],
+                probes=[],
+                extend_info=None,
+                monitors=[],
+                graphs=[],
+                labels=[],
+                k8s_attributes=[],
+            )
+        ]
+
+        with mock.patch.object(new_app_module.service_repo, "bulk_update"), \
+                mock.patch.object(new_app_module.service_source_repo, "bulk_update") as bulk_update_mock, \
+                mock.patch.object(
+                    new_app_module.service_source_repo,
+                    "overwrite_by_component_ids",
+                    create=True,
+                ) as overwrite_mock, \
+                mock.patch.object(new_app_module.extend_repo, "bulk_create_or_update"), \
+                mock.patch.object(new_app_module.env_var_repo, "overwrite_by_component_ids"), \
+                mock.patch.object(new_app_module.port_repo, "overwrite_by_component_ids"), \
+                mock.patch.object(new_app_module.volume_repo, "overwrite_by_component_ids"), \
+                mock.patch.object(new_app_module.config_file_repo, "overwrite_by_component_ids"), \
+                mock.patch.object(new_app_module.probe_repo, "overwrite_by_component_ids"), \
+                mock.patch.object(new_app_module.service_monitor_repo, "overwrite_by_component_ids"), \
+                mock.patch.object(new_app_module.component_graph_repo, "overwrite_by_component_ids"), \
+                mock.patch.object(new_app_module.service_label_repo, "overwrite_by_component_ids"), \
+                mock.patch.object(new_app_module.k8s_attribute_repo, "overwrite_by_component_ids"):
+            new_app._update_components()
+
+        bulk_update_mock.assert_not_called()
+        overwrite_mock.assert_called_once_with(["service-id"], [])
