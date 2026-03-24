@@ -25,6 +25,76 @@ from console.services.app_version_service import app_version_service  # noqa: E4
 from console.views.app_version import AppVersionSnapshotDetailView, AppVersionSnapshotListView  # noqa: E402
 
 
+class AppVersionServiceDiffSummaryTestCase(TestCase):
+    def test_summarize_diff_ignores_snapshot_form_runtime_flags(self):
+        current_template = {
+            "apps": [
+                {
+                    "service_alias": "web",
+                    "service_env_map_list": [
+                        {
+                            "attr_name": "DEBUG",
+                            "attr_value": "false",
+                        }
+                    ],
+                }
+            ]
+        }
+        snapshot_template = {
+            "apps": [
+                {
+                    "service_alias": "web",
+                    "service_env_map_list": [
+                        {
+                            "attr_name": "DEBUG",
+                            "attr_value": "false",
+                            "is_change": True,
+                        }
+                    ],
+                }
+            ]
+        }
+
+        diff_summary = app_version_service._summarize_diff(current_template, snapshot_template)
+
+        self.assertFalse(diff_summary["has_changes"])
+        self.assertEqual(diff_summary["updated_count"], 0)
+
+    def test_summarize_diff_keeps_real_component_changes(self):
+        current_template = {
+            "apps": [
+                {
+                    "service_alias": "web",
+                    "service_env_map_list": [
+                        {
+                            "attr_name": "DEBUG",
+                            "attr_value": "true",
+                        }
+                    ],
+                }
+            ]
+        }
+        snapshot_template = {
+            "apps": [
+                {
+                    "service_alias": "web",
+                    "service_env_map_list": [
+                        {
+                            "attr_name": "DEBUG",
+                            "attr_value": "false",
+                            "is_change": True,
+                        }
+                    ],
+                }
+            ]
+        }
+
+        diff_summary = app_version_service._summarize_diff(current_template, snapshot_template)
+
+        self.assertTrue(diff_summary["has_changes"])
+        self.assertEqual(diff_summary["updated_count"], 1)
+
+
 class AppVersionServiceDeleteSnapshotTestCase(TestCase):
     def setUp(self):
         self.relation = mock.Mock(app_model_id="hidden-app-id")

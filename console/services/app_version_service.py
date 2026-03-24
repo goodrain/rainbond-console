@@ -165,7 +165,7 @@ class AppVersionService(object):
 
     @classmethod
     def _strip_runtime_fields(cls, value):
-        ignored = {"ID", "create_time", "update_time", "upgrade_time"}
+        ignored = {"ID", "create_time", "update_time", "upgrade_time", "is_change"}
         if isinstance(value, dict):
             data = {}
             for key, item in value.items():
