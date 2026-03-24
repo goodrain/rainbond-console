@@ -746,6 +746,9 @@ class GroupService(object):
 
     @staticmethod
     def _delete_app(tenant_name, region_name, app_id):
+        from console.services.app_version_service import app_version_service
+
+        app_version_service.delete_hidden_template(app_id)
         group_repo.delete_group_by_pk(app_id)
         upgrade_repo.delete_app_record_by_group_id(app_id)
         try:

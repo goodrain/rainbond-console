@@ -16,6 +16,7 @@ from console.services.market_app_service import market_app_service
 from console.services.backup_service import groupapp_backup_service
 from console.services.market_app.app_restore import AppRestore
 from console.services.share_services import share_service
+from django.db import transaction
 from www.models.main import make_uuid, TenantServiceGroup
 
 
@@ -47,8 +48,12 @@ class AppVersionService(object):
         return app.group_name
 
     @staticmethod
+    def _build_hidden_template_id_by_app_id(app_id):
+        return hashlib.md5("app-version:{0}".format(app_id).encode("utf-8")).hexdigest()
+
+    @classmethod
     def _build_hidden_template_id(app):
-        return hashlib.md5("app-version:{0}".format(app.ID).encode("utf-8")).hexdigest()
+        return cls._build_hidden_template_id_by_app_id(app.ID)
 
     @staticmethod
     def _split_version(version):
@@ -113,6 +118,15 @@ class AppVersionService(object):
             },
         )
         return relation, hidden_app
+
+    @transaction.atomic
+    def delete_hidden_template(self, app_id):
+        relation, _ = self.get_hidden_template(app_id)
+        hidden_app_id = relation.app_model_id if relation else self._build_hidden_template_id_by_app_id(app_id)
+        rainbond_app_repo.delete_app_version_by_id(hidden_app_id)
+        rainbond_app_repo.delete_app_by_id(hidden_app_id)
+        if relation:
+            app_version_template_relation_repo.delete_by_group_id(app_id)
 
     def _build_app_template(self, tenant, region, user, app, hidden_app_id, version):
         services = share_service.query_share_service_info(team=tenant, group_id=app.ID, scope="team")

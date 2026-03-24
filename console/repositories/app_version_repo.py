@@ -9,6 +9,10 @@ class AppVersionTemplateRelationRepo(object):
         return AppVersionTemplateRelation.objects.filter(group_id=group_id).first()
 
     @staticmethod
+    def delete_by_group_id(group_id):
+        return AppVersionTemplateRelation.objects.filter(group_id=group_id).delete()
+
+    @staticmethod
     def create(**kwargs):
         relation = AppVersionTemplateRelation(**kwargs)
         relation.save()
