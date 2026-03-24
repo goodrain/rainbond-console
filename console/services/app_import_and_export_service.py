@@ -84,10 +84,10 @@ class AppExportService(object):
 
     def __get_app_metata(self, app, app_version, helm_chart_parameter):
         picture_path = app.pic
-        suffix = picture_path.split('.')[-1]
+        suffix = picture_path.split('.')[-1] if picture_path else ""
         describe = app.describe
         try:
-            image_base64_string = self.encode_image(picture_path)
+            image_base64_string = self.encode_image(picture_path) or ""
         except IOError as e:
             logger.warning("path: {}; error encoding image: {}".format(picture_path, e))
             image_base64_string = ""
