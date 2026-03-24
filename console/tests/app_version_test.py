@@ -262,6 +262,163 @@ class AppVersionServiceSnapshotDetailTestCase(TestCase):
         self.assertEqual(updated_components[0]["field_changes"][0]["field_key"], "service_env_map_list")
 
 
+class AppVersionServiceOverviewTestCase(TestCase):
+    class VersionQuery(list):
+        def first(self):
+            return self[0] if self else None
+
+        def count(self):
+            return len(self)
+
+    @staticmethod
+    def _version(version_id, version, create_time, template):
+        return mock.Mock(
+            ID=version_id,
+            version=version,
+            create_time=create_time,
+            app_template=json.dumps(template),
+        )
+
+    @staticmethod
+    def _snapshot_versions_query(versions):
+        root_query = mock.Mock()
+        filtered_query = mock.Mock()
+        root_query.filter.return_value = filtered_query
+        filtered_query.order_by.return_value = AppVersionServiceOverviewTestCase.VersionQuery(versions)
+        return root_query
+
+    @staticmethod
+    def _rollback_query(record):
+        filtered_query = mock.Mock()
+        ordered_query = mock.Mock()
+        filtered_query.order_by.return_value = ordered_query
+        ordered_query.first.return_value = record
+        return filtered_query
+
+    def test_get_overview_promotes_latest_successful_rollback_target_to_current_version(self):
+        tenant = mock.Mock(tenant_name="demo-team")
+        relation = mock.Mock(app_model_id="hidden-app-id")
+        runtime_template = {
+            "apps": [{
+                "service_alias": "web",
+                "service_env_map_list": [{"attr_name": "DEBUG", "attr_value": "true"}],
+                "port_map_list": [],
+                "service_volume_map_list": [],
+                "probes": [],
+            }]
+        }
+        baseline_template = {
+            "apps": [{
+                "service_alias": "web",
+                "service_env_map_list": [{"attr_name": "DEBUG", "attr_value": "false"}],
+                "port_map_list": [],
+                "service_volume_map_list": [],
+                "probes": [],
+            }]
+        }
+        latest_snapshot = self._version(22, "0.0.3", datetime(2026, 3, 24, 17, 0, 0), runtime_template)
+        rollback_target_snapshot = self._version(21, "0.0.2", datetime(2026, 3, 24, 15, 0, 0), baseline_template)
+        rollback_record = mock.Mock(
+            version="0.0.2",
+            update_time=datetime(2026, 3, 24, 18, 30, 0),
+        )
+
+        with mock.patch.object(
+                app_version_service,
+                "get_hidden_template",
+                return_value=(relation, mock.Mock())), \
+                mock.patch.object(
+                    app_version_service_module.share_repo,
+                    "get_last_shared_app_version_by_group_id",
+                    return_value=None), \
+                mock.patch.object(
+                    app_version_service_module.market_app_service,
+                    "get_market_apps_in_app",
+                    return_value=[]), \
+                mock.patch.object(
+                    app_version_service,
+                    "_build_app_template",
+                    return_value=runtime_template), \
+                mock.patch.object(
+                    app_version_service_module.rainbond_app_repo,
+                    "get_rainbond_app_versions",
+                    return_value=self._snapshot_versions_query([latest_snapshot, rollback_target_snapshot])), \
+                mock.patch.object(
+                    app_version_service_module.AppUpgradeRecord.objects,
+                    "filter",
+                    return_value=self._rollback_query(rollback_record)):
+            overview = app_version_service.get_overview(tenant, mock.Mock(), mock.Mock(), mock.Mock(ID=42))
+
+        self.assertEqual(overview["current_version"], "0.0.2")
+        self.assertEqual(overview["current_version_id"], 21)
+        self.assertEqual(overview["latest_snapshot_version"], "0.0.3")
+        self.assertEqual(overview["latest_snapshot_version_id"], 22)
+        self.assertTrue(overview["has_changes"])
+        self.assertEqual(overview["change_summary"]["updated_count"], 1)
+        self.assertEqual(len(overview["component_diff_details"]["updated_components"]), 1)
+
+    def test_get_overview_keeps_latest_snapshot_as_current_version_when_newer_than_rollback(self):
+        tenant = mock.Mock(tenant_name="demo-team")
+        relation = mock.Mock(app_model_id="hidden-app-id")
+        runtime_template = {
+            "apps": [{
+                "service_alias": "web",
+                "service_env_map_list": [{"attr_name": "DEBUG", "attr_value": "true"}],
+                "port_map_list": [],
+                "service_volume_map_list": [],
+                "probes": [],
+            }]
+        }
+        rollback_target_template = {
+            "apps": [{
+                "service_alias": "web",
+                "service_env_map_list": [{"attr_name": "DEBUG", "attr_value": "false"}],
+                "port_map_list": [],
+                "service_volume_map_list": [],
+                "probes": [],
+            }]
+        }
+        latest_snapshot = self._version(22, "0.0.3", datetime(2026, 3, 24, 19, 0, 0), runtime_template)
+        rollback_target_snapshot = self._version(21, "0.0.2", datetime(2026, 3, 24, 15, 0, 0), rollback_target_template)
+        rollback_record = mock.Mock(
+            version="0.0.2",
+            update_time=datetime(2026, 3, 24, 18, 30, 0),
+        )
+
+        with mock.patch.object(
+                app_version_service,
+                "get_hidden_template",
+                return_value=(relation, mock.Mock())), \
+                mock.patch.object(
+                    app_version_service_module.share_repo,
+                    "get_last_shared_app_version_by_group_id",
+                    return_value=None), \
+                mock.patch.object(
+                    app_version_service_module.market_app_service,
+                    "get_market_apps_in_app",
+                    return_value=[]), \
+                mock.patch.object(
+                    app_version_service,
+                    "_build_app_template",
+                    return_value=runtime_template), \
+                mock.patch.object(
+                    app_version_service_module.rainbond_app_repo,
+                    "get_rainbond_app_versions",
+                    return_value=self._snapshot_versions_query([latest_snapshot, rollback_target_snapshot])), \
+                mock.patch.object(
+                    app_version_service_module.AppUpgradeRecord.objects,
+                    "filter",
+                    return_value=self._rollback_query(rollback_record)):
+            overview = app_version_service.get_overview(tenant, mock.Mock(), mock.Mock(), mock.Mock(ID=42))
+
+        self.assertEqual(overview["current_version"], "0.0.3")
+        self.assertEqual(overview["current_version_id"], 22)
+        self.assertEqual(overview["latest_snapshot_version"], "0.0.3")
+        self.assertEqual(overview["latest_snapshot_version_id"], 22)
+        self.assertFalse(overview["has_changes"])
+        self.assertEqual(overview["component_diff_details"], app_version_service._empty_component_diff_details())
+
+
 class AppVersionServiceDeleteSnapshotTestCase(TestCase):
     def setUp(self):
         self.relation = mock.Mock(app_model_id="hidden-app-id")
@@ -328,18 +485,15 @@ class AppVersionServiceHiddenTemplateTestCase(TestCase):
                 mock.patch.object(
                     app_version_service_module.rainbond_app_repo,
                     "get_rainbond_app_by_app_id",
-                    return_value=None,
-                ) as get_app_mock, \
+                    return_value=None) as get_app_mock, \
                 mock.patch.object(
                     app_version_service_module.rainbond_app_repo,
                     "add_basic_app_info",
-                    return_value=hidden_app,
-                ) as add_app_mock, \
+                    return_value=hidden_app) as add_app_mock, \
                 mock.patch.object(
                     app_version_service_module.app_version_template_relation_repo,
                     "get_or_create",
-                    return_value=relation,
-                ) as get_or_create_mock:
+                    return_value=relation) as get_or_create_mock:
             result_relation, result_hidden_app = app_version_service.get_or_create_hidden_template(
                 tenant, user, app
             )
@@ -527,8 +681,7 @@ class NewAppUpdateComponentsTestCase(TestCase):
                 mock.patch.object(
                     new_app_module.service_source_repo,
                     "overwrite_by_component_ids",
-                    create=True,
-                ) as overwrite_mock, \
+                    create=True) as overwrite_mock, \
                 mock.patch.object(new_app_module.extend_repo, "bulk_create_or_update"), \
                 mock.patch.object(new_app_module.env_var_repo, "overwrite_by_component_ids"), \
                 mock.patch.object(new_app_module.port_repo, "overwrite_by_component_ids"), \

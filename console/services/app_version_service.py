@@ -357,10 +357,9 @@ class AppVersionService(object):
                 )
                 if field_change:
                     field_changes.append(field_change)
-            has_other_changes = (
-                self._strip_tracked_component_fields(current_component) !=
-                self._strip_tracked_component_fields(previous_component)
-            )
+            current_component_base = self._strip_tracked_component_fields(current_component)
+            previous_component_base = self._strip_tracked_component_fields(previous_component)
+            has_other_changes = current_component_base != previous_component_base
             updated_components.append({
                 "component_name": self._format_component_name(current_component),
                 "field_changes": field_changes,
@@ -392,14 +391,48 @@ class AppVersionService(object):
             "diff_summary": diff_summary or self._empty_diff_summary(),
         }
 
+    def _list_snapshot_version_objects(self, app_model_id):
+        return list(
+            rainbond_app_repo.get_rainbond_app_versions(app_model_id).filter(
+                source=self.HIDDEN_TEMPLATE_SOURCE
+            ).order_by("-create_time")
+        )
+
+    @staticmethod
+    def _latest_successful_rollback_record(app_id):
+        return AppUpgradeRecord.objects.filter(
+            group_id=app_id,
+            record_type=AppUpgradeRecordType.ROLLBACK.value,
+            status=UpgradeStatus.ROLLBACK.value,
+        ).order_by("-update_time").first()
+
+    @staticmethod
+    def _find_snapshot_version_by_version(versions, version):
+        if not version:
+            return None
+        for snapshot_version in versions:
+            if str(snapshot_version.version) == str(version):
+                return snapshot_version
+        return None
+
+    def _select_current_baseline_version(self, app_id, versions):
+        if not versions:
+            return None
+        latest_snapshot = versions[0]
+        rollback_record = self._latest_successful_rollback_record(app_id)
+        if not rollback_record or not rollback_record.update_time:
+            return latest_snapshot
+        latest_snapshot_time = latest_snapshot.create_time or latest_snapshot.update_time
+        if latest_snapshot_time and rollback_record.update_time <= latest_snapshot_time:
+            return latest_snapshot
+        rollback_target = self._find_snapshot_version_by_version(versions, rollback_record.version)
+        return rollback_target or latest_snapshot
+
     def list_snapshot_versions(self, app_id):
         relation, _ = self.get_hidden_template(app_id)
         if not relation:
             return []
-        versions = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
-            source=self.HIDDEN_TEMPLATE_SOURCE
-        ).order_by("-create_time")
-        versions = list(versions)
+        versions = self._list_snapshot_version_objects(relation.app_model_id)
         result = []
         for index, version in enumerate(versions):
             previous_version = versions[index + 1] if index + 1 < len(versions) else None
@@ -432,6 +465,9 @@ class AppVersionService(object):
                 "has_template": False,
                 "template_id": None,
                 "current_version": None,
+                "current_version_id": None,
+                "latest_snapshot_version": None,
+                "latest_snapshot_version_id": None,
                 "latest_publish_time": latest_publish.create_time.strftime('%Y-%m-%d %H:%M:%S') if latest_publish else None,
                 "snapshot_count": 0,
                 "source_template_count": len(upgradeable_sources),
@@ -446,17 +482,19 @@ class AppVersionService(object):
                     "removed_components": [],
                     "updated_components": [],
                 },
+                "component_diff_details": self._empty_component_diff_details(),
             }
 
-        versions = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
-            source=self.HIDDEN_TEMPLATE_SOURCE
-        ).order_by("-create_time")
-        latest_version = versions.first()
+        versions = self._list_snapshot_version_objects(relation.app_model_id)
+        latest_version = versions[0] if versions else None
         if not latest_version:
             return {
                 "has_template": True,
                 "template_id": relation.app_model_id,
                 "current_version": None,
+                "current_version_id": None,
+                "latest_snapshot_version": None,
+                "latest_snapshot_version_id": None,
                 "latest_publish_time": latest_publish.create_time.strftime('%Y-%m-%d %H:%M:%S') if latest_publish else None,
                 "snapshot_count": 0,
                 "source_template_count": len(upgradeable_sources),
@@ -471,21 +509,30 @@ class AppVersionService(object):
                     "removed_components": [],
                     "updated_components": [],
                 },
+                "component_diff_details": self._empty_component_diff_details(),
             }
 
-        current_template = self._build_app_template(tenant, region, user, app, relation.app_model_id, latest_version.version)
-        snapshot_template = json.loads(latest_version.app_template)
+        baseline_version = self._select_current_baseline_version(app.ID, versions)
+        current_template = self._build_app_template(
+            tenant, region, user, app, relation.app_model_id, baseline_version.version
+        )
+        snapshot_template = json.loads(baseline_version.app_template)
         change_summary = self._summarize_diff(current_template, snapshot_template)
+        component_diff_details = self._build_component_diff_details(current_template, snapshot_template)
         return {
             "has_template": True,
             "template_id": relation.app_model_id,
-            "current_version": latest_version.version,
+            "current_version": baseline_version.version,
+            "current_version_id": baseline_version.ID,
+            "latest_snapshot_version": latest_version.version,
+            "latest_snapshot_version_id": latest_version.ID,
             "latest_publish_time": latest_publish.create_time.strftime('%Y-%m-%d %H:%M:%S') if latest_publish else None,
-            "snapshot_count": versions.count(),
+            "snapshot_count": len(versions),
             "source_template_count": len(upgradeable_sources),
             "upgradeable_sources": upgradeable_sources,
             "has_changes": change_summary["has_changes"],
             "change_summary": change_summary,
+            "component_diff_details": component_diff_details,
         }
 
     def create_snapshot(self, tenant, region, user, app, version="", version_alias="", app_version_info="", share_info=None):
