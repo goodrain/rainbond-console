@@ -74,6 +74,70 @@ class AppVersionServiceDeleteSnapshotTestCase(TestCase):
         target_version.delete.assert_called_once_with()
 
 
+class AppVersionServiceHiddenTemplateTestCase(TestCase):
+    def test_get_or_create_hidden_template_creates_hidden_app(self):
+        tenant = mock.Mock(
+            tenant_name="demo-team",
+            tenant_id="tenant-id",
+            enterprise_id="enterprise-id",
+        )
+        user = mock.Mock(user_id="user-id")
+        app = mock.Mock(ID=42, group_name="demo-app")
+        relation = mock.Mock()
+        hidden_app = mock.Mock(app_name="demo-app")
+        expected_hidden_app_id = app_version_service._build_hidden_template_id_by_app_id(app.ID)
+
+        with mock.patch.object(app_version_service, "get_hidden_template", return_value=(None, None)), \
+                mock.patch.object(
+                    app_version_service_module.rainbond_app_repo,
+                    "get_rainbond_app_by_app_id",
+                    return_value=None,
+                ) as get_app_mock, \
+                mock.patch.object(
+                    app_version_service_module.rainbond_app_repo,
+                    "add_basic_app_info",
+                    return_value=hidden_app,
+                ) as add_app_mock, \
+                mock.patch.object(
+                    app_version_service_module.app_version_template_relation_repo,
+                    "get_or_create",
+                    return_value=relation,
+                ) as get_or_create_mock:
+            result_relation, result_hidden_app = app_version_service.get_or_create_hidden_template(
+                tenant, user, app
+            )
+
+        self.assertIs(result_relation, relation)
+        self.assertIs(result_hidden_app, hidden_app)
+        get_app_mock.assert_called_once_with(expected_hidden_app_id)
+        add_app_mock.assert_called_once_with(
+            app_id=expected_hidden_app_id,
+            app_name="demo-app",
+            create_user="user-id",
+            create_team="demo-team",
+            source=app_version_service.HIDDEN_TEMPLATE_SOURCE,
+            dev_status="",
+            scope=app_version_service.HIDDEN_TEMPLATE_SCOPE,
+            describe="App version hidden template for app 42",
+            is_ingerit=False,
+            enterprise_id="enterprise-id",
+            install_number=0,
+            is_official=False,
+            details="",
+            arch="amd64",
+            is_version=True,
+        )
+        get_or_create_mock.assert_called_once_with(
+            42,
+            defaults={
+                "tenant_id": "tenant-id",
+                "app_model_id": expected_hidden_app_id,
+                "app_model_name": "demo-app",
+                "template_type": "application_version",
+            },
+        )
+
+
 class AppVersionSnapshotDetailViewDeleteTestCase(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
@@ -83,7 +147,11 @@ class AppVersionSnapshotDetailViewDeleteTestCase(TestCase):
     def test_delete_returns_success_response(self):
         request = self.factory.delete("/console/teams/demo-team/groups/42/app-versions/11")
 
-        with mock.patch.object(app_version_service_module.app_version_service, "delete_snapshot", return_value=True) as delete_mock:
+        with mock.patch.object(
+            app_version_service_module.app_version_service,
+            "delete_snapshot",
+            return_value=True,
+        ) as delete_mock:
             response = self.view.delete(request, 42, 11)
 
         self.assertEqual(response.status_code, 200)

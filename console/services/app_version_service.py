@@ -52,7 +52,7 @@ class AppVersionService(object):
         return hashlib.md5("app-version:{0}".format(app_id).encode("utf-8")).hexdigest()
 
     @classmethod
-    def _build_hidden_template_id(app):
+    def _build_hidden_template_id(cls, app):
         return cls._build_hidden_template_id_by_app_id(app.ID)
 
     @staticmethod
