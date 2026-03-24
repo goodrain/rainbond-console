@@ -149,6 +149,22 @@ class RainbondCenterAppVersion(BaseModel):
     arch = models.CharField(max_length=32, default="amd64", help_text='应用架构')
 
 
+class AppVersionTemplateRelation(BaseModel):
+    """应用版本隐藏模板绑定关系"""
+
+    class Meta:
+        db_table = "app_version_template_relation"
+        unique_together = ('group_id',)
+
+    tenant_id = models.CharField(max_length=32, help_text="租户id")
+    group_id = models.IntegerField(help_text="应用组id")
+    app_model_id = models.CharField(max_length=32, help_text="隐藏模板id")
+    app_model_name = models.CharField(max_length=64, help_text="隐藏模板名称")
+    template_type = models.CharField(max_length=32, default="application_version", help_text="模板类型")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now=True, blank=True, null=True, help_text="更新时间")
+
+
 class AppHelmOverrides(BaseModel):
     class Meta:
         db_table = "app_helm_overrides"

@@ -688,6 +688,8 @@ class GroupService(object):
         gsr = group_service_relation_repo.get_services_by_group(group_id)
         service_ids = gsr.values_list('service_id', flat=True)
         components = service_repo.list_by_ids(service_ids)
+        if not upgrade_group_id:
+            return components
         return components.filter(tenant_service_group_id=upgrade_group_id)
 
     def get_rainbond_services(self, group_id, group_key, upgrade_group_id=None):

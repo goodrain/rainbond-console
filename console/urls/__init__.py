@@ -5,6 +5,7 @@ from django.conf.urls import include, url
 import console.utils.perms_route_config as perms
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
+from console.views import app_version
 from console.views.adaptor import Appstore, Appstores, AppstoreCharts, AppstoreChart, HelmRegionInstall
 from console.views.api_gateway import AppApiGatewayView, AppApiGatewayConvertView
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
@@ -1156,6 +1157,17 @@ urlpatterns += [
         app_upgrade.AppUpgradeRollbackView.as_view()),
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<app_id>[0-9]+)/upgrade-records/(?P<record_id>[0-9]+)/deploy$',
         app_upgrade.AppUpgradeDeployView.as_view())
+]
+
+urlpatterns += [
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions/overview$',
+        app_version.AppVersionOverviewView.as_view()),
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions$',
+        app_version.AppVersionSnapshotListView.as_view()),
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions/(?P<version_id>[0-9]+)$',
+        app_version.AppVersionSnapshotDetailView.as_view()),
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions/(?P<version_id>[0-9]+)/rollback$',
+        app_version.AppVersionSnapshotRollbackView.as_view()),
 ]
 
 urlpatterns += [

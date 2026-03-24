@@ -1318,11 +1318,17 @@ class ShareService(object):
         }
         return data
 
-    def get_team_local_apps_versions(self, enterprise_id, team_name):
+    def get_team_local_apps_versions(self, enterprise_id, team_name, preferred_app_id=None):
         app_list = []
-        apps = rainbond_app_repo.get_enterprise_team_apps(enterprise_id, team_name)
+        if preferred_app_id:
+            app = rainbond_app_repo.get_rainbond_app_by_app_id(preferred_app_id)
+            apps = [app] if app else []
+        else:
+            apps = rainbond_app_repo.get_enterprise_team_apps(enterprise_id, team_name)
         if apps:
             for app in apps:
+                if not app:
+                    continue
                 app_versions = list(share_repo.get_last_app_versions_by_app_id(app.app_id))
                 app_list.append({
                     "app_name":
@@ -1345,7 +1351,8 @@ class ShareService(object):
                 })
         return app_list
 
-    def get_last_shared_app_and_app_list(self, enterprise_id, tenant, group_id, scope, market_name, user_id):
+    def get_last_shared_app_and_app_list(self, enterprise_id, tenant, group_id, scope, market_name, user_id,
+                                         preferred_app_id=None, preferred_version=None):
         last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, tenant.tenant_name, scope)
         dt = {}
         dt["app_model_list"] = []
@@ -1408,9 +1415,22 @@ class ShareService(object):
                         "scope": last_shared_app_info.scope,
                         "tags": last_shared_app_info.tags
                     }
-            app_list = self.get_team_local_apps_versions(enterprise_id, tenant.tenant_name)
+            app_list = self.get_team_local_apps_versions(enterprise_id, tenant.tenant_name, preferred_app_id)
             self._patch_rainbond_apps_tag(enterprise_id, app_list)
             dt["app_model_list"] = app_list
+            if preferred_app_id:
+                preferred_app = next((item for item in app_list if item.get("app_id") == preferred_app_id), None)
+                if preferred_app:
+                    dt["last_shared_app"] = {
+                        "app_name": preferred_app.get("app_name"),
+                        "app_id": preferred_app.get("app_id"),
+                        "version": preferred_version or (preferred_app.get("versions", [{}])[0] or {}).get("version"),
+                        "pic": preferred_app.get("pic"),
+                        "app_describe": preferred_app.get("app_describe"),
+                        "dev_status": preferred_app.get("dev_status"),
+                        "scope": preferred_app.get("scope"),
+                        "tags": preferred_app.get("tags", [])
+                    }
         return dt
 
     # patch rainbond app tag

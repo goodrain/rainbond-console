@@ -13,6 +13,7 @@ from console.repositories.group import group_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.share_repo import share_repo
 from console.services.app import app_market_service
+from console.services.app_version_service import app_version_service
 from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.share_services import share_service
 from console.utils.reqparse import parse_argument
@@ -150,6 +151,8 @@ class ServiceShareRecordView(RegionTenantHeaderView):
             if market_name is None:
                 result = general_message(400, "fail", "参数不全")
                 return Response(result, status=result.get("code", 200))
+        snapshot_app_id = request.data.get("snapshot_app_id")
+        snapshot_version = request.data.get("snapshot_version")
         try:
             if group_id == "-1":
                 code = 400
@@ -174,6 +177,8 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 "step": 1,
                 "share_app_market_name": market_name,
                 "scope": scope,
+                "app_id": snapshot_app_id,
+                "share_version": snapshot_version,
                 "create_time": datetime.datetime.now(),
                 "update_time": datetime.datetime.now(),
             }
@@ -214,6 +219,8 @@ class ServiceShareRecordInfoView(RegionTenantHeaderView):
                 app_model_id = share_record.app_id
                 app_model_name = app.app_name
             app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(share_record.ID)
+            if not app_version and share_record.app_id and share_record.share_version:
+                app_version = rainbond_app_repo.get_app_version(share_record.app_id, share_record.share_version)
             if app_version:
                 version = app_version.version
                 version_alias = app_version.version_alias
@@ -328,6 +335,15 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             return Response(result, status=400)
         if not scope:
             scope = share_record.scope
+        if share_record.app_id and share_record.share_version:
+            snapshot_version = rainbond_app_repo.get_app_version(share_record.app_id, share_record.share_version)
+            if snapshot_version and snapshot_version.source == app_version_service.HIDDEN_TEMPLATE_SOURCE:
+                app_template = json.loads(snapshot_version.app_template)
+                data["share_service_list"] = app_template.get("apps", [])
+                data["share_plugin_list"] = app_template.get("plugins", [])
+                data["share_k8s_resources"] = app_template.get("k8s_resources", [])
+                result = general_message(200, "query success", "获取成功", bean=data)
+                return Response(result, status=200)
         service_info_list = share_service.query_share_service_info(team=self.team, group_id=share_record.group_id, scope=scope)
         data["share_service_list"] = service_info_list
         plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
@@ -607,9 +623,11 @@ class ServiceGroupSharedApps(RegionTenantHeaderView):
     def get(self, request, team_name, group_id, *args, **kwargs):
         scope = request.GET.get("scope", None)
         market_name = request.GET.get("market_id", None)
+        preferred_app_id = request.GET.get("preferred_app_id", None)
+        preferred_version = request.GET.get("preferred_version", None)
         user_id = self.user.user_id if os.getenv("USE_SAAS") else None
         data = share_service.get_last_shared_app_and_app_list(self.tenant.enterprise_id, self.tenant, group_id, scope,
-                                                              market_name, user_id)
+                                                              market_name, user_id, preferred_app_id, preferred_version)
         result = general_message(
             200, "get shared apps list complete", None, bean=data["last_shared_app"], list=data["app_model_list"])
         return Response(result, status=200)
