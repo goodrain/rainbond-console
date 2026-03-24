@@ -449,6 +449,27 @@ class AppVersionService(object):
             "snapshot_id": app_template.get("snapshot_id"),
         }
 
+    def delete_snapshot(self, app_id, version_id):
+        relation, _ = self.get_hidden_template(app_id)
+        if not relation:
+            raise ServiceHandleException("snapshot not found", "快照不存在", status_code=404)
+
+        versions = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
+            source=self.HIDDEN_TEMPLATE_SOURCE
+        )
+        target_version = versions.filter(ID=version_id).first()
+        if not target_version:
+            raise ServiceHandleException("snapshot not found", "快照不存在", status_code=404)
+
+        latest_version = versions.order_by("-create_time").first()
+        if latest_version and str(target_version.ID) == str(latest_version.ID):
+            raise ServiceHandleException(
+                "current snapshot can not delete", "当前版本不允许删除", status_code=400
+            )
+
+        target_version.delete()
+        return True
+
     def rollback_snapshot(self, tenant, region, user, app, version_id):
         relation, _ = self.get_hidden_template(app.ID)
         if not relation:

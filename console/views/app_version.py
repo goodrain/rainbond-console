@@ -45,6 +45,10 @@ class AppVersionSnapshotDetailView(ApplicationView):
             raise ServiceHandleException("snapshot not found", "快照不存在", status_code=404)
         return MessageResponse(msg="success", bean=detail)
 
+    def delete(self, request, group_id, version_id, *args, **kwargs):
+        app_version_service.delete_snapshot(self.app.ID, version_id)
+        return MessageResponse(msg="success", msg_show="删除成功")
+
 
 class AppVersionSnapshotRollbackView(ApplicationView):
     def post(self, request, group_id, version_id, *args, **kwargs):

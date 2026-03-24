@@ -1,0 +1,92 @@
+# -*- coding: utf-8 -*-
+import collections
+import os
+import sys
+from types import ModuleType
+from unittest import TestCase, mock
+
+for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
+    if not hasattr(collections, attr):
+        setattr(collections, attr, getattr(collections.abc, attr))
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
+sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
+
+import django  # noqa: E402
+from rest_framework.test import APIRequestFactory  # noqa: E402
+
+django.setup()
+
+from console.exception.main import ServiceHandleException  # noqa: E402
+from console.services import app_version_service as app_version_service_module  # noqa: E402
+from console.services.app_version_service import app_version_service  # noqa: E402
+from console.views.app_version import AppVersionSnapshotDetailView  # noqa: E402
+
+
+class AppVersionServiceDeleteSnapshotTestCase(TestCase):
+    def setUp(self):
+        self.relation = mock.Mock(app_model_id="hidden-app-id")
+
+    def mock_snapshot_query(self, target_version, latest_version):
+        root_query = mock.Mock()
+        versions_query = mock.Mock()
+        target_query = mock.Mock()
+        ordered_query = mock.Mock()
+        root_query.filter.return_value = versions_query
+        versions_query.filter.return_value = target_query
+        target_query.first.return_value = target_version
+        versions_query.order_by.return_value = ordered_query
+        ordered_query.first.return_value = latest_version
+        return root_query
+
+    def test_delete_snapshot_rejects_latest_version(self):
+        latest_version = mock.Mock(ID=12)
+        root_query = self.mock_snapshot_query(latest_version, latest_version)
+
+        with mock.patch.object(
+                app_version_service, "get_hidden_template", return_value=(self.relation, mock.Mock())), \
+                mock.patch.object(
+                    app_version_service_module.rainbond_app_repo,
+                    "get_rainbond_app_versions",
+                    return_value=root_query):
+            with self.assertRaises(ServiceHandleException) as context:
+                app_version_service.delete_snapshot(42, 12)
+
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(context.exception.msg_show, "当前版本不允许删除")
+
+    def test_delete_snapshot_removes_historical_version(self):
+        target_version = mock.Mock(ID=11)
+        latest_version = mock.Mock(ID=12)
+        root_query = self.mock_snapshot_query(target_version, latest_version)
+
+        with mock.patch.object(
+                app_version_service, "get_hidden_template", return_value=(self.relation, mock.Mock())), \
+                mock.patch.object(
+                    app_version_service_module.rainbond_app_repo,
+                    "get_rainbond_app_versions",
+                    return_value=root_query):
+            result = app_version_service.delete_snapshot(42, 11)
+
+        self.assertTrue(result)
+        target_version.delete.assert_called_once_with()
+
+
+class AppVersionSnapshotDetailViewDeleteTestCase(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.view = AppVersionSnapshotDetailView()
+        self.view.app = mock.Mock(ID=42)
+
+    def test_delete_returns_success_response(self):
+        request = self.factory.delete("/console/teams/demo-team/groups/42/app-versions/11")
+
+        with mock.patch.object(app_version_service_module.app_version_service, "delete_snapshot", return_value=True) as delete_mock:
+            response = self.view.delete(request, 42, 11)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["msg"], "success")
+        self.assertEqual(response.data["msg_show"], "删除成功")
+        delete_mock.assert_called_once_with(42, 11)
