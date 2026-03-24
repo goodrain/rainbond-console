@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import collections
+import json
 import os
 import sys
+from datetime import datetime
 from types import ModuleType
 from unittest import TestCase, mock
 
@@ -95,6 +97,169 @@ class AppVersionServiceDiffSummaryTestCase(TestCase):
 
         self.assertTrue(diff_summary["has_changes"])
         self.assertEqual(diff_summary["updated_count"], 1)
+
+
+class AppVersionServiceComponentDiffDetailTestCase(TestCase):
+    def test_build_component_diff_details_tracks_added_removed_and_field_updates(self):
+        current_template = {
+            "apps": [
+                {
+                    "service_alias": "web",
+                    "service_env_map_list": [
+                        {"attr_name": "DEBUG", "attr_value": "true"},
+                        {"attr_name": "LOG_LEVEL", "attr_value": "info"},
+                    ],
+                    "port_map_list": [
+                        {"container_port": 8080, "protocol": "tcp", "port_alias": "WEB"},
+                        {"container_port": 8081, "protocol": "tcp", "port_alias": "METRICS"},
+                    ],
+                    "service_volume_map_list": [
+                        {"volume_name": "data", "volume_path": "/data", "volume_capacity": 20},
+                    ],
+                    "probes": [
+                        {
+                            "probe_id": "ready",
+                            "mode": "readiness",
+                            "port": 8080,
+                            "path": "/healthz",
+                            "failure_threshold": 5,
+                        }
+                    ],
+                },
+                {
+                    "service_alias": "worker",
+                    "service_env_map_list": [],
+                    "port_map_list": [],
+                    "service_volume_map_list": [],
+                    "probes": [],
+                },
+            ]
+        }
+        previous_template = {
+            "apps": [
+                {
+                    "service_alias": "web",
+                    "service_env_map_list": [
+                        {"attr_name": "DEBUG", "attr_value": "false"},
+                        {"attr_name": "OLD_FLAG", "attr_value": "1"},
+                    ],
+                    "port_map_list": [
+                        {"container_port": 8080, "protocol": "tcp", "port_alias": "WEB"},
+                    ],
+                    "service_volume_map_list": [
+                        {"volume_name": "data", "volume_path": "/data", "volume_capacity": 10},
+                        {"volume_name": "cache", "volume_path": "/cache", "volume_capacity": 5},
+                    ],
+                    "probes": [
+                        {
+                            "probe_id": "ready",
+                            "mode": "readiness",
+                            "port": 8080,
+                            "path": "/health",
+                            "failure_threshold": 3,
+                        }
+                    ],
+                },
+                {
+                    "service_alias": "api",
+                    "service_env_map_list": [],
+                    "port_map_list": [],
+                    "service_volume_map_list": [],
+                    "probes": [],
+                },
+            ]
+        }
+
+        diff_detail = app_version_service._build_component_diff_details(current_template, previous_template)
+
+        self.assertEqual(diff_detail["added_components"], [{"component_name": "worker"}])
+        self.assertEqual(diff_detail["removed_components"], [{"component_name": "api"}])
+        self.assertEqual(len(diff_detail["updated_components"]), 1)
+        updated_component = diff_detail["updated_components"][0]
+        self.assertEqual(updated_component["component_name"], "web")
+
+        field_changes = {item["field_key"]: item for item in updated_component["field_changes"]}
+
+        env_change = field_changes["service_env_map_list"]
+        self.assertEqual(env_change["field_label"], "环境变量")
+        self.assertEqual([item["identity"] for item in env_change["added"]], ["LOG_LEVEL"])
+        self.assertEqual([item["identity"] for item in env_change["removed"]], ["OLD_FLAG"])
+        self.assertEqual([item["identity"] for item in env_change["updated"]], ["DEBUG"])
+        self.assertEqual(env_change["updated"][0]["before"]["attr_value"], "false")
+        self.assertEqual(env_change["updated"][0]["after"]["attr_value"], "true")
+
+        port_change = field_changes["port_map_list"]
+        self.assertEqual([item["identity"] for item in port_change["added"]], ["8081/tcp/METRICS"])
+
+        volume_change = field_changes["service_volume_map_list"]
+        self.assertEqual([item["identity"] for item in volume_change["removed"]], ["cache@/cache"])
+        self.assertEqual([item["identity"] for item in volume_change["updated"]], ["data@/data"])
+        self.assertEqual(volume_change["updated"][0]["before"]["volume_capacity"], 10)
+        self.assertEqual(volume_change["updated"][0]["after"]["volume_capacity"], 20)
+
+        probe_change = field_changes["probes"]
+        self.assertEqual([item["identity"] for item in probe_change["updated"]], ["ready"])
+        self.assertEqual(probe_change["updated"][0]["before"]["path"], "/health")
+        self.assertEqual(probe_change["updated"][0]["after"]["path"], "/healthz")
+
+
+class AppVersionServiceSnapshotDetailTestCase(TestCase):
+    def test_get_snapshot_detail_includes_previous_version_and_field_diff(self):
+        relation = mock.Mock(app_model_id="hidden-app-id")
+        current_template = {
+            "apps": [{
+                "service_alias": "web",
+                "service_env_map_list": [{"attr_name": "DEBUG", "attr_value": "true"}],
+                "port_map_list": [],
+                "service_volume_map_list": [],
+                "probes": [],
+            }]
+        }
+        previous_template = {
+            "apps": [{
+                "service_alias": "web",
+                "service_env_map_list": [{"attr_name": "DEBUG", "attr_value": "false"}],
+                "port_map_list": [],
+                "service_volume_map_list": [],
+                "probes": [],
+            }]
+        }
+        current_version = mock.Mock(
+            ID=12,
+            version="1.0.3",
+            version_alias="stable",
+            app_version_info="snapshot current",
+            create_time=datetime(2026, 3, 24, 10, 0, 0),
+            app_template=json.dumps(current_template),
+        )
+        previous_version = mock.Mock(
+            ID=11,
+            version="1.0.2",
+            version_alias="prev",
+            app_version_info="snapshot previous",
+            create_time=datetime(2026, 3, 24, 9, 0, 0),
+            app_template=json.dumps(previous_template),
+        )
+        query = mock.Mock()
+        query.first.return_value = current_version
+        query.order_by.return_value = [current_version, previous_version]
+
+        with mock.patch.object(
+                app_version_service, "get_hidden_template", return_value=(relation, mock.Mock())), \
+                mock.patch.object(
+                    app_version_service_module.RainbondCenterAppVersion.objects,
+                    "filter",
+                    return_value=query):
+            detail = app_version_service.get_snapshot_detail(42, 12)
+
+        self.assertEqual(detail["previous_version"], "1.0.2")
+        self.assertTrue(detail["has_previous_version"])
+        self.assertTrue(detail["diff_summary"]["has_changes"])
+        self.assertEqual(detail["diff_summary"]["updated_components"], ["web"])
+        updated_components = detail["component_diff_details"]["updated_components"]
+        self.assertEqual(len(updated_components), 1)
+        self.assertEqual(updated_components[0]["component_name"], "web")
+        self.assertEqual(updated_components[0]["field_changes"][0]["field_key"], "service_env_map_list")
 
 
 class AppVersionServiceDeleteSnapshotTestCase(TestCase):

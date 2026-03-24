@@ -58,6 +58,12 @@ class AppVersionRollbackRestore(AppRestore):
 class AppVersionService(object):
     HIDDEN_TEMPLATE_SOURCE = "app_version"
     HIDDEN_TEMPLATE_SCOPE = "team"
+    TRACKED_COMPONENT_FIELDS = (
+        ("service_env_map_list", "环境变量"),
+        ("port_map_list", "端口"),
+        ("service_volume_map_list", "存储卷"),
+        ("probes", "探针"),
+    )
 
     @staticmethod
     def _build_hidden_template_name(app):
@@ -246,6 +252,126 @@ class AppVersionService(object):
             "updated_components": updated,
         }
 
+    @staticmethod
+    def _empty_diff_summary():
+        return {
+            "has_changes": False,
+            "added_count": 0,
+            "removed_count": 0,
+            "updated_count": 0,
+            "added_components": [],
+            "removed_components": [],
+            "updated_components": [],
+        }
+
+    @staticmethod
+    def _empty_component_diff_details():
+        return {
+            "added_components": [],
+            "removed_components": [],
+            "updated_components": [],
+        }
+
+    @staticmethod
+    def _format_component_name(component):
+        return component.get("service_alias") or component.get("service_cname") or component.get("service_id") or "unknown"
+
+    def _format_field_item_identity(self, field_key, item):
+        if field_key == "service_env_map_list":
+            return item.get("attr_name") or "unknown"
+        if field_key == "port_map_list":
+            return "{0}/{1}/{2}".format(
+                item.get("container_port") or "",
+                item.get("protocol") or "",
+                item.get("port_alias") or "",
+            )
+        if field_key == "service_volume_map_list":
+            return "{0}@{1}".format(item.get("volume_name") or "", item.get("volume_path") or "")
+        if field_key == "probes":
+            return item.get("probe_id") or "{0}:{1}:{2}:{3}".format(
+                item.get("mode") or "",
+                item.get("port") or "",
+                item.get("path") or "",
+                item.get("cmd") or "",
+            )
+        return json.dumps(item, sort_keys=True, ensure_ascii=False)
+
+    def _field_item_map(self, field_key, items):
+        result = {}
+        for item in items or []:
+            normalized = self._strip_runtime_fields(copy.deepcopy(item))
+            identity = self._format_field_item_identity(field_key, normalized)
+            result[identity] = normalized
+        return result
+
+    def _build_component_field_change(self, field_key, field_label, current_component, previous_component):
+        current_map = self._field_item_map(field_key, current_component.get(field_key, []))
+        previous_map = self._field_item_map(field_key, previous_component.get(field_key, []))
+        added_keys = [key for key in current_map.keys() if key not in previous_map]
+        removed_keys = [key for key in previous_map.keys() if key not in current_map]
+        updated_keys = [
+            key for key in current_map.keys()
+            if key in previous_map and current_map[key] != previous_map[key]
+        ]
+        if not added_keys and not removed_keys and not updated_keys:
+            return None
+        return {
+            "field_key": field_key,
+            "field_label": field_label,
+            "added": [{"identity": key, "item": current_map[key]} for key in added_keys],
+            "removed": [{"identity": key, "item": previous_map[key]} for key in removed_keys],
+            "updated": [{
+                "identity": key,
+                "before": previous_map[key],
+                "after": current_map[key]
+            } for key in updated_keys],
+        }
+
+    def _strip_tracked_component_fields(self, component):
+        stripped = self._strip_runtime_fields(copy.deepcopy(component))
+        for field_key, _ in self.TRACKED_COMPONENT_FIELDS:
+            stripped.pop(field_key, None)
+        return stripped
+
+    def _build_component_diff_details(self, current_template, previous_template):
+        current_map = self._component_map(current_template)
+        previous_map = self._component_map(previous_template)
+        added_components = [
+            {"component_name": self._format_component_name(current_map[name])}
+            for name in current_map.keys() if name not in previous_map
+        ]
+        removed_components = [
+            {"component_name": self._format_component_name(previous_map[name])}
+            for name in previous_map.keys() if name not in current_map
+        ]
+        updated_components = []
+        for name in current_map.keys():
+            if name not in previous_map or current_map[name] == previous_map[name]:
+                continue
+            current_component = current_map[name]
+            previous_component = previous_map[name]
+            field_changes = []
+            for field_key, field_label in self.TRACKED_COMPONENT_FIELDS:
+                field_change = self._build_component_field_change(
+                    field_key, field_label, current_component, previous_component
+                )
+                if field_change:
+                    field_changes.append(field_change)
+            has_other_changes = (
+                self._strip_tracked_component_fields(current_component) !=
+                self._strip_tracked_component_fields(previous_component)
+            )
+            updated_components.append({
+                "component_name": self._format_component_name(current_component),
+                "field_changes": field_changes,
+                "has_other_changes": has_other_changes,
+            })
+        return {
+            "added_components": added_components,
+            "removed_components": removed_components,
+            "updated_components": updated_components,
+        }
+
     def _serialize_version(self, version_obj, previous_version=None):
         app_template = json.loads(version_obj.app_template)
         diff_summary = None
@@ -263,15 +389,7 @@ class AppVersionService(object):
             "app_model_id": version_obj.app_id,
             "template_type": version_obj.template_type,
             "arch": version_obj.arch,
-            "diff_summary": diff_summary or {
-                "has_changes": False,
-                "added_count": 0,
-                "removed_count": 0,
-                "updated_count": 0,
-                "added_components": [],
-                "removed_components": [],
-                "updated_components": [],
-            },
+            "diff_summary": diff_summary or self._empty_diff_summary(),
         }
 
     def list_snapshot_versions(self, app_id):
@@ -464,13 +582,35 @@ class AppVersionService(object):
         ).first()
         if not version:
             return None
+        versions = list(
+            RainbondCenterAppVersion.objects.filter(
+                app_id=relation.app_model_id, source=self.HIDDEN_TEMPLATE_SOURCE
+            ).order_by("-create_time")
+        )
+        previous_version = None
+        for index, item in enumerate(versions):
+            if str(item.ID) != str(version.ID):
+                continue
+            if index + 1 < len(versions):
+                previous_version = versions[index + 1]
+            break
         app_template = json.loads(version.app_template)
+        diff_summary = self._empty_diff_summary()
+        component_diff_details = self._empty_component_diff_details()
+        if previous_version:
+            previous_template = json.loads(previous_version.app_template)
+            diff_summary = self._summarize_diff(app_template, previous_template)
+            component_diff_details = self._build_component_diff_details(app_template, previous_template)
         return {
             "version_id": version.ID,
             "version": version.version,
             "version_alias": version.version_alias,
             "app_version_info": version.app_version_info,
             "create_time": version.create_time.strftime('%Y-%m-%d %H:%M:%S') if version.create_time else None,
+            "previous_version": previous_version.version if previous_version else None,
+            "has_previous_version": bool(previous_version),
+            "diff_summary": diff_summary,
+            "component_diff_details": component_diff_details,
             "template": app_template,
             "content_hash": self._content_hash(app_template),
             "snapshot_id": app_template.get("snapshot_id"),
