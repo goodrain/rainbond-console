@@ -143,6 +143,45 @@ class ServiceShareInfoViewTestCase(TestCase):
 
 
 class ShareServicePreferredAppTestCase(TestCase):
+    def test_get_team_local_apps_versions_keeps_team_apps_when_preferred_app_is_hidden_snapshot(self):
+        preferred_app = mock.Mock(
+            app_name="hidden-snapshot",
+            app_id="hidden-app",
+            pic="hidden-pic",
+            describe="hidden describe",
+            dev_status="",
+            scope="team",
+        )
+        team_app = mock.Mock(
+            app_name="team-template",
+            app_id="team-app",
+            pic="team-pic",
+            describe="team describe",
+            dev_status="",
+            scope="team",
+        )
+
+        with mock.patch.object(
+                service_share.rainbond_app_repo,
+                "get_rainbond_app_by_app_id",
+                return_value=preferred_app), \
+                mock.patch.object(
+                    service_share.rainbond_app_repo,
+                    "get_enterprise_team_apps",
+                    return_value=[team_app]), \
+                mock.patch.object(
+                    service_share.share_repo,
+                    "get_last_app_versions_by_app_id",
+                    side_effect=lambda app_id: [{"version": "1.0.0"}] if app_id == "team-app" else []):
+            app_list = share_service_instance.get_team_local_apps_versions(
+                enterprise_id="eid",
+                team_name="demo-team",
+                preferred_app_id="hidden-app",
+            )
+
+        self.assertEqual([item["app_id"] for item in app_list], ["hidden-app", "team-app"])
+        self.assertEqual(app_list[0]["versions"], [])
+
     def test_get_last_shared_app_ignores_missing_versions_for_preferred_local_app(self):
         tenant = mock.Mock(tenant_name="demo-team")
         app_list = [{

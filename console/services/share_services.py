@@ -1320,11 +1320,11 @@ class ShareService(object):
 
     def get_team_local_apps_versions(self, enterprise_id, team_name, preferred_app_id=None):
         app_list = []
+        apps = list(rainbond_app_repo.get_enterprise_team_apps(enterprise_id, team_name))
         if preferred_app_id:
-            app = rainbond_app_repo.get_rainbond_app_by_app_id(preferred_app_id)
-            apps = [app] if app else []
-        else:
-            apps = rainbond_app_repo.get_enterprise_team_apps(enterprise_id, team_name)
+            preferred_app = rainbond_app_repo.get_rainbond_app_by_app_id(preferred_app_id)
+            if preferred_app and all(app.app_id != preferred_app.app_id for app in apps if app):
+                apps.insert(0, preferred_app)
         if apps:
             for app in apps:
                 if not app:
