@@ -502,7 +502,10 @@ class AppVersionService(object):
         return AppUpgradeRecord.objects.filter(
             group_id=app_id,
             record_type=AppUpgradeRecordType.ROLLBACK.value,
-            status=UpgradeStatus.ROLLBACK.value,
+            status__in=[
+                UpgradeStatus.ROLLBACK.value,
+                UpgradeStatus.PARTIAL_ROLLBACK.value,
+            ],
         ).order_by("-update_time").first()
 
     @staticmethod

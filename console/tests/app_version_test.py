@@ -475,6 +475,86 @@ class AppVersionServiceOverviewTestCase(TestCase):
         self.assertFalse(overview["has_changes"])
         self.assertEqual(overview["component_diff_details"], app_version_service._empty_component_diff_details())
 
+    def test_get_overview_promotes_partial_rollback_target_to_current_version(self):
+        tenant = mock.Mock(tenant_name="demo-team")
+        relation = mock.Mock(app_model_id="hidden-app-id")
+        rollback_target_template = {
+            "apps": [
+                {
+                    "service_alias": "web",
+                    "service_cname": "nginx",
+                    "service_env_map_list": [],
+                    "port_map_list": [],
+                    "service_volume_map_list": [],
+                    "probes": [],
+                },
+                {
+                    "service_alias": "worker",
+                    "service_cname": "demo-2048",
+                    "service_env_map_list": [],
+                    "port_map_list": [],
+                    "service_volume_map_list": [],
+                    "probes": [],
+                },
+            ]
+        }
+        latest_snapshot_template = {
+            "apps": [
+                {
+                    "service_alias": "web",
+                    "service_cname": "nginx",
+                    "service_env_map_list": [],
+                    "port_map_list": [],
+                    "service_volume_map_list": [],
+                    "probes": [],
+                },
+            ]
+        }
+        latest_snapshot = self._version(22, "0.0.3", datetime(2026, 3, 24, 17, 0, 0), latest_snapshot_template)
+        rollback_target_snapshot = self._version(
+            21, "0.0.2", datetime(2026, 3, 24, 15, 0, 0), rollback_target_template
+        )
+        rollback_record = mock.Mock(
+            version="0.0.2",
+            update_time=datetime(2026, 3, 25, 10, 57, 30),
+        )
+
+        with mock.patch.object(
+                app_version_service,
+                "get_hidden_template",
+                return_value=(relation, mock.Mock())), \
+                mock.patch.object(
+                    app_version_service_module.share_repo,
+                    "get_last_shared_app_version_by_group_id",
+                    return_value=None), \
+                mock.patch.object(
+                    app_version_service_module.market_app_service,
+                    "get_market_apps_in_app",
+                    return_value=[]), \
+                mock.patch.object(
+                    app_version_service,
+                    "_build_app_template",
+                    return_value=rollback_target_template), \
+                mock.patch.object(
+                    app_version_service_module.rainbond_app_repo,
+                    "get_rainbond_app_versions",
+                    return_value=self._snapshot_versions_query([latest_snapshot, rollback_target_snapshot])), \
+                mock.patch.object(
+                    app_version_service_module.AppUpgradeRecord.objects,
+                    "filter",
+                    return_value=self._rollback_query(rollback_record)) as rollback_filter_mock:
+            overview = app_version_service.get_overview(tenant, mock.Mock(), mock.Mock(), mock.Mock(ID=42))
+
+        self.assertEqual(
+            rollback_filter_mock.call_args[1]["status__in"],
+            [5, 7],
+        )
+        self.assertEqual(overview["current_version"], "0.0.2")
+        self.assertEqual(overview["current_version_id"], 21)
+        self.assertEqual(overview["latest_snapshot_version"], "0.0.3")
+        self.assertEqual(overview["latest_snapshot_version_id"], 22)
+        self.assertFalse(overview["has_changes"])
+
 
 class AppVersionServiceDeleteSnapshotTestCase(TestCase):
     def setUp(self):
