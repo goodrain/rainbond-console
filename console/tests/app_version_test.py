@@ -25,6 +25,7 @@ from console.exception.main import ServiceHandleException  # noqa: E402
 from console.services import app_version_service as app_version_service_module  # noqa: E402
 from console.services.app_version_service import app_version_service  # noqa: E402
 from console.services.market_app import app_restore as app_restore_module  # noqa: E402
+from console.services.market_app import market_app as market_app_module  # noqa: E402
 from console.services.market_app import new_app as new_app_module  # noqa: E402
 from console.views.app_version import AppVersionSnapshotDetailView, AppVersionSnapshotListView  # noqa: E402
 
@@ -1116,6 +1117,36 @@ class NewAppSaveComponentsTestCase(TestCase):
             overwrite_k8s_attribute_mock.call_args[0][0],
             ["service-id"],
         )
+
+
+class MarketAppBuildGenerationTestCase(TestCase):
+    def test_generate_builds_allows_components_without_source_metadata(self):
+        market_app = market_app_module.MarketApp.__new__(market_app_module.MarketApp)
+        market_app.user = mock.Mock(nick_name="tester")
+        market_app.new_app = mock.Mock(
+            region_name="test-region",
+            tenant=mock.Mock(tenant_name="demo-team"),
+            components=mock.Mock(return_value=[
+                mock.Mock(
+                    action_type=market_app_module.ActionType.BUILD.value,
+                    component=mock.Mock(
+                        component_id="service-id",
+                        build_upgrade=False,
+                        image="nginx:latest",
+                        cmd="nginx -g 'daemon off;'",
+                    ),
+                    component_source=None,
+                )
+            ]),
+        )
+
+        builds = market_app._generate_builds()
+
+        self.assertEqual(len(builds), 1)
+        self.assertEqual(builds[0]["service_id"], "service-id")
+        self.assertEqual(builds[0]["image_info"]["image_url"], "nginx:latest")
+        self.assertIsNone(builds[0]["image_info"]["user"])
+        self.assertIsNone(builds[0]["image_info"]["password"])
 
 
 class AppRestoreRollbackRecordTestCase(TestCase):

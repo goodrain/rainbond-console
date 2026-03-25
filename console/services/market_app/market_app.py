@@ -460,7 +460,9 @@ class MarketApp(object):
             if cpt.component.build_upgrade:
                 build["action"] = 'upgrade'
             build["kind"] = kind
-            extend_info = json.loads(cpt.component_source.extend_info)
+            extend_info = {}
+            if cpt.component_source and cpt.component_source.extend_info:
+                extend_info = json.loads(cpt.component_source.extend_info)
             build["image_info"] = {
                 "image_url": cpt.component.image,
                 "user": extend_info.get("hub_user"),
