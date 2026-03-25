@@ -344,7 +344,7 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             scope = share_record.scope
         if share_record.app_id and share_record.share_version:
             snapshot_version = rainbond_app_repo.get_app_version(share_record.app_id, share_record.share_version)
-            if snapshot_version and snapshot_version.source == app_version_service.HIDDEN_TEMPLATE_SOURCE:
+            if app_version_service.is_snapshot_version(snapshot_version):
                 app_template = json.loads(snapshot_version.app_template)
                 data["share_service_list"] = app_template.get("apps", [])
                 data["share_plugin_list"] = app_template.get("plugins", [])

@@ -145,8 +145,9 @@ class AppVersionRollbackRestore(AppRestore):
 
 
 class AppVersionService(object):
-    HIDDEN_TEMPLATE_SOURCE = "app_version"
+    HIDDEN_TEMPLATE_SOURCE = "local"
     HIDDEN_TEMPLATE_SCOPE = "team"
+    SNAPSHOT_TEMPLATE_TYPE = "application_version"
     TRACKED_COMPONENT_FIELDS = (
         ("service_env_map_list", "环境变量"),
         ("service_connect_info_map_list", "连接信息"),
@@ -174,6 +175,10 @@ class AppVersionService(object):
     @staticmethod
     def _build_hidden_template_name(app):
         return app.group_name
+
+    @classmethod
+    def is_snapshot_version(cls, version_obj):
+        return bool(version_obj and getattr(version_obj, "template_type", None) == cls.SNAPSHOT_TEMPLATE_TYPE)
 
     @staticmethod
     def _build_hidden_template_id_by_app_id(app_id):
@@ -223,7 +228,7 @@ class AppVersionService(object):
                 source=self.HIDDEN_TEMPLATE_SOURCE,
                 dev_status="",
                 scope=self.HIDDEN_TEMPLATE_SCOPE,
-                describe="App version hidden template for app {0}".format(app.ID),
+                describe="App version template for app {0}".format(app.ID),
                 is_ingerit=False,
                 enterprise_id=tenant.enterprise_id,
                 install_number=0,
@@ -242,7 +247,7 @@ class AppVersionService(object):
                 "tenant_id": tenant.tenant_id,
                 "app_model_id": hidden_app_id,
                 "app_model_name": hidden_app_name,
-                "template_type": "application_version",
+                "template_type": self.SNAPSHOT_TEMPLATE_TYPE,
             },
         )
         return relation, hidden_app
@@ -536,7 +541,7 @@ class AppVersionService(object):
     def _list_snapshot_version_objects(self, app_model_id):
         return list(
             rainbond_app_repo.get_rainbond_app_versions(app_model_id).filter(
-                source=self.HIDDEN_TEMPLATE_SOURCE
+                template_type=self.SNAPSHOT_TEMPLATE_TYPE
             ).order_by("-create_time")
         )
 
@@ -728,7 +733,7 @@ class AppVersionService(object):
     def create_snapshot(self, tenant, region, user, app, version="", version_alias="", app_version_info="", share_info=None):
         relation, hidden_app = self.get_or_create_hidden_template(tenant, user, app)
         latest_version = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
-            source=self.HIDDEN_TEMPLATE_SOURCE
+            template_type=self.SNAPSHOT_TEMPLATE_TYPE
         ).order_by("-create_time").first()
         next_version = version or self._next_version(latest_version.version if latest_version else None)
         if rainbond_app_repo.get_app_version(relation.app_model_id, next_version):
@@ -770,7 +775,7 @@ class AppVersionService(object):
             is_official=False,
             is_ingerit=False,
             is_complete=True,
-            template_type="application_version",
+            template_type=self.SNAPSHOT_TEMPLATE_TYPE,
             release_user_id=None,
             region_name=region.region_name,
             is_plugin=False,
@@ -815,13 +820,13 @@ class AppVersionService(object):
         if not relation:
             return None
         version = RainbondCenterAppVersion.objects.filter(
-            ID=version_id, app_id=relation.app_model_id, source=self.HIDDEN_TEMPLATE_SOURCE
+            ID=version_id, app_id=relation.app_model_id, template_type=self.SNAPSHOT_TEMPLATE_TYPE
         ).first()
         if not version:
             return None
         versions = list(
             RainbondCenterAppVersion.objects.filter(
-                app_id=relation.app_model_id, source=self.HIDDEN_TEMPLATE_SOURCE
+                app_id=relation.app_model_id, template_type=self.SNAPSHOT_TEMPLATE_TYPE
             ).order_by("-create_time")
         )
         previous_version = None
@@ -859,7 +864,7 @@ class AppVersionService(object):
             raise ServiceHandleException("snapshot not found", "快照不存在", status_code=404)
 
         versions = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
-            source=self.HIDDEN_TEMPLATE_SOURCE
+            template_type=self.SNAPSHOT_TEMPLATE_TYPE
         )
         target_version = versions.filter(ID=version_id).first()
         if not target_version:
@@ -879,7 +884,7 @@ class AppVersionService(object):
         if not relation:
             return None
         target_version = RainbondCenterAppVersion.objects.filter(
-            ID=version_id, app_id=relation.app_model_id, source=self.HIDDEN_TEMPLATE_SOURCE
+            ID=version_id, app_id=relation.app_model_id, template_type=self.SNAPSHOT_TEMPLATE_TYPE
         ).first()
         if not target_version:
             return None
@@ -889,7 +894,7 @@ class AppVersionService(object):
             return None
 
         latest_version = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
-            source=self.HIDDEN_TEMPLATE_SOURCE
+            template_type=self.SNAPSHOT_TEMPLATE_TYPE
         ).order_by("-create_time").first()
         current_version = latest_version.version if latest_version else ""
         current_template = self._build_app_template(

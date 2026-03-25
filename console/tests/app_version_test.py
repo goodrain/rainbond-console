@@ -23,6 +23,7 @@ django.setup()
 
 from console.exception.main import ServiceHandleException  # noqa: E402
 from console.services import app_version_service as app_version_service_module  # noqa: E402
+from console.services import market_app_service as market_app_service_module  # noqa: E402
 from console.services.app_version_service import app_version_service  # noqa: E402
 from console.services.market_app import app_restore as app_restore_module  # noqa: E402
 from console.services.market_app import market_app as market_app_module  # noqa: E402
@@ -645,10 +646,10 @@ class AppVersionServiceHiddenTemplateTestCase(TestCase):
             app_name="demo-app",
             create_user="user-id",
             create_team="demo-team",
-            source=app_version_service.HIDDEN_TEMPLATE_SOURCE,
+            source="local",
             dev_status="",
             scope=app_version_service.HIDDEN_TEMPLATE_SCOPE,
-            describe="App version hidden template for app 42",
+            describe="App version template for app 42",
             is_ingerit=False,
             enterprise_id="enterprise-id",
             install_number=0,
@@ -666,6 +667,37 @@ class AppVersionServiceHiddenTemplateTestCase(TestCase):
                 "template_type": "application_version",
             },
         )
+
+
+class AppVersionTemplateDeleteTestCase(TestCase):
+    def test_delete_rainbond_app_all_info_by_id_cleans_snapshot_relation(self):
+        relation = mock.Mock(group_id=42, app_model_id="snapshot-template-id")
+        relation_repo = mock.Mock()
+        relation_repo.get_by_app_model_id.return_value = relation
+
+        with mock.patch.object(
+                market_app_service_module.rainbond_app_repo,
+                "delete_app_tag_by_id") as delete_tag_mock, \
+                mock.patch.object(
+                    market_app_service_module.rainbond_app_repo,
+                    "delete_app_version_by_id") as delete_version_mock, \
+                mock.patch.object(
+                    market_app_service_module.rainbond_app_repo,
+                    "delete_app_by_id") as delete_app_mock, \
+                mock.patch.object(
+                    market_app_service_module,
+                    "app_version_template_relation_repo",
+                    relation_repo,
+                    create=True):
+            market_app_service_module.market_app_service.delete_rainbond_app_all_info_by_id(
+                "enterprise-id", "snapshot-template-id"
+            )
+
+        delete_tag_mock.assert_called_once_with("enterprise-id", "snapshot-template-id")
+        delete_version_mock.assert_called_once_with("snapshot-template-id")
+        delete_app_mock.assert_called_once_with("snapshot-template-id")
+        relation_repo.get_by_app_model_id.assert_called_once_with("snapshot-template-id")
+        relation_repo.delete_by_app_model_id.assert_called_once_with("snapshot-template-id")
 
 
 class AppVersionSnapshotDetailViewDeleteTestCase(TestCase):

@@ -106,7 +106,8 @@ class ServiceShareInfoViewTestCase(TestCase):
             group_id=30,
         )
         snapshot_version = mock.Mock(
-            source=service_share.app_version_service.HIDDEN_TEMPLATE_SOURCE,
+            source="local",
+            template_type="application_version",
             app_template=json.dumps(
                 {
                     "apps": [{"service_cname": "web"}],
