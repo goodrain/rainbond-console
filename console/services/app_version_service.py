@@ -25,6 +25,7 @@ from console.services.market_app_service import market_app_service
 from console.services.backup_service import groupapp_backup_service
 from console.services.market_app.app_restore import AppRestore
 from console.services.share_services import share_service
+from console.services.upgrade_services import upgrade_service
 from django.db import transaction
 from www.models.main import make_uuid, TenantServiceGroup, ServiceGroupRelation
 
@@ -112,8 +113,6 @@ class AppVersionRollbackRestore(AppRestore):
                     component.action_type = ActionType.UPDATE.value
                 update_components.append(component)
                 continue
-            if component_identity in self.restored_component_identities and component.action_type == ActionType.NOTHING.value:
-                component.action_type = ActionType.BUILD.value
             component.service_group_rel = self._build_service_group_relation(component_id)
             new_components.append(component)
 
@@ -573,6 +572,39 @@ class AppVersionService(object):
             return latest_snapshot
         rollback_target = self._find_snapshot_version_by_version(versions, rollback_record.version)
         return rollback_target or latest_snapshot
+
+    def _rollback_records_query(self, app_id):
+        relation, _ = self.get_hidden_template(app_id)
+        if not relation:
+            return None
+        return AppUpgradeRecord.objects.filter(
+            group_id=app_id,
+            group_key=relation.app_model_id,
+            record_type=AppUpgradeRecordType.ROLLBACK.value,
+            parent_id=0,
+        ).order_by("-create_time")
+
+    def list_rollback_records(self, tenant_name, region_name, app_id):
+        records = self._rollback_records_query(app_id)
+        if records is None:
+            return []
+        records = list(records)
+        for record in records:
+            if not record.is_finished():
+                upgrade_service.sync_record(tenant_name, region_name, record)
+                break
+        return [record.to_dict() for record in records]
+
+    def get_rollback_record(self, tenant_name, region_name, app_id, record_id):
+        records = self._rollback_records_query(app_id)
+        if records is None:
+            return None
+        record = records.filter(ID=record_id).first()
+        if not record:
+            return None
+        if not record.is_finished():
+            upgrade_service.sync_record(tenant_name, region_name, record)
+        return upgrade_service.serialized_upgrade_record(record)
 
     def list_snapshot_versions(self, app_id):
         relation, _ = self.get_hidden_template(app_id)

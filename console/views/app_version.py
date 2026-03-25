@@ -3,7 +3,7 @@
 
 from console.exception.main import ServiceHandleException
 from console.services.app_version_service import app_version_service
-from console.utils.reqparse import parse_argument, parse_item
+from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.views.base import ApplicationView
 
@@ -17,7 +17,11 @@ class AppVersionOverviewView(ApplicationView):
 class AppVersionSnapshotListView(ApplicationView):
     def get(self, request, group_id, *args, **kwargs):
         versions = app_version_service.list_snapshot_versions(self.app.ID)
-        return MessageResponse(msg="success", list=versions, bean={"has_template": bool(app_version_service.get_relation(self.app.ID))})
+        return MessageResponse(
+            msg="success",
+            list=versions,
+            bean={"has_template": bool(app_version_service.get_relation(self.app.ID))}
+        )
 
     def post(self, request, group_id, *args, **kwargs):
         version = parse_item(request, "version", default="")
@@ -59,3 +63,17 @@ class AppVersionSnapshotRollbackView(ApplicationView):
         if not record:
             raise ServiceHandleException("snapshot rollback not supported", "当前快照暂不支持回滚", status_code=400)
         return MessageResponse(msg="success", msg_show="回滚任务已创建", bean=record)
+
+
+class AppVersionRollbackRecordListView(ApplicationView):
+    def get(self, request, group_id, *args, **kwargs):
+        records = app_version_service.list_rollback_records(self.tenant_name, self.region_name, self.app.ID)
+        return MessageResponse(msg="success", list=records)
+
+
+class AppVersionRollbackRecordDetailView(ApplicationView):
+    def get(self, request, group_id, record_id, *args, **kwargs):
+        record = app_version_service.get_rollback_record(self.tenant_name, self.region_name, self.app.ID, record_id)
+        if not record:
+            raise ServiceHandleException("rollback record not found", "回滚记录不存在", status_code=404)
+        return MessageResponse(msg="success", bean=record)

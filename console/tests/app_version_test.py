@@ -27,6 +27,7 @@ from console.services.app_version_service import app_version_service  # noqa: E4
 from console.services.market_app import app_restore as app_restore_module  # noqa: E402
 from console.services.market_app import market_app as market_app_module  # noqa: E402
 from console.services.market_app import new_app as new_app_module  # noqa: E402
+from console.views import app_version as app_version_view_module  # noqa: E402
 from console.views.app_version import AppVersionSnapshotDetailView, AppVersionSnapshotListView  # noqa: E402
 
 
@@ -689,6 +690,63 @@ class AppVersionSnapshotDetailViewDeleteTestCase(TestCase):
         delete_mock.assert_called_once_with(42, 11)
 
 
+class AppVersionRollbackRecordServiceTestCase(TestCase):
+    def setUp(self):
+        self.relation = mock.Mock(app_model_id="hidden-app-id")
+
+    def test_list_rollback_records_filters_app_version_records(self):
+        rollback_record = mock.Mock(to_dict=mock.Mock(return_value={"ID": 9, "status": 4}))
+        query = mock.Mock()
+        ordered_query = [rollback_record]
+        query.order_by.return_value = ordered_query
+
+        with mock.patch.object(
+                app_version_service,
+                "get_hidden_template",
+                return_value=(self.relation, mock.Mock())), \
+                mock.patch.object(
+                    app_version_service_module.AppUpgradeRecord.objects,
+                    "filter",
+                    return_value=query) as filter_mock:
+            records = app_version_service.list_rollback_records("demo-team", "demo-region", 42)
+
+        self.assertEqual(records, [{"ID": 9, "status": 4}])
+        self.assertEqual(filter_mock.call_args[1]["group_id"], 42)
+        self.assertEqual(filter_mock.call_args[1]["group_key"], "hidden-app-id")
+        self.assertEqual(filter_mock.call_args[1]["record_type"], app_version_service_module.AppUpgradeRecordType.ROLLBACK.value)
+        self.assertEqual(filter_mock.call_args[1]["parent_id"], 0)
+
+    def test_get_rollback_record_detail_syncs_unfinished_record(self):
+        rollback_record = mock.Mock(ID=9)
+        rollback_record.is_finished.return_value = False
+        query = mock.Mock()
+        filtered_query = mock.Mock()
+        filtered_query.first.return_value = rollback_record
+        query.order_by.return_value = query
+        query.filter.return_value = filtered_query
+
+        with mock.patch.object(
+                app_version_service,
+                "get_hidden_template",
+                return_value=(self.relation, mock.Mock())), \
+                mock.patch.object(
+                    app_version_service_module.AppUpgradeRecord.objects,
+                    "filter",
+                    return_value=query), \
+                mock.patch.object(
+                    app_version_service_module.upgrade_service,
+                    "sync_record") as sync_record_mock, \
+                mock.patch.object(
+                    app_version_service_module.upgrade_service,
+                    "serialized_upgrade_record",
+                    return_value={"ID": 9, "status": 4}) as serialized_mock:
+            record = app_version_service.get_rollback_record("demo-team", "demo-region", 42, 9)
+
+        self.assertEqual(record, {"ID": 9, "status": 4})
+        sync_record_mock.assert_called_once_with("demo-team", "demo-region", rollback_record)
+        serialized_mock.assert_called_once_with(rollback_record)
+
+
 class AppVersionSnapshotListViewPostTestCase(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
@@ -730,6 +788,45 @@ class AppVersionSnapshotListViewPostTestCase(TestCase):
         self.assertEqual(response.data["data"]["bean"], expected_result)
         self.assertEqual(response.data["msg_show"], "当前没有新的变更，无需创建快照")
         create_mock.assert_called_once()
+
+
+class AppVersionRollbackRecordViewTestCase(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+
+    def test_list_returns_rollback_records(self):
+        request = self.factory.get("/console/teams/demo-team/groups/42/app-version-rollback-records")
+        view = app_version_view_module.AppVersionRollbackRecordListView()
+        view.app = mock.Mock(ID=42)
+        view.tenant_name = "demo-team"
+        view.region_name = "demo-region"
+
+        with mock.patch.object(
+                app_version_view_module.app_version_service,
+                "list_rollback_records",
+                return_value=[{"ID": 9, "status": 4}]) as list_mock:
+            response = view.get(request, 42)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["list"], [{"ID": 9, "status": 4}])
+        list_mock.assert_called_once_with("demo-team", "demo-region", 42)
+
+    def test_detail_returns_single_rollback_record(self):
+        request = self.factory.get("/console/teams/demo-team/groups/42/app-version-rollback-records/9")
+        view = app_version_view_module.AppVersionRollbackRecordDetailView()
+        view.app = mock.Mock(ID=42)
+        view.tenant_name = "demo-team"
+        view.region_name = "demo-region"
+
+        with mock.patch.object(
+                app_version_view_module.app_version_service,
+                "get_rollback_record",
+                return_value={"ID": 9, "status": 4}) as detail_mock:
+            response = view.get(request, 42, 9)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["bean"], {"ID": 9, "status": 4})
+        detail_mock.assert_called_once_with("demo-team", "demo-region", 42, 9)
 
 
 class AppRestoreSnapshotCompatibilityTestCase(TestCase):
@@ -943,7 +1040,7 @@ class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
         )
         self.assertEqual(
             new_app["new_components"][0].action_type,
-            app_restore_module.ActionType.BUILD.value,
+            app_restore_module.ActionType.NOTHING.value,
         )
         self.assertEqual(
             new_app["new_components"][0].service_group_rel,

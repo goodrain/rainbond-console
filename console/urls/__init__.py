@@ -1168,6 +1168,10 @@ urlpatterns += [
         app_version.AppVersionSnapshotDetailView.as_view()),
     url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions/(?P<version_id>[0-9]+)/rollback$',
         app_version.AppVersionSnapshotRollbackView.as_view()),
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-version-rollback-records$',
+        app_version.AppVersionRollbackRecordListView.as_view()),
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-version-rollback-records/(?P<record_id>[0-9]+)$',
+        app_version.AppVersionRollbackRecordDetailView.as_view()),
 ]
 
 urlpatterns += [
