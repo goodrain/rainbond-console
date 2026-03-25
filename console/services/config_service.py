@@ -265,7 +265,7 @@ class ConfigService(object):
 
 
 class EnterpriseConfigService(ConfigService):
-    def __init__(self, eid, user_id):
+    def __init__(self, eid, user_id=None):
         super(EnterpriseConfigService, self).__init__()
         self.enterprise_id = eid
         self.user_id = user_id
