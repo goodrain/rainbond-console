@@ -864,3 +864,73 @@ class NewAppUpdateComponentsTestCase(TestCase):
 
         bulk_update_mock.assert_not_called()
         overwrite_mock.assert_called_once_with(["service-id"], [])
+
+
+class NewAppSaveComponentsTestCase(TestCase):
+    def test_save_components_overwrites_k8s_attributes_for_new_components(self):
+        new_app = new_app_module.NewApp.__new__(new_app_module.NewApp)
+        component = mock.Mock(component_id="service-id")
+        extend_info = mock.Mock(ID=56)
+        new_app.new_components = [
+            mock.Mock(
+                component=component,
+                component_source=None,
+                envs=[],
+                ports=[],
+                http_rules=[],
+                http_rule_configs=[],
+                volumes=[],
+                config_files=[],
+                probes=[],
+                extend_info=extend_info,
+                monitors=[],
+                graphs=[],
+                service_group_rel=mock.Mock(),
+                labels=[],
+                k8s_attributes=[mock.Mock(ID=88, component_id="service-id")],
+            )
+        ]
+
+        with mock.patch.object(new_app_module.service_repo, "bulk_create"), \
+                mock.patch.object(new_app_module.service_source_repo, "bulk_create"), \
+                mock.patch.object(new_app_module.env_var_repo, "bulk_create"), \
+                mock.patch.object(new_app_module.port_repo, "bulk_create"), \
+                mock.patch.object(new_app_module.domain_repo, "bulk_create"), \
+                mock.patch.object(new_app_module.configuration_repo, "bulk_create"), \
+                mock.patch.object(new_app_module.volume_repo, "bulk_create"), \
+                mock.patch.object(new_app_module.config_file_repo, "bulk_create"), \
+                mock.patch.object(new_app_module.probe_repo, "bulk_create"), \
+                mock.patch.object(
+                    new_app_module.extend_repo,
+                    "bulk_create") as extend_bulk_create_mock, \
+                mock.patch.object(
+                    new_app_module.extend_repo,
+                    "bulk_create_or_update") as extend_bulk_create_or_update_mock, \
+                mock.patch.object(new_app_module.service_monitor_repo, "bulk_create"), \
+                mock.patch.object(new_app_module.component_graph_repo, "bulk_create"), \
+                mock.patch.object(new_app_module.service_group_relation_repo, "bulk_create"), \
+                mock.patch.object(new_app_module.service_label_repo, "bulk_create"), \
+                mock.patch.object(
+                    new_app_module.k8s_attribute_repo,
+                    "bulk_create") as bulk_create_k8s_attribute_mock, \
+                mock.patch.object(
+                    new_app_module.k8s_attribute_repo,
+                    "overwrite_by_component_ids") as overwrite_k8s_attribute_mock:
+            new_app._save_components()
+
+        extend_bulk_create_mock.assert_not_called()
+        extend_bulk_create_or_update_mock.assert_called_once_with([extend_info])
+        bulk_create_k8s_attribute_mock.assert_not_called()
+        overwrite_k8s_attribute_mock.assert_called_once()
+        self.assertEqual(
+            overwrite_k8s_attribute_mock.call_args[0][0],
+            ["service-id"],
+        )
+
+
+class AppRestoreRollbackRecordTestCase(TestCase):
+    def test_update_rollback_record_ignores_missing_record(self):
+        restore = app_restore_module.AppRestore.__new__(app_restore_module.AppRestore)
+        restore.rollback_record = None
+
+        restore._update_rollback_record(5)

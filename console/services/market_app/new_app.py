@@ -204,12 +204,12 @@ class NewApp(object):
         volume_repo.bulk_create(volumes)
         config_file_repo.bulk_create(config_files)
         probe_repo.bulk_create(probes)
-        extend_repo.bulk_create(extend_infos)
+        extend_repo.bulk_create_or_update(extend_infos)
         service_monitor_repo.bulk_create(monitors)
         component_graph_repo.bulk_create(graphs)
         service_group_relation_repo.bulk_create(service_group_rels)
         service_label_repo.bulk_create(labels)
-        k8s_attribute_repo.bulk_create(k8s_attributes)
+        k8s_attribute_repo.overwrite_by_component_ids([cpt.component_id for cpt in components], k8s_attributes)
 
     def _update_components(self):
         """

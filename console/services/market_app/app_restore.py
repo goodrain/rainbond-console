@@ -114,6 +114,8 @@ class AppRestore(MarketApp):
         self.upgrade_record.save()
 
     def _update_rollback_record(self, status):
+        if not self.rollback_record:
+            return
         self.rollback_record.status = status
         self.rollback_record.save()
 
