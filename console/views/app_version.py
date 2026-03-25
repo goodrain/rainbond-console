@@ -77,3 +77,7 @@ class AppVersionRollbackRecordDetailView(ApplicationView):
         if not record:
             raise ServiceHandleException("rollback record not found", "回滚记录不存在", status_code=404)
         return MessageResponse(msg="success", bean=record)
+
+    def delete(self, request, group_id, record_id, *args, **kwargs):
+        app_version_service.delete_rollback_record(self.app.ID, record_id)
+        return MessageResponse(msg="success", msg_show="删除成功")

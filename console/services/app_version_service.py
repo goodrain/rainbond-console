@@ -606,6 +606,18 @@ class AppVersionService(object):
             upgrade_service.sync_record(tenant_name, region_name, record)
         return upgrade_service.serialized_upgrade_record(record)
 
+    def delete_rollback_record(self, app_id, record_id):
+        records = self._rollback_records_query(app_id)
+        if records is None:
+            raise ServiceHandleException("rollback record not found", "回滚记录不存在", status_code=404)
+        record = records.filter(ID=record_id).first()
+        if not record:
+            raise ServiceHandleException("rollback record not found", "回滚记录不存在", status_code=404)
+        if not record.is_finished():
+            raise ServiceHandleException("rollback record is running", "进行中的回滚记录不允许删除", status_code=400)
+        record.delete()
+        return True
+
     def list_snapshot_versions(self, app_id):
         relation, _ = self.get_hidden_template(app_id)
         if not relation:

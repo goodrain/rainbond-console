@@ -746,6 +746,51 @@ class AppVersionRollbackRecordServiceTestCase(TestCase):
         sync_record_mock.assert_called_once_with("demo-team", "demo-region", rollback_record)
         serialized_mock.assert_called_once_with(rollback_record)
 
+    def test_delete_rollback_record_rejects_unfinished_record(self):
+        rollback_record = mock.Mock()
+        rollback_record.is_finished.return_value = False
+        query = mock.Mock()
+        filtered_query = mock.Mock()
+        filtered_query.first.return_value = rollback_record
+        query.order_by.return_value = query
+        query.filter.return_value = filtered_query
+
+        with mock.patch.object(
+                app_version_service,
+                "get_hidden_template",
+                return_value=(self.relation, mock.Mock())), \
+                mock.patch.object(
+                    app_version_service_module.AppUpgradeRecord.objects,
+                    "filter",
+                    return_value=query):
+            with self.assertRaises(ServiceHandleException) as context:
+                app_version_service.delete_rollback_record(42, 9)
+
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(context.exception.msg_show, "进行中的回滚记录不允许删除")
+
+    def test_delete_rollback_record_removes_finished_record(self):
+        rollback_record = mock.Mock()
+        rollback_record.is_finished.return_value = True
+        query = mock.Mock()
+        filtered_query = mock.Mock()
+        filtered_query.first.return_value = rollback_record
+        query.order_by.return_value = query
+        query.filter.return_value = filtered_query
+
+        with mock.patch.object(
+                app_version_service,
+                "get_hidden_template",
+                return_value=(self.relation, mock.Mock())), \
+                mock.patch.object(
+                    app_version_service_module.AppUpgradeRecord.objects,
+                    "filter",
+                    return_value=query):
+            result = app_version_service.delete_rollback_record(42, 9)
+
+        self.assertTrue(result)
+        rollback_record.delete.assert_called_once_with()
+
 
 class AppVersionSnapshotListViewPostTestCase(TestCase):
     def setUp(self):
@@ -827,6 +872,21 @@ class AppVersionRollbackRecordViewTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["data"]["bean"], {"ID": 9, "status": 4})
         detail_mock.assert_called_once_with("demo-team", "demo-region", 42, 9)
+
+    def test_delete_removes_rollback_record(self):
+        request = self.factory.delete("/console/teams/demo-team/groups/42/app-version-rollback-records/9")
+        view = app_version_view_module.AppVersionRollbackRecordDetailView()
+        view.app = mock.Mock(ID=42)
+
+        with mock.patch.object(
+                app_version_view_module.app_version_service,
+                "delete_rollback_record",
+                return_value=True) as delete_mock:
+            response = view.delete(request, 42, 9)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["msg_show"], "删除成功")
+        delete_mock.assert_called_once_with(42, 9)
 
 
 class AppRestoreSnapshotCompatibilityTestCase(TestCase):
