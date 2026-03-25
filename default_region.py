@@ -3,7 +3,12 @@ import datetime
 import os
 import uuid
 
-import MySQLdb
+try:
+    import MySQLdb
+except Exception:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+    import MySQLdb
 
 
 def create_db_client():

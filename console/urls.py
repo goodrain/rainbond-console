@@ -50,6 +50,7 @@ from console.views.app_manage import (AgainDelete, BatchActionView, BatchDelete,
                                       ChangeServiceUpgradeView, DeleteAppView, DeployAppView, HorizontalExtendAppView,
                                       MarketServiceUpgradeView, ReStartAppView, RollBackAppView, StartAppView, StopAppView,
                                       TeamAppsCloseView, UpgradeAppView, VerticalExtendAppView, PackageToolView, PauseAppView,
+                                      BuildStrategyMigrateView,
                                       UNPauseAppView, TarImageView, AppsPorConsoletView, ScalingAppView)
 from console.views.app_market import BindableMarketsView
 from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQueryView, AppResourceQueryView,
@@ -681,6 +682,8 @@ urlpatterns = [
         MarketServiceUpgradeView.as_view(), perms.APP_UPGRADE),
     # 组件设置语言和安装依赖
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/package_tool$', PackageToolView.as_view(),
+        perms.APP_OVERVIEW_PERMS),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/build-strategy/migrate$', BuildStrategyMigrateView.as_view(),
         perms.APP_OVERVIEW_PERMS),
     # tar包设置镜像
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/tar_image$', TarImageView.as_view(),

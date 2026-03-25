@@ -2770,7 +2770,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 
-    def get_lang_version(self, enterprise_id, region, lang, show):
+    def get_lang_version(self, enterprise_id, region, lang, show, build_strategy=""):
         """
         获取语言版本信息。
 
@@ -2787,6 +2787,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/langVersion?language={0}&show={1}".format(lang, show)
+        if build_strategy:
+            url += "&build_strategy={0}".format(build_strategy)
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return body
 
@@ -3199,7 +3201,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
 
-    def get_lang_version(self, enterprise_id, region, lang, show):
+    def get_lang_version(self, enterprise_id, region, lang, show, build_strategy=""):
         """
         获取语言版本信息。
 
@@ -3216,6 +3218,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/langVersion?language={0}&show={1}".format(lang, show)
+        if build_strategy:
+            url += "&build_strategy={0}".format(build_strategy)
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return body
 

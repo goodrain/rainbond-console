@@ -1054,6 +1054,8 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
         lang = request.data.get("lang", "")
         package_tool = request.data.get("package_tool", "")
         dist = request.data.get("dist", "")
+        build_strategy = request.data.get("build_strategy", "")
+        build_env_dict = request.data.get("build_env_dict", {})
         # CNB 构建相关参数
         cnb_framework = request.data.get("cnb_framework", "")
         cnb_build_script = request.data.get("cnb_build_script", "")
@@ -1082,11 +1084,21 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
                 cnb_mirror_yarnrc=cnb_mirror_yarnrc,
                 has_npmrc=has_npmrc,
                 has_yarnrc=has_yarnrc,
-                cnb_start_script=cnb_start_script
+                cnb_start_script=cnb_start_script,
+                build_strategy=build_strategy,
+                build_env_dict=build_env_dict
             )
             if code != 200:
                 return Response(status=code, data=general_message(code, "failed", "操作失败"))
         return Response(status=200, data=general_message(200, "succeed", "操作成功"))
+
+
+class BuildStrategyMigrateView(AppBaseCloudEnterpriseCenterView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        target_strategy = request.data.get("target_strategy", "cnb")
+        bean = app_manage_service.migrate_build_strategy(self.tenant, self.service, target_strategy)
+        return Response(status=200, data=general_message(200, "success", "操作成功", bean=bean))
 
 
 class TarImageView(AppBaseCloudEnterpriseCenterView):

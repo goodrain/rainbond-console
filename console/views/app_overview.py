@@ -30,6 +30,7 @@ from console.services.plugin import app_plugin_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.kubeblocks_service import kubeblocks_service
+from console.utils.cnb_build import summarize_build_env
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
@@ -617,7 +618,15 @@ class BuildSourceinfo(AppBaseView):
         service_ids = [self.service.service_id]
         build_infos = base_service.get_build_infos(self.tenant, service_ids)
         bean = build_infos.get(self.service.service_id, None)
-        if bean["server_type"] == "pkg":
+        if bean is None:
+            bean = {}
+        bean.setdefault("cnb_version_policy", {})
+        build_strategy = bean.get("build_strategy") or getattr(self.service, "build_strategy", "") or ""
+        build_summary = summarize_build_env(self.service.language, build_strategy, bean.get("build_env_dict", {}))
+        bean.setdefault("builder_image", build_summary.get("builder_image", ""))
+        bean.setdefault("yaml_observable", build_summary.get("yaml_observable", {}))
+        bean.setdefault("start_command_source", build_summary.get("start_command_source", ""))
+        if bean.get("server_type") == "pkg":
             package_names = package_upload_service.get_name_by_component_id(service_ids)
             if package_names:
                 bean["package_name"] = package_names[0]
@@ -832,4 +841,3 @@ class ManageFile(AppBaseView):
         }
         result = general_message(200, "success", "获取成功", list=res, bean=bean)
         return Response(result, status=result["code"])
-
