@@ -19,12 +19,13 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.share_repo import share_repo
 from console.services.group_service import group_service
 from console.services.market_app.enum import ActionType
+from console.services.market_app.new_app import NewApp
 from console.services.market_app_service import market_app_service
 from console.services.backup_service import groupapp_backup_service
 from console.services.market_app.app_restore import AppRestore
 from console.services.share_services import share_service
 from django.db import transaction
-from www.models.main import make_uuid, TenantServiceGroup
+from www.models.main import make_uuid, TenantServiceGroup, ServiceGroupRelation
 
 
 class AppVersionRollbackRestore(AppRestore):
@@ -53,6 +54,67 @@ class AppVersionRollbackRestore(AppRestore):
         rollback_record["version"] = self.target_snapshot_version
         rollback_record["old_version"] = self.current_snapshot_version
         self.rollback_record = AppUpgradeRecord.objects.create(**rollback_record)
+
+    def _get_snapshot(self):
+        snap = app_snapshot_repo.get_by_snapshot_id(self.upgrade_record.snapshot_id)
+        return json.loads(snap.snapshot)
+
+    def _build_service_group_relation(self, component_id):
+        return ServiceGroupRelation(
+            service_id=component_id,
+            group_id=self.app.ID,
+            tenant_id=self.tenant.tenant_id,
+            region_name=self.region_name,
+        )
+
+    def _create_new_app(self):
+        current_components = self.original_app.components()
+        current_component_ids = {component.component.component_id for component in current_components}
+        now_volumes = {}
+        for current_component in current_components:
+            volumes = []
+            for volume in current_component.volumes:
+                if volume.volume_type != "config-file":
+                    volumes.append(volume)
+            now_volumes[current_component.component.service_id] = volumes
+
+        new_components = []
+        update_components = []
+        for snap in self.snapshot["components"]:
+            component = self._create_component(snap, now_volumes)
+            component_id = component.component.component_id
+            if component_id in current_component_ids:
+                update_components.append(component)
+                continue
+            component.service_group_rel = self._build_service_group_relation(component_id)
+            new_components.append(component)
+
+        component_ids = [component.component.component_id for component in new_components + update_components]
+
+        new_deps = self._create_component_deps(component_ids)
+        component_deps = self.ensure_component_deps(new_deps)
+
+        new_volume_deps = self._create_volume_deps(component_ids)
+        volume_deps = self.ensure_volume_deps(new_volume_deps)
+
+        plugins = self.list_original_plugins()
+
+        return NewApp(
+            tenant=self.tenant,
+            region_name=self.region_name,
+            app=self.app,
+            component_group=self._create_component_group(),
+            new_components=new_components,
+            update_components=update_components,
+            component_deps=component_deps,
+            volume_deps=volume_deps,
+            plugins=plugins,
+            plugin_deps=self._create_plugins_deps(),
+            plugin_configs=self._create_plugins_configs(),
+            config_groups=self.original_app.config_groups,
+            config_group_components=self.original_app.config_group_components,
+            config_group_items=self.original_app.config_group_items,
+        )
 
 
 class AppVersionService(object):

@@ -712,6 +712,117 @@ class AppVersionRollbackRestoreActionTypeTestCase(TestCase):
         self.assertEqual(component.action_type, app_restore_module.ActionType.UPDATE.value)
 
 
+class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
+    def test_get_snapshot_keeps_components_missing_from_current_runtime(self):
+        restore = app_version_service_module.AppVersionRollbackRestore.__new__(
+            app_version_service_module.AppVersionRollbackRestore
+        )
+        restore.upgrade_record = mock.Mock(snapshot_id="snapshot-id")
+        restore.original_app = mock.Mock(
+            components=mock.Mock(
+                return_value=[
+                    mock.Mock(component=mock.Mock(component_id="existing-component")),
+                ]
+            )
+        )
+        snapshot = {
+            "components": [
+                {"component_id": "existing-component"},
+                {"component_id": "restored-component"},
+            ],
+            "component_group": {"group_version": "0.0.2"},
+        }
+
+        with mock.patch.object(
+            app_version_service_module.app_snapshot_repo,
+            "get_by_snapshot_id",
+            return_value=mock.Mock(snapshot=json.dumps(snapshot)),
+        ):
+            result = restore._get_snapshot()
+
+        self.assertEqual(
+            [component["component_id"] for component in result["components"]],
+            ["existing-component", "restored-component"],
+        )
+
+    def test_create_new_app_restores_snapshot_components_missing_from_runtime(self):
+        restore = app_version_service_module.AppVersionRollbackRestore.__new__(
+            app_version_service_module.AppVersionRollbackRestore
+        )
+        restore.tenant = mock.Mock(tenant_id="tenant-id")
+        restore.region_name = "test-region"
+        restore.app = mock.Mock(ID=42)
+        restore.snapshot = {
+            "components": [
+                {"service_base": {"service_id": "existing-component"}},
+                {"service_base": {"service_id": "restored-component"}},
+            ],
+            "component_group": {"group_version": "0.0.2"},
+        }
+        restore.original_app = mock.Mock(
+            components=mock.Mock(
+                return_value=[
+                    mock.Mock(component=mock.Mock(component_id="existing-component"), volumes=[]),
+                ]
+            ),
+            config_groups=[],
+            config_group_components=[],
+            config_group_items=[],
+        )
+        restore._create_component = mock.Mock(
+            side_effect=lambda snap, now_volumes: mock.Mock(
+                component=mock.Mock(
+                    component_id=snap["service_base"]["service_id"],
+                    service_id=snap["service_base"]["service_id"],
+                ),
+                service_group_rel=None,
+            )
+        )
+        restore._create_component_deps = mock.Mock(return_value=[])
+        restore.ensure_component_deps = mock.Mock(return_value=[])
+        restore._create_volume_deps = mock.Mock(return_value=[])
+        restore.ensure_volume_deps = mock.Mock(return_value=[])
+        restore.list_original_plugins = mock.Mock(return_value=[])
+        restore._create_component_group = mock.Mock(return_value="component-group")
+        restore._create_plugins_deps = mock.Mock(return_value=[])
+        restore._create_plugins_configs = mock.Mock(return_value=[])
+
+        with mock.patch.object(
+            app_version_service_module,
+            "ServiceGroupRelation",
+            side_effect=lambda **kwargs: kwargs,
+            create=True,
+        ), mock.patch.object(
+            app_restore_module,
+            "NewApp",
+            side_effect=lambda **kwargs: kwargs,
+        ), mock.patch.object(
+            app_version_service_module,
+            "NewApp",
+            side_effect=lambda **kwargs: kwargs,
+            create=True,
+        ):
+            new_app = restore._create_new_app()
+
+        self.assertEqual(
+            [component.component.component_id for component in new_app["update_components"]],
+            ["existing-component"],
+        )
+        self.assertEqual(
+            [component.component.component_id for component in new_app["new_components"]],
+            ["restored-component"],
+        )
+        self.assertEqual(
+            new_app["new_components"][0].service_group_rel,
+            {
+                "service_id": "restored-component",
+                "group_id": 42,
+                "tenant_id": "tenant-id",
+                "region_name": "test-region",
+            },
+        )
+
+
 class NewAppUpdateComponentsTestCase(TestCase):
     def test_update_components_overwrites_service_sources_when_snapshot_missing_source(self):
         new_app = new_app_module.NewApp.__new__(new_app_module.NewApp)
