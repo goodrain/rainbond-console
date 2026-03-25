@@ -762,7 +762,7 @@ class AppRestoreSnapshotCompatibilityTestCase(TestCase):
 
 
 class AppVersionRollbackRestoreActionTypeTestCase(TestCase):
-    def test_create_component_forces_update_action_for_legacy_snapshot(self):
+    def test_create_component_keeps_snapshot_action_type_for_legacy_snapshot(self):
         restore = app_version_service_module.AppVersionRollbackRestore.__new__(
             app_version_service_module.AppVersionRollbackRestore
         )
@@ -789,7 +789,48 @@ class AppVersionRollbackRestoreActionTypeTestCase(TestCase):
         ):
             component = restore._create_component(snap, {})
 
-        self.assertEqual(component.action_type, app_restore_module.ActionType.UPDATE.value)
+        self.assertEqual(component.action_type, app_restore_module.ActionType.NOTHING.value)
+
+
+class AppVersionServiceRollbackPlanTestCase(TestCase):
+    def test_build_rollback_component_plan_marks_changed_and_restored_components(self):
+        current_template = {
+            "apps": [
+                {
+                    "service_alias": "web",
+                    "service_cname": "nginx",
+                    "service_env_map_list": [{"attr_name": "DEBUG", "attr_value": "false"}],
+                    "port_map_list": [],
+                    "service_volume_map_list": [],
+                    "probes": [],
+                },
+            ]
+        }
+        target_template = {
+            "apps": [
+                {
+                    "service_alias": "web",
+                    "service_cname": "nginx",
+                    "service_env_map_list": [{"attr_name": "DEBUG", "attr_value": "true"}],
+                    "port_map_list": [],
+                    "service_volume_map_list": [],
+                    "probes": [],
+                },
+                {
+                    "service_alias": "demo",
+                    "service_cname": "demo-2048",
+                    "service_env_map_list": [],
+                    "port_map_list": [],
+                    "service_volume_map_list": [],
+                    "probes": [],
+                },
+            ]
+        }
+
+        plan = app_version_service._build_rollback_component_plan(current_template, target_template)
+
+        self.assertEqual(plan["changed"], {"web"})
+        self.assertEqual(plan["restored"], {"demo"})
 
 
 class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
@@ -832,10 +873,12 @@ class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
         restore.tenant = mock.Mock(tenant_id="tenant-id")
         restore.region_name = "test-region"
         restore.app = mock.Mock(ID=42)
+        restore.changed_component_identities = set()
+        restore.restored_component_identities = {"restored-service"}
         restore.snapshot = {
             "components": [
-                {"service_base": {"service_id": "existing-component"}},
-                {"service_base": {"service_id": "restored-component"}},
+                {"service_base": {"service_id": "existing-component", "service_alias": "existing-service"}},
+                {"service_base": {"service_id": "restored-component", "service_alias": "restored-service"}},
             ],
             "component_group": {"group_version": "0.0.2"},
         }
@@ -856,6 +899,7 @@ class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
                     service_id=snap["service_base"]["service_id"],
                 ),
                 service_group_rel=None,
+                action_type=app_restore_module.ActionType.NOTHING.value,
             )
         )
         restore._create_component_deps = mock.Mock(return_value=[])
@@ -889,8 +933,16 @@ class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
             ["existing-component"],
         )
         self.assertEqual(
+            new_app["update_components"][0].action_type,
+            app_restore_module.ActionType.NOTHING.value,
+        )
+        self.assertEqual(
             [component.component.component_id for component in new_app["new_components"]],
             ["restored-component"],
+        )
+        self.assertEqual(
+            new_app["new_components"][0].action_type,
+            app_restore_module.ActionType.BUILD.value,
         )
         self.assertEqual(
             new_app["new_components"][0].service_group_rel,
@@ -900,6 +952,64 @@ class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
                 "tenant_id": "tenant-id",
                 "region_name": "test-region",
             },
+        )
+
+    def test_create_new_app_marks_changed_existing_components_for_update(self):
+        restore = app_version_service_module.AppVersionRollbackRestore.__new__(
+            app_version_service_module.AppVersionRollbackRestore
+        )
+        restore.tenant = mock.Mock(tenant_id="tenant-id")
+        restore.region_name = "test-region"
+        restore.app = mock.Mock(ID=42)
+        restore.changed_component_identities = {"existing-service"}
+        restore.restored_component_identities = set()
+        restore.snapshot = {
+            "components": [
+                {"service_base": {"service_id": "existing-component", "service_alias": "existing-service"}},
+            ],
+            "component_group": {"group_version": "0.0.2"},
+        }
+        restore.original_app = mock.Mock(
+            components=mock.Mock(
+                return_value=[
+                    mock.Mock(component=mock.Mock(component_id="existing-component"), volumes=[]),
+                ]
+            ),
+            config_groups=[],
+            config_group_components=[],
+            config_group_items=[],
+        )
+        restore._create_component = mock.Mock(
+            return_value=mock.Mock(
+                component=mock.Mock(component_id="existing-component", service_id="existing-component"),
+                service_group_rel=None,
+                action_type=app_restore_module.ActionType.NOTHING.value,
+            )
+        )
+        restore._create_component_deps = mock.Mock(return_value=[])
+        restore.ensure_component_deps = mock.Mock(return_value=[])
+        restore._create_volume_deps = mock.Mock(return_value=[])
+        restore.ensure_volume_deps = mock.Mock(return_value=[])
+        restore.list_original_plugins = mock.Mock(return_value=[])
+        restore._create_component_group = mock.Mock(return_value="component-group")
+        restore._create_plugins_deps = mock.Mock(return_value=[])
+        restore._create_plugins_configs = mock.Mock(return_value=[])
+
+        with mock.patch.object(
+            app_restore_module,
+            "NewApp",
+            side_effect=lambda **kwargs: kwargs,
+        ), mock.patch.object(
+            app_version_service_module,
+            "NewApp",
+            side_effect=lambda **kwargs: kwargs,
+            create=True,
+        ):
+            new_app = restore._create_new_app()
+
+        self.assertEqual(
+            new_app["update_components"][0].action_type,
+            app_restore_module.ActionType.UPDATE.value,
         )
 
 

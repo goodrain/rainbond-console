@@ -2,6 +2,7 @@
 import copy
 import hashlib
 import json
+import logging
 import time
 
 from console.enum.app import GovernanceModeEnum
@@ -27,20 +28,32 @@ from console.services.share_services import share_service
 from django.db import transaction
 from www.models.main import make_uuid, TenantServiceGroup, ServiceGroupRelation
 
+logger = logging.getLogger("default")
+
 
 class AppVersionRollbackRestore(AppRestore):
-    def __init__(self, tenant, region, user, app, component_group, app_upgrade_record, current_version, target_version):
+    def __init__(
+            self,
+            tenant,
+            region,
+            user,
+            app,
+            component_group,
+            app_upgrade_record,
+            current_version,
+            target_version,
+            changed_component_identities=None,
+            restored_component_identities=None):
         self.current_snapshot_version = current_version
         self.target_snapshot_version = target_version
+        self.changed_component_identities = changed_component_identities or set()
+        self.restored_component_identities = restored_component_identities or set()
         super(AppVersionRollbackRestore, self).__init__(tenant, region, user, app, component_group, app_upgrade_record)
 
     def _create_component(self, snap, now_volumes):
         component = super(AppVersionRollbackRestore, self)._create_component(snap, now_volumes)
-        if component.action_type in (None, "", "nothing", ActionType.NOTHING.value):
-            # App-version snapshots represent a full runtime baseline. Restoring them
-            # must trigger a redeploy, otherwise the app record is created but no
-            # region event is produced and rollback never actually runs.
-            component.action_type = ActionType.UPDATE.value
+        if component.action_type in (None, "", "nothing"):
+            component.action_type = ActionType.NOTHING.value
         return component
 
     def create_rollback_record(self):
@@ -67,6 +80,16 @@ class AppVersionRollbackRestore(AppRestore):
             region_name=self.region_name,
         )
 
+    @staticmethod
+    def _snapshot_component_identity(snap):
+        service_base = snap.get("service_base") or {}
+        return (
+            service_base.get("service_alias") or
+            service_base.get("service_cname") or
+            snap.get("component_id") or
+            service_base.get("service_id")
+        )
+
     def _create_new_app(self):
         current_components = self.original_app.components()
         current_component_ids = {component.component.component_id for component in current_components}
@@ -83,9 +106,14 @@ class AppVersionRollbackRestore(AppRestore):
         for snap in self.snapshot["components"]:
             component = self._create_component(snap, now_volumes)
             component_id = component.component.component_id
+            component_identity = self._snapshot_component_identity(snap)
             if component_id in current_component_ids:
+                if component_identity in self.changed_component_identities and component.action_type == ActionType.NOTHING.value:
+                    component.action_type = ActionType.UPDATE.value
                 update_components.append(component)
                 continue
+            if component_identity in self.restored_component_identities and component.action_type == ActionType.NOTHING.value:
+                component.action_type = ActionType.BUILD.value
             component.service_group_rel = self._build_service_group_relation(component_id)
             new_components.append(component)
 
@@ -301,6 +329,22 @@ class AppVersionService(object):
         normalized = self._normalize_template(app_template)
         payload = json.dumps(normalized, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    def _build_rollback_component_plan(self, current_template, target_template):
+        current_map = self._component_map(current_template)
+        target_map = self._component_map(target_template)
+        changed = {
+            name for name in current_map.keys()
+            if name in target_map and current_map[name] != target_map[name]
+        }
+        restored = {
+            name for name in target_map.keys()
+            if name not in current_map
+        }
+        return {
+            "changed": changed,
+            "restored": restored,
+        }
 
     def _component_map(self, app_template):
         apps = app_template.get("apps", [])
@@ -804,6 +848,22 @@ class AppVersionService(object):
             source=self.HIDDEN_TEMPLATE_SOURCE
         ).order_by("-create_time").first()
         current_version = latest_version.version if latest_version else ""
+        current_template = self._build_app_template(
+            tenant,
+            region,
+            user,
+            app,
+            relation.app_model_id,
+            target_version.version,
+        )
+        rollback_plan = self._build_rollback_component_plan(current_template, target_template)
+        logger.info(
+            "app version rollback plan app_id=%s target_version=%s changed=%s restored=%s",
+            app.ID,
+            target_version.version,
+            sorted(list(rollback_plan["changed"])),
+            sorted(list(rollback_plan["restored"])),
+        )
 
         record = AppUpgradeRecord(
             tenant_id=tenant.tenant_id,
@@ -830,7 +890,16 @@ class AppVersionService(object):
             service_group_id=app.ID,
         )
         app_restore = AppVersionRollbackRestore(
-            tenant, region, user, app, pseudo_component_group, record, current_version, target_version.version
+            tenant,
+            region,
+            user,
+            app,
+            pseudo_component_group,
+            record,
+            current_version,
+            target_version.version,
+            changed_component_identities=rollback_plan["changed"],
+            restored_component_identities=rollback_plan["restored"],
         )
         rollback_record, _ = app_restore.restore()
         return rollback_record.to_dict()
