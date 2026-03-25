@@ -105,6 +105,7 @@ class AppVersionServiceComponentDiffDetailTestCase(TestCase):
             "apps": [
                 {
                     "service_alias": "web",
+                    "service_cname": "nginx",
                     "service_env_map_list": [
                         {"attr_name": "DEBUG", "attr_value": "true"},
                         {"attr_name": "LOG_LEVEL", "attr_value": "info"},
@@ -128,6 +129,7 @@ class AppVersionServiceComponentDiffDetailTestCase(TestCase):
                 },
                 {
                     "service_alias": "worker",
+                    "service_cname": "worker-consumer",
                     "service_env_map_list": [],
                     "port_map_list": [],
                     "service_volume_map_list": [],
@@ -139,6 +141,7 @@ class AppVersionServiceComponentDiffDetailTestCase(TestCase):
             "apps": [
                 {
                     "service_alias": "web",
+                    "service_cname": "nginx",
                     "service_env_map_list": [
                         {"attr_name": "DEBUG", "attr_value": "false"},
                         {"attr_name": "OLD_FLAG", "attr_value": "1"},
@@ -162,6 +165,7 @@ class AppVersionServiceComponentDiffDetailTestCase(TestCase):
                 },
                 {
                     "service_alias": "api",
+                    "service_cname": "api-service",
                     "service_env_map_list": [],
                     "port_map_list": [],
                     "service_volume_map_list": [],
@@ -172,11 +176,11 @@ class AppVersionServiceComponentDiffDetailTestCase(TestCase):
 
         diff_detail = app_version_service._build_component_diff_details(current_template, previous_template)
 
-        self.assertEqual(diff_detail["added_components"], [{"component_name": "worker"}])
-        self.assertEqual(diff_detail["removed_components"], [{"component_name": "api"}])
+        self.assertEqual(diff_detail["added_components"], [{"component_name": "worker-consumer"}])
+        self.assertEqual(diff_detail["removed_components"], [{"component_name": "api-service"}])
         self.assertEqual(len(diff_detail["updated_components"]), 1)
         updated_component = diff_detail["updated_components"][0]
-        self.assertEqual(updated_component["component_name"], "web")
+        self.assertEqual(updated_component["component_name"], "nginx")
 
         field_changes = {item["field_key"]: item for item in updated_component["field_changes"]}
 
@@ -257,6 +261,7 @@ class AppVersionServiceSnapshotDetailTestCase(TestCase):
         current_template = {
             "apps": [{
                 "service_alias": "web",
+                "service_cname": "nginx",
                 "service_env_map_list": [{"attr_name": "DEBUG", "attr_value": "true"}],
                 "port_map_list": [],
                 "service_volume_map_list": [],
@@ -266,6 +271,7 @@ class AppVersionServiceSnapshotDetailTestCase(TestCase):
         previous_template = {
             "apps": [{
                 "service_alias": "web",
+                "service_cname": "nginx",
                 "service_env_map_list": [{"attr_name": "DEBUG", "attr_value": "false"}],
                 "port_map_list": [],
                 "service_volume_map_list": [],
@@ -306,7 +312,7 @@ class AppVersionServiceSnapshotDetailTestCase(TestCase):
         self.assertEqual(detail["diff_summary"]["updated_components"], ["web"])
         updated_components = detail["component_diff_details"]["updated_components"]
         self.assertEqual(len(updated_components), 1)
-        self.assertEqual(updated_components[0]["component_name"], "web")
+        self.assertEqual(updated_components[0]["component_name"], "nginx")
         self.assertEqual(updated_components[0]["field_changes"][0]["field_key"], "service_env_map_list")
 
 
@@ -349,6 +355,7 @@ class AppVersionServiceOverviewTestCase(TestCase):
         runtime_template = {
             "apps": [{
                 "service_alias": "web",
+                "service_cname": "nginx",
                 "service_env_map_list": [{"attr_name": "DEBUG", "attr_value": "true"}],
                 "port_map_list": [],
                 "service_volume_map_list": [],
@@ -358,6 +365,7 @@ class AppVersionServiceOverviewTestCase(TestCase):
         baseline_template = {
             "apps": [{
                 "service_alias": "web",
+                "service_cname": "nginx",
                 "service_env_map_list": [{"attr_name": "DEBUG", "attr_value": "false"}],
                 "port_map_list": [],
                 "service_volume_map_list": [],
@@ -404,6 +412,7 @@ class AppVersionServiceOverviewTestCase(TestCase):
         self.assertTrue(overview["has_changes"])
         self.assertEqual(overview["change_summary"]["updated_count"], 1)
         self.assertEqual(len(overview["component_diff_details"]["updated_components"]), 1)
+        self.assertEqual(overview["component_diff_details"]["updated_components"][0]["component_name"], "nginx")
 
     def test_get_overview_keeps_latest_snapshot_as_current_version_when_newer_than_rollback(self):
         tenant = mock.Mock(tenant_name="demo-team")

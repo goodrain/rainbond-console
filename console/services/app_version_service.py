@@ -291,7 +291,7 @@ class AppVersionService(object):
 
     @staticmethod
     def _format_component_name(component):
-        return component.get("service_alias") or component.get("service_cname") or component.get("service_id") or "unknown"
+        return component.get("service_cname") or component.get("service_alias") or component.get("service_id") or "unknown"
 
     def _format_field_item_identity(self, field_key, item):
         if field_key == "service_env_map_list":
