@@ -128,6 +128,7 @@ from console.views.plugin.service_plugin import (ServicePluginConfigView, Servic
 from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.proxy import ProxyPassView, ProxySSEView
+from console.views.mcp_query import MCPQueryHTTPView, MCPQueryMessageView, MCPQuerySSEView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
                                         GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
@@ -190,6 +191,12 @@ urlpatterns = [
     url(r'^api-gateway/convert', AppApiGatewayConvertView.as_view()),
     url(r'^v2/proxy-pass/(.*?)', ProxyPassView.as_view()),
     url(r'^sse/(.*?)', ProxySSEView.as_view()),
+    url(r'^mcp/query$', MCPQueryHTTPView.as_view()),
+    url(r'^mcp/query/$', MCPQueryHTTPView.as_view()),
+    url(r'^mcp/query/sse$', MCPQuerySSEView.as_view()),
+    url(r'^mcp/query/sse/$', MCPQuerySSEView.as_view()),
+    url(r'^mcp/query/message$', MCPQueryMessageView.as_view()),
+    url(r'^mcp/query/message/$', MCPQueryMessageView.as_view()),
 
     # record error logs
     url(r'^errlog$', ErrLogView.as_view()),
