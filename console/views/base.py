@@ -69,6 +69,17 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         auth_header_prefix = api_settings.JWT_AUTH_HEADER_PREFIX.lower()
         # Also accept standard 'jwt' prefix for external tokens (e.g., from Rainbill portal)
         valid_prefixes = [auth_header_prefix, 'jwt']
+        request_path = getattr(request, 'path', '') or getattr(request, 'path_info', '')
+        is_resource_center_log_request = '/resource-center/pods/' in request_path and request_path.endswith('/logs')
+
+        if is_resource_center_log_request:
+            logger.info(
+                "resource center log auth request path=%s auth_header_present=%s token_cookie_present=%s team_cookie_present=%s",
+                request.get_full_path(),
+                bool(auth),
+                bool(request.COOKIES.get(api_settings.JWT_AUTH_COOKIE)),
+                bool(request.COOKIES.get('team') or request.COOKIES.get('team_name')),
+            )
 
         if not auth:
             if api_settings.JWT_AUTH_COOKIE:
@@ -397,6 +408,8 @@ class TenantHeaderView(JWTAuthApiView):
         Raises:
             AbortRequest: 如果无法找到team_name或tenant，则抛出请求中止异常。
         """
+        request_path = getattr(request, 'path', '') or getattr(request, 'path_info', '')
+        is_resource_center_log_request = '/resource-center/pods/' in request_path and request_path.endswith('/logs')
         # 设置当前用户
         self.user = request.user
 
@@ -425,6 +438,8 @@ class TenantHeaderView(JWTAuthApiView):
 
         # 如果租户名称不存在，抛出异常
         if not self.tenant_name:
+            if is_resource_center_log_request:
+                logger.warning("resource center log tenant resolution failed path=%s", request.get_full_path())
             raise AbortRequest(msg="team_name not found!", msg_show="请求参数缺少team_name", status_code=404)
 
         try:
@@ -439,6 +454,15 @@ class TenantHeaderView(JWTAuthApiView):
             except Tenants.DoesNotExist:
                 raise AbortRequest(msg="tenant {0} not found".format(self.tenant_name), msg_show="团队不存在",
                                    status_code=404)
+
+        if is_resource_center_log_request:
+            logger.info(
+                "resource center log tenant context user_id=%s team_name=%s region_name=%s team_namespace=%s",
+                getattr(self.user, "user_id", ""),
+                self.tenant_name,
+                kwargs.get("region_name", None),
+                getattr(self.tenant, "namespace", ""),
+            )
 
         # 获取权限应用ID
         if kwargs.get("app_id"):

@@ -306,8 +306,70 @@ class ResourceCenterEventsView(TenantHeaderView):
 class ResourceCenterPodLogsView(TenantHeaderView):
     def get(self, request, team_name, region_name, pod_name, *args, **kwargs):
         params = {k: v for k, v in request.GET.items()}
+        logger.info(
+            "resource center pod logs request user_id=%s team=%s region=%s pod=%s params=%s",
+            getattr(getattr(request, "user", None), "user_id", ""),
+            team_name,
+            region_name,
+            pod_name,
+            params,
+        )
         stream = region_api.get_resource_center_pod_log(region_name, team_name, pod_name, params=params)
-        response = StreamingHttpResponse(stream.stream(1024), content_type="text/event-stream")
+
+        logger.info(
+            "resource center pod logs upstream connected team=%s region=%s pod=%s status=%s content_type=%s transfer_encoding=%s",
+            team_name,
+            region_name,
+            pod_name,
+            getattr(stream, "status", None),
+            getattr(getattr(stream, "headers", None), "get", lambda *x: None)("Content-Type"),
+            getattr(getattr(stream, "headers", None), "get", lambda *x: None)("Transfer-Encoding"),
+        )
+
+        def iter_stream():
+            chunk_count = 0
+            try:
+                for chunk in stream.stream(1024):
+                    chunk_count += 1
+                    if chunk_count == 1:
+                        logger.info(
+                            "resource center pod logs first chunk team=%s region=%s pod=%s chunk_size=%s",
+                            team_name,
+                            region_name,
+                            pod_name,
+                            len(chunk) if chunk else 0,
+                        )
+                    yield chunk
+                logger.info(
+                    "resource center pod logs stream completed team=%s region=%s pod=%s chunk_count=%s",
+                    team_name,
+                    region_name,
+                    pod_name,
+                    chunk_count,
+                )
+            except Exception as e:
+                logger.exception(
+                    "resource center pod logs stream failed team=%s region=%s pod=%s error=%s",
+                    team_name,
+                    region_name,
+                    pod_name,
+                    e,
+                )
+                raise
+            finally:
+                try:
+                    if hasattr(stream, "close"):
+                        stream.close()
+                except Exception as e:
+                    logger.warning(
+                        "resource center pod logs stream close failed team=%s region=%s pod=%s error=%s",
+                        team_name,
+                        region_name,
+                        pod_name,
+                        e,
+                    )
+
+        response = StreamingHttpResponse(iter_stream(), content_type="text/event-stream")
         response['Content-Encoding'] = 'identity'
         return response
 
