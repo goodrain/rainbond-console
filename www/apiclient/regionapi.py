@@ -3172,10 +3172,26 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
+        if path.startswith("/v2/tenants/"):
+            try:
+                parts = path.split("/")
+                tenant_name = parts[3]
+                tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+                parts[3] = tenant_region.region_tenant_name
+                path = "/".join(parts)
+            except Exception:
+                pass
         url = region_info.url + path
         client = self.get_client(region_config=region_info)
+        self._set_headers(region_info.token)
         # requests
-        resp = client.request(method="GET", url=url, preload_content=False, timeout=urllib3.Timeout(connect=30, read=60 * 60))
+        resp = client.request(
+            method="GET",
+            url=url,
+            headers=self.default_headers,
+            preload_content=False,
+            timeout=urllib3.Timeout(connect=30, read=60 * 60),
+        )
 
         def event_stream():
             for chunk in resp.stream(4096):
@@ -3184,6 +3200,30 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         response['Content-Encoding'] = 'identity'
         return response
+
+    def get_component_pod_log(
+            self, tenant_name, region_name, service_alias, pod_name, lines=100, container_name="", read_timeout=3):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/services/{}/pods/{}/logs?lines={}".format(
+            tenant_region.region_tenant_name, service_alias, pod_name, lines
+        )
+        if container_name:
+            url += "&container={}".format(container_name)
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        client = self.get_client(region_config=region_info)
+        d_connect, _ = self.get_default_timeout_conifg()
+        self._set_headers(token)
+        resp = client.request(
+            method="GET",
+            url=url,
+            headers=self.default_headers,
+            preload_content=False,
+            timeout=urllib3.Timeout(connect=d_connect, read=read_timeout),
+        )
+        return resp
 
     def upgrade_region(self, region_name, data):
         url, token = self.__get_region_access_info(None, region_name)
