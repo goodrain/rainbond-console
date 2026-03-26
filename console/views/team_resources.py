@@ -329,6 +329,9 @@ class ResourceCenterPodLogsView(TenantHeaderView):
         def iter_stream():
             chunk_count = 0
             try:
+                # Flush one SSE comment frame immediately so EventSource can
+                # establish the stream even when the workload is currently silent.
+                yield b": heartbeat\n\n"
                 for chunk in stream.stream(1024):
                     chunk_count += 1
                     if chunk_count == 1:
@@ -370,6 +373,8 @@ class ResourceCenterPodLogsView(TenantHeaderView):
                     )
 
         response = StreamingHttpResponse(iter_stream(), content_type="text/event-stream")
+        response['Cache-Control'] = 'no-cache'
+        response['Connection'] = 'keep-alive'
         response['Content-Encoding'] = 'identity'
         return response
 

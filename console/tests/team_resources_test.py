@@ -20,6 +20,7 @@ from console.views.team_resources import HelmReleaseDetailView  # noqa: E402
 from console.views.team_resources import HelmReleaseHistoryView  # noqa: E402
 from console.views.team_resources import HelmReleaseRollbackView  # noqa: E402
 from console.views.team_resources import NsResourceDetailView  # noqa: E402
+from console.views.team_resources import ResourceCenterPodLogsView  # noqa: E402
 from console.views import team_resources  # noqa: E402
 from www.apiclient.regionapi import RegionInvokeApi  # noqa: E402
 
@@ -493,3 +494,19 @@ class RegionInvokeApiNsResourceTestCase(TestCase):
                                        content_type="application/yaml")
 
         self.assertEqual(put_mock.call_args[0][1]["Content-Type"], "application/yaml")
+
+
+class ResourceCenterPodLogsViewTestCase(TestCase):
+    def test_get_sends_heartbeat_before_upstream_logs(self):
+        view = ResourceCenterPodLogsView()
+        upstream_stream = mock.Mock(status=200, headers={})
+        upstream_stream.stream.return_value = iter([b"data: hello\n\n"])
+        request = APIRequestFactory().get("/console/teams/demo-team/regions/demo-region/resource-center/pods/demo-pod/logs?container=demo&lines=200")
+
+        with mock.patch.object(team_resources.region_api, "get_resource_center_pod_log", return_value=upstream_stream):
+            response = view.get(request, "demo-team", "demo-region", "demo-pod")
+
+        chunks = iter(response.streaming_content)
+
+        self.assertEqual(next(chunks), b": heartbeat\n\n")
+        self.assertEqual(next(chunks), b"data: hello\n\n")
