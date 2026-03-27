@@ -137,6 +137,13 @@ def sanitize_build_env_dict_for_language(build_env_dict, language):
     return sanitized
 
 
+def resolve_lang_update_build_strategy(language, service_build_strategy=""):
+    current = (service_build_strategy or "").strip().lower()
+    if supports_cnb_build_strategy(language):
+        return current or "cnb"
+    return ""
+
+
 def compose_build_env_response(build_env_dict, build_strategy="", cnb_version_policy=None):
     bean = dict(build_env_dict or {})
     build_strategy = (build_strategy or "").strip().lower()

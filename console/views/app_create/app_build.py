@@ -245,6 +245,8 @@ class CodeBuildLangVersionView(AppBaseView):
         """
         lang = request.GET.get("lang", "")
         show = request.GET.get("show", "")
-        data = app_service.get_code_long_build_version(self.enterprise.enterprise_id, self.region_name, lang, show)
+        build_strategy = request.GET.get("build_strategy", "")
+        data = app_service.get_code_long_build_version(
+            self.enterprise.enterprise_id, self.region_name, lang, show, build_strategy)
         result = general_message(200, "success", "查询成功", list=data)
         return Response(result, status=result["code"])

@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from console.utils.cnb_build import (normalize_source_build_config, resolve_build_strategy, should_backfill_build_strategy,
-                                     resolve_requested_build_strategy)
+                                     resolve_requested_build_strategy, resolve_lang_update_build_strategy)
 
 
 class SourceBuildConfigViewTests(TestCase):
@@ -113,3 +113,13 @@ class SourceBuildConfigViewTests(TestCase):
         )
 
         self.assertEqual(strategy, "")
+
+    def test_lang_update_defaults_supported_languages_to_cnb_when_strategy_is_empty(self):
+        strategy = resolve_lang_update_build_strategy("Python", "")
+
+        self.assertEqual(strategy, "cnb")
+
+    def test_lang_update_keeps_explicit_slug_strategy_for_supported_language(self):
+        strategy = resolve_lang_update_build_strategy("java-maven", "slug")
+
+        self.assertEqual(strategy, "slug")
