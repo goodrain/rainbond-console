@@ -9,8 +9,8 @@ from re import split as re_spilt
 from console.serializer import TenantServiceUpdateSerilizer
 from console.services.app_config import env_var_service
 from console.services.app import app_service
-from console.services.app_check_service import app_check_service
-from console.utils.cnb_build import supports_cnb_build_strategy, resolve_lang_update_build_strategy
+from console.services.app_check_service import (app_check_service, resolve_lang_update_build_strategy,
+                                                supports_cnb_build_strategy)
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.views.app_config.base import AppBaseView
 from django.views.decorators.cache import never_cache

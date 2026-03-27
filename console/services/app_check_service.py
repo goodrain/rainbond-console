@@ -18,8 +18,7 @@ from console.repositories.region_repo import region_repo
 from console.services.app_config import (compile_env_service, domain_service, env_var_service, label_service, port_service,
                                          volume_service)
 from console.services.region_services import region_services
-from console.utils.cnb_build import (CNB_BUILD_ENV_NAMES, extract_cnb_envs_from_runtime_info,
-                                     supports_cnb_build_strategy)
+from console.utils import cnb_build as cnb_build_utils
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -27,6 +26,35 @@ from www.models.main import Tenants
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
+CNB_BUILD_ENV_NAMES = cnb_build_utils.CNB_BUILD_ENV_NAMES
+extract_cnb_envs_from_runtime_info = cnb_build_utils.extract_cnb_envs_from_runtime_info
+
+
+def supports_cnb_build_strategy(language):
+    helper = getattr(cnb_build_utils, "supports_cnb_build_strategy", None)
+    if callable(helper):
+        return helper(language)
+
+    normalized = getattr(cnb_build_utils, "normalize_language", lambda value: (value or "").replace(".", "").strip().lower())(
+        language)
+    compact = normalized.replace("-", "").replace("_", "").replace(" ", "")
+    if "dockerfile" in normalized:
+        return False
+    if compact in ("netcore", "dotnet", "dotnetcore"):
+        return True
+    policy_helper = getattr(cnb_build_utils, "get_cnb_policy_definition", None)
+    return callable(policy_helper) and policy_helper(language) is not None
+
+
+def resolve_lang_update_build_strategy(language, service_build_strategy=""):
+    helper = getattr(cnb_build_utils, "resolve_lang_update_build_strategy", None)
+    if callable(helper):
+        return helper(language, service_build_strategy)
+
+    current = (service_build_strategy or "").strip().lower()
+    if supports_cnb_build_strategy(language):
+        return current or "cnb"
+    return ""
 
 
 class AppCheckService(object):
@@ -280,6 +308,8 @@ class AppCheckService(object):
         logger.info("[compose-debug] save_service_info called for service={0}, all keys={1}".format(
             service.service_cname, list(service_info.keys())))
         service.language = service_info.get("language", "")
+        service.build_strategy = resolve_lang_update_build_strategy(
+            service.language, getattr(service, "build_strategy", ""))
         memory = service_info.get("memory", 128)
         service.min_memory = memory - memory % 32
         service.min_cpu = 500

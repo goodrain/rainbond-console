@@ -8,10 +8,11 @@ import logging
 from console.repositories.app import service_repo
 from console.repositories.app_config import compile_env_repo, env_var_repo
 from console.services.app_config.env_service import AppEnvVarService
+from console.services.app_check_service import supports_cnb_build_strategy
 from console.services.operation_log import operation_log_service, Operation
 from console.services.service_services import base_service
 from console.utils.cnb_build import (CNB_BUILD_ENV_NAMES, compose_build_env_response, sanitize_build_env_dict_for_language,
-                                     supports_cnb_build_strategy, resolve_build_strategy, should_backfill_build_strategy)
+                                     resolve_build_strategy, should_backfill_build_strategy)
 from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.views.app_config.base import AppBaseView
