@@ -1091,16 +1091,6 @@ class PackageToolView(AppBaseCloudEnterpriseCenterView):
             if code != 200:
                 return Response(status=code, data=general_message(code, "failed", "操作失败"))
         return Response(status=200, data=general_message(200, "succeed", "操作成功"))
-
-
-class BuildStrategyMigrateView(AppBaseCloudEnterpriseCenterView):
-    @never_cache
-    def post(self, request, *args, **kwargs):
-        target_strategy = request.data.get("target_strategy", "cnb")
-        bean = app_manage_service.migrate_build_strategy(self.tenant, self.service, target_strategy)
-        return Response(status=200, data=general_message(200, "success", "操作成功", bean=bean))
-
-
 class TarImageView(AppBaseCloudEnterpriseCenterView):
     @never_cache
     def post(self, request, *args, **kwargs):

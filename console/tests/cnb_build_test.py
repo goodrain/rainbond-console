@@ -3,10 +3,12 @@
 from unittest import TestCase
 
 from console.utils.cnb_build import (
+    compose_build_env_response,
     extract_cnb_envs_from_runtime_info,
     has_cnb_build_params,
     is_cnb_language,
     sanitize_build_env_dict_for_language,
+    summarize_build_env,
 )
 
 
@@ -67,16 +69,18 @@ class BuildTypeAutoSetTestCase(TestCase):
 
 
 class BuildEnvSanitizeTestCase(TestCase):
-    def test_java_build_envs_strip_stale_cnb_markers(self):
+    def test_java_build_envs_strip_stale_node_markers_but_keep_build_type(self):
         build_env_dict = sanitize_build_env_dict_for_language({
             "CNB_FRAMEWORK": "nextjs",
             "CNB_NODE_VERSION": "20.20.0",
             "BUILD_TYPE": "cnb",
+            "BUILD_RUNTIMES_MAVEN": "3.9.14",
             "BUILD_RUNTIMES": "17"
         }, "java-maven")
         self.assertNotIn("CNB_FRAMEWORK", build_env_dict)
         self.assertNotIn("CNB_NODE_VERSION", build_env_dict)
-        self.assertNotIn("BUILD_TYPE", build_env_dict)
+        self.assertNotIn("BUILD_RUNTIMES_MAVEN", build_env_dict)
+        self.assertEqual(build_env_dict["BUILD_TYPE"], "cnb")
         self.assertEqual(build_env_dict["BUILD_RUNTIMES"], "17")
 
     def test_java_build_envs_strip_runtime_aliases_used_by_builder(self):
@@ -91,7 +95,7 @@ class BuildEnvSanitizeTestCase(TestCase):
         self.assertNotIn("HAS_YARNRC", build_env_dict)
         self.assertEqual(build_env_dict["RUNTIMES"], "17")
 
-    def test_non_cnb_languages_strip_stale_cnb_markers(self):
+    def test_legacy_non_cnb_languages_strip_stale_cnb_markers(self):
         stale_envs = {
             "CNB_FRAMEWORK": "nextjs",
             "CNB_NODE_VERSION": "20.20.0",
@@ -104,6 +108,32 @@ class BuildEnvSanitizeTestCase(TestCase):
         }
         languages = [
             "dockerfile",
+            "Ruby"
+        ]
+        for language in languages:
+            with self.subTest(language=language):
+                build_env_dict = sanitize_build_env_dict_for_language(stale_envs, language)
+                self.assertNotIn("CNB_FRAMEWORK", build_env_dict)
+                self.assertNotIn("CNB_NODE_VERSION", build_env_dict)
+                self.assertNotIn("CNB_MIRROR_SOURCE", build_env_dict)
+                self.assertNotIn("BUILD_TYPE", build_env_dict)
+                self.assertNotIn("TYPE", build_env_dict)
+                self.assertNotIn("HAS_NPMRC", build_env_dict)
+                self.assertNotIn("HAS_YARNRC", build_env_dict)
+                self.assertEqual(build_env_dict["RUNTIMES"], "demo")
+
+    def test_generalized_cnb_languages_keep_build_type_while_stripping_node_specific_markers(self):
+        stale_envs = {
+            "CNB_FRAMEWORK": "nextjs",
+            "CNB_NODE_VERSION": "20.20.0",
+            "CNB_MIRROR_SOURCE": "project",
+            "BUILD_TYPE": "cnb",
+            "TYPE": "cnb",
+            "HAS_NPMRC": "true",
+            "HAS_YARNRC": "true",
+            "RUNTIMES": "demo"
+        }
+        languages = [
             "java-maven",
             "java-war",
             "java-jar",
@@ -118,7 +148,7 @@ class BuildEnvSanitizeTestCase(TestCase):
                 self.assertNotIn("CNB_FRAMEWORK", build_env_dict)
                 self.assertNotIn("CNB_NODE_VERSION", build_env_dict)
                 self.assertNotIn("CNB_MIRROR_SOURCE", build_env_dict)
-                self.assertNotIn("BUILD_TYPE", build_env_dict)
+                self.assertEqual(build_env_dict["BUILD_TYPE"], "cnb")
                 self.assertNotIn("TYPE", build_env_dict)
                 self.assertNotIn("HAS_NPMRC", build_env_dict)
                 self.assertNotIn("HAS_YARNRC", build_env_dict)
@@ -228,3 +258,99 @@ class RuntimeInfoExtractTestCase(TestCase):
                 cnb_envs = extract_cnb_envs_from_runtime_info(runtime_info)
                 self.assertEqual(cnb_envs["CNB_FRAMEWORK"], framework)
                 self.assertEqual(cnb_envs["CNB_OUTPUT_DIR"], output_dir)
+
+
+class BuildSummaryTestCase(TestCase):
+    def test_summarize_java_cnb_env_exposes_extended_annotations(self):
+        summary = summarize_build_env("java-maven", "cnb", {
+            "BUILD_RUNTIMES": "17",
+            "BUILD_MAVEN_CUSTOM_GOALS": "clean package",
+            "BUILD_MAVEN_CUSTOM_OPTS": "-DskipTests",
+            "BUILD_MAVEN_BUILT_MODULE": "service-a",
+            "BUILD_MAVEN_BUILT_ARTIFACT": "service-a/target/app.jar",
+            "BUILD_GRADLE_BUILD_ARGUMENTS": "build",
+            "BUILD_GRADLE_ADDITIONAL_BUILD_ARGUMENTS": "--info",
+        })
+
+        annotations = summary["yaml_observable"]["annotations"]
+        self.assertEqual(annotations["cnb-bp-jvm-version"], "17")
+        self.assertNotIn("cnb-bp-maven-version", annotations)
+        self.assertEqual(annotations["cnb-bp-maven-build-arguments"], "clean package")
+        self.assertEqual(annotations["cnb-bp-maven-additional-build-arguments"], "-DskipTests")
+        self.assertEqual(annotations["cnb-bp-maven-built-module"], "service-a")
+        self.assertEqual(annotations["cnb-bp-maven-built-artifact"], "service-a/target/app.jar")
+        self.assertEqual(annotations["cnb-bp-gradle-build-arguments"], "build")
+        self.assertEqual(annotations["cnb-bp-gradle-additional-build-arguments"], "--info")
+
+    def test_summarize_python_golang_php_extended_annotations(self):
+        python_summary = summarize_build_env("Python", "cnb", {
+            "BUILD_RUNTIMES": "3.11",
+            "BUILD_CONDA_SOLVER": "libmamba",
+            "BUILD_LIVE_RELOAD_ENABLED": "true",
+        })
+        self.assertEqual(
+            python_summary["yaml_observable"]["annotations"]["cnb-bp-conda-solver"], "libmamba")
+        self.assertEqual(
+            python_summary["yaml_observable"]["annotations"]["cnb-bp-live-reload-enabled"], "true")
+
+        golang_summary = summarize_build_env("Golang", "cnb", {
+            "BUILD_GOVERSION": "1.23",
+            "BUILD_GO_BUILD_FLAGS": "-trimpath",
+            "BUILD_GO_BUILD_LDFLAGS": "-s -w",
+            "BUILD_GO_BUILD_IMPORT_PATH": "example.com/app",
+            "BUILD_GO_KEEP_FILES": "static/**",
+            "BUILD_GO_WORK_USE": "./cmd/api",
+        })
+        go_annotations = golang_summary["yaml_observable"]["annotations"]
+        self.assertEqual(go_annotations["cnb-bp-go-build-flags"], "-trimpath")
+        self.assertEqual(go_annotations["cnb-bp-go-build-ldflags"], "-s -w")
+        self.assertEqual(go_annotations["cnb-bp-go-build-import-path"], "example.com/app")
+        self.assertEqual(go_annotations["cnb-bp-keep-files"], "static/**")
+        self.assertEqual(go_annotations["cnb-bp-go-work-use"], "./cmd/api")
+
+        php_summary = summarize_build_env("PHP", "cnb", {
+            "BUILD_RUNTIMES": "8.2",
+            "BUILD_RUNTIMES_SERVER": "nginx",
+            "BUILD_COMPOSER_VERSION": "2.8.1",
+            "BUILD_COMPOSER_INSTALL_OPTIONS": "--no-dev",
+            "BUILD_COMPOSER_INSTALL_GLOBAL": "true",
+            "BUILD_PHP_WEB_DIR": "public",
+            "BUILD_PHP_NGINX_ENABLE_HTTPS": "true",
+            "BUILD_PHP_ENABLE_HTTPS_REDIRECT": "true",
+        })
+        php_annotations = php_summary["yaml_observable"]["annotations"]
+        self.assertEqual(php_annotations["cnb-bp-composer-version"], "2.8.1")
+        self.assertEqual(php_annotations["cnb-bp-composer-install-options"], "--no-dev")
+        self.assertEqual(php_annotations["cnb-bp-composer-install-global"], "true")
+        self.assertEqual(php_annotations["cnb-bp-php-web-dir"], "public")
+        self.assertEqual(php_annotations["cnb-bp-php-nginx-enable-https"], "true")
+        self.assertEqual(php_annotations["cnb-bp-php-enable-https-redirect"], "true")
+
+
+class BuildEnvResponseTestCase(TestCase):
+    def test_compose_build_env_response_attaches_cnb_policy_metadata(self):
+        bean = compose_build_env_response(
+            {"BUILD_RUNTIMES": "17"},
+            "cnb",
+            {
+                "java": {
+                    "jdk": {
+                        "visible_versions": ["8", "17", "21"],
+                        "allowed_versions": ["8", "17", "21"],
+                        "default_version": "17"
+                    }
+                }
+            }
+        )
+
+        self.assertEqual(bean["BUILD_RUNTIMES"], "17")
+        self.assertEqual(bean["build_strategy"], "cnb")
+        self.assertEqual(bean["cnb_version_policy"]["java"]["jdk"]["default_version"], "17")
+
+    def test_compose_build_env_response_skips_policy_for_non_cnb(self):
+        bean = compose_build_env_response({"BUILD_RUNTIMES": "17"}, "slug", {
+            "java": {"jdk": {"default_version": "17"}}
+        })
+
+        self.assertEqual(bean["build_strategy"], "slug")
+        self.assertNotIn("cnb_version_policy", bean)

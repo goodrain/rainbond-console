@@ -5,10 +5,13 @@
 import json
 import logging
 
+from console.repositories.app import service_repo
 from console.repositories.app_config import compile_env_repo, env_var_repo
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.operation_log import operation_log_service, Operation
-from console.utils.cnb_build import CNB_BUILD_ENV_NAMES, has_cnb_build_params, is_cnb_language, sanitize_build_env_dict_for_language
+from console.services.service_services import base_service
+from console.utils.cnb_build import (CNB_BUILD_ENV_NAMES, compose_build_env_response, sanitize_build_env_dict_for_language,
+                                     supports_cnb_build_strategy, resolve_build_strategy, should_backfill_build_strategy)
 from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.views.app_config.base import AppBaseView
@@ -455,7 +458,7 @@ class AppBuildEnvView(AppBaseView):
         # 获取组件构建时环境变量
         build_env_dict = dict()
         build_envs = env_var_service.get_service_build_envs(self.service)
-        if build_envs and not is_cnb_language(self.service.language):
+        if build_envs and not supports_cnb_build_strategy(self.service.language):
             for build_env in build_envs:
                 if build_env.attr_name in CNB_BUILD_ENV_NAMES:
                     build_env.delete()
@@ -467,7 +470,10 @@ class AppBuildEnvView(AppBaseView):
             for build_env in build_envs:
                 build_env_dict[build_env.attr_name] = build_env.attr_value
         build_env_dict = sanitize_build_env_dict_for_language(build_env_dict, self.service.language)
-        result = general_message(200, "success", "查询成功", bean=build_env_dict)
+        build_strategy = resolve_build_strategy(getattr(self.service, "build_strategy", ""), build_env_dict)
+        cnb_version_policy = base_service._get_cnb_version_policy(self.tenant, self.service) if build_strategy == "cnb" else {}
+        result = general_message(200, "success", "查询成功", bean=compose_build_env_response(
+            build_env_dict, build_strategy, cnb_version_policy))
         return Response(result, status=result["code"])
 
     # 全量更新，build_env_dict必须为包含环境变量
@@ -480,6 +486,9 @@ class AppBuildEnvView(AppBaseView):
         :return:
         """
         build_env_dict = request.data.get("build_env_dict", None)
+        if isinstance(build_env_dict, dict):
+            build_env_dict.pop("build_strategy", None)
+            build_env_dict.pop("cnb_version_policy", None)
         build_env_dict = sanitize_build_env_dict_for_language(build_env_dict, self.service.language)
         build_envs = env_var_service.get_service_build_envs(self.service)
         # 传入为空，清除
@@ -496,8 +505,9 @@ class AppBuildEnvView(AppBaseView):
                 build_env.delete()
         old_information = json.dumps(old_build_env_dict, ensure_ascii=False)
 
-        if has_cnb_build_params(build_env_dict, self.service.language) and "BUILD_TYPE" not in build_env_dict:
-            build_env_dict["BUILD_TYPE"] = "cnb"
+        if should_backfill_build_strategy(getattr(self.service, "build_strategy", ""), build_env_dict):
+            service_repo.update(self.tenant.tenant_id, self.service.service_id, build_strategy="cnb")
+            self.service.build_strategy = "cnb"
 
         for key, value in list(build_env_dict.items()):
             name = "构建运行时环境变量"

@@ -42,8 +42,9 @@ from console.services.exception import ErrChangeServiceType
 from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.utils.cnb_build import (sanitize_build_env_dict_for_language, normalize_source_build_config,
-                                     policy_summary_to_snapshot, compose_source_code_info, convert_slug_to_cnb,
-                                     summarize_build_env)
+                                     policy_summary_to_snapshot, compose_source_code_info,
+                                     summarize_build_env, resolve_build_strategy, should_backfill_build_strategy,
+                                     resolve_requested_build_strategy)
 from console.utils import slug_util
 from console.utils.oauth.base.exception import NoAccessKeyErr
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
@@ -275,15 +276,25 @@ class AppManageService(AppManageBase):
                     git_url = instance.get_clone_url(service.git_url)
                 except NoAccessKeyErr:
                     return 400, "该组件代码仓库认证信息已过期，请重新认证", ""
-                build_strategy = getattr(service, "build_strategy", "") or (
-                    body["envs"].get("BUILD_TYPE", "") or body["envs"].get("TYPE", ""))
+                build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), body["envs"])
+                if should_backfill_build_strategy(getattr(service, "build_strategy", ""), body["envs"]):
+                    try:
+                        service_repo.update(tenant.tenant_id, service.service_id, build_strategy="cnb")
+                        service.build_strategy = "cnb"
+                    except Exception as err:
+                        logger.exception(err)
                 policy_summary = base_service._get_cnb_version_policy(tenant, service) if build_strategy == "cnb" else {}
                 body["code_info"] = compose_source_code_info(
                     service, body["envs"], build_strategy, policy_summary_to_snapshot(service.language, policy_summary),
                     git_url, service.code_version)
             else:
-                build_strategy = getattr(service, "build_strategy", "") or (
-                    body["envs"].get("BUILD_TYPE", "") or body["envs"].get("TYPE", ""))
+                build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), body["envs"])
+                if should_backfill_build_strategy(getattr(service, "build_strategy", ""), body["envs"]):
+                    try:
+                        service_repo.update(tenant.tenant_id, service.service_id, build_strategy="cnb")
+                        service.build_strategy = "cnb"
+                    except Exception as err:
+                        logger.exception(err)
                 policy_summary = base_service._get_cnb_version_policy(tenant, service) if build_strategy == "cnb" else {}
                 body["code_info"] = compose_source_code_info(
                     service, body["envs"], build_strategy, policy_summary_to_snapshot(service.language, policy_summary),
@@ -690,8 +701,7 @@ class AppManageService(AppManageBase):
             if kind == "build_from_source_code" or kind == "source":
                 source_code = dict()
                 service_dict["code_info"] = source_code
-                build_strategy = getattr(service, "build_strategy", "") or (
-                    envs.get("BUILD_TYPE", "") or envs.get("TYPE", ""))
+                build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), envs)
                 policy_summary = base_service._get_cnb_version_policy(tenant, service) if build_strategy == "cnb" else {}
                 source_code.update(compose_source_code_info(
                     service, envs, build_strategy, policy_summary_to_snapshot(service.language, policy_summary),
@@ -1405,11 +1415,21 @@ class AppManageService(AppManageBase):
                                       cnb_mirror_npmrc="", cnb_mirror_yarnrc="",
                                       has_npmrc="", has_yarnrc="", cnb_start_script="",
                                       build_strategy="", build_env_dict=None):
+        current_build_envs = sanitize_build_env_dict_for_language(
+            env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
+            service.language
+        )
+        requested_build_strategy = resolve_requested_build_strategy(
+            getattr(service, "build_strategy", ""),
+            current_build_envs,
+            build_strategy,
+            build_env_dict or {}
+        )
         normalized_strategy, normalized_envs = normalize_source_build_config(
             lang,
             package_tool=package_tool,
             dist=dist,
-            build_strategy=build_strategy,
+            build_strategy=requested_build_strategy,
             build_env_dict=build_env_dict or {},
             compat_payload={
                 "cnb_framework": cnb_framework,
@@ -1423,7 +1443,8 @@ class AppManageService(AppManageBase):
                 "has_npmrc": has_npmrc,
                 "has_yarnrc": has_yarnrc,
                 "cnb_start_script": cnb_start_script,
-            })
+            },
+            default_to_cnb=False)
         serivce_params = {"language": lang}
         if normalized_strategy:
             serivce_params["build_strategy"] = normalized_strategy
@@ -1436,39 +1457,6 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             return 507, "failed"
         return 200, "success"
-
-    def migrate_build_strategy(self, tenant, service, target_strategy="cnb"):
-        target_strategy = (target_strategy or "cnb").lower()
-        build_env_dict = sanitize_build_env_dict_for_language(
-            env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
-            service.language
-        )
-        if target_strategy != "cnb":
-            raise ServiceHandleException(msg="only support migrate to cnb")
-
-        new_envs, migration_status, migration_message, debug_meta = convert_slug_to_cnb(service, build_env_dict)
-        update_params = {
-            "build_migration_status": migration_status,
-            "build_migration_message": migration_message
-        }
-        if migration_status == "migrated":
-            update_params["build_strategy"] = "cnb"
-            service_repo.update(tenant.tenant_id, service.service_id, **update_params)
-            for key, value in list(new_envs.items()):
-                if value not in (None, ""):
-                    env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, key, value)
-        else:
-            service_repo.update(tenant.tenant_id, service.service_id, **update_params)
-
-        return {
-            "build_strategy": update_params.get("build_strategy", getattr(service, "build_strategy", "") or "slug"),
-            "build_migration_status": migration_status,
-            "build_migration_message": migration_message,
-            "build_env_summary": debug_meta,
-            "builder_image": debug_meta.get("builder_image", ""),
-            "yaml_observable": debug_meta.get("yaml_observable", {}),
-            "start_command_source": debug_meta.get("start_command_source", "")
-        }
 
     def change_image_tool(self, tenant, service, image_name):
         tag = image_name.split(":")[-1]

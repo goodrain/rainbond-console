@@ -7,7 +7,7 @@ from console.exception.main import RbdAppNotFound, ServiceHandleException
 from console.repositories.app import service_source_repo, service_repo
 from console.repositories.app_config import env_var_repo
 from console.utils.cnb_build import (build_cnb_version_policy, get_cnb_policy_definition, summarize_build_env,
-                                     sanitize_build_env_dict_for_language)
+                                     sanitize_build_env_dict_for_language, resolve_build_strategy)
 from console.utils.oauth.oauth_types import support_oauth_type
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db.base import BaseConnection
@@ -22,10 +22,9 @@ class BaseService(object):
         if not definition:
             return {}
 
-        from console.services.region_lang_version import region_cnb_config, region_lang_version
+        from console.services.region_lang_version import region_lang_version
 
         records = []
-        fallback_versions = []
         try:
             response = region_lang_version.show_long_version(
                 tenant.enterprise_id, service.service_region, definition["lang_key"], "cnb")
@@ -33,14 +32,7 @@ class BaseService(object):
         except Exception as err:
             logger.debug("load enterprise cnb version policy failed: %s", err)
 
-        try:
-            response = region_cnb_config.show_cnb_versions(
-                tenant.enterprise_id, service.service_region, definition["policy_key"])
-            fallback_versions = response.get("list", []) if isinstance(response, dict) else []
-        except Exception as err:
-            logger.debug("load platform cnb versions failed: %s", err)
-
-        return build_cnb_version_policy(service.language, records, fallback_versions)
+        return build_cnb_version_policy(service.language, records, [])
 
     def get_services_list(self, team_id, region_name):
         dsn = BaseConnection()
@@ -271,9 +263,7 @@ class BaseService(object):
                 env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
                 service.language
             )
-            build_strategy = getattr(service, "build_strategy", "") or (
-                build_env_dict.get("BUILD_TYPE", "") or build_env_dict.get("TYPE", "")
-            )
+            build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), build_env_dict)
             bean = {
                 "user_name": "",
                 "password": "",
@@ -289,8 +279,6 @@ class BaseService(object):
                 "server_type": service.server_type,
                 "language": service.language,
                 "build_strategy": build_strategy,
-                "build_migration_status": getattr(service, "build_migration_status", "") or "",
-                "build_migration_message": getattr(service, "build_migration_message", "") or "",
                 "oauth_service_id": service.oauth_service_id,
                 "full_name": service.git_full_name
             }

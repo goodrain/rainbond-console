@@ -92,6 +92,12 @@ def get_cnb_policy_definition(language):
 
 
 def supports_cnb_build_strategy(language):
+    normalized = normalize_language(language)
+    compact = normalized.replace("-", "").replace("_", "").replace(" ", "")
+    if "dockerfile" in normalized:
+        return False
+    if compact in ("netcore", "dotnet", "dotnetcore"):
+        return True
     return get_cnb_policy_definition(language) is not None
 
 
@@ -122,11 +128,52 @@ def sanitize_build_env_dict_for_language(build_env_dict, language):
         sanitized.pop(key, None)
     for key in CNB_BUILD_ENV_ALIASES:
         sanitized.pop(key, None)
-    if str(sanitized.get("BUILD_TYPE", "")).lower() == "cnb":
-        sanitized.pop("BUILD_TYPE", None)
     if str(sanitized.get("TYPE", "")).lower() == "cnb":
         sanitized.pop("TYPE", None)
+    if _is_java_cnb_language(language):
+        sanitized.pop("BUILD_RUNTIMES_MAVEN", None)
+    if not supports_cnb_build_strategy(language) and str(sanitized.get("BUILD_TYPE", "")).lower() == "cnb":
+        sanitized.pop("BUILD_TYPE", None)
     return sanitized
+
+
+def compose_build_env_response(build_env_dict, build_strategy="", cnb_version_policy=None):
+    bean = dict(build_env_dict or {})
+    build_strategy = (build_strategy or "").strip().lower()
+    if build_strategy:
+        bean["build_strategy"] = build_strategy
+    if build_strategy == "cnb" and cnb_version_policy:
+        bean["cnb_version_policy"] = cnb_version_policy
+    return bean
+
+
+def resolve_build_strategy(service_build_strategy="", build_env_dict=None):
+    build_strategy = (service_build_strategy or "").strip().lower()
+    if build_strategy:
+        return build_strategy
+    build_env_dict = build_env_dict or {}
+    return str(build_env_dict.get("BUILD_TYPE", "") or build_env_dict.get("TYPE", "")).strip().lower()
+
+
+def should_backfill_build_strategy(service_build_strategy="", build_env_dict=None):
+    return not (service_build_strategy or "").strip() and resolve_build_strategy("", build_env_dict) == "cnb"
+
+
+def resolve_requested_build_strategy(service_build_strategy="", current_build_env_dict=None,
+                                     request_build_strategy="", request_build_env_dict=None):
+    requested_strategy = (request_build_strategy or "").strip().lower()
+    if requested_strategy:
+        return requested_strategy
+
+    request_build_env_dict = request_build_env_dict or {}
+    request_legacy_strategy = resolve_build_strategy("", {
+        "BUILD_TYPE": request_build_env_dict.get("BUILD_TYPE", ""),
+        "TYPE": request_build_env_dict.get("TYPE", ""),
+    })
+    if request_legacy_strategy:
+        return request_legacy_strategy
+
+    return resolve_build_strategy(service_build_strategy, current_build_env_dict)
 
 
 def extract_cnb_envs_from_runtime_info(runtime_info):
@@ -243,7 +290,8 @@ def normalize_source_build_config(language,
                                   dist="",
                                   build_strategy="",
                                   build_env_dict=None,
-                                  compat_payload=None):
+                                  compat_payload=None,
+                                  default_to_cnb=True):
     envs = sanitize_build_env_dict_for_language(build_env_dict or {}, language)
     compat_payload = compat_payload or {}
 
@@ -271,14 +319,9 @@ def normalize_source_build_config(language,
     if dist and (is_nodejs_cnb_language(language) or normalize_language(language) == "static"):
         envs.setdefault("BUILD_DIST_DIR", dist)
 
-    normalized_strategy = (build_strategy or "").strip().lower()
-    if not normalized_strategy:
-        normalized_strategy = str(envs.get("BUILD_TYPE", "") or envs.get("TYPE", "")).strip().lower()
-    if not normalized_strategy and supports_cnb_build_strategy(language):
+    normalized_strategy = resolve_build_strategy(build_strategy, envs)
+    if default_to_cnb and not normalized_strategy and supports_cnb_build_strategy(language):
         normalized_strategy = "cnb"
-
-    if normalized_strategy == "cnb":
-        envs["BUILD_TYPE"] = "cnb"
     return normalized_strategy, envs
 
 
@@ -341,26 +384,80 @@ def summarize_build_env(language, build_strategy, build_env_dict):
     if definition["policy_key"] == "java":
         if build_env_dict.get("BUILD_RUNTIMES"):
             yaml_observable["annotations"]["cnb-bp-jvm-version"] = build_env_dict.get("BUILD_RUNTIMES")
-        if build_env_dict.get("BUILD_MAVEN_CUSTOM_GOALS") or build_env_dict.get("BUILD_MAVEN_CUSTOM_OPTS"):
-            yaml_observable["annotations"]["cnb-bp-maven-build-arguments"] = " ".join(
-                [item for item in [build_env_dict.get("BUILD_MAVEN_CUSTOM_GOALS", ""),
-                                   build_env_dict.get("BUILD_MAVEN_CUSTOM_OPTS", "")] if item]
-            ).strip()
+        if build_env_dict.get("BUILD_MAVEN_CUSTOM_GOALS"):
+            yaml_observable["annotations"]["cnb-bp-maven-build-arguments"] = build_env_dict.get(
+                "BUILD_MAVEN_CUSTOM_GOALS")
+        if build_env_dict.get("BUILD_MAVEN_CUSTOM_OPTS"):
+            yaml_observable["annotations"]["cnb-bp-maven-additional-build-arguments"] = build_env_dict.get(
+                "BUILD_MAVEN_CUSTOM_OPTS")
         if build_env_dict.get("BUILD_RUNTIMES_SERVER"):
             yaml_observable["annotations"]["cnb-bp-java-app-server"] = build_env_dict.get("BUILD_RUNTIMES_SERVER")
+        if build_env_dict.get("BUILD_GRADLE_BUILD_ARGUMENTS"):
+            yaml_observable["annotations"]["cnb-bp-gradle-build-arguments"] = build_env_dict.get(
+                "BUILD_GRADLE_BUILD_ARGUMENTS")
+        if build_env_dict.get("BUILD_GRADLE_ADDITIONAL_BUILD_ARGUMENTS"):
+            yaml_observable["annotations"]["cnb-bp-gradle-additional-build-arguments"] = build_env_dict.get(
+                "BUILD_GRADLE_ADDITIONAL_BUILD_ARGUMENTS")
+        if build_env_dict.get("BUILD_MAVEN_BUILT_MODULE"):
+            yaml_observable["annotations"]["cnb-bp-maven-built-module"] = build_env_dict.get(
+                "BUILD_MAVEN_BUILT_MODULE")
+        if build_env_dict.get("BUILD_MAVEN_BUILT_ARTIFACT"):
+            yaml_observable["annotations"]["cnb-bp-maven-built-artifact"] = build_env_dict.get(
+                "BUILD_MAVEN_BUILT_ARTIFACT")
+        if build_env_dict.get("BUILD_GRADLE_BUILT_MODULE"):
+            yaml_observable["annotations"]["cnb-bp-gradle-built-module"] = build_env_dict.get(
+                "BUILD_GRADLE_BUILT_MODULE")
+        if build_env_dict.get("BUILD_GRADLE_BUILT_ARTIFACT"):
+            yaml_observable["annotations"]["cnb-bp-gradle-built-artifact"] = build_env_dict.get(
+                "BUILD_GRADLE_BUILT_ARTIFACT")
     elif definition["policy_key"] == "python":
         if build_env_dict.get("BUILD_RUNTIMES"):
             yaml_observable["annotations"]["cnb-bp-cpython-version"] = build_env_dict.get("BUILD_RUNTIMES")
+        if build_env_dict.get("BUILD_CONDA_SOLVER"):
+            yaml_observable["annotations"]["cnb-bp-conda-solver"] = build_env_dict.get("BUILD_CONDA_SOLVER")
+        if build_env_dict.get("BUILD_LIVE_RELOAD_ENABLED"):
+            yaml_observable["annotations"]["cnb-bp-live-reload-enabled"] = _bool_to_string(
+                build_env_dict.get("BUILD_LIVE_RELOAD_ENABLED"))
     elif definition["policy_key"] == "golang":
         if build_env_dict.get("BUILD_GOVERSION"):
             yaml_observable["annotations"]["cnb-bp-go-version"] = build_env_dict.get("BUILD_GOVERSION")
         if build_env_dict.get("BUILD_GO_INSTALL_PACKAGE_SPEC"):
             yaml_observable["annotations"]["cnb-bp-go-targets"] = build_env_dict.get("BUILD_GO_INSTALL_PACKAGE_SPEC")
+        if build_env_dict.get("BUILD_GO_BUILD_FLAGS"):
+            yaml_observable["annotations"]["cnb-bp-go-build-flags"] = build_env_dict.get("BUILD_GO_BUILD_FLAGS")
+        if build_env_dict.get("BUILD_GO_BUILD_LDFLAGS"):
+            yaml_observable["annotations"]["cnb-bp-go-build-ldflags"] = build_env_dict.get("BUILD_GO_BUILD_LDFLAGS")
+        if build_env_dict.get("BUILD_GO_BUILD_IMPORT_PATH"):
+            yaml_observable["annotations"]["cnb-bp-go-build-import-path"] = build_env_dict.get(
+                "BUILD_GO_BUILD_IMPORT_PATH")
+        if build_env_dict.get("BUILD_GO_KEEP_FILES"):
+            yaml_observable["annotations"]["cnb-bp-keep-files"] = build_env_dict.get("BUILD_GO_KEEP_FILES")
+        if build_env_dict.get("BUILD_GO_WORK_USE"):
+            yaml_observable["annotations"]["cnb-bp-go-work-use"] = build_env_dict.get("BUILD_GO_WORK_USE")
+        if build_env_dict.get("BUILD_LIVE_RELOAD_ENABLED"):
+            yaml_observable["annotations"]["cnb-bp-live-reload-enabled"] = _bool_to_string(
+                build_env_dict.get("BUILD_LIVE_RELOAD_ENABLED"))
     elif definition["policy_key"] == "php":
         if build_env_dict.get("BUILD_RUNTIMES"):
             yaml_observable["annotations"]["cnb-bp-php-version"] = build_env_dict.get("BUILD_RUNTIMES")
         if build_env_dict.get("BUILD_RUNTIMES_SERVER"):
             yaml_observable["annotations"]["cnb-bp-php-server"] = build_env_dict.get("BUILD_RUNTIMES_SERVER")
+        if build_env_dict.get("BUILD_COMPOSER_VERSION"):
+            yaml_observable["annotations"]["cnb-bp-composer-version"] = build_env_dict.get("BUILD_COMPOSER_VERSION")
+        if build_env_dict.get("BUILD_COMPOSER_INSTALL_OPTIONS"):
+            yaml_observable["annotations"]["cnb-bp-composer-install-options"] = build_env_dict.get(
+                "BUILD_COMPOSER_INSTALL_OPTIONS")
+        if build_env_dict.get("BUILD_COMPOSER_INSTALL_GLOBAL"):
+            yaml_observable["annotations"]["cnb-bp-composer-install-global"] = _bool_to_string(
+                build_env_dict.get("BUILD_COMPOSER_INSTALL_GLOBAL"))
+        if build_env_dict.get("BUILD_PHP_WEB_DIR"):
+            yaml_observable["annotations"]["cnb-bp-php-web-dir"] = build_env_dict.get("BUILD_PHP_WEB_DIR")
+        if build_env_dict.get("BUILD_PHP_NGINX_ENABLE_HTTPS"):
+            yaml_observable["annotations"]["cnb-bp-php-nginx-enable-https"] = _bool_to_string(
+                build_env_dict.get("BUILD_PHP_NGINX_ENABLE_HTTPS"))
+        if build_env_dict.get("BUILD_PHP_ENABLE_HTTPS_REDIRECT"):
+            yaml_observable["annotations"]["cnb-bp-php-enable-https-redirect"] = _bool_to_string(
+                build_env_dict.get("BUILD_PHP_ENABLE_HTTPS_REDIRECT"))
     elif definition["policy_key"] == "nodejs":
         if build_env_dict.get("CNB_NODE_VERSION"):
             yaml_observable["annotations"]["cnb-bp-node-version"] = build_env_dict.get("CNB_NODE_VERSION")
@@ -369,71 +466,14 @@ def summarize_build_env(language, build_strategy, build_env_dict):
     return summary
 
 
-def convert_slug_to_cnb(service, build_env_dict):
-    language = getattr(service, "language", "") or ""
-    build_env_dict = sanitize_build_env_dict_for_language(build_env_dict or {}, language)
+def _bool_to_string(value):
+    return "true" if _is_truthy(value) else "false"
+
+
+def _is_java_cnb_language(language):
     normalized = normalize_language(language)
-
-    if "java" in normalized or "gradle" in normalized:
-        return convert_java_slug_to_cnb(service, build_env_dict)
-    if "python" in normalized:
-        return convert_python_slug_to_cnb(service, build_env_dict)
-    if "golang" in normalized or normalized == "go":
-        return convert_golang_slug_to_cnb(service, build_env_dict)
-    if "php" in normalized:
-        return convert_php_slug_to_cnb(service, build_env_dict)
-    return build_env_dict, "failed", "当前语言暂不支持自动迁移到 CNB", {}
-
-
-def convert_java_slug_to_cnb(service, build_env_dict):
-    runtime = build_env_dict.get("BUILD_RUNTIMES", "")
-    if not runtime:
-        return build_env_dict, "failed", "Java 组件缺少 BUILD_RUNTIMES，无法自动迁移到 CNB", {}
-    new_envs = dict(build_env_dict)
-    new_envs["BUILD_TYPE"] = "cnb"
-    summary = summarize_build_env(service.language, "cnb", new_envs)
-    return new_envs, "migrated", "", summary
-
-
-def convert_python_slug_to_cnb(service, build_env_dict):
-    runtime = build_env_dict.get("BUILD_RUNTIMES", "")
-    procfile = build_env_dict.get("BUILD_PROCFILE", "")
-    if not runtime:
-        return build_env_dict, "failed", "Python 组件缺少 BUILD_RUNTIMES，无法自动迁移到 CNB", {}
-    if not procfile:
-        return build_env_dict, "failed", "Python 组件缺少启动命令（BUILD_PROCFILE），请补充后再迁移", {}
-    new_envs = dict(build_env_dict)
-    new_envs["BUILD_TYPE"] = "cnb"
-    summary = summarize_build_env(service.language, "cnb", new_envs)
-    return new_envs, "migrated", "", summary
-
-
-def convert_golang_slug_to_cnb(service, build_env_dict):
-    version = build_env_dict.get("BUILD_GOVERSION", "")
-    target = build_env_dict.get("BUILD_GO_INSTALL_PACKAGE_SPEC", "")
-    if not version:
-        return build_env_dict, "failed", "Golang 组件缺少 BUILD_GOVERSION，无法自动迁移到 CNB", {}
-    if not target:
-        return build_env_dict, "failed", "Golang 组件缺少 BUILD_GO_INSTALL_PACKAGE_SPEC，无法确定构建目标", {}
-    new_envs = dict(build_env_dict)
-    new_envs["BUILD_TYPE"] = "cnb"
-    summary = summarize_build_env(service.language, "cnb", new_envs)
-    return new_envs, "migrated", "", summary
-
-
-def convert_php_slug_to_cnb(service, build_env_dict):
-    runtime = build_env_dict.get("BUILD_RUNTIMES", "")
-    server = build_env_dict.get("BUILD_RUNTIMES_SERVER", "")
-    if not runtime:
-        return build_env_dict, "failed", "PHP 组件缺少 BUILD_RUNTIMES，无法自动迁移到 CNB", {}
-    if server and server not in ("nginx", "apache"):
-        return build_env_dict, "failed", "PHP 组件的服务类型不兼容，仅支持 nginx 或 apache", {}
-    new_envs = dict(build_env_dict)
-    new_envs["BUILD_TYPE"] = "cnb"
-    if not new_envs.get("BUILD_RUNTIMES_SERVER"):
-        new_envs["BUILD_RUNTIMES_SERVER"] = "nginx"
-    summary = summarize_build_env(service.language, "cnb", new_envs)
-    return new_envs, "migrated", "", summary
+    compact = normalized.replace("-", "").replace("_", "").replace(" ", "")
+    return "java" in compact or "gradle" in compact
 
 
 def _build_fallback_policy(definition, fallback_versions):

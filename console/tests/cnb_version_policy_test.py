@@ -57,6 +57,28 @@ class CNBVersionPolicyTests(TestCase):
             }
         })
 
+    def test_build_policy_falls_back_to_platform_defaults_for_java(self):
+        policy = build_cnb_version_policy("java-maven", [], [{
+            "version": "8",
+            "default": False
+        }, {
+            "version": "17",
+            "default": True
+        }, {
+            "version": "21",
+            "default": False
+        }])
+
+        self.assertEqual(policy, {
+            "java": {
+                "jdk": {
+                    "visible_versions": ["8", "17", "21"],
+                    "allowed_versions": ["8", "17", "21"],
+                    "default_version": "17"
+                }
+            }
+        })
+
     def test_build_policy_normalizes_java_major_versions(self):
         policy = build_cnb_version_policy("java-maven", [{
             "lang": "openJDK",
@@ -80,4 +102,3 @@ class CNBVersionPolicyTests(TestCase):
 
     def test_non_cnb_language_has_no_policy(self):
         self.assertEqual(build_cnb_version_policy("dockerfile", [], []), {})
-

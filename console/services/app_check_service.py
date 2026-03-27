@@ -18,7 +18,8 @@ from console.repositories.region_repo import region_repo
 from console.services.app_config import (compile_env_service, domain_service, env_var_service, label_service, port_service,
                                          volume_service)
 from console.services.region_services import region_services
-from console.utils.cnb_build import CNB_BUILD_ENV_NAMES, extract_cnb_envs_from_runtime_info, is_cnb_language
+from console.utils.cnb_build import (CNB_BUILD_ENV_NAMES, extract_cnb_envs_from_runtime_info,
+                                     supports_cnb_build_strategy)
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -640,7 +641,7 @@ class AppCheckService(object):
         runtime_info = service_info.get("runtime_info") or {}
         language = service_info.get("language") or runtime_info.get("language") or service.language
 
-        if not is_cnb_language(language):
+        if not supports_cnb_build_strategy(language):
             self.cleanup_cnb_build_envs(tenant, service, remove_build_type=True)
             return
 

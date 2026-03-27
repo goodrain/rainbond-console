@@ -25,6 +25,12 @@ class DummyService(object):
         self.service_region = "region-a"
 
 
+class DummyJavaService(DummyService):
+    def __init__(self):
+        super(DummyJavaService, self).__init__()
+        self.language = "java-maven"
+
+
 class DummyTenant(object):
     enterprise_id = "eid"
     tenant_id = "team-1"
@@ -56,8 +62,11 @@ class BuildSourceInfoServiceTests(TestCase):
             sys.modules.pop(module_name, None)
 
     def import_service_module(self):
+        return self.import_service_module_with_service(DummyService())
+
+    def import_service_module_with_service(self, service):
         service_repo = MagicMock()
-        service_repo.list_by_component_ids.return_value = [DummyService()]
+        service_repo.list_by_component_ids.return_value = [service]
 
         service_source_repo = MagicMock()
         service_source_repo.get_service_sources.return_value = []
@@ -91,7 +100,6 @@ class BuildSourceInfoServiceTests(TestCase):
                     "first_choice": True
                 }]
             })),
-            region_cnb_config=types.SimpleNamespace(show_cnb_versions=MagicMock(return_value={"list": []})),
         )
         service_module = importlib.import_module("console.services.service_services")
         service_module.service_source_repo = service_source_repo
@@ -115,3 +123,53 @@ class BuildSourceInfoServiceTests(TestCase):
         self.assertEqual(build_infos["svc-1"]["builder_image"], "registry.cn-hangzhou.aliyuncs.com/goodrain/ubuntu-noble-builder:0.0.72")
         self.assertEqual(build_infos["svc-1"]["start_command_source"], "buildpack-default")
         self.assertEqual(build_infos["svc-1"]["yaml_observable"]["annotations"]["rainbond.io/cnb-language"], "python")
+        self.assertNotIn("build_migration_status", build_infos["svc-1"])
+        self.assertNotIn("build_migration_message", build_infos["svc-1"])
+
+    def test_java_build_infos_use_cnb_long_version_records(self):
+        service_repo = MagicMock()
+        service_repo.list_by_component_ids.return_value = [DummyJavaService()]
+
+        service_source_repo = MagicMock()
+        service_source_repo.get_service_sources.return_value = []
+        env_var_repo = MagicMock()
+        env_var_repo.get_build_envs.return_value = {
+            "BUILD_TYPE": "cnb",
+            "BUILD_RUNTIMES": "17"
+        }
+
+        install_stub(
+            "console.exception.main",
+            AbortRequest=Exception,
+            RbdAppNotFound=Exception,
+            ServiceHandleException=Exception,
+        )
+        install_stub("console.repositories.app", service_repo=service_repo, service_source_repo=service_source_repo)
+        install_stub("console.repositories.service_repo", service_repo=service_repo)
+        install_stub("console.repositories.app_config", env_var_repo=env_var_repo)
+        install_stub("console.utils.oauth.oauth_types", support_oauth_type={})
+        install_stub("www.apiclient.regionapi", RegionInvokeApi=DummyRegionInvokeApi)
+        install_stub("www.db.base", BaseConnection=object)
+        install_stub(
+            "console.services.region_lang_version",
+            region_lang_version=types.SimpleNamespace(show_long_version=MagicMock(return_value={"list": [
+                {"lang": "openJDK", "version": "1.8", "build_strategy": "cnb", "show": True, "is_allowed": True, "first_choice": False},
+                {"lang": "openJDK", "version": "17.0.12", "build_strategy": "cnb", "show": True, "is_allowed": True, "first_choice": True},
+                {"lang": "openJDK", "version": "21.0.4", "build_strategy": "cnb", "show": True, "is_allowed": True, "first_choice": False},
+            ]})),
+        )
+        service_module = importlib.import_module("console.services.service_services")
+        service_module.service_source_repo = service_source_repo
+        service_module.env_var_repo = env_var_repo
+
+        build_infos = service_module.base_service.get_build_infos(DummyTenant(), ["svc-1"])
+
+        self.assertEqual(build_infos["svc-1"]["cnb_version_policy"], {
+            "java": {
+                "jdk": {
+                    "visible_versions": ["8", "17", "21"],
+                    "allowed_versions": ["8", "17", "21"],
+                    "default_version": "17"
+                }
+            }
+        })
