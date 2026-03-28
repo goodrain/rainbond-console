@@ -9,6 +9,8 @@ from console.utils.cnb_build import (
     is_cnb_language,
     normalize_java_cnb_env_dict_for_response,
     normalize_java_cnb_env_dict_for_save,
+    normalize_python_cnb_env_dict_for_response,
+    normalize_python_cnb_env_dict_for_save,
     sanitize_build_env_dict_for_language,
     summarize_build_env,
 )
@@ -222,6 +224,19 @@ class RuntimeInfoExtractTestCase(TestCase):
         }
         self.assertEqual(extract_cnb_envs_from_runtime_info(runtime_info), {})
 
+    def test_extract_python_cnb_envs_from_runtime_info(self):
+        runtime_info = {
+            "language": "python",
+            "language_version": "3.12",
+            "package_manager": {"name": "poetry"},
+            "build_config": {"start_command": "web: poetry run web"},
+            "config_files": {"has_procfile": False},
+        }
+        cnb_envs = extract_cnb_envs_from_runtime_info(runtime_info)
+        self.assertEqual(cnb_envs["BUILD_PYTHON_PACKAGE_MANAGER"], "poetry")
+        self.assertEqual(cnb_envs["BUILD_AUTO_PROCFILE"], "web: poetry run web")
+        self.assertEqual(cnb_envs["START_COMMAND_SOURCE"], "auto-detected")
+
     def test_static_runtime_info_without_framework_has_no_extra_cnb_envs(self):
         runtime_info = {
             "language": "static"
@@ -312,14 +327,16 @@ class BuildSummaryTestCase(TestCase):
 
     def test_summarize_python_golang_php_extended_annotations(self):
         python_summary = summarize_build_env("Python", "cnb", {
-            "BUILD_RUNTIMES": "3.11",
-            "BUILD_CONDA_SOLVER": "libmamba",
+            "BP_CPYTHON_VERSION": "3.11",
+            "BP_CONDA_SOLVER": "mamba",
             "BUILD_LIVE_RELOAD_ENABLED": "true",
+            "START_COMMAND_SOURCE": "auto-detected",
         })
         self.assertEqual(
-            python_summary["yaml_observable"]["annotations"]["cnb-bp-conda-solver"], "libmamba")
+            python_summary["yaml_observable"]["annotations"]["cnb-bp-conda-solver"], "mamba")
         self.assertEqual(
             python_summary["yaml_observable"]["annotations"]["cnb-bp-live-reload-enabled"], "true")
+        self.assertEqual(python_summary["start_command_source"], "auto-detected")
 
         golang_summary = summarize_build_env("Golang", "cnb", {
             "BUILD_GOVERSION": "1.23",
@@ -494,3 +511,98 @@ class JavaCNBContractNormalizeTestCase(TestCase):
         self.assertNotIn("BUILD_TYPE", normalized)
         self.assertEqual(normalized["BUILD_RUNTIMES"], "17")
         self.assertEqual(normalized["BUILD_MAVEN_CUSTOM_GOALS"], "clean package")
+
+
+class PythonCNBContractNormalizeTestCase(TestCase):
+    def test_response_uses_auto_procfile_when_user_override_missing(self):
+        normalized = normalize_python_cnb_env_dict_for_response(
+            {
+                "BUILD_PYTHON_PACKAGE_MANAGER": "pip",
+                "BUILD_AUTO_PROCFILE": "web: gunicorn app:app --bind 0.0.0.0:$PORT",
+                "START_COMMAND_SOURCE": "auto-detected",
+                "PIP_INDEX_URL": "https://pypi.example.com/simple",
+            },
+            "python",
+            "cnb",
+        )
+
+        self.assertEqual(normalized["BUILD_PYTHON_PACKAGE_MANAGER"], "pip")
+        self.assertEqual(normalized["BUILD_PROCFILE"], "web: gunicorn app:app --bind 0.0.0.0:$PORT")
+        self.assertEqual(normalized["start_command_source"], "auto-detected")
+        self.assertNotIn("BUILD_AUTO_PROCFILE", normalized)
+        self.assertNotIn("START_COMMAND_SOURCE", normalized)
+
+    def test_save_ignores_readonly_package_manager_and_preserves_auto_procfile(self):
+        normalized = normalize_python_cnb_env_dict_for_save(
+            {
+                "BUILD_PYTHON_PACKAGE_MANAGER": "poetry",
+                "BUILD_PROCFILE": "",
+                "start_command_source": "user",
+                "PIP_INDEX_URL": "https://pypi.example.com/simple",
+            },
+            "python",
+            "cnb",
+            {
+                "BUILD_PYTHON_PACKAGE_MANAGER": "pip",
+                "BUILD_AUTO_PROCFILE": "web: gunicorn app:app --bind 0.0.0.0:$PORT",
+                "START_COMMAND_SOURCE": "auto-detected",
+            }
+        )
+
+        self.assertEqual(normalized["BUILD_PYTHON_PACKAGE_MANAGER"], "pip")
+        self.assertEqual(normalized["BUILD_AUTO_PROCFILE"], "web: gunicorn app:app --bind 0.0.0.0:$PORT")
+        self.assertEqual(normalized["START_COMMAND_SOURCE"], "auto-detected")
+        self.assertNotIn("BUILD_PROCFILE", normalized)
+
+    def test_save_marks_user_source_when_procfile_is_overridden(self):
+        normalized = normalize_python_cnb_env_dict_for_save(
+            {
+                "BUILD_PROCFILE": "web: uvicorn main:app --host 0.0.0.0 --port $PORT",
+            },
+            "python",
+            "cnb",
+            {
+                "BUILD_PYTHON_PACKAGE_MANAGER": "poetry",
+                "BUILD_AUTO_PROCFILE": "web: poetry run web",
+                "START_COMMAND_SOURCE": "auto-detected",
+            }
+        )
+
+        self.assertEqual(normalized["BUILD_PYTHON_PACKAGE_MANAGER"], "poetry")
+        self.assertEqual(normalized["BUILD_PROCFILE"], "web: uvicorn main:app --host 0.0.0.0 --port $PORT")
+        self.assertEqual(normalized["START_COMMAND_SOURCE"], "user")
+
+    def test_save_keeps_auto_detected_source_when_procfile_value_is_unchanged(self):
+        normalized = normalize_python_cnb_env_dict_for_save(
+            {
+                "BUILD_PROCFILE": "web: poetry run web",
+            },
+            "python",
+            "cnb",
+            {
+                "BUILD_PYTHON_PACKAGE_MANAGER": "poetry",
+                "BUILD_AUTO_PROCFILE": "web: poetry run web",
+                "START_COMMAND_SOURCE": "auto-detected",
+            }
+        )
+
+        self.assertEqual(normalized["START_COMMAND_SOURCE"], "auto-detected")
+
+    def test_response_strips_irrelevant_fields_for_conda(self):
+        normalized = normalize_python_cnb_env_dict_for_response(
+            {
+                "BUILD_PYTHON_PACKAGE_MANAGER": "conda",
+                "BUILD_PYTHON_PACKAGE_MANAGER_VERSION": "1.8.3",
+                "PIP_INDEX_URL": "https://pypi.example.com/simple",
+                "BUILD_CONDA_CHANNEL_URL": "https://conda.example.com/channel",
+                "BUILD_CONDA_SOLVER": "mamba",
+            },
+            "python",
+            "cnb",
+        )
+
+        self.assertEqual(normalized["BUILD_PYTHON_PACKAGE_MANAGER"], "conda")
+        self.assertEqual(normalized["BUILD_CONDA_CHANNEL_URL"], "https://conda.example.com/channel")
+        self.assertEqual(normalized["BUILD_CONDA_SOLVER"], "mamba")
+        self.assertNotIn("BUILD_PYTHON_PACKAGE_MANAGER_VERSION", normalized)
+        self.assertNotIn("PIP_INDEX_URL", normalized)

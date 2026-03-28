@@ -98,6 +98,16 @@ JAVA_CNB_BP_KEYS = (
     "BP_MAVEN_SETTINGS_PATH",
 )
 
+PYTHON_CNB_INTERNAL_KEYS = (
+    "BUILD_AUTO_PROCFILE",
+    "START_COMMAND_SOURCE",
+)
+
+PYTHON_CNB_READONLY_KEYS = (
+    "BUILD_PYTHON_PACKAGE_MANAGER",
+    "start_command_source",
+)
+
 
 def normalize_language(language):
     return (language or "").replace(".", "").strip().lower()
@@ -203,6 +213,59 @@ def normalize_java_cnb_env_dict_for_save(build_env_dict, language, build_strateg
     return envs
 
 
+def normalize_python_cnb_env_dict_for_response(build_env_dict, language, build_strategy=""):
+    envs = dict(build_env_dict or {})
+    if str(build_strategy or "").strip().lower() != "cnb" or normalize_language(language) != "python":
+        return envs
+
+    manager = _first_non_empty(envs, "BUILD_PYTHON_PACKAGE_MANAGER") or "pip"
+    if not _first_non_empty(envs, "BUILD_PROCFILE") and _first_non_empty(envs, "BUILD_AUTO_PROCFILE"):
+        envs["BUILD_PROCFILE"] = _first_non_empty(envs, "BUILD_AUTO_PROCFILE")
+    if _first_non_empty(envs, "START_COMMAND_SOURCE"):
+        envs["start_command_source"] = _first_non_empty(envs, "START_COMMAND_SOURCE")
+    elif _first_non_empty(envs, "BUILD_PROCFILE"):
+        envs["start_command_source"] = "user"
+
+    _strip_python_manager_specific_keys(envs, manager)
+    for key in PYTHON_CNB_INTERNAL_KEYS:
+        envs.pop(key, None)
+    return envs
+
+
+def normalize_python_cnb_env_dict_for_save(build_env_dict, language, build_strategy="", current_build_env_dict=None):
+    envs = dict(build_env_dict or {})
+    if normalize_language(language) != "python":
+        return envs
+
+    current_envs = dict(current_build_env_dict or {})
+    normalized_strategy = str(build_strategy or "").strip().lower()
+    if normalized_strategy != "cnb":
+        envs.pop("BUILD_PYTHON_PACKAGE_MANAGER", None)
+        envs.pop("start_command_source", None)
+        return envs
+
+    manager = _first_non_empty(current_envs, "BUILD_PYTHON_PACKAGE_MANAGER") or _first_non_empty(envs, "BUILD_PYTHON_PACKAGE_MANAGER") or "pip"
+    envs["BUILD_PYTHON_PACKAGE_MANAGER"] = manager
+
+    current_start_command = _first_non_empty(current_envs, "BUILD_PROCFILE", "BUILD_AUTO_PROCFILE")
+    if isinstance(envs.get("BUILD_PROCFILE"), str) and envs.get("BUILD_PROCFILE", "").strip() == "":
+        envs.pop("BUILD_PROCFILE", None)
+    if _first_non_empty(envs, "BUILD_PROCFILE"):
+        if _first_non_empty(envs, "BUILD_PROCFILE") == current_start_command and _first_non_empty(current_envs, "START_COMMAND_SOURCE"):
+            envs["START_COMMAND_SOURCE"] = _first_non_empty(current_envs, "START_COMMAND_SOURCE")
+        else:
+            envs["START_COMMAND_SOURCE"] = "user"
+    else:
+        if _first_non_empty(current_envs, "BUILD_AUTO_PROCFILE"):
+            envs["BUILD_AUTO_PROCFILE"] = _first_non_empty(current_envs, "BUILD_AUTO_PROCFILE")
+        if _first_non_empty(current_envs, "START_COMMAND_SOURCE"):
+            envs["START_COMMAND_SOURCE"] = _first_non_empty(current_envs, "START_COMMAND_SOURCE")
+
+    envs.pop("start_command_source", None)
+    _strip_python_manager_specific_keys(envs, manager)
+    return envs
+
+
 def compose_build_env_response(build_env_dict, build_strategy="", cnb_version_policy=None):
     bean = {}
     for key, value in dict(build_env_dict or {}).items():
@@ -253,17 +316,31 @@ def extract_cnb_envs_from_runtime_info(runtime_info):
         return {}
 
     language = runtime_info.get("language", "")
-    if not is_cnb_language(language):
+    definition = get_cnb_policy_definition(language)
+    if not definition:
         return {}
 
     cnb_envs = {}
+
+    build_config = runtime_info.get("build_config") or {}
+    if definition["policy_key"] == "python":
+        package_manager = runtime_info.get("package_manager") or {}
+        package_manager_name = package_manager.get("name", "")
+        if package_manager_name:
+            cnb_envs["BUILD_PYTHON_PACKAGE_MANAGER"] = package_manager_name
+
+        start_command = build_config.get("start_command", "")
+        if start_command:
+            cnb_envs["BUILD_AUTO_PROCFILE"] = start_command
+            config_files = runtime_info.get("config_files") or {}
+            cnb_envs["START_COMMAND_SOURCE"] = "procfile" if config_files.get("has_procfile") else "auto-detected"
+        return cnb_envs
 
     framework = runtime_info.get("framework") or {}
     framework_name = framework.get("name", "")
     if framework_name:
         cnb_envs["CNB_FRAMEWORK"] = framework_name
 
-    build_config = runtime_info.get("build_config") or {}
     output_dir = build_config.get("output_dir", "")
     if output_dir:
         cnb_envs["CNB_OUTPUT_DIR"] = output_dir
@@ -445,7 +522,9 @@ def summarize_build_env(language, build_strategy, build_env_dict):
         return summary
 
     summary["builder_image"] = get_cnb_builder_image(language)
-    summary["start_command_source"] = "procfile" if build_env_dict.get("BUILD_PROCFILE") else "buildpack-default"
+    summary["start_command_source"] = _first_non_empty(build_env_dict, "start_command_source", "START_COMMAND_SOURCE")
+    if not summary["start_command_source"]:
+        summary["start_command_source"] = "procfile" if build_env_dict.get("BUILD_PROCFILE") else "buildpack-default"
     yaml_observable = {
         "build_type": "cnb",
         "annotations": {
@@ -487,10 +566,12 @@ def summarize_build_env(language, build_strategy, build_env_dict):
             yaml_observable["annotations"]["cnb-bp-gradle-built-artifact"] = _first_non_empty(
                 build_env_dict, "BP_GRADLE_BUILT_ARTIFACT", "BUILD_GRADLE_BUILT_ARTIFACT")
     elif definition["policy_key"] == "python":
-        if build_env_dict.get("BUILD_RUNTIMES"):
-            yaml_observable["annotations"]["cnb-bp-cpython-version"] = build_env_dict.get("BUILD_RUNTIMES")
-        if build_env_dict.get("BUILD_CONDA_SOLVER"):
-            yaml_observable["annotations"]["cnb-bp-conda-solver"] = build_env_dict.get("BUILD_CONDA_SOLVER")
+        if _first_non_empty(build_env_dict, "BP_CPYTHON_VERSION", "BUILD_RUNTIMES"):
+            yaml_observable["annotations"]["cnb-bp-cpython-version"] = _first_non_empty(
+                build_env_dict, "BP_CPYTHON_VERSION", "BUILD_RUNTIMES")
+        if _first_non_empty(build_env_dict, "BP_CONDA_SOLVER", "BUILD_CONDA_SOLVER"):
+            yaml_observable["annotations"]["cnb-bp-conda-solver"] = _first_non_empty(
+                build_env_dict, "BP_CONDA_SOLVER", "BUILD_CONDA_SOLVER")
         if build_env_dict.get("BUILD_LIVE_RELOAD_ENABLED"):
             yaml_observable["annotations"]["cnb-bp-live-reload-enabled"] = _bool_to_string(
                 build_env_dict.get("BUILD_LIVE_RELOAD_ENABLED"))
@@ -571,6 +652,32 @@ def _drop_legacy_cnb_type_markers(envs):
         envs.pop("BUILD_TYPE", None)
     if str(envs.get("TYPE", "")).strip().lower() == "cnb":
         envs.pop("TYPE", None)
+
+
+def _strip_python_manager_specific_keys(envs, manager):
+    manager = str(manager or "").strip().lower()
+
+    if manager != "pip":
+        envs.pop("BP_PIP_REQUIREMENT", None)
+        envs.pop("BP_PIP_DEST_PATH", None)
+
+    if manager not in ("pip", "pipenv"):
+        envs.pop("PIP_INDEX_URL", None)
+        envs.pop("PIP_EXTRA_INDEX_URL", None)
+        envs.pop("PIP_TRUSTED_HOST", None)
+        envs.pop("BUILD_PIP_INDEX_URL", None)
+        envs.pop("BUILD_PIP_EXTRA_INDEX_URL", None)
+        envs.pop("BUILD_PIP_TRUSTED_HOST", None)
+
+    if manager != "poetry":
+        envs.pop("BUILD_POETRY_SOURCE_NAME", None)
+        envs.pop("BUILD_POETRY_SOURCE_URL", None)
+
+    if manager != "conda":
+        envs.pop("BUILD_CONDA_CHANNEL_URL", None)
+        envs.pop("BUILD_CONDA_SOLVER", None)
+    else:
+        envs.pop("BUILD_PYTHON_PACKAGE_MANAGER_VERSION", None)
 
 
 def _first_non_empty(envs, *keys):

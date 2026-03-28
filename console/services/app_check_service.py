@@ -28,6 +28,11 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 CNB_BUILD_ENV_NAMES = cnb_build_utils.CNB_BUILD_ENV_NAMES
 extract_cnb_envs_from_runtime_info = cnb_build_utils.extract_cnb_envs_from_runtime_info
+PYTHON_SYNCED_ENV_NAMES = (
+    "BUILD_PYTHON_PACKAGE_MANAGER",
+    "BUILD_AUTO_PROCFILE",
+    "START_COMMAND_SOURCE",
+)
 
 
 def supports_cnb_build_strategy(language):
@@ -656,6 +661,8 @@ class AppCheckService(object):
 
     def cleanup_cnb_build_envs(self, tenant, service, remove_build_type=False):
         env_names = list(CNB_BUILD_ENV_NAMES)
+        if (service.language or "").strip().lower() == "python":
+            env_names.extend(PYTHON_SYNCED_ENV_NAMES)
         if remove_build_type:
             env_names.append("BUILD_TYPE")
 
