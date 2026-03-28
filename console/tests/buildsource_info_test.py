@@ -173,3 +173,5 @@ class BuildSourceInfoServiceTests(TestCase):
                 }
             }
         })
+        self.assertEqual(build_infos["svc-1"]["build_env_dict"]["BP_JVM_VERSION"], "17")
+        self.assertNotIn("BUILD_RUNTIMES", build_infos["svc-1"]["build_env_dict"])

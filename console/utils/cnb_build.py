@@ -68,6 +68,36 @@ CNB_POLICY_DEFINITIONS = (
 DEFAULT_CNB_BUILDER_IMAGE = "registry.cn-hangzhou.aliyuncs.com/goodrain/ubuntu-noble-builder:0.0.72"
 DEFAULT_PHP_CNB_BUILDER_IMAGE = "docker.io/paketobuildpacks/builder-jammy-full:latest"
 
+JAVA_CNB_LEGACY_TO_BP_ALIASES = (
+    ("BUILD_RUNTIMES", "BP_JVM_VERSION"),
+    ("RUNTIMES", "BP_JVM_VERSION"),
+    ("BUILD_MAVEN_CUSTOM_GOALS", "BP_MAVEN_BUILD_ARGUMENTS"),
+    ("BUILD_MAVEN_CUSTOM_OPTS", "BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS"),
+    ("BUILD_MAVEN_BUILT_MODULE", "BP_MAVEN_BUILT_MODULE"),
+    ("BUILD_MAVEN_BUILT_ARTIFACT", "BP_MAVEN_BUILT_ARTIFACT"),
+    ("BUILD_GRADLE_BUILD_ARGUMENTS", "BP_GRADLE_BUILD_ARGUMENTS"),
+    ("BUILD_GRADLE_ADDITIONAL_BUILD_ARGUMENTS", "BP_GRADLE_ADDITIONAL_BUILD_ARGUMENTS"),
+    ("BUILD_GRADLE_BUILT_MODULE", "BP_GRADLE_BUILT_MODULE"),
+    ("BUILD_GRADLE_BUILT_ARTIFACT", "BP_GRADLE_BUILT_ARTIFACT"),
+    ("BUILD_RUNTIMES_SERVER", "BP_JAVA_APP_SERVER"),
+)
+
+JAVA_CNB_BP_KEYS = (
+    "BP_EXECUTABLE_JAR_LOCATION",
+    "BP_GRADLE_ADDITIONAL_BUILD_ARGUMENTS",
+    "BP_GRADLE_BUILD_ARGUMENTS",
+    "BP_GRADLE_BUILT_ARTIFACT",
+    "BP_GRADLE_BUILT_MODULE",
+    "BP_JAVA_APP_SERVER",
+    "BP_JVM_TYPE",
+    "BP_JVM_VERSION",
+    "BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS",
+    "BP_MAVEN_BUILD_ARGUMENTS",
+    "BP_MAVEN_BUILT_ARTIFACT",
+    "BP_MAVEN_BUILT_MODULE",
+    "BP_MAVEN_SETTINGS_PATH",
+)
+
 
 def normalize_language(language):
     return (language or "").replace(".", "").strip().lower()
@@ -142,6 +172,35 @@ def resolve_lang_update_build_strategy(language, service_build_strategy=""):
     if supports_cnb_build_strategy(language):
         return current or "cnb"
     return ""
+
+
+def normalize_java_cnb_env_dict_for_response(build_env_dict, language, build_strategy=""):
+    envs = dict(build_env_dict or {})
+    if str(build_strategy or "").strip().lower() != "cnb" or not _is_java_cnb_language(language):
+        return envs
+
+    _normalize_java_cnb_legacy_aliases(envs)
+    _drop_java_legacy_aliases(envs)
+    _drop_legacy_cnb_type_markers(envs)
+    return envs
+
+
+def normalize_java_cnb_env_dict_for_save(build_env_dict, language, build_strategy=""):
+    envs = dict(build_env_dict or {})
+    if not _is_java_cnb_language(language):
+        return envs
+
+    normalized_strategy = str(build_strategy or "").strip().lower()
+    if normalized_strategy == "cnb":
+        _normalize_java_cnb_legacy_aliases(envs)
+        _drop_java_legacy_aliases(envs)
+        _drop_legacy_cnb_type_markers(envs)
+        return envs
+
+    for key in JAVA_CNB_BP_KEYS:
+        envs.pop(key, None)
+    _drop_legacy_cnb_type_markers(envs)
+    return envs
 
 
 def compose_build_env_response(build_env_dict, build_strategy="", cnb_version_policy=None):
@@ -389,34 +448,38 @@ def summarize_build_env(language, build_strategy, build_env_dict):
     }
 
     if definition["policy_key"] == "java":
-        if build_env_dict.get("BUILD_RUNTIMES"):
-            yaml_observable["annotations"]["cnb-bp-jvm-version"] = build_env_dict.get("BUILD_RUNTIMES")
-        if build_env_dict.get("BUILD_MAVEN_CUSTOM_GOALS"):
-            yaml_observable["annotations"]["cnb-bp-maven-build-arguments"] = build_env_dict.get(
-                "BUILD_MAVEN_CUSTOM_GOALS")
-        if build_env_dict.get("BUILD_MAVEN_CUSTOM_OPTS"):
-            yaml_observable["annotations"]["cnb-bp-maven-additional-build-arguments"] = build_env_dict.get(
-                "BUILD_MAVEN_CUSTOM_OPTS")
-        if build_env_dict.get("BUILD_RUNTIMES_SERVER"):
-            yaml_observable["annotations"]["cnb-bp-java-app-server"] = build_env_dict.get("BUILD_RUNTIMES_SERVER")
-        if build_env_dict.get("BUILD_GRADLE_BUILD_ARGUMENTS"):
-            yaml_observable["annotations"]["cnb-bp-gradle-build-arguments"] = build_env_dict.get(
-                "BUILD_GRADLE_BUILD_ARGUMENTS")
-        if build_env_dict.get("BUILD_GRADLE_ADDITIONAL_BUILD_ARGUMENTS"):
-            yaml_observable["annotations"]["cnb-bp-gradle-additional-build-arguments"] = build_env_dict.get(
-                "BUILD_GRADLE_ADDITIONAL_BUILD_ARGUMENTS")
-        if build_env_dict.get("BUILD_MAVEN_BUILT_MODULE"):
-            yaml_observable["annotations"]["cnb-bp-maven-built-module"] = build_env_dict.get(
-                "BUILD_MAVEN_BUILT_MODULE")
-        if build_env_dict.get("BUILD_MAVEN_BUILT_ARTIFACT"):
-            yaml_observable["annotations"]["cnb-bp-maven-built-artifact"] = build_env_dict.get(
-                "BUILD_MAVEN_BUILT_ARTIFACT")
-        if build_env_dict.get("BUILD_GRADLE_BUILT_MODULE"):
-            yaml_observable["annotations"]["cnb-bp-gradle-built-module"] = build_env_dict.get(
-                "BUILD_GRADLE_BUILT_MODULE")
-        if build_env_dict.get("BUILD_GRADLE_BUILT_ARTIFACT"):
-            yaml_observable["annotations"]["cnb-bp-gradle-built-artifact"] = build_env_dict.get(
-                "BUILD_GRADLE_BUILT_ARTIFACT")
+        if _first_non_empty(build_env_dict, "BP_JVM_VERSION", "BUILD_RUNTIMES"):
+            yaml_observable["annotations"]["cnb-bp-jvm-version"] = _first_non_empty(
+                build_env_dict, "BP_JVM_VERSION", "BUILD_RUNTIMES")
+        if _first_non_empty(build_env_dict, "BP_JVM_TYPE"):
+            yaml_observable["annotations"]["cnb-bp-jvm-type"] = _first_non_empty(build_env_dict, "BP_JVM_TYPE")
+        if _first_non_empty(build_env_dict, "BP_MAVEN_BUILD_ARGUMENTS", "BUILD_MAVEN_CUSTOM_GOALS"):
+            yaml_observable["annotations"]["cnb-bp-maven-build-arguments"] = _first_non_empty(
+                build_env_dict, "BP_MAVEN_BUILD_ARGUMENTS", "BUILD_MAVEN_CUSTOM_GOALS")
+        if _first_non_empty(build_env_dict, "BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS", "BUILD_MAVEN_CUSTOM_OPTS"):
+            yaml_observable["annotations"]["cnb-bp-maven-additional-build-arguments"] = _first_non_empty(
+                build_env_dict, "BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS", "BUILD_MAVEN_CUSTOM_OPTS")
+        if _first_non_empty(build_env_dict, "BP_JAVA_APP_SERVER", "BUILD_RUNTIMES_SERVER"):
+            yaml_observable["annotations"]["cnb-bp-java-app-server"] = _first_non_empty(
+                build_env_dict, "BP_JAVA_APP_SERVER", "BUILD_RUNTIMES_SERVER")
+        if _first_non_empty(build_env_dict, "BP_GRADLE_BUILD_ARGUMENTS", "BUILD_GRADLE_BUILD_ARGUMENTS"):
+            yaml_observable["annotations"]["cnb-bp-gradle-build-arguments"] = _first_non_empty(
+                build_env_dict, "BP_GRADLE_BUILD_ARGUMENTS", "BUILD_GRADLE_BUILD_ARGUMENTS")
+        if _first_non_empty(build_env_dict, "BP_GRADLE_ADDITIONAL_BUILD_ARGUMENTS", "BUILD_GRADLE_ADDITIONAL_BUILD_ARGUMENTS"):
+            yaml_observable["annotations"]["cnb-bp-gradle-additional-build-arguments"] = _first_non_empty(
+                build_env_dict, "BP_GRADLE_ADDITIONAL_BUILD_ARGUMENTS", "BUILD_GRADLE_ADDITIONAL_BUILD_ARGUMENTS")
+        if _first_non_empty(build_env_dict, "BP_MAVEN_BUILT_MODULE", "BUILD_MAVEN_BUILT_MODULE"):
+            yaml_observable["annotations"]["cnb-bp-maven-built-module"] = _first_non_empty(
+                build_env_dict, "BP_MAVEN_BUILT_MODULE", "BUILD_MAVEN_BUILT_MODULE")
+        if _first_non_empty(build_env_dict, "BP_MAVEN_BUILT_ARTIFACT", "BUILD_MAVEN_BUILT_ARTIFACT"):
+            yaml_observable["annotations"]["cnb-bp-maven-built-artifact"] = _first_non_empty(
+                build_env_dict, "BP_MAVEN_BUILT_ARTIFACT", "BUILD_MAVEN_BUILT_ARTIFACT")
+        if _first_non_empty(build_env_dict, "BP_GRADLE_BUILT_MODULE", "BUILD_GRADLE_BUILT_MODULE"):
+            yaml_observable["annotations"]["cnb-bp-gradle-built-module"] = _first_non_empty(
+                build_env_dict, "BP_GRADLE_BUILT_MODULE", "BUILD_GRADLE_BUILT_MODULE")
+        if _first_non_empty(build_env_dict, "BP_GRADLE_BUILT_ARTIFACT", "BUILD_GRADLE_BUILT_ARTIFACT"):
+            yaml_observable["annotations"]["cnb-bp-gradle-built-artifact"] = _first_non_empty(
+                build_env_dict, "BP_GRADLE_BUILT_ARTIFACT", "BUILD_GRADLE_BUILT_ARTIFACT")
     elif definition["policy_key"] == "python":
         if build_env_dict.get("BUILD_RUNTIMES"):
             yaml_observable["annotations"]["cnb-bp-cpython-version"] = build_env_dict.get("BUILD_RUNTIMES")
@@ -481,6 +544,39 @@ def _is_java_cnb_language(language):
     normalized = normalize_language(language)
     compact = normalized.replace("-", "").replace("_", "").replace(" ", "")
     return "java" in compact or "gradle" in compact
+
+
+def _normalize_java_cnb_legacy_aliases(envs):
+    for source_key, target_key in JAVA_CNB_LEGACY_TO_BP_ALIASES:
+        if _first_non_empty(envs, target_key):
+            continue
+        source_value = _first_non_empty(envs, source_key)
+        if source_value:
+            envs[target_key] = source_value
+
+
+def _drop_java_legacy_aliases(envs):
+    for source_key, _ in JAVA_CNB_LEGACY_TO_BP_ALIASES:
+        envs.pop(source_key, None)
+
+
+def _drop_legacy_cnb_type_markers(envs):
+    if str(envs.get("BUILD_TYPE", "")).strip().lower() == "cnb":
+        envs.pop("BUILD_TYPE", None)
+    if str(envs.get("TYPE", "")).strip().lower() == "cnb":
+        envs.pop("TYPE", None)
+
+
+def _first_non_empty(envs, *keys):
+    envs = envs or {}
+    for key in keys:
+        value = envs.get(key)
+        if value is None:
+            continue
+        if str(value).strip() == "":
+            continue
+        return value
+    return ""
 
 
 def _build_fallback_policy(definition, fallback_versions):

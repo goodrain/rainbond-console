@@ -7,6 +7,8 @@ from console.utils.cnb_build import (
     extract_cnb_envs_from_runtime_info,
     has_cnb_build_params,
     is_cnb_language,
+    normalize_java_cnb_env_dict_for_response,
+    normalize_java_cnb_env_dict_for_save,
     sanitize_build_env_dict_for_language,
     summarize_build_env,
 )
@@ -261,6 +263,32 @@ class RuntimeInfoExtractTestCase(TestCase):
 
 
 class BuildSummaryTestCase(TestCase):
+    def test_summarize_java_cnb_env_prefers_bp_contract(self):
+        summary = summarize_build_env("java-maven", "cnb", {
+            "BP_JVM_VERSION": "21",
+            "BP_MAVEN_BUILD_ARGUMENTS": "clean package",
+            "BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS": "-DskipTests",
+            "BP_MAVEN_BUILT_MODULE": "service-a",
+            "BP_MAVEN_BUILT_ARTIFACT": "service-a/target/app.jar",
+            "BP_GRADLE_BUILD_ARGUMENTS": "build",
+            "BP_GRADLE_ADDITIONAL_BUILD_ARGUMENTS": "--info",
+            "BP_GRADLE_BUILT_MODULE": "service-a",
+            "BP_GRADLE_BUILT_ARTIFACT": "service-a/build/libs/app.jar",
+            "BP_JAVA_APP_SERVER": "tomcat",
+        })
+
+        annotations = summary["yaml_observable"]["annotations"]
+        self.assertEqual(annotations["cnb-bp-jvm-version"], "21")
+        self.assertEqual(annotations["cnb-bp-maven-build-arguments"], "clean package")
+        self.assertEqual(annotations["cnb-bp-maven-additional-build-arguments"], "-DskipTests")
+        self.assertEqual(annotations["cnb-bp-maven-built-module"], "service-a")
+        self.assertEqual(annotations["cnb-bp-maven-built-artifact"], "service-a/target/app.jar")
+        self.assertEqual(annotations["cnb-bp-gradle-build-arguments"], "build")
+        self.assertEqual(annotations["cnb-bp-gradle-additional-build-arguments"], "--info")
+        self.assertEqual(annotations["cnb-bp-gradle-built-module"], "service-a")
+        self.assertEqual(annotations["cnb-bp-gradle-built-artifact"], "service-a/build/libs/app.jar")
+        self.assertEqual(annotations["cnb-bp-java-app-server"], "tomcat")
+
     def test_summarize_java_cnb_env_exposes_extended_annotations(self):
         summary = summarize_build_env("java-maven", "cnb", {
             "BUILD_RUNTIMES": "17",
@@ -354,3 +382,82 @@ class BuildEnvResponseTestCase(TestCase):
 
         self.assertEqual(bean["build_strategy"], "slug")
         self.assertNotIn("cnb_version_policy", bean)
+
+
+class JavaCNBContractNormalizeTestCase(TestCase):
+    def test_response_normalizes_legacy_java_cnb_keys_to_bp_contract(self):
+        normalized = normalize_java_cnb_env_dict_for_response(
+            {
+                "BUILD_RUNTIMES": "17",
+                "BUILD_MAVEN_CUSTOM_GOALS": "clean package",
+                "BUILD_MAVEN_CUSTOM_OPTS": "-DskipTests",
+                "BUILD_GRADLE_BUILD_ARGUMENTS": "build",
+                "BUILD_RUNTIMES_SERVER": "tomcat",
+                "BUILD_TYPE": "cnb",
+                "BUILD_PROCFILE": "web: java -jar app.jar",
+            },
+            "java-maven",
+            "cnb",
+        )
+
+        self.assertEqual(normalized["BP_JVM_VERSION"], "17")
+        self.assertEqual(normalized["BP_MAVEN_BUILD_ARGUMENTS"], "clean package")
+        self.assertEqual(normalized["BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS"], "-DskipTests")
+        self.assertEqual(normalized["BP_GRADLE_BUILD_ARGUMENTS"], "build")
+        self.assertEqual(normalized["BP_JAVA_APP_SERVER"], "tomcat")
+        self.assertNotIn("BUILD_RUNTIMES", normalized)
+        self.assertNotIn("BUILD_MAVEN_CUSTOM_GOALS", normalized)
+        self.assertNotIn("BUILD_TYPE", normalized)
+        self.assertEqual(normalized["BUILD_PROCFILE"], "web: java -jar app.jar")
+
+    def test_save_normalizes_java_cnb_payload_to_bp_contract(self):
+        normalized = normalize_java_cnb_env_dict_for_save(
+            {
+                "BUILD_RUNTIMES": "17",
+                "BUILD_MAVEN_CUSTOM_GOALS": "clean package",
+                "BUILD_MAVEN_CUSTOM_OPTS": "-DskipTests",
+                "BUILD_MAVEN_BUILT_MODULE": "service-a",
+                "BUILD_MAVEN_BUILT_ARTIFACT": "service-a/target/app.jar",
+                "BUILD_GRADLE_BUILD_ARGUMENTS": "build",
+                "BUILD_GRADLE_ADDITIONAL_BUILD_ARGUMENTS": "--info",
+                "BUILD_RUNTIMES_SERVER": "tomcat",
+                "BUILD_NO_CACHE": "true",
+                "BUILD_TYPE": "cnb",
+            },
+            "java-maven",
+            "cnb",
+        )
+
+        self.assertEqual(normalized["BP_JVM_VERSION"], "17")
+        self.assertEqual(normalized["BP_MAVEN_BUILD_ARGUMENTS"], "clean package")
+        self.assertEqual(normalized["BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS"], "-DskipTests")
+        self.assertEqual(normalized["BP_MAVEN_BUILT_MODULE"], "service-a")
+        self.assertEqual(normalized["BP_MAVEN_BUILT_ARTIFACT"], "service-a/target/app.jar")
+        self.assertEqual(normalized["BP_GRADLE_BUILD_ARGUMENTS"], "build")
+        self.assertEqual(normalized["BP_GRADLE_ADDITIONAL_BUILD_ARGUMENTS"], "--info")
+        self.assertEqual(normalized["BP_JAVA_APP_SERVER"], "tomcat")
+        self.assertNotIn("BUILD_RUNTIMES", normalized)
+        self.assertNotIn("BUILD_MAVEN_CUSTOM_GOALS", normalized)
+        self.assertNotIn("BUILD_TYPE", normalized)
+        self.assertEqual(normalized["BUILD_NO_CACHE"], "true")
+
+    def test_save_ignores_java_cnb_bp_keys_for_slug_strategy(self):
+        normalized = normalize_java_cnb_env_dict_for_save(
+            {
+                "BP_JVM_VERSION": "21",
+                "BP_MAVEN_BUILD_ARGUMENTS": "clean package",
+                "BP_JAVA_APP_SERVER": "tomcat",
+                "BUILD_RUNTIMES": "17",
+                "BUILD_MAVEN_CUSTOM_GOALS": "clean package",
+                "BUILD_TYPE": "cnb",
+            },
+            "java-maven",
+            "slug",
+        )
+
+        self.assertNotIn("BP_JVM_VERSION", normalized)
+        self.assertNotIn("BP_MAVEN_BUILD_ARGUMENTS", normalized)
+        self.assertNotIn("BP_JAVA_APP_SERVER", normalized)
+        self.assertNotIn("BUILD_TYPE", normalized)
+        self.assertEqual(normalized["BUILD_RUNTIMES"], "17")
+        self.assertEqual(normalized["BUILD_MAVEN_CUSTOM_GOALS"], "clean package")

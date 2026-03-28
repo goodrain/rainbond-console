@@ -12,7 +12,8 @@ from console.services.app_check_service import supports_cnb_build_strategy
 from console.services.operation_log import operation_log_service, Operation
 from console.services.service_services import base_service
 from console.utils.cnb_build import (CNB_BUILD_ENV_NAMES, compose_build_env_response, sanitize_build_env_dict_for_language,
-                                     resolve_build_strategy, should_backfill_build_strategy)
+                                     resolve_build_strategy, normalize_java_cnb_env_dict_for_response,
+                                     normalize_java_cnb_env_dict_for_save)
 from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.views.app_config.base import AppBaseView
@@ -472,6 +473,7 @@ class AppBuildEnvView(AppBaseView):
                 build_env_dict[build_env.attr_name] = build_env.attr_value
         build_env_dict = sanitize_build_env_dict_for_language(build_env_dict, self.service.language)
         build_strategy = resolve_build_strategy(getattr(self.service, "build_strategy", ""), build_env_dict)
+        build_env_dict = normalize_java_cnb_env_dict_for_response(build_env_dict, self.service.language, build_strategy)
         cnb_version_policy = base_service._get_cnb_version_policy(self.tenant, self.service) if build_strategy == "cnb" else {}
         result = general_message(200, "success", "查询成功", bean=compose_build_env_response(
             build_env_dict, build_strategy, cnb_version_policy))
@@ -486,14 +488,24 @@ class AppBuildEnvView(AppBaseView):
         :param kwargs:
         :return:
         """
-        build_env_dict = request.data.get("build_env_dict", None)
+        raw_request_env_dict = request.data.get("build_env_dict", None)
+        build_env_dict = dict(raw_request_env_dict or {}) if isinstance(raw_request_env_dict, dict) else raw_request_env_dict
         if isinstance(build_env_dict, dict):
             build_env_dict.pop("build_strategy", None)
             build_env_dict.pop("cnb_version_policy", None)
         build_env_dict = sanitize_build_env_dict_for_language(build_env_dict, self.service.language)
         build_envs = env_var_service.get_service_build_envs(self.service)
+        current_build_env_dict = {}
+        if build_envs:
+            for build_env in build_envs:
+                current_build_env_dict[build_env.attr_name] = build_env.attr_value
+        current_build_env_dict = sanitize_build_env_dict_for_language(current_build_env_dict, self.service.language)
+        current_build_strategy = resolve_build_strategy(getattr(self.service, "build_strategy", ""), current_build_env_dict)
+        build_env_dict = normalize_java_cnb_env_dict_for_save(build_env_dict, self.service.language, current_build_strategy)
         # 传入为空，清除
         if not build_env_dict:
+            if isinstance(raw_request_env_dict, dict) and raw_request_env_dict and current_build_strategy != "cnb":
+                return Response(general_message(200, "success", "设置成功"))
             for build_env in build_envs:
                 build_env.delete()
             return Response(general_message(200, "success", "设置成功"))
@@ -506,7 +518,7 @@ class AppBuildEnvView(AppBaseView):
                 build_env.delete()
         old_information = json.dumps(old_build_env_dict, ensure_ascii=False)
 
-        if should_backfill_build_strategy(getattr(self.service, "build_strategy", ""), build_env_dict):
+        if not getattr(self.service, "build_strategy", "").strip() and current_build_strategy == "cnb":
             service_repo.update(self.tenant.tenant_id, self.service.service_id, build_strategy="cnb")
             self.service.build_strategy = "cnb"
 
