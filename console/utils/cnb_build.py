@@ -204,7 +204,13 @@ def normalize_java_cnb_env_dict_for_save(build_env_dict, language, build_strateg
 
 
 def compose_build_env_response(build_env_dict, build_strategy="", cnb_version_policy=None):
-    bean = dict(build_env_dict or {})
+    bean = {}
+    for key, value in dict(build_env_dict or {}).items():
+        if value is None:
+            continue
+        if isinstance(value, str) and value.strip() == "":
+            continue
+        bean[key] = value
     build_strategy = (build_strategy or "").strip().lower()
     if build_strategy:
         bean["build_strategy"] = build_strategy

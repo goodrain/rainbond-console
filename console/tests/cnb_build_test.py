@@ -383,6 +383,39 @@ class BuildEnvResponseTestCase(TestCase):
         self.assertEqual(bean["build_strategy"], "slug")
         self.assertNotIn("cnb_version_policy", bean)
 
+    def test_compose_build_env_response_omits_empty_env_values(self):
+        bean = compose_build_env_response(
+            {
+                "BP_JVM_VERSION": "25",
+                "BP_JVM_TYPE": "JRE",
+                "BP_MAVEN_BUILD_ARGUMENTS": "clean package",
+                "BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS": "",
+                "BUILD_MAVEN_JAVA_OPTS": "",
+                "BP_MAVEN_BUILT_MODULE": "",
+                "BP_MAVEN_BUILT_ARTIFACT": "",
+            },
+            "cnb",
+            {
+                "java": {
+                    "jdk": {
+                        "visible_versions": ["17", "25"],
+                        "allowed_versions": ["17", "25"],
+                        "default_version": "17"
+                    }
+                }
+            }
+        )
+
+        self.assertEqual(bean["BP_JVM_VERSION"], "25")
+        self.assertEqual(bean["BP_JVM_TYPE"], "JRE")
+        self.assertEqual(bean["BP_MAVEN_BUILD_ARGUMENTS"], "clean package")
+        self.assertNotIn("BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS", bean)
+        self.assertNotIn("BUILD_MAVEN_JAVA_OPTS", bean)
+        self.assertNotIn("BP_MAVEN_BUILT_MODULE", bean)
+        self.assertNotIn("BP_MAVEN_BUILT_ARTIFACT", bean)
+        self.assertEqual(bean["build_strategy"], "cnb")
+        self.assertIn("cnb_version_policy", bean)
+
 
 class JavaCNBContractNormalizeTestCase(TestCase):
     def test_response_normalizes_legacy_java_cnb_keys_to_bp_contract(self):
