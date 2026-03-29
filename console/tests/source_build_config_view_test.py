@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from console.utils.cnb_build import (normalize_source_build_config, resolve_build_strategy, should_backfill_build_strategy,
+from console.utils.cnb_build import (normalize_source_build_config, resolve_build_strategy,
                                      resolve_requested_build_strategy, resolve_lang_update_build_strategy)
 
 
@@ -86,13 +86,6 @@ class SourceBuildConfigViewTests(TestCase):
         strategy = resolve_build_strategy("", {"BUILD_TYPE": "cnb"})
 
         self.assertEqual(strategy, "cnb")
-        self.assertTrue(should_backfill_build_strategy("", {"BUILD_TYPE": "cnb"}))
-
-    def test_explicit_build_strategy_does_not_need_backfill(self):
-        strategy = resolve_build_strategy("cnb", {"BUILD_TYPE": "cnb"})
-
-        self.assertEqual(strategy, "cnb")
-        self.assertFalse(should_backfill_build_strategy("cnb", {"BUILD_TYPE": "cnb"}))
 
     def test_resolve_requested_build_strategy_prefers_current_legacy_cnb_over_payload_shape(self):
         strategy = resolve_requested_build_strategy(

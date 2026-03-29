@@ -321,8 +321,6 @@ class TenantServiceInfo(BaseModel):
     creater = models.IntegerField(help_text="组件创建者", default=0)
     language = models.CharField(max_length=40, null=True, blank=True, help_text="代码语言")
     build_strategy = models.CharField(max_length=20, null=True, blank=True, default="", help_text="源码构建策略")
-    build_migration_status = models.CharField(max_length=20, null=True, blank=True, default="", help_text="构建策略迁移状态")
-    build_migration_message = models.TextField(null=True, blank=True, default="", help_text="构建策略迁移说明")
     # deprecated
     protocol = models.CharField(max_length=15, default='', help_text="服务协议：http,stream")
     # deprecated

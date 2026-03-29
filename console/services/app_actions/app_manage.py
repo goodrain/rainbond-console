@@ -43,7 +43,7 @@ from console.services.group_service import group_service
 from console.services.service_services import base_service
 from console.utils.cnb_build import (sanitize_build_env_dict_for_language, normalize_source_build_config,
                                      policy_summary_to_snapshot, compose_source_code_info,
-                                     summarize_build_env, resolve_build_strategy, should_backfill_build_strategy,
+                                     summarize_build_env, resolve_build_strategy,
                                      resolve_requested_build_strategy)
 from console.utils import slug_util
 from console.utils.oauth.base.exception import NoAccessKeyErr
@@ -277,24 +277,12 @@ class AppManageService(AppManageBase):
                 except NoAccessKeyErr:
                     return 400, "该组件代码仓库认证信息已过期，请重新认证", ""
                 build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), body["envs"])
-                if should_backfill_build_strategy(getattr(service, "build_strategy", ""), body["envs"]):
-                    try:
-                        service_repo.update(tenant.tenant_id, service.service_id, build_strategy="cnb")
-                        service.build_strategy = "cnb"
-                    except Exception as err:
-                        logger.exception(err)
                 policy_summary = base_service._get_cnb_version_policy(tenant, service) if build_strategy == "cnb" else {}
                 body["code_info"] = compose_source_code_info(
                     service, body["envs"], build_strategy, policy_summary_to_snapshot(service.language, policy_summary),
                     git_url, service.code_version)
             else:
                 build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), body["envs"])
-                if should_backfill_build_strategy(getattr(service, "build_strategy", ""), body["envs"]):
-                    try:
-                        service_repo.update(tenant.tenant_id, service.service_id, build_strategy="cnb")
-                        service.build_strategy = "cnb"
-                    except Exception as err:
-                        logger.exception(err)
                 policy_summary = base_service._get_cnb_version_policy(tenant, service) if build_strategy == "cnb" else {}
                 body["code_info"] = compose_source_code_info(
                     service, body["envs"], build_strategy, policy_summary_to_snapshot(service.language, policy_summary),
