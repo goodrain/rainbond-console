@@ -657,16 +657,15 @@ def _drop_legacy_cnb_type_markers(envs):
 def _strip_python_manager_specific_keys(envs, manager):
     manager = str(manager or "").strip().lower()
 
-    if manager != "pip":
-        envs.pop("BP_PIP_REQUIREMENT", None)
-        envs.pop("BP_PIP_DEST_PATH", None)
+    envs.pop("BP_PIP_REQUIREMENT", None)
+    envs.pop("BP_PIP_DEST_PATH", None)
+    envs.pop("PIP_EXTRA_INDEX_URL", None)
+    envs.pop("BUILD_PIP_EXTRA_INDEX_URL", None)
 
     if manager not in ("pip", "pipenv"):
         envs.pop("PIP_INDEX_URL", None)
-        envs.pop("PIP_EXTRA_INDEX_URL", None)
         envs.pop("PIP_TRUSTED_HOST", None)
         envs.pop("BUILD_PIP_INDEX_URL", None)
-        envs.pop("BUILD_PIP_EXTRA_INDEX_URL", None)
         envs.pop("BUILD_PIP_TRUSTED_HOST", None)
 
     if manager != "poetry":

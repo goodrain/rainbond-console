@@ -514,6 +514,25 @@ class JavaCNBContractNormalizeTestCase(TestCase):
 
 
 class PythonCNBContractNormalizeTestCase(TestCase):
+    def test_response_strips_removed_default_fields_for_pip(self):
+        normalized = normalize_python_cnb_env_dict_for_response(
+            {
+                "BUILD_PYTHON_PACKAGE_MANAGER": "pip",
+                "BP_PIP_REQUIREMENT": "requirements.txt",
+                "BP_PIP_DEST_PATH": "vendor",
+                "PIP_EXTRA_INDEX_URL": "https://pypi.org/simple",
+                "PIP_INDEX_URL": "https://pypi.example.com/simple",
+            },
+            "python",
+            "cnb",
+        )
+
+        self.assertEqual(normalized["BUILD_PYTHON_PACKAGE_MANAGER"], "pip")
+        self.assertEqual(normalized["PIP_INDEX_URL"], "https://pypi.example.com/simple")
+        self.assertNotIn("BP_PIP_REQUIREMENT", normalized)
+        self.assertNotIn("BP_PIP_DEST_PATH", normalized)
+        self.assertNotIn("PIP_EXTRA_INDEX_URL", normalized)
+
     def test_response_uses_auto_procfile_when_user_override_missing(self):
         normalized = normalize_python_cnb_env_dict_for_response(
             {
@@ -538,6 +557,9 @@ class PythonCNBContractNormalizeTestCase(TestCase):
                 "BUILD_PYTHON_PACKAGE_MANAGER": "poetry",
                 "BUILD_PROCFILE": "",
                 "start_command_source": "user",
+                "BP_PIP_REQUIREMENT": "requirements.txt",
+                "BP_PIP_DEST_PATH": "vendor",
+                "PIP_EXTRA_INDEX_URL": "https://pypi.org/simple",
                 "PIP_INDEX_URL": "https://pypi.example.com/simple",
             },
             "python",
@@ -553,6 +575,9 @@ class PythonCNBContractNormalizeTestCase(TestCase):
         self.assertEqual(normalized["BUILD_AUTO_PROCFILE"], "web: gunicorn app:app --bind 0.0.0.0:$PORT")
         self.assertEqual(normalized["START_COMMAND_SOURCE"], "auto-detected")
         self.assertNotIn("BUILD_PROCFILE", normalized)
+        self.assertNotIn("BP_PIP_REQUIREMENT", normalized)
+        self.assertNotIn("BP_PIP_DEST_PATH", normalized)
+        self.assertNotIn("PIP_EXTRA_INDEX_URL", normalized)
 
     def test_save_marks_user_source_when_procfile_is_overridden(self):
         normalized = normalize_python_cnb_env_dict_for_save(
