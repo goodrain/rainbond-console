@@ -98,6 +98,25 @@ JAVA_CNB_BP_KEYS = (
     "BP_MAVEN_SETTINGS_PATH",
 )
 
+GOLANG_CNB_LEGACY_TO_CURRENT_ALIASES = (
+    ("BUILD_GOVERSION", "BP_GO_VERSION"),
+    ("GOVERSION", "BP_GO_VERSION"),
+    ("BUILD_GO_INSTALL_PACKAGE_SPEC", "BP_GO_TARGETS"),
+    ("BUILD_GO_BUILD_FLAGS", "BP_GO_BUILD_FLAGS"),
+    ("BUILD_GO_BUILD_LDFLAGS", "BP_GO_BUILD_LDFLAGS"),
+    ("BUILD_GOPROXY", "GOPROXY"),
+    ("BUILD_GOPRIVATE", "GOPRIVATE"),
+)
+
+GOLANG_CNB_CURRENT_KEYS = (
+    "BP_GO_VERSION",
+    "BP_GO_TARGETS",
+    "BP_GO_BUILD_FLAGS",
+    "BP_GO_BUILD_LDFLAGS",
+    "GOPROXY",
+    "GOPRIVATE",
+)
+
 PYTHON_CNB_INTERNAL_KEYS = (
     "BUILD_AUTO_PROCFILE",
     "START_COMMAND_SOURCE",
@@ -263,6 +282,35 @@ def normalize_python_cnb_env_dict_for_save(build_env_dict, language, build_strat
 
     envs.pop("start_command_source", None)
     _strip_python_manager_specific_keys(envs, manager)
+    return envs
+
+
+def normalize_golang_cnb_env_dict_for_response(build_env_dict, language, build_strategy=""):
+    envs = dict(build_env_dict or {})
+    if str(build_strategy or "").strip().lower() != "cnb" or normalize_language(language) not in ("go", "golang"):
+        return envs
+
+    _normalize_golang_cnb_legacy_aliases(envs)
+    _drop_golang_legacy_aliases(envs)
+    _drop_legacy_cnb_type_markers(envs)
+    return envs
+
+
+def normalize_golang_cnb_env_dict_for_save(build_env_dict, language, build_strategy=""):
+    envs = dict(build_env_dict or {})
+    if normalize_language(language) not in ("go", "golang"):
+        return envs
+
+    normalized_strategy = str(build_strategy or "").strip().lower()
+    if normalized_strategy == "cnb":
+        _normalize_golang_cnb_legacy_aliases(envs)
+        _drop_golang_legacy_aliases(envs)
+        _drop_legacy_cnb_type_markers(envs)
+        return envs
+
+    for key in GOLANG_CNB_CURRENT_KEYS:
+        envs.pop(key, None)
+    _drop_legacy_cnb_type_markers(envs)
     return envs
 
 
@@ -576,24 +624,30 @@ def summarize_build_env(language, build_strategy, build_env_dict):
             yaml_observable["annotations"]["cnb-bp-live-reload-enabled"] = _bool_to_string(
                 build_env_dict.get("BUILD_LIVE_RELOAD_ENABLED"))
     elif definition["policy_key"] == "golang":
-        if build_env_dict.get("BUILD_GOVERSION"):
-            yaml_observable["annotations"]["cnb-bp-go-version"] = build_env_dict.get("BUILD_GOVERSION")
-        if build_env_dict.get("BUILD_GO_INSTALL_PACKAGE_SPEC"):
-            yaml_observable["annotations"]["cnb-bp-go-targets"] = build_env_dict.get("BUILD_GO_INSTALL_PACKAGE_SPEC")
-        if build_env_dict.get("BUILD_GO_BUILD_FLAGS"):
-            yaml_observable["annotations"]["cnb-bp-go-build-flags"] = build_env_dict.get("BUILD_GO_BUILD_FLAGS")
-        if build_env_dict.get("BUILD_GO_BUILD_LDFLAGS"):
-            yaml_observable["annotations"]["cnb-bp-go-build-ldflags"] = build_env_dict.get("BUILD_GO_BUILD_LDFLAGS")
-        if build_env_dict.get("BUILD_GO_BUILD_IMPORT_PATH"):
-            yaml_observable["annotations"]["cnb-bp-go-build-import-path"] = build_env_dict.get(
-                "BUILD_GO_BUILD_IMPORT_PATH")
-        if build_env_dict.get("BUILD_GO_KEEP_FILES"):
-            yaml_observable["annotations"]["cnb-bp-keep-files"] = build_env_dict.get("BUILD_GO_KEEP_FILES")
-        if build_env_dict.get("BUILD_GO_WORK_USE"):
-            yaml_observable["annotations"]["cnb-bp-go-work-use"] = build_env_dict.get("BUILD_GO_WORK_USE")
-        if build_env_dict.get("BUILD_LIVE_RELOAD_ENABLED"):
+        if _first_non_empty(build_env_dict, "BP_GO_VERSION", "BUILD_GOVERSION", "GOVERSION"):
+            yaml_observable["annotations"]["cnb-bp-go-version"] = _first_non_empty(
+                build_env_dict, "BP_GO_VERSION", "BUILD_GOVERSION", "GOVERSION")
+        if _first_non_empty(build_env_dict, "BP_GO_TARGETS", "BUILD_GO_INSTALL_PACKAGE_SPEC"):
+            yaml_observable["annotations"]["cnb-bp-go-targets"] = _first_non_empty(
+                build_env_dict, "BP_GO_TARGETS", "BUILD_GO_INSTALL_PACKAGE_SPEC")
+        if _first_non_empty(build_env_dict, "BP_GO_BUILD_FLAGS", "BUILD_GO_BUILD_FLAGS"):
+            yaml_observable["annotations"]["cnb-bp-go-build-flags"] = _first_non_empty(
+                build_env_dict, "BP_GO_BUILD_FLAGS", "BUILD_GO_BUILD_FLAGS")
+        if _first_non_empty(build_env_dict, "BP_GO_BUILD_LDFLAGS", "BUILD_GO_BUILD_LDFLAGS"):
+            yaml_observable["annotations"]["cnb-bp-go-build-ldflags"] = _first_non_empty(
+                build_env_dict, "BP_GO_BUILD_LDFLAGS", "BUILD_GO_BUILD_LDFLAGS")
+        if _first_non_empty(build_env_dict, "BP_GO_BUILD_IMPORT_PATH", "BUILD_GO_BUILD_IMPORT_PATH"):
+            yaml_observable["annotations"]["cnb-bp-go-build-import-path"] = _first_non_empty(
+                build_env_dict, "BP_GO_BUILD_IMPORT_PATH", "BUILD_GO_BUILD_IMPORT_PATH")
+        if _first_non_empty(build_env_dict, "BP_KEEP_FILES", "BUILD_GO_KEEP_FILES"):
+            yaml_observable["annotations"]["cnb-bp-keep-files"] = _first_non_empty(
+                build_env_dict, "BP_KEEP_FILES", "BUILD_GO_KEEP_FILES")
+        if _first_non_empty(build_env_dict, "BP_GO_WORK_USE", "BUILD_GO_WORK_USE"):
+            yaml_observable["annotations"]["cnb-bp-go-work-use"] = _first_non_empty(
+                build_env_dict, "BP_GO_WORK_USE", "BUILD_GO_WORK_USE")
+        if _first_non_empty(build_env_dict, "BP_LIVE_RELOAD_ENABLED", "BUILD_LIVE_RELOAD_ENABLED"):
             yaml_observable["annotations"]["cnb-bp-live-reload-enabled"] = _bool_to_string(
-                build_env_dict.get("BUILD_LIVE_RELOAD_ENABLED"))
+                _first_non_empty(build_env_dict, "BP_LIVE_RELOAD_ENABLED", "BUILD_LIVE_RELOAD_ENABLED"))
     elif definition["policy_key"] == "php":
         if build_env_dict.get("BUILD_RUNTIMES"):
             yaml_observable["annotations"]["cnb-bp-php-version"] = build_env_dict.get("BUILD_RUNTIMES")
@@ -644,6 +698,20 @@ def _normalize_java_cnb_legacy_aliases(envs):
 
 def _drop_java_legacy_aliases(envs):
     for source_key, _ in JAVA_CNB_LEGACY_TO_BP_ALIASES:
+        envs.pop(source_key, None)
+
+
+def _normalize_golang_cnb_legacy_aliases(envs):
+    for source_key, target_key in GOLANG_CNB_LEGACY_TO_CURRENT_ALIASES:
+        if _first_non_empty(envs, target_key):
+            continue
+        source_value = _first_non_empty(envs, source_key)
+        if source_value:
+            envs[target_key] = source_value
+
+
+def _drop_golang_legacy_aliases(envs):
+    for source_key, _ in GOLANG_CNB_LEGACY_TO_CURRENT_ALIASES:
         envs.pop(source_key, None)
 
 

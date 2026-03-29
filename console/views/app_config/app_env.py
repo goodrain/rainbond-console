@@ -15,7 +15,9 @@ from console.utils.cnb_build import (CNB_BUILD_ENV_NAMES, compose_build_env_resp
                                      resolve_build_strategy, normalize_java_cnb_env_dict_for_response,
                                      normalize_java_cnb_env_dict_for_save,
                                      normalize_python_cnb_env_dict_for_response,
-                                     normalize_python_cnb_env_dict_for_save)
+                                     normalize_python_cnb_env_dict_for_save,
+                                     normalize_golang_cnb_env_dict_for_response,
+                                     normalize_golang_cnb_env_dict_for_save)
 from console.utils.reqparse import parse_item
 from console.utils.response import MessageResponse
 from console.views.app_config.base import AppBaseView
@@ -477,6 +479,7 @@ class AppBuildEnvView(AppBaseView):
         build_strategy = resolve_build_strategy(getattr(self.service, "build_strategy", ""), build_env_dict)
         build_env_dict = normalize_java_cnb_env_dict_for_response(build_env_dict, self.service.language, build_strategy)
         build_env_dict = normalize_python_cnb_env_dict_for_response(build_env_dict, self.service.language, build_strategy)
+        build_env_dict = normalize_golang_cnb_env_dict_for_response(build_env_dict, self.service.language, build_strategy)
         cnb_version_policy = base_service._get_cnb_version_policy(self.tenant, self.service) if build_strategy == "cnb" else {}
         result = general_message(200, "success", "查询成功", bean=compose_build_env_response(
             build_env_dict, build_strategy, cnb_version_policy))
@@ -507,6 +510,8 @@ class AppBuildEnvView(AppBaseView):
         build_env_dict = normalize_java_cnb_env_dict_for_save(build_env_dict, self.service.language, current_build_strategy)
         build_env_dict = normalize_python_cnb_env_dict_for_save(
             build_env_dict, self.service.language, current_build_strategy, current_build_env_dict)
+        build_env_dict = normalize_golang_cnb_env_dict_for_save(
+            build_env_dict, self.service.language, current_build_strategy)
         # 传入为空，清除
         if not build_env_dict:
             if isinstance(raw_request_env_dict, dict) and raw_request_env_dict and current_build_strategy != "cnb":

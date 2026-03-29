@@ -7,6 +7,8 @@ from console.utils.cnb_build import (
     extract_cnb_envs_from_runtime_info,
     has_cnb_build_params,
     is_cnb_language,
+    normalize_golang_cnb_env_dict_for_response,
+    normalize_golang_cnb_env_dict_for_save,
     normalize_java_cnb_env_dict_for_response,
     normalize_java_cnb_env_dict_for_save,
     normalize_python_cnb_env_dict_for_response,
@@ -339,19 +341,24 @@ class BuildSummaryTestCase(TestCase):
         self.assertEqual(python_summary["start_command_source"], "auto-detected")
 
         golang_summary = summarize_build_env("Golang", "cnb", {
-            "BUILD_GOVERSION": "1.23",
-            "BUILD_GO_BUILD_FLAGS": "-trimpath",
-            "BUILD_GO_BUILD_LDFLAGS": "-s -w",
-            "BUILD_GO_BUILD_IMPORT_PATH": "example.com/app",
-            "BUILD_GO_KEEP_FILES": "static/**",
-            "BUILD_GO_WORK_USE": "./cmd/api",
+            "BP_GO_VERSION": "1.25",
+            "BP_GO_TARGETS": "./cmd/api",
+            "BP_GO_BUILD_FLAGS": "-trimpath",
+            "BP_GO_BUILD_LDFLAGS": "-s -w",
+            "BP_GO_BUILD_IMPORT_PATH": "example.com/app",
+            "BP_KEEP_FILES": "static/**",
+            "BP_GO_WORK_USE": "./cmd/api",
+            "BP_LIVE_RELOAD_ENABLED": "true",
         })
         go_annotations = golang_summary["yaml_observable"]["annotations"]
+        self.assertEqual(go_annotations["cnb-bp-go-version"], "1.25")
+        self.assertEqual(go_annotations["cnb-bp-go-targets"], "./cmd/api")
         self.assertEqual(go_annotations["cnb-bp-go-build-flags"], "-trimpath")
         self.assertEqual(go_annotations["cnb-bp-go-build-ldflags"], "-s -w")
         self.assertEqual(go_annotations["cnb-bp-go-build-import-path"], "example.com/app")
         self.assertEqual(go_annotations["cnb-bp-keep-files"], "static/**")
         self.assertEqual(go_annotations["cnb-bp-go-work-use"], "./cmd/api")
+        self.assertEqual(go_annotations["cnb-bp-live-reload-enabled"], "true")
 
         php_summary = summarize_build_env("PHP", "cnb", {
             "BUILD_RUNTIMES": "8.2",
@@ -631,3 +638,88 @@ class PythonCNBContractNormalizeTestCase(TestCase):
         self.assertEqual(normalized["BUILD_CONDA_SOLVER"], "mamba")
         self.assertNotIn("BUILD_PYTHON_PACKAGE_MANAGER_VERSION", normalized)
         self.assertNotIn("PIP_INDEX_URL", normalized)
+
+
+class GolangCNBContractNormalizeTestCase(TestCase):
+    def test_response_normalizes_golang_cnb_payload_to_bp_contract(self):
+        normalized = normalize_golang_cnb_env_dict_for_response(
+            {
+                "BUILD_GOVERSION": "1.25",
+                "BUILD_GOPROXY": "https://goproxy.cn",
+                "BUILD_GOPRIVATE": "github.com/acme/*",
+                "BUILD_GO_INSTALL_PACKAGE_SPEC": "./cmd/api",
+                "BUILD_GO_BUILD_FLAGS": "-trimpath",
+                "BUILD_GO_BUILD_LDFLAGS": "-s -w",
+                "BUILD_TYPE": "cnb",
+            },
+            "Go",
+            "cnb",
+        )
+
+        self.assertEqual(normalized["BP_GO_VERSION"], "1.25")
+        self.assertEqual(normalized["GOPROXY"], "https://goproxy.cn")
+        self.assertEqual(normalized["GOPRIVATE"], "github.com/acme/*")
+        self.assertEqual(normalized["BP_GO_TARGETS"], "./cmd/api")
+        self.assertEqual(normalized["BP_GO_BUILD_FLAGS"], "-trimpath")
+        self.assertEqual(normalized["BP_GO_BUILD_LDFLAGS"], "-s -w")
+        self.assertNotIn("BUILD_GOVERSION", normalized)
+        self.assertNotIn("BUILD_GOPROXY", normalized)
+        self.assertNotIn("BUILD_GO_INSTALL_PACKAGE_SPEC", normalized)
+        self.assertNotIn("BUILD_TYPE", normalized)
+
+    def test_save_normalizes_golang_cnb_payload_to_bp_contract(self):
+        normalized = normalize_golang_cnb_env_dict_for_save(
+            {
+                "BUILD_GOVERSION": "1.26",
+                "BUILD_GOPROXY": "https://goproxy.cn",
+                "BUILD_GOPRIVATE": "github.com/acme/*",
+                "BUILD_GO_INSTALL_PACKAGE_SPEC": "./cmd/worker",
+                "BUILD_GO_BUILD_FLAGS": "-tags=paketo",
+                "BUILD_GO_BUILD_LDFLAGS": "-X main.version=1.0.0",
+                "BUILD_TYPE": "cnb",
+                "BUILD_PROCFILE": "web: ./worker --port $PORT",
+            },
+            "golang",
+            "cnb",
+        )
+
+        self.assertEqual(normalized["BP_GO_VERSION"], "1.26")
+        self.assertEqual(normalized["GOPROXY"], "https://goproxy.cn")
+        self.assertEqual(normalized["GOPRIVATE"], "github.com/acme/*")
+        self.assertEqual(normalized["BP_GO_TARGETS"], "./cmd/worker")
+        self.assertEqual(normalized["BP_GO_BUILD_FLAGS"], "-tags=paketo")
+        self.assertEqual(normalized["BP_GO_BUILD_LDFLAGS"], "-X main.version=1.0.0")
+        self.assertEqual(normalized["BUILD_PROCFILE"], "web: ./worker --port $PORT")
+        self.assertNotIn("BUILD_GOVERSION", normalized)
+        self.assertNotIn("BUILD_GOPROXY", normalized)
+        self.assertNotIn("BUILD_GO_INSTALL_PACKAGE_SPEC", normalized)
+        self.assertNotIn("BUILD_TYPE", normalized)
+
+    def test_save_ignores_golang_cnb_bp_keys_for_slug_strategy(self):
+        normalized = normalize_golang_cnb_env_dict_for_save(
+            {
+                "BP_GO_VERSION": "1.26",
+                "BP_GO_TARGETS": "./cmd/api",
+                "BP_GO_BUILD_FLAGS": "-trimpath",
+                "BP_GO_BUILD_LDFLAGS": "-s -w",
+                "GOPROXY": "https://goproxy.cn",
+                "GOPRIVATE": "github.com/acme/*",
+                "BUILD_GOVERSION": "1.23",
+                "BUILD_GO_INSTALL_PACKAGE_SPEC": "./cmd/legacy",
+                "BUILD_GOPROXY": "https://legacy-proxy",
+                "BUILD_TYPE": "cnb",
+            },
+            "golang",
+            "slug",
+        )
+
+        self.assertNotIn("BP_GO_VERSION", normalized)
+        self.assertNotIn("BP_GO_TARGETS", normalized)
+        self.assertNotIn("BP_GO_BUILD_FLAGS", normalized)
+        self.assertNotIn("BP_GO_BUILD_LDFLAGS", normalized)
+        self.assertNotIn("GOPROXY", normalized)
+        self.assertNotIn("GOPRIVATE", normalized)
+        self.assertNotIn("BUILD_TYPE", normalized)
+        self.assertEqual(normalized["BUILD_GOVERSION"], "1.23")
+        self.assertEqual(normalized["BUILD_GO_INSTALL_PACKAGE_SPEC"], "./cmd/legacy")
+        self.assertEqual(normalized["BUILD_GOPROXY"], "https://legacy-proxy")

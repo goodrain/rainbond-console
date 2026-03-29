@@ -9,7 +9,8 @@ from console.repositories.app_config import env_var_repo
 from console.utils.cnb_build import (build_cnb_version_policy, get_cnb_policy_definition, summarize_build_env,
                                      sanitize_build_env_dict_for_language, resolve_build_strategy,
                                      normalize_java_cnb_env_dict_for_response,
-                                     normalize_python_cnb_env_dict_for_response)
+                                     normalize_python_cnb_env_dict_for_response,
+                                     normalize_golang_cnb_env_dict_for_response)
 from console.utils.oauth.oauth_types import support_oauth_type
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db.base import BaseConnection
@@ -268,6 +269,7 @@ class BaseService(object):
             build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), build_env_dict)
             build_env_dict = normalize_java_cnb_env_dict_for_response(build_env_dict, service.language, build_strategy)
             build_env_dict = normalize_python_cnb_env_dict_for_response(build_env_dict, service.language, build_strategy)
+            build_env_dict = normalize_golang_cnb_env_dict_for_response(build_env_dict, service.language, build_strategy)
             bean = {
                 "user_name": "",
                 "password": "",
