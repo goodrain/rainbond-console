@@ -11,6 +11,8 @@ from console.utils.cnb_build import (
     normalize_golang_cnb_env_dict_for_save,
     normalize_java_cnb_env_dict_for_response,
     normalize_java_cnb_env_dict_for_save,
+    normalize_dotnet_cnb_env_dict_for_response,
+    normalize_dotnet_cnb_env_dict_for_save,
     normalize_python_cnb_env_dict_for_response,
     normalize_python_cnb_env_dict_for_save,
     sanitize_build_env_dict_for_language,
@@ -378,6 +380,18 @@ class BuildSummaryTestCase(TestCase):
         self.assertEqual(php_annotations["cnb-bp-php-nginx-enable-https"], "true")
         self.assertEqual(php_annotations["cnb-bp-php-enable-https-redirect"], "true")
 
+        dotnet_summary = summarize_build_env(".NetCore", "cnb", {
+            "BP_DOTNET_FRAMEWORK_VERSION": "8.0",
+            "BP_DOTNET_PROJECT_PATH": "./src/WebApp",
+            "BP_DOTNET_PUBLISH_FLAGS": "--verbosity=normal",
+            "BUILD_NUGET_CONFIG_NAME": "nuget-private",
+        })
+        dotnet_annotations = dotnet_summary["yaml_observable"]["annotations"]
+        self.assertEqual(dotnet_annotations["cnb-bp-dotnet-framework-version"], "8.0")
+        self.assertEqual(dotnet_annotations["cnb-bp-dotnet-project-path"], "./src/WebApp")
+        self.assertEqual(dotnet_annotations["cnb-bp-dotnet-publish-flags"], "--verbosity=normal")
+        self.assertEqual(dotnet_annotations["cnb-binding-nuget-private-type"], "nugetconfig")
+
 
 class BuildEnvResponseTestCase(TestCase):
     def test_compose_build_env_response_attaches_cnb_policy_metadata(self):
@@ -557,6 +571,79 @@ class PythonCNBContractNormalizeTestCase(TestCase):
         self.assertEqual(normalized["start_command_source"], "auto-detected")
         self.assertNotIn("BUILD_AUTO_PROCFILE", normalized)
         self.assertNotIn("START_COMMAND_SOURCE", normalized)
+
+
+class DotnetCNBContractNormalizeTestCase(TestCase):
+    def test_response_normalizes_dotnet_cnb_keys(self):
+        normalized = normalize_dotnet_cnb_env_dict_for_response(
+            {
+                "BUILD_DOTNET_SDK_VERSION": "8.0.1",
+                "BUILD_DOTNET_RUNTIME_VERSION": "8.0.1",
+                "BP_DOTNET_PUBLISH_FLAGS": "--verbosity=normal",
+                "BUILD_DOTNET_PUBLISH_FLAGS": "--verbosity=minimal",
+                "BUILD_NUGET_CONFIG_NAME": "nuget-private",
+                "BUILD_PROCFILE": "web: dotnet app.dll",
+                "BUILD_TYPE": "cnb",
+            },
+            ".NetCore",
+            "cnb",
+        )
+
+        self.assertEqual(normalized["BP_DOTNET_FRAMEWORK_VERSION"], "8.0.1")
+        self.assertEqual(normalized["BP_DOTNET_PUBLISH_FLAGS"], "--verbosity=normal")
+        self.assertEqual(normalized["BUILD_NUGET_CONFIG_NAME"], "nuget-private")
+        self.assertEqual(normalized["BUILD_PROCFILE"], "web: dotnet app.dll")
+        self.assertNotIn("BUILD_DOTNET_SDK_VERSION", normalized)
+        self.assertNotIn("BUILD_DOTNET_RUNTIME_VERSION", normalized)
+        self.assertNotIn("BUILD_DOTNET_PUBLISH_FLAGS", normalized)
+        self.assertNotIn("BUILD_TYPE", normalized)
+
+    def test_save_normalizes_dotnet_cnb_payload(self):
+        normalized = normalize_dotnet_cnb_env_dict_for_save(
+            {
+                "BUILD_DOTNET_SDK_VERSION": "8.0.1",
+                "BP_DOTNET_PUBLISH_FLAGS": "--verbosity=normal",
+                "BUILD_DOTNET_PUBLISH_FLAGS": "--verbosity=minimal",
+                "BP_DOTNET_PROJECT_PATH": "./src/WebApp",
+                "BUILD_NUGET_CONFIG_NAME": "nuget-private",
+                "BUILD_PROCFILE": "web: dotnet app.dll",
+                "BUILD_NO_CACHE": "true",
+                "BUILD_TYPE": "cnb",
+            },
+            "dotnet",
+            "cnb",
+        )
+
+        self.assertEqual(normalized["BP_DOTNET_FRAMEWORK_VERSION"], "8.0.1")
+        self.assertEqual(normalized["BP_DOTNET_PUBLISH_FLAGS"], "--verbosity=normal")
+        self.assertEqual(normalized["BP_DOTNET_PROJECT_PATH"], "./src/WebApp")
+        self.assertEqual(normalized["BUILD_NUGET_CONFIG_NAME"], "nuget-private")
+        self.assertEqual(normalized["BUILD_PROCFILE"], "web: dotnet app.dll")
+        self.assertEqual(normalized["BUILD_NO_CACHE"], "true")
+        self.assertNotIn("BUILD_DOTNET_SDK_VERSION", normalized)
+        self.assertNotIn("BUILD_DOTNET_PUBLISH_FLAGS", normalized)
+        self.assertNotIn("BUILD_TYPE", normalized)
+
+    def test_save_strips_dotnet_cnb_keys_for_slug(self):
+        normalized = normalize_dotnet_cnb_env_dict_for_save(
+            {
+                "BP_DOTNET_FRAMEWORK_VERSION": "8.0",
+                "BP_DOTNET_PROJECT_PATH": "./src/WebApp",
+                "BP_DOTNET_PUBLISH_FLAGS": "--verbosity=normal",
+                "BUILD_NUGET_CONFIG_NAME": "nuget-private",
+                "BUILD_PROCFILE": "web: dotnet app.dll",
+                "BUILD_NO_CACHE": "true",
+            },
+            ".NetCore",
+            "slug",
+        )
+
+        self.assertNotIn("BP_DOTNET_FRAMEWORK_VERSION", normalized)
+        self.assertNotIn("BP_DOTNET_PROJECT_PATH", normalized)
+        self.assertNotIn("BP_DOTNET_PUBLISH_FLAGS", normalized)
+        self.assertNotIn("BUILD_NUGET_CONFIG_NAME", normalized)
+        self.assertNotIn("BUILD_PROCFILE", normalized)
+        self.assertEqual(normalized.get("BUILD_NO_CACHE"), "true")
 
     def test_save_ignores_readonly_package_manager_and_preserves_auto_procfile(self):
         normalized = normalize_python_cnb_env_dict_for_save(

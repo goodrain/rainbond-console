@@ -63,6 +63,11 @@ CNB_POLICY_DEFINITIONS = (
         "runtime_key": "nodejs",
         "lang_key": "node",
     },
+    {
+        "policy_key": "dotnet",
+        "runtime_key": "framework",
+        "lang_key": "dotnet",
+    },
 )
 
 DEFAULT_CNB_BUILDER_IMAGE = "registry.cn-hangzhou.aliyuncs.com/goodrain/ubuntu-noble-builder:0.0.72"
@@ -117,6 +122,19 @@ GOLANG_CNB_CURRENT_KEYS = (
     "GOPRIVATE",
 )
 
+DOTNET_CNB_LEGACY_TO_CURRENT_ALIASES = (
+    ("BUILD_DOTNET_SDK_VERSION", "BP_DOTNET_FRAMEWORK_VERSION"),
+    ("BUILD_DOTNET_RUNTIME_VERSION", "BP_DOTNET_FRAMEWORK_VERSION"),
+    ("BUILD_DOTNET_PUBLISH_FLAGS", "BP_DOTNET_PUBLISH_FLAGS"),
+)
+
+DOTNET_CNB_CURRENT_KEYS = (
+    "BP_DOTNET_FRAMEWORK_VERSION",
+    "BP_DOTNET_PROJECT_PATH",
+    "BP_DOTNET_PUBLISH_FLAGS",
+    "BUILD_NUGET_CONFIG_NAME",
+)
+
 PYTHON_CNB_INTERNAL_KEYS = (
     "BUILD_AUTO_PROCFILE",
     "START_COMMAND_SOURCE",
@@ -137,6 +155,8 @@ def get_cnb_policy_definition(language):
     compact = normalized.replace("-", "").replace("_", "").replace(" ", "")
     if "dockerfile" in normalized:
         return None
+    if compact in ("netcore", "dotnet", "dotnetcore"):
+        return CNB_POLICY_DEFINITIONS[5]
     if compact == "static" or "nodejs" in compact:
         return CNB_POLICY_DEFINITIONS[4]
     if "java" in compact:
@@ -310,6 +330,40 @@ def normalize_golang_cnb_env_dict_for_save(build_env_dict, language, build_strat
 
     for key in GOLANG_CNB_CURRENT_KEYS:
         envs.pop(key, None)
+    _drop_legacy_cnb_type_markers(envs)
+    return envs
+
+
+def normalize_dotnet_cnb_env_dict_for_response(build_env_dict, language, build_strategy=""):
+    envs = dict(build_env_dict or {})
+    if str(build_strategy or "").strip().lower() != "cnb":
+        return envs
+    normalized_language = normalize_language(language)
+    if normalized_language not in ("netcore", "dotnet", "dotnetcore"):
+        return envs
+
+    _normalize_dotnet_cnb_legacy_aliases(envs)
+    _drop_dotnet_legacy_aliases(envs)
+    _drop_legacy_cnb_type_markers(envs)
+    return envs
+
+
+def normalize_dotnet_cnb_env_dict_for_save(build_env_dict, language, build_strategy=""):
+    envs = dict(build_env_dict or {})
+    normalized_language = normalize_language(language)
+    if normalized_language not in ("netcore", "dotnet", "dotnetcore"):
+        return envs
+
+    normalized_strategy = str(build_strategy or "").strip().lower()
+    if normalized_strategy == "cnb":
+        _normalize_dotnet_cnb_legacy_aliases(envs)
+        _drop_dotnet_legacy_aliases(envs)
+        _drop_legacy_cnb_type_markers(envs)
+        return envs
+
+    for key in DOTNET_CNB_CURRENT_KEYS:
+        envs.pop(key, None)
+    envs.pop("BUILD_PROCFILE", None)
     _drop_legacy_cnb_type_markers(envs)
     return envs
 
@@ -672,6 +726,19 @@ def summarize_build_env(language, build_strategy, build_env_dict):
     elif definition["policy_key"] == "nodejs":
         if build_env_dict.get("CNB_NODE_VERSION"):
             yaml_observable["annotations"]["cnb-bp-node-version"] = build_env_dict.get("CNB_NODE_VERSION")
+    elif definition["policy_key"] == "dotnet":
+        if _first_non_empty(build_env_dict, "BP_DOTNET_FRAMEWORK_VERSION"):
+            yaml_observable["annotations"]["cnb-bp-dotnet-framework-version"] = _first_non_empty(
+                build_env_dict, "BP_DOTNET_FRAMEWORK_VERSION")
+        if _first_non_empty(build_env_dict, "BP_DOTNET_PROJECT_PATH"):
+            yaml_observable["annotations"]["cnb-bp-dotnet-project-path"] = _first_non_empty(
+                build_env_dict, "BP_DOTNET_PROJECT_PATH")
+        if _first_non_empty(build_env_dict, "BP_DOTNET_PUBLISH_FLAGS"):
+            yaml_observable["annotations"]["cnb-bp-dotnet-publish-flags"] = _first_non_empty(
+                build_env_dict, "BP_DOTNET_PUBLISH_FLAGS")
+        if _first_non_empty(build_env_dict, "BUILD_NUGET_CONFIG_NAME"):
+            yaml_observable["annotations"][_binding_type_annotation_key(
+                _first_non_empty(build_env_dict, "BUILD_NUGET_CONFIG_NAME"))] = "nugetconfig"
 
     summary["yaml_observable"] = yaml_observable
     return summary
@@ -679,6 +746,13 @@ def summarize_build_env(language, build_strategy, build_env_dict):
 
 def _bool_to_string(value):
     return "true" if _is_truthy(value) else "false"
+
+
+def _binding_type_annotation_key(binding_name):
+    normalized = re.sub(r"[^a-z0-9-]", "-", str(binding_name or "").strip().lower())
+    if not normalized:
+        return "cnb-binding-type"
+    return "cnb-binding-{name}-type".format(name=normalized)
 
 
 def _is_java_cnb_language(language):
@@ -747,6 +821,20 @@ def _strip_python_manager_specific_keys(envs, manager):
         envs.pop("BUILD_PYTHON_PACKAGE_MANAGER_VERSION", None)
 
 
+def _normalize_dotnet_cnb_legacy_aliases(envs):
+    for source_key, target_key in DOTNET_CNB_LEGACY_TO_CURRENT_ALIASES:
+        if _first_non_empty(envs, target_key):
+            continue
+        source_value = _first_non_empty(envs, source_key)
+        if source_value:
+            envs[target_key] = source_value
+
+
+def _drop_dotnet_legacy_aliases(envs):
+    for source_key, _ in DOTNET_CNB_LEGACY_TO_CURRENT_ALIASES:
+        envs.pop(source_key, None)
+
+
 def _first_non_empty(envs, *keys):
     envs = envs or {}
     for key in keys:
@@ -802,6 +890,11 @@ def _normalize_cnb_policy_version(definition, version):
             return ".".join(parts[:2])
         return value
     if policy_key == "php":
+        parts = value.split(".")
+        if len(parts) >= 2:
+            return ".".join(parts[:2])
+        return value
+    if policy_key == "dotnet":
         parts = value.split(".")
         if len(parts) >= 2:
             return ".".join(parts[:2])
