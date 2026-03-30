@@ -94,7 +94,8 @@ class AppCheckService(object):
                 "branch": "",
                 "user": "",
                 "password": "",
-                "tenant_id": tenant.tenant_id
+                "tenant_id": tenant.tenant_id,
+                "build_strategy": getattr(service, "build_strategy", "") or "",
             }
             source_body = json.dumps(sb)
         if service.service_source == AppConstants.SOURCE_CODE:
@@ -130,7 +131,8 @@ class AppCheckService(object):
                 "branch": service.code_version,
                 "user": user_name,
                 "password": password,
-                "tenant_id": tenant.tenant_id
+                "tenant_id": tenant.tenant_id,
+                "build_strategy": getattr(service, "build_strategy", "") or "",
             }
             source_body = json.dumps(sb)
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:

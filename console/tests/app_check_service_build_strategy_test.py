@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from console.services import app_check_service as app_check_service_module
 from console.services.app_check_service import AppCheckService
@@ -21,6 +21,20 @@ class DummyService(object):
         self.cmd = ""
         self.image = ""
         self.version = ""
+        self.service_source = "source_code"
+        self.oauth_service_id = ""
+        self.service_region = "region-a"
+        self.code_version = "main"
+        self.git_url = "https://example.com/demo.git"
+        self.tenant_id = "team-1"
+        self.service_id = "service-1"
+        self.create_status = "complete"
+
+    def save(self):
+        return None
+
+    def to_dict(self):
+        return {}
 
 
 class AppCheckServiceBuildStrategyTests(TestCase):
@@ -73,3 +87,23 @@ class AppCheckServiceBuildStrategyTests(TestCase):
             self.assertEqual(
                 app_check_service_module.resolve_lang_update_build_strategy("java-maven", "slug"),
                 "slug")
+
+    @patch.object(app_check_service_module, "service_source_repo")
+    @patch.object(app_check_service_module, "region_api")
+    def test_check_service_forwards_build_strategy_in_source_body(self, region_api, service_source_repo):
+        service = DummyService(build_strategy="cnb")
+        region_api.service_source_check.return_value = (
+            None,
+            {"bean": {"check_uuid": "chk-1", "event_id": "evt-1"}},
+        )
+        service_source_repo.get_service_source.return_value = None
+
+        code, msg, _ = self.service_helper.check_service(self.tenant, service, False, "evt-1", user=Mock(user_id="u-1"))
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "success")
+        args, _ = region_api.service_source_check.call_args
+        request_body = args[2]
+        self.assertIn("source_body", request_body)
+        source_body = request_body["source_body"]
+        self.assertIn('"build_strategy": "cnb"', source_body)
