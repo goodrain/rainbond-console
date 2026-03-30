@@ -566,6 +566,7 @@ class ShareService(object):
                     body = {
                         "service_key": app["service_key"],
                         "app_version": app_version.version,
+                        "deploy_version": app.get("deploy_version", ""),
                         "event_id": event.event_id,
                         "share_user": user.nick_name,
                         "share_scope": app_version.scope,
