@@ -122,6 +122,19 @@ GOLANG_CNB_CURRENT_KEYS = (
     "GOPRIVATE",
 )
 
+PHP_CNB_LEGACY_TO_CURRENT_ALIASES = (
+    ("BUILD_RUNTIMES", "BP_PHP_VERSION"),
+    ("RUNTIMES", "BP_PHP_VERSION"),
+    ("BUILD_COMPOSER_INSTALL_OPTIONS", "BP_COMPOSER_INSTALL_OPTIONS"),
+    ("BUILD_PHP_WEB_DIR", "BP_PHP_WEB_DIR"),
+)
+
+PHP_CNB_CURRENT_KEYS = (
+    "BP_PHP_VERSION",
+    "BP_COMPOSER_INSTALL_OPTIONS",
+    "BP_PHP_WEB_DIR",
+)
+
 DOTNET_CNB_LEGACY_TO_CURRENT_ALIASES = (
     ("BUILD_DOTNET_SDK_VERSION", "BP_DOTNET_FRAMEWORK_VERSION"),
     ("BUILD_DOTNET_RUNTIME_VERSION", "BP_DOTNET_FRAMEWORK_VERSION"),
@@ -329,6 +342,40 @@ def normalize_golang_cnb_env_dict_for_save(build_env_dict, language, build_strat
         return envs
 
     for key in GOLANG_CNB_CURRENT_KEYS:
+        envs.pop(key, None)
+    _drop_legacy_cnb_type_markers(envs)
+    return envs
+
+
+def normalize_php_cnb_env_dict_for_response(build_env_dict, language, build_strategy=""):
+    envs = dict(build_env_dict or {})
+    if str(build_strategy or "").strip().lower() != "cnb" or normalize_language(language) != "php":
+        return envs
+
+    _normalize_php_cnb_legacy_aliases(envs)
+    _drop_php_legacy_aliases(envs)
+    _strip_php_cnb_hidden_keys(envs)
+    envs["BUILD_RUNTIMES_SERVER"] = "nginx"
+    _drop_legacy_cnb_type_markers(envs)
+    return envs
+
+
+def normalize_php_cnb_env_dict_for_save(build_env_dict, language, build_strategy=""):
+    envs = dict(build_env_dict or {})
+    if normalize_language(language) != "php":
+        return envs
+
+    normalized_strategy = str(build_strategy or "").strip().lower()
+    if normalized_strategy == "cnb":
+        _normalize_php_cnb_legacy_aliases(envs)
+        _drop_php_legacy_aliases(envs)
+        _strip_php_cnb_hidden_keys(envs)
+        envs["BUILD_RUNTIMES_SERVER"] = "nginx"
+        envs["BUILD_COMPOSER_VERSION"] = "2.7.9"
+        _drop_legacy_cnb_type_markers(envs)
+        return envs
+
+    for key in PHP_CNB_CURRENT_KEYS:
         envs.pop(key, None)
     _drop_legacy_cnb_type_markers(envs)
     return envs
@@ -703,20 +750,23 @@ def summarize_build_env(language, build_strategy, build_env_dict):
             yaml_observable["annotations"]["cnb-bp-live-reload-enabled"] = _bool_to_string(
                 _first_non_empty(build_env_dict, "BP_LIVE_RELOAD_ENABLED", "BUILD_LIVE_RELOAD_ENABLED"))
     elif definition["policy_key"] == "php":
-        if build_env_dict.get("BUILD_RUNTIMES"):
-            yaml_observable["annotations"]["cnb-bp-php-version"] = build_env_dict.get("BUILD_RUNTIMES")
+        if _first_non_empty(build_env_dict, "BP_PHP_VERSION", "BUILD_RUNTIMES", "RUNTIMES"):
+            yaml_observable["annotations"]["cnb-bp-php-version"] = _first_non_empty(
+                build_env_dict, "BP_PHP_VERSION", "BUILD_RUNTIMES", "RUNTIMES")
         if build_env_dict.get("BUILD_RUNTIMES_SERVER"):
             yaml_observable["annotations"]["cnb-bp-php-server"] = build_env_dict.get("BUILD_RUNTIMES_SERVER")
-        if build_env_dict.get("BUILD_COMPOSER_VERSION"):
-            yaml_observable["annotations"]["cnb-bp-composer-version"] = build_env_dict.get("BUILD_COMPOSER_VERSION")
-        if build_env_dict.get("BUILD_COMPOSER_INSTALL_OPTIONS"):
-            yaml_observable["annotations"]["cnb-bp-composer-install-options"] = build_env_dict.get(
-                "BUILD_COMPOSER_INSTALL_OPTIONS")
+        if _first_non_empty(build_env_dict, "BP_COMPOSER_VERSION", "BUILD_COMPOSER_VERSION"):
+            yaml_observable["annotations"]["cnb-bp-composer-version"] = _first_non_empty(
+                build_env_dict, "BP_COMPOSER_VERSION", "BUILD_COMPOSER_VERSION")
+        if _first_non_empty(build_env_dict, "BP_COMPOSER_INSTALL_OPTIONS", "BUILD_COMPOSER_INSTALL_OPTIONS"):
+            yaml_observable["annotations"]["cnb-bp-composer-install-options"] = _first_non_empty(
+                build_env_dict, "BP_COMPOSER_INSTALL_OPTIONS", "BUILD_COMPOSER_INSTALL_OPTIONS")
         if build_env_dict.get("BUILD_COMPOSER_INSTALL_GLOBAL"):
             yaml_observable["annotations"]["cnb-bp-composer-install-global"] = _bool_to_string(
                 build_env_dict.get("BUILD_COMPOSER_INSTALL_GLOBAL"))
-        if build_env_dict.get("BUILD_PHP_WEB_DIR"):
-            yaml_observable["annotations"]["cnb-bp-php-web-dir"] = build_env_dict.get("BUILD_PHP_WEB_DIR")
+        if _first_non_empty(build_env_dict, "BP_PHP_WEB_DIR", "BUILD_PHP_WEB_DIR"):
+            yaml_observable["annotations"]["cnb-bp-php-web-dir"] = _first_non_empty(
+                build_env_dict, "BP_PHP_WEB_DIR", "BUILD_PHP_WEB_DIR")
         if build_env_dict.get("BUILD_PHP_NGINX_ENABLE_HTTPS"):
             yaml_observable["annotations"]["cnb-bp-php-nginx-enable-https"] = _bool_to_string(
                 build_env_dict.get("BUILD_PHP_NGINX_ENABLE_HTTPS"))
@@ -787,6 +837,37 @@ def _normalize_golang_cnb_legacy_aliases(envs):
 def _drop_golang_legacy_aliases(envs):
     for source_key, _ in GOLANG_CNB_LEGACY_TO_CURRENT_ALIASES:
         envs.pop(source_key, None)
+
+
+def _normalize_php_cnb_legacy_aliases(envs):
+    for source_key, target_key in PHP_CNB_LEGACY_TO_CURRENT_ALIASES:
+        if _first_non_empty(envs, target_key):
+            continue
+        source_value = _first_non_empty(envs, source_key)
+        if source_value:
+            envs[target_key] = source_value
+
+
+def _drop_php_legacy_aliases(envs):
+    for source_key, _ in PHP_CNB_LEGACY_TO_CURRENT_ALIASES:
+        envs.pop(source_key, None)
+
+
+def _strip_php_cnb_hidden_keys(envs):
+    envs.pop("BP_COMPOSER_VERSION", None)
+    envs.pop("BUILD_COMPOSER_VERSION", None)
+    envs.pop("BUILD_COMPOSER_INSTALL_GLOBAL", None)
+    envs.pop("BUILD_PHP_NGINX_ENABLE_HTTPS", None)
+    envs.pop("BUILD_PHP_ENABLE_HTTPS_REDIRECT", None)
+    envs.pop("BUILD_COMPOSER_VENDOR_DIR", None)
+    envs.pop("BUILD_COMPOSER_FILE", None)
+    envs.pop("BUILD_COMPOSER_AUTH", None)
+    envs.pop("COMPOSER_VENDOR_DIR", None)
+    envs.pop("COMPOSER", None)
+    envs.pop("COMPOSER_AUTH", None)
+    envs.pop("BP_PHP_SESSION_HANDLER", None)
+    envs.pop("BP_PHP_EXTENSIONS", None)
+    envs.pop("BP_PHP_ZEND_EXTENSIONS", None)
 
 
 def _drop_legacy_cnb_type_markers(envs):

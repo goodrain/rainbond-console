@@ -13,6 +13,8 @@ from console.utils.cnb_build import (
     normalize_java_cnb_env_dict_for_save,
     normalize_dotnet_cnb_env_dict_for_response,
     normalize_dotnet_cnb_env_dict_for_save,
+    normalize_php_cnb_env_dict_for_response,
+    normalize_php_cnb_env_dict_for_save,
     normalize_python_cnb_env_dict_for_response,
     normalize_python_cnb_env_dict_for_save,
     sanitize_build_env_dict_for_language,
@@ -363,22 +365,17 @@ class BuildSummaryTestCase(TestCase):
         self.assertEqual(go_annotations["cnb-bp-live-reload-enabled"], "true")
 
         php_summary = summarize_build_env("PHP", "cnb", {
-            "BUILD_RUNTIMES": "8.2",
+            "BP_PHP_VERSION": "8.4",
             "BUILD_RUNTIMES_SERVER": "nginx",
-            "BUILD_COMPOSER_VERSION": "2.8.1",
-            "BUILD_COMPOSER_INSTALL_OPTIONS": "--no-dev",
-            "BUILD_COMPOSER_INSTALL_GLOBAL": "true",
-            "BUILD_PHP_WEB_DIR": "public",
-            "BUILD_PHP_NGINX_ENABLE_HTTPS": "true",
-            "BUILD_PHP_ENABLE_HTTPS_REDIRECT": "true",
+            "BUILD_COMPOSER_VERSION": "2.7.9",
+            "BP_COMPOSER_INSTALL_OPTIONS": "--no-dev",
+            "BP_PHP_WEB_DIR": "public",
         })
         php_annotations = php_summary["yaml_observable"]["annotations"]
-        self.assertEqual(php_annotations["cnb-bp-composer-version"], "2.8.1")
+        self.assertEqual(php_annotations["cnb-bp-php-version"], "8.4")
+        self.assertEqual(php_annotations["cnb-bp-composer-version"], "2.7.9")
         self.assertEqual(php_annotations["cnb-bp-composer-install-options"], "--no-dev")
-        self.assertEqual(php_annotations["cnb-bp-composer-install-global"], "true")
         self.assertEqual(php_annotations["cnb-bp-php-web-dir"], "public")
-        self.assertEqual(php_annotations["cnb-bp-php-nginx-enable-https"], "true")
-        self.assertEqual(php_annotations["cnb-bp-php-enable-https-redirect"], "true")
 
         dotnet_summary = summarize_build_env(".NetCore", "cnb", {
             "BP_DOTNET_FRAMEWORK_VERSION": "8.0",
@@ -644,6 +641,79 @@ class DotnetCNBContractNormalizeTestCase(TestCase):
         self.assertNotIn("BUILD_NUGET_CONFIG_NAME", normalized)
         self.assertNotIn("BUILD_PROCFILE", normalized)
         self.assertEqual(normalized.get("BUILD_NO_CACHE"), "true")
+
+
+class PHPCNBContractNormalizeTestCase(TestCase):
+    def test_response_normalizes_php_cnb_keys(self):
+        normalized = normalize_php_cnb_env_dict_for_response(
+            {
+                "BUILD_RUNTIMES": "8.4",
+                "BUILD_COMPOSER_VERSION": "2.7.9",
+                "BUILD_COMPOSER_INSTALL_OPTIONS": "--no-dev",
+                "BUILD_PHP_WEB_DIR": "public",
+                "BUILD_RUNTIMES_SERVER": "httpd",
+                "BUILD_COMPOSER_INSTALL_GLOBAL": "true",
+                "BUILD_COMPOSER_AUTH": "{}",
+                "BUILD_TYPE": "cnb",
+            },
+            "PHP",
+            "cnb",
+        )
+
+        self.assertEqual(normalized["BP_PHP_VERSION"], "8.4")
+        self.assertEqual(normalized["BP_COMPOSER_INSTALL_OPTIONS"], "--no-dev")
+        self.assertEqual(normalized["BP_PHP_WEB_DIR"], "public")
+        self.assertEqual(normalized["BUILD_RUNTIMES_SERVER"], "nginx")
+        self.assertNotIn("BUILD_COMPOSER_VERSION", normalized)
+        self.assertNotIn("BUILD_COMPOSER_INSTALL_OPTIONS", normalized)
+        self.assertNotIn("BUILD_PHP_WEB_DIR", normalized)
+        self.assertNotIn("BUILD_COMPOSER_INSTALL_GLOBAL", normalized)
+        self.assertNotIn("BUILD_COMPOSER_AUTH", normalized)
+        self.assertNotIn("BUILD_TYPE", normalized)
+
+    def test_save_normalizes_php_cnb_payload(self):
+        normalized = normalize_php_cnb_env_dict_for_save(
+            {
+                "BUILD_RUNTIMES": "8.4",
+                "BP_COMPOSER_INSTALL_OPTIONS": "--no-dev --optimize-autoloader",
+                "BUILD_PHP_WEB_DIR": "public",
+                "BUILD_PROCFILE": "web: php -S 0.0.0.0:$PORT -t public",
+                "BUILD_NO_CACHE": "true",
+            },
+            "php",
+            "cnb",
+        )
+
+        self.assertEqual(normalized["BP_PHP_VERSION"], "8.4")
+        self.assertEqual(normalized["BP_COMPOSER_INSTALL_OPTIONS"], "--no-dev --optimize-autoloader")
+        self.assertEqual(normalized["BP_PHP_WEB_DIR"], "public")
+        self.assertEqual(normalized["BUILD_RUNTIMES_SERVER"], "nginx")
+        self.assertEqual(normalized["BUILD_COMPOSER_VERSION"], "2.7.9")
+        self.assertEqual(normalized["BUILD_PROCFILE"], "web: php -S 0.0.0.0:$PORT -t public")
+        self.assertEqual(normalized["BUILD_NO_CACHE"], "true")
+        self.assertNotIn("BUILD_RUNTIMES", normalized)
+        self.assertNotIn("BUILD_PHP_WEB_DIR", normalized)
+
+    def test_save_strips_php_cnb_keys_for_slug(self):
+        normalized = normalize_php_cnb_env_dict_for_save(
+            {
+                "BP_PHP_VERSION": "8.4",
+                "BP_COMPOSER_INSTALL_OPTIONS": "--no-dev",
+                "BP_PHP_WEB_DIR": "public",
+                "BUILD_RUNTIMES_SERVER": "nginx",
+                "BUILD_PROCFILE": "web: php -S 0.0.0.0:$PORT -t public",
+                "BUILD_NO_CACHE": "true",
+            },
+            "PHP",
+            "slug",
+        )
+
+        self.assertNotIn("BP_PHP_VERSION", normalized)
+        self.assertNotIn("BP_COMPOSER_INSTALL_OPTIONS", normalized)
+        self.assertNotIn("BP_PHP_WEB_DIR", normalized)
+        self.assertEqual(normalized["BUILD_RUNTIMES_SERVER"], "nginx")
+        self.assertEqual(normalized["BUILD_PROCFILE"], "web: php -S 0.0.0.0:$PORT -t public")
+        self.assertEqual(normalized["BUILD_NO_CACHE"], "true")
 
     def test_save_ignores_readonly_package_manager_and_preserves_auto_procfile(self):
         normalized = normalize_python_cnb_env_dict_for_save(
