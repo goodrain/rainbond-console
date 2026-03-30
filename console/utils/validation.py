@@ -9,7 +9,7 @@ from console.exception.main import ServiceHandleException
 def validate_endpoint_address(address):
     def parse_ip():
         domain_ip = False
-        format_address = address
+        format_address = None
         try:
             for item in address:
                 if item == ".":
@@ -108,7 +108,7 @@ def normalize_name_for_k8s_namespace(name):
     # 确保以字母开头
     if not re.match(r'^[a-z]', name):
         name = 'user-' + name
-    
+
     # 移除开头的连字符（如果有）
     name = name.lstrip('-')
     

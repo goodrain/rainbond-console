@@ -11,6 +11,7 @@ class RegionApiSSEProxyTests(SimpleTestCase):
 
     @patch.object(RegionInvokeApi, "get_client")
     @patch.object(RegionInvokeApi, "get_region_info")
+    # capability_id: console.resource-center.pod-logs
     def test_sse_proxy_passes_region_auth_headers(self, mock_get_region_info, mock_get_client):
         api = RegionInvokeApi()
         region = Mock(url="http://region.example.com", token="region-token")
@@ -31,6 +32,7 @@ class RegionApiSSEProxyTests(SimpleTestCase):
     @patch.object(RegionInvokeApi, "get_client")
     @patch.object(RegionInvokeApi, "get_region_info")
     @patch.object(RegionInvokeApi, "_RegionInvokeApi__get_tenant_region_info")
+    # capability_id: console.resource-center.pod-logs
     def test_sse_proxy_rewrites_console_tenant_name_to_region_tenant_name(
             self, mock_get_tenant_region, mock_get_region_info, mock_get_client):
         api = RegionInvokeApi()
@@ -56,6 +58,7 @@ class RegionApiSSEProxyTests(SimpleTestCase):
     @patch.object(RegionInvokeApi, "get_region_info")
     @patch.object(RegionInvokeApi, "_RegionInvokeApi__get_tenant_region_info")
     @patch.object(RegionInvokeApi, "_RegionInvokeApi__get_region_access_info")
+    # capability_id: console.resource-center.pod-logs
     def test_get_component_pod_log_uses_bounded_read_timeout(
             self, mock_access_info, mock_get_tenant_region, mock_get_region_info, mock_get_client):
         api = RegionInvokeApi()

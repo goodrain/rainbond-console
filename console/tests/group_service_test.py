@@ -17,6 +17,7 @@ from console.services import group_service as group_service_module  # noqa: E402
 from console.services.group_service import group_service  # noqa: E402
 
 
+# capability_id: console.app.delete
 class GroupServiceDeleteAppTestCase(TestCase):
     def test_delete_app_cleans_hidden_template_records(self):
         relation = mock.Mock(app_model_id="hidden-template-id")

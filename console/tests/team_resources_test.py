@@ -25,7 +25,9 @@ from console.views import team_resources  # noqa: E402
 from www.apiclient.regionapi import RegionInvokeApi  # noqa: E402
 
 
+ # capability_id: console.helm-release.delete
 class HelmReleasesViewTestCase(TestCase):
+    # capability_id: console.helm-release.list
     def test_get_uses_team_namespace_for_helm_release_lookup(self):
         view = HelmReleasesView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
@@ -43,6 +45,7 @@ class HelmReleasesViewTestCase(TestCase):
         list_mock.assert_called_once_with("demo-region", "demo-team", namespace="demo-ns")
         self.assertEqual(response.status_code, 200)
 
+    # capability_id: console.helm-release.team-namespace-ops
     def test_post_uses_team_namespace_for_helm_install(self):
         payload = {
             "name": "demo-release",
@@ -73,6 +76,7 @@ class HelmReleasesViewTestCase(TestCase):
         install_mock.assert_called_once_with("demo-region", "demo-team", expected_payload)
         self.assertEqual(response.data["data"]["bean"]["release_name"], "demo-release")
 
+    # capability_id: console.helm-release.resolve-store-source
     def test_post_enriches_store_install_with_saved_repo_metadata(self):
         payload = {
             "source_type": "store",
@@ -119,7 +123,9 @@ class HelmReleasesViewTestCase(TestCase):
         install_mock.assert_called_once_with("demo-region", "demo-team", expected_payload)
         self.assertEqual(response.data["data"]["bean"]["release_name"], "demo-release")
 
+    # capability_id: console.helm-release.source-tracking
     def test_post_persists_install_source_after_success(self):
+        # capability_id: console.helm-release.install
         payload = {
             "source_type": "store",
             "repo_name": "bitnami",
@@ -165,6 +171,7 @@ class HelmReleasesViewTestCase(TestCase):
         self.assertEqual(kwargs["values_yaml"], "server:\\n  extraArgs: []")
         self.assertEqual(response.data["data"]["bean"]["release_name"], "demo-release")
 
+    # capability_id: console.helm-release.team-namespace-ops
     def test_delete_uses_team_namespace_for_helm_release_uninstall(self):
         view = HelmReleaseDetailView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
@@ -176,6 +183,7 @@ class HelmReleasesViewTestCase(TestCase):
         delete_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", namespace="demo-ns")
         self.assertEqual(response.status_code, 200)
 
+    # capability_id: console.helm-release.team-namespace-ops
     def test_put_uses_team_namespace_for_helm_release_upgrade(self):
         payload = {
             "source_type": "repo",
@@ -201,7 +209,9 @@ class HelmReleasesViewTestCase(TestCase):
         upgrade_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", expected_payload)
         self.assertEqual(response.status_code, 200)
 
+    # capability_id: console.helm-release.source-tracking
     def test_put_persists_upgrade_source_after_success(self):
+        # capability_id: console.helm-release.upgrade
         payload = {
             "source_type": "store",
             "repo_name": "bitnami",
@@ -258,7 +268,9 @@ class HelmReleasesViewTestCase(TestCase):
         self.assertEqual(kwargs["values_yaml"], "server:\\n  ingress:\\n    enabled: true")
         self.assertEqual(response.status_code, 200)
 
+    # capability_id: console.helm-release.history
     def test_get_uses_team_namespace_for_helm_release_history(self):
+        # capability_id: console.helm-release.history
         view = HelmReleaseHistoryView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
         request = APIRequestFactory().get("/console/team-resources/helm/releases/demo-release/history")
@@ -275,6 +287,7 @@ class HelmReleasesViewTestCase(TestCase):
         history_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", namespace="demo-ns")
         self.assertEqual(response.status_code, 200)
 
+    # capability_id: console.helm-release.detail
     def test_get_uses_team_namespace_for_helm_release_detail(self):
         view = HelmReleaseDetailView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
@@ -295,7 +308,9 @@ class HelmReleasesViewTestCase(TestCase):
         detail_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", namespace="demo-ns")
         self.assertEqual(response.status_code, 200)
 
+    # capability_id: console.helm-release.list
     def test_get_enriches_helm_release_list_with_source_info(self):
+        # capability_id: console.helm-release.list
         view = HelmReleasesView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
         request = APIRequestFactory().get("/console/team-resources/helm/releases")
@@ -330,7 +345,9 @@ class HelmReleasesViewTestCase(TestCase):
         self.assertEqual(release["source_info"]["source_type"], "store")
         self.assertEqual(release["source_info"]["upgrade_mode"], "store_locked")
 
+    # capability_id: console.helm-release.detail
     def test_get_enriches_helm_release_detail_with_source_info(self):
+        # capability_id: console.helm-release.detail
         view = HelmReleaseDetailView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
         request = APIRequestFactory().get("/console/team-resources/helm/releases/demo-release")
@@ -367,6 +384,7 @@ class HelmReleasesViewTestCase(TestCase):
         self.assertEqual(summary["source_info"]["upgrade_mode"], "manual_select")
         self.assertEqual(summary["values"], "service:\n  type: LoadBalancer")
 
+    # capability_id: console.helm-release.detail
     def test_get_defaults_legacy_source_info_when_record_missing(self):
         view = HelmReleaseDetailView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
@@ -391,7 +409,9 @@ class HelmReleasesViewTestCase(TestCase):
         self.assertEqual(summary["source_info"]["source_type"], "legacy")
         self.assertEqual(summary["source_info"]["upgrade_mode"], "manual_select")
 
+    # capability_id: console.helm-release.source-tracking
     def test_delete_cleans_up_saved_install_source_after_success(self):
+        # capability_id: console.helm-release.delete
         view = HelmReleaseDetailView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
         request = APIRequestFactory().delete("/console/team-resources/helm/releases/demo-release")
@@ -408,7 +428,9 @@ class HelmReleasesViewTestCase(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
+    # capability_id: console.helm-release.team-namespace-ops
     def test_post_uses_team_namespace_for_helm_release_rollback(self):
+        # capability_id: console.helm-release.rollback
         payload = {"revision": 2}
         view = HelmReleaseRollbackView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
@@ -425,6 +447,7 @@ class HelmReleasesViewTestCase(TestCase):
 
 
 class NsResourceDetailViewTestCase(TestCase):
+    # capability_id: console.ns-resource.update
     def test_put_accepts_yaml_media_type_and_forwards_raw_body(self):
         yaml_body = "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web-ui\n"
         request = APIRequestFactory().put(
@@ -472,6 +495,7 @@ class NsResourceDetailViewTestCase(TestCase):
 
 
 class RegionInvokeApiNsResourceTestCase(TestCase):
+    # capability_id: console.ns-resource.update
     def test_put_tenant_ns_resource_preserves_custom_content_type(self):
         api = RegionInvokeApi()
         yaml_body = b"apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web-ui\n"
@@ -497,6 +521,7 @@ class RegionInvokeApiNsResourceTestCase(TestCase):
 
 
 class ResourceCenterPodLogsViewTestCase(TestCase):
+    # capability_id: console.resource-center.pod-logs
     def test_get_sends_heartbeat_before_upstream_logs(self):
         view = ResourceCenterPodLogsView()
         upstream_stream = mock.Mock(status=200, headers={})

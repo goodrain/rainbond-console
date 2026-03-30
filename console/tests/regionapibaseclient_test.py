@@ -19,6 +19,7 @@ from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E
 
 
 class RegionApiBaseHttpClientTestCase(TestCase):
+    # capability_id: console.region-api.helm-resource-conflict-msg
     def test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show(self):
         client = RegionApiBaseHttpClient()
         raw_message = (
@@ -52,6 +53,7 @@ class RegionApiBaseHttpClientTestCase(TestCase):
             'meta.helm.sh/release-name=nginx，'
             'meta.helm.sh/release-namespace=zzz。')
 
+    # capability_id: console.region-api.proxy-error-pass-through
     def test_check_status_keeps_original_message_for_non_helm_conflicts(self):
         client = RegionApiBaseHttpClient()
         raw_message = "locate chart: repository not found"

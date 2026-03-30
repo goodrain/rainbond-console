@@ -25,6 +25,7 @@ from console.views import service_share  # noqa: E402
 from console.views.service_share import ServiceShareInfoView, ServiceShareRecordView  # noqa: E402
 
 
+# capability_id: console.service-share.create-record
 class ServiceShareRecordViewTestCase(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
@@ -38,6 +39,7 @@ class ServiceShareRecordViewTestCase(TestCase):
         return self.view.initialize_request(
             self.factory.post("/console/teams/demo-team/groups/30/share/record", payload, format="json"))
 
+    # capability_id: console.service-share.create-snapshot-record
     def test_post_snapshot_mode_uses_hidden_template_app_id(self):
         request = self.make_request({"scope": "team", "snapshot_mode": True, "snapshot_app_id": "origin-app-id"})
         share_record = mock.Mock()
@@ -66,6 +68,7 @@ class ServiceShareRecordViewTestCase(TestCase):
         self.assertEqual(kwargs["app_id"], "hidden-app-id")
         self.assertEqual(kwargs["group_share_id"], "share-uuid")
 
+    # capability_id: console.service-share.error-response
     def test_post_returns_500_response_for_unexpected_exception(self):
         request = self.make_request({"scope": "team"})
 
@@ -84,6 +87,7 @@ class ServiceShareRecordViewTestCase(TestCase):
         self.assertEqual(response.data["msg_show"], "系统异常")
 
 
+# capability_id: console.service-share.view-info
 class ServiceShareInfoViewTestCase(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
@@ -95,6 +99,7 @@ class ServiceShareInfoViewTestCase(TestCase):
             self.factory.get("/console/teams/demo-team/share/30/info")
         )
 
+    # capability_id: console.service-share.view-snapshot-info
     def test_get_returns_snapshot_template_payload(self):
         request = self.make_request()
         share_record = mock.Mock(
@@ -144,6 +149,7 @@ class ServiceShareInfoViewTestCase(TestCase):
 
 
 class ShareServicePreferredAppTestCase(TestCase):
+    # capability_id: console.service-share.local-app-versions
     def test_get_team_local_apps_versions_keeps_team_apps_when_preferred_app_is_hidden_snapshot(self):
         preferred_app = mock.Mock(
             app_name="hidden-snapshot",
@@ -183,6 +189,7 @@ class ShareServicePreferredAppTestCase(TestCase):
         self.assertEqual([item["app_id"] for item in app_list], ["hidden-app", "team-app"])
         self.assertEqual(app_list[0]["versions"], [])
 
+    # capability_id: console.service-share.resolve-last-shared-app
     def test_get_last_shared_app_ignores_missing_versions_for_preferred_local_app(self):
         tenant = mock.Mock(tenant_name="demo-team")
         app_list = [{

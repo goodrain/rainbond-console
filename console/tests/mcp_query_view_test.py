@@ -1,9 +1,20 @@
 # -*- coding: utf-8 -*-
 import json
+import os
+import sys
+from types import ModuleType
 from urllib.parse import parse_qs, urlparse
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
+sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
+
+import django
 from django.test import SimpleTestCase
 from rest_framework.test import APIRequestFactory
+
+django.setup()
 
 from console.views.mcp_query import (
     MCPQueryHTTPView,
@@ -35,6 +46,7 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         self.sse_view = MCPQuerySSEView.as_view()
         self.message_view = MCPQueryMessageView.as_view()
 
+    # capability_id: console.mcp.http-initialize
     def test_http_initialize_returns_json_and_session_header(self):
         request = self.factory.post(
             "/console/mcp/query",
@@ -57,6 +69,7 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         self.assertEqual(response.data["result"]["protocolVersion"], "2025-03-26")
         _remove_mcp_sse_session(response["Mcp-Session-Id"])
 
+    # capability_id: console.mcp.http-tools-sse
     def test_http_post_can_return_sse_message_response(self):
         init_request = self.factory.post(
             "/console/mcp/query",
@@ -94,6 +107,7 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         self.assertIn('"tools"', chunk)
         _remove_mcp_sse_session(session_id)
 
+    # capability_id: console.mcp.http-delete-session
     def test_http_delete_closes_session(self):
         init_request = self.factory.post(
             "/console/mcp/query",
@@ -119,6 +133,7 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         self.assertEqual(delete_response.status_code, 204)
         self.assertIsNone(_get_mcp_sse_session(session_id))
 
+    # capability_id: console.mcp.legacy-sse-endpoint
     def test_get_returns_endpoint_event_for_legacy_sse_clients(self):
         request = self.factory.get(
             "/console/mcp/query/sse",
@@ -145,6 +160,7 @@ class MCPQuerySSEViewTests(SimpleTestCase):
 
         _remove_mcp_sse_session(session_id)
 
+    # capability_id: console.mcp.post-message
     def test_post_message_enqueues_initialize_response_on_sse_stream(self):
         sse_request = self.factory.get(
             "/console/mcp/query/sse",

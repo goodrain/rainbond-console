@@ -32,6 +32,7 @@ from console.views import app_version as app_version_view_module  # noqa: E402
 from console.views.app_version import AppVersionSnapshotDetailView, AppVersionSnapshotListView  # noqa: E402
 
 
+# capability_id: console.app-version.view-diff
 class AppVersionServiceDiffSummaryTestCase(TestCase):
     def test_summarize_diff_ignores_snapshot_form_runtime_flags(self):
         current_template = {
@@ -67,6 +68,7 @@ class AppVersionServiceDiffSummaryTestCase(TestCase):
         self.assertFalse(diff_summary["has_changes"])
         self.assertEqual(diff_summary["updated_count"], 0)
 
+    # capability_id: console.app-version.diff-summary
     def test_summarize_diff_keeps_real_component_changes(self):
         current_template = {
             "apps": [
@@ -103,6 +105,7 @@ class AppVersionServiceDiffSummaryTestCase(TestCase):
 
 
 class AppVersionServiceComponentDiffDetailTestCase(TestCase):
+    # capability_id: console.app-version.component-diff-details
     def test_build_component_diff_details_tracks_added_removed_and_field_updates(self):
         current_template = {
             "apps": [
@@ -209,6 +212,7 @@ class AppVersionServiceComponentDiffDetailTestCase(TestCase):
         self.assertEqual(probe_change["updated"][0]["before"]["path"], "/health")
         self.assertEqual(probe_change["updated"][0]["after"]["path"], "/healthz")
 
+    # capability_id: console.app-version.component-diff-details
     def test_build_component_diff_details_tracks_connect_envs_and_other_changes(self):
         current_template = {
             "apps": [
@@ -259,6 +263,7 @@ class AppVersionServiceComponentDiffDetailTestCase(TestCase):
 
 
 class AppVersionServiceSnapshotDetailTestCase(TestCase):
+    # capability_id: console.app-version.snapshot-detail
     def test_get_snapshot_detail_includes_previous_version_and_field_diff(self):
         relation = mock.Mock(app_model_id="hidden-app-id")
         current_template = {
@@ -352,6 +357,7 @@ class AppVersionServiceOverviewTestCase(TestCase):
         ordered_query.first.return_value = record
         return filtered_query
 
+    # capability_id: console.app-version.overview
     def test_get_overview_promotes_latest_successful_rollback_target_to_current_version(self):
         tenant = mock.Mock(tenant_name="demo-team")
         relation = mock.Mock(app_model_id="hidden-app-id")
@@ -417,6 +423,7 @@ class AppVersionServiceOverviewTestCase(TestCase):
         self.assertEqual(len(overview["component_diff_details"]["updated_components"]), 1)
         self.assertEqual(overview["component_diff_details"]["updated_components"][0]["component_name"], "nginx")
 
+    # capability_id: console.app-version.overview
     def test_get_overview_keeps_latest_snapshot_as_current_version_when_newer_than_rollback(self):
         tenant = mock.Mock(tenant_name="demo-team")
         relation = mock.Mock(app_model_id="hidden-app-id")
@@ -478,6 +485,7 @@ class AppVersionServiceOverviewTestCase(TestCase):
         self.assertFalse(overview["has_changes"])
         self.assertEqual(overview["component_diff_details"], app_version_service._empty_component_diff_details())
 
+    # capability_id: console.app-version.overview
     def test_get_overview_promotes_partial_rollback_target_to_current_version(self):
         tenant = mock.Mock(tenant_name="demo-team")
         relation = mock.Mock(app_model_id="hidden-app-id")
@@ -575,6 +583,7 @@ class AppVersionServiceDeleteSnapshotTestCase(TestCase):
         ordered_query.first.return_value = latest_version
         return root_query
 
+    # capability_id: console.app-version.snapshot-delete-guard
     def test_delete_snapshot_rejects_latest_version(self):
         latest_version = mock.Mock(ID=12)
         root_query = self.mock_snapshot_query(latest_version, latest_version)
@@ -591,6 +600,7 @@ class AppVersionServiceDeleteSnapshotTestCase(TestCase):
         self.assertEqual(context.exception.status_code, 400)
         self.assertEqual(context.exception.msg_show, "当前版本不允许删除")
 
+    # capability_id: console.app-version.snapshot-delete-history
     def test_delete_snapshot_removes_historical_version(self):
         target_version = mock.Mock(ID=11)
         latest_version = mock.Mock(ID=12)
@@ -609,6 +619,7 @@ class AppVersionServiceDeleteSnapshotTestCase(TestCase):
 
 
 class AppVersionServiceHiddenTemplateTestCase(TestCase):
+    # capability_id: console.app-version.hidden-template-create
     def test_get_or_create_hidden_template_creates_hidden_app(self):
         tenant = mock.Mock(
             tenant_name="demo-team",
@@ -670,6 +681,7 @@ class AppVersionServiceHiddenTemplateTestCase(TestCase):
 
 
 class AppVersionTemplateDeleteTestCase(TestCase):
+    # capability_id: console.app-version.hidden-template-cleanup
     def test_delete_rainbond_app_all_info_by_id_cleans_snapshot_relation(self):
         relation = mock.Mock(group_id=42, app_model_id="snapshot-template-id")
         relation_repo = mock.Mock()
@@ -700,12 +712,14 @@ class AppVersionTemplateDeleteTestCase(TestCase):
         relation_repo.delete_by_app_model_id.assert_called_once_with("snapshot-template-id")
 
 
+# capability_id: console.app-version.delete-snapshot
 class AppVersionSnapshotDetailViewDeleteTestCase(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         self.view = AppVersionSnapshotDetailView()
         self.view.app = mock.Mock(ID=42)
 
+    # capability_id: console.app-version.delete-snapshot-endpoint
     def test_delete_returns_success_response(self):
         request = self.factory.delete("/console/teams/demo-team/groups/42/app-versions/11")
 
@@ -726,6 +740,7 @@ class AppVersionRollbackRecordServiceTestCase(TestCase):
     def setUp(self):
         self.relation = mock.Mock(app_model_id="hidden-app-id")
 
+    # capability_id: console.app-version.rollback-record-query
     def test_list_rollback_records_filters_app_version_records(self):
         rollback_record = mock.Mock(to_dict=mock.Mock(return_value={"ID": 9, "status": 4}))
         query = mock.Mock()
@@ -748,6 +763,7 @@ class AppVersionRollbackRecordServiceTestCase(TestCase):
         self.assertEqual(filter_mock.call_args[1]["record_type"], app_version_service_module.AppUpgradeRecordType.ROLLBACK.value)
         self.assertEqual(filter_mock.call_args[1]["parent_id"], 0)
 
+    # capability_id: console.app-version.rollback-record-sync
     def test_get_rollback_record_detail_syncs_unfinished_record(self):
         rollback_record = mock.Mock(ID=9)
         rollback_record.is_finished.return_value = False
@@ -778,6 +794,7 @@ class AppVersionRollbackRecordServiceTestCase(TestCase):
         sync_record_mock.assert_called_once_with("demo-team", "demo-region", rollback_record)
         serialized_mock.assert_called_once_with(rollback_record)
 
+    # capability_id: console.app-version.rollback-record-guard
     def test_delete_rollback_record_rejects_unfinished_record(self):
         rollback_record = mock.Mock()
         rollback_record.is_finished.return_value = False
@@ -801,6 +818,7 @@ class AppVersionRollbackRecordServiceTestCase(TestCase):
         self.assertEqual(context.exception.status_code, 400)
         self.assertEqual(context.exception.msg_show, "进行中的回滚记录不允许删除")
 
+    # capability_id: console.app-version.rollback-record-finished-delete
     def test_delete_rollback_record_removes_finished_record(self):
         rollback_record = mock.Mock()
         rollback_record.is_finished.return_value = True
@@ -824,6 +842,7 @@ class AppVersionRollbackRecordServiceTestCase(TestCase):
         rollback_record.delete.assert_called_once_with()
 
 
+# capability_id: console.app-version.create-snapshot
 class AppVersionSnapshotListViewPostTestCase(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
@@ -842,6 +861,7 @@ class AppVersionSnapshotListViewPostTestCase(TestCase):
             )
         )
 
+    # capability_id: console.app-version.snapshot-no-change
     def test_post_returns_no_change_message_when_snapshot_not_created(self):
         request = self.make_request(
             {
@@ -871,6 +891,7 @@ class AppVersionRollbackRecordViewTestCase(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
 
+    # capability_id: console.app-version.rollback-record-list
     def test_list_returns_rollback_records(self):
         request = self.factory.get("/console/teams/demo-team/groups/42/app-version-rollback-records")
         view = app_version_view_module.AppVersionRollbackRecordListView()
@@ -888,6 +909,7 @@ class AppVersionRollbackRecordViewTestCase(TestCase):
         self.assertEqual(response.data["data"]["list"], [{"ID": 9, "status": 4}])
         list_mock.assert_called_once_with("demo-team", "demo-region", 42)
 
+    # capability_id: console.app-version.rollback-record-detail
     def test_detail_returns_single_rollback_record(self):
         request = self.factory.get("/console/teams/demo-team/groups/42/app-version-rollback-records/9")
         view = app_version_view_module.AppVersionRollbackRecordDetailView()
@@ -905,6 +927,7 @@ class AppVersionRollbackRecordViewTestCase(TestCase):
         self.assertEqual(response.data["data"]["bean"], {"ID": 9, "status": 4})
         detail_mock.assert_called_once_with("demo-team", "demo-region", 42, 9)
 
+    # capability_id: console.app-version.delete-rollback-record
     def test_delete_removes_rollback_record(self):
         request = self.factory.delete("/console/teams/demo-team/groups/42/app-version-rollback-records/9")
         view = app_version_view_module.AppVersionRollbackRecordDetailView()
@@ -922,6 +945,7 @@ class AppVersionRollbackRecordViewTestCase(TestCase):
 
 
 class AppRestoreSnapshotCompatibilityTestCase(TestCase):
+    # capability_id: console.app-version.restore-component-without-source
     def test_create_component_allows_snapshot_without_service_source(self):
         restore = app_restore_module.AppRestore.__new__(app_restore_module.AppRestore)
         restore.support_labels = []
@@ -952,6 +976,7 @@ class AppRestoreSnapshotCompatibilityTestCase(TestCase):
 
 
 class AppVersionRollbackRestoreActionTypeTestCase(TestCase):
+    # capability_id: console.app-version.restore-legacy-action-type
     def test_create_component_keeps_snapshot_action_type_for_legacy_snapshot(self):
         restore = app_version_service_module.AppVersionRollbackRestore.__new__(
             app_version_service_module.AppVersionRollbackRestore
@@ -983,6 +1008,7 @@ class AppVersionRollbackRestoreActionTypeTestCase(TestCase):
 
 
 class AppVersionServiceRollbackPlanTestCase(TestCase):
+    # capability_id: console.app-version.rollback-plan
     def test_build_rollback_component_plan_marks_changed_and_restored_components(self):
         current_template = {
             "apps": [
@@ -1023,6 +1049,7 @@ class AppVersionServiceRollbackPlanTestCase(TestCase):
         self.assertEqual(plan["restored"], {"demo"})
 
 
+# capability_id: console.app-version.rollback-restore-components
 class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
     def test_get_snapshot_keeps_components_missing_from_current_runtime(self):
         restore = app_version_service_module.AppVersionRollbackRestore.__new__(
@@ -1056,6 +1083,7 @@ class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
             ["existing-component", "restored-component"],
         )
 
+    # capability_id: console.app-version.rollback-create-new-app
     def test_create_new_app_restores_snapshot_components_missing_from_runtime(self):
         restore = app_version_service_module.AppVersionRollbackRestore.__new__(
             app_version_service_module.AppVersionRollbackRestore
@@ -1144,6 +1172,7 @@ class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
             },
         )
 
+    # capability_id: console.app-version.rollback-create-new-app
     def test_create_new_app_marks_changed_existing_components_for_update(self):
         restore = app_version_service_module.AppVersionRollbackRestore.__new__(
             app_version_service_module.AppVersionRollbackRestore
@@ -1204,6 +1233,7 @@ class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
 
 
 class NewAppUpdateComponentsTestCase(TestCase):
+    # capability_id: console.app-version.restore-update-service-sources
     def test_update_components_overwrites_service_sources_when_snapshot_missing_source(self):
         new_app = new_app_module.NewApp.__new__(new_app_module.NewApp)
         component = mock.Mock(component_id="service-id")
@@ -1247,6 +1277,7 @@ class NewAppUpdateComponentsTestCase(TestCase):
 
 
 class NewAppSaveComponentsTestCase(TestCase):
+    # capability_id: console.app-version.restore-k8s-attributes
     def test_save_components_overwrites_k8s_attributes_for_new_components(self):
         new_app = new_app_module.NewApp.__new__(new_app_module.NewApp)
         component = mock.Mock(component_id="service-id")
@@ -1309,6 +1340,7 @@ class NewAppSaveComponentsTestCase(TestCase):
 
 
 class MarketAppBuildGenerationTestCase(TestCase):
+    # capability_id: console.app-version.restore-builds
     def test_generate_builds_allows_components_without_source_metadata(self):
         market_app = market_app_module.MarketApp.__new__(market_app_module.MarketApp)
         market_app.user = mock.Mock(nick_name="tester")
@@ -1339,6 +1371,7 @@ class MarketAppBuildGenerationTestCase(TestCase):
 
 
 class AppRestoreRollbackRecordTestCase(TestCase):
+    # capability_id: console.app-version.rollback-record-update-ignore-missing
     def test_update_rollback_record_ignores_missing_record(self):
         restore = app_restore_module.AppRestore.__new__(app_restore_module.AppRestore)
         restore.rollback_record = None

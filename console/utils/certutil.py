@@ -26,7 +26,8 @@ def analyze_cert(content):
     while index < extension_count:
         extension = cert.get_extension(index)
         index = index + 1
-        if extension.get_short_name() == "subjectAltName":
+        short_name = extension.get_short_name()
+        if short_name == b"subjectAltName" or short_name == "subjectAltName":
             subject_alt_names = parse_subject_alt_names(extension._subjectAltNameString())
             sans = subject_alt_names
     if subject.CN not in sans:

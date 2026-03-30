@@ -16,12 +16,15 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
+from rest_framework.test import APIRequestFactory  # noqa: E402
 
 django.setup()
 
 from console.services.app_import_and_export_service import export_service  # noqa: E402
+from console.views.center_pool import app_import as app_import_view_module  # noqa: E402
 
 
+# capability_id: console.app.export-metadata
 class AppExportServiceMetadataTestCase(TestCase):
     def test_get_app_metadata_allows_missing_picture(self):
         app = mock.Mock(pic=None, describe="demo app")
@@ -38,3 +41,158 @@ class AppExportServiceMetadataTestCase(TestCase):
         self.assertEqual(result["annotations"]["image_base64_string"], "")
         self.assertEqual(result["annotations"]["describe"], "demo app")
         self.assertEqual(result["helm_chart"]["image_handle"], "")
+
+    # capability_id: console.app-export.query-status
+    def test_get_export_status_updates_exporting_record_and_wraps_download_url(self):
+        app = mock.Mock(app_id="demo-app")
+        app_version = mock.Mock(
+            version="1.0.0",
+            app_template=json.dumps({
+                "governance_mode": "KUBERNETES_NATIVE_SERVICE",
+                "apps": [{"service_source": "source_code"}],
+            }),
+        )
+        export_record = mock.Mock(region_name="demo-region", event_id="evt-1", status="exporting", format="rainbond-app", file_path="/v2/download/app.tgz")
+
+        with mock.patch("console.services.app_import_and_export_service.app_export_record_repo.get_enter_export_record_by_key_and_version",
+                        return_value=[export_record]), \
+                mock.patch("console.services.app_import_and_export_service.region_services.get_enterprise_region_by_region_name",
+                           return_value=mock.Mock(region_name="demo-region")), \
+                mock.patch("console.services.app_import_and_export_service.region_api.get_app_export_status",
+                           return_value=(None, {"bean": {"status": "success", "tar_file_href": "/v2/download/app.tgz"}})), \
+                mock.patch("console.services.app_import_and_export_service.region_repo.get_region_by_region_name",
+                           return_value=mock.Mock(wsurl="http://console.example.com")):
+            result = export_service.get_export_status("eid-1", app, app_version)
+
+        self.assertTrue(result["rainbond_app"]["is_export_before"])
+        self.assertEqual(result["rainbond_app"]["status"], "success")
+        self.assertEqual(result["rainbond_app"]["file_path"], "http://console.example.com/download/app.tgz")
+        self.assertTrue(result["helm_chart"]["is_export_before"] is False)
+        self.assertTrue(result["slug"]["is_export_before"] is False)
+        export_record.save.assert_called_once_with()
+
+
+class CenterAppImportViewWorkflowTestCase(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.view = app_import_view_module.CenterAppImportView()
+        self.view.user = mock.Mock(enterprise_id="eid-1")
+        self.view.enterprise = mock.Mock(enterprise_id="eid-1")
+
+    def make_request(self, method, payload=None):
+        payload = payload or {}
+        request_factory = getattr(self.factory, method)
+        request = request_factory("/console/center/app-import/evt-1", payload, format="json")
+        return self.view.initialize_request(request)
+
+    # capability_id: console.app-import.start
+    def test_post_starts_app_import(self):
+        request = self.make_request("post", {
+            "scope": "team",
+            "tenant_name": "demo-team",
+            "file_name": "demo-app.rainbond"
+        })
+
+        with mock.patch.object(app_import_view_module.import_service, "start_import_apps") as start_mock, \
+                mock.patch.object(app_import_view_module.operation_log_service, "create_component_library_log"):
+            response = self.view.post(request, "evt-1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["msg_show"], "操作成功，正在导入")
+        start_mock.assert_called_once_with("team", "evt-1", ["demo-app.rainbond"], "demo-team", "eid-1")
+
+    # capability_id: console.app-import.query-status
+    def test_get_returns_import_status(self):
+        request = self.factory.get("/console/center/app-import/evt-1", {"arch": "amd64"})
+        record = mock.Mock()
+        record.to_dict.return_value = {"event_id": "evt-1", "status": "success"}
+
+        with mock.patch.object(app_import_view_module.transaction, "savepoint", return_value="sp-1"), \
+                mock.patch.object(app_import_view_module.transaction, "savepoint_commit"), \
+                mock.patch.object(app_import_view_module.import_service, "get_and_update_import_by_event_id",
+                                  return_value=(record, [{"file_name": "demo-app", "status": "success"}])) as get_mock:
+            response = self.view.get(request, "evt-1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["bean"]["event_id"], "evt-1")
+        self.assertEqual(response.data["data"]["list"][0]["status"], "success")
+        get_mock.assert_called_once_with("evt-1", "amd64")
+
+    # capability_id: console.app-import.abandon
+    def test_delete_abandons_import(self):
+        request = self.factory.delete("/console/center/app-import/evt-1")
+
+        with mock.patch.object(app_import_view_module.import_service, "delete_import_app_dir_by_event_id") as delete_mock:
+            response = self.view.delete(request, "evt-1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["msg_show"], "操作成功")
+        delete_mock.assert_called_once_with("evt-1")
+
+
+class AppImportPreparationWorkflowTestCase(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+
+    # capability_id: console.app-import.init
+    def test_enterprise_import_init_creates_record_when_none_exists(self):
+        view = app_import_view_module.EnterpriseAppImportInitView()
+        view.user = mock.Mock(nick_name="admin")
+        request = self.factory.post("/console/enterprise/app-import/init")
+        record = mock.Mock(region="demo-region", event_id="evt-1", source_dir="/tmp/import", status="created_dir")
+
+        with mock.patch.object(app_import_view_module.import_service, "get_user_not_finish_import_record_in_enterprise", return_value=[]), \
+                mock.patch.object(app_import_view_module.import_service, "create_app_import_record_2_enterprise", return_value=record), \
+                mock.patch.object(app_import_view_module.import_service, "get_upload_url", return_value="https://upload.example.com"), \
+                mock.patch.object(app_import_view_module.region_services, "get_region_by_region_name",
+                                  return_value=mock.Mock(region_alias="演示集群")):
+            response = view.post(request, enterprise_id="eid-1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["bean"]["event_id"], "evt-1")
+        self.assertEqual(response.data["data"]["bean"]["upload_url"], "https://upload.example.com")
+
+    # capability_id: console.app-import.create-dir
+    def test_tarball_dir_post_creates_import_dir(self):
+        view = app_import_view_module.CenterAppTarballDirView()
+        view.tenant = mock.Mock(tenant_name="demo-team")
+        view.user = mock.Mock()
+        view.response_region = "demo-region"
+        request = self.factory.post("/console/teams/demo-team/import-dir")
+        record = mock.Mock()
+        record.to_dict.return_value = {"event_id": "evt-1", "source_dir": "/tmp/import"}
+
+        with mock.patch.object(app_import_view_module.import_service, "create_import_app_dir", return_value=record) as create_mock:
+            response = view.post(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["bean"]["event_id"], "evt-1")
+        create_mock.assert_called_once_with(view.tenant, view.user, "demo-region")
+
+    # capability_id: console.app-import.list-dir
+    def test_tarball_dir_get_lists_imported_packages(self):
+        view = app_import_view_module.CenterAppTarballDirView()
+        request = self.factory.get("/console/teams/demo-team/import-dir/evt-1")
+
+        with mock.patch.object(app_import_view_module.import_service, "get_import_app_dir", return_value=["a.rainbond", "b.rainbond"]) as get_mock:
+            response = view.get(request, event_id="evt-1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["list"], ["a.rainbond", "b.rainbond"])
+        get_mock.assert_called_once_with("evt-1")
+
+    # capability_id: console.app-import.delete-dir
+    def test_tarball_dir_delete_removes_import_dir(self):
+        view = app_import_view_module.CenterAppTarballDirView()
+        view.tenant = mock.Mock(tenant_name="demo-team")
+        view.response_region = "demo-region"
+        request = self.factory.delete("/console/teams/demo-team/import-dir?event_id=evt-1")
+        record = mock.Mock()
+        record.to_dict.return_value = {"event_id": "evt-1", "status": "deleted"}
+
+        with mock.patch.object(app_import_view_module.import_service, "delete_import_app_dir", return_value=record) as delete_mock:
+            response = view.delete(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["bean"]["event_id"], "evt-1")
+        delete_mock.assert_called_once_with(view.tenant, "demo-region", "evt-1")
