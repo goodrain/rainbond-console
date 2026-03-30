@@ -79,6 +79,7 @@ class AppCheckService(object):
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = self.__get_service_region_type(service.service_source)
+        effective_build_strategy = getattr(service, "build_strategy", "") or ("cnb" if not is_again else "")
         source_body = ""
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         user_name = ""
@@ -95,7 +96,7 @@ class AppCheckService(object):
                 "user": "",
                 "password": "",
                 "tenant_id": tenant.tenant_id,
-                "build_strategy": getattr(service, "build_strategy", "") or "",
+                "build_strategy": effective_build_strategy,
             }
             source_body = json.dumps(sb)
         if service.service_source == AppConstants.SOURCE_CODE:
@@ -132,7 +133,7 @@ class AppCheckService(object):
                 "user": user_name,
                 "password": password,
                 "tenant_id": tenant.tenant_id,
-                "build_strategy": getattr(service, "build_strategy", "") or "",
+                "build_strategy": effective_build_strategy,
             }
             source_body = json.dumps(sb)
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:

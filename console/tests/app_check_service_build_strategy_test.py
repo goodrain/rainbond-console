@@ -107,3 +107,39 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         self.assertIn("source_body", request_body)
         source_body = request_body["source_body"]
         self.assertIn('"build_strategy": "cnb"', source_body)
+
+    @patch.object(app_check_service_module, "service_source_repo")
+    @patch.object(app_check_service_module, "region_api")
+    def test_check_service_defaults_first_source_check_to_cnb(self, region_api, service_source_repo):
+        service = DummyService(build_strategy="")
+        region_api.service_source_check.return_value = (
+            None,
+            {"bean": {"check_uuid": "chk-1", "event_id": "evt-1"}},
+        )
+        service_source_repo.get_service_source.return_value = None
+
+        code, msg, _ = self.service_helper.check_service(self.tenant, service, False, "evt-1", user=Mock(user_id="u-1"))
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "success")
+        args, _ = region_api.service_source_check.call_args
+        source_body = args[2]["source_body"]
+        self.assertIn('"build_strategy": "cnb"', source_body)
+
+    @patch.object(app_check_service_module, "service_source_repo")
+    @patch.object(app_check_service_module, "region_api")
+    def test_check_service_keeps_recheck_without_strategy_empty(self, region_api, service_source_repo):
+        service = DummyService(build_strategy="")
+        region_api.service_source_check.return_value = (
+            None,
+            {"bean": {"check_uuid": "chk-1", "event_id": "evt-1"}},
+        )
+        service_source_repo.get_service_source.return_value = None
+
+        code, msg, _ = self.service_helper.check_service(self.tenant, service, True, "evt-1", user=Mock(user_id="u-1"))
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "success")
+        args, _ = region_api.service_source_check.call_args
+        source_body = args[2]["source_body"]
+        self.assertIn('"build_strategy": ""', source_body)
