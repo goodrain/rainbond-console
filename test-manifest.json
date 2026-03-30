@@ -587,6 +587,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-backup.region-app-scope",
+      "title": "Scope backup services to the current region app",
+      "title_zh": "\u6309\u5f53\u524d region \u5e94\u7528\u8303\u56f4\u9650\u5236\u5907\u4efd\u7ec4\u4ef6",
+      "interface_type": "service_method",
+      "interface": "console.services.backup_service.GroupAppBackupService._get_effective_group_services",
+      "code_paths": [
+        "console/services/backup_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/backup_service_test.py",
+          "selector": "GroupAppBackupServiceScopeTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-backup.state-service-guard",
       "title": "Reject backup while stateful services are still running",
       "title_zh": "\u6709\u72b6\u6001\u7ec4\u4ef6\u672a\u5173\u95ed\u65f6\u963b\u6b62\u5907\u4efd",

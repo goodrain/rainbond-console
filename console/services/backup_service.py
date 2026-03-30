@@ -7,7 +7,7 @@ import logging
 
 from console.enum.component_enum import is_state
 from console.exception.main import ServiceHandleException
-from console.repositories.app import service_repo, service_source_repo
+from console.repositories.app import service_source_repo
 from console.repositories.app_config import (auth_repo, compile_env_repo, dep_relation_repo, domain_repo, env_var_repo,
                                              extend_repo, mnt_repo, port_repo, service_endpoints_repo, tcp_domain, volume_repo,
                                              configuration_repo)
@@ -22,6 +22,7 @@ from console.repositories.plugin.plugin import plugin_repo
 from console.repositories.plugin.plugin_config import (plugin_config_group_repo, plugin_config_items_repo)
 from console.repositories.plugin.plugin_version import build_version_repo
 from console.repositories.probe_repo import probe_repo
+from console.repositories.region_app import region_app_repo
 from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.app_config.volume_service import AppVolumeService
@@ -41,6 +42,37 @@ KEY = "GOODRAINLOVE"
 
 
 class GroupAppBackupService(object):
+    def _service_in_region_app(self, service, region_service_names):
+        candidates = (
+            getattr(service, "service_name", ""),
+            getattr(service, "k8s_component_name", ""),
+            getattr(service, "service_alias", ""),
+        )
+        return any(name and name in region_service_names for name in candidates)
+
+    def _get_effective_group_services(self, tenant, region_name, group_id):
+        services = list(group_service.get_group_services(group_id))
+        if not services or tenant is None or not region_name:
+            return services
+        try:
+            region_app_id = region_app_repo.get_region_app_id(region_name, group_id)
+            region_services = region_api.list_app_services(region_name, tenant.tenant_name, region_app_id)
+        except Exception as e:
+            logger.warning("failed to resolve region app services for backup scope, fallback to console relations: %s", e)
+            return services
+
+        region_service_names = set()
+        for region_service in region_services or []:
+            service_name = region_service.get("service_name")
+            if service_name:
+                region_service_names.add(service_name)
+
+        if not region_service_names:
+            return services
+
+        filtered_services = [service for service in services if self._service_in_region_app(service, region_service_names)]
+        return filtered_services or services
+
     def get_group_back_up_info(self, tenant, region, group_id):
         return backup_record_repo.get_group_backup_records(tenant.tenant_id, region, group_id).order_by("-ID")
 
@@ -51,8 +83,10 @@ class GroupAppBackupService(object):
         """
         检测备份条件，有状态组件备份应该
         """
-        services = group_service.get_group_services(group_id)
+        services = self._get_effective_group_services(tenant, region, group_id)
         service_ids = [s.service_id for s in services]
+        if not service_ids:
+            return 200, []
         body = region_api.service_status(region, tenant.tenant_name, {
             "service_ids": service_ids,
             "enterprise_id": tenant.enterprise_id
@@ -68,13 +102,15 @@ class GroupAppBackupService(object):
 
         return 200, running_state_services
 
-    def check_backup_app_used_custom_volume(self, group_id):
-        services = group_service.get_group_services(group_id)
+    def check_backup_app_used_custom_volume(self, group_id, tenant=None, region_name=None):
+        services = self._get_effective_group_services(tenant, region_name, group_id)
         service_list = dict()
         for service in services:
             service_list[service.service_id] = service.service_cname
 
         service_ids = [service.service_id for service in services]
+        if not service_ids:
+            return []
         volumes = volume_repo.list_custom_volumes(service_ids)
 
         use_custom_svc = []
@@ -88,7 +124,7 @@ class GroupAppBackupService(object):
         s3_config = EnterpriseConfigService(tenant.enterprise_id, user.user_id).get_cloud_obj_storage_info()
         if mode == "full-online" and not s3_config:
             raise ErrObjectStorageInfoNotFound
-        services = group_service.get_group_services(group_id)
+        services = self._get_effective_group_services(tenant, region_name, group_id)
         event_id = make_uuid()
         group_uuid = self.get_backup_group_uuid(group_id)
         total_memory, metadata = self.get_group_app_metadata(group_id, tenant, region_name)
@@ -198,8 +234,9 @@ class GroupAppBackupService(object):
         group_info = group_repo.get_group_by_id(group_id)
 
         service_group_relations = group_service_relation_repo.get_services_by_group(group_id)
-        service_ids = [sgr.service_id for sgr in service_group_relations]
-        services = service_repo.get_services_by_service_ids(service_ids)
+        services = self._get_effective_group_services(tenant, region_name, group_id)
+        service_ids = set([service.service_id for service in services])
+        service_group_relations = [sgr for sgr in service_group_relations if sgr.service_id in service_ids]
 
         all_data["compose_group_info"] = compose_group_info.to_dict() if compose_group_info else None
         all_data["compose_service_relation"] = [relation.to_dict()

@@ -36,6 +36,7 @@
 | console.app-backup.query-status | 查询应用备份状态 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_get_returns_group_backup_status |
 | console.app-backup.query-status-failure | 查询单个备份状态失败时返回错误 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_get_returns_error_when_status_query_fails |
 | console.app-backup.query-status-guard | 查询备份状态时必须提供备份 ID | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_get_requires_backup_id |
+| console.app-backup.region-app-scope | 按当前 region 应用范围限制备份组件 | active | regression | console.services.backup_service.GroupAppBackupService._get_effective_group_services | console/tests/backup_service_test.py::GroupAppBackupServiceScopeTests |
 | console.app-backup.state-service-guard | 有状态组件未关闭时阻止备份 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_post_rejects_running_stateful_services |
 | console.app-backup.status-sanitize | 隐藏备份状态中的内部服务端信息 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupStatusView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupStatusViewWorkflowTests.test_get_returns_backup_status_list_without_internal_server_info |
 | console.app-config-group.create | 创建应用配置组 | active | regression | console.services.app_config_group.AppConfigGroupService.create_config_group | console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_create_config_group_creates_remote_and_local_records |
@@ -658,6 +659,16 @@
 - 业务入口: `console.views.center_pool.groupapp_backup.GroupAppsBackupView.get`
 - 代码路径: `console/views/center_pool/groupapp_backup.py`
 - 测试路径: `console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_get_requires_backup_id`
+
+### 按当前 region 应用范围限制备份组件
+
+- Capability ID: `console.app-backup.region-app-scope`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.backup_service.GroupAppBackupService._get_effective_group_services`
+- 代码路径: `console/services/backup_service.py`
+- 测试路径: `console/tests/backup_service_test.py::GroupAppBackupServiceScopeTests`
 
 ### 有状态组件未关闭时阻止备份
 

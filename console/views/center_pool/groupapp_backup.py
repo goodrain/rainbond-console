@@ -75,7 +75,7 @@ class GroupAppsBackupView(RegionTenantHeaderView):
                         code=4121, msg="state service is running", msg_show="有状态组件未关闭", list=running_state_services),
                     status=412)
             # if service use custom service, can't backup
-            use_custom_svc = groupapp_backup_service.check_backup_app_used_custom_volume(group_id)
+            use_custom_svc = groupapp_backup_service.check_backup_app_used_custom_volume(group_id, self.tenant, self.region_name)
             if use_custom_svc:
                 logger.info("use custom volume: {}".format(use_custom_svc))
                 return Response(
