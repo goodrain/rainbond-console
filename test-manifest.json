@@ -4442,6 +4442,25 @@
       "status": "active"
     },
     {
+      "id": "console.lang-version.proxy-upload",
+      "title": "Proxy legacy language package upload endpoint",
+      "title_zh": "\u4ee3\u7406\u65e7\u7248\u8bed\u8a00\u5305\u4e0a\u4f20\u63a5\u53e3",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.enterprise.UploadLongVersion.post",
+      "code_paths": [
+        "console/views/enterprise.py",
+        "console/urls/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/lang_version_proxy_test.py",
+          "selector": "UploadLongVersionProxyViewTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-client.auth-missing",
       "title": "Translate 401 market API errors into missing-token service errors",
       "title_zh": "\u5c06 401 \u5e94\u7528\u5e02\u573a\u9519\u8bef\u8f6c\u6362\u4e3a\u7f3a\u5c11 token \u7684\u670d\u52a1\u5f02\u5e38",

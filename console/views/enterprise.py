@@ -49,6 +49,53 @@ NAMESPACE = "namespace"
 EVENT_ID = "event_id"
 FILE_NAME = "file_name"
 
+
+def _websocket_url_to_http_base(wsurl):
+    if not wsurl:
+        return ""
+    if "://" in wsurl:
+        scheme, remainder = wsurl.split("://", 1)
+        if scheme == "wss":
+            return "https://{}".format(remainder)
+        if scheme == "ws":
+            return "http://{}".format(remainder)
+        if scheme in ("http", "https"):
+            return wsurl
+    return "http://{}".format(wsurl.lstrip("/"))
+
+
+class UploadLongVersion(AlowAnyApiView):
+    def post(self, request, *args, **kwargs):
+        try:
+            enterprise_id = request.data.get("enterprise_id")
+            region_id = request.data.get("region_id")
+            upload_file = request.FILES.get("file") if request.FILES else None
+            if not upload_file:
+                return Response(general_message(400, "get file failure.", "获取文件失败"), status=400)
+
+            region = region_repo.get_region_by_id(enterprise_id, region_id)
+            if not region or not region.wsurl:
+                return Response(general_message(404, "region not found", "数据中心不存在"), status=404)
+
+            target_url = "{}/lg_pack_operate/upload".format(_websocket_url_to_http_base(region.wsurl).rstrip("/"))
+            files = {
+                "file": (
+                    upload_file.name,
+                    upload_file.read(),
+                    upload_file.content_type or "application/octet-stream",
+                )
+            }
+            headers = {"Authorization": request.headers.get("Authorization", "")}
+            response = requests.post(target_url, files=files, headers=headers, timeout=60)
+            try:
+                return Response(response.json(), status=response.status_code)
+            except ValueError:
+                logger.exception("proxy lg_pack_operate upload returned non-json response")
+                return Response(general_message(500, "proxy error", "文件处理异常"), status=500)
+        except Exception as e:
+            logger.exception("proxy lg_pack_operate upload failed")
+            return Response(general_message(500, "Proxy error: {0}".format(str(e)), "文件处理异常"), status=500)
+
 class Enterprises(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         enterprises_list = []
