@@ -72,3 +72,29 @@ class RegionApiBaseHttpClientTestCase(TestCase):
         error = context.exception
         self.assertEqual(error.msg, raw_message)
         self.assertEqual(error.msg_show, raw_message)
+
+    # capability_id: console.region-api.domain-conflict-msg
+    def test_check_status_keeps_domain_conflict_as_conflict_error(self):
+        client = RegionApiBaseHttpClient()
+        raw_message = (
+            "domain conflict: domain 'yangshanshu.core.lchuike.com' conflicts with existing domain "
+            "'yangshanshu.core.lchuike.com' in namespace 'tenant-a' (resource: existing-cert)"
+        )
+
+        with self.assertRaises(ServiceHandleException) as context:
+            client._check_status(
+                url="/api-gateway/v1/demo/routes/http/cert-manager",
+                method="POST",
+                status=409,
+                content=json.dumps({
+                    "msg": raw_message
+                }),
+            )
+
+        error = context.exception
+        self.assertEqual(error.msg, raw_message)
+        self.assertEqual(error.status_code, 409)
+        self.assertEqual(error.error_code, 409)
+        self.assertEqual(
+            error.msg_show,
+            "域名 yangshanshu.core.lchuike.com 与命名空间 tenant-a 下资源 existing-cert 的现有证书配置冲突，请先清理冲突配置后重试。")

@@ -30,9 +30,23 @@ HELM_OWNERSHIP_CONFLICT_RE = re.compile(
     r'meta\.helm\.sh/release-namespace": must be set to "(?P<release_namespace>[^"]+)"',
     re.IGNORECASE)
 
+DOMAIN_CONFLICT_RE = re.compile(
+    r"domain conflict:\s+domain\s+'(?P<domain>[^']+)'\s+conflicts with existing domain\s+'(?P<existing_domain>[^']+)'\s+"
+    r"in namespace\s+'(?P<namespace>[^']+)'\s+\(resource:\s+(?P<resource>[^)]+)\)",
+    re.IGNORECASE)
+
+FREQUENT_OPERATION_MESSAGES = (
+    "操作过于频繁，请稍后再试",
+    "wait a moment please",
+    "just wait a moment",
+)
+
 
 def build_region_error_msg_show(message):
     msg_show = build_helm_ownership_conflict_msg_show(message)
+    if msg_show:
+        return msg_show
+    msg_show = build_domain_conflict_msg_show(message)
     if msg_show:
         return msg_show
     return message
@@ -55,6 +69,27 @@ def build_helm_ownership_conflict_msg_show(message):
         'app.kubernetes.io/managed-by=Helm，'
         'meta.helm.sh/release-name={release_name}，'
         'meta.helm.sh/release-namespace={release_namespace}。').format(**details)
+
+
+def build_domain_conflict_msg_show(message):
+    if not message or "domain conflict:" not in message or "conflicts with existing domain" not in message:
+        return None
+
+    match = DOMAIN_CONFLICT_RE.search(message)
+    if not match:
+        return "域名与现有证书配置冲突，请先清理冲突配置后重试。"
+
+    details = match.groupdict()
+    return (
+        "域名 {domain} 与命名空间 {namespace} 下资源 {resource} 的现有证书配置冲突，请先清理冲突配置后重试。"
+    ).format(**details)
+
+
+def is_frequent_operation_message(message):
+    if not message:
+        return False
+    normalized = message.strip().lower()
+    return normalized in tuple(item.lower() for item in FREQUENT_OPERATION_MESSAGES)
 
 
 class RegionApiBaseHttpClient(object):
@@ -133,6 +168,12 @@ class RegionApiBaseHttpClient(object):
                     status_code=status,
                     error_code=body.get("code"))
             if status == 409:
+                if isinstance(body, dict) and body.get("msg") and not is_frequent_operation_message(body.get("msg")):
+                    raise ServiceHandleException(
+                        msg=body.get("msg"),
+                        msg_show=build_region_error_msg_show(body.get("msg")),
+                        status_code=status,
+                        error_code=status)
                 raise self.CallApiFrequentError(self.apitype, url, method, res, body)
             if status == 401 and isinstance(body, dict) and body.get("bean", {}).get("code", -1) == 10400:
                 logger.warning(body["bean"]["msg"])

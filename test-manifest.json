@@ -4988,6 +4988,24 @@
       "status": "active"
     },
     {
+      "id": "console.region-api.domain-conflict-msg",
+      "title": "Preserve upstream domain conflict as actionable 409",
+      "title_zh": "\u5c06\u4e0a\u6e38\u57df\u540d\u51b2\u7a81\u4fdd\u7559\u4e3a\u53ef\u64cd\u4f5c\u7684 409 \u9519\u8bef\u63d0\u793a",
+      "interface_type": "workflow",
+      "interface": "www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status",
+      "code_paths": [
+        "www/apiclient/regionapibaseclient.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_check_status_keeps_domain_conflict_as_conflict_error"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.region-api.helm-resource-conflict-msg",
       "title": "Translate helm ownership conflict into actionable error",
       "title_zh": "\u5c06 Helm \u8d44\u6e90\u5f52\u5c5e\u51b2\u7a81\u8f6c\u6362\u4e3a\u53ef\u64cd\u4f5c\u9519\u8bef\u63d0\u793a",
