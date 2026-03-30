@@ -62,6 +62,7 @@ class ServiceShareRecordVersionView(RegionTenantHeaderView):
 class ServiceShareRecordView(RegionTenantHeaderView):
     def get(self, request, team_name, group_id, *args, **kwargs):
         data = []
+        skipped_count = 0
         market = dict()
         cloud_app = dict()
         page = int(request.GET.get("page", 1))
@@ -108,6 +109,9 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                     share_record.save()
                 except ServiceHandleException:
                     app_model_id = share_record.app_id
+            if share_record.status == 0 and not share_record.share_version:
+                skipped_count += 1
+                continue
             data.append({
                 "app_model_id": app_model_id,
                 "app_model_name": app_model_name,
@@ -126,7 +130,7 @@ class ServiceShareRecordView(RegionTenantHeaderView):
                 "record_id": share_record.ID,
                 "app_version_info": share_record.share_app_version_info,
             })
-        result = general_message(200, "success", "获取成功", bean={'total': total}, list=data)
+        result = general_message(200, "success", "获取成功", bean={'total': max(total - skipped_count, 0)}, list=data)
         return Response(result, status=200)
 
     def post(self, request, team_name, group_id, *args, **kwargs):

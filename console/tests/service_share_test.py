@@ -150,6 +150,50 @@ class ServiceShareInfoViewTestCase(TestCase):
         self.assertEqual(response.data["data"]["bean"]["publish_mode"], "snapshot")
 
 
+class ServiceShareRecordListViewTestCase(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.view = ServiceShareRecordView()
+        self.view.tenant = mock.Mock(enterprise_id="eid")
+        self.view.user = mock.Mock(user_id=1)
+
+    def test_get_filters_pending_records_without_any_version(self):
+        request = self.view.initialize_request(
+            self.factory.get("/console/teams/demo-team/groups/30/share/record", {"page": 1, "page_size": 10})
+        )
+        invalid_pending_record = mock.Mock(
+            share_app_model_name="",
+            app_id="",
+            share_version="",
+            share_version_alias="",
+            share_app_version_info="",
+            share_store_name="demo-store",
+            share_app_market_name="demo-store-id",
+            scope="goodrain",
+            create_time="2026-03-30 13:48:00",
+            step=1,
+            is_success=False,
+            status=0,
+            ID=12,
+            save=mock.Mock(),
+        )
+
+        with mock.patch.object(
+            service_share.share_repo,
+            "get_service_share_records_by_groupid",
+            return_value=(1, [invalid_pending_record]),
+        ), mock.patch.object(
+            service_share.rainbond_app_repo,
+            "get_rainbond_app_version_by_record_id",
+            return_value=None,
+        ):
+            response = self.view.get(request, "demo-team", "30")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["bean"]["total"], 0)
+        self.assertEqual(response.data["data"]["list"], [])
+
+
 class ShareServiceCreateSnapshotPublishTestCase(TestCase):
     def setUp(self):
         self.tenant = mock.Mock(enterprise_id="eid", tenant_name="demo-team")
