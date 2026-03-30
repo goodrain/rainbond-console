@@ -17,6 +17,11 @@ from console.services import group_service as group_service_module  # noqa: E402
 from console.services.group_service import group_service  # noqa: E402
 
 
+class Obj(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+
 # capability_id: console.app.delete
 class GroupServiceDeleteAppTestCase(TestCase):
     def test_delete_app_cleans_hidden_template_records(self):
@@ -53,3 +58,30 @@ class GroupServiceDeleteAppTestCase(TestCase):
         delete_region_app_mock.assert_called_once_with(
             "demo-region", "demo-team", "region-app-id", {"etcd_keys": []}
         )
+
+
+class GroupServiceAppStatusAggregationTests(TestCase):
+    # capability_id: console.app-status.aggregate-rainbond-components
+    def test_get_app_status_uses_component_aggregation_for_rainbond_apps(self):
+        tenant = Obj(tenant_name="demo-team", enterprise_id="eid-1")
+        component_relations = [Obj(service_id="svc-1"), Obj(service_id="svc-2")]
+        components = [Obj(service_id="svc-1"), Obj(service_id="svc-2")]
+
+        with mock.patch.object(group_service_module.region_app_repo, "get_region_app_id", return_value="region-app-1"), \
+                mock.patch.object(group_service_module.region_api, "get_app_status", return_value={"status": "RUNNING"}), \
+                mock.patch.object(group_service_module.group_repo, "get_group_by_id", return_value=Obj(app_type="rainbond")), \
+                mock.patch.object(group_service_module.group_service_relation_repo,
+                                  "get_services_by_group",
+                                  return_value=component_relations), \
+                mock.patch.object(group_service_module.service_repo,
+                                  "get_services_by_service_ids",
+                                  return_value=components), \
+                mock.patch.object(group_service_module.base_service,
+                                  "status_multi_service",
+                                  return_value=[
+                                      {"service_id": "svc-1", "status": "running"},
+                                      {"service_id": "svc-2", "status": "abnormal"},
+                                  ]):
+            status = group_service.get_app_status(tenant, "demo-region", 42)
+
+        self.assertEqual(status["status"], "PARTIAL_ABNORMAL")

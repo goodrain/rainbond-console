@@ -11,7 +11,6 @@ from datetime import datetime
 from deprecated import deprecated
 
 from console.enum.app import GovernanceModeEnum, AppType
-from console.enum.component_enum import is_kubeblocks
 from console.exception.bcode import ErrUserNotFound, ErrApplicationNotFound, ErrK8sAppExists
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
@@ -554,9 +553,8 @@ class GroupService(object):
         for status in status_list:
             service_status[status["service_id"]] = status
         app_id_statuses = self.get_region_app_statuses(tenant_name, region, app_ids)
-        # 为包含 kubeBlocks_component 的应用重新计算状态，仅在应用中存在 kubeblocks_component 类型的组件时起作用
-        app_id_statuses = self._add_kubeblocks_component_status_to_apps(
-            app_ids, service_list, service_status, app_id_statuses
+        app_id_statuses = self._add_component_status_to_apps(
+            app_list, service_list, service_status, app_id_statuses
         )
         apps = dict()
         volumes = volume_repo.get_services_volumes(service_ids)
@@ -614,28 +612,31 @@ class GroupService(object):
         if sort != 2:
             re_app_list = sorted(
                 re_app_list,
-                key=lambda i: (1 if i["status"] == "RUNNING" else 2 if i["status"] == "ABNORMAL" else 3
+                key=lambda i: (1 if i["status"] == "RUNNING" else 2 if i["status"] in ["ABNORMAL", "PARTIAL_ABNORMAL"] else 3
                                if i["status"] == "STARTING" else 5 if i["status"] == "CLOSED" else 4, -i["used_mem"]))
         return re_app_list
 
     @staticmethod
-    def _add_kubeblocks_component_status_to_apps(app_ids, service_list, service_status, app_id_statuses):
-        """将 KubeBlocks 组件状态聚合进应用状态"""
+    def _add_component_status_to_apps(apps, service_list, service_status, app_id_statuses):
+        """将普通 rainbond 应用的组件状态聚合进应用状态"""
         from collections import defaultdict
         if app_id_statuses is None:
             app_id_statuses = {}
         if not service_list:
             return app_id_statuses
 
+        app_map = {app.ID: app for app in apps}
         app_components = defaultdict(list)
         for service in service_list:
             app_components[service.group_id].append(service)
 
-        for app_id in app_ids:
+        for app_id, services in app_components.items():
+            app = app_map.get(app_id)
+            if not app or app.app_type == AppType.helm.name:
+                continue
+
             services = app_components.get(app_id)
             if not services:
-                continue
-            if not any(is_kubeblocks(getattr(service, "extend_method", None)) for service in services):
                 continue
 
             component_statuses = []
@@ -936,13 +937,17 @@ class GroupService(object):
         overrides = status.get("overrides", [])
         if overrides:
             status["overrides"] = [{override.split("=")[0]: override.split("=")[1]} for override in overrides]
-        status = GroupService._add_kubeblocks_component_status_to_app(tenant, region_name, app_id, status)
+        status = GroupService._add_component_status_to_app(tenant, region_name, app_id, status)
         return status
 
     @staticmethod
-    def _add_kubeblocks_component_status_to_app(tenant, region_name, app_id, original_status):
-        """为包含 KubeBlocks 组件的单个应用补充完整状态"""
+    def _add_component_status_to_app(tenant, region_name, app_id, original_status):
+        """为普通 rainbond 应用补充组件聚合状态"""
         try:
+            app = group_repo.get_group_by_id(app_id)
+            if not app or app.app_type == AppType.helm.name:
+                return original_status
+
             service_relations = group_service_relation_repo.get_services_by_group(app_id)
             if not service_relations:
                 return original_status
@@ -950,10 +955,6 @@ class GroupService(object):
             service_ids = [rel.service_id for rel in service_relations]
             service_list = service_repo.get_services_by_service_ids(service_ids)
             if not service_list:
-                return original_status
-
-            kb_components = [s for s in service_list if is_kubeblocks(getattr(s, "extend_method", None))]
-            if not kb_components:
                 return original_status
 
             status_list = base_service.status_multi_service(
@@ -973,7 +974,7 @@ class GroupService(object):
             return original_status
 
         except Exception as e:
-            logger.exception(f"补充 KubeBlocks component 状态失败: app_id={app_id}, error={str(e)}")
+            logger.exception(f"补充应用组件聚合状态失败: app_id={app_id}, error={str(e)}")
             return original_status
 
     @staticmethod
