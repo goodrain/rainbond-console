@@ -344,13 +344,15 @@ class ServiceShareInfoView(RegionTenantHeaderView):
             scope = share_record.scope
         if share_record.app_id and share_record.share_version:
             snapshot_version = rainbond_app_repo.get_app_version(share_record.app_id, share_record.share_version)
-            if app_version_service.is_snapshot_version(snapshot_version):
+            if share_service.is_snapshot_publish_version(snapshot_version):
                 app_template = json.loads(snapshot_version.app_template)
+                data["publish_mode"] = "snapshot"
                 data["share_service_list"] = app_template.get("apps", [])
                 data["share_plugin_list"] = app_template.get("plugins", [])
                 data["share_k8s_resources"] = app_template.get("k8s_resources", [])
                 result = general_message(200, "query success", "获取成功", bean=data)
                 return Response(result, status=200)
+        data["publish_mode"] = "runtime"
         service_info_list = share_service.query_share_service_info(team=self.team, group_id=share_record.group_id, scope=scope)
         data["share_service_list"] = service_info_list
         plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id)
@@ -394,17 +396,18 @@ class ServiceShareInfoView(RegionTenantHeaderView):
         app_version_info = request.data.get("app_version_info", None)
         share_app_info = request.data.get("share_service_list", None)
         k8s_resource_info = request.data.get("share_k8s_resources", None)
+        is_snapshot_publish = share_service.is_snapshot_publish_record(share_record)
         if not app_version_info:
             result = general_message(400, "share info can not be empty", "分享应用信息不能为空")
             return Response(result, status=400)
-        if not share_app_info and not k8s_resource_info:
+        if not share_app_info and not k8s_resource_info and not is_snapshot_publish:
             result = general_message(400, "share info can not be empty", "应用基本信息不能为空")
             return Response(result, status=400)
         if not app_version_info.get("app_model_id", None):
             result = general_message(400, "share app model id can not be empty", "分享应用信息不全")
             return Response(result, status=400)
 
-        if share_app_info:
+        if share_app_info and not is_snapshot_publish:
             for app in share_app_info:
                 extend_method = app.get("extend_method", "")
                 if is_singleton(extend_method):

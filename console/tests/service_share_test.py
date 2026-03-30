@@ -21,6 +21,7 @@ from rest_framework.test import APIRequestFactory  # noqa: E402
 django.setup()
 
 from console.services.share_services import share_service as share_service_instance  # noqa: E402
+from console.services import share_services as share_services_module  # noqa: E402
 from console.views import service_share  # noqa: E402
 from console.views.service_share import ServiceShareInfoView, ServiceShareRecordView  # noqa: E402
 
@@ -146,6 +147,134 @@ class ServiceShareInfoViewTestCase(TestCase):
             response.data["data"]["bean"]["share_k8s_resources"],
             [{"name": "demo-configmap"}],
         )
+        self.assertEqual(response.data["data"]["bean"]["publish_mode"], "snapshot")
+
+
+class ShareServiceCreateSnapshotPublishTestCase(TestCase):
+    def setUp(self):
+        self.tenant = mock.Mock(enterprise_id="eid", tenant_name="demo-team")
+        self.team = mock.Mock(tenant_name="demo-team", tenant_id=1, enterprise_id="eid")
+        self.user = mock.Mock(user_id=7)
+        self.region_name = "demo-region"
+        self.share_record = mock.Mock(
+            ID=9,
+            app_id="hidden-app-id",
+            share_version="0.0.2",
+            share_app_market_name="",
+            group_id=30,
+        )
+        self.share_record.save = mock.Mock()
+        self.runtime_app = mock.Mock(
+            governance_mode="BUILD_IN_SERVICE_MESH",
+        )
+        self.target_template = mock.Mock(
+            scope="enterprise",
+            app_name="enterprise-template",
+            arch="amd64",
+            save=mock.Mock(),
+        )
+        self.snapshot_version = mock.Mock(
+            template_type="application_version",
+            app_template=json.dumps(
+                {
+                    "template_version": "v2",
+                    "group_key": "hidden-app-id",
+                    "group_name": "demo-app",
+                    "group_version": "0.0.2",
+                    "governance_mode": "BUILD_IN_SERVICE_MESH",
+                    "k8s_resources": [{"name": "from-snapshot"}],
+                    "app_config_groups": [{"name": "cg-snapshot"}],
+                    "ingress_http_routes": [{"host": "demo.example.com"}],
+                    "plugins": [{
+                        "plugin_id": "snapshot-plugin",
+                        "plugin_alias": "snapshot-plugin",
+                        "plugin_key": "snapshot-plugin",
+                        "build_version": "1.0.0",
+                    }],
+                    "apps": [{
+                        "service_id": "svc-snapshot",
+                        "service_key": "svc-snapshot",
+                        "service_share_uuid": "svc-snapshot+svc-snapshot",
+                        "service_alias": "svc-snapshot",
+                        "service_cname": "svc-snapshot",
+                        "need_share": True,
+                        "arch": "amd64",
+                        "service_related_plugin_config": [],
+                    }],
+                }
+            )
+        )
+        self.share_info = {
+            "app_version_info": {
+                "app_model_id": "target-app-id",
+                "version": "1.2.3",
+                "version_alias": "stable",
+                "describe": "publish from snapshot",
+                "is_platform_plugin": False,
+            },
+            "share_service_list": [{
+                "service_id": "svc-current",
+                "service_key": "svc-current",
+                "service_share_uuid": "svc-current+svc-current",
+                "service_alias": "svc-current",
+                "service_cname": "svc-current",
+                "need_share": True,
+                "arch": "amd64",
+                "service_related_plugin_config": [],
+            }],
+            "share_plugin_list": [{
+                "plugin_id": "current-plugin",
+                "plugin_alias": "current-plugin",
+                "build_version": "9.9.9",
+                "origin_share_id": "current-plugin",
+            }],
+            "share_k8s_resources": [{"name": "from-current"}],
+        }
+
+    def test_create_share_info_uses_snapshot_template_payload_instead_of_request_component_payload(self):
+        app_version_instance = mock.Mock(save=mock.Mock(), arch="amd64")
+        snapshot_filter = mock.Mock()
+        snapshot_filter.first.return_value = self.target_template
+
+        with mock.patch.object(share_services_module.rainbond_app_repo, "get_app_version", return_value=self.snapshot_version), \
+                mock.patch.object(share_services_module.RainbondCenterApp.objects, "filter", return_value=snapshot_filter), \
+                mock.patch("console.services.group_service.group_service.get_app_by_id",
+                           return_value=self.runtime_app), \
+                mock.patch.object(share_services_module.ServiceShareRecordEvent.objects, "filter") as service_events_filter, \
+                mock.patch.object(share_services_module, "ServiceShareRecordEvent") as service_event_cls, \
+                mock.patch.object(share_services_module, "PluginShareRecordEvent") as plugin_event_cls, \
+                mock.patch.object(share_services_module, "RainbondCenterAppVersion",
+                                  return_value=app_version_instance) as app_version_cls, \
+                mock.patch.object(share_services_module.app_store, "get_app_hub_info", return_value={"hub": "demo"}), \
+                mock.patch.object(share_services_module.app_store, "is_no_multiple_region_hub", return_value=False):
+            service_events_filter.return_value.delete.return_value = None
+            service_event_cls.return_value.save = mock.Mock()
+            plugin_event_cls.return_value.save = mock.Mock()
+
+            code, msg, bean = share_service_instance.create_share_info(
+                tenant=self.tenant,
+                region_name=self.region_name,
+                share_record=self.share_record,
+                share_team=self.team,
+                share_user=self.user,
+                share_info=self.share_info,
+                use_force=True,
+                user_id=None,
+            )
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "分享信息处理成功")
+        self.assertIsNotNone(bean)
+
+        saved_template = json.loads(app_version_cls.call_args[1]["app_template"])
+        self.assertEqual(saved_template["group_key"], "target-app-id")
+        self.assertEqual(saved_template["group_name"], "enterprise-template")
+        self.assertEqual(saved_template["group_version"], "1.2.3")
+        self.assertEqual(saved_template["apps"][0]["service_id"], "svc-snapshot")
+        self.assertEqual(saved_template["plugins"][0]["plugin_id"], "snapshot-plugin")
+        self.assertEqual(saved_template["k8s_resources"][0]["name"], "from-snapshot")
+        self.assertEqual(saved_template["app_config_groups"][0]["name"], "cg-snapshot")
+        self.assertEqual(saved_template["ingress_http_routes"][0]["host"], "demo.example.com")
 
 
 class ShareServicePreferredAppTestCase(TestCase):
