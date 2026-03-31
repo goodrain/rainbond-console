@@ -75,7 +75,7 @@ class GroupAppsBackupView(RegionTenantHeaderView):
                         code=4121, msg="state service is running", msg_show="有状态组件未关闭", list=running_state_services),
                     status=412)
             # if service use custom service, can't backup
-            use_custom_svc = groupapp_backup_service.check_backup_app_used_custom_volume(group_id)
+            use_custom_svc = groupapp_backup_service.check_backup_app_used_custom_volume(group_id, self.tenant, self.region_name)
             if use_custom_svc:
                 logger.info("use custom volume: {}".format(use_custom_svc))
                 return Response(
@@ -140,17 +140,18 @@ class GroupAppsBackupView(RegionTenantHeaderView):
         根据应用备份ID删除备份
         """
         backup_id = request.data.get("backup_id", None)
+        if not backup_id:
+            return Response(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status=400)
 
         code, msg, backup_record = groupapp_backup_service.get_groupapp_backup_status_by_backup_id(
             self.tenant, self.response_region, backup_id)
+        if code != 200:
+            return Response(general_message(code, "get backup status error", msg), status=code)
         old_information = json.dumps({
             "备份类型": "本地备份" if backup_record.mode == "full-offline" else "云端备份",
             "备份说明": backup_record.note
         },
             ensure_ascii=False)
-
-        if not backup_id:
-            return Response(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status=400)
         groupapp_backup_service.delete_group_backup_by_backup_id(self.tenant, self.response_region, backup_id)
         operation_log_service.create_app_log(self, "删除了应用{app}的备份", old_information=old_information)
 
@@ -184,10 +185,14 @@ class GroupAppsBackupStatusView(RegionTenantHeaderView):
                 self.tenant, self.response_region, group_id)
             if code == 404:
                 return Response(general_message(200, "success", "查询成功"), status=200)
+            if code != 200:
+                return Response(general_message(code, "get backup status error", msg), status=code)
 
             rt_list = []
             for backup_record in backup_records:
-                rt_list.append(backup_record.to_dict().pop("backup_server_info"))
+                backup_info = backup_record.to_dict()
+                backup_info.pop("backup_server_info", None)
+                rt_list.append(backup_info)
 
             result = general_message(200, "success", "查询成功", list=rt_list)
 

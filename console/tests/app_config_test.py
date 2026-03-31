@@ -37,6 +37,7 @@ class TenantServiceVolumnRepositoryTests(TestCase):
             sys.modules.pop(module_name, None)
 
     def import_repository_module(self):
+        sys.modules.pop("console.repositories.app_config", None)
         install_stub("console.exception.main", AbortRequest=Exception)
         install_stub("console.utils.shortcuts", get_object_or_404=lambda *args, **kwargs: None)
         install_stub("www.db.base", BaseConnection=object)
@@ -62,6 +63,7 @@ class TenantServiceVolumnRepositoryTests(TestCase):
         )
         return importlib.import_module("console.repositories.app_config")
 
+    # capability_id: console.component.storage-custom-volume-filter
     def test_list_custom_volumes_treats_local_path_as_builtin_volume_type(self):
         repository_module = self.import_repository_module()
         filtered_queryset = MagicMock()

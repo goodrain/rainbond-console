@@ -1,10 +1,11 @@
 # -*- coding: utf8 -*-
 
-from django.conf.urls import url
+from django.conf.urls import include, url
 
 import console.utils.perms_route_config as perms
 from console.captcha.captcha_code import CaptchaView
 from console.views import app_upgrade
+from console.views import app_version
 from console.views.adaptor import Appstore, Appstores, AppstoreCharts, AppstoreChart, HelmRegionInstall
 from console.views.api_gateway import AppApiGatewayView, AppApiGatewayConvertView
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
@@ -78,7 +79,8 @@ from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetN
                                       EnterpriseRegionGatewayBatch, EnterpriseTeamNames, EnterpriseRegionLangVersion,
                                       EnterpriseRegionCNBVersions, EnterpriseRegionCNBFrameworks)
 from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
-                                      RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod)
+                                      RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod,
+                                      UploadLongVersion)
 from console.views.enterprise import (
     EnterpriseAppComponentsLView, EnterpriseAppOverView, EnterpriseAppsLView, EnterpriseMonitor, EnterpriseMyTeams,
     EnterpriseOverview, EnterpriseRegionDashboard, EnterpriseRegionsLCView, EnterpriseRegionsRUDView,
@@ -127,6 +129,7 @@ from console.views.plugin.service_plugin import (ServicePluginConfigView, Servic
 from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
 from console.views.proxy import ProxyPassView, ProxySSEView
+from console.views.mcp_query import MCPQueryHTTPView, MCPQueryMessageView, MCPQuerySSEView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
                                         TeamAppSortViewView, TeamOverView, TeamServiceOverViewView, TenantServiceEnvsView,
                                         GroupOperatorManagedView, AccessTokenView, TeamArchView, TeamAppNamesView)
@@ -155,7 +158,7 @@ from console.views.team import UserFuzSerView, TeamUserDetaislView, TeamCheckRes
     NotJoinTeamUserView, UserDelView, TeamNameModView, TeamSortDomainQueryView, TeamDelView, TeamExitView, \
     TeamRegionInitView, ApplicantsView, RegisterStatusView, MonitorAlarmStatusView, EnterpriseInfoView, \
     InitDefaultInfoView, AdminAddUserView, CertificateView, TeamUserCanJoin, TeamsPermissionCreateApp, JoinTeamView, \
-    UserApplyStatusView
+    UserApplyStatusView, ClusterNamespacesView
 from console.views.upgrade import UpgradeView, UpgradeVersionLView, UpgradeVersionRView, UpgradeVersionImagesView
 from console.views.user import CheckSourceView, UserLogoutView, UserPemTraView, AdministratorJoinTeamView, \
     EnterPriseUsersCLView, EnterPriseUsersUDView, AdminUserView, AdminUserLCView, \
@@ -166,6 +169,7 @@ from console.views.user_operation import TenantServiceView, SendResetEmail, Pass
 from console.views.webhook import WebHooksDeploy, ImageWebHooksDeploy, CustomWebHooksDeploy, GetWebHooksUrl, \
     ImageWebHooksTrigger, WebHooksStatus, UpdateSecretKey
 from console.views.yaml_resource import YamlResourceName, YamlResourceDetailed
+from console.views.platform_settings import PlatformSettingsView, PlatformSettingsUpdateView
 from console.views.team_overview import UserTeamDetailsView
 from console.views.sms_config import SMSConfigView
 from console.views.sms_verification import SMSVerificationView
@@ -188,6 +192,12 @@ urlpatterns = [
     url(r'^api-gateway/convert', AppApiGatewayConvertView.as_view()),
     url(r'^v2/proxy-pass/(.*?)', ProxyPassView.as_view()),
     url(r'^sse/(.*?)', ProxySSEView.as_view()),
+    url(r'^mcp/query$', MCPQueryHTTPView.as_view()),
+    url(r'^mcp/query/$', MCPQueryHTTPView.as_view()),
+    url(r'^mcp/query/sse$', MCPQuerySSEView.as_view()),
+    url(r'^mcp/query/sse/$', MCPQuerySSEView.as_view()),
+    url(r'^mcp/query/message$', MCPQueryMessageView.as_view()),
+    url(r'^mcp/query/message/$', MCPQueryMessageView.as_view()),
 
     # record error logs
     url(r'^errlog$', ErrLogView.as_view()),
@@ -295,6 +305,8 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/pemtransfer$', UserPemTraView.as_view(), perms.TEAM_MEMBER_PERMS),
     # 新建团队
     url(r'^teams/add-teams$', AddTeamView.as_view()),
+    # 获取集群中未被 Rainbond 管理的 namespace 列表
+    url(r'^teams/cluster/namespaces$', ClusterNamespacesView.as_view()),
     # 获取团队下所有用户
     url(r'^teams/(?P<team_name>[\w\-]+)/users$', TeamUserView.as_view(), perms.TEAM_MEMBER_PERMS),
     # 获取企业下未加入当前团队的用户列表
@@ -953,6 +965,7 @@ urlpatterns = [
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/menu$', EnterpriseMenuManage.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions$', EnterpriseRegionsLCView.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)$', EnterpriseRegionsRUDView.as_view()),
+    url(r'^enterprise/lg_pack_operate$', UploadLongVersion.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/lang_version',
         EnterpriseRegionLangVersion.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/cnb/versions',
@@ -1156,6 +1169,21 @@ urlpatterns += [
 ]
 
 urlpatterns += [
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions/overview$',
+        app_version.AppVersionOverviewView.as_view()),
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions$',
+        app_version.AppVersionSnapshotListView.as_view()),
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions/(?P<version_id>[0-9]+)$',
+        app_version.AppVersionSnapshotDetailView.as_view()),
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-versions/(?P<version_id>[0-9]+)/rollback$',
+        app_version.AppVersionSnapshotRollbackView.as_view()),
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-version-rollback-records$',
+        app_version.AppVersionRollbackRecordListView.as_view()),
+    url(r'teams/(?P<tenantName>[\w\-]+)/groups/(?P<group_id>[0-9]+)/app-version-rollback-records/(?P<record_id>[0-9]+)$',
+        app_version.AppVersionRollbackRecordDetailView.as_view()),
+]
+
+urlpatterns += [
     url(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/appstores$", Appstores.as_view()),
     url(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/appstores/(?P<name>[\w\-]+)$",
         Appstore.as_view()),
@@ -1165,4 +1193,15 @@ urlpatterns += [
         AppstoreChart.as_view()),
     url(r"proxy/enterprise-server/api/v1/enterprises/(?P<enterprise_id>[\w\-]+)/tasks/helm_region_install$",
         HelmRegionInstall.as_view()),
+]
+
+urlpatterns += [
+    # Platform Settings
+    url(r'^enterprise/(?P<eid>[^/]+)/platform-settings$', PlatformSettingsView.as_view()),
+    url(r'^enterprise/(?P<eid>[^/]+)/platform-settings/update$', PlatformSettingsUpdateView.as_view()),
+]
+
+urlpatterns += [
+    url(r'^', include('console.urls.platform_resources')),
+    url(r'^', include('console.urls.team_resources')),
 ]

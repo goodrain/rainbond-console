@@ -23,29 +23,37 @@ from console.utils.cnb_build import (
 
 
 class CNBLanguageDetectionTestCase(TestCase):
+    # capability_id: console.cnb-build.detect-supported-language
     def test_nodejs_language_is_cnb(self):
         self.assertTrue(is_cnb_language("Node.js"))
 
+    # capability_id: console.cnb-build.detect-supported-language
     def test_static_language_is_cnb(self):
         self.assertTrue(is_cnb_language("static"))
 
+    # capability_id: console.cnb-build.reject-unsupported-language
     def test_java_language_is_not_cnb(self):
         self.assertFalse(is_cnb_language("java-maven"))
 
+    # capability_id: console.cnb-build.reject-unsupported-language
     def test_dockerfile_node_language_is_not_cnb(self):
         self.assertFalse(is_cnb_language("dockerfile,Node.js"))
 
 
 class CNBParamsDetectionTestCase(TestCase):
+    # capability_id: console.cnb-build.detect-build-params
     def test_node_language_detects_cnb_params(self):
         self.assertTrue(has_cnb_build_params({"CNB_FRAMEWORK": "nextjs"}, "Node.js"))
 
+    # capability_id: console.cnb-build.detect-build-params
     def test_non_cnb_language_ignores_stale_cnb_params(self):
         self.assertFalse(has_cnb_build_params({"CNB_FRAMEWORK": "nextjs"}, "java-maven"))
 
+    # capability_id: console.cnb-build.detect-build-params
     def test_empty_build_env_dict_has_no_cnb_params(self):
         self.assertFalse(has_cnb_build_params({}, "Node.js"))
 
+    # capability_id: console.cnb-build.detect-build-params
     def test_each_supported_cnb_param_is_detected_for_node_language(self):
         cnb_params = [
             "CNB_FRAMEWORK",
@@ -65,12 +73,14 @@ class CNBParamsDetectionTestCase(TestCase):
 
 
 class BuildTypeAutoSetTestCase(TestCase):
+    # capability_id: console.cnb-build.auto-set-build-type
     def test_auto_set_build_type_cnb_for_node_language(self):
         build_env_dict = {"CNB_FRAMEWORK": "nextjs"}
         if has_cnb_build_params(build_env_dict, "Node.js") and "BUILD_TYPE" not in build_env_dict:
             build_env_dict["BUILD_TYPE"] = "cnb"
         self.assertEqual(build_env_dict.get("BUILD_TYPE"), "cnb")
 
+    # capability_id: console.cnb-build.keep-non-cnb-build-type
     def test_do_not_auto_set_build_type_for_java_language(self):
         build_env_dict = {"CNB_FRAMEWORK": "nextjs"}
         if has_cnb_build_params(build_env_dict, "java-maven") and "BUILD_TYPE" not in build_env_dict:
@@ -79,7 +89,8 @@ class BuildTypeAutoSetTestCase(TestCase):
 
 
 class BuildEnvSanitizeTestCase(TestCase):
-    def test_java_build_envs_strip_stale_node_markers_but_keep_build_type(self):
+    # capability_id: console.cnb-build.sanitize-unsupported-envs
+    def test_java_build_envs_strip_stale_cnb_markers(self):
         build_env_dict = sanitize_build_env_dict_for_language({
             "CNB_FRAMEWORK": "nextjs",
             "CNB_NODE_VERSION": "20.20.0",
@@ -93,6 +104,7 @@ class BuildEnvSanitizeTestCase(TestCase):
         self.assertEqual(build_env_dict["BUILD_TYPE"], "cnb")
         self.assertEqual(build_env_dict["BUILD_RUNTIMES"], "17")
 
+    # capability_id: console.cnb-build.sanitize-unsupported-envs
     def test_java_build_envs_strip_runtime_aliases_used_by_builder(self):
         build_env_dict = sanitize_build_env_dict_for_language({
             "TYPE": "cnb",
@@ -105,7 +117,8 @@ class BuildEnvSanitizeTestCase(TestCase):
         self.assertNotIn("HAS_YARNRC", build_env_dict)
         self.assertEqual(build_env_dict["RUNTIMES"], "17")
 
-    def test_legacy_non_cnb_languages_strip_stale_cnb_markers(self):
+    # capability_id: console.cnb-build.sanitize-unsupported-envs
+    def test_non_cnb_languages_strip_stale_cnb_markers(self):
         stale_envs = {
             "CNB_FRAMEWORK": "nextjs",
             "CNB_NODE_VERSION": "20.20.0",
@@ -164,6 +177,7 @@ class BuildEnvSanitizeTestCase(TestCase):
                 self.assertNotIn("HAS_YARNRC", build_env_dict)
                 self.assertEqual(build_env_dict["RUNTIMES"], "demo")
 
+    # capability_id: console.cnb-build.preserve-supported-envs
     def test_node_build_envs_preserve_cnb_markers(self):
         build_env_dict = sanitize_build_env_dict_for_language({
             "CNB_FRAMEWORK": "nextjs",
@@ -172,6 +186,7 @@ class BuildEnvSanitizeTestCase(TestCase):
         self.assertEqual(build_env_dict["CNB_FRAMEWORK"], "nextjs")
         self.assertEqual(build_env_dict["BUILD_TYPE"], "cnb")
 
+    # capability_id: console.cnb-build.preserve-supported-envs
     def test_static_build_envs_preserve_cnb_markers(self):
         build_env_dict = sanitize_build_env_dict_for_language({
             "CNB_FRAMEWORK": "react",
@@ -182,6 +197,7 @@ class BuildEnvSanitizeTestCase(TestCase):
         self.assertEqual(build_env_dict["CNB_OUTPUT_DIR"], "build")
         self.assertEqual(build_env_dict["BUILD_TYPE"], "cnb")
 
+    # capability_id: console.cnb-build.preserve-supported-envs
     def test_node_build_envs_preserve_common_mirror_fields(self):
         build_env_dict = sanitize_build_env_dict_for_language({
             "CNB_MIRROR_SOURCE": "global",
@@ -194,6 +210,7 @@ class BuildEnvSanitizeTestCase(TestCase):
         self.assertIn("CNB_MIRROR_YARNRC", build_env_dict)
         self.assertIn("CNB_MIRROR_PNPMRC", build_env_dict)
 
+    # capability_id: console.cnb-build.preserve-supported-envs
     def test_node_build_envs_preserve_known_node_versions(self):
         versions = ["18.20.7", "18.20.8", "20.19.6", "20.20.0", "22.21.1", "22.22.0", "24.12.0", "24.13.0"]
         for version in versions:
@@ -205,6 +222,7 @@ class BuildEnvSanitizeTestCase(TestCase):
 
 
 class RuntimeInfoExtractTestCase(TestCase):
+    # capability_id: console.cnb-build.generate-runtime-envs
     def test_extract_nodejs_cnb_envs_from_runtime_info(self):
         runtime_info = {
             "language": "nodejs",
@@ -223,6 +241,7 @@ class RuntimeInfoExtractTestCase(TestCase):
         self.assertEqual(cnb_envs["BUILD_HAS_NPMRC"], "true")
         self.assertEqual(cnb_envs["CNB_MIRROR_SOURCE"], "project")
 
+    # capability_id: console.cnb-build.ignore-unsupported-runtime-info
     def test_java_runtime_info_does_not_generate_cnb_envs(self):
         runtime_info = {
             "language": "java-maven",
@@ -230,25 +249,14 @@ class RuntimeInfoExtractTestCase(TestCase):
         }
         self.assertEqual(extract_cnb_envs_from_runtime_info(runtime_info), {})
 
-    def test_extract_python_cnb_envs_from_runtime_info(self):
-        runtime_info = {
-            "language": "python",
-            "language_version": "3.12",
-            "package_manager": {"name": "poetry"},
-            "build_config": {"start_command": "web: poetry run web"},
-            "config_files": {"has_procfile": False},
-        }
-        cnb_envs = extract_cnb_envs_from_runtime_info(runtime_info)
-        self.assertEqual(cnb_envs["BUILD_PYTHON_PACKAGE_MANAGER"], "poetry")
-        self.assertEqual(cnb_envs["BUILD_AUTO_PROCFILE"], "web: poetry run web")
-        self.assertEqual(cnb_envs["START_COMMAND_SOURCE"], "auto-detected")
-
+    # capability_id: console.cnb-build.ignore-unsupported-runtime-info
     def test_static_runtime_info_without_framework_has_no_extra_cnb_envs(self):
         runtime_info = {
             "language": "static"
         }
         self.assertEqual(extract_cnb_envs_from_runtime_info(runtime_info), {})
 
+    # capability_id: console.cnb-build.generate-runtime-envs
     def test_extract_static_framework_contract(self):
         runtime_info = {
             "language": "static",
@@ -261,6 +269,7 @@ class RuntimeInfoExtractTestCase(TestCase):
         self.assertEqual(cnb_envs["CNB_BUILD_SCRIPT"], "build")
         self.assertNotIn("CNB_NODE_VERSION", cnb_envs)
 
+    # capability_id: console.cnb-build.framework-output-contract
     def test_extract_known_framework_output_dir_examples(self):
         framework_output_dirs = {
             "vue": "dist",

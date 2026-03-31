@@ -149,6 +149,22 @@ class RainbondCenterAppVersion(BaseModel):
     arch = models.CharField(max_length=32, default="amd64", help_text='应用架构')
 
 
+class AppVersionTemplateRelation(BaseModel):
+    """应用版本隐藏模板绑定关系"""
+
+    class Meta:
+        db_table = "app_version_template_relation"
+        unique_together = ('group_id',)
+
+    tenant_id = models.CharField(max_length=32, help_text="租户id")
+    group_id = models.IntegerField(help_text="应用组id")
+    app_model_id = models.CharField(max_length=32, help_text="隐藏模板id")
+    app_model_name = models.CharField(max_length=64, help_text="隐藏模板名称")
+    template_type = models.CharField(max_length=32, default="application_version", help_text="模板类型")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now=True, blank=True, null=True, help_text="更新时间")
+
+
 class AppHelmOverrides(BaseModel):
     class Meta:
         db_table = "app_helm_overrides"
@@ -156,6 +172,26 @@ class AppHelmOverrides(BaseModel):
     app_id = models.IntegerField()
     app_model_id = models.CharField(max_length=32, help_text="应用包id")
     overrides = models.TextField(help_text="helm应用安装参数", default="")
+
+
+class TeamHelmReleaseSource(BaseModel):
+    class Meta:
+        db_table = "team_helm_release_source"
+        unique_together = (("region_name", "namespace", "release_name"),)
+
+    team_name = models.CharField(max_length=64, help_text="团队名称")
+    region_name = models.CharField(max_length=64, help_text="集群名称")
+    namespace = models.CharField(max_length=128, help_text="命名空间")
+    release_name = models.CharField(max_length=128, help_text="helm release 名称")
+    source_type = models.CharField(max_length=32, help_text="安装来源类型")
+    repo_name = models.CharField(max_length=128, null=True, blank=True, default="", help_text="仓库名称")
+    repo_url = models.CharField(max_length=255, null=True, blank=True, default="", help_text="仓库地址")
+    chart_name = models.CharField(max_length=128, null=True, blank=True, default="", help_text="chart 名称")
+    chart_version = models.CharField(max_length=64, null=True, blank=True, default="", help_text="chart 版本")
+    values_yaml = models.TextField(null=True, blank=True, default="", help_text="用户提交的 values.yaml")
+    creator = models.CharField(max_length=64, null=True, blank=True, default="", help_text="操作人")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text="更新时间")
 
 
 class RainbondCenterAppInherit(BaseModel):

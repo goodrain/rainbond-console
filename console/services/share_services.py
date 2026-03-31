@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import copy
 import datetime
 import hashlib
 import json
@@ -41,6 +42,23 @@ region_api = RegionInvokeApi()
 
 
 class ShareService(object):
+    SNAPSHOT_TEMPLATE_TYPE = "application_version"
+
+    @classmethod
+    def is_snapshot_publish_version(cls, version_obj):
+        return bool(version_obj and getattr(version_obj, "template_type", None) == cls.SNAPSHOT_TEMPLATE_TYPE)
+
+    def get_snapshot_publish_version(self, share_record):
+        if not share_record or not share_record.app_id or not share_record.share_version:
+            return None
+        version = rainbond_app_repo.get_app_version(share_record.app_id, share_record.share_version)
+        if not self.is_snapshot_publish_version(version):
+            return None
+        return version
+
+    def is_snapshot_publish_record(self, share_record):
+        return bool(self.get_snapshot_publish_version(share_record))
+
     def check_service_source(self, team, team_name, group_id, region_name):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         # 过滤掉 kubeblocks 类型的组件
@@ -487,6 +505,44 @@ class ShareService(object):
         event.save()
         return event
 
+    @staticmethod
+    def _build_platform_plugin_config(share_version_info):
+        if not share_version_info.get("is_platform_plugin", False):
+            return None
+        return {
+            "is_platform_plugin": True,
+            "plugin_id": share_version_info.get("plugin_id", ""),
+            "plugin_name": share_version_info.get("plugin_name", ""),
+            "plugin_type": share_version_info.get("plugin_type", ""),
+            "frontend_component": share_version_info.get("frontend_component", ""),
+            "entry_path": share_version_info.get("entry_path", ""),
+            "inject_position": share_version_info.get("inject_position", []),
+            "menu_title": share_version_info.get("menu_title", ""),
+            "route_path": share_version_info.get("route_path", ""),
+        }
+
+    def _build_publish_template_from_snapshot(self, snapshot_template, app_model_id, app_model_name, version, governance_mode,
+                                              share_version_info):
+        app_template = copy.deepcopy(snapshot_template)
+        app_template["template_version"] = "v2"
+        app_template["group_key"] = app_model_id
+        app_template["group_name"] = app_model_name
+        app_template["group_version"] = version
+        app_template["group_dev_status"] = ""
+        app_template["governance_mode"] = governance_mode
+        app_template["k8s_resources"] = copy.deepcopy(snapshot_template.get("k8s_resources", []))
+        app_template["app_config_groups"] = copy.deepcopy(snapshot_template.get("app_config_groups", []))
+        app_template["ingress_http_routes"] = copy.deepcopy(snapshot_template.get("ingress_http_routes", []))
+        app_template["plugins"] = copy.deepcopy(snapshot_template.get("plugins", []))
+        app_template["apps"] = copy.deepcopy(snapshot_template.get("apps", []))
+
+        platform_plugin = self._build_platform_plugin_config(share_version_info)
+        if platform_plugin:
+            app_template["platform_plugin"] = platform_plugin
+        else:
+            app_template.pop("platform_plugin", None)
+        return app_template
+
     @transaction.atomic
     def sync_event(self, user, region_name, tenant_name, record_event):
         app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(record_event.record_id)
@@ -510,6 +566,7 @@ class ShareService(object):
                     body = {
                         "service_key": app["service_key"],
                         "app_version": app_version.version,
+                        "deploy_version": app.get("deploy_version", ""),
                         "event_id": event.event_id,
                         "share_user": user.nick_name,
                         "share_scope": app_version.scope,
@@ -741,31 +798,29 @@ class ShareService(object):
 
             app = group_service.get_app_by_id(share_team, region_name, share_record.group_id)
             governance_mode = app.governance_mode if app.governance_mode else GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name
+            snapshot_publish_version = self.get_snapshot_publish_version(share_record)
+            snapshot_template = None
+            if snapshot_publish_version:
+                snapshot_template = json.loads(snapshot_publish_version.app_template)
 
             app_template = {}
             # 处理基本信息
             try:
-                app_template["template_version"] = "v2"
-                app_template["group_key"] = app_model_id
-                app_template["group_name"] = app_model_name
-                app_template["group_version"] = version
-                app_template["group_dev_status"] = ""
-                app_template["governance_mode"] = governance_mode
-                app_template["k8s_resources"] = share_k8s_resources
-                # 平台插件信息
-                is_platform_plugin = share_version_info.get("is_platform_plugin", False)
-                if is_platform_plugin:
-                    app_template["platform_plugin"] = {
-                        "is_platform_plugin": True,
-                        "plugin_id": share_version_info.get("plugin_id", ""),
-                        "plugin_name": share_version_info.get("plugin_name", ""),
-                        "plugin_type": share_version_info.get("plugin_type", ""),
-                        "frontend_component": share_version_info.get("frontend_component", ""),
-                        "entry_path": share_version_info.get("entry_path", ""),
-                        "inject_position": share_version_info.get("inject_position", []),
-                        "menu_title": share_version_info.get("menu_title", ""),
-                        "route_path": share_version_info.get("route_path", ""),
-                    }
+                if snapshot_template:
+                    app_template = self._build_publish_template_from_snapshot(
+                        snapshot_template, app_model_id, app_model_name, version, governance_mode, share_version_info
+                    )
+                else:
+                    app_template["template_version"] = "v2"
+                    app_template["group_key"] = app_model_id
+                    app_template["group_name"] = app_model_name
+                    app_template["group_version"] = version
+                    app_template["group_dev_status"] = ""
+                    app_template["governance_mode"] = governance_mode
+                    app_template["k8s_resources"] = share_k8s_resources
+                    platform_plugin = self._build_platform_plugin_config(share_version_info)
+                    if platform_plugin:
+                        app_template["platform_plugin"] = platform_plugin
             except Exception as e:
                 if sid:
                     transaction.savepoint_rollback(sid)
@@ -773,17 +828,19 @@ class ShareService(object):
                 raise ServiceHandleException(msg="Basic information processing error", msg_show="基本信息处理错误")
 
             # group config
-            service_ids_keys_map = {svc["service_id"]: svc['service_key'] for svc in share_info["share_service_list"]}
-            app_template["app_config_groups"] = self.config_groups(region_name, service_ids_keys_map)
+            if not snapshot_template:
+                service_ids_keys_map = {svc["service_id"]: svc['service_key'] for svc in share_info["share_service_list"]}
+                app_template["app_config_groups"] = self.config_groups(region_name, service_ids_keys_map)
 
-            # ingress
-            ingress_http_routes = self._list_http_ingresses(tenant, service_ids_keys_map)
-            app_template["ingress_http_routes"] = ingress_http_routes
+                # ingress
+                ingress_http_routes = self._list_http_ingresses(tenant, service_ids_keys_map)
+                app_template["ingress_http_routes"] = ingress_http_routes
 
             # plugins
             try:
-                # 确定分享的插件ID
-                plugins = share_info.get("share_plugin_list", None)
+                plugins = copy.deepcopy(
+                    app_template.get("plugins", []) if snapshot_template else share_info.get("share_plugin_list", None)
+                )
                 shared_plugin_info = None
                 if plugins:
                     for plugin_info in plugins:
@@ -799,7 +856,7 @@ class ShareService(object):
                             event_status='not_start')
                         event.save()
 
-                    shared_plugin_info = self.get_plugins_group_items(plugins)
+                    shared_plugin_info = plugins if snapshot_template else self.get_plugins_group_items(plugins)
                     app_template["plugins"] = shared_plugin_info
             except ServiceHandleException as e:
                 raise e
@@ -812,13 +869,16 @@ class ShareService(object):
             # 处理组件相关
             app_arch = dict()
             try:
-                services = share_info["share_service_list"]
+                services = copy.deepcopy(app_template.get("apps", []) if snapshot_template else share_info["share_service_list"])
                 if services:
                     new_services = list()
                     service_ids = [s["service_id"] for s in services]
-                    version_list = base_service.get_apps_deploy_versions(services[0]["service_region"], share_team.tenant_name,
-                                                                         service_ids)
-                    delivered_type_map = {v["service_id"]: v["delivered_type"] for v in version_list}
+                    delivered_type_map = {}
+                    if service_ids and services[0].get("service_region"):
+                        version_list = base_service.get_apps_deploy_versions(
+                            services[0]["service_region"], share_team.tenant_name, service_ids
+                        ) or []
+                        delivered_type_map = {v["service_id"]: v["delivered_type"] for v in version_list}
 
                     # For platform plugin publish, generate stable service_share_uuid
                     # so that the same plugin produces identical UUIDs across publishes.
@@ -862,8 +922,9 @@ class ShareService(object):
 
                     for service in services:
                         app_arch[service.get("arch", "amd64")] = 1
+                        service["service_related_plugin_config"] = service.get("service_related_plugin_config", [])
                         delivered_type = delivered_type_map.get(service['service_id'], None)
-                        if not delivered_type:
+                        if not delivered_type and not snapshot_template:
                             continue
                         if delivered_type == "slug":
                             service['service_slug'] = app_store.get_slug_hub_info(market, app_model_id,
@@ -885,8 +946,9 @@ class ShareService(object):
                         # 处理依赖关系
                         self._handle_dependencies(service, dep_service_keys, use_force)
 
-                        service["service_related_plugin_config"] = self.wrapper_service_plugin_config(
-                            service["service_related_plugin_config"], shared_plugin_info)
+                        if not snapshot_template:
+                            service["service_related_plugin_config"] = self.wrapper_service_plugin_config(
+                                service["service_related_plugin_config"], shared_plugin_info)
 
                         if service.get("need_share", None):
                             ssre = ServiceShareRecordEvent(
@@ -909,7 +971,8 @@ class ShareService(object):
                 logger.exception(e)
                 return 500, "组件信息处理发生错误", None
             share_record.scope = scope
-            app_arch = app_arch if app_arch else {"amd64": 1}
+            app_arch = app_arch if app_arch else {app_template.get("arch", "amd64"): 1}
+            app_template["arch"] = "&".join(app_arch.keys())
             app_version = RainbondCenterAppVersion(
                 app_id=app_model_id,
                 version=version,
@@ -926,7 +989,7 @@ class ShareService(object):
                 template_version="v2",
                 enterprise_id=share_team.enterprise_id,
                 upgrade_time=time.time(),
-                arch="&".join(app_arch.keys()),
+                arch=app_template["arch"],
             )
             if app_store.is_no_multiple_region_hub(enterprise_id=share_team.enterprise_id):
                 app_version.region_name = region_name
@@ -1318,11 +1381,17 @@ class ShareService(object):
         }
         return data
 
-    def get_team_local_apps_versions(self, enterprise_id, team_name):
+    def get_team_local_apps_versions(self, enterprise_id, team_name, preferred_app_id=None):
         app_list = []
-        apps = rainbond_app_repo.get_enterprise_team_apps(enterprise_id, team_name)
+        apps = list(rainbond_app_repo.get_enterprise_team_apps(enterprise_id, team_name))
+        if preferred_app_id:
+            preferred_app = rainbond_app_repo.get_rainbond_app_by_app_id(preferred_app_id)
+            if preferred_app and all(app.app_id != preferred_app.app_id for app in apps if app):
+                apps.insert(0, preferred_app)
         if apps:
             for app in apps:
+                if not app:
+                    continue
                 app_versions = list(share_repo.get_last_app_versions_by_app_id(app.app_id))
                 app_list.append({
                     "app_name":
@@ -1345,7 +1414,8 @@ class ShareService(object):
                 })
         return app_list
 
-    def get_last_shared_app_and_app_list(self, enterprise_id, tenant, group_id, scope, market_name, user_id):
+    def get_last_shared_app_and_app_list(self, enterprise_id, tenant, group_id, scope, market_name, user_id,
+                                         preferred_app_id=None, preferred_version=None):
         last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, tenant.tenant_name, scope)
         dt = {}
         dt["app_model_list"] = []
@@ -1408,9 +1478,24 @@ class ShareService(object):
                         "scope": last_shared_app_info.scope,
                         "tags": last_shared_app_info.tags
                     }
-            app_list = self.get_team_local_apps_versions(enterprise_id, tenant.tenant_name)
+            app_list = self.get_team_local_apps_versions(enterprise_id, tenant.tenant_name, preferred_app_id)
             self._patch_rainbond_apps_tag(enterprise_id, app_list)
             dt["app_model_list"] = app_list
+            if preferred_app_id:
+                preferred_app = next((item for item in app_list if item.get("app_id") == preferred_app_id), None)
+                if preferred_app:
+                    preferred_versions = preferred_app.get("versions") or []
+                    default_version = ((preferred_versions[0] if preferred_versions else {}) or {}).get("version")
+                    dt["last_shared_app"] = {
+                        "app_name": preferred_app.get("app_name"),
+                        "app_id": preferred_app.get("app_id"),
+                        "version": preferred_version or default_version,
+                        "pic": preferred_app.get("pic"),
+                        "app_describe": preferred_app.get("app_describe"),
+                        "dev_status": preferred_app.get("dev_status"),
+                        "scope": preferred_app.get("scope"),
+                        "tags": preferred_app.get("tags", [])
+                    }
         return dt
 
     # patch rainbond app tag

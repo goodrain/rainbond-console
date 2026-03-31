@@ -228,7 +228,7 @@ class CenterAppTarballDirView(JWTAuthApiView):
         if not event_id:
             return Response(general_message(400, "event id is null", "请指明需要查询的event id"), status=400)
 
-        import_record = import_service.delete_import_app_dir(self.tenant, self.response_region)
+        import_record = import_service.delete_import_app_dir(self.tenant, self.response_region, event_id)
 
         result = general_message(200, "success", "查询成功", bean=import_record.to_dict())
         return Response(result, status=result["code"])

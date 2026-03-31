@@ -20,6 +20,7 @@ from console.exception.main import (AbortRequest, ErrVolumePath, MarketAppLost, 
 from console.models.main import (AppMarket, AppUpgradeRecord, RainbondCenterApp, RainbondCenterAppVersion)
 from console.repositories.app import (app_market_repo, app_tag_repo, service_source_repo)
 from console.repositories.app_config import (env_var_repo, extend_repo, port_repo, volume_repo, dep_relation_repo)
+from console.repositories.app_version_repo import app_version_template_relation_repo
 from console.repositories.base import BaseConnection
 from console.repositories.group import group_repo, tenant_service_group_repo
 from console.repositories.market_app_repo import (app_import_record_repo, rainbond_app_repo)
@@ -1626,9 +1627,12 @@ class MarketAppService(object):
     def delete_rainbond_app_all_info_by_id(self, enterprise_id, app_id):
         sid = transaction.savepoint()
         try:
+            relation = app_version_template_relation_repo.get_by_app_model_id(app_id)
             rainbond_app_repo.delete_app_tag_by_id(enterprise_id, app_id)
             rainbond_app_repo.delete_app_version_by_id(app_id)
             rainbond_app_repo.delete_app_by_id(app_id)
+            if relation:
+                app_version_template_relation_repo.delete_by_app_model_id(app_id)
             transaction.savepoint_commit(sid)
         except Exception as e:
             logger.exception(e)

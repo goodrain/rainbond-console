@@ -311,6 +311,13 @@ class ServiceSourceRepository(object):
         ServiceSourceInfo.objects.filter(pk__in=[source.ID for source in service_sources]).delete()
         self.bulk_create(service_sources)
 
+    def overwrite_by_component_ids(self, component_ids, service_sources):
+        ServiceSourceInfo.objects.filter(service_id__in=component_ids).delete()
+        service_sources = [source for source in service_sources if source]
+        if not service_sources:
+            return
+        self.bulk_create(service_sources)
+
 
 class ServiceRecycleBinRepository(object):
     def get_team_trash_services(self, tenant_id):
