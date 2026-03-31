@@ -144,6 +144,7 @@ class AppService(object):
         new_service.server_type = server_type
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         new_service.arch = arch
+        new_service.build_strategy = "cnb"
         new_service.save()
         code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url, service_code_id,
                                            service_code_version, check_uuid, event_id, oauth_service_id, git_full_name)
@@ -256,6 +257,7 @@ class AppService(object):
         new_service.git_url = "/grdata/package_build/components/" + service_id + "/events/" + event_id
         new_service.code_version = pkg_create_time
         new_service.arch = arch
+        new_service.build_strategy = "cnb"
         new_service.save()
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return ts
@@ -1144,8 +1146,8 @@ class AppService(object):
             return None
         return dep_services[0]
 
-    def get_code_long_build_version(self, eid, region, lang, show):
-        return region_api.get_lang_version(eid, region, lang, show).get("list", [])
+    def get_code_long_build_version(self, eid, region, lang, show, build_strategy=""):
+        return region_api.get_lang_version(eid, region, lang, show, build_strategy).get("list", [])
 
 
 class AppMarketService(object):

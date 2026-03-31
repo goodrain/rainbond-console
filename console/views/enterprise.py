@@ -1077,7 +1077,8 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         """
     def get(self, request, enterprise_id, region_id, *args, **kwargs):
         language = request.GET.get(LANGUAGE, "")
-        data = region_lang_version.show_long_version(enterprise_id, region_id, language)
+        build_strategy = request.GET.get("build_strategy", "")
+        data = region_lang_version.show_long_version(enterprise_id, region_id, language, build_strategy)
         result = general_message(200, "success", "获取成功", list=data["list"])
         return Response(result, status=status.HTTP_200_OK)
 
@@ -1086,6 +1087,8 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         version = request.data.get(VERSION, "")
         event_id = request.data.get(EVENT_ID, "")
         file_name = request.data.get(FILE_NAME, "")
+        build_strategy = request.data.get("build_strategy", "slug")
+        is_allowed = request.data.get("is_allowed", True)
         # 检查版本号格式是否正确
         if not region_lang_version.is_valid_version(version):
             data = general_message(400,"version format mistake","版本号格式不正确")
@@ -1097,7 +1100,8 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         # 检查文件上传格式是否正确
         extensions = ['jar', 'tar.gz']
         if any(file_name.endswith(ext) for ext in extensions) or language == "net_runtime" or language == "net_sdk":
-            data = region_lang_version.create_long_version(enterprise_id, region_id, language, version, event_id, file_name)
+            data = region_lang_version.create_long_version(
+                enterprise_id, region_id, language, version, event_id, file_name, build_strategy, is_allowed)
             if data.get("bean") == "exist":
                 data = general_message(409,"version is exist","该版本已存在")
                 return Response(data, status=409)
@@ -1112,14 +1116,18 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         version = request.data.get(VERSION, "")
         first_choice = request.data.get("first_choice", True)
         show = request.data.get("show", True)
-        region_lang_version.update_long_version(enterprise_id, region_id, language, version, show,first_choice)
+        build_strategy = request.data.get("build_strategy", None)
+        is_allowed = request.data.get("is_allowed", None)
+        region_lang_version.update_long_version(
+            enterprise_id, region_id, language, version, show, first_choice, build_strategy, is_allowed)
         result = general_message(200, "success", "更新成功")
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, region_id, *args, **kwargs):
         language = request.data.get(LANGUAGE, "")
         version = request.data.get(VERSION, "")
-        use_components = region_lang_version.delete_long_version(enterprise_id, region_id, language, version)
+        build_strategy = request.data.get("build_strategy", None)
+        use_components = region_lang_version.delete_long_version(enterprise_id, region_id, language, version, build_strategy)
         if use_components:
             data = general_message(405,"version in use","该版本在使用中，无法删除")
             return Response(data, status=405)

@@ -18,7 +18,7 @@ from console.repositories.region_repo import region_repo
 from console.services.app_config import (compile_env_service, domain_service, env_var_service, label_service, port_service,
                                          volume_service)
 from console.services.region_services import region_services
-from console.utils.cnb_build import CNB_BUILD_ENV_NAMES, extract_cnb_envs_from_runtime_info, is_cnb_language
+from console.utils import cnb_build as cnb_build_utils
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -26,6 +26,40 @@ from www.models.main import Tenants
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
+CNB_BUILD_ENV_NAMES = cnb_build_utils.CNB_BUILD_ENV_NAMES
+extract_cnb_envs_from_runtime_info = cnb_build_utils.extract_cnb_envs_from_runtime_info
+PYTHON_SYNCED_ENV_NAMES = (
+    "BUILD_PYTHON_PACKAGE_MANAGER",
+    "BUILD_AUTO_PROCFILE",
+    "START_COMMAND_SOURCE",
+)
+
+
+def supports_cnb_build_strategy(language):
+    helper = getattr(cnb_build_utils, "supports_cnb_build_strategy", None)
+    if callable(helper):
+        return helper(language)
+
+    normalized = getattr(cnb_build_utils, "normalize_language", lambda value: (value or "").replace(".", "").strip().lower())(
+        language)
+    compact = normalized.replace("-", "").replace("_", "").replace(" ", "")
+    if "dockerfile" in normalized:
+        return False
+    if compact in ("netcore", "dotnet", "dotnetcore"):
+        return True
+    policy_helper = getattr(cnb_build_utils, "get_cnb_policy_definition", None)
+    return callable(policy_helper) and policy_helper(language) is not None
+
+
+def resolve_lang_update_build_strategy(language, service_build_strategy=""):
+    helper = getattr(cnb_build_utils, "resolve_lang_update_build_strategy", None)
+    if callable(helper):
+        return helper(language, service_build_strategy)
+
+    current = (service_build_strategy or "").strip().lower()
+    if supports_cnb_build_strategy(language):
+        return current or "cnb"
+    return ""
 
 
 class AppCheckService(object):
@@ -45,6 +79,7 @@ class AppCheckService(object):
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = self.__get_service_region_type(service.service_source)
+        effective_build_strategy = getattr(service, "build_strategy", "") or ("cnb" if not is_again else "")
         source_body = ""
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         user_name = ""
@@ -60,7 +95,8 @@ class AppCheckService(object):
                 "branch": "",
                 "user": "",
                 "password": "",
-                "tenant_id": tenant.tenant_id
+                "tenant_id": tenant.tenant_id,
+                "build_strategy": effective_build_strategy,
             }
             source_body = json.dumps(sb)
         if service.service_source == AppConstants.SOURCE_CODE:
@@ -96,7 +132,8 @@ class AppCheckService(object):
                 "branch": service.code_version,
                 "user": user_name,
                 "password": password,
-                "tenant_id": tenant.tenant_id
+                "tenant_id": tenant.tenant_id,
+                "build_strategy": effective_build_strategy,
             }
             source_body = json.dumps(sb)
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:
@@ -279,6 +316,8 @@ class AppCheckService(object):
         logger.info("[compose-debug] save_service_info called for service={0}, all keys={1}".format(
             service.service_cname, list(service_info.keys())))
         service.language = service_info.get("language", "")
+        service.build_strategy = resolve_lang_update_build_strategy(
+            service.language, getattr(service, "build_strategy", ""))
         memory = service_info.get("memory", 128)
         service.min_memory = memory - memory % 32
         service.min_cpu = 500
@@ -625,6 +664,8 @@ class AppCheckService(object):
 
     def cleanup_cnb_build_envs(self, tenant, service, remove_build_type=False):
         env_names = list(CNB_BUILD_ENV_NAMES)
+        if (service.language or "").strip().lower() == "python":
+            env_names.extend(PYTHON_SYNCED_ENV_NAMES)
         if remove_build_type:
             env_names.append("BUILD_TYPE")
 
@@ -640,7 +681,7 @@ class AppCheckService(object):
         runtime_info = service_info.get("runtime_info") or {}
         language = service_info.get("language") or runtime_info.get("language") or service.language
 
-        if not is_cnb_language(language):
+        if not supports_cnb_build_strategy(language):
             self.cleanup_cnb_build_envs(tenant, service, remove_build_type=True)
             return
 

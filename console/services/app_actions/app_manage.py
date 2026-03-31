@@ -41,7 +41,10 @@ from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.exception import ErrChangeServiceType
 from console.services.group_service import group_service
 from console.services.service_services import base_service
-from console.utils.cnb_build import sanitize_build_env_dict_for_language
+from console.utils.cnb_build import (sanitize_build_env_dict_for_language, normalize_source_build_config,
+                                     policy_summary_to_snapshot, compose_source_code_info,
+                                     summarize_build_env, resolve_build_strategy,
+                                     resolve_requested_build_strategy)
 from console.utils import slug_util
 from console.utils.oauth.base.exception import NoAccessKeyErr
 from console.utils.oauth.oauth_types import (NoSupportOAuthType, get_oauth_instance)
@@ -273,35 +276,17 @@ class AppManageService(AppManageBase):
                     git_url = instance.get_clone_url(service.git_url)
                 except NoAccessKeyErr:
                     return 400, "该组件代码仓库认证信息已过期，请重新认证", ""
-                build_type = body["envs"].get("BUILD_TYPE", "") or body["envs"].get("TYPE", "")
-                # CNB 构建的容器镜像自带 entrypoint，不需要 "start web" 等 slug 启动命令
-                cmd = "" if build_type == "cnb" else service.cmd
-                body["code_info"] = {
-                    "repo_url": git_url,
-                    "branch": service.code_version,
-                    "server_type": service.server_type,
-                    "lang": service.language,
-                    "cmd": cmd,
-                    "build_type": build_type,
-                }
-                # 如果是 dockerfile 类型且有 dockerfile_path，添加到构建参数中
-                if service.language == "dockerfile" and service.dockerfile:
-                    body["code_info"]["dockerfile_path"] = service.dockerfile
+                build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), body["envs"])
+                policy_summary = base_service._get_cnb_version_policy(tenant, service) if build_strategy == "cnb" else {}
+                body["code_info"] = compose_source_code_info(
+                    service, body["envs"], build_strategy, policy_summary_to_snapshot(service.language, policy_summary),
+                    git_url, service.code_version)
             else:
-                build_type = body["envs"].get("BUILD_TYPE", "") or body["envs"].get("TYPE", "")
-                # CNB 构建的容器镜像自带 entrypoint，不需要 "start web" 等 slug 启动命令
-                cmd = "" if build_type == "cnb" else service.cmd
-                body["code_info"] = {
-                    "repo_url": service.git_url,
-                    "branch": service.code_version,
-                    "server_type": service.server_type,
-                    "lang": service.language,
-                    "cmd": cmd,
-                    "build_type": build_type,
-                }
-                # 如果是 dockerfile 类型且有 dockerfile_path，添加到构建参数中
-                if service.language == "dockerfile" and service.dockerfile:
-                    body["code_info"]["dockerfile_path"] = service.dockerfile
+                build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), body["envs"])
+                policy_summary = base_service._get_cnb_version_policy(tenant, service) if build_strategy == "cnb" else {}
+                body["code_info"] = compose_source_code_info(
+                    service, body["envs"], build_strategy, policy_summary_to_snapshot(service.language, policy_summary),
+                    service.git_url, service.code_version)
         if kind == "build_from_image" or kind == "build_from_market_image" or kind == "build_from_vm":
             body["image_info"] = {
                 "image_url": service.image,
@@ -704,14 +689,11 @@ class AppManageService(AppManageBase):
             if kind == "build_from_source_code" or kind == "source":
                 source_code = dict()
                 service_dict["code_info"] = source_code
-                source_code["repo_url"] = clone_url
-                source_code["branch"] = service.code_version
-                source_code["server_type"] = service.server_type
-                source_code["lang"] = service.language
-                build_type = envs.get("BUILD_TYPE", "") or envs.get("TYPE", "")
-                # CNB 构建的容器镜像自带 entrypoint，不需要 "start web" 等 slug 启动命令
-                source_code["cmd"] = "" if build_type == "cnb" else service.cmd
-                source_code["build_type"] = build_type
+                build_strategy = resolve_build_strategy(getattr(service, "build_strategy", ""), envs)
+                policy_summary = base_service._get_cnb_version_policy(tenant, service) if build_strategy == "cnb" else {}
+                source_code.update(compose_source_code_info(
+                    service, envs, build_strategy, policy_summary_to_snapshot(service.language, policy_summary),
+                    clone_url, service.code_version))
                 if service.oauth_service_id:
                     try:
                         oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service.oauth_service_id)
@@ -1419,57 +1401,46 @@ class AppManageService(AppManageBase):
                                       cnb_framework="", cnb_build_script="", cnb_output_dir="",
                                       cnb_node_version="", cnb_node_env="", cnb_mirror_source="",
                                       cnb_mirror_npmrc="", cnb_mirror_yarnrc="",
-                                      has_npmrc="", has_yarnrc="", cnb_start_script=""):
+                                      has_npmrc="", has_yarnrc="", cnb_start_script="",
+                                      build_strategy="", build_env_dict=None):
+        current_build_envs = sanitize_build_env_dict_for_language(
+            env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
+            service.language
+        )
+        requested_build_strategy = resolve_requested_build_strategy(
+            getattr(service, "build_strategy", ""),
+            current_build_envs,
+            build_strategy,
+            build_env_dict or {}
+        )
+        normalized_strategy, normalized_envs = normalize_source_build_config(
+            lang,
+            package_tool=package_tool,
+            dist=dist,
+            build_strategy=requested_build_strategy,
+            build_env_dict=build_env_dict or {},
+            compat_payload={
+                "cnb_framework": cnb_framework,
+                "cnb_build_script": cnb_build_script,
+                "cnb_output_dir": cnb_output_dir,
+                "cnb_node_version": cnb_node_version,
+                "cnb_node_env": cnb_node_env,
+                "cnb_mirror_source": cnb_mirror_source,
+                "cnb_mirror_npmrc": cnb_mirror_npmrc,
+                "cnb_mirror_yarnrc": cnb_mirror_yarnrc,
+                "has_npmrc": has_npmrc,
+                "has_yarnrc": has_yarnrc,
+                "cnb_start_script": cnb_start_script,
+            },
+            default_to_cnb=False)
         serivce_params = {"language": lang}
+        if normalized_strategy:
+            serivce_params["build_strategy"] = normalized_strategy
         try:
             service_repo.update(tenant.tenant_id, service.service_id, **serivce_params)
-            # 传统构建参数（兼容老组件）
-            if package_tool:
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_PACKAGE_TOOL", package_tool)
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_PACKAGE_TOOL", package_tool)
-            # 处理静态站点输出目录（支持 Node.js 前端项目）
-            if dist and ("Node" in lang or "static" in lang.lower()):
-                tenantServiceEnvVar = {}
-                tenantServiceEnvVar["tenant_id"] = service.tenant_id
-                tenantServiceEnvVar["service_id"] = service.service_id
-                tenantServiceEnvVar['container_port'] = 0
-                tenantServiceEnvVar["name"] = "set_dist"
-                tenantServiceEnvVar["attr_name"] = "BUILD_DIST_DIR"
-                tenantServiceEnvVar["attr_value"] = dist
-                tenantServiceEnvVar["is_change"] = True
-                tenantServiceEnvVar["scope"] = "scope"
-                env_var_repo.add_service_env(**tenantServiceEnvVar)
-            # Node.js/NodeJSStatic/static 语言新建组件始终使用 CNB 构建
-            # 基于语言类型判断，不依赖具体 CNB 参数是否存在，避免框架未识别时意外回退到 slug
-            # 注意：此函数仅在创建流程中调用（Create 页面），不影响已有 slug 组件的重建
-            if "Node" in lang or lang.lower() == "static":
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_TYPE", "cnb")
-            if cnb_framework:
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_FRAMEWORK", cnb_framework)
-            if cnb_build_script:
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_BUILD_SCRIPT", cnb_build_script)
-            if cnb_output_dir:
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_OUTPUT_DIR", cnb_output_dir)
-            if cnb_node_version:
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_NODE_VERSION", cnb_node_version)
-            if cnb_node_env:
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_NODE_ENV", cnb_node_env)
-            # CNB Start Script - 统一存为 CNB_START_SCRIPT，由 Builder 转换为 BP_NPM_START_SCRIPT
-            if cnb_start_script:
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_START_SCRIPT", cnb_start_script)
-            # CNB Mirror 配置
-            if cnb_mirror_source:
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_MIRROR_SOURCE", cnb_mirror_source)
-            # 保存配置文件内容（当使用平台全局配置时）
-            if cnb_mirror_npmrc:
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_MIRROR_NPMRC", cnb_mirror_npmrc)
-            if cnb_mirror_yarnrc:
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "CNB_MIRROR_YARNRC", cnb_mirror_yarnrc)
-            # 保存配置文件检测标志（用于构建参数页面恢复检测状态）
-            if has_npmrc:
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_HAS_NPMRC", has_npmrc)
-            if has_yarnrc:
-                env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, "BUILD_HAS_YARNRC", has_yarnrc)
+            for key, value in normalized_envs.items():
+                if value not in (None, ""):
+                    env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, key, value)
         except Exception as e:
             logger.exception(e)
             return 507, "failed"

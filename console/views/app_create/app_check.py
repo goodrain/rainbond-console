@@ -9,8 +9,8 @@ from re import split as re_spilt
 from console.serializer import TenantServiceUpdateSerilizer
 from console.services.app_config import env_var_service
 from console.services.app import app_service
-from console.services.app_check_service import app_check_service
-from console.utils.cnb_build import is_cnb_language
+from console.services.app_check_service import (app_check_service, resolve_lang_update_build_strategy,
+                                                supports_cnb_build_strategy)
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.views.app_config.base import AppBaseView
 from django.views.decorators.cache import never_cache
@@ -27,7 +27,8 @@ class LangUpdate(AppBaseView):
         dockerfile_path = request.data.get('dockerfile_path', '')
         if lang:
             self.service.language = lang
-            if not is_cnb_language(lang):
+            self.service.build_strategy = resolve_lang_update_build_strategy(lang, getattr(self.service, "build_strategy", ""))
+            if not supports_cnb_build_strategy(lang):
                 app_check_service.cleanup_cnb_build_envs(self.tenant, self.service, remove_build_type=True)
             if lang == 'dockerfile':
                 self.service.cmd = ''
