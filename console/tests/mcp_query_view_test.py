@@ -23,6 +23,7 @@ from console.views.mcp_query import (
     MCPQueryMessageView,
     MCPQuerySSEView,
     _get_mcp_sse_session,
+    _load_mcp_http_session,
     _remove_mcp_sse_session,
 )
 
@@ -69,7 +70,8 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         self.assertEqual(response["Mcp-Session-Id"] != "", True)
         self.assertEqual(response["MCP-Protocol-Version"], "2025-03-26")
         self.assertEqual(response.data["result"]["protocolVersion"], "2025-03-26")
-        _remove_mcp_sse_session(response["Mcp-Session-Id"])
+        session_payload = _load_mcp_http_session(response["Mcp-Session-Id"])
+        self.assertEqual(session_payload["protocol_version"], "2025-03-26")
 
     # capability_id: console.mcp.http-tools-sse
     def test_http_post_can_return_sse_message_response(self):
@@ -100,14 +102,14 @@ class MCPQuerySSEViewTests(SimpleTestCase):
             HTTP_MCP_SESSION_ID=session_id,
         )
 
-        response = self.http_view(tools_request)
+        with patch("console.views.mcp_query.user_services.get_user_by_user_id", return_value=SimpleNamespace(user_id=1)):
+            response = self.http_view(tools_request)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "text/event-stream")
         chunk = _decode_chunk(next(iter(response.streaming_content)))
         self.assertIn("event: message", chunk)
         self.assertIn('"tools"', chunk)
-        _remove_mcp_sse_session(session_id)
 
     # capability_id: console.mcp.structured-tool-error
     def test_http_tool_error_includes_structured_validation_details(self):
@@ -150,7 +152,6 @@ class MCPQuerySSEViewTests(SimpleTestCase):
             HTTP_ACCEPT="application/json",
             HTTP_MCP_SESSION_ID=session_id,
         )
-        force_authenticate(request, user=user)
 
         exc = ServiceHandleException(msg="add port error", msg_show="端口别名不合法", status_code=400)
         exc.details = {
@@ -160,8 +161,9 @@ class MCPQuerySSEViewTests(SimpleTestCase):
             "retryable": False,
         }
 
-        with patch("console.views.mcp_query.mcp_query_service.call_tool", side_effect=exc):
-            response = self.http_view(request)
+        with patch("console.views.mcp_query.user_services.get_user_by_user_id", return_value=user):
+            with patch("console.views.mcp_query.mcp_query_service.call_tool", side_effect=exc):
+                response = self.http_view(request)
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["result"]["isError"])
@@ -169,10 +171,9 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         self.assertEqual(response.data["result"]["structuredContent"]["details"]["field"], "port_alias")
         self.assertEqual(response.data["result"]["structuredContent"]["details"]["reason"], "pattern_mismatch")
         self.assertFalse(response.data["result"]["structuredContent"]["details"]["retryable"])
-        _remove_mcp_sse_session(session_id)
 
-    # capability_id: console.mcp.http-delete-session
-    def test_http_delete_closes_session(self):
+    # capability_id: console.mcp.http-delete-valid-token
+    def test_http_delete_accepts_valid_session_token(self):
         init_request = self.factory.post(
             "/console/mcp/query",
             data=json.dumps({
@@ -195,7 +196,7 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         delete_response = self.http_view(delete_request)
 
         self.assertEqual(delete_response.status_code, 204)
-        self.assertIsNone(_get_mcp_sse_session(session_id))
+        self.assertIsNotNone(_load_mcp_http_session(session_id))
 
     # capability_id: console.mcp.legacy-sse-endpoint
     def test_get_returns_endpoint_event_for_legacy_sse_clients(self):
