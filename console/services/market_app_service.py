@@ -28,7 +28,6 @@ from console.repositories.plugin import plugin_repo
 from console.repositories.plugin.plugin import plugin_version_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.service_repo import service_repo
-from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
 from console.services.app import app_market_service, app_service
 from console.services.app_actions import app_manage_service
@@ -47,7 +46,6 @@ from console.services.plugin import (app_plugin_service, plugin_config_service, 
 from console.services.region_services import region_services
 from console.services.share_services import share_service
 from console.services.upgrade_services import upgrade_service
-from console.services.user_services import user_services
 from console.utils.version import compare_version, sorted_versions
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -129,7 +127,7 @@ class MarketAppService(object):
                 events = []
             else:
                 events = app_upgrade.install()
-        except Exception as e:
+        except Exception:
             enterprise_first_deploy_service.mark_failure(tracker)
             raise
         enterprise_first_deploy_service.bind_events(tracker, self._extract_event_ids(events))
@@ -961,7 +959,9 @@ class MarketAppService(object):
                     volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
                                                       volume["volume_name"], volume["file_content"])
                 else:
-                    settings = volume_service.get_best_suitable_volume_settings(tenant, service, volume["volume_type"],
+                    selected_volume_type = volume_service.get_market_default_volume_type(
+                        tenant, service, volume["volume_type"])
+                    settings = volume_service.get_best_suitable_volume_settings(tenant, service, selected_volume_type,
                                                                                 volume.get("access_mode"),
                                                                                 volume.get("share_policy"),
                                                                                 volume.get("backup_policy"), None,
@@ -973,6 +973,7 @@ class MarketAppService(object):
                         if volume["volume_type"] == "share-file":
                             volume["volume_capacity"] = 0
                     else:
+                        volume["volume_type"] = selected_volume_type
                         settings["volume_capacity"] = volume.get("volume_capacity", 0)
                     volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
                                                       volume["volume_name"], None, settings)
@@ -1079,9 +1080,9 @@ class MarketAppService(object):
         extend_info["source_service_share_uuid"] = component.get("service_share_uuid") if component.get(
             "service_share_uuid", None) else component.get("service_key", "")
         if "update_time" in component:
-            if type(component["update_time"]) == datetime.datetime:
+            if isinstance(component["update_time"], datetime.datetime):
                 extend_info["update_time"] = component["update_time"].strftime('%Y-%m-%d %H:%M:%S')
-            elif type(component["update_time"]) == str:
+            elif isinstance(component["update_time"], str):
                 extend_info["update_time"] = component["update_time"]
         if install_from_cloud:
             extend_info["install_from_cloud"] = True

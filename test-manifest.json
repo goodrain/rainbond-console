@@ -4461,6 +4461,30 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.install-default-storage-class",
+      "title": "Use platform default storage class for marketplace installs",
+      "title_zh": "\u5e94\u7528\u5e02\u573a\u5b89\u88c5\u4f7f\u7528\u5e73\u53f0\u9ed8\u8ba4\u5b58\u50a8\u7c7b",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app.new_components.NewComponents._template_to_volumes",
+      "code_paths": [
+        "console/services/app_config/volume_service.py",
+        "console/services/market_app/new_components.py",
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_storage_test.py",
+          "selector": "MarketAppDefaultStorageClassTests.test_resolve_market_default_volume_type_prefers_configured_storage_class"
+        },
+        {
+          "path": "console/tests/market_app_storage_test.py",
+          "selector": "MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-client.auth-missing",
       "title": "Translate 401 market API errors into missing-token service errors",
       "title_zh": "\u5c06 401 \u5e94\u7528\u5e02\u573a\u9519\u8bef\u8f6c\u6362\u4e3a\u7f3a\u5c11 token \u7684\u670d\u52a1\u5f02\u5e38",
