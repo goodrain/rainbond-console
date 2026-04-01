@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
+import collections
 import os
 import sys
 from types import ModuleType
 from unittest import TestCase, mock
+
+for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
+    if not hasattr(collections, attr):
+        setattr(collections, attr, getattr(collections.abc, attr))
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
@@ -20,6 +25,7 @@ from console.views.team_resources import HelmReleaseDetailView  # noqa: E402
 from console.views.team_resources import HelmReleaseHistoryView  # noqa: E402
 from console.views.team_resources import HelmReleaseRollbackView  # noqa: E402
 from console.views.team_resources import NsResourceDetailView  # noqa: E402
+from console.views.team_resources import NsResourcesView  # noqa: E402
 from console.views.team_resources import ResourceCenterPodLogsView  # noqa: E402
 from console.views import team_resources  # noqa: E402
 from www.apiclient.regionapi import RegionInvokeApi  # noqa: E402
@@ -447,6 +453,56 @@ class HelmReleasesViewTestCase(TestCase):
 
 
 class NsResourceDetailViewTestCase(TestCase):
+    # capability_id: console.ns-resource.batch-create
+    def test_post_preserves_partial_success_status_and_payload(self):
+        yaml_body = "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: demo\n"
+        request = APIRequestFactory().post(
+            "/console/teams/demo-team/regions/demo-region/ns-resources?source=yaml",
+            data=yaml_body,
+            content_type="application/yaml"
+        )
+        view = NsResourcesView()
+
+        partial_success_body = {
+            "code": 207,
+            "msg": "共创建 2 个资源，1 个成功，1 个失败",
+            "msg_show": "共创建 2 个资源，1 个成功，1 个失败",
+            "data": {
+                "bean": {
+                    "summary": {
+                        "total": 2,
+                        "success_count": 1,
+                        "failure_count": 1,
+                        "partial_success": True
+                    },
+                    "results": [
+                        {
+                            "index": 1,
+                            "kind": "Deployment",
+                            "name": "demo",
+                            "success": True
+                        }
+                    ]
+                }
+            }
+        }
+
+        with mock.patch.object(team_resources.region_api,
+                               "post_tenant_ns_resource",
+                               return_value=(mock.Mock(status=207), partial_success_body)) as post_mock:
+            response = view.post(request, "demo-team", "demo-region")
+
+        self.assertEqual(response.status_code, 207)
+        self.assertEqual(response.data["code"], 207)
+        self.assertEqual(response.data["data"]["bean"]["summary"]["failure_count"], 1)
+        post_mock.assert_called_once_with(
+            "demo-region",
+            "demo-team",
+            yaml_body.encode("utf-8"),
+            params={"source": "yaml"},
+            content_type="application/yaml"
+        )
+
     # capability_id: console.ns-resource.update
     def test_put_accepts_yaml_media_type_and_forwards_raw_body(self):
         yaml_body = "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web-ui\n"
