@@ -92,7 +92,7 @@ class AppExportService(object):
             logger.warning("path: {}; error encoding image: {}".format(picture_path, e))
             image_base64_string = ""
 
-        app_template = json.loads(app_version.app_template)
+        app_template = self.__normalize_export_template(json.loads(app_version.app_template))
         for ingress_http_route in app_template.get("ingress_http_routes", []):
             ingress_http_route["proxy_header"] = ingress_http_route.get("proxy_header", {})
             if isinstance(ingress_http_route["proxy_header"], list):
@@ -112,6 +112,24 @@ class AppExportService(object):
             "image_handle": helm_chart_parameter["image_handle"],
         }
         return json.dumps(app_template, cls=MyEncoder)
+
+    def __normalize_export_item(self, item):
+        export_item = dict(item or {})
+        if not export_item.get("share_image") and export_item.get("image"):
+            export_item["share_image"] = export_item["image"]
+        return export_item
+
+    def __normalize_export_template(self, app_template):
+        template = dict(app_template or {})
+        template["apps"] = [
+            self.__normalize_export_item(component)
+            for component in template.get("apps", [])
+        ]
+        template["plugins"] = [
+            self.__normalize_export_item(plugin)
+            for plugin in template.get("plugins", [])
+        ]
+        return template
 
     def encode_image(self, image_url):
         if not image_url:

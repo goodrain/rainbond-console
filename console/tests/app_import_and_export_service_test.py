@@ -42,6 +42,70 @@ class AppExportServiceMetadataTestCase(TestCase):
         self.assertEqual(result["annotations"]["describe"], "demo app")
         self.assertEqual(result["helm_chart"]["image_handle"], "")
 
+    def test_get_app_metadata_falls_back_to_image(self):
+        app = mock.Mock(pic=None, describe="demo app")
+        component = {
+            "service_alias": "web",
+            "image": "registry.example.com/demo/web:1.0.0"
+        }
+        app_version = mock.Mock(
+            app_template=json.dumps({
+                "group_key": "demo-app",
+                "group_version": "1.0.0",
+                "apps": [component]
+            }),
+            app_version_info="bugfix",
+            version_alias="stable",
+        )
+
+        metadata = export_service._AppExportService__get_app_metata(app, app_version, {"image_handle": ""})
+        result = json.loads(metadata)
+
+        self.assertEqual(result["apps"][0]["share_image"], component["image"])
+
+    def test_get_app_metadata_keeps_existing_share_image(self):
+        app = mock.Mock(pic=None, describe="demo app")
+        component = {
+            "service_alias": "web",
+            "image": "registry.example.com/demo/web:1.0.0",
+            "share_image": "registry.example.com/share/web:2.0.0"
+        }
+        app_version = mock.Mock(
+            app_template=json.dumps({
+                "group_key": "demo-app",
+                "group_version": "1.0.0",
+                "apps": [component]
+            }),
+            app_version_info="bugfix",
+            version_alias="stable",
+        )
+
+        metadata = export_service._AppExportService__get_app_metata(app, app_version, {"image_handle": ""})
+        result = json.loads(metadata)
+
+        self.assertEqual(result["apps"][0]["share_image"], component["share_image"])
+
+    def test_get_app_metadata_falls_back_to_plugin_image(self):
+        app = mock.Mock(pic=None, describe="demo app")
+        plugin = {
+            "plugin_alias": "demo-plugin",
+            "image": "registry.example.com/demo/plugin:1.0.0"
+        }
+        app_version = mock.Mock(
+            app_template=json.dumps({
+                "group_key": "demo-app",
+                "group_version": "1.0.0",
+                "plugins": [plugin]
+            }),
+            app_version_info="bugfix",
+            version_alias="stable",
+        )
+
+        metadata = export_service._AppExportService__get_app_metata(app, app_version, {"image_handle": ""})
+        result = json.loads(metadata)
+
+        self.assertEqual(result["plugins"][0]["share_image"], plugin["image"])
+
     # capability_id: console.app-export.query-status
     def test_get_export_status_updates_exporting_record_and_wraps_download_url(self):
         app = mock.Mock(app_id="demo-app")
