@@ -550,6 +550,9 @@ def build_cnb_version_policy(language, records, fallback_versions):
     if not visible_versions and not allowed_versions:
         visible_versions, allowed_versions, default_version = _build_fallback_policy(definition, fallback_versions)
 
+    visible_versions = _sort_cnb_policy_versions(visible_versions)
+    allowed_versions = _sort_cnb_policy_versions(allowed_versions)
+
     return {
         definition["policy_key"]: {
             definition["runtime_key"]: {
@@ -986,6 +989,14 @@ def _normalize_cnb_policy_version(definition, version):
 def _append_unique(items, value):
     if value and value not in items:
         items.append(value)
+
+
+def _sort_cnb_policy_versions(versions):
+    return sorted(versions or [], key=_cnb_policy_version_sort_key)
+
+
+def _cnb_policy_version_sort_key(version):
+    return [int(part) if str(part).isdigit() else -1 for part in str(version or "").split(".")]
 
 
 def _is_truthy(value):
