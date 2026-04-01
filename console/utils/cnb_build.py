@@ -547,9 +547,6 @@ def build_cnb_version_policy(language, records, fallback_versions):
         if _is_truthy(record.get("first_choice")):
             default_version = normalized_version
 
-    if not visible_versions and not allowed_versions:
-        visible_versions, allowed_versions, default_version = _build_fallback_policy(definition, fallback_versions)
-
     visible_versions = _sort_cnb_policy_versions(visible_versions)
     allowed_versions = _sort_cnb_policy_versions(allowed_versions)
 
@@ -929,24 +926,6 @@ def _first_non_empty(envs, *keys):
             continue
         return value
     return ""
-
-
-def _build_fallback_policy(definition, fallback_versions):
-    visible_versions = []
-    allowed_versions = []
-    default_version = ""
-
-    for item in fallback_versions or []:
-        version = item.get("version", "") if isinstance(item, dict) else item
-        normalized_version = _normalize_cnb_policy_version(definition, version)
-        if not normalized_version:
-            continue
-        _append_unique(visible_versions, normalized_version)
-        _append_unique(allowed_versions, normalized_version)
-        if isinstance(item, dict) and item.get("default"):
-            default_version = normalized_version
-
-    return visible_versions, allowed_versions, default_version
 
 
 def _normalize_cnb_policy_version(definition, version):

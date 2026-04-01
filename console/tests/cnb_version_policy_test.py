@@ -38,7 +38,7 @@ class CNBVersionPolicyTests(TestCase):
             }
         })
 
-    def test_build_policy_falls_back_to_platform_defaults(self):
+    def test_build_policy_uses_empty_nodejs_policy_without_enterprise_versions(self):
         policy = build_cnb_version_policy("Node.js", [], [{
             "version": "20.20.0",
             "default": False
@@ -50,14 +50,14 @@ class CNBVersionPolicyTests(TestCase):
         self.assertEqual(policy, {
             "nodejs": {
                 "nodejs": {
-                    "visible_versions": ["20.20.0", "24.13.0"],
-                    "allowed_versions": ["20.20.0", "24.13.0"],
-                    "default_version": "24.13.0"
+                    "visible_versions": [],
+                    "allowed_versions": [],
+                    "default_version": ""
                 }
             }
         })
 
-    def test_build_policy_falls_back_to_platform_defaults_for_java(self):
+    def test_build_policy_uses_empty_java_policy_without_enterprise_versions(self):
         policy = build_cnb_version_policy("java-maven", [], [{
             "version": "8",
             "default": False
@@ -72,14 +72,14 @@ class CNBVersionPolicyTests(TestCase):
         self.assertEqual(policy, {
             "java": {
                 "jdk": {
-                    "visible_versions": ["8", "17", "21"],
-                    "allowed_versions": ["8", "17", "21"],
-                    "default_version": "17"
+                    "visible_versions": [],
+                    "allowed_versions": [],
+                    "default_version": ""
                 }
             }
         })
 
-    def test_build_policy_falls_back_to_platform_defaults_for_python(self):
+    def test_build_policy_uses_empty_python_policy_without_enterprise_versions(self):
         policy = build_cnb_version_policy("Python", [], [{
             "version": "3.10",
             "default": False
@@ -100,9 +100,9 @@ class CNBVersionPolicyTests(TestCase):
         self.assertEqual(policy, {
             "python": {
                 "cpython": {
-                    "visible_versions": ["3.10", "3.11", "3.12", "3.13", "3.14"],
-                    "allowed_versions": ["3.10", "3.11", "3.12", "3.13", "3.14"],
-                    "default_version": "3.14"
+                    "visible_versions": [],
+                    "allowed_versions": [],
+                    "default_version": ""
                 }
             }
         })
