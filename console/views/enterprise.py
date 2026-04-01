@@ -115,6 +115,7 @@ class Enterprises(JWTAuthApiView):
                     "enterprise_id": enterprise.enterprise_id,
                     "enterprise_token": enterprise.enterprise_token,
                     "create_time": enterprise.create_time,
+                    "enable_team_resource_view": enterprise.enable_team_resource_view,
                 })
             data = general_message(200, "success", "查询成功", list=enterprises_list)
             return Response(data, status=status.HTTP_200_OK)
