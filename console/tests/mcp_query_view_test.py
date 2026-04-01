@@ -2,7 +2,8 @@
 import json
 import os
 import sys
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
@@ -12,10 +13,11 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django
 from django.test import SimpleTestCase
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 django.setup()
 
+from console.exception.main import ServiceHandleException
 from console.views.mcp_query import (
     MCPQueryHTTPView,
     MCPQueryMessageView,
@@ -105,6 +107,68 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         chunk = _decode_chunk(next(iter(response.streaming_content)))
         self.assertIn("event: message", chunk)
         self.assertIn('"tools"', chunk)
+        _remove_mcp_sse_session(session_id)
+
+    # capability_id: console.mcp.structured-tool-error
+    def test_http_tool_error_includes_structured_validation_details(self):
+        user = SimpleNamespace(user_id=1, is_authenticated=True, nick_name="tester")
+        init_request = self.factory.post(
+            "/console/mcp/query",
+            data=json.dumps({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {}
+            }),
+            content_type="application/json",
+            HTTP_ACCEPT="application/json",
+        )
+        force_authenticate(init_request, user=user)
+        init_response = self.http_view(init_request)
+        session_id = init_response["Mcp-Session-Id"]
+
+        request = self.factory.post(
+            "/console/mcp/query",
+            data=json.dumps({
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {
+                    "name": "rainbond_manage_component_ports",
+                    "arguments": {
+                        "team_name": "demo-team",
+                        "region_name": "rainbond",
+                        "app_id": 20,
+                        "service_id": "svc-1",
+                        "operation": "add",
+                        "port": 80,
+                        "port_alias": "p80"
+                    }
+                }
+            }),
+            content_type="application/json",
+            HTTP_ACCEPT="application/json",
+            HTTP_MCP_SESSION_ID=session_id,
+        )
+        force_authenticate(request, user=user)
+
+        exc = ServiceHandleException(msg="add port error", msg_show="端口别名不合法", status_code=400)
+        exc.details = {
+            "field": "port_alias",
+            "reason": "pattern_mismatch",
+            "expected_pattern": "^[A-Z][A-Z0-9_]*$",
+            "retryable": False,
+        }
+
+        with patch("console.views.mcp_query.mcp_query_service.call_tool", side_effect=exc):
+            response = self.http_view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["result"]["isError"])
+        self.assertEqual(response.data["result"]["structuredContent"]["error_code"], 400)
+        self.assertEqual(response.data["result"]["structuredContent"]["details"]["field"], "port_alias")
+        self.assertEqual(response.data["result"]["structuredContent"]["details"]["reason"], "pattern_mismatch")
+        self.assertFalse(response.data["result"]["structuredContent"]["details"]["retryable"])
         _remove_mcp_sse_session(session_id)
 
     # capability_id: console.mcp.http-delete-session

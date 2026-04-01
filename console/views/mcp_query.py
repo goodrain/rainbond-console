@@ -201,6 +201,7 @@ class MCPQueryRPCMixin(object):
             if not self._is_authenticated_user(user):
                 err = {
                     "status_code": 401,
+                    "error_code": 401,
                     "msg": "unauthorized",
                     "msg_show": "未登录或认证信息无效",
                 }
@@ -220,9 +221,12 @@ class MCPQueryRPCMixin(object):
             except ServiceHandleException as exc:
                 err = {
                     "status_code": getattr(exc, "status_code", 400),
+                    "error_code": getattr(exc, "error_code", getattr(exc, "status_code", 400)),
                     "msg": exc.msg,
                     "msg_show": exc.msg_show,
                 }
+                if getattr(exc, "details", None) is not None:
+                    err["details"] = exc.details
                 return self._jsonrpc_result(request_id, {
                     "isError": True,
                     "content": [{"type": "text", "text": json.dumps(err, ensure_ascii=False, default=str)}],
