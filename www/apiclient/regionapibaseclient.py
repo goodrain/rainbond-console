@@ -162,11 +162,13 @@ class RegionApiBaseHttpClient(object):
             if not body:
                 raise ServiceHandleException(msg="request region api body is nil", msg_show="集群请求网络异常", status_code=status)
             if "code" in body:
+                data = body.get("data") or {}
                 raise ServiceHandleException(
                     msg=body.get("msg"),
                     msg_show=build_region_error_msg_show(body.get("msg")),
                     status_code=status,
-                    error_code=body.get("code"))
+                    error_code=body.get("code"),
+                    bean=data.get("bean"))
             if status == 409:
                 if isinstance(body, dict) and body.get("msg") and not is_frequent_operation_message(body.get("msg")):
                     raise ServiceHandleException(

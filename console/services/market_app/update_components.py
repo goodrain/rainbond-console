@@ -47,7 +47,7 @@ class UpdateComponents(object):
             if component_tmpl:
                 cpt.set_changes(self.original_app.tenant, self.original_app.region, cpt_changes[cpt.component.component_id],
                                 self.original_app.governance_mode)
-                cpt.component.image = component_tmpl["share_image"]
+                cpt.component.image = component_tmpl.get("share_image", component_tmpl.get("image", cpt.component.image))
                 cpt.component.cmd = component_tmpl.get("cmd", "")
                 cpt.component.version = component_tmpl["version"]
 
@@ -81,9 +81,9 @@ class UpdateComponents(object):
                 "service_share_uuid", None) else tmpl.get("service_key", "")
         update_time = self.app_template.get("update_time")
         if update_time:
-            if type(update_time) == datetime:
+            if isinstance(update_time, datetime):
                 extend_info["update_time"] = update_time.strftime('%Y-%m-%d %H:%M:%S')
-            elif type(update_time) == str:
+            elif isinstance(update_time, str):
                 extend_info["update_time"] = update_time
 
         component_source.extend_info = json.dumps(extend_info)

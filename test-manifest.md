@@ -240,6 +240,8 @@
 | console.init-cluster.prefer-latest-pending | 初始化时优先选择最新待处理集群 | active | regression | console.repositories.init_cluster.Cluster.get_rke_cluster_exclude_integrated | console/tests/init_cluster_test.py::ClusterRepositoryTests.test_get_rke_cluster_exclude_integrated_prefers_latest_pending_cluster |
 | console.init-cluster.recycle-empty-interconnected | 回收空白联通集群用于重新初始化 | active | regression | console.repositories.init_cluster.Cluster.get_rke_cluster_exclude_integrated | console/tests/init_cluster_test.py::ClusterRepositoryTests.test_get_rke_cluster_exclude_integrated_recycles_blank_cluster |
 | console.k8s-namespace.normalize-user-prefix | 将用户名规范化为合法的 Kubernetes 命名空间名 | active | regression | console.utils.validation.normalize_name_for_k8s_namespace | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace |
+| console.lang-version.proxy-upload | 代理旧版语言包上传接口 | active | regression | console.views.enterprise.UploadLongVersion.post | console/tests/lang_version_proxy_test.py::UploadLongVersionProxyViewTests |
+| console.market-app.install-default-storage-class | 应用市场安装使用平台默认存储类 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_default_volume_type_prefers_configured_storage_class<br>console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class |
 | console.market-client.auth-missing | 将 401 应用市场错误转换为缺少 token 的服务异常 | active | regression | console.utils.restful_client.apiException | console/tests/utils/restful_client_test.py::RestfulClientApiExceptionTests.test_api_exception_401 |
 | console.market-client.bad-request | 将通用 4xx 应用市场错误转换为参数错误响应 | active | regression | console.utils.restful_client.apiException | console/tests/utils/restful_client_test.py::RestfulClientApiExceptionTests.test_api_exception_generic_4xx |
 | console.market-client.default-host | 使用默认回退 host 创建应用市场客户端 | active | regression | console.utils.restful_client.get_market_client | console/tests/utils/restful_client_test.py::RestfulClientFactoryTests.test_get_market_client_uses_default_host |
@@ -269,6 +271,7 @@
 | console.package-component.require-upload-record | 创建制品包组件前必须存在上传记录 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_existing_upload_record |
 | console.package-component.upload-missing | 制品包列表为空时拦截组件创建 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_uploaded_package_list |
 | console.random.default-version | 生成默认随机版本标识 | active | regression | console.utils.randomutil.make_default_version | console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version |
+| console.region-api.domain-conflict-msg | 将上游域名冲突保留为可操作的 409 错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_domain_conflict_as_conflict_error |
 | console.region-api.helm-resource-conflict-msg | 将 Helm 资源归属冲突转换为可操作错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show |
 | console.region-api.proxy-error-pass-through | 对非 Helm 冲突保留原始上游错误信息 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_original_message_for_non_helm_conflicts |
 | console.request-args.bool-coercion | 将请求中的布尔参数从字符串或布尔值安全转换 | active | regression | console.utils.reqparse.bool_argument | console/tests/utils/reqparse_test.py::BoolArgumentTestCase |
@@ -2700,6 +2703,26 @@
 - 代码路径: `console/utils/validation.py`
 - 测试路径: `console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace`
 
+### 代理旧版语言包上传接口
+
+- Capability ID: `console.lang-version.proxy-upload`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.enterprise.UploadLongVersion.post`
+- 代码路径: `console/views/enterprise.py`, `console/urls/__init__.py`
+- 测试路径: `console/tests/lang_version_proxy_test.py::UploadLongVersionProxyViewTests`
+
+### 应用市场安装使用平台默认存储类
+
+- Capability ID: `console.market-app.install-default-storage-class`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.market_app.new_components.NewComponents._template_to_volumes`
+- 代码路径: `console/services/app_config/volume_service.py`, `console/services/market_app/new_components.py`, `console/services/market_app_service.py`
+- 测试路径: `console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_default_volume_type_prefers_configured_storage_class`, `console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class`
+
 ### 将 401 应用市场错误转换为缺少 token 的服务异常
 
 - Capability ID: `console.market-client.auth-missing`
@@ -2989,6 +3012,16 @@
 - 业务入口: `console.utils.randomutil.make_default_version`
 - 代码路径: `console/utils/randomutil.py`
 - 测试路径: `console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version`
+
+### 将上游域名冲突保留为可操作的 409 错误提示
+
+- Capability ID: `console.region-api.domain-conflict-msg`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status`
+- 代码路径: `www/apiclient/regionapibaseclient.py`
+- 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_domain_conflict_as_conflict_error`
 
 ### 将 Helm 资源归属冲突转换为可操作错误提示
 

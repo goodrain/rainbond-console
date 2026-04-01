@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
+import collections
 import json
 import os
 import sys
 from types import ModuleType
 from unittest import TestCase
+
+for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
+    if not hasattr(collections, attr):
+        setattr(collections, attr, getattr(collections.abc, attr))
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
@@ -72,6 +77,45 @@ class RegionApiBaseHttpClientTestCase(TestCase):
         error = context.exception
         self.assertEqual(error.msg, raw_message)
         self.assertEqual(error.msg_show, raw_message)
+
+    # capability_id: console.region-api.batch-create-error-bean
+    def test_check_status_preserves_batch_create_result_bean_for_coded_errors(self):
+        client = RegionApiBaseHttpClient()
+
+        with self.assertRaises(ServiceHandleException) as context:
+            client._check_status(
+                url="/v2/tenants/demo/ns-resources",
+                method="POST",
+                status=400,
+                content=json.dumps({
+                    "code": 400,
+                    "msg": "共创建 2 个资源，全部失败",
+                    "data": {
+                        "bean": {
+                            "summary": {
+                                "total": 2,
+                                "success_count": 0,
+                                "failure_count": 2,
+                                "partial_success": False
+                            },
+                            "results": [
+                                {
+                                    "index": 1,
+                                    "kind": "Service",
+                                    "name": "demo",
+                                    "success": False,
+                                    "message": "services \"demo\" already exists"
+                                }
+                            ]
+                        }
+                    }
+                }),
+            )
+
+        error = context.exception
+        self.assertEqual(error.msg, "共创建 2 个资源，全部失败")
+        self.assertEqual(error.response.data["data"]["bean"]["summary"]["failure_count"], 2)
+        self.assertEqual(error.response.data["data"]["bean"]["results"][0]["kind"], "Service")
 
     # capability_id: console.region-api.domain-conflict-msg
     def test_check_status_keeps_domain_conflict_as_conflict_error(self):

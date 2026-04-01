@@ -189,6 +189,20 @@ class AppVersionService(object):
         return cls._build_hidden_template_id_by_app_id(app.ID)
 
     @staticmethod
+    def _normalize_template_image(item):
+        data = dict(item or {})
+        if not data.get("share_image") and data.get("image"):
+            data["share_image"] = data["image"]
+        return data
+
+    @classmethod
+    def _normalize_template_images(cls, app_template):
+        template = copy.deepcopy(app_template or {})
+        template["apps"] = [cls._normalize_template_image(component) for component in template.get("apps", [])]
+        template["plugins"] = [cls._normalize_template_image(plugin) for plugin in template.get("plugins", [])]
+        return template
+
+    @staticmethod
     def _split_version(version):
         if not version:
             return [1, 0, 0]
@@ -305,7 +319,7 @@ class AppVersionService(object):
         app_arch = [svc.get("arch", "amd64") for svc in services if svc.get("arch")]
         app_arch = sorted(list(set(app_arch))) if app_arch else ["amd64"]
         app_template["arch"] = "&".join(app_arch)
-        return app_template
+        return self._normalize_template_images(app_template)
 
     @classmethod
     def _strip_runtime_fields(cls, value):

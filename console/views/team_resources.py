@@ -177,7 +177,8 @@ class NsResourcesView(TenantHeaderView):
         content_type = request.META.get("CONTENT_TYPE")
         res, data = region_api.post_tenant_ns_resource(
             region_name, team_name, request.body, params=params, content_type=content_type)
-        return Response(general_message(200, "success", "OK", bean=data.get("bean")))
+        status_code = getattr(res, "status", 200)
+        return Response(data, status=status_code)
 
 
 class NsResourceDetailView(TenantHeaderView):

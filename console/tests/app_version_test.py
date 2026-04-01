@@ -104,6 +104,40 @@ class AppVersionServiceDiffSummaryTestCase(TestCase):
         self.assertEqual(diff_summary["updated_count"], 1)
 
 
+class AppVersionServiceTemplateNormalizationTestCase(TestCase):
+    # capability_id: console.app-version.snapshot-share-image-fallback
+    def test_assemble_app_template_falls_back_to_image_when_share_image_missing(self):
+        services = [
+            {
+                "service_id": "service-1",
+                "service_key": "service-1",
+                "service_alias": "web",
+                "image": "registry.example.com/demo/web:1.0.0",
+            }
+        ]
+        plugins = [
+            {
+                "plugin_id": "plugin-1",
+                "plugin_alias": "demo-plugin",
+                "image": "registry.example.com/demo/plugin:1.0.0",
+            }
+        ]
+
+        template = app_version_service._assemble_app_template(
+            mock.Mock(tenant_id="tenant-1"),
+            mock.Mock(region_name="demo-region"),
+            mock.Mock(group_name="demo-app", governance_mode=None),
+            "hidden-app-id",
+            "1.0.0",
+            services,
+            plugins,
+            [],
+        )
+
+        self.assertEqual(template["apps"][0]["share_image"], services[0]["image"])
+        self.assertEqual(template["plugins"][0]["share_image"], plugins[0]["image"])
+
+
 class AppVersionServiceComponentDiffDetailTestCase(TestCase):
     # capability_id: console.app-version.component-diff-details
     def test_build_component_diff_details_tracks_added_removed_and_field_updates(self):

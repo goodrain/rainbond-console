@@ -233,9 +233,9 @@ class NewComponents(object):
             "service_share_uuid", None) else tmpl.get("service_key", "")
         update_time = self.app_template.app_template.get("update_time")
         if update_time:
-            if type(update_time) == datetime:
+            if isinstance(update_time, datetime):
                 extend_info["update_time"] = update_time.strftime('%Y-%m-%d %H:%M:%S')
-            elif type(update_time) == str:
+            elif isinstance(update_time, str):
                 extend_info["update_time"] = update_time
         if self.install_from_cloud:
             extend_info["install_from_cloud"] = True
@@ -369,7 +369,9 @@ class NewComponents(object):
                         file_content=volume["file_content"])
                     config_files.append(config_file)
                 else:
-                    settings = volume_service.get_best_suitable_volume_settings(self.tenant, component, volume["volume_type"],
+                    selected_volume_type = volume_service.get_market_default_volume_type(
+                        self.tenant, component, volume["volume_type"])
+                    settings = volume_service.get_best_suitable_volume_settings(self.tenant, component, selected_volume_type,
                                                                                 volume.get("access_mode"),
                                                                                 volume.get("share_policy"),
                                                                                 volume.get("backup_policy"), None,
@@ -381,6 +383,7 @@ class NewComponents(object):
                         if volume["volume_type"] == "share-file":
                             volume["volume_capacity"] = 0
                     else:
+                        volume["volume_type"] = selected_volume_type
                         settings["volume_capacity"] = volume.get("volume_capacity", 10)
                         if settings["volume_capacity"] == 0:
                             settings["volume_capacity"] = 10

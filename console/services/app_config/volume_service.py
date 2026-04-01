@@ -8,12 +8,13 @@ import os
 import re
 
 from console.constants import AppConstants, ServiceLanguageConstants
-from console.enum.component_enum import ComponentType, is_state
+from console.enum.component_enum import ComponentType
 from console.exception.main import ErrVolumePath, ServiceHandleException
+from console.models.main import ConsoleSysConfig
 from console.repositories.app import service_repo
 from console.repositories.app_config import mnt_repo, volume_repo
 from console.services.app_config.label_service import LabelService
-from console.services.exception import (ErrVolumeTypeDoNotAllowMultiNode, ErrVolumeTypeNotFound)
+from console.services.exception import ErrVolumeTypeDoNotAllowMultiNode
 from console.utils.urlutil import is_path_legal
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import TenantServiceVolume
@@ -109,6 +110,24 @@ class AppVolumeService(object):
                 base_opts.append(opt)
 
         return base_opts
+
+    def get_market_default_volume_type(self, tenant, service, fallback_volume_type):
+        region_name = getattr(service, "service_region", "")
+        enterprise_id = getattr(tenant, "enterprise_id", "")
+        if not region_name or not enterprise_id:
+            return fallback_volume_type
+
+        cfg = ConsoleSysConfig.objects.filter(
+            key="default_storage_class_{}".format(region_name), enterprise_id=enterprise_id, enable=True).first()
+        if not cfg or not cfg.value:
+            return fallback_volume_type
+
+        for opt in self.get_service_support_volume_options(tenant, service):
+            if opt.get("volume_type") == cfg.value:
+                return cfg.value
+
+        logger.warning("configured market default storage class %s is unavailable in region %s", cfg.value, region_name)
+        return fallback_volume_type
 
     def get_best_suitable_volume_settings(self,
                                           tenant,
