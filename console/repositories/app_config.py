@@ -133,10 +133,7 @@ class TenantServiceEnvVarRepository(object):
         build_start_env = Q(scope="build")
         build_envs = self.get_service_env(tenant_id, service_id).filter(default_envs | prefix_start_env | cnb_prefix_env | build_start_env)
         for benv in build_envs:
-            attr_name = benv.attr_name
-            if attr_name.startswith("BUILD_"):
-                attr_name = attr_name.replace("BUILD_", "", 1)
-            envs[attr_name] = benv.attr_value
+            envs[benv.attr_name] = benv.attr_value
         compile_env = compile_env_repo.get_service_compile_env(service_id)
         if compile_env:
             envs["PROC_ENV"] = compile_env.user_dependency

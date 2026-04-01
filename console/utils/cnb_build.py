@@ -547,8 +547,8 @@ def build_cnb_version_policy(language, records, fallback_versions):
         if _is_truthy(record.get("first_choice")):
             default_version = normalized_version
 
-    if not visible_versions and not allowed_versions:
-        visible_versions, allowed_versions, default_version = _build_fallback_policy(definition, fallback_versions)
+    visible_versions = _sort_cnb_policy_versions(visible_versions)
+    allowed_versions = _sort_cnb_policy_versions(allowed_versions)
 
     return {
         definition["policy_key"]: {
@@ -928,24 +928,6 @@ def _first_non_empty(envs, *keys):
     return ""
 
 
-def _build_fallback_policy(definition, fallback_versions):
-    visible_versions = []
-    allowed_versions = []
-    default_version = ""
-
-    for item in fallback_versions or []:
-        version = item.get("version", "") if isinstance(item, dict) else item
-        normalized_version = _normalize_cnb_policy_version(definition, version)
-        if not normalized_version:
-            continue
-        _append_unique(visible_versions, normalized_version)
-        _append_unique(allowed_versions, normalized_version)
-        if isinstance(item, dict) and item.get("default"):
-            default_version = normalized_version
-
-    return visible_versions, allowed_versions, default_version
-
-
 def _normalize_cnb_policy_version(definition, version):
     value = str(version or "").strip()
     if not value:
@@ -986,6 +968,14 @@ def _normalize_cnb_policy_version(definition, version):
 def _append_unique(items, value):
     if value and value not in items:
         items.append(value)
+
+
+def _sort_cnb_policy_versions(versions):
+    return sorted(versions or [], key=_cnb_policy_version_sort_key)
+
+
+def _cnb_policy_version_sort_key(version):
+    return [int(part) if str(part).isdigit() else -1 for part in str(version or "").split(".")]
 
 
 def _is_truthy(value):
