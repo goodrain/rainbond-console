@@ -68,6 +68,12 @@ class MCPQueryService(object):
         "且长度不超过63，"
         "例如 web、api-80。"
     )
+    K8S_APP_NAME_PATTERN = r"^[a-z]([-a-z0-9]*[a-z0-9])?$"
+    K8S_APP_NAME_DESCRIPTION = (
+        "应用英文名 / K8s app name。默认建议不传，由系统生成或在后端回填；"
+        "若手动填写，必须以小写字母开头，只能包含小写字母、数字和连字符，"
+        "并且在同团队同集群下唯一，例如 demo-app。"
+    )
     PORT_ACTION_ENUM = (
         "open_outer", "only_open_outer", "close_outer", "open_inner",
         "close_inner", "change_protocol", "change_port_alias"
@@ -410,14 +416,23 @@ class MCPQueryService(object):
         app_name = self._require_string(arguments, "app_name")
         app_note = arguments.get("app_note", "") or ""
         k8s_app = arguments.get("k8s_app", "") or ""
-        app = group_service.create_app(
-            team,
-            region_name,
-            app_name,
-            app_note,
-            self._get_username(user),
-            k8s_app=k8s_app if k8s_app else "",
-        )
+        try:
+            app = group_service.create_app(
+                team,
+                region_name,
+                app_name,
+                app_note,
+                self._get_username(user),
+                k8s_app=k8s_app if k8s_app else "",
+            )
+        except ServiceHandleException as exc:
+            raise ServiceHandleException(
+                msg=exc.msg,
+                msg_show=exc.msg_show,
+                status_code=exc.status_code,
+                error_code=exc.error_code,
+                details=self._build_create_app_error_details(exc, app_name, k8s_app),
+            )
         return app
 
     def get_component_detail(self, user, arguments):
@@ -2453,6 +2468,41 @@ class MCPQueryService(object):
             status_code=400,
         )
 
+    def _build_create_app_error_details(self, exc, app_name, k8s_app):
+        msg = getattr(exc, "msg", "") or ""
+        msg_show = getattr(exc, "msg_show", "") or ""
+        error_code = getattr(exc, "error_code", None)
+        if error_code in (11011, 21003) or "k8s app" in msg.lower() or "应用英文名已存在" in msg_show:
+            return {
+                "field": "k8s_app",
+                "reason": "duplicate",
+                "expected_pattern": self.K8S_APP_NAME_PATTERN,
+                "provided_value": k8s_app or None,
+                "suggestion": (
+                    "默认建议不传 k8s_app；若必须指定，请换一个在同团队同集群下唯一的英文名。"
+                ),
+                "retryable": False,
+            }
+        if "应用英文名称只能由小写字母" in msg_show or "集群内应用名称只能由小写字母" in msg_show:
+            return {
+                "field": "k8s_app",
+                "reason": "pattern_mismatch",
+                "expected_pattern": self.K8S_APP_NAME_PATTERN,
+                "provided_value": k8s_app or None,
+                "examples": ["demo-app", "wordpress-01"],
+                "suggestion": "若需要指定 k8s_app，请使用小写字母开头、仅包含小写字母、数字和连字符的唯一名称。",
+                "retryable": False,
+            }
+        if "应用名称已存在" in msg_show:
+            return {
+                "field": "app_name",
+                "reason": "duplicate",
+                "provided_value": app_name,
+                "suggestion": "请更换一个在当前团队和集群下未使用的应用名称。",
+                "retryable": False,
+            }
+        return None
+
     @staticmethod
     def _parse_int_with_default(value, default):
         if value is None or value == "":
@@ -3116,9 +3166,13 @@ class MCPQueryService(object):
                 "properties": {
                     "team_name": {"type": "string"},
                     "region_name": {"type": "string"},
-                    "app_name": {"type": "string"},
+                    "app_name": {"type": "string", "description": "应用展示名称。支持中文、英文、数字、下划线、中划线和点。"},
                     "app_note": {"type": "string"},
-                    "k8s_app": {"type": "string"}
+                    "k8s_app": {
+                        "type": "string",
+                        "pattern": self.K8S_APP_NAME_PATTERN,
+                        "description": self.K8S_APP_NAME_DESCRIPTION,
+                    }
                 },
                 "required": ["team_name", "region_name", "app_name"]
             }
