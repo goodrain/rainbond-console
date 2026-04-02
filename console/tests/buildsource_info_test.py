@@ -31,6 +31,12 @@ class DummyJavaService(DummyService):
         self.language = "java-maven"
 
 
+class DummyGoService(DummyService):
+    def __init__(self):
+        super(DummyGoService, self).__init__()
+        self.language = "go"
+
+
 class DummyTenant(object):
     enterprise_id = "eid"
     tenant_id = "team-1"
@@ -175,3 +181,54 @@ class BuildSourceInfoServiceTests(TestCase):
         })
         self.assertEqual(build_infos["svc-1"]["build_env_dict"]["BP_JVM_VERSION"], "17")
         self.assertNotIn("BUILD_RUNTIMES", build_infos["svc-1"]["build_env_dict"])
+
+    def test_golang_build_infos_filter_unsupported_cnb_versions(self):
+        service_repo = MagicMock()
+        service_repo.list_by_component_ids.return_value = [DummyGoService()]
+
+        service_source_repo = MagicMock()
+        service_source_repo.get_service_sources.return_value = []
+        env_var_repo = MagicMock()
+        env_var_repo.get_build_envs.return_value = {
+            "BUILD_TYPE": "cnb",
+            "BUILD_GOVERSION": "1.25"
+        }
+
+        install_stub(
+            "console.exception.main",
+            AbortRequest=Exception,
+            RbdAppNotFound=Exception,
+            ServiceHandleException=Exception,
+        )
+        install_stub("console.repositories.app", service_repo=service_repo, service_source_repo=service_source_repo)
+        install_stub("console.repositories.service_repo", service_repo=service_repo)
+        install_stub("console.repositories.app_config", env_var_repo=env_var_repo)
+        install_stub("console.utils.oauth.oauth_types", support_oauth_type={})
+        install_stub("www.apiclient.regionapi", RegionInvokeApi=DummyRegionInvokeApi)
+        install_stub("www.db.base", BaseConnection=object)
+        install_stub(
+            "console.services.region_lang_version",
+            region_lang_version=types.SimpleNamespace(show_long_version=MagicMock(return_value={"list": [
+                {"lang": "golang", "version": "1.23", "build_strategy": "cnb", "show": True, "is_allowed": True, "first_choice": False},
+                {"lang": "golang", "version": "1.24", "build_strategy": "cnb", "show": True, "is_allowed": True, "first_choice": False},
+                {"lang": "golang", "version": "1.25", "build_strategy": "cnb", "show": True, "is_allowed": True, "first_choice": True},
+                {"lang": "golang", "version": "1.26", "build_strategy": "cnb", "show": True, "is_allowed": True, "first_choice": False},
+            ]})),
+        )
+        service_module = importlib.import_module("console.services.service_services")
+        service_module.service_source_repo = service_source_repo
+        service_module.env_var_repo = env_var_repo
+
+        build_infos = service_module.base_service.get_build_infos(DummyTenant(), ["svc-1"])
+
+        self.assertEqual(build_infos["svc-1"]["cnb_version_policy"], {
+            "golang": {
+                "go": {
+                    "visible_versions": ["1.24", "1.25"],
+                    "allowed_versions": ["1.24", "1.25"],
+                    "default_version": "1.25"
+                }
+            }
+        })
+        self.assertEqual(build_infos["svc-1"]["build_env_dict"]["BP_GO_VERSION"], "1.25")
+        self.assertNotIn("BUILD_GOVERSION", build_infos["svc-1"]["build_env_dict"])

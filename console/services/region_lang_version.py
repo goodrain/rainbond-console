@@ -89,9 +89,6 @@ region_lang_version = RegionLongVersion()
 
 
 class RegionCNBConfig(object):
-    def show_cnb_versions(self, eid, region_id, lang="nodejs"):
-        return region_api.get_cnb_versions(eid, region_id, lang)
-
     def show_cnb_frameworks(self, eid, region_id, lang="nodejs"):
         return region_api.get_cnb_frameworks(eid, region_id, lang)
 

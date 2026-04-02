@@ -107,6 +107,47 @@ class CNBVersionPolicyTests(TestCase):
             }
         })
 
+    def test_build_policy_filters_unsupported_golang_major_versions(self):
+        policy = build_cnb_version_policy("Go", [{
+            "lang": "golang",
+            "version": "1.23",
+            "build_strategy": "cnb",
+            "show": True,
+            "is_allowed": True,
+            "first_choice": False
+        }, {
+            "lang": "golang",
+            "version": "1.24",
+            "build_strategy": "cnb",
+            "show": True,
+            "is_allowed": True,
+            "first_choice": False
+        }, {
+            "lang": "golang",
+            "version": "1.25",
+            "build_strategy": "cnb",
+            "show": True,
+            "is_allowed": True,
+            "first_choice": True
+        }, {
+            "lang": "golang",
+            "version": "1.26",
+            "build_strategy": "cnb",
+            "show": True,
+            "is_allowed": True,
+            "first_choice": False
+        }], [])
+
+        self.assertEqual(policy, {
+            "golang": {
+                "go": {
+                    "visible_versions": ["1.24", "1.25"],
+                    "allowed_versions": ["1.24", "1.25"],
+                    "default_version": "1.25"
+                }
+            }
+        })
+
     def test_build_policy_normalizes_java_major_versions(self):
         policy = build_cnb_version_policy("java-maven", [{
             "lang": "openJDK",
