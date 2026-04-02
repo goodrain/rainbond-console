@@ -68,6 +68,11 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("rainbond_upgrade_app", tool_names)
         self.assertIn("rainbond_get_copy_app_info", tool_names)
         self.assertIn("rainbond_copy_app", tool_names)
+        self.assertIn("rainbond_query_cloud_markets", tool_names)
+        self.assertIn("rainbond_query_local_app_models", tool_names)
+        self.assertIn("rainbond_query_cloud_app_models", tool_names)
+        self.assertIn("rainbond_query_app_model_versions", tool_names)
+        self.assertIn("rainbond_install_app_model", tool_names)
         self.assertIn("rainbond_install_app_by_market", tool_names)
         self.assertIn("rainbond_create_component_from_source", tool_names)
         self.assertIn("rainbond_create_component_from_package", tool_names)
@@ -139,6 +144,11 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("rainbond_upgrade_app", tool_names)
         self.assertIn("rainbond_get_copy_app_info", tool_names)
         self.assertIn("rainbond_copy_app", tool_names)
+        self.assertIn("rainbond_query_cloud_markets", tool_names)
+        self.assertIn("rainbond_query_local_app_models", tool_names)
+        self.assertIn("rainbond_query_cloud_app_models", tool_names)
+        self.assertIn("rainbond_query_app_model_versions", tool_names)
+        self.assertIn("rainbond_install_app_model", tool_names)
         self.assertIn("rainbond_install_app_by_market", tool_names)
         self.assertIn("rainbond_create_component_from_source", tool_names)
         self.assertIn("rainbond_create_component_from_package", tool_names)
@@ -2325,6 +2335,126 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertTrue(result["installed"])
         self.assertEqual(result["market_name"], "market-1")
         self.assertEqual(result["service_list"][0]["service_id"], "svc-1")
+
+    @patch("console.services.mcp_query_service.app_market_service.get_app_markets")
+    # capability_id: console.market.cloud-markets
+    def test_query_cloud_markets_returns_market_list(self, mock_get_app_markets):
+        mock_get_app_markets.return_value = [{"name": "RainbondMarket", "domain": "rainbond", "url": "https://hub.grapps.cn"}]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_query_cloud_markets",
+            {"enterprise_id": "eid-1", "extend": True},
+        )
+
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["items"][0]["name"], "RainbondMarket")
+        mock_get_app_markets.assert_called_once_with("eid-1", "true")
+
+    @patch("console.services.mcp_query_service.market_app_service.get_visiable_apps")
+    # capability_id: console.market.local-app-models
+    def test_query_local_app_models_returns_paginated_templates(self, mock_get_visiable_apps):
+        app_model = Obj(
+            app_id="model-1",
+            app_name="WordPress",
+            versions_info=[{"version": "1.0.0"}],
+            min_memory=256,
+            arch=["amd64"],
+        )
+        app_model.to_dict = lambda: {"app_id": "model-1", "app_name": "WordPress", "arch": ["amd64"]}
+        mock_get_visiable_apps.return_value = ([app_model], 1, ["model-1"])
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_query_local_app_models",
+            {"enterprise_id": "eid-1", "scope": "enterprise", "page": 1, "page_size": 10},
+        )
+
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["items"][0]["app_id"], "model-1")
+        self.assertEqual(result["items"][0]["versions_info"][0]["version"], "1.0.0")
+        self.assertEqual(result["items"][0]["min_memory"], 256)
+        mock_get_visiable_apps.assert_called_once_with("enterprise", None, True, 1, 10, "", "", "", None)
+
+    @patch("console.services.mcp_query_service.app_market_service.get_market_app_list")
+    @patch("console.services.mcp_query_service.app_market_service.get_app_market")
+    # capability_id: console.market.cloud-app-models
+    def test_query_cloud_app_models_returns_market_templates(self, mock_get_app_market, mock_get_market_app_list):
+        market = Obj(name="RainbondMarket")
+        mock_get_app_market.return_value = ({"name": "RainbondMarket"}, market)
+        mock_get_market_app_list.return_value = ([{"app_id": "model-1", "app_name": "Redis"}], 1, 10, 1)
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_query_cloud_app_models",
+            {"enterprise_id": "eid-1", "market_name": "RainbondMarket", "page": 1, "page_size": 10},
+        )
+
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["items"][0]["app_name"], "Redis")
+        mock_get_market_app_list.assert_called_once_with(market, 1, 10, query=None, query_all=False, extend=True, arch="")
+
+    @patch("console.services.mcp_query_service.market_app_service.get_rainbond_app_and_versions")
+    # capability_id: console.market.app-model-versions-local
+    def test_query_app_model_versions_for_local_returns_versions(self, mock_get_versions):
+        app_model = {"app_id": "model-1", "app_name": "WordPress"}
+        versions = [{"version": "1.0.0"}, {"version": "1.1.0"}]
+        mock_get_versions.return_value = (app_model, versions, 2)
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_query_app_model_versions",
+            {"enterprise_id": "eid-1", "source": "local", "app_model_id": "model-1", "page": 1, "page_size": 10},
+        )
+
+        self.assertEqual(result["total"], 2)
+        self.assertEqual(result["app_model"]["app_name"], "WordPress")
+        self.assertEqual(result["items"][1]["version"], "1.1.0")
+        mock_get_versions.assert_called_once_with("eid-1", "model-1", 1, 10)
+
+    @patch("console.services.mcp_query_service.group_service.get_group_services")
+    @patch("console.services.mcp_query_service.market_app_service.install_app")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    # capability_id: console.market.install-app-model-cloud
+    def test_install_app_model_for_cloud_calls_market_app_service(
+            self,
+            mock_get_team,
+            mock_get_region,
+            mock_get_app,
+            mock_install_app,
+            mock_get_group_services,
+    ):
+        installed_service = Obj(service_id="svc-1")
+        installed_service.to_dict = lambda: {"service_id": "svc-1"}
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_install_app.return_value = "Redis"
+        mock_get_group_services.return_value = [installed_service]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_install_app_model",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "source": "cloud",
+                "market_name": "RainbondMarket",
+                "app_model_id": "model-1",
+                "app_model_version": "1.0.0",
+                "is_deploy": True,
+            },
+        )
+
+        self.assertTrue(result["installed"])
+        self.assertEqual(result["installed_app_name"], "Redis")
+        self.assertEqual(result["service_list"][0]["service_id"], "svc-1")
+        mock_install_app.assert_called_once_with(
+            self.team, mock_get_region.return_value, self.user, 12, "model-1", "1.0.0", "RainbondMarket", True, True
+        )
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")

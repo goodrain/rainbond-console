@@ -190,6 +190,14 @@ class MCPQueryService(object):
         "delete": "delete",
         "remove": "delete",
     }
+    APP_MODEL_SOURCE_ALIASES = {
+        "local": "local",
+        "template": "local",
+        "enterprise": "local",
+        "cloud": "cloud",
+        "market": "cloud",
+        "cloud_market": "cloud",
+    }
     DEPENDENCY_OPERATION_ALIASES = {
         "summary": "summary",
         "list": "summary",
@@ -216,6 +224,8 @@ class MCPQueryService(object):
             self._tool_vertical_scale_component(), self._tool_close_apps(), self._tool_get_team_apps(),
             self._tool_build_component(), self._tool_get_app_upgrade_info(), self._tool_upgrade_app(),
             self._tool_get_copy_app_info(), self._tool_copy_app(), self._tool_install_app_by_market(),
+            self._tool_query_cloud_markets(), self._tool_query_local_app_models(), self._tool_query_cloud_app_models(),
+            self._tool_query_app_model_versions(), self._tool_install_app_model(),
             self._tool_create_component_from_source(), self._tool_create_component_from_package(),
             self._tool_create_component_from_image(),
             self._tool_create_app_from_yaml(), self._tool_check_yaml_app(), self._tool_get_yaml_app_check_result(),
@@ -297,6 +307,16 @@ class MCPQueryService(object):
             return self.copy_app(user, arguments)
         if name == "rainbond_install_app_by_market":
             return self.install_app_by_market(user, arguments)
+        if name == "rainbond_query_cloud_markets":
+            return self.query_cloud_markets(user, arguments)
+        if name == "rainbond_query_local_app_models":
+            return self.query_local_app_models(user, arguments)
+        if name == "rainbond_query_cloud_app_models":
+            return self.query_cloud_app_models(user, arguments)
+        if name == "rainbond_query_app_model_versions":
+            return self.query_app_model_versions(user, arguments)
+        if name == "rainbond_install_app_model":
+            return self.install_app_model(user, arguments)
         if name == "rainbond_create_component_from_source":
             return self.create_component_from_source(user, arguments)
         if name == "rainbond_create_component_from_package":
@@ -1468,6 +1488,148 @@ class MCPQueryService(object):
             "service_list": [self._serialize_model_item(service) for service in services],
         }
 
+    def query_cloud_markets(self, user, arguments):
+        enterprise_id = self._require_string(arguments, "enterprise_id")
+        self._ensure_enterprise_access(user, enterprise_id)
+        extend = "true" if self._parse_bool_with_default(arguments.get("extend"), True) else "false"
+        items = app_market_service.get_app_markets(enterprise_id, extend)
+        return {
+            "enterprise_id": enterprise_id,
+            "items": [self._serialize_model_item(item) for item in items],
+            "total": len(items),
+        }
+
+    def query_local_app_models(self, user, arguments):
+        enterprise_id = self._require_string(arguments, "enterprise_id")
+        self._ensure_enterprise_access(user, enterprise_id)
+        page, page_size = self._parse_pagination(arguments)
+        query = arguments.get("query") or arguments.get("app_name")
+        scope = (arguments.get("scope") or "enterprise").strip().lower()
+        if scope not in ("enterprise", "team", ""):
+            raise ServiceHandleException(msg="invalid scope", msg_show="参数scope无效", status_code=400)
+        arch = (arguments.get("arch") or "").strip()
+        tenant_name = (arguments.get("tenant_name") or "").strip()
+        is_plugin = self._normalize_bool_query_value(arguments.get("is_plugin"))
+        apps, total, _ = market_app_service.get_visiable_apps(
+            scope, query, True, page, page_size, "", arch, tenant_name, is_plugin
+        )
+        items = []
+        for app_model in apps:
+            data = self._serialize_model_item(app_model)
+            data["versions_info"] = getattr(app_model, "versions_info", [])
+            data["min_memory"] = getattr(app_model, "min_memory", 0)
+            items.append(data)
+        return {
+            "enterprise_id": enterprise_id,
+            "scope": scope or "all",
+            "items": items,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+
+    def query_cloud_app_models(self, user, arguments):
+        enterprise_id = self._require_string(arguments, "enterprise_id")
+        market_name = self._require_string(arguments, "market_name")
+        self._ensure_enterprise_access(user, enterprise_id)
+        page, page_size = self._parse_pagination(arguments)
+        query = arguments.get("query")
+        arch = (arguments.get("arch") or "").strip()
+        query_all = self._parse_bool_with_default(arguments.get("query_all"), False)
+        is_plugin = self._parse_bool_with_default(arguments.get("is_plugin"), False)
+        _, market = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
+        if is_plugin:
+            items, page, page_size, total = app_market_service.get_market_plugins_apps(
+                market, page, page_size, query=query, query_all=query_all, extend=True
+            )
+        else:
+            items, page, page_size, total = app_market_service.get_market_app_list(
+                market, page, page_size, query=query, query_all=query_all, extend=True, arch=arch
+            )
+        return {
+            "enterprise_id": enterprise_id,
+            "market_name": market_name,
+            "items": [self._serialize_model_item(item) for item in items],
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+
+    def query_app_model_versions(self, user, arguments):
+        enterprise_id = self._require_string(arguments, "enterprise_id")
+        app_model_id = self._require_string(arguments, "app_model_id")
+        source = self._normalize_app_model_source(arguments.get("source"))
+        self._ensure_enterprise_access(user, enterprise_id)
+
+        if source == "local":
+            page, page_size = self._parse_pagination(arguments)
+            app_model, versions, total = market_app_service.get_rainbond_app_and_versions(
+                enterprise_id, app_model_id, page, page_size
+            )
+            return {
+                "enterprise_id": enterprise_id,
+                "source": source,
+                "app_model": self._serialize_model_item(app_model),
+                "items": [self._serialize_model_item(item) for item in (versions or [])],
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+            }
+
+        market_name = self._require_string(arguments, "market_name")
+        _, market = app_market_service.get_app_market(enterprise_id, market_name, raise_exception=True)
+        app_model = app_market_service.get_market_app_model(market, app_model_id, extend=True)
+        items = app_market_service.get_market_app_model_versions(
+            market, app_model_id, query_all=self._parse_bool_with_default(arguments.get("query_all"), False), extend=True
+        )
+        page, page_size = self._parse_pagination(arguments)
+        result = self._paginate_data(items, page, page_size)
+        result.update({
+            "enterprise_id": enterprise_id,
+            "source": source,
+            "market_name": market_name,
+            "app_model": self._serialize_model_item(app_model),
+            "app_model_id": app_model_id,
+        })
+        return result
+
+    def install_app_model(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        region = self._get_region_by_name_context(user, app.region_name)
+        source = self._normalize_app_model_source(arguments.get("source"))
+        market_name = (arguments.get("market_name") or "").strip()
+        if source == "cloud" and not market_name:
+            raise ServiceHandleException(
+                msg="invalid market_name", msg_show="云市场安装时必须提供market_name", status_code=400
+            )
+
+        installed_app_name = market_app_service.install_app(
+            team,
+            region,
+            user,
+            app.ID,
+            self._require_string(arguments, "app_model_id"),
+            self._require_string(arguments, "app_model_version"),
+            market_name,
+            source == "cloud",
+            self._parse_bool_with_default(arguments.get("is_deploy"), True),
+        )
+        services = group_service.get_group_services(app.ID)
+        return {
+            "installed": True,
+            "source": source,
+            "app_id": app.ID,
+            "app_name": app.group_name,
+            "installed_app_name": installed_app_name,
+            "market_name": market_name or None,
+            "service_list": [self._serialize_model_item(service) for service in services],
+        }
+
     def create_component_from_source(self, user, arguments):
         team, app = self._get_team_app_context(
             user,
@@ -2259,6 +2421,37 @@ class MCPQueryService(object):
             page_size = self.MAX_PAGE_SIZE
 
         return page, page_size
+
+    @staticmethod
+    def _parse_bool_with_default(value, default=False):
+        if value is None or value == "":
+            return default
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            value = value.strip().lower()
+            if value in ("true", "1", "yes", "y", "on"):
+                return True
+            if value in ("false", "0", "no", "n", "off"):
+                return False
+        raise ServiceHandleException(msg="invalid boolean", msg_show="布尔参数无效", status_code=400)
+
+    @classmethod
+    def _normalize_bool_query_value(cls, value):
+        if value is None or value == "":
+            return None
+        return "true" if cls._parse_bool_with_default(value, False) else "false"
+
+    def _normalize_app_model_source(self, source):
+        source = (source or "local").strip().lower()
+        normalized = self.APP_MODEL_SOURCE_ALIASES.get(source)
+        if normalized:
+            return normalized
+        raise ServiceHandleException(
+            msg="invalid source",
+            msg_show="source 无效，可选值为: local, cloud",
+            status_code=400,
+        )
 
     @staticmethod
     def _parse_int_with_default(value, default):
@@ -3262,6 +3455,100 @@ class MCPQueryService(object):
                     }
                 },
                 "required": ["team_name", "region_name", "app_id", "target_team_name", "target_region_name", "target_app_id"]
+            }
+        }
+
+    def _tool_query_cloud_markets(self):
+        return {
+            "name": "rainbond_query_cloud_markets",
+            "description": "List configured cloud application markets for an enterprise.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "enterprise_id": {"type": "string"},
+                    "extend": {"type": "boolean", "description": "Whether to include extended market metadata."}
+                },
+                "required": ["enterprise_id"]
+            }
+        }
+
+    def _tool_query_local_app_models(self):
+        return {
+            "name": "rainbond_query_local_app_models",
+            "description": "List local application templates available inside the enterprise market.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "enterprise_id": {"type": "string"},
+                    "scope": {"type": "string", "enum": ["enterprise", "team", ""]},
+                    "query": {"type": "string"},
+                    "app_name": {"type": "string"},
+                    "arch": {"type": "string"},
+                    "tenant_name": {"type": "string"},
+                    "is_plugin": {"type": "boolean"},
+                    "page": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE},
+                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                },
+                "required": ["enterprise_id"]
+            }
+        }
+
+    def _tool_query_cloud_app_models(self):
+        return {
+            "name": "rainbond_query_cloud_app_models",
+            "description": "List app templates from a specific cloud market.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "enterprise_id": {"type": "string"},
+                    "market_name": {"type": "string"},
+                    "query": {"type": "string"},
+                    "query_all": {"type": "boolean"},
+                    "arch": {"type": "string"},
+                    "is_plugin": {"type": "boolean"},
+                    "page": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE},
+                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                },
+                "required": ["enterprise_id", "market_name"]
+            }
+        }
+
+    def _tool_query_app_model_versions(self):
+        return {
+            "name": "rainbond_query_app_model_versions",
+            "description": "List versions for a local or cloud app template.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "enterprise_id": {"type": "string"},
+                    "source": {"type": "string", "enum": ["local", "cloud"]},
+                    "market_name": {"type": "string", "description": "Required when source=cloud."},
+                    "app_model_id": {"type": "string"},
+                    "query_all": {"type": "boolean"},
+                    "page": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE},
+                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                },
+                "required": ["enterprise_id", "source", "app_model_id"]
+            }
+        }
+
+    def _tool_install_app_model(self):
+        return {
+            "name": "rainbond_install_app_model",
+            "description": "Install a local or cloud app template into an existing app.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "source": {"type": "string", "enum": ["local", "cloud"]},
+                    "market_name": {"type": "string", "description": "Required when source=cloud."},
+                    "app_model_id": {"type": "string"},
+                    "app_model_version": {"type": "string"},
+                    "is_deploy": {"type": "boolean"}
+                },
+                "required": ["team_name", "region_name", "app_id", "source", "app_model_id", "app_model_version"]
             }
         }
 
