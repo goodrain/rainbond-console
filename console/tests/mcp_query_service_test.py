@@ -3268,6 +3268,34 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.source_component_service.auto_create_component")
+    # capability_id: console.component.create-from-source-prefer-dockerfile
+    def test_create_component_from_source_passes_prefer_dockerfile_flag(
+            self, mock_auto_create, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_auto_create.return_value = {"service_id": "svc-1", "built": True}
+
+        mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_component_from_source",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "code_from": "git",
+                "service_cname": "demo-2048",
+                "git_url": "https://gitee.com/rainbond/demo-2048.git",
+                "prefer_dockerfile_when_detected": True,
+            },
+        )
+
+        self.assertTrue(mock_auto_create.call_args[1]["prefer_dockerfile_when_detected"])
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.package_component_service.auto_create_component")
     # capability_id: console.component.create-from-package-upload
     def test_create_component_from_package_calls_aggregated_package_service(

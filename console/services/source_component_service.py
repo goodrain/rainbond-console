@@ -44,6 +44,7 @@ class SourceComponentService(object):
             k8s_component_name="",
             arch="amd64",
             is_deploy=True,
+            prefer_dockerfile_when_detected=False,
             max_check_retries=None,
             check_poll_interval=None):
         git_url = self.normalize_git_url(git_url, subdirectories)
@@ -101,9 +102,15 @@ class SourceComponentService(object):
                 msg_show="检测到多组件源码，请使用多组件创建流程",
                 status_code=400,
             )
+        selected_language = None
+        detected_language_raw = None
         if service_info_list:
+            selected_service_info = self._select_service_info(service_info_list[0], prefer_dockerfile_when_detected)
+            detected_language_raw = service_info_list[0].get("language")
+            selected_language = selected_service_info.get("language")
+            service_info_list[0] = selected_service_info
             app_check_service.save_service_check_info(team, app.ID, component, bean)
-            self.apply_default_build_config(team, component, service_info_list[0])
+            self.apply_default_build_config(team, component, selected_service_info)
 
         region_component = console_app_service.create_region_service(team, component, self._get_username(user))
         deploy_event_id = None
@@ -128,8 +135,23 @@ class SourceComponentService(object):
             "create_status": getattr(region_component, "create_status", getattr(component, "create_status", "")),
             "event_id": deploy_event_id,
             "is_deploy": bool(is_deploy),
+            "detected_language_raw": detected_language_raw,
+            "selected_language": selected_language or getattr(component, "language", ""),
             "built": True,
         }
+
+    @staticmethod
+    def _select_service_info(service_info, prefer_dockerfile_when_detected=False):
+        normalized = dict(service_info or {})
+        if not prefer_dockerfile_when_detected:
+            return normalized
+
+        language = (normalized.get("language") or "").strip()
+        dockerfiles = normalized.get("dockerfiles") or []
+        lowered_parts = [part.strip().lower() for part in language.split(",") if part.strip()]
+        if dockerfiles and "dockerfile" in lowered_parts and len(lowered_parts) > 1:
+            normalized["language"] = "dockerfile"
+        return normalized
 
     def _wait_for_check_result(self, region_name, team, check_uuid, max_retries, poll_interval):
         retry_count = 0
