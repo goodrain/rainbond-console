@@ -248,6 +248,17 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertEqual(k8s_service_name_schema["pattern"], r"^[a-z]([-a-z0-9]*[a-z0-9])?$")
         self.assertEqual(k8s_service_name_schema["maxLength"], 63)
 
+    # capability_id: console.gateway.create-app-k8s-name-schema
+    def test_create_app_tool_schema_exposes_k8s_app_constraints(self):
+        tool = mcp_query_service._tool_create_app()
+
+        app_name_schema = tool["inputSchema"]["properties"]["app_name"]
+        k8s_app_schema = tool["inputSchema"]["properties"]["k8s_app"]
+
+        self.assertIn("展示名称", app_name_schema["description"])
+        self.assertEqual(k8s_app_schema["pattern"], r"^[a-z]([-a-z0-9]*[a-z0-9])?$")
+        self.assertIn("默认建议不传", k8s_app_schema["description"])
+
     # capability_id: console.component.operation-aliases
     def test_normalize_component_operation_aliases(self):
         self.assertEqual(
@@ -740,6 +751,34 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
         self.assertEqual(result["app_name"], "demo-app")
         mock_create_app.assert_called_once()
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.create_app")
+    # capability_id: console.app.create-k8s-name-duplicate
+    def test_create_app_exposes_structured_k8s_app_duplicate_error(self, mock_create_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_create_app.side_effect = ServiceHandleException(
+            msg="k8s app name exists", msg_show="k8s app name exists", status_code=400, error_code=11011
+        )
+
+        with self.assertRaises(ServiceHandleException) as context:
+            mcp_query_service.call_tool(
+                self.user,
+                "rainbond_create_app",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "app_name": "demo-app",
+                    "k8s_app": "demo-app",
+                },
+            )
+
+        self.assertEqual(context.exception.error_code, 11011)
+        self.assertEqual(context.exception.details["field"], "k8s_app")
+        self.assertEqual(context.exception.details["reason"], "duplicate")
+        self.assertFalse(context.exception.details["retryable"])
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
