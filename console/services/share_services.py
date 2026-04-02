@@ -543,6 +543,20 @@ class ShareService(object):
             app_template.pop("platform_plugin", None)
         return app_template
 
+    @staticmethod
+    def _apply_image_delivery(service, image_info):
+        service["service_image"] = image_info
+        service["share_type"] = "image"
+        service.pop("service_slug", None)
+        service.pop("share_slug_path", None)
+
+    @staticmethod
+    def _apply_slug_delivery(service, slug_info):
+        service["service_slug"] = slug_info
+        service["share_type"] = "slug"
+        service.pop("service_image", None)
+        service.pop("share_image", None)
+
     @transaction.atomic
     def sync_event(self, user, region_name, tenant_name, record_event):
         app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(record_event.record_id)
@@ -586,9 +600,11 @@ class ShareService(object):
                             image_name = bean.get("image_name", None)
                             if image_name:
                                 app["share_image"] = image_name
+                                app.pop("share_slug_path", None)
                             slug_path = bean.get("slug_path", None)
                             if slug_path:
                                 app["share_slug_path"] = slug_path
+                                app.pop("share_image", None)
                             new_apps.append(app)
                         else:
                             transaction.savepoint_rollback(sid)
@@ -927,17 +943,15 @@ class ShareService(object):
                         if not delivered_type and not snapshot_template:
                             continue
                         if delivered_type == "slug":
-                            service['service_slug'] = app_store.get_slug_hub_info(market, app_model_id,
-                                                                                  share_team.enterprise_id)
-                            service["share_type"] = "slug"
+                            slug_info = app_store.get_slug_hub_info(market, app_model_id, share_team.enterprise_id)
+                            self._apply_slug_delivery(service, slug_info)
                             if not service['service_slug']:
                                 if sid:
                                     transaction.savepoint_rollback(sid)
                                 return 400, "获取源码包上传地址错误", None
                         else:
-                            service["service_image"] = app_store.get_app_hub_info(market, app_model_id,
-                                                                                  share_team.enterprise_id)
-                            service["share_type"] = "image"
+                            image_info = app_store.get_app_hub_info(market, app_model_id, share_team.enterprise_id)
+                            self._apply_image_delivery(service, image_info)
                             if not service["service_image"]:
                                 if sid:
                                     transaction.savepoint_rollback(sid)

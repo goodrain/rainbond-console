@@ -17,8 +17,10 @@ from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config import (compile_env_service, domain_service, env_var_service, label_service, port_service,
                                          volume_service)
+from console.services.source_build_state_service import source_build_state_service
 from console.services.region_services import region_services
 from console.utils import cnb_build as cnb_build_utils
+from console.utils.source_build_state import build_compile_env_payload, normalize_detected_languages, pick_preferred_language, read_compile_env_state
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -63,6 +65,10 @@ def resolve_lang_update_build_strategy(language, service_build_strategy=""):
 
 
 class AppCheckService(object):
+    @staticmethod
+    def _effective_language(language):
+        return pick_preferred_language(language) or language
+
     def __get_service_region_type(self, service_source):
         if service_source == AppConstants.SOURCE_CODE:
             return "sourcecode"
@@ -214,6 +220,7 @@ class AppCheckService(object):
         sid = None
         try:
             sid = transaction.savepoint()
+            source_build_state_service.save_user_snapshot(service, self._effective_language(service.language))
             # 删除原有build类型env，保存新检测build类型env
             self.upgrade_service_env_info(tenant, service, data)
             # 重新检测后对端口做加法
@@ -221,13 +228,20 @@ class AppCheckService(object):
                 self.add_service_check_port(tenant, service, data)
             except ErrComponentPortExists:
                 logger.error('upgrade component port by code check failure due to component port exists')
-            lang = data["service_info"][0]["language"]
+            raw_language = data["service_info"][0]["language"]
+            lang = self._effective_language(raw_language)
             if lang == "dockerfile" or lang == "static":
                 service.cmd = ""
             elif service.service_source == AppConstants.SOURCE_CODE:
                 service.cmd = "start web"
             service.language = lang
+            service.build_strategy = resolve_lang_update_build_strategy(lang, getattr(service, "build_strategy", ""))
             service.save()
+            primary_snapshot = source_build_state_service.build_snapshot(
+                service,
+                language=lang,
+                compile_env_payload=compile_env_service.get_service_default_env_by_language(lang))
+            source_build_state_service.save_detected_defaults(service, raw_language, primary_snapshot=primary_snapshot)
             transaction.savepoint_commit(sid)
         except Exception as e:
             logger.exception(e)
@@ -315,7 +329,8 @@ class AppCheckService(object):
         service_info = check_service_info
         logger.info("[compose-debug] save_service_info called for service={0}, all keys={1}".format(
             service.service_cname, list(service_info.keys())))
-        service.language = service_info.get("language", "")
+        raw_language = service_info.get("language", "")
+        service.language = self._effective_language(raw_language)
         service.build_strategy = resolve_lang_update_build_strategy(
             service.language, getattr(service, "build_strategy", ""))
         memory = service_info.get("memory", 128)
@@ -347,6 +362,10 @@ class AppCheckService(object):
         # save env
         self.__save_env(tenant, service, envs)
         self.sync_cnb_build_envs(tenant, service, service_info)
+        source_build_state_service.save_detected_defaults(
+            service,
+            raw_language,
+            primary_snapshot=source_build_state_service.build_snapshot(service, language=service.language))
         self.__save_port(tenant, service, ports)
         self.__save_volume(tenant, service, volumes)
         # save compose entrypoint as K8s command via ComponentK8sAttribute
@@ -363,6 +382,8 @@ class AppCheckService(object):
     def __save_compile_env(self, tenant, service, language):
         # 删除原有 compile env
         logger.debug("save tenant {0} compile service env {1}".format(tenant.tenant_name, service.service_cname))
+        current_compile_env = compile_env_service.get_service_compile_env(service)
+        _, state = read_compile_env_state(current_compile_env.user_dependency if current_compile_env else None)
         compile_env_service.delete_service_compile_env(service)
         if not language:
             language = False
@@ -372,7 +393,7 @@ class AppCheckService(object):
         check_dependency_json = json.dumps(check_dependency)
         # 添加默认编译环境
         user_dependency = compile_env_service.get_service_default_env_by_language(language)
-        user_dependency_json = json.dumps(user_dependency)
+        user_dependency_json = json.dumps(build_compile_env_payload(user_dependency, state))
         compile_env_service.save_compile_env(service, language, check_dependency_json, user_dependency_json)
 
     def __save_env(self, tenant, service, envs):
@@ -544,14 +565,22 @@ class AppCheckService(object):
                 "key": "源码信息",
                 "value": "{0}  branch: {1}".format(service.git_url, service.code_version)
             }
-            service_language = {"type": "language", "key": "代码语言", "value": service_info["language"]}
+            service_language = {
+                "type": "language",
+                "key": "代码语言",
+                "value": normalize_detected_languages(service_info["language"])
+            }
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:
             service_code_from = {"type": "source_from", "key": "镜像名称", "value": service.image}
             if service.cmd:
                 service_attr_list.append({"type": "source_from", "key": "镜像启动命令", "value": service.cmd})
         elif service.service_source == AppConstants.PACKAGE_BUILD:
             service_code_from = {"type": "source_from", "key": "源码信息", "value": "本地文件"}
-            service_language = {"type": "language", "key": "代码语言", "value": service_info["language"]}
+            service_language = {
+                "type": "language",
+                "key": "代码语言",
+                "value": normalize_detected_languages(service_info["language"])
+            }
         if service_language:
             service_attr_list.append(service_language)
 

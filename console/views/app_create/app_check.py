@@ -11,6 +11,7 @@ from console.services.app_config import env_var_service
 from console.services.app import app_service
 from console.services.app_check_service import (app_check_service, resolve_lang_update_build_strategy,
                                                 supports_cnb_build_strategy)
+from console.services.source_build_state_service import source_build_state_service
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.views.app_config.base import AppBaseView
 from django.views.decorators.cache import never_cache
@@ -26,8 +27,11 @@ class LangUpdate(AppBaseView):
         lang = request.GET.get('lang', None)
         dockerfile_path = request.data.get('dockerfile_path', '')
         if lang:
+            source_build_state_service.save_user_snapshot(self.service, self.service.language)
+            restored = source_build_state_service.restore_language(self.service, lang)
             self.service.language = lang
-            self.service.build_strategy = resolve_lang_update_build_strategy(lang, getattr(self.service, "build_strategy", ""))
+            self.service.build_strategy = restored.get("build_strategy") or resolve_lang_update_build_strategy(
+                lang, getattr(self.service, "build_strategy", ""))
             if not supports_cnb_build_strategy(lang):
                 app_check_service.cleanup_cnb_build_envs(self.tenant, self.service, remove_build_type=True)
             if lang == 'dockerfile':
@@ -36,6 +40,15 @@ class LangUpdate(AppBaseView):
                 if dockerfile_path:
                     self.service.dockerfile = dockerfile_path
                 env_var_service.delete_service_build_env(self.tenant, self.service)
+            else:
+                self.service.cmd = restored.get("cmd", self.service.cmd) or self.service.cmd
+                app_check_service.cleanup_cnb_build_envs(self.tenant, self.service, remove_build_type=True)
+                env_var_service.delete_service_build_env(self.tenant, self.service)
+                for key, value in restored.get("build_env_dict", {}).items():
+                    if value in (None, ""):
+                        continue
+                    env_var_service.add_service_build_env_var(
+                        self.tenant, self.service, 0, key, key, value, True)
             self.service.save()
             return Response(general_message(200, "更新检测语言成功", "更新检测语言成功"), status=200)
         else:

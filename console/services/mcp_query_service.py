@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 
 from django.core import signing
@@ -33,6 +34,7 @@ from console.services.service_services import base_service
 from console.services.source_component_service import source_component_service
 from console.services.team_services import team_services
 from console.services.upgrade_services import upgrade_service
+from console.utils.source_build_state import build_compile_env_payload, read_compile_env_state
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 
@@ -721,9 +723,9 @@ class MCPQueryService(object):
                     if code != 200:
                         raise ServiceHandleException(msg="add build env error", msg_show=msg, status_code=code)
             compile_env = compile_env_repo.get_service_compile_env(service.service_id)
-            if compile_env:
-                import json
-                compile_env.user_dependency = json.dumps(build_env_dict)
+            if compile_env and compile_env.user_dependency:
+                compile_env_payload, state = read_compile_env_state(compile_env.user_dependency)
+                compile_env.user_dependency = json.dumps(build_compile_env_payload(compile_env_payload, state))
                 compile_env.save()
             return {"updated": True, "build_envs": build_env_dict}
         raise ServiceHandleException(msg="invalid env operation", msg_show="不支持的环境变量操作类型", status_code=400)

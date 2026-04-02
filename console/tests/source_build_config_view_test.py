@@ -116,3 +116,8 @@ class SourceBuildConfigViewTests(TestCase):
         strategy = resolve_lang_update_build_strategy("java-maven", "slug")
 
         self.assertEqual(strategy, "slug")
+
+    def test_lang_update_defaults_gradle_to_cnb_when_strategy_is_empty(self):
+        strategy = resolve_lang_update_build_strategy("gradle", "")
+
+        self.assertEqual(strategy, "cnb")

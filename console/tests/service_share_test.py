@@ -320,6 +320,78 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
         self.assertEqual(saved_template["app_config_groups"][0]["name"], "cg-snapshot")
         self.assertEqual(saved_template["ingress_http_routes"][0]["host"], "demo.example.com")
 
+    def test_create_share_info_removes_stale_slug_fields_when_snapshot_component_is_published_as_image(self):
+        self.snapshot_version.app_template = json.dumps(
+            {
+                "template_version": "v2",
+                "group_key": "hidden-app-id",
+                "group_name": "demo-app",
+                "group_version": "0.0.2",
+                "governance_mode": "BUILD_IN_SERVICE_MESH",
+                "apps": [{
+                    "service_id": "svc-snapshot",
+                    "service_key": "svc-snapshot",
+                    "service_share_uuid": "svc-snapshot+svc-snapshot",
+                    "service_alias": "svc-snapshot",
+                    "service_cname": "svc-snapshot",
+                    "need_share": True,
+                    "arch": "amd64",
+                    "service_related_plugin_config": [],
+                    "share_slug_path": "/grdata/build/tenant/demo/stale-slug.tgz",
+                    "service_slug": {
+                        "slug_path": "/grdata/build/tenant/demo/stale-slug.tgz",
+                        "namespace": "snapshot-space",
+                    },
+                    "share_type": "slug",
+                }],
+                "plugins": [],
+                "k8s_resources": [],
+                "app_config_groups": [],
+                "ingress_http_routes": [],
+            }
+        )
+        app_version_instance = mock.Mock(save=mock.Mock(), arch="amd64")
+        snapshot_filter = mock.Mock()
+        snapshot_filter.first.return_value = self.target_template
+
+        with mock.patch.object(share_services_module.rainbond_app_repo, "get_app_version", return_value=self.snapshot_version), \
+                mock.patch.object(share_services_module.RainbondCenterApp.objects, "filter", return_value=snapshot_filter), \
+                mock.patch("console.services.group_service.group_service.get_app_by_id",
+                           return_value=self.runtime_app), \
+                mock.patch.object(share_services_module.ServiceShareRecordEvent.objects, "filter") as service_events_filter, \
+                mock.patch.object(share_services_module, "ServiceShareRecordEvent") as service_event_cls, \
+                mock.patch.object(share_services_module, "PluginShareRecordEvent") as plugin_event_cls, \
+                mock.patch.object(share_services_module, "RainbondCenterAppVersion",
+                                  return_value=app_version_instance) as app_version_cls, \
+                mock.patch.object(share_services_module.app_store, "get_app_hub_info",
+                                  return_value={"hub": "demo-image-target"}), \
+                mock.patch.object(share_services_module.app_store, "is_no_multiple_region_hub", return_value=False):
+            service_events_filter.return_value.delete.return_value = None
+            service_event_cls.return_value.save = mock.Mock()
+            plugin_event_cls.return_value.save = mock.Mock()
+
+            code, msg, bean = share_service_instance.create_share_info(
+                tenant=self.tenant,
+                region_name=self.region_name,
+                share_record=self.share_record,
+                share_team=self.team,
+                share_user=self.user,
+                share_info=self.share_info,
+                use_force=True,
+                user_id=None,
+            )
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "分享信息处理成功")
+        self.assertIsNotNone(bean)
+
+        saved_template = json.loads(app_version_cls.call_args[1]["app_template"])
+        saved_component = saved_template["apps"][0]
+        self.assertEqual(saved_component["share_type"], "image")
+        self.assertEqual(saved_component["service_image"], {"hub": "demo-image-target"})
+        self.assertNotIn("share_slug_path", saved_component)
+        self.assertNotIn("service_slug", saved_component)
+
 
 class ShareServicePreferredAppTestCase(TestCase):
     # capability_id: console.service-share.local-app-versions
