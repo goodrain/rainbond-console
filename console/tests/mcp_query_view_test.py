@@ -69,9 +69,34 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Mcp-Session-Id"] != "", True)
         self.assertEqual(response["MCP-Protocol-Version"], "2025-03-26")
+        self.assertIn("Mcp-Session-Id", response["Access-Control-Expose-Headers"])
         self.assertEqual(response.data["result"]["protocolVersion"], "2025-03-26")
         session_payload = _load_mcp_http_session(response["Mcp-Session-Id"])
         self.assertEqual(session_payload["protocol_version"], "2025-03-26")
+
+    # capability_id: console.mcp.http-tools-list-with-auth
+    def test_http_post_tools_list_allows_authenticated_request_without_session_header(self):
+        user = SimpleNamespace(user_id=1, is_authenticated=True, is_enterprise_admin=False, enterprise_id="eid-1")
+        request = self.factory.post(
+            "/console/mcp/query",
+            data=json.dumps({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/list",
+                "params": {}
+            }),
+            content_type="application/json",
+            HTTP_ACCEPT="application/json",
+            HTTP_MCP_PROTOCOL_VERSION="2025-03-26",
+        )
+        force_authenticate(request, user=user)
+
+        response = self.http_view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["MCP-Protocol-Version"], "2025-03-26")
+        self.assertEqual(response["Mcp-Session-Id"] != "", True)
+        self.assertTrue(response.data["result"]["tools"])
 
     # capability_id: console.mcp.http-tools-sse
     def test_http_post_can_return_sse_message_response(self):

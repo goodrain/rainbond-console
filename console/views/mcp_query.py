@@ -388,6 +388,8 @@ class MCPQueryMessageView(MCPQueryRPCMixin, APIView):
 class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
     """Streamable HTTP MCP endpoint."""
 
+    _EXPOSE_HEADERS = "Mcp-Session-Id, MCP-Protocol-Version"
+
     @staticmethod
     def _get_http_session_user(session_payload):
         user_id = (session_payload or {}).get("user_id")
@@ -399,6 +401,19 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
             logger.exception("failed to load mcp http session user: %s", user_id)
             return None
 
+    @classmethod
+    def _apply_http_headers(cls, response, protocol_version, session_id=None):
+        if session_id:
+            response["Mcp-Session-Id"] = session_id
+        response["MCP-Protocol-Version"] = protocol_version
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Headers"] = (
+            "Cache-Control, Content-Type, Authorization, MCP-Protocol-Version, Mcp-Session-Id"
+        )
+        response["Access-Control-Expose-Headers"] = cls._EXPOSE_HEADERS
+        response["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+        return response
+
     @never_cache
     def post(self, request, *args, **kwargs):
         payload = self._parse_request_payload(request)
@@ -408,19 +423,24 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
         method = payload.get("method")
         session_id = request.META.get("HTTP_MCP_SESSION_ID", "")
         session_payload = _load_mcp_http_session(session_id)
+        authenticated_user = request.user if self._is_authenticated_user(request.user) else None
 
         if method == "initialize":
             protocol_version = self._resolve_http_protocol_version(request)
-            user = request.user if self._is_authenticated_user(request.user) else None
+            user = authenticated_user
             session_id = _build_mcp_http_session_token(user, protocol_version)
         else:
-            if not session_id:
-                return Response({"detail": "Mcp-Session-Id header is required."}, status=400)
-            if session_payload is None:
+            if session_payload is not None:
+                protocol_version = session_payload.get("protocol_version") or self._resolve_http_protocol_version(request)
+            elif session_id:
                 return Response({"detail": "MCP HTTP session not found."}, status=404)
-            protocol_version = session_payload.get("protocol_version") or self._resolve_http_protocol_version(request)
+            elif authenticated_user is not None:
+                protocol_version = self._resolve_http_protocol_version(request)
+                session_id = _build_mcp_http_session_token(authenticated_user, protocol_version)
+            else:
+                return Response({"detail": "Mcp-Session-Id header is required."}, status=400)
 
-        user = request.user if self._is_authenticated_user(request.user) else self._get_http_session_user(session_payload)
+        user = authenticated_user or self._get_http_session_user(session_payload)
         rpc_response = self._dispatch_rpc(payload, user, protocol_version=protocol_version)
 
         if payload.get("id") is None:
@@ -435,15 +455,7 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
                 response["Content-Encoding"] = "identity"
             else:
                 response = Response(rpc_response, status=200)
-        if session_id:
-            response["Mcp-Session-Id"] = session_id
-        response["MCP-Protocol-Version"] = protocol_version
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Headers"] = (
-            "Cache-Control, Content-Type, Authorization, MCP-Protocol-Version, Mcp-Session-Id"
-        )
-        response["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
-        return response
+        return self._apply_http_headers(response, protocol_version, session_id=session_id)
 
     @never_cache
     def get(self, request, *args, **kwargs):
@@ -466,31 +478,26 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         response['Cache-Control'] = 'no-cache'
         response['Content-Encoding'] = 'identity'
-        response["Mcp-Session-Id"] = session_id
-        response["MCP-Protocol-Version"] = protocol_version
-        response['Access-Control-Allow-Origin'] = '*'
-        response['Access-Control-Allow-Headers'] = 'Cache-Control, Content-Type, Authorization, MCP-Protocol-Version, Mcp-Session-Id'
-        response['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, OPTIONS'
-        return response
+        return self._apply_http_headers(response, protocol_version, session_id=session_id)
 
     @never_cache
     def delete(self, request, *args, **kwargs):
         session_id = request.META.get("HTTP_MCP_SESSION_ID", "")
         if not session_id:
             return Response({"detail": "Mcp-Session-Id header is required."}, status=400)
-        if _load_mcp_http_session(session_id) is None:
+        session_payload = _load_mcp_http_session(session_id)
+        if session_payload is None:
             return Response({"detail": "MCP HTTP session not found."}, status=404)
         response = HttpResponse(status=204)
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Headers"] = "Cache-Control, Content-Type, Authorization, MCP-Protocol-Version, Mcp-Session-Id"
-        response["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
-        return response
+        protocol_version = session_payload.get("protocol_version", _MCP_HTTP_DEFAULT_PROTOCOL_VERSION)
+        return self._apply_http_headers(response, protocol_version, session_id=session_id)
 
     @never_cache
     def options(self, request, *args, **kwargs):
         response = HttpResponse(status=204)
         response["Access-Control-Allow-Origin"] = "*"
         response["Access-Control-Allow-Headers"] = "Cache-Control, Content-Type, Authorization, MCP-Protocol-Version, Mcp-Session-Id"
+        response["Access-Control-Expose-Headers"] = self._EXPOSE_HEADERS
         response["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
         return response
 
