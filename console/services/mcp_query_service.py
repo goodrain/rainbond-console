@@ -3641,7 +3641,15 @@ class MCPQueryService(object):
                     "team_name": {"type": "string"},
                     "region_name": {"type": "string"},
                     "app_id": {"type": "integer", "minimum": 1},
-                    "code_from": {"type": "string"},
+                    "code_from": {
+                        "type": "string",
+                        "description": (
+                            "源码来源标识。推荐优先使用：git（通用 Git/Gitee/GitLab 仓库）、"
+                            "github（GitHub 仓库）、oauth_xxx（OAuth 代码仓库，如 oauth_github）。"
+                            "也兼容 gitlab_manual、gitlab_self、gitlab_new、gitlab_exit、gitlab_demo；"
+                            "若不确定，优先传 git。"
+                        )
+                    },
                     "service_cname": {"type": "string"},
                     "git_url": {"type": "string"},
                     "git_project_id": {"type": "string"},

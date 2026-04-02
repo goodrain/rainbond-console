@@ -259,6 +259,15 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertEqual(k8s_app_schema["pattern"], r"^[a-z]([-a-z0-9]*[a-z0-9])?$")
         self.assertIn("默认建议不传", k8s_app_schema["description"])
 
+    # capability_id: console.gateway.source-code-from-schema
+    def test_create_component_from_source_schema_exposes_code_from_guidance(self):
+        tool = mcp_query_service._tool_create_component_from_source()
+
+        code_from_schema = tool["inputSchema"]["properties"]["code_from"]
+
+        self.assertIn("git/github/oauth_xxx", code_from_schema["description"])
+        self.assertIn("gitlab_manual", code_from_schema["description"])
+
     # capability_id: console.component.operation-aliases
     def test_normalize_component_operation_aliases(self):
         self.assertEqual(
