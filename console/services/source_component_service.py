@@ -149,7 +149,7 @@ class SourceComponentService(object):
         language = (normalized.get("language") or "").strip()
         dockerfiles = normalized.get("dockerfiles") or []
         lowered_parts = [part.strip().lower() for part in language.split(",") if part.strip()]
-        if dockerfiles and "dockerfile" in lowered_parts and len(lowered_parts) > 1:
+        if dockerfiles and lowered_parts != ["dockerfile"]:
             normalized["language"] = "dockerfile"
         return normalized
 
