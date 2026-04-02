@@ -430,6 +430,11 @@ class AppCheckService(object):
                 port_service.delete_service_port(tenant, service)
                 _, _, t_port = port_service.add_service_port(tenant, service, 5000, "http",
                                                              service.service_alias.upper() + str(5000), True, True)
+                if (service.language or "").strip().lower() == "php":
+                    code, msg, env = env_var_service.add_service_env_var(
+                        tenant, service, 5000, "端口", "PORT", 5000, False, scope="outer")
+                    if code not in (200, 412):
+                        logger.error("save php default PORT env error {0}".format(msg))
                 region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, service.service_region)
                 if region_info:
                     try:

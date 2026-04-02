@@ -8,6 +8,7 @@ from console.services.app_check_service import AppCheckService
 class DummyTenant(object):
     tenant_id = "team-1"
     tenant_name = "team-a"
+    enterprise_id = "eid-1"
 
 
 class DummyService(object):
@@ -28,6 +29,7 @@ class DummyService(object):
         self.git_url = "https://example.com/demo.git"
         self.tenant_id = "team-1"
         self.service_id = "service-1"
+        self.service_alias = "demo"
         self.create_status = "complete"
 
     def save(self):
@@ -143,3 +145,46 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         args, _ = region_api.service_source_check.call_args
         source_body = args[2]["source_body"]
         self.assertIn('"build_strategy": ""', source_body)
+
+    @patch.object(app_check_service_module, "env_var_service")
+    @patch.object(app_check_service_module, "domain_service")
+    @patch.object(app_check_service_module, "region_services")
+    @patch.object(app_check_service_module, "port_service")
+    @patch.object(app_check_service_module, "group_repo")
+    def test_save_port_adds_visible_port_env_for_php_default_port(
+        self, group_repo, port_service, region_services, domain_service, env_var_service
+    ):
+        service = DummyService()
+        service.language = "php"
+        group_repo.get_by_service_id.return_value = Mock(app_id=1)
+        port_service.add_service_port.return_value = (200, "success", Mock(container_port=5000))
+        region_services.get_enterprise_region_by_region_name.return_value = None
+        env_var_service.add_service_env_var.return_value = (200, "success", Mock())
+
+        code, msg = self.service_helper._AppCheckService__save_port(self.tenant, service, None)
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "success")
+        env_var_service.add_service_env_var.assert_called_once_with(
+            self.tenant, service, 5000, "端口", "PORT", 5000, False, scope="outer"
+        )
+
+    @patch.object(app_check_service_module, "env_var_service")
+    @patch.object(app_check_service_module, "domain_service")
+    @patch.object(app_check_service_module, "region_services")
+    @patch.object(app_check_service_module, "port_service")
+    @patch.object(app_check_service_module, "group_repo")
+    def test_save_port_skips_visible_port_env_for_non_php_default_port(
+        self, group_repo, port_service, region_services, domain_service, env_var_service
+    ):
+        service = DummyService()
+        service.language = "python"
+        group_repo.get_by_service_id.return_value = Mock(app_id=1)
+        port_service.add_service_port.return_value = (200, "success", Mock(container_port=5000))
+        region_services.get_enterprise_region_by_region_name.return_value = None
+
+        code, msg = self.service_helper._AppCheckService__save_port(self.tenant, service, None)
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "success")
+        env_var_service.add_service_env_var.assert_not_called()
