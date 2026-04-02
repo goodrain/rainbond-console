@@ -4137,11 +4137,18 @@ class MCPQueryService(object):
                     "app_id": {"type": "integer", "minimum": 1},
                     "service_id": {"type": "string"},
                     "operation": {"type": "string", "enum": ["summary", "add", "add_reverse", "delete"]},
-                    "dep_service_id": {"type": "string"},
+                    "dep_service_id": {"type": "string", "description": "要依赖的目标组件 ID。"},
                     "dep_service_ids": {"type": "array", "items": {"type": "string"}},
                     "be_dep_service_ids": {"type": "array", "items": {"type": "string"}},
-                    "open_inner": {"type": "boolean"},
-                    "container_port": {"type": "integer", "minimum": 1}
+                    "open_inner": {
+                        "type": "boolean",
+                        "description": "为 true 时，自动开启被依赖组件的对内端口。若目标组件尚未开启对内端口，推荐优先让系统返回可选端口列表后再决定。"
+                    },
+                    "container_port": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "仅在 open_inner=true 时使用，表示被依赖组件 dep_service_id 的 container_port，而不是当前组件的端口。"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "operation"]
             }
