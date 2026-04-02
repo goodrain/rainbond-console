@@ -2,6 +2,8 @@
 """CNB build env helpers."""
 import re
 
+from console.utils.source_build_state import pick_preferred_language
+
 CNB_BUILD_ENV_NAMES = (
     "CNB_FRAMEWORK",
     "CNB_BUILD_SCRIPT",
@@ -163,8 +165,15 @@ def normalize_language(language):
     return (language or "").replace(".", "").strip().lower()
 
 
+def effective_language(language):
+    preferred = pick_preferred_language(language)
+    if preferred:
+        return preferred
+    return language or ""
+
+
 def get_cnb_policy_definition(language):
-    normalized = normalize_language(language)
+    normalized = normalize_language(effective_language(language))
     compact = normalized.replace("-", "").replace("_", "").replace(" ", "")
     if "dockerfile" in normalized:
         return None
@@ -172,6 +181,8 @@ def get_cnb_policy_definition(language):
         return CNB_POLICY_DEFINITIONS[5]
     if compact == "static" or "nodejs" in compact:
         return CNB_POLICY_DEFINITIONS[4]
+    if "gradle" in compact:
+        return CNB_POLICY_DEFINITIONS[0]
     if "java" in compact:
         return CNB_POLICY_DEFINITIONS[0]
     if "python" in compact:
@@ -184,7 +195,7 @@ def get_cnb_policy_definition(language):
 
 
 def supports_cnb_build_strategy(language):
-    normalized = normalize_language(language)
+    normalized = normalize_language(effective_language(language))
     compact = normalized.replace("-", "").replace("_", "").replace(" ", "")
     if "dockerfile" in normalized:
         return False
@@ -194,12 +205,12 @@ def supports_cnb_build_strategy(language):
 
 
 def is_nodejs_cnb_language(language):
-    normalized = normalize_language(language)
+    normalized = normalize_language(effective_language(language))
     return "dockerfile" not in normalized and "nodejs" in normalized
 
 
 def is_cnb_language(language):
-    normalized = normalize_language(language)
+    normalized = normalize_language(effective_language(language))
     if "dockerfile" in normalized:
         return False
     return is_nodejs_cnb_language(normalized) or normalized == "static"
@@ -806,7 +817,7 @@ def _binding_type_annotation_key(binding_name):
 
 
 def _is_java_cnb_language(language):
-    normalized = normalize_language(language)
+    normalized = normalize_language(effective_language(language))
     compact = normalized.replace("-", "").replace("_", "").replace(" ", "")
     return "java" in compact or "gradle" in compact
 

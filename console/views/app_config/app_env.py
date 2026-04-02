@@ -6,11 +6,12 @@ import json
 import logging
 
 from console.repositories.app import service_repo
-from console.repositories.app_config import compile_env_repo, env_var_repo
+from console.repositories.app_config import env_var_repo
 from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_check_service import supports_cnb_build_strategy
 from console.services.operation_log import operation_log_service, Operation
 from console.services.service_services import base_service
+from console.services.source_build_state_service import source_build_state_service
 from console.utils.cnb_build import (CNB_BUILD_ENV_NAMES, compose_build_env_response, sanitize_build_env_dict_for_language,
                                      resolve_build_strategy, normalize_java_cnb_env_dict_for_response,
                                      normalize_java_cnb_env_dict_for_save,
@@ -556,10 +557,7 @@ class AppBuildEnvView(AppBaseView):
         for build_env in new_build_envs:
             new_build_env_dict[build_env.attr_name] = build_env.attr_value
 
-        compile_env = compile_env_repo.get_service_compile_env(self.service.service_id)
-        if compile_env:
-            compile_env.user_dependency = json.dumps(build_env_dict)
-            compile_env.save()
+        source_build_state_service.save_user_snapshot(self.service, self.service.language)
         new_information = json.dumps(new_build_env_dict, ensure_ascii=False)
         result = general_message(200, "success", "环境变量添加成功")
         comment = operation_log_service.generate_component_comment(

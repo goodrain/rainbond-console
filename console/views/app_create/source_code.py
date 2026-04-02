@@ -15,6 +15,8 @@ from console.services.app_config import compile_env_service
 from console.services.app_import_and_export_service import import_service
 from console.services.group_service import group_service
 from console.services.operation_log import operation_log_service
+from console.services.source_build_state_service import source_build_state_service
+from console.utils.source_build_state import build_compile_env_payload, read_compile_env_state
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView, JWTAuthApiView, ApplicationView
@@ -237,7 +239,7 @@ class AppCompileEnvView(AppBaseView):
             check_dependency = json.loads(compile_env.check_dependency)
             user_dependency = {}
             if compile_env.user_dependency:
-                user_dependency = json.loads(compile_env.user_dependency)
+                user_dependency, _ = read_compile_env_state(compile_env.user_dependency)
                 selected_dependency = [key.replace("ext-", "") for key in list(user_dependency.get("dependencies", {}).keys())]
             bean["check_dependency"] = check_dependency
             bean["user_dependency"] = user_dependency
@@ -295,14 +297,20 @@ class AppCompileEnvView(AppBaseView):
             checkJson["dependencies"] = d
         else:
             checkJson["dependencies"] = {}
-        update_params = {"user_dependency": json.dumps(checkJson)}
+        compile_env = compile_env_service.get_service_compile_env(self.service)
+        _, state = read_compile_env_state(compile_env.user_dependency if compile_env else None)
+        update_params = {
+            "user_dependency": json.dumps(build_compile_env_payload(checkJson, state)),
+            "language": self.service.language
+        }
         compile_env = compile_env_service.update_service_compile_env(self.service, **update_params)
+        source_build_state_service.save_user_snapshot(self.service, self.service.language, compile_env_payload=checkJson)
         bean = dict()
         if compile_env:
             check_dependency = json.loads(compile_env.check_dependency)
             user_dependency = {}
             if compile_env.user_dependency:
-                user_dependency = json.loads(compile_env.user_dependency)
+                user_dependency, _ = read_compile_env_state(compile_env.user_dependency)
             bean["check_dependency"] = check_dependency
             bean["user_dependency"] = user_dependency
             bean["service_id"] = compile_env.service_id

@@ -64,6 +64,19 @@ class AppCheckServiceBuildStrategyTests(TestCase):
             })
 
         self.assertEqual(service.build_strategy, "cnb")
+        self.assertEqual(service.language, "Java-maven")
+
+    def test_save_service_info_prefers_non_dockerfile_language_for_composite_detection(self):
+        service = DummyService()
+
+        with self.patch_side_effects():
+            self.service_helper.save_service_info(self.tenant, service, {
+                "language": "dockerfile,Java-maven",
+                "memory": 256,
+            })
+
+        self.assertEqual(service.language, "Java-maven")
+        self.assertEqual(service.build_strategy, "cnb")
 
     def test_save_service_info_keeps_explicit_slug_strategy(self):
         service = DummyService(build_strategy="slug")

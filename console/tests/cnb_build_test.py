@@ -36,8 +36,8 @@ class CNBLanguageDetectionTestCase(TestCase):
         self.assertFalse(is_cnb_language("java-maven"))
 
     # capability_id: console.cnb-build.reject-unsupported-language
-    def test_dockerfile_node_language_is_not_cnb(self):
-        self.assertFalse(is_cnb_language("dockerfile,Node.js"))
+    def test_dockerfile_node_language_resolves_to_node_target_language(self):
+        self.assertTrue(is_cnb_language("dockerfile,Node.js"))
 
 
 class CNBParamsDetectionTestCase(TestCase):
@@ -116,6 +116,18 @@ class BuildEnvSanitizeTestCase(TestCase):
         self.assertNotIn("HAS_NPMRC", build_env_dict)
         self.assertNotIn("HAS_YARNRC", build_env_dict)
         self.assertEqual(build_env_dict["RUNTIMES"], "17")
+
+    def test_composite_dockerfile_java_uses_java_sanitize_rules(self):
+        build_env_dict = sanitize_build_env_dict_for_language({
+            "CNB_FRAMEWORK": "nextjs",
+            "CNB_NODE_VERSION": "20.20.0",
+            "BUILD_TYPE": "cnb",
+            "BUILD_RUNTIMES": "17"
+        }, "dockerfile,Java-maven")
+        self.assertNotIn("CNB_FRAMEWORK", build_env_dict)
+        self.assertNotIn("CNB_NODE_VERSION", build_env_dict)
+        self.assertEqual(build_env_dict["BUILD_TYPE"], "cnb")
+        self.assertEqual(build_env_dict["BUILD_RUNTIMES"], "17")
 
     # capability_id: console.cnb-build.sanitize-unsupported-envs
     def test_non_cnb_languages_strip_stale_cnb_markers(self):

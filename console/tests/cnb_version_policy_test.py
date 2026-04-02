@@ -79,6 +79,33 @@ class CNBVersionPolicyTests(TestCase):
             }
         })
 
+    def test_build_policy_maps_gradle_to_java_runtime_policy(self):
+        policy = build_cnb_version_policy("gradle", [{
+            "lang": "openJDK",
+            "version": "17.0.12",
+            "build_strategy": "cnb",
+            "show": True,
+            "is_allowed": True,
+            "first_choice": True
+        }, {
+            "lang": "openJDK",
+            "version": "21.0.4",
+            "build_strategy": "cnb",
+            "show": True,
+            "is_allowed": True,
+            "first_choice": False
+        }], [])
+
+        self.assertEqual(policy, {
+            "java": {
+                "jdk": {
+                    "visible_versions": ["17", "21"],
+                    "allowed_versions": ["17", "21"],
+                    "default_version": "17"
+                }
+            }
+        })
+
     def test_build_policy_uses_empty_python_policy_without_enterprise_versions(self):
         policy = build_cnb_version_policy("Python", [], [{
             "version": "3.10",

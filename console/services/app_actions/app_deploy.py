@@ -419,10 +419,12 @@ class MarketService(object):
         new_extend_info = {}
         share_image = app.get("share_image", None)
         share_slug_path = app.get("share_slug_path", None)
-        if share_image and app.get("service_image", None):
-            new_extend_info = app["service_image"]
-        if share_slug_path:
-            slug_info = app.get("service_slug")
+        if share_image:
+            new_extend_info = deepcopy(app.get("service_image", None) or {})
+            if "image_url" not in new_extend_info:
+                new_extend_info["image_url"] = share_image
+        elif share_slug_path:
+            slug_info = deepcopy(app.get("service_slug", None) or {})
             slug_info["slug_path"] = share_slug_path
             new_extend_info = slug_info
         new_extend_info["source_deploy_version"] = app.get("deploy_version")

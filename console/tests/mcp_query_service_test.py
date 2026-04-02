@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import os
 import sys
 from types import ModuleType
@@ -15,6 +16,7 @@ django.setup()
 
 from console.exception.main import ServiceHandleException
 from console.services.mcp_query_service import mcp_query_service
+from console.utils.source_build_state import build_compile_env_payload, read_compile_env_state
 
 
 class Obj(object):
@@ -1456,6 +1458,86 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
         self.assertTrue(result["created"])
         self.assertEqual(mock_add_env.call_args[0][7], "inner")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.env_var_service.get_service_build_envs")
+    @patch("console.services.mcp_query_service.env_var_service.add_service_build_env_var")
+    @patch("console.services.mcp_query_service.compile_env_repo.get_service_compile_env")
+    # capability_id: console.component.build-env-preserve-source-build-state
+    def test_manage_component_envs_replace_build_envs_preserves_source_build_state(
+            self,
+            mock_get_compile_env,
+            mock_add_build_env,
+            mock_get_build_envs,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_build_envs.return_value = [Obj(delete=lambda: None)]
+        mock_add_build_env.return_value = (200, "success", Obj())
+
+        compile_env = Obj(
+            user_dependency=json.dumps(build_compile_env_payload(
+                {
+                    "language": "Java-maven",
+                    "runtimes": "17",
+                    "procfile": "",
+                    "dependencies": {}
+                },
+                {
+                    "user_saved": {
+                        "Java-maven": {
+                            "compile_env": {
+                                "language": "Java-maven",
+                                "runtimes": "21",
+                                "procfile": "",
+                                "dependencies": {}
+                            },
+                            "build_env_dict": {
+                                "BUILD_RUNTIMES": "21"
+                            },
+                            "build_strategy": "cnb",
+                            "cmd": "start web"
+                        }
+                    }
+                }
+            )),
+            save=lambda: None,
+        )
+        mock_get_compile_env.return_value = compile_env
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_manage_component_envs",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "operation": "replace_build_envs",
+                "build_env_dict": {
+                    "BUILD_RUNTIMES": "17"
+                },
+            },
+        )
+
+        compile_env_payload, state = read_compile_env_state(compile_env.user_dependency)
+
+        self.assertTrue(result["updated"])
+        self.assertEqual(compile_env_payload["language"], "Java-maven")
+        self.assertEqual(compile_env_payload["runtimes"], "17")
+        self.assertEqual(state["user_saved"]["Java-maven"]["build_env_dict"]["BUILD_RUNTIMES"], "21")
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")

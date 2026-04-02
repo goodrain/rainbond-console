@@ -40,6 +40,7 @@ from console.services.app_config.component_graph import component_graph_service
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.services.exception import ErrChangeServiceType
 from console.services.group_service import group_service
+from console.services.source_build_state_service import source_build_state_service
 from console.services.service_services import base_service
 from console.utils.cnb_build import (sanitize_build_env_dict_for_language, normalize_source_build_config,
                                      policy_summary_to_snapshot, compose_source_code_info,
@@ -1441,6 +1442,9 @@ class AppManageService(AppManageBase):
             for key, value in normalized_envs.items():
                 if value not in (None, ""):
                     env_var_repo.update_or_create_env_var(tenant.tenant_id, service.service_id, key, value)
+            service.language = lang
+            service.build_strategy = normalized_strategy
+            source_build_state_service.save_user_snapshot(service, lang)
         except Exception as e:
             logger.exception(e)
             return 507, "failed"
