@@ -128,6 +128,20 @@ class AppServiceRelationService(object):
         open_service_ports = []
         if container_port:
             tenant_service_port = port_service.get_service_port_by_port(dep_service, int(container_port))
+            if not tenant_service_port:
+                raise ServiceHandleException(
+                    msg="invalid dependency container port",
+                    msg_show="container_port 必须是被依赖组件的实际端口",
+                    status_code=400,
+                    details={
+                        "field": "container_port",
+                        "reason": "not_found_on_dependency_service",
+                        "provided_value": int(container_port),
+                        "dep_service_id": dep_service.service_id,
+                        "suggestion": "请先查看被依赖组件的端口列表，再传该组件真实存在的 container_port。",
+                        "retryable": False,
+                    },
+                )
             open_service_ports.append(tenant_service_port)
         else:
             # dep component not have inner port, will open all port
@@ -184,6 +198,18 @@ class AppServiceRelationService(object):
             return 212, "当前组件已被关联", None
 
         dep_service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, dep_service_id)
+        if not dep_service:
+            raise ServiceHandleException(
+                msg="dependency service not found",
+                msg_show="要关联的组件不存在",
+                status_code=404,
+                details={
+                    "field": "dep_service_id",
+                    "reason": "not_found",
+                    "provided_value": dep_service_id,
+                    "retryable": False,
+                },
+            )
         # 开启对内端口
         if open_inner:
             self.__open_port(tenant, dep_service, container_port, user_name)

@@ -270,6 +270,17 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("git/github/oauth_xxx", code_from_schema["description"])
         self.assertIn("gitlab_manual", code_from_schema["description"])
 
+    # capability_id: console.gateway.dependency-container-port-schema
+    def test_manage_component_dependency_schema_exposes_container_port_guidance(self):
+        tool = mcp_query_service._tool_manage_component_dependency()
+
+        open_inner_schema = tool["inputSchema"]["properties"]["open_inner"]
+        container_port_schema = tool["inputSchema"]["properties"]["container_port"]
+
+        self.assertIn("被依赖组件", container_port_schema["description"])
+        self.assertIn("open_inner=true", container_port_schema["description"])
+        self.assertIn("自动开启", open_inner_schema["description"])
+
     # capability_id: console.component.operation-aliases
     def test_normalize_component_operation_aliases(self):
         self.assertEqual(
