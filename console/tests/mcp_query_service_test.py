@@ -259,6 +259,15 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertEqual(k8s_app_schema["pattern"], r"^[a-z]([-a-z0-9]*[a-z0-9])?$")
         self.assertIn("默认建议不传", k8s_app_schema["description"])
 
+    # capability_id: console.gateway.source-code-from-schema
+    def test_create_component_from_source_schema_exposes_code_from_guidance(self):
+        tool = mcp_query_service._tool_create_component_from_source()
+
+        code_from_schema = tool["inputSchema"]["properties"]["code_from"]
+
+        self.assertIn("git/github/oauth_xxx", code_from_schema["description"])
+        self.assertIn("gitlab_manual", code_from_schema["description"])
+
     # capability_id: console.component.operation-aliases
     def test_normalize_component_operation_aliases(self):
         self.assertEqual(
@@ -3255,6 +3264,34 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertTrue(result["built"])
         self.assertEqual(result["service_id"], "svc-1")
         self.assertEqual(mock_auto_create.call_args[1]["code_from"], "git")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.source_component_service.auto_create_component")
+    # capability_id: console.component.create-from-source-prefer-dockerfile
+    def test_create_component_from_source_passes_prefer_dockerfile_flag(
+            self, mock_auto_create, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_auto_create.return_value = {"service_id": "svc-1", "built": True}
+
+        mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_component_from_source",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "code_from": "git",
+                "service_cname": "demo-2048",
+                "git_url": "https://gitee.com/rainbond/demo-2048.git",
+                "prefer_dockerfile_when_detected": True,
+            },
+        )
+
+        self.assertTrue(mock_auto_create.call_args[1]["prefer_dockerfile_when_detected"])
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")

@@ -1673,6 +1673,7 @@ class MCPQueryService(object):
             k8s_component_name=arguments.get("k8s_component_name", "") or "",
             arch=arguments.get("arch", "amd64") or "amd64",
             is_deploy=bool(arguments.get("is_deploy", True)),
+            prefer_dockerfile_when_detected=bool(arguments.get("prefer_dockerfile_when_detected", False)),
         )
 
     def create_component_from_package(self, user, arguments):
@@ -3641,7 +3642,15 @@ class MCPQueryService(object):
                     "team_name": {"type": "string"},
                     "region_name": {"type": "string"},
                     "app_id": {"type": "integer", "minimum": 1},
-                    "code_from": {"type": "string"},
+                    "code_from": {
+                        "type": "string",
+                        "description": (
+                            "源码来源标识。推荐优先使用：git（通用 Git/Gitee/GitLab 仓库）、"
+                            "github（GitHub 仓库）、oauth_xxx（OAuth 代码仓库，如 oauth_github）。"
+                            "也兼容 gitlab_manual、gitlab_self、gitlab_new、gitlab_exit、gitlab_demo；"
+                            "若不确定，优先传 git。"
+                        )
+                    },
                     "service_cname": {"type": "string"},
                     "git_url": {"type": "string"},
                     "git_project_id": {"type": "string"},
@@ -3661,7 +3670,11 @@ class MCPQueryService(object):
                     "full_name": {"type": "string"},
                     "k8s_component_name": {"type": "string"},
                     "arch": {"type": "string"},
-                    "is_deploy": {"type": "boolean"}
+                    "is_deploy": {"type": "boolean"},
+                    "prefer_dockerfile_when_detected": {
+                        "type": "boolean",
+                        "description": "仅 MCP 使用。若检测结果同时命中 Dockerfile 和语言型构建方式（如 Node.js），优先选择 Dockerfile。默认 false，不影响前端默认流程。"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "code_from", "service_cname", "git_url"]
             }
