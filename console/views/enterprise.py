@@ -1135,20 +1135,6 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result.get("code", 200))
 
-
-class EnterpriseRegionCNBVersions(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_id, *args, **kwargs):
-        try:
-            lang = request.GET.get("lang", "nodejs")
-            data = region_cnb_config.show_cnb_versions(enterprise_id, region_id, lang)
-            result = general_message(200, "success", "获取成功", list=data.get("list", []))
-            return Response(result, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.exception(e)
-            result = general_message(400, "failed", "获取CNB版本列表失败")
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
-
-
 class EnterpriseRegionCNBFrameworks(JWTAuthApiView):
     def get(self, request, enterprise_id, region_id, *args, **kwargs):
         try:

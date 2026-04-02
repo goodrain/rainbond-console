@@ -77,7 +77,7 @@ from console.views.custom_configs import CustomConfigsCLView, CustomConfigsUserC
 from console.views.enterprise import (MyEventsView, ServiceAlarm, GetNodes, GetNode, NodeAction, NodeLabelsOperate,
                                       NodeTaintOperate, RainbondComponents, ContainerDisk, EnterpriseMenuManage,
                                       EnterpriseRegionGatewayBatch, EnterpriseTeamNames, EnterpriseRegionLangVersion,
-                                      EnterpriseRegionCNBVersions, EnterpriseRegionCNBFrameworks)
+                                      EnterpriseRegionCNBFrameworks)
 from console.views.enterprise import (EnterpriseRegionNamespace, EnterpriseNamespaceResource, EnterpriseConvertResource,
                                       RbdPods, RbdPodLog, RbdComponentLogs, Goodrainlog, Downlodlog, RbdLogFiles, ShellPod,
                                       UploadLongVersion)
@@ -968,8 +968,6 @@ urlpatterns = [
     url(r'^enterprise/lg_pack_operate$', UploadLongVersion.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/lang_version',
         EnterpriseRegionLangVersion.as_view()),
-    url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/cnb/versions',
-        EnterpriseRegionCNBVersions.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/cnb/frameworks',
         EnterpriseRegionCNBFrameworks.as_view()),
     url(r'^enterprise/(?P<enterprise_id>[\w\-]+)/regions/(?P<region_id>[\w\-]+)/namespace',
