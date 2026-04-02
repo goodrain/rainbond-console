@@ -70,13 +70,6 @@ CNB_POLICY_DEFINITIONS = (
     },
 )
 
-CNB_POLICY_VERSION_CONSTRAINTS = {
-    "golang": {
-        "supported_versions": ("1.24", "1.25"),
-        "default_version": "1.25",
-    }
-}
-
 DEFAULT_CNB_BUILDER_IMAGE = "registry.cn-hangzhou.aliyuncs.com/goodrain/ubuntu-noble-builder:0.0.72"
 DEFAULT_PHP_CNB_BUILDER_IMAGE = "docker.io/paketobuildpacks/builder-jammy-full:latest"
 
@@ -556,8 +549,6 @@ def build_cnb_version_policy(language, records, fallback_versions):
 
     visible_versions = _sort_cnb_policy_versions(visible_versions)
     allowed_versions = _sort_cnb_policy_versions(allowed_versions)
-    visible_versions, allowed_versions, default_version = _apply_cnb_policy_version_constraints(
-        definition["policy_key"], visible_versions, allowed_versions, default_version)
 
     return {
         definition["policy_key"]: {
@@ -977,29 +968,6 @@ def _normalize_cnb_policy_version(definition, version):
 def _append_unique(items, value):
     if value and value not in items:
         items.append(value)
-
-
-def _apply_cnb_policy_version_constraints(policy_key, visible_versions, allowed_versions, default_version):
-    constraint = CNB_POLICY_VERSION_CONSTRAINTS.get(policy_key)
-    if not constraint:
-        return visible_versions, allowed_versions, default_version
-
-    supported_versions = list(constraint.get("supported_versions") or [])
-    supported_version_set = set(supported_versions)
-
-    visible_versions = [version for version in (visible_versions or []) if version in supported_version_set]
-    allowed_versions = [version for version in (allowed_versions or []) if version in supported_version_set]
-
-    constrained_default = default_version if default_version in supported_version_set else ""
-    preferred_default = constraint.get("default_version", "")
-    if preferred_default and preferred_default in allowed_versions:
-        constrained_default = preferred_default
-    elif not constrained_default and allowed_versions:
-        constrained_default = allowed_versions[0]
-    elif not constrained_default and visible_versions:
-        constrained_default = visible_versions[0]
-
-    return visible_versions, allowed_versions, constrained_default
 
 
 def _sort_cnb_policy_versions(versions):
