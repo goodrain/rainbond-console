@@ -56,6 +56,18 @@ class MCPQueryService(object):
     CONFIRM_SALT = "console.mcp.delete_app"
     CONFIRM_MAX_AGE_SECONDS = 300
     MAX_PAGE_SIZE = 200
+    PORT_ALIAS_PATTERN = r"^[A-Z][A-Z0-9_]*$"
+    PORT_ALIAS_DESCRIPTION = (
+        "端口别名。新增端口时通常不必传，留空由系统自动生成；"
+        "若手动填写，必须以大写字母开头，"
+        "只能包含大写字母、数字和下划线，例如 WEB、P80、METRICS_8080。"
+    )
+    K8S_SERVICE_NAME_PATTERN = r"^[a-z]([-a-z0-9]*[a-z0-9])?$"
+    K8S_SERVICE_NAME_DESCRIPTION = (
+        "内部域名。若手动填写，必须以小写字母开头，只能包含小写字母、数字和连字符，"
+        "且长度不超过63，"
+        "例如 web、api-80。"
+    )
     PORT_ACTION_ENUM = (
         "open_outer", "only_open_outer", "close_outer", "open_inner",
         "close_inner", "change_protocol", "change_port_alias"
@@ -838,7 +850,7 @@ class MCPQueryService(object):
                 team, service, port, protocol, port_alias, is_inner_service, False, None, user.nick_name
             )
             if code != 200:
-                raise ServiceHandleException(msg="add port error", msg_show=msg, status_code=code)
+                self._raise_port_tool_error("add port error", msg, code)
             return self._serialize_model_item(port_info)
         if operation == "update":
             port = self._require_int(arguments, "port")
@@ -850,7 +862,7 @@ class MCPQueryService(object):
                 team, service, app.region_name, port, action, protocol, port_alias, k8s_service_name, user.nick_name
             )
             if code != 200:
-                raise ServiceHandleException(msg="change port fail", msg_show=msg, status_code=code)
+                self._raise_port_tool_error("change port fail", msg, code)
             return self._serialize_model_item(port_info)
         if operation == "delete":
             port = self._require_int(arguments, "port")
@@ -2296,6 +2308,75 @@ class MCPQueryService(object):
             status_code=400,
         )
 
+    @classmethod
+    def _port_alias_schema(cls):
+        return {
+            "type": "string",
+            "pattern": cls.PORT_ALIAS_PATTERN,
+            "description": cls.PORT_ALIAS_DESCRIPTION,
+        }
+
+    @classmethod
+    def _k8s_service_name_schema(cls):
+        return {
+            "type": "string",
+            "pattern": cls.K8S_SERVICE_NAME_PATTERN,
+            "maxLength": 63,
+            "description": cls.K8S_SERVICE_NAME_DESCRIPTION,
+        }
+
+    def _build_port_tool_error_details(self, msg_show):
+        if msg_show == "端口别名不合法":
+            return {
+                "field": "port_alias",
+                "reason": "pattern_mismatch",
+                "expected_pattern": self.PORT_ALIAS_PATTERN,
+                "examples": ["WEB", "P80", "METRICS_8080"],
+                "suggestion": (
+                    "新增端口时可省略 port_alias，由系统自动生成；"
+                    "若手动填写，请使用全大写别名。"
+                ),
+                "retryable": False,
+            }
+        if msg_show == "端口别名不能为空":
+            return {
+                "field": "port_alias",
+                "reason": "required",
+                "expected_pattern": self.PORT_ALIAS_PATTERN,
+                "suggestion": (
+                    "新增端口时可省略 port_alias；"
+                    "修改别名时必须提供符合规则的全大写别名。"
+                ),
+                "retryable": False,
+            }
+        if msg_show == "内部域名格式不正确":
+            return {
+                "field": "k8s_service_name",
+                "reason": "pattern_mismatch",
+                "expected_pattern": self.K8S_SERVICE_NAME_PATTERN,
+                "max_length": 63,
+                "examples": ["web", "api-80"],
+                "suggestion": "请使用小写字母开头、仅包含小写字母、数字和连字符的内部域名。",
+                "retryable": False,
+            }
+        if msg_show == "端口必须为1到65535的整数":
+            return {
+                "field": "port",
+                "reason": "out_of_range",
+                "minimum": 1,
+                "maximum": 65535,
+                "retryable": False,
+            }
+        return None
+
+    def _raise_port_tool_error(self, msg, msg_show, status_code):
+        raise ServiceHandleException(
+            msg=msg,
+            msg_show=msg_show,
+            status_code=status_code,
+            details=self._build_port_tool_error_details(msg_show),
+        )
+
     def _normalize_env_scope(self, scope):
         scope = (scope or "inner").strip().lower()
         normalized = self.ENV_SCOPE_ALIASES.get(scope)
@@ -3485,7 +3566,7 @@ class MCPQueryService(object):
                     "operation": {"type": "string"},
                     "port": {"type": "integer", "minimum": 1},
                     "protocol": {"type": "string"},
-                    "port_alias": {"type": "string"},
+                    "port_alias": self._port_alias_schema(),
                     "is_inner_service": {"type": "boolean"},
                     "action": {
                         "type": "string",
@@ -3496,7 +3577,7 @@ class MCPQueryService(object):
                             "change_protocol=修改协议, change_port_alias=修改端口别名。"
                         )
                     },
-                    "k8s_service_name": {"type": "string"}
+                    "k8s_service_name": self._k8s_service_name_schema(),
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "operation"]
             }
@@ -3534,7 +3615,7 @@ class MCPQueryService(object):
                     },
                     "port": {"type": "integer", "minimum": 1},
                     "protocol": {"type": "string"},
-                    "port_alias": {"type": "string"},
+                    "port_alias": self._port_alias_schema(),
                     "is_inner_service": {"type": "boolean", "description": "新增端口时是否默认开启对内服务"},
                     "enable_inner": {"type": "boolean", "description": "新增端口时更推荐用这个字段表达是否开启对内服务"},
                     "action": {
@@ -3542,7 +3623,7 @@ class MCPQueryService(object):
                         "enum": list(self.PORT_ACTION_ENUM),
                         "description": "兼容旧调用时使用。新调用推荐直接使用 operation 的显式动作，不推荐模型自行填写 action。"
                     },
-                    "k8s_service_name": {"type": "string"}
+                    "k8s_service_name": self._k8s_service_name_schema(),
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "operation"]
             }

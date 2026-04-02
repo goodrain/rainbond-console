@@ -226,6 +226,18 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("update_protocol", tool["inputSchema"]["properties"]["operation"]["enum"])
         self.assertIn("update_alias", tool["inputSchema"]["properties"]["operation"]["enum"])
 
+    # capability_id: console.gateway.port-constraints-schema
+    def test_manage_component_ports_tool_schema_exposes_port_constraints(self):
+        tool = mcp_query_service._tool_manage_component_ports()
+
+        port_alias_schema = tool["inputSchema"]["properties"]["port_alias"]
+        k8s_service_name_schema = tool["inputSchema"]["properties"]["k8s_service_name"]
+
+        self.assertEqual(port_alias_schema["pattern"], r"^[A-Z][A-Z0-9_]*$")
+        self.assertIn("留空", port_alias_schema["description"])
+        self.assertEqual(k8s_service_name_schema["pattern"], r"^[a-z]([-a-z0-9]*[a-z0-9])?$")
+        self.assertEqual(k8s_service_name_schema["maxLength"], 63)
+
     # capability_id: console.component.operation-aliases
     def test_normalize_component_operation_aliases(self):
         self.assertEqual(
@@ -1872,6 +1884,50 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
         self.assertEqual(result["image"], "nginx:latest")
         self.assertEqual(result["version"], "latest")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.port_service.add_service_port")
+    # capability_id: console.component.port-add-invalid-alias
+    def test_handle_component_ports_add_exposes_structured_alias_validation(
+            self,
+            mock_add_service_port,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_add_service_port.return_value = (400, "端口别名不合法", None)
+
+        with self.assertRaises(ServiceHandleException) as context:
+            mcp_query_service.call_tool(
+                self.user,
+                "rainbond_handle_component_ports",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "app_id": 12,
+                    "service_id": "svc-1",
+                    "operation": "add",
+                    "port": 80,
+                    "protocol": "TCP",
+                    "port_alias": "p80",
+                },
+            )
+
+        self.assertEqual(context.exception.msg_show, "端口别名不合法")
+        self.assertEqual(context.exception.details["field"], "port_alias")
+        self.assertEqual(context.exception.details["reason"], "pattern_mismatch")
+        self.assertFalse(context.exception.details["retryable"])
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
