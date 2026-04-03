@@ -123,19 +123,74 @@ class AppVersionServiceTemplateNormalizationTestCase(TestCase):
             }
         ]
 
-        template = app_version_service._assemble_app_template(
-            mock.Mock(tenant_id="tenant-1"),
-            mock.Mock(region_name="demo-region"),
-            mock.Mock(group_name="demo-app", governance_mode=None),
-            "hidden-app-id",
-            "1.0.0",
-            services,
-            plugins,
-            [],
-        )
+        with mock.patch.object(
+                app_version_service_module.share_service,
+                "config_groups",
+                return_value=[]), mock.patch.object(
+                    app_version_service_module.share_service,
+                    "_list_http_ingresses",
+                    return_value=[]):
+            template = app_version_service._assemble_app_template(
+                mock.Mock(tenant_id="tenant-1", tenant_name="demo-team"),
+                mock.Mock(region_name="demo-region"),
+                mock.Mock(group_name="demo-app", governance_mode=None),
+                "hidden-app-id",
+                "1.0.0",
+                services,
+                plugins,
+                [],
+            )
 
         self.assertEqual(template["apps"][0]["share_image"], services[0]["image"])
         self.assertEqual(template["plugins"][0]["share_image"], plugins[0]["image"])
+
+    def test_assemble_app_template_uses_delivered_image_for_snapshot_source_components(self):
+        services = [
+            {
+                "service_id": "service-1",
+                "service_key": "service-1",
+                "service_alias": "web",
+                "service_region": "demo-region",
+                "deploy_version": "20260403120000",
+                "image": "goodrain.me/runner:latest-amd64",
+            }
+        ]
+
+        with mock.patch.object(
+                app_version_service_module.region_api,
+                "get_service_build_versions",
+                return_value={
+                    "bean": {
+                        "deploy_version": "20260403120000",
+                        "list": [
+                            {
+                                "build_version": "20260403120000",
+                                "final_status": "success",
+                                "delivered_type": "image",
+                                "delivered_path": "goodrain.me/service-1:20260403120000",
+                            }
+                        ],
+                    }
+                }), mock.patch.object(
+                    app_version_service_module.share_service,
+                    "config_groups",
+                    return_value=[]), mock.patch.object(
+                        app_version_service_module.share_service,
+                        "_list_http_ingresses",
+                        return_value=[]):
+            template = app_version_service._assemble_app_template(
+                mock.Mock(tenant_name="demo-team", tenant_id="tenant-1"),
+                mock.Mock(region_name="demo-region"),
+                mock.Mock(group_name="demo-app", governance_mode=None),
+                "hidden-app-id",
+                "1.0.0",
+                services,
+                [],
+                [],
+            )
+
+        self.assertEqual(template["apps"][0]["share_image"], "goodrain.me/service-1:20260403120000")
+        self.assertEqual(template["apps"][0]["service_image"]["image_url"], "goodrain.me/service-1:20260403120000")
 
 
 class AppVersionServiceComponentDiffDetailTestCase(TestCase):
