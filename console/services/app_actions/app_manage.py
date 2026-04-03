@@ -777,16 +777,19 @@ class AppManageService(AppManageBase):
                                 share_image = template_app.get("share_image", None)
                                 share_slug_path = template_app.get("share_slug_path", None)
                                 new_extend_info = {}
-                                if share_image and template_app.get("service_image", None):
+                                if share_image:
+                                    service_dict["kind"] = "build_from_market_image"
                                     source_image = dict()
                                     service_dict["image_info"] = source_image
                                     source_image["image_url"] = share_image
-                                    source_image["user"] = template_app.get("service_image").get("hub_user")
-                                    source_image["password"] = template_app.get("service_image").get("hub_password")
+                                    service_image = dict(template_app.get("service_image", None) or {})
+                                    source_image["user"] = service_image.get("hub_user")
+                                    source_image["password"] = service_image.get("hub_password")
                                     source_image["cmd"] = service.cmd
-                                    new_extend_info = template_app["service_image"]
-                                if share_slug_path:
-                                    slug_info = template_app.get("service_slug")
+                                    new_extend_info = service_image
+                                elif share_slug_path:
+                                    service_dict["kind"] = "build_from_market_slug"
+                                    slug_info = dict(template_app.get("service_slug", None) or {})
                                     slug_info["slug_path"] = share_slug_path
                                     new_extend_info = slug_info
                                     service_dict["slug_info"] = new_extend_info

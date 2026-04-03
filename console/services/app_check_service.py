@@ -703,13 +703,14 @@ class AppCheckService(object):
         if remove_build_type:
             env_names.append("BUILD_TYPE")
 
-        for attr_name in env_names:
-            env = env_var_service.get_env_by_attr_name(tenant, service, attr_name)
-            if not env:
+        build_envs = env_var_service.get_service_build_envs(service) or []
+        for build_env in build_envs:
+            attr_name = build_env.attr_name
+            if attr_name not in env_names:
                 continue
-            if attr_name == "BUILD_TYPE" and str(env.attr_value or "").lower() != "cnb":
+            if attr_name == "BUILD_TYPE" and str(build_env.attr_value or "").lower() != "cnb":
                 continue
-            env_var_service.delete_env_by_attr_name(tenant, service, attr_name)
+            build_env.delete()
 
     def sync_cnb_build_envs(self, tenant, service, service_info):
         runtime_info = service_info.get("runtime_info") or {}
