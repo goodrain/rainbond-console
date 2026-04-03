@@ -1,5 +1,24 @@
+# -*- coding: utf-8 -*-
+import collections
+from contextlib import ExitStack
+import os
+import sys
+from types import ModuleType
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
+
+for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
+    if not hasattr(collections, attr):
+        setattr(collections, attr, getattr(collections.abc, attr))
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
+sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
+
+import django
+
+django.setup()
 
 from console.services import app_check_service as app_check_service_module
 from console.services.app_check_service import AppCheckService
@@ -9,6 +28,7 @@ class DummyTenant(object):
     tenant_id = "team-1"
     tenant_name = "team-a"
     enterprise_id = "eid-1"
+    namespace = "team-a"
 
 
 class DummyService(object):
@@ -23,6 +43,8 @@ class DummyService(object):
         self.image = ""
         self.version = ""
         self.service_source = "source_code"
+        self.server_type = "git"
+        self.code_from = "git"
         self.oauth_service_id = ""
         self.service_region = "region-a"
         self.code_version = "main"
@@ -45,14 +67,25 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         self.tenant = DummyTenant()
 
     def patch_side_effects(self):
-        return patch.multiple(
+        stack = ExitStack()
+        stack.enter_context(patch.multiple(
             self.service_helper,
             _AppCheckService__save_compile_env=lambda *args, **kwargs: None,
             _AppCheckService__save_env=lambda *args, **kwargs: None,
             _AppCheckService__save_port=lambda *args, **kwargs: None,
             _AppCheckService__save_volume=lambda *args, **kwargs: None,
             sync_cnb_build_envs=lambda *args, **kwargs: None,
-        )
+        ))
+        stack.enter_context(patch.object(
+            app_check_service_module,
+            "source_build_state_service",
+            Mock(
+                build_snapshot=Mock(return_value={}),
+                save_detected_defaults=Mock(),
+                save_user_snapshot=Mock(),
+            )
+        ))
+        return stack
 
     def test_save_service_info_defaults_supported_language_to_cnb(self):
         service = DummyService()
@@ -201,3 +234,30 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         self.assertEqual(code, 200)
         self.assertEqual(msg, "success")
         env_var_service.add_service_env_var.assert_not_called()
+
+    @patch.object(app_check_service_module, "env_var_service")
+    def test_sync_cnb_build_envs_cleans_build_rows_without_runtime_env_delete_calls(self, env_var_service):
+        service = DummyService(build_strategy="cnb")
+        service.language = "Node.js"
+        existing_cnb_env = Mock(attr_name="CNB_FRAMEWORK", attr_value="nextjs")
+        existing_build_type = Mock(attr_name="BUILD_TYPE", attr_value="cnb")
+        env_var_service.get_service_build_envs.return_value = [existing_cnb_env, existing_build_type]
+
+        self.service_helper.sync_cnb_build_envs(
+            self.tenant,
+            service,
+            {
+                "language": "Node.js",
+                "runtime_info": {
+                    "language": "nodejs",
+                    "framework": {"name": "react"},
+                    "package_manager": {"name": "npm"},
+                    "config_files": {"has_npmrc": False, "has_yarnrc": False}
+                }
+            }
+        )
+
+        existing_cnb_env.delete.assert_called_once_with()
+        existing_build_type.delete.assert_not_called()
+        env_var_service.delete_env_by_attr_name.assert_not_called()
+        env_var_service.add_service_build_env_var.assert_called()
