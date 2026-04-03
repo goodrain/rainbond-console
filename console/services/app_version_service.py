@@ -27,9 +27,11 @@ from console.services.market_app.app_restore import AppRestore
 from console.services.share_services import share_service
 from console.services.upgrade_services import upgrade_service
 from django.db import transaction
+from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import make_uuid, TenantServiceGroup, ServiceGroupRelation
 
 logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
 
 
 class AppVersionRollbackRestore(AppRestore):
@@ -302,6 +304,7 @@ class AppVersionService(object):
         return self._assemble_app_template(tenant, region, app, hidden_app_id, version, services, plugins, k8s_resources)
 
     def _assemble_app_template(self, tenant, region, app, hidden_app_id, version, services, plugins, k8s_resources):
+        services = self._hydrate_snapshot_delivery_info(tenant, services)
         service_ids_keys_map = {svc["service_id"]: svc["service_key"] for svc in services}
         app_template = {
             "template_version": "v2",
@@ -320,6 +323,60 @@ class AppVersionService(object):
         app_arch = sorted(list(set(app_arch))) if app_arch else ["amd64"]
         app_template["arch"] = "&".join(app_arch)
         return self._normalize_template_images(app_template)
+
+    @staticmethod
+    def _build_snapshot_image_info(delivered_path):
+        return {"image_url": delivered_path}
+
+    def _hydrate_snapshot_delivery_info(self, tenant, services):
+        hydrated = []
+        for service in services or []:
+            current = copy.deepcopy(service)
+            delivered_type, delivered_path = self._get_snapshot_delivery_artifact(tenant, current)
+            if delivered_type == "image" and delivered_path:
+                current["service_image"] = self._build_snapshot_image_info(delivered_path)
+                current["share_image"] = delivered_path
+                current["share_type"] = "image"
+                current.pop("service_slug", None)
+                current.pop("share_slug_path", None)
+            elif delivered_type == "slug" and delivered_path:
+                slug_info = copy.deepcopy(current.get("service_slug") or {})
+                slug_info["slug_path"] = delivered_path
+                current["service_slug"] = slug_info
+                current["share_slug_path"] = delivered_path
+                current["share_type"] = "slug"
+                current.pop("service_image", None)
+                current.pop("share_image", None)
+            hydrated.append(current)
+        return hydrated
+
+    def _get_snapshot_delivery_artifact(self, tenant, service):
+        region_name = service.get("service_region")
+        service_alias = service.get("service_alias")
+        deploy_version = service.get("deploy_version")
+        if not region_name or not service_alias:
+            return None, None
+        try:
+            body = region_api.get_service_build_versions(region_name, tenant.tenant_name, service_alias)
+        except Exception as e:
+            logger.warning("failed to query build versions for snapshot service %s: %s", service.get("service_id"), e)
+            return None, None
+
+        bean = body.get("bean") or {}
+        versions = bean.get("list") or []
+        current_version = deploy_version or bean.get("deploy_version")
+        if not current_version:
+            return None, None
+
+        for item in versions:
+            if item.get("build_version") != current_version:
+                continue
+            if item.get("final_status") != "success":
+                return None, None
+            delivered_type = item.get("delivered_type")
+            delivered_path = item.get("delivered_path") or item.get("image_name")
+            return delivered_type, delivered_path
+        return None, None
 
     @classmethod
     def _strip_runtime_fields(cls, value):
