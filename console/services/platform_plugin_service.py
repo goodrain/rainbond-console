@@ -45,8 +45,17 @@ class PlatformPluginService(object):
             raise ServiceHandleException(msg="no found app market", msg_show="默认应用市场不存在", status_code=404)
         return market
 
+    def _build_platform_market(self, enterprise_id):
+        default_market = self._get_default_market(enterprise_id)
+        return AppMarket(
+            name="__platform_plugin__",
+            url=default_market.url or MARKET_HOST,
+            domain=MARKET_DOMAIN,
+            access_key=default_market.access_key,
+        )
+
     def _get_market_platform_plugins(self, enterprise_id):
-        market = self._get_default_market(enterprise_id)
+        market = self._build_platform_market(enterprise_id)
         data = app_store.get_platform_plugins(market, page=1, page_size=-1)
         plugins = data.get("plugins", []) if data else []
         return market, plugins
@@ -170,7 +179,7 @@ class PlatformPluginService(object):
         plugin_names = bean.get("plugin_names", {}) or {}
         license_access_key = bean.get("access_key", "")
 
-        default_market, market_plugins = self._get_market_platform_plugins(enterprise_id)
+        platform_market, market_plugins = self._get_market_platform_plugins(enterprise_id)
         market_plugin = None
         for item in market_plugins:
             if item.get("plugin_id") == plugin_id:
@@ -183,7 +192,7 @@ class PlatformPluginService(object):
         plugin_name = market_plugin.get("plugin_name") or plugin_names.get(plugin_id, plugin_id)
 
         if app_level == "free":
-            market = default_market
+            market = platform_market
             app_key = market_plugin.get("appKeyID") or market_plugin.get("app_key")
         else:
             if plugin_id not in plugin_mapping:
