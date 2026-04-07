@@ -1,11 +1,11 @@
 # -*- coding: utf8 -*-
 import json
 import logging
-import time
 
 from console.appstore.appstore import app_store
 from console.exception.main import ServiceHandleException
 from console.models.main import AppMarket
+from console.repositories.app import app_market_repo
 from console.repositories.group import group_repo, tenant_service_group_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
@@ -16,7 +16,6 @@ from console.services.market_app.app_upgrade import AppUpgrade
 from console.services.market_app_service import market_app_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
-from console.utils.restful_client import get_market_client
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 
@@ -28,125 +27,126 @@ MARKET_DOMAIN = "enterprise"
 PLUGIN_TEAM_NAME = "rbd-plugins"
 PLUGIN_TEAM_ALIAS = "平台插件"
 
-# Module-level cache for market unreachable state with expiry
-_market_unreachable_until = 0  # Unix timestamp, 0 means not unreachable
-_MARKET_RETRY_INTERVAL = 300  # Retry after 5 minutes
-
 
 class PlatformPluginService(object):
-    def list_platform_plugins(self, enterprise_id, region_name):
-        """
-        List platform plugins by merging license plugin_mapping,
-        market app info, and installed RBDPlugin CRs.
-        """
-        # 1. Get license status for plugin_mapping and access_key
-        plugin_mapping = {}
-        plugin_names = {}
-        access_key = ""
+    def _get_license_bean(self, enterprise_id, region_name):
         try:
-            body = license_service.get_license_status(
-                enterprise_id, region_name)
-            bean = body.get("bean", {}) if body else {}
-            plugin_mapping = bean.get("plugin_mapping", {})
-            plugin_names = bean.get("plugin_names", {})
-            access_key = bean.get("access_key", "")
+            body = license_service.get_license_status(enterprise_id, region_name)
+            return body.get("bean", {}) if body else {}
         except Exception as e:
             logger.warning("Failed to get license status: %s", e)
+            return {}
 
-        # 2. Get installed RBDPlugin CRs from region
+    def _get_default_market(self, enterprise_id):
+        markets = app_market_repo.get_app_markets(enterprise_id)
+        app_market_repo.create_default_app_market_if_not_exists(markets, enterprise_id, None)
+        market = app_market_repo.get_app_markets(enterprise_id).first()
+        if not market:
+            raise ServiceHandleException(msg="no found app market", msg_show="默认应用市场不存在", status_code=404)
+        return market
+
+    def _get_market_platform_plugins(self, enterprise_id):
+        market = self._get_default_market(enterprise_id)
+        data = app_store.get_platform_plugins(market, page=1, page_size=-1)
+        plugins = data.get("plugins", []) if data else []
+        return market, plugins
+
+    def _get_installed_plugins(self, enterprise_id, region_name):
         installed_plugins = {}
         try:
-            _, body = region_api.list_plugins(
-                enterprise_id, region_name, False)
+            _, body = region_api.list_plugins(enterprise_id, region_name, False)
             plugins = body.get("list") or []
-            for p in plugins:
-                installed_plugins[p.get("name", "")] = p
+            for plugin in plugins:
+                installed_plugins[plugin.get("name", "")] = plugin
         except Exception as e:
             logger.warning("Failed to list region plugins: %s", e)
+        return installed_plugins
 
-        # 3. Map region_app_id → console app_id for installed plugins
+    def _get_region_app_id_map(self, region_name, installed_plugins):
         region_app_id_map = {}
         region_app_ids = []
-        for p in installed_plugins.values():
-            raid = p.get("region_app_id", "")
-            if raid:
-                region_app_ids.append(raid)
-        if region_app_ids:
-            try:
-                region_apps = region_app_repo.list_by_region_app_ids(region_name, region_app_ids)
-                for ra in region_apps:
-                    region_app_id_map[ra.region_app_id] = ra.app_id
-            except Exception as e:
-                logger.warning("Failed to map region_app_ids: %s", e)
+        for plugin in installed_plugins.values():
+            region_app_id = plugin.get("region_app_id", "")
+            if region_app_id:
+                region_app_ids.append(region_app_id)
+        if not region_app_ids:
+            return region_app_id_map
+        try:
+            region_apps = region_app_repo.list_by_region_app_ids(region_name, region_app_ids)
+            for region_app in region_apps:
+                region_app_id_map[region_app.region_app_id] = region_app.app_id
+        except Exception as e:
+            logger.warning("Failed to map region_app_ids: %s", e)
+        return region_app_id_map
 
-        # 4. Fetch market info for each plugin in plugin_mapping
+    def _normalize_app_level(self, plugin_info):
+        return plugin_info.get("appLevel") or plugin_info.get("app_level") or "enterprise"
+
+    def list_platform_plugins(self, enterprise_id, region_name):
+        """
+        List platform plugins from app store.
+
+        Rules:
+        - 未授权前：展示应用市场中的全部平台插件
+        - 已授权后：只展示免费插件 + 已授权企业插件
+        """
+        bean = self._get_license_bean(enterprise_id, region_name)
+        plugin_mapping = bean.get("plugin_mapping", {}) or {}
+        has_valid_license = bool(bean.get("valid"))
+        installed_plugins = self._get_installed_plugins(enterprise_id, region_name)
+        region_app_id_map = self._get_region_app_id_map(region_name, installed_plugins)
+        try:
+            _, market_plugins = self._get_market_platform_plugins(enterprise_id)
+        except Exception as e:
+            logger.warning("Failed to get market platform plugins: %s", e)
+            market_plugins = []
+
         result = []
-        market_client = None
-        global _market_unreachable_until
-        now = time.time()
-        if _market_unreachable_until > now:
-            logger.debug("Skipping market requests - market marked unreachable until %s", _market_unreachable_until)
-        elif access_key:
-            try:
-                market_client = get_market_client(access_key, MARKET_HOST)
-            except Exception as e:
-                logger.warning("Failed to create market client: %s", e)
+        for market_plugin in market_plugins:
+            plugin_id = market_plugin.get("plugin_id", "")
+            if not plugin_id:
+                continue
 
-        for plugin_id, app_key in plugin_mapping.items():
+            app_level = self._normalize_app_level(market_plugin)
+            if has_valid_license and app_level != "free" and plugin_id not in plugin_mapping:
+                continue
+
             plugin_info = {
                 "plugin_id": plugin_id,
-                "app_key": app_key,
-                "plugin_name": plugin_names.get(plugin_id, plugin_id),
-                "description": "",
-                "logo": "",
+                "app_key": market_plugin.get("appKeyID") or market_plugin.get("app_key", ""),
+                "plugin_name": market_plugin.get("plugin_name") or plugin_id,
+                "name": market_plugin.get("name") or plugin_id,
+                "description": market_plugin.get("description", ""),
+                "logo": market_plugin.get("logo", ""),
+                "app_level": app_level,
+                "latest_version": market_plugin.get("latest_version", ""),
+                "plugin_type": market_plugin.get("plugin_type", ""),
+                "plugin_views": market_plugin.get("plugin_views", []),
+                "frontend_component": market_plugin.get("frontend_component", ""),
+                "entry_path": market_plugin.get("entry_path", ""),
+                "menu_title": market_plugin.get("menu_title", ""),
+                "route_path": market_plugin.get("route_path", ""),
                 "installed": False,
                 "status": "",
-                "latest_version": "",
                 "installed_version": "",
                 "upgradeable": False,
+                "can_upgrade": False,
                 "team_name": "",
                 "app_id": -1,
-                "name": plugin_id,
-                "plugin_type": "",
-                "plugin_views": [],
+                "author": "Rainbond 官方",
             }
-
-            # Try to get app info from market
-            if market_client and app_key:
-                try:
-                    app = market_client.get_user_app_detail(
-                        app_id=app_key, market_domain=MARKET_DOMAIN, _return_http_data_only=True)
-                    if app:
-                        plugin_info["plugin_name"] = getattr(app, "name", "") or plugin_id
-                        plugin_info["description"] = getattr(app, "desc", "") or ""
-                        plugin_info["logo"] = getattr(app, "logo", "") or ""
-                except Exception as e:
-                    logger.warning("Failed to get market app info for %s: %s", app_key, e)
-                    market_client = None
-                    _market_unreachable_until = time.time() + _MARKET_RETRY_INTERVAL
-                # Get latest version separately
-                if market_client:
-                    try:
-                        versions_resp = market_client.get_user_app_versions(
-                            app_id=app_key, market_domain=MARKET_DOMAIN, query_all=False, _return_http_data_only=True)
-                        if versions_resp and versions_resp.versions:
-                            plugin_info["latest_version"] = versions_resp.versions[0].app_version or ""
-                    except Exception as e:
-                        logger.warning("Failed to get market app versions for %s: %s", app_key, e)
-                        market_client = None
-                        _market_unreachable_until = time.time() + _MARKET_RETRY_INTERVAL
 
             # Check install status from RBDPlugin CRs
             if plugin_id in installed_plugins:
                 plugin_info["installed"] = True
-                p = installed_plugins[plugin_id]
-                plugin_info["status"] = p.get("status", "")
-                plugin_info["team_name"] = p.get("team_name", "")
-                raid = p.get("region_app_id", "")
-                console_app_id = region_app_id_map.get(raid, -1)
+                installed_plugin = installed_plugins[plugin_id]
+                plugin_info["status"] = installed_plugin.get("status", "")
+                plugin_info["team_name"] = installed_plugin.get("team_name", "")
+                region_app_id = installed_plugin.get("region_app_id", "")
+                console_app_id = region_app_id_map.get(region_app_id, -1)
                 plugin_info["app_id"] = console_app_id
-                plugin_info["plugin_type"] = p.get("plugin_type", "")
-                plugin_info["plugin_views"] = p.get("plugin_views", [])
+                plugin_info["plugin_type"] = installed_plugin.get("plugin_type", plugin_info["plugin_type"])
+                plugin_info["plugin_views"] = installed_plugin.get("plugin_views", plugin_info["plugin_views"])
                 # Get installed version from tenant_service_group
                 if console_app_id > 0:
                     cgroups = tenant_service_group_repo.get_group_by_app_id(console_app_id)
@@ -155,6 +155,7 @@ class PlatformPluginService(object):
                 # Compare versions
                 if plugin_info["latest_version"] and plugin_info["installed_version"]:
                     plugin_info["upgradeable"] = plugin_info["latest_version"] != plugin_info["installed_version"]
+                    plugin_info["can_upgrade"] = plugin_info["upgradeable"]
 
             result.append(plugin_info)
 
@@ -164,34 +165,45 @@ class PlatformPluginService(object):
         """
         Install a platform plugin: auto-create team/app, fetch from market, install.
         """
-        # 1. Get license status and validate plugin_id
-        body = license_service.get_license_status(enterprise_id, region_name)
-        bean = body.get("bean", {}) if body else {}
-        plugin_mapping = bean.get("plugin_mapping", {})
-        plugin_names = bean.get("plugin_names", {})
-        access_key = bean.get("access_key", "")
+        bean = self._get_license_bean(enterprise_id, region_name)
+        plugin_mapping = bean.get("plugin_mapping", {}) or {}
+        plugin_names = bean.get("plugin_names", {}) or {}
+        license_access_key = bean.get("access_key", "")
 
-        if plugin_id not in plugin_mapping:
-            raise ServiceHandleException(msg="plugin not authorized", msg_show="该插件未授权")
-        if not access_key:
-            raise ServiceHandleException(msg="no access_key in license", msg_show="授权信息中缺少 access_key")
+        default_market, market_plugins = self._get_market_platform_plugins(enterprise_id)
+        market_plugin = None
+        for item in market_plugins:
+            if item.get("plugin_id") == plugin_id:
+                market_plugin = item
+                break
+        if not market_plugin:
+            raise ServiceHandleException(msg="plugin not found", msg_show="应用市场中未找到该插件", status_code=404)
 
-        app_key = plugin_mapping[plugin_id]
-        plugin_name = plugin_names.get(plugin_id, plugin_id)
+        app_level = self._normalize_app_level(market_plugin)
+        plugin_name = market_plugin.get("plugin_name") or plugin_names.get(plugin_id, plugin_id)
 
-        # 2. Construct temporary AppMarket (no DB record needed)
-        market = AppMarket(
-            name="__platform_plugin__",
-            url=MARKET_HOST,
-            domain=MARKET_DOMAIN,
-            access_key=access_key,
-        )
+        if app_level == "free":
+            market = default_market
+            app_key = market_plugin.get("appKeyID") or market_plugin.get("app_key")
+        else:
+            if plugin_id not in plugin_mapping:
+                raise ServiceHandleException(msg="plugin not authorized", msg_show="该插件未授权")
+            if not license_access_key:
+                raise ServiceHandleException(msg="no access_key in license", msg_show="授权信息中缺少 access_key")
+            app_key = plugin_mapping[plugin_id]
+            market = AppMarket(
+                name="__platform_plugin__",
+                url=MARKET_HOST,
+                domain=MARKET_DOMAIN,
+                access_key=license_access_key,
+            )
 
-        # 3. Get latest version from market
-        versions_data = app_store.get_app_versions(market, app_key)
-        if not versions_data or not versions_data.versions:
-            raise ServiceHandleException(msg="no versions found", msg_show="应用市场中未找到该插件的版本")
-        latest_version = versions_data.versions[0].app_version
+        latest_version = market_plugin.get("latest_version", "")
+        if not latest_version:
+            versions_data = app_store.get_app_versions(market, app_key)
+            if not versions_data or not versions_data.versions:
+                raise ServiceHandleException(msg="no versions found", msg_show="应用市场中未找到该插件的版本")
+            latest_version = versions_data.versions[0].app_version
 
         # 4. Find or create the "rbd-plugins" team
         tenant = self._ensure_plugin_team(enterprise_id, region_name, user)
