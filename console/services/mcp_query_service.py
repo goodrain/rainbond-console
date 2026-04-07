@@ -710,7 +710,7 @@ class MCPQueryService(object):
                 "build_envs": {"items": [self._serialize_model_item(env) for env in build_envs], "total": len(build_envs)},
             }
         if operation == "upsert":
-            envs = arguments.get("envs")
+            envs = self._resolve_upsert_envs(arguments)
             if not isinstance(envs, list) or not envs:
                 raise ServiceHandleException(msg="invalid envs", msg_show="参数envs无效", status_code=400)
             envs = self._normalize_envs_for_upsert(envs)
@@ -2471,6 +2471,24 @@ class MCPQueryService(object):
             status_code=400,
         )
 
+    @staticmethod
+    def _resolve_upsert_envs(arguments):
+        envs = arguments.get("envs")
+        if envs:
+            return envs
+        attr_name = arguments.get("attr_name") or arguments.get("name")
+        attr_value = arguments.get("attr_value")
+        if attr_name and attr_value is not None:
+            return [{
+                "name": arguments.get("name") or attr_name,
+                "attr_name": attr_name,
+                "value": attr_value,
+                "scope": arguments.get("scope", "inner"),
+                "is_change": arguments.get("is_change", True),
+                "note": arguments.get("name", "") or "",
+            }]
+        return envs
+
     def _build_create_app_error_details(self, exc, app_name, k8s_app):
         msg = getattr(exc, "msg", "") or ""
         msg_show = getattr(exc, "msg_show", "") or ""
@@ -3231,11 +3249,15 @@ class MCPQueryService(object):
                     "app_id": {"type": "integer", "minimum": 1},
                     "service_id": {"type": "string"},
                     "operation": {"type": "string", "enum": ["summary", "upsert", "create", "update", "delete", "patch_scope", "replace_build_envs"]},
-                    "envs": {"type": "array", "items": {"type": "object"}},
+                    "envs": {
+                        "type": "array",
+                        "items": {"type": "object"},
+                        "description": "用于 upsert 的批量环境变量列表。若只 upsert 单条，也兼容直接传 attr_name/attr_value/name/is_change/scope。"
+                    },
                     "env_id": {"type": "string"},
-                    "name": {"type": "string"},
-                    "attr_name": {"type": "string"},
-                    "attr_value": {"type": "string"},
+                    "name": {"type": "string", "description": "单条 upsert/create/update 时的人类可读名称；upsert 单条时可与 attr_name 相同。"},
+                    "attr_name": {"type": "string", "description": "单条 upsert/create 时的环境变量名。"},
+                    "attr_value": {"type": "string", "description": "单条 upsert/create/update 时的环境变量值。"},
                     "scope": {
                         "type": "string",
                         "description": "环境变量范围，默认 inner。该工具只支持 inner，也支持别名 local/self/runtime"

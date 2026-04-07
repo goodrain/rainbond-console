@@ -281,6 +281,16 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("open_inner=true", container_port_schema["description"])
         self.assertIn("自动开启", open_inner_schema["description"])
 
+    # capability_id: console.gateway.component-env-upsert-schema
+    def test_manage_component_envs_schema_exposes_single_item_upsert_guidance(self):
+        tool = mcp_query_service._tool_manage_component_envs()
+
+        envs_schema = tool["inputSchema"]["properties"]["envs"]
+        attr_name_schema = tool["inputSchema"]["properties"]["attr_name"]
+
+        self.assertIn("upsert", envs_schema["description"])
+        self.assertIn("单条", attr_name_schema["description"])
+
     # capability_id: console.component.operation-aliases
     def test_normalize_component_operation_aliases(self):
         self.assertEqual(
@@ -1469,6 +1479,57 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
         self.assertTrue(result["created"])
         self.assertEqual(mock_add_env.call_args[0][7], "inner")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.env_var_service.get_service_inner_env")
+    @patch("console.services.mcp_query_service.env_var_service.add_service_env_var")
+    # capability_id: console.component.env-upsert-single-item
+    def test_manage_component_envs_upsert_accepts_single_item_shape(
+            self,
+            mock_add_env,
+            mock_get_inner_envs,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        env = Obj(attr_name="DB_PASSWORD", attr_value="postgres", scope="inner")
+        env.to_dict = lambda: {"attr_name": "DB_PASSWORD", "attr_value": "postgres", "scope": "inner"}
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_inner_envs.return_value = []
+        mock_add_env.return_value = (200, "success", env)
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_manage_component_envs",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "operation": "upsert",
+                "name": "DB_PASSWORD",
+                "attr_name": "DB_PASSWORD",
+                "attr_value": "postgres",
+                "scope": "inner",
+                "is_change": True,
+            },
+        )
+
+        self.assertEqual(result["service_id"], "svc-1")
+        self.assertEqual(result["envs"][0]["name"], "DB_PASSWORD")
+        self.assertEqual(mock_add_env.call_args[0][3], "DB_PASSWORD")
+        self.assertEqual(mock_add_env.call_args[0][4], "DB_PASSWORD")
+        self.assertEqual(mock_add_env.call_args[0][5], "postgres")
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
