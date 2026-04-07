@@ -17,6 +17,7 @@ AppStatus_NIL = "NIL"
 AppStatus_RUNNING = "RUNNING"
 AppStatus_CLOSED = "CLOSED"
 AppStatus_ABNORMAL = "ABNORMAL"
+AppStatus_PARTIAL_ABNORMAL = "PARTIAL_ABNORMAL"
 AppStatus_STARTING = "STARTING"
 AppStatus_STOPPING = "STOPPING"
 
@@ -36,13 +37,27 @@ class TopologicalService(object):
 
     def app_abnormal(self, statuses: list):
         for status in statuses:
-            if status == "abnormal" or status == "some_abnormal":
+            if status == "abnormal":
                 return True
         return False
 
+    def app_partially_abnormal(self, statuses: list):
+        active_statuses = [status for status in statuses if status != "undeploy"]
+        if not active_statuses:
+            return False
+
+        if any(status == "some_abnormal" for status in active_statuses):
+            return True
+
+        abnormal_statuses = [status for status in active_statuses if status == "abnormal"]
+        if not abnormal_statuses:
+            return False
+
+        return len(abnormal_statuses) != len(active_statuses)
+
     def app_starting(self, statuses: list):
         for status in statuses:
-            if status == "starting":
+            if status == "starting" or status == "waiting":
                 return True
         return False
 
@@ -58,11 +73,16 @@ class TopologicalService(object):
         return stopping
 
     def get_app_status(self, component_statuses: list):
+        # Align with region app status aggregation: undeployed components do not
+        # participate in closed/running state judgement.
+        component_statuses = [status for status in component_statuses if status != "undeploy"]
         app_status = AppStatus_RUNNING
         if len(component_statuses) == 0 or self.app_nil(component_statuses):
             app_status = AppStatus_NIL
         elif self.app_closed(component_statuses):
             app_status = AppStatus_CLOSED
+        elif self.app_partially_abnormal(component_statuses):
+            app_status = AppStatus_PARTIAL_ABNORMAL
         elif self.app_abnormal(component_statuses):
             app_status = AppStatus_ABNORMAL
         elif self.app_starting(component_statuses):

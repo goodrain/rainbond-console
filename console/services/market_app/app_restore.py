@@ -114,6 +114,8 @@ class AppRestore(MarketApp):
         self.upgrade_record.save()
 
     def _update_rollback_record(self, status):
+        if not self.rollback_record:
+            return
         self.rollback_record.status = status
         self.rollback_record.save()
 
@@ -207,7 +209,8 @@ class AppRestore(MarketApp):
         # component
         component = TenantServiceInfo(**snap["service_base"])
         # component source
-        component_source = ServiceSourceInfo(**snap["service_source"])
+        service_source = snap.get("service_source")
+        component_source = ServiceSourceInfo(**service_source) if service_source else None
         # environment
         envs = [TenantServiceEnvVar(**env) for env in snap["service_env_vars"]]
         # ports
@@ -269,7 +272,7 @@ class AppRestore(MarketApp):
         version = component_group["group_version"]
         component_group = copy.deepcopy(self.component_group)
         component_group.group_version = version
-        return ComponentGroup(self.user.enterprise_id, component_group)
+        return ComponentGroup(self.user.enterprise_id, component_group, need_save=bool(getattr(component_group, "ID", None)))
 
     def _create_plugins_deps(self):
         plugin_deps = []

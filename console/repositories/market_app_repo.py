@@ -13,6 +13,8 @@ logger = logging.getLogger("default")
 
 
 class RainbondCenterAppRepository(object):
+    HIDDEN_APP_VERSION_SOURCE = "app_version"
+
     def base_filter_rainbond_app_by_app_id(self, app_id):
         return RainbondCenterApp.objects.filter(app_id=app_id)
 
@@ -20,10 +22,14 @@ class RainbondCenterAppRepository(object):
         return self.base_filter_rainbond_app_by_app_id(app_id).first()
 
     def get_rainbond_app_by_app_id_team(self, app_ids):
-        return RainbondCenterApp.objects.filter(app_id__in=app_ids, scope="team")
+        return RainbondCenterApp.objects.filter(app_id__in=app_ids, scope="team").exclude(
+            source=self.HIDDEN_APP_VERSION_SOURCE
+        )
 
     def get_enterprise_team_apps(self, enterprise_id, team_name):
-        return RainbondCenterApp.objects.filter(create_team=team_name, source="local").order_by("-create_time")
+        return RainbondCenterApp.objects.filter(create_team=team_name, source="local").exclude(
+            source=self.HIDDEN_APP_VERSION_SOURCE
+        ).order_by("-create_time")
 
     def delete_helm_shared_apps(self, source):
         return RainbondCenterApp.objects.filter(source=source).delete()
@@ -92,6 +98,7 @@ class RainbondCenterAppRepository(object):
                 app = app.filter(create_team__in=teams)
         else:
             app = RainbondCenterApp.objects.filter(Q(scope="enterprise") | Q(scope="team", create_team__in=teams))
+        app = app.exclude(source=self.HIDDEN_APP_VERSION_SOURCE)
         if need_install:
             app = app.filter(is_version=True)
         if arch:

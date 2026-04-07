@@ -39,15 +39,15 @@ function init_database() {
 
   # Initialize database schema
   echo -e "${GREEN}INFO: Start initializing database${NC}"
-  if ! (python manage.py makemigrations www 2>/dev/null); then
+  if ! python manage.py makemigrations www; then
     echo -e "${RED}ERROR: failed to makemigrations www${NC}"
     exit 1
   fi
-  if ! (python manage.py makemigrations console 2>/dev/null); then
+  if ! python manage.py makemigrations console; then
     echo -e "${RED}ERROR: failed to makemigrations console${NC}"
     exit 1
   fi
-  if ! (python manage.py migrate >/dev/null); then
+  if ! python manage.py migrate; then
     echo -e "${RED}ERROR: failed to migrate${NC}"
     exit 1
   fi

@@ -320,6 +320,7 @@ class TenantServiceInfo(BaseModel):
     service_type = models.CharField(max_length=50, null=True, blank=True, help_text="组件类型:web,mysql,redis,mongodb,phpadmin")
     creater = models.IntegerField(help_text="组件创建者", default=0)
     language = models.CharField(max_length=40, null=True, blank=True, help_text="代码语言")
+    build_strategy = models.CharField(max_length=20, null=True, blank=True, default="", help_text="源码构建策略")
     # deprecated
     protocol = models.CharField(max_length=15, default='', help_text="服务协议：http,stream")
     # deprecated
@@ -824,6 +825,7 @@ class TenantEnterprise(BaseModel):
     enterprise_token = models.CharField(max_length=256, blank=True, null=True, default='', help_text="企业身份token")
     is_active = models.IntegerField(default=0, help_text="是否在云市上激活, 0:未激活, 1:已激活")
     logo = models.CharField(max_length=128, blank=True, null=True, default='', help_text="企业logo")
+    enable_team_resource_view = models.BooleanField(default=True, help_text="是否启用团队资源展示")
 
     def __unicode__(self):
         return self.to_dict()

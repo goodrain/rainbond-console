@@ -49,6 +49,53 @@ NAMESPACE = "namespace"
 EVENT_ID = "event_id"
 FILE_NAME = "file_name"
 
+
+def _websocket_url_to_http_base(wsurl):
+    if not wsurl:
+        return ""
+    if "://" in wsurl:
+        scheme, remainder = wsurl.split("://", 1)
+        if scheme == "wss":
+            return "https://{}".format(remainder)
+        if scheme == "ws":
+            return "http://{}".format(remainder)
+        if scheme in ("http", "https"):
+            return wsurl
+    return "http://{}".format(wsurl.lstrip("/"))
+
+
+class UploadLongVersion(AlowAnyApiView):
+    def post(self, request, *args, **kwargs):
+        try:
+            enterprise_id = request.data.get("enterprise_id")
+            region_id = request.data.get("region_id")
+            upload_file = request.FILES.get("file") if request.FILES else None
+            if not upload_file:
+                return Response(general_message(400, "get file failure.", "获取文件失败"), status=400)
+
+            region = region_repo.get_region_by_id(enterprise_id, region_id)
+            if not region or not region.wsurl:
+                return Response(general_message(404, "region not found", "数据中心不存在"), status=404)
+
+            target_url = "{}/lg_pack_operate/upload".format(_websocket_url_to_http_base(region.wsurl).rstrip("/"))
+            files = {
+                "file": (
+                    upload_file.name,
+                    upload_file.read(),
+                    upload_file.content_type or "application/octet-stream",
+                )
+            }
+            headers = {"Authorization": request.headers.get("Authorization", "")}
+            response = requests.post(target_url, files=files, headers=headers, timeout=60)
+            try:
+                return Response(response.json(), status=response.status_code)
+            except ValueError:
+                logger.exception("proxy lg_pack_operate upload returned non-json response")
+                return Response(general_message(500, "proxy error", "文件处理异常"), status=500)
+        except Exception as e:
+            logger.exception("proxy lg_pack_operate upload failed")
+            return Response(general_message(500, "Proxy error: {0}".format(str(e)), "文件处理异常"), status=500)
+
 class Enterprises(JWTAuthApiView):
     def get(self, request, *args, **kwargs):
         enterprises_list = []
@@ -68,6 +115,7 @@ class Enterprises(JWTAuthApiView):
                     "enterprise_id": enterprise.enterprise_id,
                     "enterprise_token": enterprise.enterprise_token,
                     "create_time": enterprise.create_time,
+                    "enable_team_resource_view": enterprise.enable_team_resource_view,
                 })
             data = general_message(200, "success", "查询成功", list=enterprises_list)
             return Response(data, status=status.HTTP_200_OK)
@@ -1030,7 +1078,8 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         """
     def get(self, request, enterprise_id, region_id, *args, **kwargs):
         language = request.GET.get(LANGUAGE, "")
-        data = region_lang_version.show_long_version(enterprise_id, region_id, language)
+        build_strategy = request.GET.get("build_strategy", "")
+        data = region_lang_version.show_long_version(enterprise_id, region_id, language, build_strategy)
         result = general_message(200, "success", "获取成功", list=data["list"])
         return Response(result, status=status.HTTP_200_OK)
 
@@ -1039,6 +1088,8 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         version = request.data.get(VERSION, "")
         event_id = request.data.get(EVENT_ID, "")
         file_name = request.data.get(FILE_NAME, "")
+        build_strategy = request.data.get("build_strategy", "slug")
+        is_allowed = request.data.get("is_allowed", True)
         # 检查版本号格式是否正确
         if not region_lang_version.is_valid_version(version):
             data = general_message(400,"version format mistake","版本号格式不正确")
@@ -1050,7 +1101,8 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         # 检查文件上传格式是否正确
         extensions = ['jar', 'tar.gz']
         if any(file_name.endswith(ext) for ext in extensions) or language == "net_runtime" or language == "net_sdk":
-            data = region_lang_version.create_long_version(enterprise_id, region_id, language, version, event_id, file_name)
+            data = region_lang_version.create_long_version(
+                enterprise_id, region_id, language, version, event_id, file_name, build_strategy, is_allowed)
             if data.get("bean") == "exist":
                 data = general_message(409,"version is exist","该版本已存在")
                 return Response(data, status=409)
@@ -1065,33 +1117,23 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         version = request.data.get(VERSION, "")
         first_choice = request.data.get("first_choice", True)
         show = request.data.get("show", True)
-        region_lang_version.update_long_version(enterprise_id, region_id, language, version, show,first_choice)
+        build_strategy = request.data.get("build_strategy", None)
+        is_allowed = request.data.get("is_allowed", None)
+        region_lang_version.update_long_version(
+            enterprise_id, region_id, language, version, show, first_choice, build_strategy, is_allowed)
         result = general_message(200, "success", "更新成功")
         return Response(result, status=result.get("code", 200))
 
     def delete(self, request, enterprise_id, region_id, *args, **kwargs):
         language = request.data.get(LANGUAGE, "")
         version = request.data.get(VERSION, "")
-        use_components = region_lang_version.delete_long_version(enterprise_id, region_id, language, version)
+        build_strategy = request.data.get("build_strategy", None)
+        use_components = region_lang_version.delete_long_version(enterprise_id, region_id, language, version, build_strategy)
         if use_components:
             data = general_message(405,"version in use","该版本在使用中，无法删除")
             return Response(data, status=405)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result.get("code", 200))
-
-
-class EnterpriseRegionCNBVersions(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_id, *args, **kwargs):
-        try:
-            lang = request.GET.get("lang", "nodejs")
-            data = region_cnb_config.show_cnb_versions(enterprise_id, region_id, lang)
-            result = general_message(200, "success", "获取成功", list=data.get("list", []))
-            return Response(result, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.exception(e)
-            result = general_message(400, "failed", "获取CNB版本列表失败")
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
-
 
 class EnterpriseRegionCNBFrameworks(JWTAuthApiView):
     def get(self, request, enterprise_id, region_id, *args, **kwargs):

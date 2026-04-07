@@ -107,13 +107,19 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def create_tenant(self, region, tenant_name, tenant_id, enterprise_id, namespace):
+    def create_tenant(self, region, tenant_name, tenant_id, enterprise_id, namespace, bind_existing=False):
         """创建租户"""
         url, token = self.__get_region_access_info(tenant_name, region)
         cloud_enterprise_id = client_auth_service.get_region_access_enterprise_id_by_tenant(tenant_name, region)
         if cloud_enterprise_id:
             enterprise_id = cloud_enterprise_id
-        data = {"tenant_id": tenant_id, "tenant_name": tenant_name, "eid": enterprise_id, "namespace": namespace}
+        data = {
+            "tenant_id": tenant_id,
+            "tenant_name": tenant_name,
+            "eid": enterprise_id,
+            "namespace": namespace,
+            "bind_existing_namespace": bind_existing,
+        }
         url += "/v2/tenants"
 
         self._set_headers(token)
@@ -123,7 +129,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             return res, body
         except RegionApiBaseHttpClient.CallApiError as e:
             if "namespace exists" in e.message['body'].get('msg', ""):
-                raise ErrNamespaceExists
+                raise ErrNamespaceExists()
             return {'status': e.message['httpcode']}, e.message['body']
 
     def delete_tenant(self, region, tenant_name):
@@ -1982,12 +1988,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return res, body
 
-    def list_namespaces(self, enterprise_id, region, content):
+    def list_namespaces(self, enterprise_id, region, content, namespace_format=''):
+        from urllib.parse import urlencode
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/cluster/namespace?eid={0}&content={1}".format(enterprise_id, content)
+        params = {"eid": enterprise_id, "content": content}
+        if namespace_format:
+            params["format"] = namespace_format
+        url += "/v2/cluster/namespace?" + urlencode(params)
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return res, body
 
@@ -2770,7 +2780,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 
-    def get_lang_version(self, enterprise_id, region, lang, show):
+    def get_lang_version(self, enterprise_id, region, lang, show, build_strategy=""):
         """
         获取语言版本信息。
 
@@ -2787,6 +2797,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/langVersion?language={0}&show={1}".format(lang, show)
+        if build_strategy:
+            url += "&build_strategy={0}".format(build_strategy)
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return body
 
@@ -2815,15 +2827,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = region_info.url
         url += "/v2/cluster/langVersion"
         res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
-        return body
-
-    def get_cnb_versions(self, enterprise_id, region, lang="nodejs"):
-        region_info = self.get_enterprise_region_info(enterprise_id, region)
-        if not region_info:
-            raise ServiceHandleException("region not found")
-        url = region_info.url
-        url += "/v2/cluster/cnb/versions?lang={0}".format(lang)
-        res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return body
 
     def get_cnb_frameworks(self, enterprise_id, region, lang="nodejs"):
@@ -3172,10 +3175,26 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
+        if path.startswith("/v2/tenants/"):
+            try:
+                parts = path.split("/")
+                tenant_name = parts[3]
+                tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+                parts[3] = tenant_region.region_tenant_name
+                path = "/".join(parts)
+            except Exception:
+                pass
         url = region_info.url + path
         client = self.get_client(region_config=region_info)
+        self._set_headers(region_info.token)
         # requests
-        resp = client.request(method="GET", url=url, preload_content=False, timeout=urllib3.Timeout(connect=30, read=60 * 60))
+        resp = client.request(
+            method="GET",
+            url=url,
+            headers=self.default_headers,
+            preload_content=False,
+            timeout=urllib3.Timeout(connect=30, read=60 * 60),
+        )
 
         def event_stream():
             for chunk in resp.stream(4096):
@@ -3184,6 +3203,30 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         response['Content-Encoding'] = 'identity'
         return response
+
+    def get_component_pod_log(
+            self, tenant_name, region_name, service_alias, pod_name, lines=100, container_name="", read_timeout=3):
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/services/{}/pods/{}/logs?lines={}".format(
+            tenant_region.region_tenant_name, service_alias, pod_name, lines
+        )
+        if container_name:
+            url += "&container={}".format(container_name)
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        client = self.get_client(region_config=region_info)
+        d_connect, _ = self.get_default_timeout_conifg()
+        self._set_headers(token)
+        resp = client.request(
+            method="GET",
+            url=url,
+            headers=self.default_headers,
+            preload_content=False,
+            timeout=urllib3.Timeout(connect=d_connect, read=read_timeout),
+        )
+        return resp
 
     def upgrade_region(self, region_name, data):
         url, token = self.__get_region_access_info(None, region_name)
@@ -3199,7 +3242,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
 
-    def get_lang_version(self, enterprise_id, region, lang, show):
+    def get_lang_version(self, enterprise_id, region, lang, show, build_strategy=""):
         """
         获取语言版本信息。
 
@@ -3216,6 +3259,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/langVersion?language={0}&show={1}".format(lang, show)
+        if build_strategy:
+            url += "&build_strategy={0}".format(build_strategy)
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return body
 
@@ -3561,3 +3606,237 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
         res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, response_body
+
+    def get_cluster_resource(self, region_name, path, params=None):
+        """代理 GET 请求到 /v2/cluster/{path}"""
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/" + path
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(region_info.token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def post_cluster_resource(self, region_name, path, body, params=None):
+        """代理 POST 请求到 /v2/cluster/{path}"""
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/" + path
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(region_info.token)
+        res, response_body = self._post(url, self.default_headers, body=body, region=region_name)
+        return res, response_body
+
+    def delete_cluster_resource(self, region_name, path, params=None):
+        """代理 DELETE 请求到 /v2/cluster/{path}"""
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/" + path
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(region_info.token)
+        res, body = self._delete(url, self.default_headers, region=region_name)
+        return res, body
+
+    def put_cluster_resource(self, region_name, path, body, params=None):
+        """代理 PUT 请求到 /v2/cluster/{path}"""
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/" + path
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(region_info.token)
+        res, response_body = self._put(url, self.default_headers, body=body, region=region_name)
+        return res, response_body
+
+    def get_tenant_ns_resource_types(self, region_name, tenant_name):
+        """获取 namespace-scoped 资源类型列表"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/ns-resource-types".format(tenant_name)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_tenant_ns_resources(self, region_name, tenant_name, params=None):
+        """获取 namespace-scoped 资源列表"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/ns-resources".format(tenant_name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_tenant_ns_resource(self, region_name, tenant_name, name, params=None):
+        """获取单个 namespace-scoped 资源"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/ns-resources/{}".format(tenant_name, name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def post_tenant_ns_resource(self, region_name, tenant_name, body, params=None, content_type=None):
+        """创建 namespace-scoped 资源"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/ns-resources".format(tenant_name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        headers = self.default_headers.copy()
+        if content_type:
+            headers["Content-Type"] = content_type
+        res, response_body = self._post(url, headers, body=body, region=region_name)
+        return res, response_body
+
+    def put_tenant_ns_resource(self, region_name, tenant_name, name, body, params=None, content_type=None):
+        """更新 namespace-scoped 资源"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/ns-resources/{}".format(tenant_name, name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        headers = self.default_headers.copy()
+        if content_type:
+            headers["Content-Type"] = content_type
+        res, response_body = self._put(url, headers, body=body, region=region_name)
+        return res, response_body
+
+    def delete_tenant_ns_resource(self, region_name, tenant_name, name, params=None):
+        """删除 namespace-scoped 资源"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/ns-resources/{}".format(tenant_name, name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_tenant_helm_releases(self, region_name, tenant_name, namespace=None):
+        """获取 Helm release 列表"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/releases".format(tenant_name)
+        if namespace:
+            url += "?namespace={}".format(namespace)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def install_tenant_helm_release(self, region_name, tenant_name, body):
+        """安装 Helm release"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/releases".format(tenant_name)
+        self._set_headers(token)
+        res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, response_body
+
+    def preview_tenant_helm_chart(self, region_name, tenant_name, body):
+        """预览 Helm chart 信息与 values"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/chart-preview".format(tenant_name)
+        self._set_headers(token)
+        res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, response_body
+
+    def get_tenant_helm_release_history(self, region_name, tenant_name, release_name, namespace=None):
+        """获取 Helm release 历史版本"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/releases/{}/history".format(tenant_name, release_name)
+        if namespace:
+            url += "?namespace={}".format(namespace)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_tenant_helm_release_detail(self, region_name, tenant_name, release_name, namespace=None):
+        """获取 Helm release 详情"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/releases/{}".format(tenant_name, release_name)
+        if namespace:
+            url += "?namespace={}".format(namespace)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def upgrade_tenant_helm_release(self, region_name, tenant_name, release_name, body):
+        """升级 Helm release"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/releases/{}".format(tenant_name, release_name)
+        self._set_headers(token)
+        res, response_body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, response_body
+
+    def rollback_tenant_helm_release(self, region_name, tenant_name, release_name, body):
+        """回滚 Helm release"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/releases/{}/rollback".format(tenant_name, release_name)
+        self._set_headers(token)
+        res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+        return res, response_body
+
+    def uninstall_tenant_helm_release(self, region_name, tenant_name, release_name, namespace=None):
+        """卸载 Helm release"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/helm/releases/{}".format(tenant_name, release_name)
+        if namespace:
+            url += "?namespace={}".format(namespace)
+        self._set_headers(token)
+        res, body = self._delete(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_resource_center_workload_detail(self, region_name, tenant_name, resource, name, params=None):
+        """获取资源中心工作负载详情"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/resource-center/workloads/{}/{}".format(tenant_name, resource, name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_resource_center_pod_detail(self, region_name, tenant_name, pod_name):
+        """获取资源中心容器组详情"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/resource-center/pods/{}".format(tenant_name, pod_name)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_resource_center_events(self, region_name, tenant_name, params=None):
+        """获取资源中心对象事件"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/resource-center/events".format(tenant_name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def get_resource_center_pod_log(self, region_name, tenant_name, pod_name, params=None):
+        """获取资源中心容器组日志流"""
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        url += "/v2/tenants/{}/resource-center/pods/{}/logs".format(tenant_name, pod_name)
+        if params:
+            query = "&".join("{}={}".format(k, v) for k, v in params.items())
+            url = url + "?" + query
+        self._set_headers(token)
+        resp, _ = self._get(url, self.default_headers, region=region_name, preload_content=False)
+        return resp

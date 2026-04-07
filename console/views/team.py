@@ -144,7 +144,10 @@ class AddTeamView(JWTAuthApiView):
             team_alias = request.data.get("team_alias", None)
             useable_regions = request.data.get("useable_regions", "")
             namespace = request.data.get("namespace", "")
+            bind_existing_namespace = request.data.get("bind_existing_namespace", False)
             logo = request.data.get("logo", "")
+            if bind_existing_namespace and not namespace:
+                return Response(general_message(400, "failed", "namespace 不能为空"), status=400)
             if not is_qualified_name(namespace):
                 raise ErrQualifiedName(msg="invalid namespace name", msg_show="命名空间只能由小写字母、数字或"-"组成，并且必须以字母开始、以数字或字母结尾")
             regions = []
@@ -164,7 +167,8 @@ class AddTeamView(JWTAuthApiView):
                 exist_namespace_region_names = []
                 for r in regions:
                     try:
-                        region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, r, team.namespace)
+                        region_services.create_tenant_on_region(enterprise.enterprise_id, team.tenant_name, r, team.namespace,
+                                                                bind_existing_namespace)
                     except ErrNamespaceExists:
                         exist_namespace_region_names.append(r)
                     except ServiceHandleException as e:
@@ -1199,3 +1203,29 @@ class TeamRegistryAuthRUDView(RegionTenantHeaderView):
         team_services.delete_registry_auth(self.tenant, self.region_name, secret_id, self.user.user_id)
         result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])
+
+
+class ClusterNamespacesView(JWTAuthApiView):
+    def get(self, request, *args, **kwargs):
+        """
+        获取集群中未被 Rainbond 管理的 namespace 列表（含创建时间）
+        ---
+        parameters:
+            - name: region
+              description: 集群名称
+              required: true
+              type: string
+              paramType: query
+        """
+        region = request.GET.get("region", "")
+        if not region:
+            return Response(general_message(400, "failed", "region 参数不能为空"), status=400)
+        try:
+            _, body = region_api.list_namespaces(self.user.enterprise_id, region, "unmanaged", namespace_format="detail")
+            return Response(general_message(200, "success", "success", bean=body))
+        except ServiceHandleException as e:
+            logger.exception(e)
+            return Response(general_message(500, "failed", e.msg_show), status=500)
+        except Exception as e:
+            logger.exception(e)
+            return Response(general_message(500, "failed", "获取 namespace 列表失败"), status=500)

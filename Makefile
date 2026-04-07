@@ -5,6 +5,11 @@ format:
 	@yapf --exclude env --exclude venv3 --exclude venv --exclude static --exclude www/alipay_direct --exclude www/utils/mnssdk --exclude backends --style style.cfg  -r ./ -i
 check:
 	@flake8 --exclude venv3,venv,env,static,www/alipay_direct,www/utils/mnssdk,backends,migrations --extend-ignore=W605 --max-line-length 129 ./
+	@python3 scripts/validate_test_manifest.py --repo-root . --manifest test-manifest.json
+test-manifest-check:
+	@python3 scripts/validate_test_manifest.py --repo-root . --manifest test-manifest.json
+coverage-report:
+	@./venv/bin/python scripts/report_trace_coverage.py
 build-base:
 	docker build -t rainbond/rbd-ui-base:V5.3 -f Dockerfile.base .
 build-allinone-image:

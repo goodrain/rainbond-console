@@ -17,8 +17,10 @@ from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.repositories.region_repo import region_repo
 from console.services.app_config import (compile_env_service, domain_service, env_var_service, label_service, port_service,
                                          volume_service)
+from console.services.source_build_state_service import source_build_state_service
 from console.services.region_services import region_services
-from console.utils.cnb_build import CNB_BUILD_ENV_NAMES, extract_cnb_envs_from_runtime_info, is_cnb_language
+from console.utils import cnb_build as cnb_build_utils
+from console.utils.source_build_state import build_compile_env_payload, normalize_detected_languages, pick_preferred_language, read_compile_env_state
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -26,9 +28,47 @@ from www.models.main import Tenants
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
+CNB_BUILD_ENV_NAMES = cnb_build_utils.CNB_BUILD_ENV_NAMES
+extract_cnb_envs_from_runtime_info = cnb_build_utils.extract_cnb_envs_from_runtime_info
+PYTHON_SYNCED_ENV_NAMES = (
+    "BUILD_PYTHON_PACKAGE_MANAGER",
+    "BUILD_AUTO_PROCFILE",
+    "START_COMMAND_SOURCE",
+)
+
+
+def supports_cnb_build_strategy(language):
+    helper = getattr(cnb_build_utils, "supports_cnb_build_strategy", None)
+    if callable(helper):
+        return helper(language)
+
+    normalized = getattr(cnb_build_utils, "normalize_language", lambda value: (value or "").replace(".", "").strip().lower())(
+        language)
+    compact = normalized.replace("-", "").replace("_", "").replace(" ", "")
+    if "dockerfile" in normalized:
+        return False
+    if compact in ("netcore", "dotnet", "dotnetcore"):
+        return True
+    policy_helper = getattr(cnb_build_utils, "get_cnb_policy_definition", None)
+    return callable(policy_helper) and policy_helper(language) is not None
+
+
+def resolve_lang_update_build_strategy(language, service_build_strategy=""):
+    helper = getattr(cnb_build_utils, "resolve_lang_update_build_strategy", None)
+    if callable(helper):
+        return helper(language, service_build_strategy)
+
+    current = (service_build_strategy or "").strip().lower()
+    if supports_cnb_build_strategy(language):
+        return current or "cnb"
+    return ""
 
 
 class AppCheckService(object):
+    @staticmethod
+    def _effective_language(language):
+        return pick_preferred_language(language) or language
+
     def __get_service_region_type(self, service_source):
         if service_source == AppConstants.SOURCE_CODE:
             return "sourcecode"
@@ -45,6 +85,7 @@ class AppCheckService(object):
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = self.__get_service_region_type(service.service_source)
+        effective_build_strategy = getattr(service, "build_strategy", "") or ("cnb" if not is_again else "")
         source_body = ""
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         user_name = ""
@@ -60,7 +101,8 @@ class AppCheckService(object):
                 "branch": "",
                 "user": "",
                 "password": "",
-                "tenant_id": tenant.tenant_id
+                "tenant_id": tenant.tenant_id,
+                "build_strategy": effective_build_strategy,
             }
             source_body = json.dumps(sb)
         if service.service_source == AppConstants.SOURCE_CODE:
@@ -96,7 +138,8 @@ class AppCheckService(object):
                 "branch": service.code_version,
                 "user": user_name,
                 "password": password,
-                "tenant_id": tenant.tenant_id
+                "tenant_id": tenant.tenant_id,
+                "build_strategy": effective_build_strategy,
             }
             source_body = json.dumps(sb)
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:
@@ -177,6 +220,7 @@ class AppCheckService(object):
         sid = None
         try:
             sid = transaction.savepoint()
+            source_build_state_service.save_user_snapshot(service, self._effective_language(service.language))
             # 删除原有build类型env，保存新检测build类型env
             self.upgrade_service_env_info(tenant, service, data)
             # 重新检测后对端口做加法
@@ -184,13 +228,20 @@ class AppCheckService(object):
                 self.add_service_check_port(tenant, service, data)
             except ErrComponentPortExists:
                 logger.error('upgrade component port by code check failure due to component port exists')
-            lang = data["service_info"][0]["language"]
+            raw_language = data["service_info"][0]["language"]
+            lang = self._effective_language(raw_language)
             if lang == "dockerfile" or lang == "static":
                 service.cmd = ""
             elif service.service_source == AppConstants.SOURCE_CODE:
                 service.cmd = "start web"
             service.language = lang
+            service.build_strategy = resolve_lang_update_build_strategy(lang, getattr(service, "build_strategy", ""))
             service.save()
+            primary_snapshot = source_build_state_service.build_snapshot(
+                service,
+                language=lang,
+                compile_env_payload=compile_env_service.get_service_default_env_by_language(lang))
+            source_build_state_service.save_detected_defaults(service, raw_language, primary_snapshot=primary_snapshot)
             transaction.savepoint_commit(sid)
         except Exception as e:
             logger.exception(e)
@@ -278,7 +329,10 @@ class AppCheckService(object):
         service_info = check_service_info
         logger.info("[compose-debug] save_service_info called for service={0}, all keys={1}".format(
             service.service_cname, list(service_info.keys())))
-        service.language = service_info.get("language", "")
+        raw_language = service_info.get("language", "")
+        service.language = self._effective_language(raw_language)
+        service.build_strategy = resolve_lang_update_build_strategy(
+            service.language, getattr(service, "build_strategy", ""))
         memory = service_info.get("memory", 128)
         service.min_memory = memory - memory % 32
         service.min_cpu = 500
@@ -308,6 +362,10 @@ class AppCheckService(object):
         # save env
         self.__save_env(tenant, service, envs)
         self.sync_cnb_build_envs(tenant, service, service_info)
+        source_build_state_service.save_detected_defaults(
+            service,
+            raw_language,
+            primary_snapshot=source_build_state_service.build_snapshot(service, language=service.language))
         self.__save_port(tenant, service, ports)
         self.__save_volume(tenant, service, volumes)
         # save compose entrypoint as K8s command via ComponentK8sAttribute
@@ -324,6 +382,8 @@ class AppCheckService(object):
     def __save_compile_env(self, tenant, service, language):
         # 删除原有 compile env
         logger.debug("save tenant {0} compile service env {1}".format(tenant.tenant_name, service.service_cname))
+        current_compile_env = compile_env_service.get_service_compile_env(service)
+        _, state = read_compile_env_state(current_compile_env.user_dependency if current_compile_env else None)
         compile_env_service.delete_service_compile_env(service)
         if not language:
             language = False
@@ -333,7 +393,7 @@ class AppCheckService(object):
         check_dependency_json = json.dumps(check_dependency)
         # 添加默认编译环境
         user_dependency = compile_env_service.get_service_default_env_by_language(language)
-        user_dependency_json = json.dumps(user_dependency)
+        user_dependency_json = json.dumps(build_compile_env_payload(user_dependency, state))
         compile_env_service.save_compile_env(service, language, check_dependency_json, user_dependency_json)
 
     def __save_env(self, tenant, service, envs):
@@ -391,6 +451,11 @@ class AppCheckService(object):
                 port_service.delete_service_port(tenant, service)
                 _, _, t_port = port_service.add_service_port(tenant, service, 5000, "http",
                                                              service.service_alias.upper() + str(5000), True, True)
+                if (service.language or "").strip().lower() == "php":
+                    code, msg, env = env_var_service.add_service_env_var(
+                        tenant, service, 5000, "端口", "PORT", 5000, False, scope="outer")
+                    if code not in (200, 412):
+                        logger.error("save php default PORT env error {0}".format(msg))
                 region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, service.service_region)
                 if region_info:
                     try:
@@ -500,14 +565,22 @@ class AppCheckService(object):
                 "key": "源码信息",
                 "value": "{0}  branch: {1}".format(service.git_url, service.code_version)
             }
-            service_language = {"type": "language", "key": "代码语言", "value": service_info["language"]}
+            service_language = {
+                "type": "language",
+                "key": "代码语言",
+                "value": normalize_detected_languages(service_info["language"])
+            }
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:
             service_code_from = {"type": "source_from", "key": "镜像名称", "value": service.image}
             if service.cmd:
                 service_attr_list.append({"type": "source_from", "key": "镜像启动命令", "value": service.cmd})
         elif service.service_source == AppConstants.PACKAGE_BUILD:
             service_code_from = {"type": "source_from", "key": "源码信息", "value": "本地文件"}
-            service_language = {"type": "language", "key": "代码语言", "value": service_info["language"]}
+            service_language = {
+                "type": "language",
+                "key": "代码语言",
+                "value": normalize_detected_languages(service_info["language"])
+            }
         if service_language:
             service_attr_list.append(service_language)
 
@@ -625,22 +698,25 @@ class AppCheckService(object):
 
     def cleanup_cnb_build_envs(self, tenant, service, remove_build_type=False):
         env_names = list(CNB_BUILD_ENV_NAMES)
+        if (service.language or "").strip().lower() == "python":
+            env_names.extend(PYTHON_SYNCED_ENV_NAMES)
         if remove_build_type:
             env_names.append("BUILD_TYPE")
 
-        for attr_name in env_names:
-            env = env_var_service.get_env_by_attr_name(tenant, service, attr_name)
-            if not env:
+        build_envs = env_var_service.get_service_build_envs(service) or []
+        for build_env in build_envs:
+            attr_name = build_env.attr_name
+            if attr_name not in env_names:
                 continue
-            if attr_name == "BUILD_TYPE" and str(env.attr_value or "").lower() != "cnb":
+            if attr_name == "BUILD_TYPE" and str(build_env.attr_value or "").lower() != "cnb":
                 continue
-            env_var_service.delete_env_by_attr_name(tenant, service, attr_name)
+            build_env.delete()
 
     def sync_cnb_build_envs(self, tenant, service, service_info):
         runtime_info = service_info.get("runtime_info") or {}
         language = service_info.get("language") or runtime_info.get("language") or service.language
 
-        if not is_cnb_language(language):
+        if not supports_cnb_build_strategy(language):
             self.cleanup_cnb_build_envs(tenant, service, remove_build_type=True)
             return
 

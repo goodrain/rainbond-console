@@ -88,6 +88,7 @@ class EnterpriseConfigServiceTests(TestCase):
         install_stub("django.db.models", Q=lambda *args, **kwargs: None)
         return importlib.import_module("console.services.config_service")
 
+    # capability_id: console.enterprise-config.user-context
     def test_enterprise_config_service_defaults_user_id_to_none(self):
         config_service = self.import_config_service_module()
 
@@ -96,6 +97,7 @@ class EnterpriseConfigServiceTests(TestCase):
         self.assertEqual(service.enterprise_id, "enterprise-id")
         self.assertIsNone(service.user_id)
 
+    # capability_id: console.enterprise-config.user-context
     def test_enterprise_config_service_keeps_explicit_user_id(self):
         config_service = self.import_config_service_module()
 

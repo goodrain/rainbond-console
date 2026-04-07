@@ -247,7 +247,7 @@ class RegionService(object):
         return ""
 
     @transaction.atomic
-    def create_tenant_on_region(self, enterprise_id, team_name, region_name, namespace):
+    def create_tenant_on_region(self, enterprise_id, team_name, region_name, namespace, bind_existing=False):
         tenant = team_repo.get_team_by_team_name_and_eid(enterprise_id, team_name)
         region_config = region_repo.get_enterprise_region_by_region_name(enterprise_id, region_name)
         if not region_config:
@@ -258,7 +258,7 @@ class RegionService(object):
             tenant_region = region_repo.create_tenant_region(**tenant_region_info)
         if not tenant_region.is_init:
             res, body = region_api.create_tenant(region_name, tenant.tenant_name, tenant.tenant_id, tenant.enterprise_id,
-                                                 namespace)
+                                                 namespace, bind_existing)
             if res["status"] != 200 and body['msg'] != 'tenant name {} is exist'.format(tenant.tenant_name):
                 logger.error(res)
                 raise ServiceHandleException(msg="cluster init failure ", msg_show="集群初始化租户失败")

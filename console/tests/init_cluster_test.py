@@ -1,5 +1,17 @@
+import os
+import sys
+from types import ModuleType
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
+sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
+
+import django
+
+django.setup()
 
 from console.repositories.init_cluster import Cluster
 
@@ -8,6 +20,7 @@ class ClusterRepositoryTests(TestCase):
     @patch("console.repositories.init_cluster.RKEClusterNode.objects")
     @patch("console.repositories.init_cluster.uuid")
     @patch("console.repositories.init_cluster.RKECluster.objects")
+    # capability_id: console.init-cluster.recycle-empty-interconnected
     def test_get_rke_cluster_exclude_integrated_recycles_blank_cluster(self, mock_cluster_objects, mock_uuid, mock_node_objects):
         pending_queryset = MagicMock()
         pending_queryset.order_by.return_value.first.return_value = None
@@ -42,6 +55,7 @@ class ClusterRepositoryTests(TestCase):
         reusable_cluster.save.assert_called_once_with()
 
     @patch("console.repositories.init_cluster.RKECluster.objects")
+    # capability_id: console.init-cluster.prefer-latest-pending
     def test_get_rke_cluster_exclude_integrated_prefers_latest_pending_cluster(self, mock_cluster_objects):
         latest_cluster = MagicMock()
         pending_queryset = MagicMock()

@@ -1,0 +1,306 @@
+# -*- coding: utf-8 -*-
+import logging
+import time
+
+from console.constants import SourceCodeType
+from console.exception.main import ServiceHandleException
+from console.repositories.deploy_repo import deploy_repo
+from console.services.app import app_service as console_app_service
+from console.services.app_actions import app_manage_service
+from console.services.app_check_service import app_check_service
+from console.services.app_config.arch_service import arch_service
+from console.services.group_service import group_service
+from www.apiclient.regionapi import RegionInvokeApi
+from www.utils.crypt import make_uuid
+
+logger = logging.getLogger("default")
+region_api = RegionInvokeApi()
+
+
+class SourceComponentService(object):
+    MAX_CHECK_RETRIES = 30
+    CHECK_POLL_INTERVAL = 2
+    VALID_SERVER_TYPES = ("git", "svn", "oss")
+
+    def auto_create_component(
+            self,
+            team,
+            app,
+            user,
+            service_cname,
+            code_from,
+            git_url,
+            git_project_id=None,
+            code_version="master",
+            server_type=None,
+            version_type=None,
+            subdirectories=None,
+            username="",
+            password="",
+            check_uuid=None,
+            event_id=None,
+            oauth_service_id=None,
+            full_name=None,
+            k8s_component_name="",
+            arch="amd64",
+            is_deploy=True,
+            prefer_dockerfile_when_detected=False,
+            max_check_retries=None,
+            check_poll_interval=None):
+        git_url = self.normalize_git_url(git_url, subdirectories)
+        server_type = self.infer_server_type(git_url, server_type)
+        code_from = self.normalize_code_from(code_from, git_url)
+        code_version = self.normalize_code_version(code_version, version_type, server_type)
+
+        if k8s_component_name and console_app_service.is_k8s_component_name_duplicate(app.ID, k8s_component_name):
+            raise ServiceHandleException(msg="component name exists", msg_show="组件英文名称已存在", status_code=400)
+
+        code, msg_show, component = console_app_service.create_source_code_app(
+            app.region_name,
+            team,
+            user,
+            code_from,
+            service_cname,
+            git_url,
+            git_project_id,
+            code_version,
+            server_type,
+            check_uuid,
+            event_id or make_uuid(),
+            oauth_service_id,
+            full_name,
+            k8s_component_name=k8s_component_name,
+            arch=arch,
+        )
+        if code != 200:
+            raise ServiceHandleException(msg="service create fail", msg_show=msg_show, status_code=code)
+
+        if username or password:
+            console_app_service.create_service_source_info(team, component, username, password)
+
+        code, msg_show = group_service.add_service_to_group(team, app.region_name, app.ID, component.service_id)
+        if code != 200:
+            raise ServiceHandleException(msg="add service to app failure", msg_show=msg_show, status_code=code)
+
+        code, msg, check_info = app_check_service.check_service(team, component, False, "", user)
+        if code != 200:
+            raise ServiceHandleException(msg="check service error", msg_show=msg, status_code=code)
+
+        check_uuid = check_info.get("check_uuid") or component.check_uuid
+        bean = self._wait_for_check_result(
+            app.region_name,
+            team,
+            check_uuid,
+            max_retries=max_check_retries or self.MAX_CHECK_RETRIES,
+            poll_interval=check_poll_interval or self.CHECK_POLL_INTERVAL,
+        )
+
+        service_info_list = bean.get("service_info") or []
+        if len(service_info_list) > 1:
+            raise ServiceHandleException(
+                msg="multiple services detected",
+                msg_show="检测到多组件源码，请使用多组件创建流程",
+                status_code=400,
+            )
+        selected_language = None
+        detected_language_raw = None
+        if service_info_list:
+            selected_service_info = self._select_service_info(service_info_list[0], prefer_dockerfile_when_detected)
+            detected_language_raw = service_info_list[0].get("language")
+            selected_language = selected_service_info.get("language")
+            service_info_list[0] = selected_service_info
+            app_check_service.save_service_check_info(team, app.ID, component, bean)
+            self.apply_default_build_config(team, component, selected_service_info)
+
+        region_component = console_app_service.create_region_service(team, component, self._get_username(user))
+        deploy_event_id = None
+        if is_deploy:
+            arch_service.update_affinity_by_arch(region_component.arch, team, app.region_name, region_component)
+            code, msg, deploy_event_id = app_manage_service.deploy(team, region_component, user)
+            if code != 200:
+                raise ServiceHandleException(msg="deploy failed", msg_show=msg, status_code=code)
+            deploy_repo.create_deploy_relation_by_service_id(service_id=region_component.service_id)
+
+        return {
+            "service_id": region_component.service_id,
+            "service_alias": getattr(component, "service_alias", ""),
+            "service_cname": getattr(component, "service_cname", service_cname),
+            "app_id": app.ID,
+            "app_name": getattr(app, "group_name", ""),
+            "git_url": git_url,
+            "code_version": code_version,
+            "server_type": server_type,
+            "check_uuid": check_uuid,
+            "check_status": bean.get("check_status"),
+            "create_status": getattr(region_component, "create_status", getattr(component, "create_status", "")),
+            "event_id": deploy_event_id,
+            "is_deploy": bool(is_deploy),
+            "detected_language_raw": detected_language_raw,
+            "selected_language": selected_language or getattr(component, "language", ""),
+            "built": True,
+        }
+
+    @staticmethod
+    def _select_service_info(service_info, prefer_dockerfile_when_detected=False):
+        normalized = dict(service_info or {})
+        if not prefer_dockerfile_when_detected:
+            return normalized
+
+        language = (normalized.get("language") or "").strip()
+        dockerfiles = normalized.get("dockerfiles") or []
+        lowered_parts = [part.strip().lower() for part in language.split(",") if part.strip()]
+        if dockerfiles and lowered_parts != ["dockerfile"]:
+            normalized["language"] = "dockerfile"
+        return normalized
+
+    def _wait_for_check_result(self, region_name, team, check_uuid, max_retries, poll_interval):
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                _, body = region_api.get_service_check_info(region_name, team.tenant_name, check_uuid)
+                bean = body["bean"]
+                if not bean.get("check_status"):
+                    bean["check_status"] = "checking"
+                bean["check_status"] = bean["check_status"].lower()
+                if bean["check_status"] == "checking":
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        time.sleep(poll_interval)
+                    continue
+                if bean["check_status"] == "success":
+                    return bean
+                raise ServiceHandleException(
+                    msg="check failed",
+                    msg_show=self._format_check_failure(bean),
+                    status_code=500,
+                )
+            except region_api.CallApiError:
+                retry_count += 1
+                if retry_count >= max_retries:
+                    break
+                time.sleep(poll_interval)
+        raise ServiceHandleException(msg="check timeout", msg_show="代码检测超时", status_code=500)
+
+    @staticmethod
+    def _format_check_failure(bean):
+        error_infos = bean.get("error_infos") or []
+        if error_infos:
+            first_error = error_infos[0]
+            return first_error.get("error_info") or first_error.get("solve_advice") or "代码检测失败"
+        return "代码检测失败"
+
+    def apply_default_build_config(self, team, component, service_info):
+        language = (service_info.get("language") or getattr(component, "language", "") or "").strip()
+        normalized_language = self.normalize_build_language(language)
+        if normalized_language not in ("Node.js", "static"):
+            return
+
+        runtime_info = service_info.get("runtime_info") or {}
+        build_config = runtime_info.get("build_config") or {}
+        package_manager = runtime_info.get("package_manager") or {}
+        framework = runtime_info.get("framework") or {}
+        config_files = runtime_info.get("config_files") or {}
+
+        package_tool = package_manager.get("name", "") or ""
+        cnb_framework = framework.get("name", "") or ""
+        cnb_build_script = build_config.get("build_command", "") or ""
+        cnb_output_dir = build_config.get("output_dir", "") or ""
+        cnb_node_version = runtime_info.get("language_version", "") or ""
+        cnb_start_script = build_config.get("start_command", "") or ""
+        has_npmrc = "true" if config_files.get("has_npmrc") else ""
+        has_yarnrc = "true" if config_files.get("has_yarnrc") else ""
+        cnb_mirror_source = "project" if (has_npmrc or has_yarnrc) else "global"
+
+        code, msg = app_manage_service.change_lang_and_package_tool(
+            team,
+            component,
+            normalized_language,
+            package_tool,
+            cnb_output_dir,
+            cnb_framework=cnb_framework,
+            cnb_build_script=cnb_build_script,
+            cnb_output_dir=cnb_output_dir,
+            cnb_node_version=cnb_node_version,
+            cnb_node_env="production",
+            cnb_mirror_source=cnb_mirror_source,
+            has_npmrc=has_npmrc,
+            has_yarnrc=has_yarnrc,
+            cnb_start_script=cnb_start_script,
+        )
+        if code != 200:
+            raise ServiceHandleException(msg="save build config failed", msg_show=msg, status_code=500)
+        component.language = normalized_language
+
+    @staticmethod
+    def normalize_build_language(language):
+        lowered = (language or "").strip().lower()
+        if lowered == "static":
+            return "static"
+        if "node" in lowered:
+            return "Node.js"
+        return language
+
+    def infer_server_type(self, git_url, server_type=None):
+        server_type = (server_type or "").strip().lower()
+        if server_type:
+            if server_type not in self.VALID_SERVER_TYPES:
+                raise ServiceHandleException(msg="invalid server_type", msg_show="参数server_type无效", status_code=400)
+            return server_type
+        git_url = (git_url or "").strip().lower()
+        if git_url.startswith("svn://") or git_url.startswith("svn+ssh://"):
+            return "svn"
+        if git_url.startswith(("oss://", "s3://", "cos://", "obs://", "gs://")):
+            return "oss"
+        if any(domain in git_url for domain in (".aliyuncs.com/", ".myqcloud.com/", ".amazonaws.com/", ".obs.")):
+            return "oss"
+        return "git"
+
+    def normalize_git_url(self, git_url, subdirectories=None):
+        git_url = (git_url or "").strip()
+        subdirectories = (subdirectories or "").strip()
+        if not subdirectories or "dir=" in git_url:
+            return git_url
+        separator = "&" if "?" in git_url else "?"
+        return "{}{}dir={}".format(git_url, separator, subdirectories)
+
+    def normalize_code_version(self, code_version, version_type=None, server_type=None):
+        if server_type == "oss":
+            return ""
+        code_version = (code_version or "master").strip()
+        if (version_type or "").strip() == "tag" and not code_version.startswith("tag:"):
+            return "tag:{}".format(code_version)
+        return code_version
+
+    def normalize_code_from(self, code_from, git_url):
+        code_from = (code_from or "").strip()
+        if not code_from:
+            return SourceCodeType.GITLAB_MANUAL
+        if code_from in (
+                SourceCodeType.GITLAB_MANUAL,
+                SourceCodeType.GITLAB_SELF,
+                SourceCodeType.GITLAB_NEW,
+                SourceCodeType.GITLAB_EXIT,
+                SourceCodeType.GITHUB,
+                SourceCodeType.GITLAB_DEMO):
+            return code_from
+        if code_from.startswith("oauth_"):
+            return code_from
+
+        lowered = code_from.lower()
+        git_url = (git_url or "").strip().lower()
+        if lowered in ("git", "svn", "oss", "gitee", "gitea", "gitlab"):
+            if "github.com/" in git_url:
+                return SourceCodeType.GITHUB
+            return SourceCodeType.GITLAB_MANUAL
+        if lowered == "github":
+            return SourceCodeType.GITHUB
+        return SourceCodeType.GITLAB_MANUAL
+
+    @staticmethod
+    def _get_username(user):
+        if hasattr(user, "get_username") and callable(user.get_username):
+            return user.get_username()
+        return getattr(user, "nick_name", "")
+
+
+source_component_service = SourceComponentService()
