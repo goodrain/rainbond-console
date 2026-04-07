@@ -85,3 +85,21 @@ class GroupServiceAppStatusAggregationTests(TestCase):
             status = group_service.get_app_status(tenant, "demo-region", 42)
 
         self.assertEqual(status["status"], "PARTIAL_ABNORMAL")
+
+    # capability_id: console.app-status.list-closed-with-undeploy-components
+    def test_add_component_status_to_apps_marks_closed_when_components_are_closed_or_undeploy(self):
+        apps = [Obj(ID=42, app_type="rainbond")]
+        services = [Obj(service_id="svc-1", group_id=42), Obj(service_id="svc-2", group_id=42)]
+        service_status = {
+            "svc-1": {"status": "closed"},
+            "svc-2": {"status": "undeploy"},
+        }
+
+        result = group_service._add_component_status_to_apps(
+            apps,
+            services,
+            service_status,
+            {42: {"status": "RUNNING", "memory": 0, "cpu": 0}},
+        )
+
+        self.assertEqual(result[42]["status"], "CLOSED")

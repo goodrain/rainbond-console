@@ -6199,6 +6199,116 @@
       "status": "active"
     },
     {
+      "id": "console.app-status.aggregate-rainbond-components",
+      "title": "Aggregate Rainbond app status from component statuses",
+      "title_zh": "根据组件状态聚合 Rainbond 应用状态",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.GroupService.get_app_status",
+      "code_paths": [
+        "console/services/group_service.py",
+        "console/services/topological_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_service_test.py",
+          "selector": "GroupServiceAppStatusAggregationTests.test_get_app_status_uses_component_aggregation_for_rainbond_apps"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-status.list-closed-with-undeploy-components",
+      "title": "List app status as closed when components are closed or undeployed",
+      "title_zh": "当组件为关闭或未部署时将列表应用状态聚合为关闭",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.GroupService._add_component_status_to_apps",
+      "code_paths": [
+        "console/services/group_service.py",
+        "console/services/topological_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_service_test.py",
+          "selector": "GroupServiceAppStatusAggregationTests.test_add_component_status_to_apps_marks_closed_when_components_are_closed_or_undeploy"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-status.closed-with-undeploy-components",
+      "title": "Treat closed and undeployed components as a closed app",
+      "title_zh": "将关闭与未部署组件组合识别为应用已关闭",
+      "interface_type": "service_method",
+      "interface": "console.services.topological_services.TopologicalService.get_app_status",
+      "code_paths": [
+        "console/services/topological_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/topological_service_test.py",
+          "selector": "TopologicalServiceAppStatusTests.test_closed_and_undeploy_components_make_app_closed"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-status.waiting-is-starting",
+      "title": "Treat waiting components as an app starting state",
+      "title_zh": "将 waiting 组件识别为应用启动中",
+      "interface_type": "service_method",
+      "interface": "console.services.topological_services.TopologicalService.get_app_status",
+      "code_paths": [
+        "console/services/topological_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/topological_service_test.py",
+          "selector": "TopologicalServiceAppStatusTests.test_waiting_components_make_app_starting"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-status.partial-abnormal-mixed-components",
+      "title": "Treat mixed running and abnormal components as partially abnormal",
+      "title_zh": "将运行中与异常混合组件识别为部分异常",
+      "interface_type": "service_method",
+      "interface": "console.services.topological_services.TopologicalService.get_app_status",
+      "code_paths": [
+        "console/services/topological_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/topological_service_test.py",
+          "selector": "TopologicalServiceAppStatusTests.test_mixed_abnormal_components_make_app_partially_abnormal"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-status.partial-abnormal-some-abnormal",
+      "title": "Treat some_abnormal components as partially abnormal",
+      "title_zh": "将 some_abnormal 组件识别为部分异常",
+      "interface_type": "service_method",
+      "interface": "console.services.topological_services.TopologicalService.get_app_status",
+      "code_paths": [
+        "console/services/topological_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/topological_service_test.py",
+          "selector": "TopologicalServiceAppStatusTests.test_some_abnormal_component_makes_app_partially_abnormal"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.validation.k8s-qualified-name",
       "title": "Validate Kubernetes qualified resource names",
       "title_zh": "\u6821\u9a8c Kubernetes \u5408\u6cd5\u8d44\u6e90\u540d\u79f0\u683c\u5f0f",

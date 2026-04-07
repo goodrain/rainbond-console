@@ -73,6 +73,9 @@ class TopologicalService(object):
         return stopping
 
     def get_app_status(self, component_statuses: list):
+        # Align with region app status aggregation: undeployed components do not
+        # participate in closed/running state judgement.
+        component_statuses = [status for status in component_statuses if status != "undeploy"]
         app_status = AppStatus_RUNNING
         if len(component_statuses) == 0 or self.app_nil(component_statuses):
             app_status = AppStatus_NIL
