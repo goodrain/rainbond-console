@@ -17,6 +17,12 @@ from console.services.topological_services import topological_service  # noqa: E
 
 
 class TopologicalServiceAppStatusTests(TestCase):
+    # capability_id: console.app-status.closed-with-undeploy-components
+    def test_closed_and_undeploy_components_make_app_closed(self):
+        status = topological_service.get_app_status(["closed", "undeploy"])
+
+        self.assertEqual(status, "CLOSED")
+
     # capability_id: console.app-status.waiting-is-starting
     def test_waiting_components_make_app_starting(self):
         status = topological_service.get_app_status(["waiting"])
