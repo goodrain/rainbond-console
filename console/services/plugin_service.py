@@ -2,6 +2,7 @@
 import logging
 
 from console.services.team_services import team_services
+from console.services.platform_plugin_service import platform_plugin_service
 from console.repositories.region_app import region_app_repo
 from console.repositories.app_config import domain_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
@@ -33,10 +34,28 @@ class RainbondPluginService(object):
                 plugin.get("category", "unknown"),
                 plugin.get("alias", "unknown")))
 
+        market_plugins = []
+        market_plugin_map = {}
+        if official:
+            try:
+                _, market_plugins = platform_plugin_service._get_market_platform_plugins(enterprise_id)
+                for plugin in plugins:
+                    plugin_id = plugin.get("name", "")
+                    market_plugin = platform_plugin_service._select_market_plugin(market_plugins, plugin_id, {})
+                    if market_plugin:
+                        market_plugin_map[plugin_id] = market_plugin
+            except Exception as e:
+                logger.warning("failed to fetch platform plugin market metadata: %s", e)
+
         for plugin in plugins:
             region_app_ids.append(plugin["region_app_id"])
             team_names.append(plugin["team_name"])
-            if "rainbond-enterprise-base" in plugin["name"]:
+            plugin_id = plugin.get("name", "")
+            app_level = "enterprise"
+            if official and market_plugin_map.get(plugin_id):
+                app_level = platform_plugin_service._normalize_app_level(market_plugin_map[plugin_id])
+                plugin["app_level"] = app_level
+            if app_level != "free":
                 need_authz = True
 
         teams = team_services.list_by_team_names(team_names)

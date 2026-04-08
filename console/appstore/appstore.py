@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+import requests
 
 import openapi_client
 from console.services.config_service import EnterpriseConfigService
@@ -99,6 +100,24 @@ class AppStore(object):
         data = store_client.get_app_temp_list(
             page=page, page_size=page_size, market_domain=store.domain, query=query, query_all=query_all)
         return data
+
+    def get_platform_plugins(self, store, query="", page=1, page_size=-1):
+        headers = {}
+        if store.access_key:
+            headers["Authorization"] = store.access_key
+        response = requests.get(
+            "{0}/app-server/openapi/apps/platform-plugins".format(store.url.rstrip("/")),
+            headers=headers,
+            params={
+                "marketDomain": store.domain,
+                "query": query,
+                "page": page,
+                "pageSize": page_size,
+            },
+            timeout=15,
+        )
+        response.raise_for_status()
+        return response.json()
 
     @apiException
     def get_app_versions(self, store, app_id, query_all=False):
