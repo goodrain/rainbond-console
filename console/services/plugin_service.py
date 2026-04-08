@@ -51,11 +51,11 @@ class RainbondPluginService(object):
             region_app_ids.append(plugin["region_app_id"])
             team_names.append(plugin["team_name"])
             plugin_id = plugin.get("name", "")
-            app_level = "enterprise"
+            app_level = ""
             if official and market_plugin_map.get(plugin_id):
                 app_level = platform_plugin_service._normalize_app_level(market_plugin_map[plugin_id])
                 plugin["app_level"] = app_level
-            if app_level != "free":
+            if app_level == "enterprise":
                 need_authz = True
 
         teams = team_services.list_by_team_names(team_names)
