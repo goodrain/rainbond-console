@@ -848,7 +848,7 @@ class MarketAppService(object):
                 "k8s_service_name") else service.service_alias
             k8s_service_name = self.__handle_k8s_service_name(tenant, service, k8s_service_name, component_port)
             # Use component ID and port number as unique identification
-            port_k8s_svc_name["{}".format(service.service_id)] = k8s_service_name
+            port_k8s_svc_name["{}:{}".format(service.service_id, component_port)] = k8s_service_name
             if not port.get("is_inner_service", False):
                 continue
             port_alias = port["port_alias"] if port.get("port_alias") else service.service_alias.upper() + str(
@@ -929,7 +929,10 @@ class MarketAppService(object):
         create_ports = []
         for port in ports:
             component_port = port["container_port"]
-            k8s_service_name = port.get("k8s_service_name", service.service_alias)
+            port_map_key = "{}:{}".format(service.service_id, component_port)
+            k8s_service_name = port_k8s_svc_name.get(
+                port_map_key, port.get("k8s_service_name", service.service_alias)
+            )
 
             t_port = TenantServicesPort(
                 tenant_id=tenant.tenant_id,
