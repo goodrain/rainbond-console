@@ -29,6 +29,17 @@ PLUGIN_TEAM_ALIAS = "平台插件"
 
 
 class PlatformPluginService(object):
+    def _plugin_debug_summary(self, plugin_info):
+        if not plugin_info:
+            return {}
+        return {
+            "plugin_id": plugin_info.get("plugin_id", ""),
+            "app_key": plugin_info.get("appKeyID") or plugin_info.get("app_key", ""),
+            "app_level": self._normalize_app_level(plugin_info),
+            "plugin_name": plugin_info.get("plugin_name") or plugin_info.get("name", ""),
+            "latest_version": plugin_info.get("latest_version", ""),
+        }
+
     def _get_license_bean(self, enterprise_id, region_name):
         try:
             body = license_service.get_license_status(enterprise_id, region_name)
@@ -91,6 +102,24 @@ class PlatformPluginService(object):
     def _normalize_app_level(self, plugin_info):
         return plugin_info.get("appLevel") or plugin_info.get("app_level") or "enterprise"
 
+    def _select_market_plugin(self, market_plugins, plugin_id, plugin_mapping):
+        candidates = [item for item in market_plugins if item.get("plugin_id") == plugin_id]
+        if not candidates:
+            return None
+
+        free_candidates = [item for item in candidates if self._normalize_app_level(item) == "free"]
+        if free_candidates:
+            return free_candidates[0]
+
+        app_key = (plugin_mapping or {}).get(plugin_id)
+        if app_key:
+            for item in candidates:
+                item_app_key = item.get("appKeyID") or item.get("app_key")
+                if item_app_key == app_key:
+                    return item
+
+        return candidates[0]
+
     def list_platform_plugins(self, enterprise_id, region_name):
         """
         List platform plugins from app store.
@@ -110,14 +139,37 @@ class PlatformPluginService(object):
             logger.warning("Failed to get market platform plugins: %s", e)
             market_plugins = []
 
+        logger.info(
+            "platform plugin list source summary enterprise_id=%s region_name=%s license_valid=%s mapping_keys=%s market_plugin_count=%s",
+            enterprise_id,
+            region_name,
+            has_valid_license,
+            list(plugin_mapping.keys()),
+            len(market_plugins),
+        )
+
         result = []
+        selected_plugins = {}
         for market_plugin in market_plugins:
             plugin_id = market_plugin.get("plugin_id", "")
             if not plugin_id:
                 continue
+            if plugin_id not in selected_plugins:
+                selected_plugins[plugin_id] = self._select_market_plugin(market_plugins, plugin_id, plugin_mapping)
+        for plugin_id, market_plugin in selected_plugins.items():
+            if not market_plugin:
+                continue
 
             app_level = self._normalize_app_level(market_plugin)
             if has_valid_license and app_level != "free" and plugin_id not in plugin_mapping:
+                logger.info(
+                    "platform plugin filtered by license enterprise_id=%s region_name=%s plugin_id=%s app_level=%s mapping_keys=%s",
+                    enterprise_id,
+                    region_name,
+                    plugin_id,
+                    app_level,
+                    list(plugin_mapping.keys()),
+                )
                 continue
 
             plugin_info = {
@@ -168,6 +220,13 @@ class PlatformPluginService(object):
 
             result.append(plugin_info)
 
+        logger.info(
+            "platform plugin list result summary enterprise_id=%s region_name=%s result_count=%s result_plugins=%s",
+            enterprise_id,
+            region_name,
+            len(result),
+            [item.get("plugin_id", "") for item in result],
+        )
         return result
 
     def install_platform_plugin(self, enterprise_id, region_name, plugin_id, user):
@@ -180,22 +239,52 @@ class PlatformPluginService(object):
         license_access_key = bean.get("access_key", "")
 
         platform_market, market_plugins = self._get_market_platform_plugins(enterprise_id)
-        market_plugin = None
-        for item in market_plugins:
-            if item.get("plugin_id") == plugin_id:
-                market_plugin = item
-                break
+        logger.info(
+            "platform plugin install request enterprise_id=%s region_name=%s plugin_id=%s license_valid=%s mapping_keys=%s",
+            enterprise_id,
+            region_name,
+            plugin_id,
+            bool(bean.get("valid")),
+            list(plugin_mapping.keys()),
+        )
+        logger.info(
+            "platform plugin install market candidates plugin_id=%s candidates=%s",
+            plugin_id,
+            json.dumps(
+                [self._plugin_debug_summary(item) for item in market_plugins if item.get("plugin_id") == plugin_id],
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
+        )
+        market_plugin = self._select_market_plugin(market_plugins, plugin_id, plugin_mapping)
         if not market_plugin:
             raise ServiceHandleException(msg="plugin not found", msg_show="应用市场中未找到该插件", status_code=404)
 
         app_level = self._normalize_app_level(market_plugin)
         plugin_name = market_plugin.get("plugin_name") or plugin_names.get(plugin_id, plugin_id)
+        logger.info(
+            "platform plugin install selected plugin plugin_id=%s selected=%s",
+            plugin_id,
+            json.dumps(self._plugin_debug_summary(market_plugin), ensure_ascii=False, sort_keys=True),
+        )
 
         if app_level == "free":
             market = platform_market
             app_key = market_plugin.get("appKeyID") or market_plugin.get("app_key")
+            logger.info(
+                "platform plugin install resolved as free plugin plugin_id=%s app_key=%s latest_version=%s",
+                plugin_id,
+                app_key,
+                market_plugin.get("latest_version", ""),
+            )
         else:
             if plugin_id not in plugin_mapping:
+                logger.warning(
+                    "platform plugin install unauthorized enterprise plugin plugin_id=%s selected=%s mapping_keys=%s",
+                    plugin_id,
+                    json.dumps(self._plugin_debug_summary(market_plugin), ensure_ascii=False, sort_keys=True),
+                    list(plugin_mapping.keys()),
+                )
                 raise ServiceHandleException(msg="plugin not authorized", msg_show="该插件未授权")
             if not license_access_key:
                 raise ServiceHandleException(msg="no access_key in license", msg_show="授权信息中缺少 access_key")
@@ -205,6 +294,12 @@ class PlatformPluginService(object):
                 url=MARKET_HOST,
                 domain=MARKET_DOMAIN,
                 access_key=license_access_key,
+            )
+            logger.info(
+                "platform plugin install resolved as enterprise plugin plugin_id=%s app_key=%s latest_version=%s",
+                plugin_id,
+                app_key,
+                market_plugin.get("latest_version", ""),
             )
 
         latest_version = market_plugin.get("latest_version", "")
