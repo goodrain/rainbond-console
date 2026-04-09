@@ -255,6 +255,8 @@ class VirtualMachineService(object):
 
     def _normalize_asset_payload(self, payload):
         normalized = dict(payload)
+        labels = normalized.pop("labels", {})
+        extra = normalized.pop("extra", {})
         normalized["source_type"] = normalized.get("source_type") or "existing"
         normalized["source_uri"] = normalized.get("source_uri") or normalized.get("image_url") or ""
         normalized["arch"] = normalized.get("arch") or "amd64"
@@ -270,8 +272,8 @@ class VirtualMachineService(object):
         normalized["is_public_template"] = bool(normalized.get("is_public_template", False))
         normalized["boot_mode"] = normalized.get("boot_mode") or ""
         normalized["storage_backend"] = normalized.get("storage_backend") or ""
-        normalized["labels_json"] = self._dump_json(normalized.get("labels_json"), normalized.get("labels", {}))
-        normalized["extra_json"] = self._dump_json(normalized.get("extra_json"), normalized.get("extra", {}))
+        normalized["labels_json"] = self._dump_json(normalized.get("labels_json"), labels)
+        normalized["extra_json"] = self._dump_json(normalized.get("extra_json"), extra)
         return normalized
 
     def _load_json(self, value, default):
