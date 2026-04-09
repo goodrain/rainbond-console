@@ -1519,3 +1519,10 @@ class VirtualMachineImageView(RegionTenantHeaderView):
         data = vms.list_vm_image(self.tenant.tenant_id)
         result = general_message(200, "success", "查询成功", list=data)
         return Response(result, status=result["code"])
+
+
+class VirtualMachineCapabilityView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        data = vms.get_vm_capabilities(self.response_region, self.tenant.tenant_name)
+        result = general_message(200, "success", "查询成功", bean=data)
+        return Response(result, status=result["code"])

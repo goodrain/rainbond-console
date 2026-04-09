@@ -976,7 +976,7 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             pass
         if service.create_status != "complete":
-            vm_repo.delete_vm_image_by_image_url(service.image)
+            vm_repo.delete_vm_image_by_image_url(tenant.tenant_id, service.image)
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
