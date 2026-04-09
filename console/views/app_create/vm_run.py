@@ -16,6 +16,7 @@ from www.utils.return_message import general_message
 from console.services.group_service import group_service
 
 logger = logging.getLogger("default")
+PUBLIC_VM_IMAGE_NAMES = {"centos7.9", "anolisos7.9", "deepin20.9", "ubuntu23.10"}
 
 
 class VMRunCreateView(RegionTenantHeaderView):
@@ -57,9 +58,12 @@ class VMRunCreateView(RegionTenantHeaderView):
         k8s_component_name = request.data.get("k8s_component_name", "")
         arch = request.data.get("arch", "amd64")
         image_name = request.data.get("image_name", "")
+        source_type = request.data.get("source_type", "")
+        asset_id = request.data.get("asset_id", "")
         clone_source_name = request.data.get("clone_source_name", "")
         event_id = request.data.get("event_id", "")
         vm_url = request.data.get("vm_url", "")
+        boot_mode = request.data.get("boot_mode", "")
         gpu_enabled = request.data.get("gpu_enabled", False)
         gpu_resources = request.data.get("gpu_resources", [])
         usb_enabled = request.data.get("usb_enabled", False)
@@ -80,6 +84,8 @@ class VMRunCreateView(RegionTenantHeaderView):
             raise ErrK8sComponentNameExists
         try:
             vms.validate_vm_runtime_config(runtime_config)
+            asset = None
+            clone_source_id = None
             if clone_source_name:
                 image = vm_repo.get_vm_image_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
                 if image.exists():
@@ -87,24 +93,51 @@ class VMRunCreateView(RegionTenantHeaderView):
                 cloned = vms.clone_vm_image(self.tenant.tenant_id, clone_source_name, image_name)
                 if not cloned:
                     return Response(general_message(404, "vm image clone fail", "原始镜像不存在"), status=404)
+                asset = cloned
+                clone_source_id = cloned.source_asset_id
+                asset_id = cloned.ID
                 image = cloned.image_url
             elif event_id != "" or vm_url != "":
-                image = vm_repo.get_vm_image_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
-                if image.exists():
-                    if image_name == "centos7.9" or image_name == "anolisos7.9" \
-                            or image_name == "deepin20.9" or image_name == "ubuntu23.10":
-                        image = vm_repo.get_vm_image_url_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
+                asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
+                if asset:
+                    if image_name in PUBLIC_VM_IMAGE_NAMES:
+                        image = asset.image_url
+                        asset_id = asset.ID
                     else:
                         raise ErrVMImageNameExists
                 else:
                     image = self.tenant.namespace + ":" + image_name
-                    vm_repo.create_vm_image(
-                        tenant_id=self.tenant.tenant_id,
-                        name=image_name,
-                        image_url=image,
-                    )
+                    resolved_source_type = source_type
+                    if not resolved_source_type:
+                        if event_id:
+                            resolved_source_type = "upload"
+                        elif image_name in PUBLIC_VM_IMAGE_NAMES:
+                            resolved_source_type = "public"
+                        else:
+                            resolved_source_type = "url"
+                    asset = vms.create_vm_image_asset(
+                        self.tenant.tenant_id,
+                        image_name,
+                        image,
+                        source_type=resolved_source_type,
+                        source_uri=vm_url or "/grdata/package_build/temp/events/{}".format(event_id),
+                        arch=arch,
+                        os_name=image_name,
+                        build_event_id=event_id,
+                        is_public_template=resolved_source_type == "public",
+                        boot_mode=boot_mode,
+                        extra={
+                            "created_from": "vm_run"
+                        })
+                    asset_id = asset.ID
             else:
-                image = vm_repo.get_vm_image_url_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
+                if asset_id:
+                    asset = vm_repo.get_vm_image_instance_by_id(self.tenant.tenant_id, asset_id)
+                if not asset and image_name:
+                    asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
+                image = asset.image_url if asset else ""
+                if asset:
+                    asset_id = asset.ID
                 if not image:
                     return Response(general_message(404, "vm image not found", "虚拟机镜像不存在"), status=404)
             code, msg_show, new_service = app_service.create_vm_run_app(
@@ -114,7 +147,12 @@ class VMRunCreateView(RegionTenantHeaderView):
             vms.save_vm_runtime_config(
                 self.tenant.tenant_id,
                 new_service.service_id,
-                runtime_config)
+                {
+                    **runtime_config,
+                    "asset_id": asset_id,
+                    "clone_source_id": clone_source_id,
+                    "boot_mode": boot_mode
+                })
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                                 new_service.service_id)
             if code != 200:
