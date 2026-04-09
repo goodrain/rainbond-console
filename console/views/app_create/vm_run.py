@@ -135,6 +135,8 @@ class VMRunCreateView(RegionTenantHeaderView):
                     asset = vm_repo.get_vm_image_instance_by_id(self.tenant.tenant_id, asset_id)
                 if not asset and image_name:
                     asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
+                if asset and not vms.is_vm_asset_ready(asset):
+                    return Response(general_message(409, "vm image not ready", "虚拟机镜像导出尚未完成，请稍后再试"), status=409)
                 image = asset.image_url if asset else ""
                 if asset:
                     asset_id = asset.ID

@@ -18,6 +18,7 @@ from console.repositories.app_config import service_endpoints_repo, volume_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
+from console.repositories.virtual_machine import vm_repo
 from console.services.app import app_service, package_upload_service
 from console.services.app_actions import ws_service
 from console.services.app_config import port_service
@@ -190,6 +191,47 @@ class AppVMProfileView(AppBaseView):
                 "console_url": ""
             })
         result = general_message(200, "success", "查询成功", bean=profile)
+        return Response(result, status=result["code"])
+
+
+class AppVMExportView(AppBaseView):
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        export_name = request.data.get("name", "")
+        description = request.data.get("description", "")
+        if not export_name:
+            return Response(general_message(400, "vm export name required", "请填写导出名称"), status=400)
+        if vm_repo.get_vm_image_by_tenant_id_and_name(self.tenant.tenant_id, export_name).exists():
+            return Response(general_message(400, "vm image name already exists", "虚拟机镜像名称已存在"), status=400)
+        status_map = app_service.get_service_status(self.tenant, self.service)
+        vm_status = status_map.get("status", "")
+        try:
+            asset = vms.start_vm_export(
+                self.service,
+                self.response_region,
+                self.tenant.tenant_name,
+                export_name=export_name,
+                vm_status=vm_status,
+                description=description
+            )
+        except ValueError as err:
+            return Response(general_message(409, "vm export forbidden", str(err)), status=409)
+        result = general_message(200, "success", "导出任务已启动", bean=asset)
+        return Response(result, status=result["code"])
+
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        asset_id = request.GET.get("asset_id", "")
+        asset = None
+        if asset_id:
+            vm_asset = vm_repo.get_vm_image_instance_by_id(self.tenant.tenant_id, asset_id)
+            if vm_asset:
+                asset = vms.sync_vm_export_status(vm_asset, self.response_region, self.tenant.tenant_name)
+        else:
+            vm_asset = vms.get_latest_vm_export_asset(self.tenant.tenant_id, self.service.service_id)
+            if vm_asset:
+                asset = vms.sync_vm_export_status(vm_asset, self.response_region, self.tenant.tenant_name)
+        result = general_message(200, "success", "查询成功", bean=asset or {})
         return Response(result, status=result["code"])
 
 
