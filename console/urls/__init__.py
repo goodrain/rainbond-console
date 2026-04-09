@@ -15,7 +15,7 @@ from console.views.app_config.app_domain import (
     AppServiceDomainQueryView, AppServiceTcpDomainQueryView, DomainQueryView, DomainView, GatewayCustomConfigurationView,
     GetPortView, GetSeniorUrlView, HttpStrategyView, SecondLevelDomainView, ServiceDomainView, ServiceTcpDomainQueryView,
     ServiceTcpDomainView, TenantCertificateManageView, TenantCertificateView, GatewayRouteBatch, GatewayRoute, TenantService,
-    VirtualMachineImageView, CalibrationCertificate)
+    VirtualMachineImageView, VirtualMachineCapabilityView, CalibrationCertificate)
 from console.views.app_config.app_env import (AppBuildEnvView, AppEnvManageView, AppEnvView)
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import (AppLabelAvailableView, AppLabelView)
@@ -642,6 +642,7 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/sld-domain', SecondLevelDomainView.as_view()),
     # 虚拟机镜像
     url(r'^teams/(?P<tenantName>[\w\-]+)/virtual_machine_image$', VirtualMachineImageView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/vm/capabilities$', VirtualMachineCapabilityView.as_view()),
     # gateway api
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch-gateway-http-route$', GatewayRouteBatch.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/gateway-http-route$', GatewayRoute.as_view()),

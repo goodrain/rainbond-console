@@ -2668,6 +2668,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
+    def get_vm_capabilities(self, region, tenant_name):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/vm/capabilities"
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
     def get_node_info(self, region, node_name):
         region_info = self.get_region_info(region)
         if not region_info:
