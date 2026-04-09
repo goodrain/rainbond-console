@@ -296,12 +296,20 @@ class VirtualMachineService(object):
         }
 
     def get_vm_asset_reference_count(self, tenant_id, vm_image):
+        active_vm_services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, extend_method="vm")
+        active_vm_service_ids = active_vm_services.values_list("service_id", flat=True)
         attr_refs = ComponentK8sAttributes.objects.filter(
-            tenant_id=tenant_id, name="vm_asset_id", attribute_value=str(vm_image.ID)).count()
+            tenant_id=tenant_id,
+            component_id__in=active_vm_service_ids,
+            name="vm_asset_id",
+            attribute_value=str(vm_image.ID)).count()
         if attr_refs > 0:
             return attr_refs
-        return TenantServiceInfo.objects.filter(
-            tenant_id=tenant_id, extend_method="vm", image=vm_image.image_url).count()
+        bound_service_ids = ComponentK8sAttributes.objects.filter(
+            tenant_id=tenant_id,
+            component_id__in=active_vm_service_ids,
+            name="vm_asset_id").values_list("component_id", flat=True)
+        return active_vm_services.exclude(service_id__in=bound_service_ids).filter(image=vm_image.image_url).count()
 
     def _build_vm_runtime_attrs(self, runtime_config):
         attrs = {

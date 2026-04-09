@@ -6379,6 +6379,28 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.vm-asset.delete-active-reference-guard",
+      "title": "Delete VM asset only when active VM services reference it",
+      "title_zh": "\u4ec5\u5f53\u6d3b\u8dc3\u865a\u62df\u673a\u4ecd\u5f15\u7528\u65f6\u963b\u6b62\u5220\u9664\u955c\u50cf\u8d44\u4ea7",
+      "interface_type": "service_method",
+      "interface": "console.services.virtual_machine.VirtualMachineService.delete_vm_image",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_delete_vm_image_ignores_orphan_vm_asset_attrs"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_delete_vm_image_blocks_active_vm_asset_reference"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }

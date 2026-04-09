@@ -10,23 +10,37 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
-import sys
+import sys  # noqa: E402
 
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
-import django
+import django  # noqa: E402
 
 django.setup()
 
-from django.test import TestCase
+from django.test import TestCase  # noqa: E402
 
-from console.models.main import ComponentK8sAttributes
-from console.repositories.virtual_machine import vm_repo
-from console.services.virtual_machine import vms
-from www.models.main import VirtualMachineImage
+from console.models.main import ComponentK8sAttributes  # noqa: E402
+from console.repositories.virtual_machine import vm_repo  # noqa: E402
+from console.services.virtual_machine import vms  # noqa: E402
+from www.models.main import TenantServiceInfo, VirtualMachineImage  # noqa: E402
 
 
 class VirtualMachineServiceTests(TestCase):
+
+    def _create_vm_service(self, tenant_id, service_id, image, extend_method="vm"):
+        return TenantServiceInfo.objects.create(
+            service_id=service_id,
+            tenant_id=tenant_id,
+            service_key=service_id,
+            service_alias=service_id,
+            service_region="demo-region",
+            category="application",
+            version="v1",
+            image=image,
+            extend_method=extend_method,
+            k8s_component_name="{}-k8s".format(service_id)
+        )
 
     def test_create_vm_image_asset_accepts_extra_metadata(self):
         asset = vms.create_vm_image_asset(
@@ -129,6 +143,45 @@ class VirtualMachineServiceTests(TestCase):
 
         self.assertEqual((0, {}), deleted)
         self.assertEqual(2, VirtualMachineImage.objects.filter(tenant_id="tenant-a").count())
+
+    # capability_id: console.vm-asset.delete-active-reference-guard
+    def test_delete_vm_image_ignores_orphan_vm_asset_attrs(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="orphan-asset",
+            image_url="demo/orphan-asset"
+        )
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id="deleted-service",
+            name="vm_asset_id",
+            save_type="string",
+            attribute_value=str(asset.ID)
+        )
+
+        deleted, _ = vms.delete_vm_image("tenant-a", asset.ID)
+
+        self.assertEqual(1, deleted)
+        self.assertFalse(VirtualMachineImage.objects.filter(tenant_id="tenant-a", ID=asset.ID).exists())
+
+    # capability_id: console.vm-asset.delete-active-reference-guard
+    def test_delete_vm_image_blocks_active_vm_asset_reference(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="used-asset",
+            image_url="demo/used-asset"
+        )
+        service = self._create_vm_service("tenant-a", "service-a", asset.image_url)
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id=service.service_id,
+            name="vm_asset_id",
+            save_type="string",
+            attribute_value=str(asset.ID)
+        )
+
+        with self.assertRaises(ValueError):
+            vms.delete_vm_image("tenant-a", asset.ID)
 
     def test_list_vm_image_returns_asset_catalog_metadata(self):
         source = VirtualMachineImage.objects.create(
