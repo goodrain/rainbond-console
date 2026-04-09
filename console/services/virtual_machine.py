@@ -22,6 +22,8 @@ VM_RUNTIME_ATTR_SPECS = {
 }
 VM_RUNTIME_MANAGED_KEYS = set(VM_RUNTIME_ATTR_SPECS.keys())
 VM_RUNTIME_LIST_KEYS = ("vm_gpu_resources", "vm_usb_resources")
+VM_MACHINE_ASSET_KIND = "machine"
+VM_DISK_ASSET_KIND = "disk"
 
 
 class VirtualMachineService(object):
@@ -102,14 +104,91 @@ class VirtualMachineService(object):
             return {}
         runtime = self.get_vm_runtime_config(service.service_id)
         asset = self.get_vm_asset_for_service(service, runtime.get("asset_id"))
+        latest_export = self.get_latest_vm_export_asset(service.tenant_id, service.service_id)
         return {
             "asset": self.serialize_vm_image(asset) if asset else {},
             "runtime": runtime,
+            "latest_export": self.serialize_vm_image(latest_export) if latest_export else {},
             "connections": connections or {
                 "vnc_url": "",
                 "console_url": ""
             }
         }
+
+    def start_vm_export(self, service, region_name, tenant_name, export_name, vm_status, description=""):
+        if getattr(service, "extend_method", "") != "vm":
+            raise ValueError("only vm service supports export")
+        if vm_status != "closed":
+            raise ValueError("vm export requires closed status")
+
+        runtime_snapshot = self.get_vm_runtime_config(service.service_id)
+        source_asset = self.get_vm_asset_for_service(service, runtime_snapshot.get("asset_id"))
+        request_body = {
+            "name": export_name,
+            "description": description,
+            "export_all_disks": True,
+        }
+        _, body = region_api.start_vm_export(region_name, tenant_name, service.service_alias, request_body)
+        bean = body.get("bean", {}) if isinstance(body, dict) else {}
+        disks = bean.get("disks", [])
+        asset = self.create_vm_image_asset(
+            tenant_id=service.tenant_id,
+            name=export_name,
+            image_url="",
+            source_type="vm_export",
+            source_uri="service://{}".format(service.service_id),
+            status=bean.get("status") or "exporting",
+            build_event_id=bean.get("export_id", ""),
+            source_asset_id=source_asset.get("id") if isinstance(source_asset, dict) else getattr(source_asset, "ID", None),
+            boot_mode=runtime_snapshot.get("boot_mode", ""),
+            extra={
+                "asset_kind": VM_MACHINE_ASSET_KIND,
+                "disk_count": len(disks),
+                "source_service_id": service.service_id,
+                "source_service_alias": service.service_alias,
+                "export_request": {
+                    "description": description,
+                    "vm_status": vm_status,
+                    "export_all_disks": True,
+                },
+                "runtime_snapshot": runtime_snapshot,
+                "disks": disks,
+            }
+        )
+        return self.serialize_vm_image(asset)
+
+    def sync_vm_export_status(self, asset, region_name, tenant_name):
+        if not asset:
+            return None
+        extra = self._load_json(asset.extra_json, {})
+        _, body = region_api.get_vm_export_status(
+            region_name,
+            tenant_name,
+            extra.get("source_service_alias", ""),
+            asset.build_event_id)
+        bean = body.get("bean", {}) if isinstance(body, dict) else {}
+        disks = bean.get("disks", extra.get("disks", []))
+        extra["disks"] = disks
+        extra["disk_count"] = len(disks)
+        extra["latest_export_status"] = bean.get("status") or asset.status
+
+        root_disk = next((disk for disk in disks if disk.get("disk_role") == "root"), None)
+        asset.status = bean.get("status") or asset.status
+        if root_disk and root_disk.get("download_url"):
+            asset.image_url = root_disk.get("download_url")
+        asset.extra_json = json.dumps(extra)
+        asset.save()
+        return self.serialize_vm_image(asset)
+
+    def get_latest_vm_export_asset(self, tenant_id, service_id):
+        return VirtualMachineImage.objects.filter(
+            tenant_id=tenant_id,
+            source_type="vm_export",
+            source_uri="service://{}".format(service_id)
+        ).order_by("-ID").first()
+
+    def is_vm_asset_ready(self, asset):
+        return bool(asset and getattr(asset, "status", "") == "ready" and getattr(asset, "image_url", ""))
 
     def get_vm_asset_for_service(self, service, asset_id=None):
         tenant_id = getattr(service, "tenant_id", "")
@@ -181,6 +260,8 @@ class VirtualMachineService(object):
             return {}
         if vm_image.source_asset_id and not source_asset:
             source_asset = vm_repo.get_vm_image_instance_by_id(vm_image.tenant_id, vm_image.source_asset_id)
+        extra = self._load_json(vm_image.extra_json, {})
+        disks = extra.get("disks", [])
         return {
             "id": vm_image.ID,
             "name": vm_image.name,
@@ -200,7 +281,11 @@ class VirtualMachineService(object):
             "boot_mode": vm_image.boot_mode or "",
             "storage_backend": vm_image.storage_backend or "",
             "labels": self._load_json(vm_image.labels_json, {}),
-            "extra": self._load_json(vm_image.extra_json, {}),
+            "extra": extra,
+            "asset_kind": extra.get("asset_kind", VM_DISK_ASSET_KIND),
+            "disk_count": extra.get("disk_count", len(disks) if disks else 0),
+            "source_service_id": extra.get("source_service_id", ""),
+            "disks": disks,
             "reference_count": self.get_vm_asset_reference_count(vm_image.tenant_id, vm_image),
             "source_asset": {
                 "id": source_asset.ID,

@@ -58,7 +58,7 @@ from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQuery
                                        AppTraceView,
                                        BatchAppMonitorQueryView, MonitorQueryOverConsoleView, MonitorQueryView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView,
-                                        AppVMProfileView,
+                                        AppVMExportView, AppVMProfileView,
                                         AppGroupVisitView,
                                         AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView,
                                         BuildSourceinfo,
@@ -555,6 +555,8 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/detail', AppDetailView.as_view(),
         perms.APP_OVERVIEW_CREATE),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-profile$', AppVMProfileView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-export$', AppVMExportView.as_view(),
         perms.APP_OVERVIEW_CREATE),
     # 是否安装性能分析插件
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/analyze_plugins', AppAnalyzePluginView.as_view()),
