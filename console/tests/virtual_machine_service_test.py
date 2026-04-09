@@ -28,6 +28,21 @@ from www.models.main import VirtualMachineImage
 
 class VirtualMachineServiceTests(TestCase):
 
+    def test_create_vm_image_asset_accepts_extra_metadata(self):
+        asset = vms.create_vm_image_asset(
+            tenant_id="tenant-a",
+            name="uploaded-image",
+            image_url="tenant-a:uploaded-image",
+            source_type="upload",
+            source_uri="/tmp/uploaded-image.qcow2",
+            extra={
+                "created_from": "vm_run"
+            }
+        )
+
+        self.assertEqual("uploaded-image", asset.name)
+        self.assertEqual({"created_from": "vm_run"}, json.loads(asset.extra_json))
+
     def test_get_vm_capabilities_returns_region_payload(self):
         expected = {
             "chunk_upload_supported": True,
