@@ -4,16 +4,15 @@ from www.models.main import VirtualMachineImage
 
 class VirtualMachineImageRepo(object):
     def get_vm_images_by_tenant_id(self, tenant_id):
-        vm_images = VirtualMachineImage.objects.filter(tenant_id=tenant_id)
-        return vm_images.values()
+        return VirtualMachineImage.objects.filter(tenant_id=tenant_id).order_by("-ID")
 
     def get_vm_name_by_tenant_id_image(self, tenant_id, image_url):
         vm_images = VirtualMachineImage.objects.filter(tenant_id=tenant_id, image_url=image_url).first()
-        return vm_images.name if vm_images else None
+        return vm_images.name if vm_images else ""
 
     def get_vm_image_url_by_tenant_id_and_name(self, tenant_id, name):
         vm_images = VirtualMachineImage.objects.filter(tenant_id=tenant_id, name=name).first()
-        return vm_images.image_url if vm_images else None
+        return vm_images.image_url if vm_images else ""
 
     def get_vm_image_by_tenant_id_and_name(self, tenant_id, name):
         return VirtualMachineImage.objects.filter(tenant_id=tenant_id, name=name)
@@ -21,8 +20,17 @@ class VirtualMachineImageRepo(object):
     def get_vm_image_instance_by_tenant_id_and_name(self, tenant_id, name):
         return VirtualMachineImage.objects.filter(tenant_id=tenant_id, name=name).first()
 
+    def get_vm_image_instance_by_id(self, tenant_id, asset_id):
+        return VirtualMachineImage.objects.filter(tenant_id=tenant_id, ID=asset_id).first()
+
+    def get_vm_image_instance_by_tenant_id_and_image_url(self, tenant_id, image_url):
+        return VirtualMachineImage.objects.filter(tenant_id=tenant_id, image_url=image_url).order_by("-ID").first()
+
     def create_vm_image(self, **params):
         return VirtualMachineImage.objects.create(**params)
+
+    def delete_vm_image_by_id(self, tenant_id, asset_id):
+        return VirtualMachineImage.objects.filter(tenant_id=tenant_id, ID=asset_id).delete()
 
     def delete_vm_image_by_image_url(self, tenant_id, image_url):
         vm_images = VirtualMachineImage.objects.filter(tenant_id=tenant_id, image_url=image_url)

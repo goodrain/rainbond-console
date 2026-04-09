@@ -1526,3 +1526,53 @@ class VirtualMachineCapabilityView(RegionTenantHeaderView):
         data = vms.get_vm_capabilities(self.response_region, self.tenant.tenant_name)
         result = general_message(200, "success", "查询成功", bean=data)
         return Response(result, status=result["code"])
+
+
+class VirtualMachineAssetListView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        data = vms.list_vm_image(self.tenant.tenant_id)
+        result = general_message(200, "success", "查询成功", list=data)
+        return Response(result, status=result["code"])
+
+
+class VirtualMachineAssetCloneView(RegionTenantHeaderView):
+    def post(self, request, *args, **kwargs):
+        target_name = request.data.get("name", "")
+        source_name = request.data.get("source_name", "")
+        source_asset_id = request.data.get("source_asset_id", "")
+        if source_asset_id:
+            source_asset = vms.get_vm_asset(self.tenant.tenant_id, source_asset_id)
+            source_name = source_asset.get("name", "") if source_asset else source_name
+        if not source_name or not target_name:
+            result = general_message(400, "invalid vm asset clone request", "请指定源镜像和目标名称")
+            return Response(result, status=400)
+        if vm_repo.get_vm_image_by_tenant_id_and_name(self.tenant.tenant_id, target_name).exists():
+            result = general_message(400, "vm image name already exists", "虚拟机镜像名称已存在")
+            return Response(result, status=400)
+        cloned = vms.clone_vm_image(self.tenant.tenant_id, source_name, target_name)
+        if not cloned:
+            return Response(general_message(404, "vm image clone fail", "原始镜像不存在"), status=404)
+        result = general_message(200, "success", "克隆成功", bean=vms.serialize_vm_image(cloned))
+        return Response(result, status=result["code"])
+
+
+class VirtualMachineAssetManageView(RegionTenantHeaderView):
+    def get(self, request, *args, **kwargs):
+        asset_id = kwargs.get("asset_id")
+        asset = vms.get_vm_asset(self.tenant.tenant_id, asset_id)
+        if not asset:
+            return Response(general_message(404, "vm asset not found", "虚拟机镜像资产不存在"), status=404)
+        result = general_message(200, "success", "查询成功", bean=asset)
+        return Response(result, status=result["code"])
+
+    def delete(self, request, *args, **kwargs):
+        asset_id = kwargs.get("asset_id")
+        try:
+            deleted, _ = vms.delete_vm_image(self.tenant.tenant_id, asset_id)
+        except ValueError:
+            result = general_message(409, "vm asset is referenced", "虚拟机镜像资产仍被引用，无法删除")
+            return Response(result, status=409)
+        if deleted == 0:
+            return Response(general_message(404, "vm asset not found", "虚拟机镜像资产不存在"), status=404)
+        result = general_message(200, "success", "删除成功")
+        return Response(result, status=result["code"])

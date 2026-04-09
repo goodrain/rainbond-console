@@ -30,6 +30,7 @@ from console.services.plugin import app_plugin_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.kubeblocks_service import kubeblocks_service
+from console.services.virtual_machine import vms
 from console.utils.cnb_build import summarize_build_env
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
@@ -42,6 +43,17 @@ from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
+
+
+def build_vm_vnc_url(tenant, service, app_k8s_name, vm_url):
+    if service.extend_method != "vm" or not vm_url:
+        return ""
+    namespace = tenant.namespace
+    name = app_k8s_name + "-" + service.k8s_component_name
+    base_vm_url = "{}/vnc_lite.html?path=".format(vm_url)
+    base_path = "k8s/apis/subresources.kubevirt.io/v1alpha3/"
+    path = base_path + "namespaces/{}/virtualmachineinstances/{}/vnc".format(namespace, name)
+    return base_vm_url + path
 
 
 class AppDetailView(AppBaseView):
@@ -76,13 +88,14 @@ class AppDetailView(AppBaseView):
         volumes = volume_repo.get_service_volumes_with_config_file(self.service.service_id)
         service_model["disk_cap"] = 10
         if self.service.extend_method == "vm":
-            namespace = self.tenant.namespace
-            name = app_k8s_name + "-" + self.service.k8s_component_name
-            base_vm_url = "{}/vnc_lite.html?path=".format(vm_url)
-            base_path = "k8s/apis/subresources.kubevirt.io/v1alpha3/"
-            path = base_path + "namespaces/{}/virtualmachineinstances/{}/vnc".format(namespace, name)
-            vm_url = base_vm_url + path
+            vm_url = build_vm_vnc_url(self.tenant, self.service, app_k8s_name, vm_url)
             bean["vm_url"] = vm_url
+            bean["vm_profile"] = vms.get_vm_profile(
+                self.service,
+                connections={
+                    "vnc_url": vm_url,
+                    "console_url": ""
+                })
         if volumes:
             service_model["disk_cap"] = volumes[0].volume_capacity
         bean.update({"service": service_model})
@@ -160,6 +173,23 @@ class AppDetailView(AppBaseView):
                     bean["kubernetes"] = json.loads(service_endpoints.endpoints_info)
 
         result = general_message(200, "success", "查询成功", bean=bean)
+        return Response(result, status=result["code"])
+
+
+class AppVMProfileView(AppBaseView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        vm_url = request.GET.get("vm_url", "")
+        group_map = group_service.get_services_group_name([self.service.service_id])
+        app_k8s_name = group_map.get(self.service.service_id)["k8s_app"]
+        vnc_url = build_vm_vnc_url(self.tenant, self.service, app_k8s_name, vm_url)
+        profile = vms.get_vm_profile(
+            self.service,
+            connections={
+                "vnc_url": vnc_url,
+                "console_url": ""
+            })
+        result = general_message(200, "success", "查询成功", bean=profile)
         return Response(result, status=result["code"])
 
 
