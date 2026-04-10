@@ -20,6 +20,8 @@ VM_RUNTIME_ATTR_SPECS = {
     "vm_network_mode": "string",
     "vm_network_name": "string",
     "vm_fixed_ip": "string",
+    "vm_os_family": "string",
+    "vm_os_name": "string",
     "vm_gpu_enabled": "string",
     "vm_gpu_resources": "json",
     "vm_usb_enabled": "string",
@@ -536,13 +538,15 @@ class VirtualMachineService(object):
             "network_mode": attrs.get("vm_network_mode") or "random",
             "network_name": attrs.get("vm_network_name", ""),
             "fixed_ip": attrs.get("vm_fixed_ip", ""),
+            "os_family": attrs.get("vm_os_family", ""),
+            "os_name": attrs.get("vm_os_name", ""),
             "gpu_enabled": self._as_bool(attrs.get("vm_gpu_enabled")),
             "gpu_resources": self._as_list(attrs.get("vm_gpu_resources")),
             "usb_enabled": self._as_bool(attrs.get("vm_usb_enabled")),
             "usb_resources": self._as_list(attrs.get("vm_usb_resources")),
         }
 
-    def save_vm_runtime_config(self, tenant_id, service_id, runtime_config):
+    def save_vm_runtime_config(self, tenant_id, service_id, runtime_config, sync_context=None):
         self.validate_vm_runtime_config(runtime_config)
         attrs = self._build_vm_runtime_attrs(runtime_config)
         current_attrs = {
@@ -550,7 +554,7 @@ class VirtualMachineService(object):
             for attr in k8s_attribute_repo.get_by_component_id(service_id)
             if attr.name in VM_RUNTIME_MANAGED_KEYS
         }
-        sync_context = self._get_vm_attr_sync_context(service_id)
+        sync_context = sync_context or self._get_vm_attr_sync_context(service_id)
         for name in VM_RUNTIME_MANAGED_KEYS:
             value = attrs.get(name)
             if value is None:
@@ -799,6 +803,14 @@ class VirtualMachineService(object):
         if attrs["vm_network_mode"] == "fixed":
             attrs["vm_network_name"] = runtime_config.get("network_name") or ""
             attrs["vm_fixed_ip"] = runtime_config.get("fixed_ip") or ""
+
+        os_family = runtime_config.get("os_family")
+        if os_family not in (None, ""):
+            attrs["vm_os_family"] = str(os_family)
+
+        os_name = runtime_config.get("os_name")
+        if os_name not in (None, ""):
+            attrs["vm_os_name"] = str(os_name)
 
         gpu_enabled = self._as_bool(runtime_config.get("gpu_enabled"))
         gpu_resources = self._as_list(runtime_config.get("gpu_resources"))

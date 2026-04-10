@@ -73,6 +73,7 @@ class VMRunCreateView(RegionTenantHeaderView):
         network_mode = request.data.get("network_mode", "random")
         network_name = request.data.get("network_name", "")
         fixed_ip = request.data.get("fixed_ip", "")
+        os_family = request.data.get("os_family", "")
         runtime_config = {
             "gpu_enabled": gpu_enabled,
             "gpu_resources": gpu_resources,
@@ -80,7 +81,8 @@ class VMRunCreateView(RegionTenantHeaderView):
             "usb_resources": usb_resources,
             "network_mode": network_mode,
             "network_name": network_name,
-            "fixed_ip": fixed_ip
+            "fixed_ip": fixed_ip,
+            "os_family": os_family
         }
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             raise ErrK8sComponentNameExists
@@ -88,6 +90,7 @@ class VMRunCreateView(RegionTenantHeaderView):
             vms.validate_vm_runtime_config(runtime_config)
             asset = None
             template_payload = None
+            guest_os_name = ""
             if event_id != "" or vm_url != "":
                 asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
                 if asset:
@@ -121,6 +124,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                             "created_from": "vm_run"
                         })
                     asset_id = asset.ID
+                guest_os_name = getattr(asset, "os_name", "") or image_name
             else:
                 if template_version_id:
                     try:
@@ -138,10 +142,15 @@ class VMRunCreateView(RegionTenantHeaderView):
                     if "boot_mode" not in request.data and runtime_snapshot.get("boot_mode"):
                         boot_mode = runtime_snapshot.get("boot_mode")
                     for key in (
-                            "network_mode", "network_name", "fixed_ip", "gpu_enabled", "gpu_resources",
+                            "network_mode", "network_name", "fixed_ip", "os_family", "gpu_enabled", "gpu_resources",
                             "usb_enabled", "usb_resources"):
                         if key not in request.data and key in runtime_snapshot:
                             runtime_config[key] = runtime_snapshot.get(key)
+                    guest_os_name = (
+                        template_payload.get("os_name") or
+                        runtime_snapshot.get("os_name") or
+                        image_name
+                    )
                 if asset_id:
                     asset = vm_repo.get_vm_image_instance_by_id(self.tenant.tenant_id, asset_id)
                 if not asset and image_name:
@@ -152,6 +161,8 @@ class VMRunCreateView(RegionTenantHeaderView):
                     image = asset.image_url if asset else ""
                 if asset:
                     asset_id = asset.ID
+                    if not guest_os_name:
+                        guest_os_name = getattr(asset, "os_name", "") or image_name
                 if not image:
                     return Response(general_message(404, "vm image not found", "虚拟机镜像不存在"), status=404)
             code, msg_show, new_service = app_service.create_vm_run_app(
@@ -167,7 +178,13 @@ class VMRunCreateView(RegionTenantHeaderView):
                     "template_id": template_payload.get("template_id") if template_payload else "",
                     "template_version_id": template_payload.get("template_version_id") if template_payload else "",
                     "disk_layout": template_payload.get("disk_layout") if template_payload else [],
-                    "boot_mode": boot_mode
+                    "boot_mode": boot_mode,
+                    "os_name": guest_os_name
+                },
+                sync_context={
+                    "tenant_name": self.tenant.tenant_name or self.tenant.tenant_id,
+                    "region_name": new_service.service_region,
+                    "service_alias": new_service.service_alias,
                 })
             if template_payload:
                 for disk in template_payload.get("data_disks", []):

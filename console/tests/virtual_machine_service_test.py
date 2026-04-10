@@ -345,6 +345,75 @@ class VirtualMachineServiceTests(TestCase):
             {"name": "vm_network_name"},
         )
 
+    def test_save_vm_runtime_config_uses_explicit_sync_context_during_create(self):
+        TenantServiceInfo.objects.create(
+            service_id="service-b",
+            tenant_id="tenant-a",
+            service_key="service-b",
+            service_alias="service-b",
+            service_region="demo-region",
+            category="application",
+            version="v1",
+            image="demo/image",
+            extend_method="vm",
+            create_status="creating",
+            k8s_component_name="service-b-k8s"
+        )
+
+        with mock.patch("console.services.virtual_machine.region_api.create_component_k8s_attribute", create=True) as create_attr, \
+                mock.patch("console.services.virtual_machine.region_api.update_component_k8s_attribute", create=True) as update_attr, \
+                mock.patch("console.services.virtual_machine.region_api.delete_component_k8s_attribute", create=True) as delete_attr:
+            vms.save_vm_runtime_config(
+                "tenant-a",
+                "service-b",
+                {
+                    "network_mode": "fixed",
+                    "network_name": "rbd-plugins/bridge-test",
+                    "fixed_ip": "172.16.20.230/24",
+                    "os_family": "windows",
+                    "os_name": "Windows Server 2022",
+                    "gpu_enabled": False,
+                    "gpu_resources": [],
+                    "usb_enabled": False,
+                    "usb_resources": [],
+                },
+                sync_context={
+                    "tenant_name": "tenant-a",
+                    "region_name": "demo-region",
+                    "service_alias": "service-b",
+                }
+            )
+
+        create_attr.assert_has_calls([
+            mock.call("tenant-a", "demo-region", "service-b", {
+                "name": "vm_network_mode",
+                "save_type": "string",
+                "attribute_value": "fixed",
+            }),
+            mock.call("tenant-a", "demo-region", "service-b", {
+                "name": "vm_network_name",
+                "save_type": "string",
+                "attribute_value": "rbd-plugins/bridge-test",
+            }),
+            mock.call("tenant-a", "demo-region", "service-b", {
+                "name": "vm_fixed_ip",
+                "save_type": "string",
+                "attribute_value": "172.16.20.230/24",
+            }),
+            mock.call("tenant-a", "demo-region", "service-b", {
+                "name": "vm_os_family",
+                "save_type": "string",
+                "attribute_value": "windows",
+            }),
+            mock.call("tenant-a", "demo-region", "service-b", {
+                "name": "vm_os_name",
+                "save_type": "string",
+                "attribute_value": "Windows Server 2022",
+            }),
+        ], any_order=True)
+        update_attr.assert_not_called()
+        delete_attr.assert_not_called()
+
     def test_save_vm_disk_imports_persists_json_payload(self):
         imports = vms.save_vm_disk_imports(
             "tenant-a",
