@@ -60,7 +60,6 @@ class VMRunCreateView(RegionTenantHeaderView):
         image_name = request.data.get("image_name", "")
         source_type = request.data.get("source_type", "")
         asset_id = request.data.get("asset_id", "")
-        clone_source_name = request.data.get("clone_source_name", "")
         event_id = request.data.get("event_id", "")
         vm_url = request.data.get("vm_url", "")
         boot_mode = request.data.get("boot_mode", "")
@@ -85,19 +84,7 @@ class VMRunCreateView(RegionTenantHeaderView):
         try:
             vms.validate_vm_runtime_config(runtime_config)
             asset = None
-            clone_source_id = None
-            if clone_source_name:
-                image = vm_repo.get_vm_image_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
-                if image.exists():
-                    raise ErrVMImageNameExists
-                cloned = vms.clone_vm_image(self.tenant.tenant_id, clone_source_name, image_name)
-                if not cloned:
-                    return Response(general_message(404, "vm image clone fail", "原始镜像不存在"), status=404)
-                asset = cloned
-                clone_source_id = cloned.source_asset_id
-                asset_id = cloned.ID
-                image = cloned.image_url
-            elif event_id != "" or vm_url != "":
+            if event_id != "" or vm_url != "":
                 asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
                 if asset:
                     if image_name in PUBLIC_VM_IMAGE_NAMES:
@@ -152,7 +139,6 @@ class VMRunCreateView(RegionTenantHeaderView):
                 {
                     **runtime_config,
                     "asset_id": asset_id,
-                    "clone_source_id": clone_source_id,
                     "boot_mode": boot_mode
                 })
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
