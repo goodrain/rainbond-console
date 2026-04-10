@@ -34,7 +34,8 @@ from rest_framework.views import APIView  # noqa: E402
 base_module = ModuleType("console.views.base")
 app_service_module = ModuleType("console.services.app")
 group_service_module = ModuleType("console.services.group_service")
-volume_service_module = ModuleType("console.services.app_config.volume_service")
+app_config_module = ModuleType("console.services.app_config")
+app_config_module.__path__ = []
 
 
 class _RegionTenantHeaderView(APIView):
@@ -47,11 +48,11 @@ app_service_module.app_service = SimpleNamespace(
     create_vm_run_app=lambda *args, **kwargs: (200, "创建成功", None)
 )
 group_service_module.group_service = SimpleNamespace(add_service_to_group=lambda *args, **kwargs: (200, "success"))
-volume_service_module.volume_service = SimpleNamespace(add_service_volume=lambda *args, **kwargs: None)
+app_config_module.volume_service = SimpleNamespace(add_service_volume=lambda *args, **kwargs: None)
 sys.modules.setdefault("console.views.base", base_module)
 sys.modules.setdefault("console.services.app", app_service_module)
 sys.modules.setdefault("console.services.group_service", group_service_module)
-sys.modules.setdefault("console.services.app_config.volume_service", volume_service_module)
+sys.modules.setdefault("console.services.app_config", app_config_module)
 
 from console.models.main import ComponentK8sAttributes  # noqa: E402
 from console.services.virtual_machine import vms  # noqa: E402

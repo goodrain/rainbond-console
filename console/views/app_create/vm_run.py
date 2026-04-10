@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from console.exception.bcode import ErrK8sComponentNameExists, ErrVMImageNameExists
 from console.exception.main import ResourceNotEnoughException
 from console.repositories.virtual_machine import vm_repo
-from console.services.app_config.volume_service import volume_service
+from console.services.app_config import volume_service
 from console.services.app import app_service
 from console.services.virtual_machine import vms
 from console.views.base import RegionTenantHeaderView
