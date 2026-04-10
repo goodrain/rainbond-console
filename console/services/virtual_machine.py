@@ -60,37 +60,6 @@ class VirtualMachineService(object):
         _, body = region_api.get_vm_capabilities(region_name, tenant_name)
         return body.get("bean", {})
 
-    def clone_vm_image(self, tenant_id, source_name, target_name):
-        source = vm_repo.get_vm_image_instance_by_tenant_id_and_name(tenant_id, source_name)
-        if not source:
-            return None
-        extra = self._load_json(source.extra_json, {})
-        extra.update({
-            "clone_source_id": source.ID,
-            "clone_source_name": source.name
-        })
-        return self.create_vm_image_asset(
-            tenant_id=tenant_id,
-            name=target_name,
-            image_url=source.image_url,
-            source_type="clone",
-            source_uri=source.image_url,
-            arch=source.arch,
-            os_name=source.os_name,
-            format=source.format,
-            size_bytes=source.size_bytes,
-            checksum=source.checksum,
-            status="ready",
-            build_event_id=source.build_event_id,
-            source_asset_id=source.ID,
-            clone_mode="reuse",
-            is_public_template=False,
-            boot_mode=source.boot_mode,
-            storage_backend=source.storage_backend,
-            labels_json=source.labels_json,
-            extra_json=json.dumps(extra)
-        )
-
     def delete_vm_image(self, tenant_id, asset_id):
         vm_image = vm_repo.get_vm_image_instance_by_id(tenant_id, asset_id)
         if not vm_image:

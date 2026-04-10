@@ -15,7 +15,7 @@ from console.views.app_config.app_domain import (
     AppServiceDomainQueryView, AppServiceTcpDomainQueryView, DomainQueryView, DomainView, GatewayCustomConfigurationView,
     GetPortView, GetSeniorUrlView, HttpStrategyView, SecondLevelDomainView, ServiceDomainView, ServiceTcpDomainQueryView,
     ServiceTcpDomainView, TenantCertificateManageView, TenantCertificateView, GatewayRouteBatch, GatewayRoute, TenantService,
-    VirtualMachineImageView, VirtualMachineCapabilityView, VirtualMachineAssetListView, VirtualMachineAssetCloneView,
+    VirtualMachineImageView, VirtualMachineCapabilityView, VirtualMachineAssetListView,
     VirtualMachineAssetManageView, CalibrationCertificate)
 from console.views.app_config.app_env import (AppBuildEnvView, AppEnvManageView, AppEnvView)
 from console.views.app_config.app_extend import AppExtendView
@@ -650,7 +650,6 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/virtual_machine_image$', VirtualMachineImageView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/vm/capabilities$', VirtualMachineCapabilityView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/vm/assets$', VirtualMachineAssetListView.as_view()),
-    url(r'^teams/(?P<tenantName>[\w\-]+)/vm/assets/clone$', VirtualMachineAssetCloneView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/vm/assets/(?P<asset_id>[\w\-]+)$', VirtualMachineAssetManageView.as_view()),
     # gateway api
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch-gateway-http-route$', GatewayRouteBatch.as_view()),

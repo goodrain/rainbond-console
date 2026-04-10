@@ -77,56 +77,6 @@ class VirtualMachineServiceTests(TestCase):
 
         self.assertEqual({}, result)
 
-    def test_clone_vm_image_creates_logical_copy(self):
-        source = VirtualMachineImage.objects.create(
-            tenant_id="tenant-a",
-            name="source-image",
-            image_url="demo/source-image",
-            source_type="upload",
-            source_uri="/tmp/source-image.qcow2",
-            arch="amd64",
-            os_name="Ubuntu 24.04",
-            format="qcow2",
-            size_bytes=1024,
-            checksum="sha256:demo",
-            status="ready",
-            build_event_id="event-1",
-            boot_mode="uefi",
-            storage_backend="local",
-            labels_json=json.dumps({"family": "ubuntu"}),
-            extra_json=json.dumps({"note": "base-image"})
-        )
-
-        result = vms.clone_vm_image("tenant-a", source.name, "target-image")
-
-        self.assertIsNotNone(result)
-        self.assertEqual("target-image", result.name)
-        self.assertEqual(source.image_url, result.image_url)
-        self.assertEqual("clone", result.source_type)
-        self.assertEqual(source.ID, result.source_asset_id)
-        self.assertEqual("reuse", result.clone_mode)
-        self.assertEqual(source.arch, result.arch)
-        self.assertEqual(source.os_name, result.os_name)
-        self.assertEqual(source.format, result.format)
-        self.assertEqual(source.size_bytes, result.size_bytes)
-        self.assertEqual(source.checksum, result.checksum)
-        self.assertEqual(source.boot_mode, result.boot_mode)
-        self.assertEqual(source.storage_backend, result.storage_backend)
-        self.assertEqual(source.labels_json, result.labels_json)
-        self.assertEqual("ready", result.status)
-        self.assertEqual(source.image_url, result.source_uri)
-        self.assertEqual({
-            "clone_source_id": source.ID,
-            "clone_source_name": source.name,
-            "note": "base-image"
-        }, json.loads(result.extra_json))
-        self.assertEqual(2, VirtualMachineImage.objects.filter(tenant_id="tenant-a").count())
-
-    def test_clone_vm_image_returns_none_when_source_missing(self):
-        result = vms.clone_vm_image("tenant-a", "missing-image", "target-image")
-
-        self.assertIsNone(result)
-
     def test_delete_vm_image_by_image_url_preserves_shared_image_records(self):
         VirtualMachineImage.objects.create(
             tenant_id="tenant-a",

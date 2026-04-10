@@ -41,27 +41,6 @@ class VMCreateFlowRegressionTests(TestCase):
 
         self.assertEqual(expected, result)
 
-    def test_clone_vm_image_creates_logical_copy(self):
-        source = VirtualMachineImage.objects.create(
-            tenant_id="tenant-a",
-            name="source-image",
-            image_url="demo/source-image",
-            source_type="upload",
-            source_uri="/tmp/source-image.qcow2",
-            format="qcow2",
-            arch="amd64"
-        )
-
-        result = vms.clone_vm_image("tenant-a", source.name, "target-image")
-
-        self.assertIsNotNone(result)
-        self.assertEqual("target-image", result.name)
-        self.assertEqual(source.image_url, result.image_url)
-        self.assertEqual("clone", result.source_type)
-        self.assertEqual(source.ID, result.source_asset_id)
-        self.assertEqual("reuse", result.clone_mode)
-        self.assertEqual(2, VirtualMachineImage.objects.filter(tenant_id="tenant-a").count())
-
     def test_delete_vm_image_by_image_url_preserves_shared_image_records(self):
         VirtualMachineImage.objects.create(
             tenant_id="tenant-a",
