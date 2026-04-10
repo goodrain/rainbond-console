@@ -65,7 +65,39 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("rainbond_vertical_scale_component", tool_names)
         self.assertIn("rainbond_close_apps", tool_names)
         self.assertIn("rainbond_get_team_apps", tool_names)
+        self.assertIn("rainbond_get_app_version_overview", tool_names)
+        self.assertIn("rainbond_list_app_version_snapshots", tool_names)
+        self.assertIn("rainbond_get_app_version_snapshot_detail", tool_names)
+        self.assertIn("rainbond_create_app_version_snapshot", tool_names)
+        self.assertIn("rainbond_delete_app_version_snapshot", tool_names)
+        self.assertIn("rainbond_rollback_app_version_snapshot", tool_names)
+        self.assertIn("rainbond_list_app_version_rollback_records", tool_names)
+        self.assertIn("rainbond_get_app_version_rollback_record_detail", tool_names)
+        self.assertIn("rainbond_delete_app_version_rollback_record", tool_names)
+        self.assertIn("rainbond_create_app_from_snapshot_version", tool_names)
+        self.assertIn("rainbond_get_app_publish_candidates", tool_names)
+        self.assertIn("rainbond_create_app_share_record", tool_names)
+        self.assertIn("rainbond_list_app_share_records", tool_names)
+        self.assertIn("rainbond_get_app_share_record", tool_names)
+        self.assertIn("rainbond_delete_app_share_record", tool_names)
+        self.assertIn("rainbond_get_app_share_info", tool_names)
+        self.assertIn("rainbond_submit_app_share_info", tool_names)
+        self.assertIn("rainbond_list_app_share_events", tool_names)
+        self.assertIn("rainbond_start_app_share_event", tool_names)
+        self.assertIn("rainbond_get_app_share_event", tool_names)
+        self.assertIn("rainbond_complete_app_share", tool_names)
+        self.assertIn("rainbond_giveup_app_share", tool_names)
         self.assertIn("rainbond_build_component", tool_names)
+        self.assertIn("rainbond_get_app_last_upgrade_record", tool_names)
+        self.assertIn("rainbond_query_app_upgrade_records", tool_names)
+        self.assertIn("rainbond_create_app_upgrade_record", tool_names)
+        self.assertIn("rainbond_get_app_upgrade_record", tool_names)
+        self.assertIn("rainbond_get_app_upgrade_detail", tool_names)
+        self.assertIn("rainbond_get_app_upgrade_changes", tool_names)
+        self.assertIn("rainbond_execute_app_upgrade_record", tool_names)
+        self.assertIn("rainbond_deploy_app_upgrade_record", tool_names)
+        self.assertIn("rainbond_get_app_rollback_records", tool_names)
+        self.assertIn("rainbond_rollback_app_upgrade_record", tool_names)
         self.assertIn("rainbond_get_app_upgrade_info", tool_names)
         self.assertIn("rainbond_upgrade_app", tool_names)
         self.assertIn("rainbond_get_copy_app_info", tool_names)
@@ -78,6 +110,11 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("rainbond_install_app_by_market", tool_names)
         self.assertIn("rainbond_create_component_from_source", tool_names)
         self.assertIn("rainbond_create_component_from_package", tool_names)
+        self.assertIn("rainbond_init_package_upload", tool_names)
+        self.assertIn("rainbond_upload_package_file", tool_names)
+        self.assertIn("rainbond_get_package_upload_status", tool_names)
+        self.assertIn("rainbond_delete_package_upload", tool_names)
+        self.assertIn("rainbond_create_component_from_local_package", tool_names)
         self.assertNotIn("rainbond_check_component", tool_names)
         self.assertNotIn("rainbond_get_component_check_result", tool_names)
         self.assertIn("rainbond_create_component_from_image", tool_names)
@@ -141,7 +178,39 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("rainbond_vertical_scale_component", tool_names)
         self.assertIn("rainbond_close_apps", tool_names)
         self.assertIn("rainbond_get_team_apps", tool_names)
+        self.assertIn("rainbond_get_app_version_overview", tool_names)
+        self.assertIn("rainbond_list_app_version_snapshots", tool_names)
+        self.assertIn("rainbond_get_app_version_snapshot_detail", tool_names)
+        self.assertIn("rainbond_create_app_version_snapshot", tool_names)
+        self.assertIn("rainbond_delete_app_version_snapshot", tool_names)
+        self.assertIn("rainbond_rollback_app_version_snapshot", tool_names)
+        self.assertIn("rainbond_list_app_version_rollback_records", tool_names)
+        self.assertIn("rainbond_get_app_version_rollback_record_detail", tool_names)
+        self.assertIn("rainbond_delete_app_version_rollback_record", tool_names)
+        self.assertIn("rainbond_create_app_from_snapshot_version", tool_names)
+        self.assertIn("rainbond_get_app_publish_candidates", tool_names)
+        self.assertIn("rainbond_create_app_share_record", tool_names)
+        self.assertIn("rainbond_list_app_share_records", tool_names)
+        self.assertIn("rainbond_get_app_share_record", tool_names)
+        self.assertIn("rainbond_delete_app_share_record", tool_names)
+        self.assertIn("rainbond_get_app_share_info", tool_names)
+        self.assertIn("rainbond_submit_app_share_info", tool_names)
+        self.assertIn("rainbond_list_app_share_events", tool_names)
+        self.assertIn("rainbond_start_app_share_event", tool_names)
+        self.assertIn("rainbond_get_app_share_event", tool_names)
+        self.assertIn("rainbond_complete_app_share", tool_names)
+        self.assertIn("rainbond_giveup_app_share", tool_names)
         self.assertIn("rainbond_build_component", tool_names)
+        self.assertIn("rainbond_get_app_last_upgrade_record", tool_names)
+        self.assertIn("rainbond_query_app_upgrade_records", tool_names)
+        self.assertIn("rainbond_create_app_upgrade_record", tool_names)
+        self.assertIn("rainbond_get_app_upgrade_record", tool_names)
+        self.assertIn("rainbond_get_app_upgrade_detail", tool_names)
+        self.assertIn("rainbond_get_app_upgrade_changes", tool_names)
+        self.assertIn("rainbond_execute_app_upgrade_record", tool_names)
+        self.assertIn("rainbond_deploy_app_upgrade_record", tool_names)
+        self.assertIn("rainbond_get_app_rollback_records", tool_names)
+        self.assertIn("rainbond_rollback_app_upgrade_record", tool_names)
         self.assertIn("rainbond_get_app_upgrade_info", tool_names)
         self.assertIn("rainbond_upgrade_app", tool_names)
         self.assertIn("rainbond_get_copy_app_info", tool_names)
@@ -154,6 +223,11 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("rainbond_install_app_by_market", tool_names)
         self.assertIn("rainbond_create_component_from_source", tool_names)
         self.assertIn("rainbond_create_component_from_package", tool_names)
+        self.assertIn("rainbond_init_package_upload", tool_names)
+        self.assertIn("rainbond_upload_package_file", tool_names)
+        self.assertIn("rainbond_get_package_upload_status", tool_names)
+        self.assertIn("rainbond_delete_package_upload", tool_names)
+        self.assertIn("rainbond_create_component_from_local_package", tool_names)
         self.assertNotIn("rainbond_check_component", tool_names)
         self.assertNotIn("rainbond_get_component_check_result", tool_names)
         self.assertIn("rainbond_create_component_from_image", tool_names)
@@ -269,6 +343,17 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
 
         self.assertIn("git/github/oauth_xxx", code_from_schema["description"])
         self.assertIn("gitlab_manual", code_from_schema["description"])
+
+    # capability_id: console.package-upload.local-path-schema
+    def test_upload_package_file_tool_schema_exposes_local_path_guidance(self):
+        tool = mcp_query_service._tool_upload_package_file()
+
+        local_path_schema = tool["inputSchema"]["properties"]["local_path"]
+        archive_name_schema = tool["inputSchema"]["properties"]["archive_name"]
+
+        self.assertEqual(tool["name"], "rainbond_upload_package_file")
+        self.assertIn("本地文件或目录路径", local_path_schema["description"])
+        self.assertIn("zip", archive_name_schema["description"])
 
     # capability_id: console.gateway.dependency-container-port-schema
     def test_manage_component_dependency_schema_exposes_container_port_guidance(self):
@@ -2319,6 +2404,406 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.app_version_service.get_overview")
+    # capability_id: console.app-version.overview
+    def test_get_app_version_overview_returns_version_center_overview(
+            self, mock_get_overview, mock_get_app, mock_get_region, mock_get_team):
+        region = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = region
+        mock_get_app.return_value = self.app
+        mock_get_overview.return_value = {"has_template": True, "current_version": "1.0.0", "snapshot_count": 2}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_app_version_overview",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12},
+        )
+
+        self.assertEqual(result["overview"]["current_version"], "1.0.0")
+        mock_get_overview.assert_called_once_with(self.team, region, self.user, self.app)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.app_version_service.get_hidden_template")
+    @patch("console.services.mcp_query_service.app_version_service.list_snapshot_versions")
+    # capability_id: console.app-version.snapshots
+    def test_list_app_version_snapshots_returns_versions(
+            self, mock_list_snapshots, mock_get_hidden_template, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_hidden_template.return_value = (Obj(app_model_id="hidden-1"), Obj(app_id="hidden-1"))
+        mock_list_snapshots.return_value = [{"version_id": 1, "version": "1.0.0"}]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_list_app_version_snapshots",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12},
+        )
+
+        self.assertTrue(result["has_template"])
+        self.assertEqual(result["items"][0]["version"], "1.0.0")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.app_version_service.create_snapshot")
+    # capability_id: console.app-version.create-snapshot
+    def test_create_app_version_snapshot_calls_app_version_service(
+            self, mock_create_snapshot, mock_get_app, mock_get_region, mock_get_team):
+        region = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = region
+        mock_get_app.return_value = self.app
+        mock_create_snapshot.return_value = {"version_id": 1, "version": "1.0.1", "created": True}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_app_version_snapshot",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "version": "1.0.1",
+                "version_alias": "stable",
+                "app_version_info": "snapshot note",
+            },
+        )
+
+        self.assertTrue(result["created"])
+        mock_create_snapshot.assert_called_once_with(
+            self.team, region, self.user, self.app,
+            version="1.0.1",
+            version_alias="stable",
+            app_version_info="snapshot note",
+            share_info={},
+        )
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.app_version_service.rollback_snapshot")
+    @patch("console.services.mcp_query_service.app_version_service.get_rollback_record")
+    # capability_id: console.app-version.rollback-snapshot
+    def test_rollback_app_version_snapshot_returns_rollback_record(
+            self, mock_get_rollback_detail, mock_rollback_snapshot, mock_get_app, mock_get_region, mock_get_team):
+        region = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = region
+        mock_get_app.return_value = self.app
+        mock_rollback_snapshot.return_value = {"ID": 91, "version": "1.0.0"}
+        mock_get_rollback_detail.return_value = {"ID": 91, "status": 4, "service_record": []}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_rollback_app_version_snapshot",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "version_id": 3},
+        )
+
+        self.assertEqual(result["rollback_record"]["ID"], 91)
+        mock_rollback_snapshot.assert_called_once_with(self.team, region, self.user, self.app, 3)
+        mock_get_rollback_detail.assert_called_once_with("demo-team", "rainbond", 12, 91)
+
+    @patch.object(mcp_query_service, "install_app_model")
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.app_version_service.get_overview")
+    @patch("console.services.mcp_query_service.app_version_service.get_snapshot_detail")
+    @patch("console.services.mcp_query_service.group_service.create_app")
+    # capability_id: console.app-version.create-app-from-snapshot
+    def test_create_app_from_snapshot_version_installs_hidden_template_into_new_app(
+            self, mock_create_app, mock_get_snapshot_detail, mock_get_overview, mock_get_app, mock_get_region, mock_get_team, mock_install_app_model):
+        region = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = region
+        mock_get_app.return_value = self.app
+        mock_get_overview.return_value = {"template_id": "hidden-template-id"}
+        mock_get_snapshot_detail.return_value = {"version_id": 5, "version": "1.2.3"}
+        mock_create_app.return_value = {"app_id": 88, "app_name": "snapshot-copy"}
+        mock_install_app_model.return_value = {"installed": True, "app_id": 88}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_app_from_snapshot_version",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "source_app_id": 12,
+                "version_id": 5,
+                "target_app_name": "snapshot-copy",
+                "target_app_note": "from snapshot",
+                "is_deploy": True,
+            },
+        )
+
+        self.assertTrue(result["installed"])
+        self.assertEqual(result["snapshot"]["template_id"], "hidden-template-id")
+        self.assertEqual(result["snapshot"]["version"], "1.2.3")
+        self.assertEqual(result["target_app"]["app_id"], 88)
+        mock_create_app.assert_called_once_with(
+            self.team,
+            "rainbond",
+            "snapshot-copy",
+            "from snapshot",
+            self.user.nick_name,
+            k8s_app="",
+        )
+        mock_install_app_model.assert_called_once_with(
+            self.user,
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 88,
+                "source": "local",
+                "app_model_id": "hidden-template-id",
+                "app_model_version": "1.2.3",
+                "is_deploy": True,
+            },
+        )
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.share_service.get_last_shared_app_and_app_list")
+    # capability_id: console.app-publish.candidates
+    def test_get_app_publish_candidates_returns_models(
+            self, mock_get_candidates, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_candidates.return_value = {
+            "last_shared_app": {"app_id": "model-1", "version": "1.0.0"},
+            "app_model_list": [{"app_id": "model-1", "app_name": "demo-model"}],
+        }
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_app_publish_candidates",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "scope": "local"},
+        )
+
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["items"][0]["app_name"], "demo-model")
+        mock_get_candidates.assert_called_once()
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.share_service.check_service_source")
+    @patch("console.services.mcp_query_service.app_version_service.get_or_create_hidden_template")
+    @patch("console.services.mcp_query_service.share_service.create_service_share_record")
+    @patch("console.services.mcp_query_service.rainbond_app_repo.get_rainbond_app_by_app_id")
+    @patch("console.services.mcp_query_service.rainbond_app_repo.get_rainbond_app_version_by_record_id")
+    # capability_id: console.app-share.create-record
+    def test_create_app_share_record_supports_snapshot_mode(
+            self, mock_get_record_version, mock_get_hidden_app, mock_create_share_record, mock_hidden_template, mock_check_share, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_check_share.return_value = {"code": 200}
+        mock_get_hidden_app.return_value = None
+        mock_get_record_version.return_value = None
+        hidden_template = Obj(app_id="hidden-model-id")
+        mock_hidden_template.return_value = (Obj(app_model_id="hidden-model-id"), hidden_template)
+        record = Obj(ID=51, app_id="hidden-model-id", share_version="", share_version_alias="", scope="", share_store_name="", share_app_market_name="", share_app_model_name="", share_app_version_info="", step=1, is_success=False, status=0, create_time=None)
+        mock_create_share_record.return_value = record
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_app_share_record",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "snapshot_mode": True},
+        )
+
+        self.assertEqual(result["share_record"]["app_model_id"], "hidden-model-id")
+        mock_hidden_template.assert_called_once_with(self.team, self.user, self.app)
+        mock_create_share_record.assert_called_once()
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.share_service.get_service_share_record_by_ID")
+    @patch("console.services.mcp_query_service.rainbond_app_repo.get_app_version")
+    @patch("console.services.mcp_query_service.share_service.is_snapshot_publish_version")
+    # capability_id: console.app-share.info
+    def test_get_app_share_info_returns_snapshot_payload(
+            self, mock_is_snapshot_publish, mock_get_app_version, mock_get_share_record, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        share_record = Obj(ID=61, is_success=False, step=1, scope="", app_id="hidden-model-id", share_version="1.0.1", group_id=12)
+        mock_get_share_record.return_value = share_record
+        mock_get_app_version.return_value = Obj(app_template=json.dumps({"apps": [{"service_cname": "api"}], "plugins": [{"plugin_alias": "p1"}], "k8s_resources": [{"name": "cfg"}]}))
+        mock_is_snapshot_publish.return_value = True
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_app_share_info",
+            {"team_name": "demo-team", "region_name": "rainbond", "share_id": 61},
+        )
+
+        self.assertEqual(result["publish_mode"], "snapshot")
+        self.assertEqual(result["share_info"]["share_service_list"][0]["service_cname"], "api")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.share_service.get_service_share_record_by_ID")
+    @patch("console.services.mcp_query_service.share_service.create_share_info")
+    # capability_id: console.app-share.submit-info
+    def test_submit_app_share_info_calls_share_service(
+            self, mock_create_share_info, mock_get_share_record, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        share_record = Obj(ID=71, is_success=False, step=1, group_id=12)
+        mock_get_share_record.return_value = share_record
+        mock_create_share_info.return_value = (200, "分享信息处理成功", {"ID": 71, "step": 2})
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_submit_app_share_info",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "share_id": 71,
+                "use_force": True,
+                "app_version_info": {"app_model_id": "model-1", "version": "1.0.1"},
+            },
+        )
+
+        self.assertTrue(result["submitted"])
+        mock_create_share_info.assert_called_once()
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.share_service.get_service_share_record_by_ID")
+    @patch("console.services.mcp_query_service.ServiceShareRecordEvent.objects.filter")
+    @patch("console.services.mcp_query_service.PluginShareRecordEvent.objects.filter")
+    # capability_id: console.app-share.events
+    def test_list_app_share_events_returns_service_and_plugin_events(
+            self, mock_plugin_events, mock_service_events, mock_get_share_record, mock_get_team):
+        mock_get_team.return_value = self.team
+        share_record = Obj(ID=81, is_success=False, step=1)
+        mock_get_share_record.return_value = share_record
+        service_event = Obj(event_status="success")
+        service_event.to_dict = lambda: {"ID": 1, "event_status": "success"}
+        plugin_event = Obj(event_status="not_start")
+        plugin_event.to_dict = lambda: {"ID": 2, "event_status": "not_start"}
+        mock_service_events.return_value = [service_event]
+        mock_plugin_events.return_value = [plugin_event]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_list_app_share_events",
+            {"team_name": "demo-team", "share_id": 81},
+        )
+
+        self.assertEqual(result["total"], 2)
+        self.assertFalse(result["is_complete"])
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.share_service.get_service_share_record_by_ID")
+    @patch("console.services.mcp_query_service.ServiceShareRecordEvent.objects.filter")
+    @patch("console.services.mcp_query_service.share_service.sync_event")
+    # capability_id: console.app-share.start-event
+    def test_start_app_share_event_calls_sync_event(
+            self, mock_sync_event, mock_filter_events, mock_get_share_record, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        share_record = Obj(ID=91, is_success=False, step=1)
+        mock_get_share_record.return_value = share_record
+        event = Obj(ID=3, event_status="start")
+        event.to_dict = lambda: {"ID": 3, "event_status": "start"}
+        mock_filter_events.return_value.first.return_value = event
+        mock_sync_event.return_value = event
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_start_app_share_event",
+            {"team_name": "demo-team", "region_name": "rainbond", "share_id": 91, "event_id": 3},
+        )
+
+        self.assertEqual(result["event"]["ID"], 3)
+        mock_sync_event.assert_called_once_with(self.user, "rainbond", "demo-team", event)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.share_service.get_service_share_record_by_ID")
+    @patch("console.services.mcp_query_service.ServiceShareRecordEvent.objects.filter")
+    @patch("console.services.mcp_query_service.share_service.get_sync_event_result")
+    # capability_id: console.app-share.get-event
+    def test_get_app_share_event_returns_event_status(
+            self, mock_get_event_result, mock_filter_events, mock_get_share_record, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        share_record = Obj(ID=92, is_success=False, step=1)
+        mock_get_share_record.return_value = share_record
+        event = Obj(ID=4, event_status="start")
+        event.to_dict = lambda: {"ID": 4, "event_status": "success"}
+        mock_filter_events.return_value.first.return_value = event
+        mock_get_event_result.return_value = event
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_app_share_event",
+            {"team_name": "demo-team", "region_name": "rainbond", "share_id": 92, "event_id": 4},
+        )
+
+        self.assertEqual(result["event"]["event_status"], "success")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.share_service.get_service_share_record_by_ID")
+    @patch("console.services.mcp_query_service.ServiceShareRecordEvent.objects.filter")
+    @patch("console.services.mcp_query_service.PluginShareRecordEvent.objects.filter")
+    @patch("console.services.mcp_query_service.share_service.complete")
+    # capability_id: console.app-share.complete
+    def test_complete_app_share_calls_share_service_complete(
+            self, mock_complete, mock_plugin_events, mock_service_events, mock_get_share_record, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        share_record = Obj(ID=93, is_success=False, step=2)
+        share_record.to_dict = lambda: {"ID": 93, "status": 1}
+        mock_get_share_record.return_value = share_record
+        mock_service_events.return_value.exclude.return_value.count.return_value = 0
+        mock_plugin_events.return_value.exclude.return_value.count.return_value = 0
+        mock_complete.return_value = "https://market.example"
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_complete_app_share",
+            {"team_name": "demo-team", "region_name": "rainbond", "share_id": 93},
+        )
+
+        self.assertTrue(result["completed"])
+        self.assertEqual(result["app_market_url"], "https://market.example")
+        mock_complete.assert_called_once_with(self.team, self.user, share_record, False, None, "rainbond")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.share_service.get_service_share_record_by_ID")
+    @patch("console.services.mcp_query_service.share_service.get_app_version_by_app_id")
+    @patch("console.services.mcp_query_service.share_service.get_app_by_key")
+    @patch("console.services.mcp_query_service.share_service.delete_record")
+    # capability_id: console.app-share.giveup
+    def test_giveup_app_share_deletes_draft_record(
+            self, mock_delete_record, mock_get_app_by_key, mock_get_versions, mock_get_share_record, mock_get_team):
+        mock_get_team.return_value = self.team
+        share_record = Obj(ID=94, is_success=False, step=1, app_id="hidden-model-id")
+        mock_get_share_record.return_value = share_record
+        mock_get_app_by_key.return_value = None
+        mock_get_versions.return_value.delete = lambda: None
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_giveup_app_share",
+            {"team_name": "demo-team", "share_id": 94},
+        )
+
+        self.assertTrue(result["given_up"])
+        mock_delete_record.assert_called_once_with(share_record)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.market_app_service.get_market_apps_in_app")
     # capability_id: console.app-upgrade.info
     def test_get_app_upgrade_info_returns_upgrade_items(
@@ -2372,6 +2857,322 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
             12,
             {"update_versions": [{"app_model_id": "m1", "version": "2.0.0"}]},
         )
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.upgrade_service.get_latest_upgrade_record")
+    @patch("console.services.mcp_query_service.app_snapshot_repo.get_by_snapshot_id")
+    # capability_id: console.app-upgrade.last-record
+    def test_get_app_last_upgrade_record_returns_snapshot_metadata(
+            self, mock_get_snapshot, mock_get_latest_record, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_latest_record.return_value = {
+            "ID": 101,
+            "group_id": 12,
+            "tenant_id": "team-1",
+            "record_type": "upgrade",
+            "snapshot_id": "snap-1",
+            "status": 2,
+        }
+        mock_get_snapshot.return_value = Obj(snapshot_id="snap-1")
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_app_last_upgrade_record",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12},
+        )
+
+        self.assertTrue(result["exists"])
+        self.assertEqual(result["record"]["ID"], 101)
+        self.assertEqual(result["record"]["snapshot"]["snapshot_id"], "snap-1")
+        self.assertTrue(result["record"]["snapshot"]["exists"])
+        mock_get_latest_record.assert_called_once_with(self.team, self.app, None, None)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.upgrade_service.list_records")
+    # capability_id: console.app-upgrade.records
+    def test_query_app_upgrade_records_returns_paginated_items(
+            self, mock_list_records, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_list_records.return_value = (
+            [{"ID": 201, "group_id": 12, "tenant_id": "team-1", "record_type": "upgrade", "snapshot_id": None}],
+            1,
+        )
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_query_app_upgrade_records",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "page": 1, "page_size": 10},
+        )
+
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["items"][0]["ID"], 201)
+        self.assertEqual(result["record_type"], "upgrade")
+        mock_list_records.assert_called_once_with("demo-team", "rainbond", 12, "upgrade", 1, 10)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.upgrade_service.create_upgrade_record")
+    # capability_id: console.app-upgrade.create-record
+    def test_create_app_upgrade_record_calls_upgrade_service(
+            self, mock_create_record, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_create_record.return_value = {
+            "ID": 301,
+            "group_id": 12,
+            "tenant_id": "team-1",
+            "record_type": "upgrade",
+            "snapshot_id": None,
+        }
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_app_upgrade_record",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "upgrade_group_id": 88,
+            },
+        )
+
+        self.assertTrue(result["created"])
+        self.assertEqual(result["record"]["ID"], 301)
+        mock_create_record.assert_called_once_with("eid-1", self.team, self.app, 88)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.upgrade_repo.get_by_record_id")
+    @patch("console.services.mcp_query_service.upgrade_service.get_app_upgrade_record")
+    @patch("console.services.mcp_query_service.app_snapshot_repo.get_by_snapshot_id")
+    # capability_id: console.app-upgrade.record
+    def test_get_app_upgrade_record_returns_record_detail(
+            self, mock_get_snapshot, mock_get_record_detail, mock_get_record, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_record.return_value = Obj(ID=401, group_id=12, tenant_id="team-1")
+        mock_get_record_detail.return_value = {
+            "ID": 401,
+            "group_id": 12,
+            "tenant_id": "team-1",
+            "record_type": "upgrade",
+            "snapshot_id": "snap-401",
+            "service_record": [{"service_id": "svc-1", "status": 2}],
+        }
+        mock_get_snapshot.return_value = Obj(snapshot_id="snap-401")
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_app_upgrade_record",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "record_id": 401},
+        )
+
+        self.assertEqual(result["record"]["ID"], 401)
+        self.assertEqual(result["record"]["service_record"][0]["service_id"], "svc-1")
+        self.assertTrue(result["record"]["snapshot"]["exists"])
+        mock_get_record_detail.assert_called_once_with("demo-team", "rainbond", 401)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.upgrade_repo.get_by_record_id")
+    @patch("console.services.mcp_query_service.market_app_service.list_app_upgradeable_versions")
+    # capability_id: console.app-upgrade.detail
+    def test_get_app_upgrade_detail_returns_record_and_versions(
+            self, mock_list_versions, mock_get_record, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_record.return_value = Obj(
+            ID=501,
+            group_id=12,
+            tenant_id="team-1",
+            snapshot_id=None,
+            record_type="upgrade",
+        )
+        mock_list_versions.return_value = [{"version": "2.0.0"}]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_app_upgrade_detail",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "record_id": 501},
+        )
+
+        self.assertEqual(result["detail"]["record"]["ID"], 501)
+        self.assertEqual(result["detail"]["versions"][0]["version"], "2.0.0")
+        mock_list_versions.assert_called_once_with("eid-1", mock_get_record.return_value)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.upgrade_service.get_property_changes")
+    # capability_id: console.app-upgrade.changes
+    def test_get_app_upgrade_changes_returns_diff_payload(
+            self, mock_get_changes, mock_get_app, mock_get_region, mock_get_team):
+        region = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = region
+        mock_get_app.return_value = self.app
+        mock_get_changes.return_value = (
+            {"upgrade_info": {"k8s_resources": []}},
+            [{"service": {"service_id": "svc-1"}}],
+        )
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_app_upgrade_changes",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "version": "2.0.0",
+                "upgrade_group_id": 88,
+            },
+        )
+
+        self.assertEqual(result["version"], "2.0.0")
+        self.assertEqual(result["total"], 1)
+        mock_get_changes.assert_called_once_with(self.team, region, self.user, self.app, 88, "2.0.0")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.upgrade_repo.get_by_record_id")
+    @patch("console.services.mcp_query_service.upgrade_service.upgrade")
+    @patch("console.services.mcp_query_service.app_snapshot_repo.get_by_snapshot_id")
+    # capability_id: console.app-upgrade.execute-record
+    def test_execute_app_upgrade_record_calls_upgrade_service(
+            self, mock_get_snapshot, mock_upgrade, mock_get_record, mock_get_app, mock_get_region, mock_get_team):
+        region = Obj(region_name="rainbond", enterprise_id="eid-1")
+        record = Obj(ID=601, group_id=12, tenant_id="team-1")
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = region
+        mock_get_app.return_value = self.app
+        mock_get_record.return_value = record
+        mock_upgrade.return_value = (
+            {"ID": 601, "group_id": 12, "tenant_id": "team-1", "snapshot_id": "snap-601", "service_record": []},
+            "demo-model",
+        )
+        mock_get_snapshot.return_value = Obj(snapshot_id="snap-601")
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_execute_app_upgrade_record",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "record_id": 601,
+                "version": "2.0.0",
+                "services": [{"service": {"service_key": "api"}}],
+            },
+        )
+
+        self.assertTrue(result["upgraded"])
+        self.assertEqual(result["app_template_name"], "demo-model")
+        self.assertTrue(result["record"]["snapshot"]["exists"])
+        mock_upgrade.assert_called_once_with(self.team, region, self.user, self.app, "2.0.0", record, ["api"])
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.upgrade_repo.get_by_record_id")
+    @patch("console.services.mcp_query_service.upgrade_service.deploy")
+    @patch("console.services.mcp_query_service.upgrade_service.get_app_upgrade_record")
+    # capability_id: console.app-upgrade.deploy-record
+    def test_deploy_app_upgrade_record_calls_deploy(
+            self, mock_get_record_detail, mock_deploy, mock_get_record, mock_get_app, mock_get_region, mock_get_team):
+        record = Obj(ID=701, group_id=12, tenant_id="team-1")
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_record.return_value = record
+        mock_get_record_detail.return_value = {
+            "ID": 701,
+            "group_id": 12,
+            "tenant_id": "team-1",
+            "snapshot_id": None,
+            "service_record": [],
+        }
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_deploy_app_upgrade_record",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "record_id": 701},
+        )
+
+        self.assertTrue(result["deployed"])
+        mock_deploy.assert_called_once_with(self.team, "rainbond", self.user, record)
+        mock_get_record_detail.assert_called_once_with("demo-team", "rainbond", 701)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.upgrade_repo.get_by_record_id")
+    @patch("console.services.mcp_query_service.upgrade_service.list_rollback_record")
+    # capability_id: console.app-upgrade.rollback-records
+    def test_get_app_rollback_records_returns_items(
+            self, mock_list_rollback, mock_get_record, mock_get_app, mock_get_region, mock_get_team):
+        record = Obj(ID=801, group_id=12, tenant_id="team-1")
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_record.return_value = record
+        mock_list_rollback.return_value = [{"ID": 802, "group_id": 12, "tenant_id": "team-1", "snapshot_id": None}]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_app_rollback_records",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "record_id": 801},
+        )
+
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["items"][0]["ID"], 802)
+        mock_list_rollback.assert_called_once_with(record)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.upgrade_repo.get_by_record_id")
+    @patch("console.services.mcp_query_service.upgrade_service.restore")
+    @patch("console.services.mcp_query_service.app_snapshot_repo.get_by_snapshot_id")
+    # capability_id: console.app-upgrade.rollback
+    def test_rollback_app_upgrade_record_calls_restore(
+            self, mock_get_snapshot, mock_restore, mock_get_record, mock_get_app, mock_get_region, mock_get_team):
+        region = Obj(region_name="rainbond", enterprise_id="eid-1")
+        record = Obj(ID=901, group_id=12, tenant_id="team-1")
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = region
+        mock_get_app.return_value = self.app
+        mock_get_record.return_value = record
+        mock_restore.return_value = (
+            {"ID": 902, "group_id": 12, "tenant_id": "team-1", "snapshot_id": "snap-902", "service_record": []},
+            "demo-component-group",
+        )
+        mock_get_snapshot.return_value = Obj(snapshot_id="snap-902")
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_rollback_app_upgrade_record",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "record_id": 901},
+        )
+
+        self.assertTrue(result["rolled_back"])
+        self.assertEqual(result["component_group_alias"], "demo-component-group")
+        self.assertTrue(result["record"]["snapshot"]["exists"])
+        mock_restore.assert_called_once_with(self.team, region, self.user, self.app, record)
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
@@ -3475,6 +4276,123 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertTrue(result["built"])
         self.assertEqual(result["service_id"], "svc-pkg-1")
         mock_auto_create.assert_called_once()
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.package_upload_tool_service.init_upload")
+    # capability_id: console.package-upload.init
+    def test_init_package_upload_delegates_to_upload_tool_service(self, mock_init_upload, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_init_upload.return_value = {"event_id": "evt-upload-1", "upload_url": "http://upload"}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_init_package_upload",
+            {"team_name": "demo-team", "region_name": "rainbond"},
+        )
+
+        self.assertEqual(result["event_id"], "evt-upload-1")
+        mock_init_upload.assert_called_once_with("demo-team", "rainbond", "")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.package_upload_tool_service.upload_package")
+    # capability_id: console.package-upload.file
+    def test_upload_package_file_delegates_to_upload_tool_service(self, mock_upload_package, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_upload_package.return_value = {"event_id": "evt-upload-1", "uploaded_packages": ["demo.zip"], "uploaded": True}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_upload_package_file",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "event_id": "evt-upload-1",
+                "local_path": "/tmp/demo",
+                "archive_name": "demo-package",
+            },
+        )
+
+        self.assertTrue(result["uploaded"])
+        mock_upload_package.assert_called_once_with("demo-team", "rainbond", "evt-upload-1", "/tmp/demo", "demo-package")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.package_upload_tool_service.get_upload_status")
+    # capability_id: console.package-upload.status
+    def test_get_package_upload_status_delegates_to_upload_tool_service(self, mock_get_upload_status, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_upload_status.return_value = {"event_id": "evt-upload-1", "uploaded_packages": ["demo.zip"], "uploaded": True}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_package_upload_status",
+            {"team_name": "demo-team", "region_name": "rainbond", "event_id": "evt-upload-1"},
+        )
+
+        self.assertEqual(result["uploaded_packages"], ["demo.zip"])
+        mock_get_upload_status.assert_called_once_with("demo-team", "rainbond", "evt-upload-1")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.package_upload_tool_service.delete_upload")
+    # capability_id: console.package-upload.delete
+    def test_delete_package_upload_delegates_to_upload_tool_service(self, mock_delete_upload, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_delete_upload.return_value = {"event_id": "evt-upload-1", "deleted": True}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_delete_package_upload",
+            {"team_name": "demo-team", "region_name": "rainbond", "event_id": "evt-upload-1"},
+        )
+
+        self.assertTrue(result["deleted"])
+        mock_delete_upload.assert_called_once_with("demo-team", "rainbond", "evt-upload-1")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.package_upload_tool_service.auto_create_component_from_local_path")
+    # capability_id: console.package-upload.local-package
+    def test_create_component_from_local_package_calls_upload_tool_service(
+            self, mock_auto_create, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_auto_create.return_value = {"service_id": "svc-local-pkg-1", "built": True, "upload_event_id": "evt-upload-1"}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_component_from_local_package",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "local_path": "/tmp/demo-app",
+                "service_cname": "demo-app",
+                "is_deploy": True,
+            },
+        )
+
+        self.assertTrue(result["built"])
+        self.assertEqual(result["service_id"], "svc-local-pkg-1")
+        mock_auto_create.assert_called_once_with(
+            team=self.team,
+            app=self.app,
+            user=self.user,
+            local_path="/tmp/demo-app",
+            service_cname="demo-app",
+            k8s_component_name="",
+            arch="amd64",
+            is_deploy=True,
+            archive_name="",
+        )
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
