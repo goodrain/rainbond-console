@@ -1,22 +1,29 @@
 # -*- coding: utf-8 -*-
+import datetime
 import json
 import logging
+import os
 
 from django.core import signing
 
 from console.constants import PluginCategoryConstants
+from console.models.main import PluginShareRecordEvent, ServiceShareRecordEvent
 from console.exception.exceptions import ExterpriseNotExistError, TenantNotExistError
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_repo, service_source_repo
 from console.repositories.app_config import volume_repo, compile_env_repo, env_var_repo
+from console.repositories.app_snapshot import app_snapshot_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.enterprise_repo import enterprise_repo, enterprise_user_perm_repo
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
+from console.repositories.upgrade_repo import upgrade_repo
 from console.services.app import app_service as console_app_service, app_market_service
 from console.services.app_actions import app_manage_service, event_service, log_service
 from console.services.app_check_service import app_check_service
+from console.services.app_version_service import app_version_service
 from console.services.app_config import domain_service, env_var_service, port_service, volume_service, mnt_service, probe_service, dependency_service
 from console.services.autoscaler_service import autoscaler_service, scaling_records_service
 from console.services.app_config.arch_service import arch_service
@@ -28,9 +35,11 @@ from console.services.groupcopy_service import groupapp_copy_service
 from console.services.helm_app_yaml import helm_app_service
 from console.services.market_app_service import market_app_service
 from console.services.package_component_service import package_component_service
+from console.services.package_upload_tool_service import package_upload_tool_service
 from console.services.plugin import app_plugin_service
 from console.services.region_services import region_services
 from console.services.service_services import base_service
+from console.services.share_services import share_service
 from console.services.source_component_service import source_component_service
 from console.services.team_services import team_services
 from console.services.upgrade_services import upgrade_service
@@ -230,11 +239,31 @@ class MCPQueryService(object):
             self._tool_manage_component_autoscaler(), self._tool_manage_component_probe(),
             self._tool_manage_component_dependency(), self._tool_horizontal_scale_component(),
             self._tool_vertical_scale_component(), self._tool_close_apps(), self._tool_get_team_apps(),
-            self._tool_build_component(), self._tool_get_app_upgrade_info(), self._tool_upgrade_app(),
+            self._tool_get_app_version_overview(), self._tool_list_app_version_snapshots(),
+            self._tool_get_app_version_snapshot_detail(), self._tool_create_app_version_snapshot(),
+            self._tool_delete_app_version_snapshot(), self._tool_rollback_app_version_snapshot(),
+            self._tool_list_app_version_rollback_records(), self._tool_get_app_version_rollback_record_detail(),
+            self._tool_delete_app_version_rollback_record(), self._tool_create_app_from_snapshot_version(),
+            self._tool_get_app_publish_candidates(),
+            self._tool_create_app_share_record(), self._tool_list_app_share_records(),
+            self._tool_get_app_share_record(), self._tool_delete_app_share_record(),
+            self._tool_get_app_share_info(), self._tool_submit_app_share_info(),
+            self._tool_list_app_share_events(), self._tool_start_app_share_event(),
+            self._tool_get_app_share_event(), self._tool_complete_app_share(),
+            self._tool_giveup_app_share(),
+            self._tool_build_component(), self._tool_get_app_last_upgrade_record(),
+            self._tool_query_app_upgrade_records(), self._tool_create_app_upgrade_record(),
+            self._tool_get_app_upgrade_record(), self._tool_get_app_upgrade_detail(),
+            self._tool_get_app_upgrade_changes(), self._tool_execute_app_upgrade_record(),
+            self._tool_deploy_app_upgrade_record(), self._tool_get_app_rollback_records(),
+            self._tool_rollback_app_upgrade_record(), self._tool_get_app_upgrade_info(), self._tool_upgrade_app(),
             self._tool_get_copy_app_info(), self._tool_copy_app(), self._tool_install_app_by_market(),
             self._tool_query_cloud_markets(), self._tool_query_local_app_models(), self._tool_query_cloud_app_models(),
             self._tool_query_app_model_versions(), self._tool_install_app_model(),
             self._tool_create_component_from_source(), self._tool_create_component_from_package(),
+            self._tool_init_package_upload(), self._tool_upload_package_file(),
+            self._tool_get_package_upload_status(), self._tool_delete_package_upload(),
+            self._tool_create_component_from_local_package(),
             self._tool_create_component_from_image(),
             self._tool_create_app_from_yaml(), self._tool_check_yaml_app(), self._tool_get_yaml_app_check_result(),
             self._tool_query_app_monitor(), self._tool_query_app_monitor_range(),
@@ -303,8 +332,72 @@ class MCPQueryService(object):
             return self.close_apps(user, arguments)
         if name == "rainbond_get_team_apps":
             return self.get_team_apps(user, arguments)
+        if name == "rainbond_get_app_version_overview":
+            return self.get_app_version_overview(user, arguments)
+        if name == "rainbond_list_app_version_snapshots":
+            return self.list_app_version_snapshots(user, arguments)
+        if name == "rainbond_get_app_version_snapshot_detail":
+            return self.get_app_version_snapshot_detail(user, arguments)
+        if name == "rainbond_create_app_version_snapshot":
+            return self.create_app_version_snapshot(user, arguments)
+        if name == "rainbond_delete_app_version_snapshot":
+            return self.delete_app_version_snapshot(user, arguments)
+        if name == "rainbond_rollback_app_version_snapshot":
+            return self.rollback_app_version_snapshot(user, arguments)
+        if name == "rainbond_list_app_version_rollback_records":
+            return self.list_app_version_rollback_records(user, arguments)
+        if name == "rainbond_get_app_version_rollback_record_detail":
+            return self.get_app_version_rollback_record_detail(user, arguments)
+        if name == "rainbond_delete_app_version_rollback_record":
+            return self.delete_app_version_rollback_record(user, arguments)
+        if name == "rainbond_create_app_from_snapshot_version":
+            return self.create_app_from_snapshot_version(user, arguments)
+        if name == "rainbond_get_app_publish_candidates":
+            return self.get_app_publish_candidates(user, arguments)
+        if name == "rainbond_create_app_share_record":
+            return self.create_app_share_record(user, arguments)
+        if name == "rainbond_list_app_share_records":
+            return self.list_app_share_records(user, arguments)
+        if name == "rainbond_get_app_share_record":
+            return self.get_app_share_record(user, arguments)
+        if name == "rainbond_delete_app_share_record":
+            return self.delete_app_share_record(user, arguments)
+        if name == "rainbond_get_app_share_info":
+            return self.get_app_share_info(user, arguments)
+        if name == "rainbond_submit_app_share_info":
+            return self.submit_app_share_info(user, arguments)
+        if name == "rainbond_list_app_share_events":
+            return self.list_app_share_events(user, arguments)
+        if name == "rainbond_start_app_share_event":
+            return self.start_app_share_event(user, arguments)
+        if name == "rainbond_get_app_share_event":
+            return self.get_app_share_event(user, arguments)
+        if name == "rainbond_complete_app_share":
+            return self.complete_app_share(user, arguments)
+        if name == "rainbond_giveup_app_share":
+            return self.giveup_app_share(user, arguments)
         if name == "rainbond_build_component":
             return self.build_component(user, arguments)
+        if name == "rainbond_get_app_last_upgrade_record":
+            return self.get_app_last_upgrade_record(user, arguments)
+        if name == "rainbond_query_app_upgrade_records":
+            return self.query_app_upgrade_records(user, arguments)
+        if name == "rainbond_create_app_upgrade_record":
+            return self.create_app_upgrade_record(user, arguments)
+        if name == "rainbond_get_app_upgrade_record":
+            return self.get_app_upgrade_record(user, arguments)
+        if name == "rainbond_get_app_upgrade_detail":
+            return self.get_app_upgrade_detail(user, arguments)
+        if name == "rainbond_get_app_upgrade_changes":
+            return self.get_app_upgrade_changes(user, arguments)
+        if name == "rainbond_execute_app_upgrade_record":
+            return self.execute_app_upgrade_record(user, arguments)
+        if name == "rainbond_deploy_app_upgrade_record":
+            return self.deploy_app_upgrade_record(user, arguments)
+        if name == "rainbond_get_app_rollback_records":
+            return self.get_app_rollback_records(user, arguments)
+        if name == "rainbond_rollback_app_upgrade_record":
+            return self.rollback_app_upgrade_record(user, arguments)
         if name == "rainbond_get_app_upgrade_info":
             return self.get_app_upgrade_info(user, arguments)
         if name == "rainbond_upgrade_app":
@@ -329,6 +422,16 @@ class MCPQueryService(object):
             return self.create_component_from_source(user, arguments)
         if name == "rainbond_create_component_from_package":
             return self.create_component_from_package(user, arguments)
+        if name == "rainbond_init_package_upload":
+            return self.init_package_upload(user, arguments)
+        if name == "rainbond_upload_package_file":
+            return self.upload_package_file(user, arguments)
+        if name == "rainbond_get_package_upload_status":
+            return self.get_package_upload_status(user, arguments)
+        if name == "rainbond_delete_package_upload":
+            return self.delete_package_upload(user, arguments)
+        if name == "rainbond_create_component_from_local_package":
+            return self.create_component_from_local_package(user, arguments)
         if name == "rainbond_check_component":
             return self.check_component(user, arguments)
         if name == "rainbond_get_component_check_result":
@@ -1332,6 +1435,504 @@ class MCPQueryService(object):
         items = [self._serialize_model_item(app) for app in apps]
         return {"team_name": team.tenant_name, "region_name": region_name, "items": items, "total": len(items)}
 
+    def get_app_version_overview(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        region = self._get_region_by_name_context(user, app.region_name)
+        overview = app_version_service.get_overview(team, region, user, app)
+        return {"app_id": app.ID, "overview": overview}
+
+    def list_app_version_snapshots(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        relation, _ = app_version_service.get_hidden_template(app.ID)
+        items = app_version_service.list_snapshot_versions(app.ID)
+        return {
+            "app_id": app.ID,
+            "has_template": bool(relation),
+            "items": items,
+            "total": len(items),
+        }
+
+    def get_app_version_snapshot_detail(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        detail = app_version_service.get_snapshot_detail(app.ID, self._require_int(arguments, "version_id"))
+        if not detail:
+            raise ServiceHandleException(msg="snapshot not found", msg_show="快照不存在", status_code=404)
+        return {"app_id": app.ID, "detail": detail}
+
+    def create_app_version_snapshot(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        region = self._get_region_by_name_context(user, app.region_name)
+        share_info = self._build_snapshot_share_info(arguments)
+        snapshot = app_version_service.create_snapshot(
+            team,
+            region,
+            user,
+            app,
+            version=arguments.get("version", "") or "",
+            version_alias=arguments.get("version_alias", "") or "",
+            app_version_info=arguments.get("app_version_info", "") or "",
+            share_info=share_info,
+        )
+        return {
+            "app_id": app.ID,
+            "created": bool(self._value(snapshot, "created", True)),
+            "snapshot": snapshot,
+        }
+
+    def delete_app_version_snapshot(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        version_id = self._require_int(arguments, "version_id")
+        app_version_service.delete_snapshot(app.ID, version_id)
+        return {"app_id": app.ID, "version_id": version_id, "deleted": True}
+
+    def rollback_app_version_snapshot(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        region = self._get_region_by_name_context(user, app.region_name)
+        version_id = self._require_int(arguments, "version_id")
+        record = app_version_service.rollback_snapshot(team, region, user, app, version_id)
+        if not record:
+            raise ServiceHandleException(
+                msg="snapshot rollback not supported",
+                msg_show="当前快照暂不支持回滚",
+                status_code=400,
+            )
+        detail = app_version_service.get_rollback_record(team.tenant_name, app.region_name, app.ID, self._value(record, "ID"))
+        return {
+            "app_id": app.ID,
+            "version_id": version_id,
+            "rollback_record": detail or record,
+        }
+
+    def list_app_version_rollback_records(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        items = app_version_service.list_rollback_records(team.tenant_name, app.region_name, app.ID)
+        return {"app_id": app.ID, "items": items, "total": len(items)}
+
+    def get_app_version_rollback_record_detail(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        record_id = self._require_int(arguments, "record_id")
+        detail = app_version_service.get_rollback_record(team.tenant_name, app.region_name, app.ID, record_id)
+        if not detail:
+            raise ServiceHandleException(msg="rollback record not found", msg_show="回滚记录不存在", status_code=404)
+        return {"app_id": app.ID, "record": detail}
+
+    def delete_app_version_rollback_record(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        record_id = self._require_int(arguments, "record_id")
+        app_version_service.delete_rollback_record(app.ID, record_id)
+        return {"app_id": app.ID, "record_id": record_id, "deleted": True}
+
+    def create_app_from_snapshot_version(self, user, arguments):
+        team_name = self._require_string(arguments, "team_name")
+        region_name = self._require_string(arguments, "region_name")
+        source_app_id = self._require_int(arguments, "source_app_id")
+        version_id = self._require_int(arguments, "version_id")
+        target_app_name = self._require_string(arguments, "target_app_name")
+        target_app_note = arguments.get("target_app_note", "") or ""
+        k8s_app = arguments.get("k8s_app", "") or ""
+        is_deploy = self._parse_bool_with_default(arguments.get("is_deploy"), True)
+
+        team, source_app = self._get_team_app_context(user, team_name, region_name, source_app_id)
+        region = self._get_region_by_name_context(user, region_name)
+        overview = app_version_service.get_overview(team, region, user, source_app)
+        template_id = self._value(overview, "template_id")
+        if not template_id:
+            raise ServiceHandleException(
+                msg="snapshot template not found",
+                msg_show="当前应用尚未生成快照模板，请先创建快照",
+                status_code=404,
+            )
+        snapshot_detail = app_version_service.get_snapshot_detail(source_app.ID, version_id)
+        if not snapshot_detail:
+            raise ServiceHandleException(msg="snapshot not found", msg_show="快照不存在", status_code=404)
+        snapshot_version = self._value(snapshot_detail, "version")
+        if not snapshot_version:
+            raise ServiceHandleException(msg="snapshot version invalid", msg_show="快照版本无效", status_code=400)
+
+        created_app = group_service.create_app(
+            team,
+            region_name,
+            target_app_name,
+            target_app_note,
+            self._get_username(user),
+            k8s_app=k8s_app if k8s_app else "",
+        )
+        target_app_id = (
+            self._value(created_app, "ID") or
+            self._value(created_app, "app_id") or
+            self._value(created_app, "group_id")
+        )
+        if not target_app_id:
+            raise ServiceHandleException(msg="create target app failed", msg_show="创建目标应用失败", status_code=500)
+
+        install_result = self.install_app_model(
+            user,
+            {
+                "team_name": team_name,
+                "region_name": region_name,
+                "app_id": int(target_app_id),
+                "source": "local",
+                "app_model_id": template_id,
+                "app_model_version": snapshot_version,
+                "is_deploy": is_deploy,
+            },
+        )
+        return {
+            "source_app_id": source_app.ID,
+            "source_app_name": source_app.group_name,
+            "snapshot": {
+                "version_id": version_id,
+                "version": snapshot_version,
+                "template_id": template_id,
+            },
+            "target_app": {
+                "app_id": int(target_app_id),
+                "app_name": self._value(created_app, "app_name") or target_app_name,
+                "k8s_app": k8s_app or None,
+            },
+            "installed": True,
+            "install_result": install_result,
+        }
+
+    def get_app_publish_candidates(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        scope = self._normalize_publish_scope(arguments.get("scope"))
+        market_name = arguments.get("market_name", "") or arguments.get("market_id", "") or ""
+        if scope == "goodrain" and not market_name:
+            raise ServiceHandleException(msg="market_name is null", msg_show="发布到应用市场时必须指定 market_name", status_code=400)
+        data = share_service.get_last_shared_app_and_app_list(
+            team.enterprise_id,
+            team,
+            app.ID,
+            scope,
+            market_name,
+            self._share_market_user_id(user),
+            arguments.get("preferred_app_id", "") or None,
+            arguments.get("preferred_version", "") or None,
+        )
+        return {
+            "app_id": app.ID,
+            "scope": scope,
+            "market_name": market_name or None,
+            "last_shared_app": data.get("last_shared_app", {}),
+            "items": data.get("app_model_list", []),
+            "total": len(data.get("app_model_list", []) or []),
+        }
+
+    def create_app_share_record(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        scope = arguments.get("scope", "") or ""
+        if scope not in ("", "goodrain"):
+            raise ServiceHandleException(msg="invalid scope", msg_show="scope只能是空字符串或goodrain", status_code=400)
+        target = arguments.get("target") or {}
+        if not isinstance(target, dict):
+            raise ServiceHandleException(msg="invalid target", msg_show="参数target无效", status_code=400)
+        snapshot_mode = self._parse_bool_with_default(arguments.get("snapshot_mode"), False)
+        snapshot_app_id = arguments.get("snapshot_app_id", "") or ""
+        snapshot_version = arguments.get("snapshot_version", "") or ""
+        market_name = None
+        if scope == "goodrain":
+            market_name = self._value(target, "store_id") or self._value(target, "market_id")
+            if not market_name:
+                raise ServiceHandleException(msg="target.store_id is null", msg_show="发布到应用市场时必须提供 target.store_id", status_code=400)
+
+        share_check = share_service.check_service_source(team, team.tenant_name, app.ID, app.region_name)
+        if share_check and share_check.get("code") == 400:
+            raise ServiceHandleException(
+                msg="share check failed",
+                msg_show=share_check.get("msg_show") or "当前应用不满足发布条件",
+                status_code=400,
+            )
+
+        if snapshot_mode:
+            _, hidden_template = app_version_service.get_or_create_hidden_template(team, user, app)
+            snapshot_app_id = hidden_template.app_id if hidden_template else snapshot_app_id
+
+        record = share_service.create_service_share_record(
+            group_share_id=make_uuid(),
+            group_id=app.ID,
+            team_name=team.tenant_name,
+            is_success=False,
+            step=1,
+            share_app_market_name=market_name,
+            scope=scope,
+            app_id=snapshot_app_id,
+            share_version=snapshot_version,
+            create_time=datetime.datetime.now(),
+            update_time=datetime.datetime.now(),
+        )
+        return {"app_id": app.ID, "share_record": self._serialize_app_share_record_summary(record, user)}
+
+    def list_app_share_records(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        page, page_size = self._parse_pagination(arguments)
+        total, records = share_repo.get_service_share_records_by_groupid(team.tenant_name, app.ID, page, page_size)
+        items = []
+        skipped = 0
+        for record in records:
+            if record.status == 0 and not record.share_version:
+                skipped += 1
+                continue
+            items.append(self._serialize_app_share_record_summary(record, user))
+        return {
+            "app_id": app.ID,
+            "items": items,
+            "total": max(total - skipped, 0),
+            "page": page,
+            "page_size": page_size,
+        }
+
+    def get_app_share_record(self, user, arguments):
+        _, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        record = share_repo.get_service_share_record_by_id(app.ID, self._require_int(arguments, "record_id"))
+        if not record:
+            raise ServiceHandleException(msg="share record not found", msg_show="发布记录不存在", status_code=404)
+        return {"app_id": app.ID, "record": self._serialize_app_share_record_detail(record, user)}
+
+    def delete_app_share_record(self, user, arguments):
+        _, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        record = share_repo.get_service_share_record_by_id(app.ID, self._require_int(arguments, "record_id"))
+        if not record:
+            raise ServiceHandleException(msg="share record not found", msg_show="发布记录不存在", status_code=404)
+        record.status = 3
+        record.save()
+        return {"app_id": app.ID, "record_id": record.ID, "deleted": True}
+
+    def get_app_share_info(self, user, arguments):
+        team = self._get_team_context(user, self._require_string(arguments, "team_name"))
+        region_name = self._require_string(arguments, "region_name")
+        self._get_region_by_name_context(user, region_name)
+        share_record = self._get_app_share_record_context(team, self._require_int(arguments, "share_id"))
+        if share_record.is_success or share_record.step >= 3:
+            raise ServiceHandleException(msg="share record is complete", msg_show="分享流程已经完成，请重新进行分享", status_code=400)
+
+        scope = arguments.get("scope", "") or share_record.scope
+        if share_record.app_id and share_record.share_version:
+            snapshot_version = rainbond_app_repo.get_app_version(share_record.app_id, share_record.share_version)
+            if share_service.is_snapshot_publish_version(snapshot_version):
+                app_template = json.loads(snapshot_version.app_template)
+                return {
+                    "share_id": share_record.ID,
+                    "publish_mode": "snapshot",
+                    "share_info": {
+                        "share_service_list": app_template.get("apps", []),
+                        "share_plugin_list": app_template.get("plugins", []),
+                        "share_k8s_resources": app_template.get("k8s_resources", []),
+                    },
+                }
+        return {
+            "share_id": share_record.ID,
+            "publish_mode": "runtime",
+            "share_info": {
+                "share_service_list": share_service.query_share_service_info(team=team, group_id=share_record.group_id, scope=scope),
+                "share_plugin_list": share_service.get_group_services_used_plugins(group_id=share_record.group_id),
+                "share_k8s_resources": share_service.get_k8s_resources(share_record.group_id),
+            },
+        }
+
+    def submit_app_share_info(self, user, arguments):
+        team = self._get_team_context(user, self._require_string(arguments, "team_name"))
+        region_name = self._require_string(arguments, "region_name")
+        self._get_region_by_name_context(user, region_name)
+        share_record = self._get_app_share_record_context(team, self._require_int(arguments, "share_id"))
+        if share_record.is_success or share_record.step >= 3:
+            raise ServiceHandleException(msg="share record is complete", msg_show="分享流程已经完成，请重新进行分享", status_code=400)
+        app_version_info = arguments.get("app_version_info")
+        if not isinstance(app_version_info, dict) or not app_version_info.get("app_model_id"):
+            raise ServiceHandleException(msg="invalid app_version_info", msg_show="app_version_info无效", status_code=400)
+        share_info = {"app_version_info": app_version_info}
+        for field in ("share_service_list", "share_plugin_list", "share_k8s_resources"):
+            value = arguments.get(field)
+            if value is not None:
+                if not isinstance(value, list):
+                    raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
+                share_info[field] = value
+        code, msg, bean = share_service.create_share_info(
+            tenant=team,
+            region_name=region_name,
+            share_record=share_record,
+            share_team=team,
+            share_user=user,
+            share_info=share_info,
+            use_force=self._parse_bool_with_default(arguments.get("use_force"), False),
+            user_id=self._share_market_user_id(user),
+        )
+        if code != 200:
+            raise ServiceHandleException(msg="submit share info failed", msg_show=msg, status_code=code)
+        if bean and isinstance(bean, dict):
+            bean["is_plugin"] = self._parse_bool_with_default(arguments.get("is_plugin"), False)
+        return {"share_id": share_record.ID, "submitted": True, "record": bean}
+
+    def list_app_share_events(self, user, arguments):
+        team = self._get_team_context(user, self._require_string(arguments, "team_name"))
+        share_record = self._get_app_share_record_context(team, self._require_int(arguments, "share_id"))
+        if share_record.is_success or share_record.step >= 3:
+            raise ServiceHandleException(msg="share record is complete", msg_show="分享流程已经完成，请重新进行分享", status_code=400)
+        event_list = []
+        is_complete = True
+        for event in ServiceShareRecordEvent.objects.filter(record_id=share_record.ID):
+            if event.event_status != "success":
+                is_complete = False
+            data = event.to_dict()
+            data["type"] = "service"
+            event_list.append(data)
+        for event in PluginShareRecordEvent.objects.filter(record_id=share_record.ID):
+            if event.event_status != "success":
+                is_complete = False
+            data = event.to_dict()
+            data["type"] = "plugin"
+            event_list.append(data)
+        return {"share_id": share_record.ID, "event_list": event_list, "total": len(event_list), "is_complete": is_complete}
+
+    def start_app_share_event(self, user, arguments):
+        team = self._get_team_context(user, self._require_string(arguments, "team_name"))
+        region_name = self._require_string(arguments, "region_name")
+        self._get_region_by_name_context(user, region_name)
+        share_record = self._get_app_share_record_context(team, self._require_int(arguments, "share_id"))
+        event_id = self._require_int(arguments, "event_id")
+        event_type = self._normalize_share_event_type(arguments.get("event_type"))
+        if event_type == "plugin":
+            record_event = PluginShareRecordEvent.objects.filter(record_id=share_record.ID, ID=event_id).first()
+            if not record_event:
+                raise ServiceHandleException(msg="event not found", msg_show="分享事件不存在", status_code=404)
+            bean = share_service.sync_service_plugin_event(user, region_name, team.tenant_name, share_record.ID, record_event)
+            return {"share_id": share_record.ID, "event_type": "plugin", "event": self._serialize_model_item(bean) if bean else None}
+        record_event = ServiceShareRecordEvent.objects.filter(record_id=share_record.ID, ID=event_id).first()
+        if not record_event:
+            raise ServiceHandleException(msg="event not found", msg_show="分享事件不存在", status_code=404)
+        bean = share_service.sync_event(user, region_name, team.tenant_name, record_event)
+        return {"share_id": share_record.ID, "event_type": "service", "event": self._serialize_model_item(bean)}
+
+    def get_app_share_event(self, user, arguments):
+        team = self._get_team_context(user, self._require_string(arguments, "team_name"))
+        region_name = self._require_string(arguments, "region_name")
+        self._get_region_by_name_context(user, region_name)
+        share_record = self._get_app_share_record_context(team, self._require_int(arguments, "share_id"))
+        event_id = self._require_int(arguments, "event_id")
+        event_type = self._normalize_share_event_type(arguments.get("event_type"))
+        if event_type == "plugin":
+            record_event = PluginShareRecordEvent.objects.filter(record_id=share_record.ID, ID=event_id).order_by("ID").first()
+            if not record_event:
+                raise ServiceHandleException(msg="event not found", msg_show="分享事件不存在", status_code=404)
+            if record_event.event_status != "success":
+                record_event = share_service.get_sync_plugin_events(region_name, team.tenant_name, record_event)
+            return {"share_id": share_record.ID, "event_type": "plugin", "event": self._serialize_model_item(record_event)}
+        record_event = ServiceShareRecordEvent.objects.filter(record_id=share_record.ID, ID=event_id).first()
+        if not record_event:
+            raise ServiceHandleException(msg="event not found", msg_show="分享事件不存在", status_code=404)
+        if record_event.event_status != "success":
+            record_event = share_service.get_sync_event_result(region_name, team.tenant_name, record_event)
+        return {"share_id": share_record.ID, "event_type": "service", "event": self._serialize_model_item(record_event)}
+
+    def complete_app_share(self, user, arguments):
+        team = self._get_team_context(user, self._require_string(arguments, "team_name"))
+        region_name = self._require_string(arguments, "region_name")
+        self._get_region_by_name_context(user, region_name)
+        share_record = self._get_app_share_record_context(team, self._require_int(arguments, "share_id"))
+        pending_count = ServiceShareRecordEvent.objects.filter(record_id=share_record.ID).exclude(event_status="success").count()
+        pending_plugin_count = PluginShareRecordEvent.objects.filter(record_id=share_record.ID).exclude(event_status="success").count()
+        if pending_count > 0 or pending_plugin_count > 0:
+            raise ServiceHandleException(msg="share incomplete", msg_show="组件或插件同步未全部完成", status_code=415)
+        app_market_url = share_service.complete(
+            team,
+            user,
+            share_record,
+            self._parse_bool_with_default(arguments.get("is_plugin"), False),
+            self._share_market_user_id(user),
+            region_name,
+        )
+        return {
+            "share_id": share_record.ID,
+            "completed": True,
+            "record": self._serialize_model_item(share_record),
+            "app_market_url": app_market_url,
+        }
+
+    def giveup_app_share(self, user, arguments):
+        team = self._get_team_context(user, self._require_string(arguments, "team_name"))
+        share_record = self._get_app_share_record_context(team, self._require_int(arguments, "share_id"))
+        if share_record.is_success or share_record.step >= 3:
+            raise ServiceHandleException(msg="share record is complete", msg_show="分享流程已经完成，无法放弃", status_code=400)
+        if share_record.app_id:
+            share_service.get_app_version_by_app_id(app_id=share_record.app_id, is_complete=False).delete()
+            app = share_service.get_app_by_key(key=share_record.app_id)
+            if app:
+                app_versions = share_service.get_app_version_by_app_id(app_id=share_record.app_id, is_complete=True)
+                archs = list(set([version.arch for version in app_versions if getattr(version, "arch", None)]))
+                app.arch = ",".join(archs)
+        share_service.delete_record(share_record)
+        return {"share_id": share_record.ID, "given_up": True}
+
     def build_component(self, user, arguments):
         team, app, service = self._get_team_app_service_context(
             user,
@@ -1389,6 +1990,203 @@ class MCPQueryService(object):
             "create_status": service.create_status,
             "built": True,
             "is_deploy": is_deploy,
+        }
+
+    def get_app_last_upgrade_record(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        upgrade_group_id = self._parse_optional_positive_int(arguments.get("upgrade_group_id"), "upgrade_group_id")
+        record_type = self._normalize_upgrade_record_type(arguments.get("record_type"))
+        record = upgrade_service.get_latest_upgrade_record(team, app, upgrade_group_id, record_type)
+        serialized = self._serialize_upgrade_record_basic(record)
+        return {
+            "app_id": app.ID,
+            "upgrade_group_id": upgrade_group_id,
+            "record_type": record_type or self._value(serialized, "record_type"),
+            "exists": bool(serialized),
+            "record": serialized,
+        }
+
+    def query_app_upgrade_records(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        page, page_size = self._parse_pagination(arguments)
+        record_type = self._normalize_upgrade_record_type(arguments.get("record_type")) or "upgrade"
+        items, total = upgrade_service.list_records(team.tenant_name, app.region_name, app.ID, record_type, page, page_size)
+        items = [self._serialize_upgrade_record_basic(item) for item in items]
+        return {
+            "app_id": app.ID,
+            "record_type": record_type,
+            "items": items,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+
+    def create_app_upgrade_record(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        upgrade_group_id = self._require_int(arguments, "upgrade_group_id")
+        record = upgrade_service.create_upgrade_record(user.enterprise_id, team, app, upgrade_group_id)
+        return {
+            "app_id": app.ID,
+            "upgrade_group_id": upgrade_group_id,
+            "created": True,
+            "record": self._serialize_upgrade_record_basic(record),
+        }
+
+    def get_app_upgrade_record(self, user, arguments):
+        team, app, record = self._get_team_app_upgrade_record_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_int(arguments, "record_id"),
+        )
+        detail = upgrade_service.get_app_upgrade_record(team.tenant_name, app.region_name, record.ID)
+        return {
+            "app_id": app.ID,
+            "record": self._serialize_upgrade_record_detail(detail),
+        }
+
+    def get_app_upgrade_detail(self, user, arguments):
+        _, app, record = self._get_team_app_upgrade_record_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_int(arguments, "record_id"),
+        )
+        versions = market_app_service.list_app_upgradeable_versions(user.enterprise_id, record)
+        return {
+            "app_id": app.ID,
+            "detail": {
+                "record": self._serialize_upgrade_record_basic(record),
+                "versions": versions,
+                "total": len(versions or []),
+            },
+        }
+
+    def get_app_upgrade_changes(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        region = self._get_region_by_name_context(user, app.region_name)
+        version = self._require_string(arguments, "version")
+        upgrade_group_id = self._parse_optional_positive_int(arguments.get("upgrade_group_id"), "upgrade_group_id")
+        app_changes, changes = upgrade_service.get_property_changes(team, region, user, app, upgrade_group_id, version)
+        return {
+            "app_id": app.ID,
+            "upgrade_group_id": upgrade_group_id,
+            "version": version,
+            "app_changes": app_changes,
+            "changes": changes,
+            "total": len(changes or []),
+        }
+
+    def execute_app_upgrade_record(self, user, arguments):
+        team, app, record = self._get_team_app_upgrade_record_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_int(arguments, "record_id"),
+        )
+        region = self._get_region_by_name_context(user, app.region_name)
+        version = self._require_string(arguments, "version")
+        services = arguments.get("services") or []
+        if services and not isinstance(services, list):
+            raise ServiceHandleException(msg="invalid services", msg_show="参数services无效", status_code=400)
+        component_keys = []
+        for component in services:
+            if not isinstance(component, dict):
+                raise ServiceHandleException(msg="invalid services", msg_show="参数services无效", status_code=400)
+            service_info = component.get("service") or {}
+            service_key = service_info.get("service_key")
+            if not service_key:
+                raise ServiceHandleException(
+                    msg="invalid services",
+                    msg_show="services[*].service.service_key不能为空",
+                    status_code=400,
+                )
+            component_keys.append(service_key)
+        upgraded_record, app_template_name = upgrade_service.upgrade(
+            team, region, user, app, version, record, component_keys
+        )
+        return {
+            "app_id": app.ID,
+            "record_id": self._value(upgraded_record, "ID"),
+            "version": version,
+            "upgraded": True,
+            "app_template_name": app_template_name,
+            "record": self._serialize_upgrade_record_detail(upgraded_record),
+        }
+
+    def deploy_app_upgrade_record(self, user, arguments):
+        team, app, record = self._get_team_app_upgrade_record_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_int(arguments, "record_id"),
+        )
+        upgrade_service.deploy(team, app.region_name, user, record)
+        detail = upgrade_service.get_app_upgrade_record(team.tenant_name, app.region_name, record.ID)
+        return {
+            "app_id": app.ID,
+            "record_id": record.ID,
+            "deployed": True,
+            "record": self._serialize_upgrade_record_detail(detail),
+        }
+
+    def get_app_rollback_records(self, user, arguments):
+        _, app, record = self._get_team_app_upgrade_record_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_int(arguments, "record_id"),
+        )
+        items = upgrade_service.list_rollback_record(record)
+        items = [self._serialize_upgrade_record_basic(item) for item in items]
+        return {
+            "app_id": app.ID,
+            "parent_record_id": record.ID,
+            "items": items,
+            "total": len(items),
+        }
+
+    def rollback_app_upgrade_record(self, user, arguments):
+        team, app, record = self._get_team_app_upgrade_record_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_int(arguments, "record_id"),
+        )
+        region = self._get_region_by_name_context(user, app.region_name)
+        rollback_record, component_group_alias = upgrade_service.restore(team, region, user, app, record)
+        return {
+            "app_id": app.ID,
+            "record_id": self._value(rollback_record, "ID"),
+            "rolled_back": True,
+            "component_group_alias": component_group_alias,
+            "record": self._serialize_upgrade_record_detail(rollback_record),
         }
 
     def get_app_upgrade_info(self, user, arguments):
@@ -1694,6 +2492,71 @@ class MCPQueryService(object):
             k8s_component_name=arguments.get("k8s_component_name", "") or "",
             arch=arguments.get("arch", "amd64") or "amd64",
             is_deploy=bool(arguments.get("is_deploy", True)),
+        )
+
+    def init_package_upload(self, user, arguments):
+        team_name = self._require_string(arguments, "team_name")
+        region_name = self._require_string(arguments, "region_name")
+        self._get_team_context(user, team_name)
+        self._get_region_by_name_context(user, region_name)
+        return package_upload_tool_service.init_upload(
+            team_name,
+            region_name,
+            arguments.get("component_id", "") or "",
+        )
+
+    def upload_package_file(self, user, arguments):
+        team_name = self._require_string(arguments, "team_name")
+        region_name = self._require_string(arguments, "region_name")
+        self._get_team_context(user, team_name)
+        self._get_region_by_name_context(user, region_name)
+        return package_upload_tool_service.upload_package(
+            team_name,
+            region_name,
+            self._require_string(arguments, "event_id"),
+            self._require_string(arguments, "local_path"),
+            arguments.get("archive_name", "") or "",
+        )
+
+    def get_package_upload_status(self, user, arguments):
+        team_name = self._require_string(arguments, "team_name")
+        region_name = self._require_string(arguments, "region_name")
+        self._get_team_context(user, team_name)
+        self._get_region_by_name_context(user, region_name)
+        return package_upload_tool_service.get_upload_status(
+            team_name,
+            region_name,
+            self._require_string(arguments, "event_id"),
+        )
+
+    def delete_package_upload(self, user, arguments):
+        team_name = self._require_string(arguments, "team_name")
+        region_name = self._require_string(arguments, "region_name")
+        self._get_team_context(user, team_name)
+        self._get_region_by_name_context(user, region_name)
+        return package_upload_tool_service.delete_upload(
+            team_name,
+            region_name,
+            self._require_string(arguments, "event_id"),
+        )
+
+    def create_component_from_local_package(self, user, arguments):
+        team, app = self._get_team_app_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+        )
+        return package_upload_tool_service.auto_create_component_from_local_path(
+            team=team,
+            app=app,
+            user=user,
+            local_path=self._require_string(arguments, "local_path"),
+            service_cname=self._require_string(arguments, "service_cname"),
+            k8s_component_name=arguments.get("k8s_component_name", "") or "",
+            arch=arguments.get("arch", "amd64") or "amd64",
+            is_deploy=bool(arguments.get("is_deploy", True)),
+            archive_name=arguments.get("archive_name", "") or "",
         )
 
     def check_component(self, user, arguments):
@@ -2424,6 +3287,18 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
         return ivalue
 
+    @staticmethod
+    def _parse_optional_positive_int(value, field):
+        if value in (None, ""):
+            return None
+        try:
+            ivalue = int(value)
+        except (TypeError, ValueError):
+            raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
+        if ivalue <= 0:
+            raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
+        return ivalue
+
     def _parse_pagination(self, arguments):
         page = arguments.get("page", 1)
         page_size = arguments.get("page_size", 20)
@@ -3123,6 +3998,165 @@ class MCPQueryService(object):
                 data[key] = value
         return data
 
+    def _serialize_app_share_record_summary(self, record, user):
+        app_model_name = getattr(record, "share_app_model_name", None)
+        app_model_id = getattr(record, "app_id", None)
+        version_alias = getattr(record, "share_version_alias", None)
+        upgrade_time = None
+        store_name = getattr(record, "share_store_name", None)
+        store_id = getattr(record, "share_app_market_name", None)
+        scope = getattr(record, "scope", None)
+        if scope != "goodrain" and not app_model_name and app_model_id:
+            app = rainbond_app_repo.get_rainbond_app_by_app_id(app_model_id)
+            app_model_name = app.app_name if app else app_model_name
+            app_version = rainbond_app_repo.get_rainbond_app_version_by_record_id(record.ID)
+            if app_version:
+                upgrade_time = self._serialize_datetime(getattr(app_version, "upgrade_time", None))
+                version_alias = app_version.version_alias
+        if scope == "goodrain" and store_id and app_model_id and not app_model_name:
+            try:
+                market = app_market_service.get_app_market_by_name(
+                    getattr(user, "enterprise_id", None),
+                    store_id,
+                    user_id=self._share_market_user_id(user),
+                    raise_exception=True,
+                )
+                cloud_app = app_market_service.get_market_app_model(market, app_model_id, True)
+                if cloud_app:
+                    store_name = getattr(cloud_app, "market_name", None) or store_name
+                    app_model_name = getattr(cloud_app, "app_name", None) or app_model_name
+            except Exception:
+                logger.exception("failed to resolve cloud app publish record %s", record.ID)
+        return {
+            "app_model_id": app_model_id,
+            "app_model_name": app_model_name,
+            "version": getattr(record, "share_version", None),
+            "version_alias": version_alias,
+            "scope": scope,
+            "create_time": self._serialize_datetime(getattr(record, "create_time", None)),
+            "upgrade_time": upgrade_time,
+            "step": getattr(record, "step", None),
+            "is_success": getattr(record, "is_success", False),
+            "status": getattr(record, "status", None),
+            "scope_target": {
+                "store_name": store_name,
+                "store_id": store_id,
+            },
+            "record_id": record.ID,
+            "app_version_info": getattr(record, "share_app_version_info", ""),
+        }
+
+    def _serialize_app_share_record_detail(self, record, user):
+        data = self._serialize_app_share_record_summary(record, user)
+        store_version = "1.0"
+        store_id = data["scope_target"]["store_id"]
+        if store_id:
+            try:
+                market_info = app_market_service.get_app_market(
+                    getattr(user, "enterprise_id", None),
+                    store_id,
+                    self._share_market_user_id(user),
+                    "true",
+                    raise_exception=True,
+                )
+                extend = market_info[0] if isinstance(market_info, tuple) else {}
+                store_version = self._value(extend, "version", store_version)
+            except Exception:
+                logger.exception("failed to resolve market version for share record %s", record.ID)
+        data["scope_target"]["store_version"] = store_version
+        return data
+
+    @staticmethod
+    def _share_market_user_id(user):
+        return getattr(user, "user_id", None) if os.getenv("USE_SAAS") else None
+
+    @staticmethod
+    def _normalize_publish_scope(scope):
+        if scope in (None, "", "local"):
+            return "local"
+        if scope == "goodrain":
+            return "goodrain"
+        raise ServiceHandleException(msg="invalid scope", msg_show="scope只能是local或goodrain", status_code=400)
+
+    @staticmethod
+    def _normalize_share_event_type(event_type):
+        if event_type in (None, "", "service"):
+            return "service"
+        if event_type == "plugin":
+            return "plugin"
+        raise ServiceHandleException(msg="invalid event_type", msg_show="event_type只能是service或plugin", status_code=400)
+
+    def _get_app_share_record_context(self, team, share_id):
+        share_record = share_service.get_service_share_record_by_ID(ID=share_id, team_name=team.tenant_name)
+        if not share_record:
+            raise ServiceHandleException(msg="share record not found", msg_show="分享流程不存在，请退出重试", status_code=404)
+        return share_record
+
+    @staticmethod
+    def _build_snapshot_share_info(arguments):
+        share_info = {}
+        for field in ("share_service_list", "share_plugin_list", "share_k8s_resources"):
+            value = arguments.get(field)
+            if value is not None:
+                if not isinstance(value, list):
+                    raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
+                share_info[field] = value
+        return share_info
+
+    def _serialize_upgrade_record_basic(self, record):
+        if not record:
+            return None
+        data = self._serialize_model_item(record)
+        snapshot_id = data.get("snapshot_id")
+        data["snapshot"] = {
+            "snapshot_id": snapshot_id,
+            "exists": self._upgrade_snapshot_exists(snapshot_id),
+        }
+        return data
+
+    def _serialize_upgrade_record_detail(self, record):
+        if not record:
+            return None
+        data = self._serialize_model_item(record)
+        service_records = data.get("service_record") or []
+        data["service_record"] = [self._serialize_model_item(item) for item in service_records]
+        snapshot_id = data.get("snapshot_id")
+        data["snapshot"] = {
+            "snapshot_id": snapshot_id,
+            "exists": self._upgrade_snapshot_exists(snapshot_id),
+        }
+        return data
+
+    def _upgrade_snapshot_exists(self, snapshot_id):
+        if not snapshot_id:
+            return False
+        try:
+            app_snapshot_repo.get_by_snapshot_id(snapshot_id)
+            return True
+        except ServiceHandleException:
+            return False
+        except Exception:
+            logger.exception("failed to resolve app upgrade snapshot %s", snapshot_id)
+            return False
+
+    @staticmethod
+    def _normalize_upgrade_record_type(record_type):
+        if record_type in (None, ""):
+            return None
+        normalized = str(record_type).strip().lower()
+        if normalized not in ("upgrade", "rollback"):
+            raise ServiceHandleException(msg="invalid record_type", msg_show="record_type只能是upgrade或rollback", status_code=400)
+        return normalized
+
+    def _get_team_app_upgrade_record_context(self, user, team_name, region_name, app_id, record_id):
+        team, app = self._get_team_app_context(user, team_name, region_name, app_id)
+        record = upgrade_repo.get_by_record_id(record_id)
+        if self._value(record, "group_id") != app.ID:
+            raise ServiceHandleException(msg="record not found", msg_show="升级记录不存在", status_code=404)
+        if self._value(record, "tenant_id") != team.tenant_id:
+            self._raise_permission_denied("无该升级记录访问权限")
+        return team, app, record
+
     def _serialize_service_with_gateway_rules(self, service):
         data = self._serialize_model_item(service)
         gateway_rules = getattr(service, "gateway_rules", None)
@@ -3448,6 +4482,379 @@ class MCPQueryService(object):
             }
         }
 
+    def _tool_get_app_version_overview(self):
+        return {
+            "name": "rainbond_get_app_version_overview",
+            "description": "Get the overview data used by the app version center, including current baseline snapshot and change summary.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id"]
+            }
+        }
+
+    def _tool_list_app_version_snapshots(self):
+        return {
+            "name": "rainbond_list_app_version_snapshots",
+            "description": "List snapshot versions for the specified app version center.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id"]
+            }
+        }
+
+    def _tool_get_app_version_snapshot_detail(self):
+        return {
+            "name": "rainbond_get_app_version_snapshot_detail",
+            "description": "Get one snapshot version detail, including diff summary and template content.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "version_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "version_id"]
+            }
+        }
+
+    def _tool_create_app_version_snapshot(self):
+        return {
+            "name": "rainbond_create_app_version_snapshot",
+            "description": "Create a new snapshot version for the app. Optional share payload lets you persist the exact draft content from the snapshot configuration page.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "version": {"type": "string"},
+                    "version_alias": {"type": "string"},
+                    "app_version_info": {"type": "string"},
+                    "share_service_list": {"type": "array", "items": {"type": "object"}},
+                    "share_plugin_list": {"type": "array", "items": {"type": "object"}},
+                    "share_k8s_resources": {"type": "array", "items": {"type": "object"}}
+                },
+                "required": ["team_name", "region_name", "app_id"]
+            }
+        }
+
+    def _tool_delete_app_version_snapshot(self):
+        return {
+            "name": "rainbond_delete_app_version_snapshot",
+            "description": "Delete a non-current historical snapshot version.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "version_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "version_id"]
+            }
+        }
+
+    def _tool_rollback_app_version_snapshot(self):
+        return {
+            "name": "rainbond_rollback_app_version_snapshot",
+            "description": "Rollback the current app runtime state to a target snapshot version.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "version_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "version_id"]
+            }
+        }
+
+    def _tool_list_app_version_rollback_records(self):
+        return {
+            "name": "rainbond_list_app_version_rollback_records",
+            "description": "List rollback records created by app version snapshot rollback actions.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id"]
+            }
+        }
+
+    def _tool_get_app_version_rollback_record_detail(self):
+        return {
+            "name": "rainbond_get_app_version_rollback_record_detail",
+            "description": "Get one app version rollback record with service-level status detail.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "record_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "record_id"]
+            }
+        }
+
+    def _tool_delete_app_version_rollback_record(self):
+        return {
+            "name": "rainbond_delete_app_version_rollback_record",
+            "description": "Delete a finished app version rollback record.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "record_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "record_id"]
+            }
+        }
+
+    def _tool_create_app_from_snapshot_version(self):
+        return {
+            "name": "rainbond_create_app_from_snapshot_version",
+            "description": "Create a new app directly from a snapshot-generated hidden template without publishing it to the local library first.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "source_app_id": {"type": "integer", "minimum": 1},
+                    "version_id": {"type": "integer", "minimum": 1},
+                    "target_app_name": {"type": "string"},
+                    "target_app_note": {"type": "string"},
+                    "k8s_app": {
+                        "type": "string",
+                        "pattern": self.K8S_APP_NAME_PATTERN,
+                        "description": self.K8S_APP_NAME_DESCRIPTION
+                    },
+                    "is_deploy": {"type": "boolean"}
+                },
+                "required": ["team_name", "region_name", "source_app_id", "version_id", "target_app_name"]
+            }
+        }
+
+    def _tool_get_app_publish_candidates(self):
+        return {
+            "name": "rainbond_get_app_publish_candidates",
+            "description": "Get publish candidate app models for the version publish page. Use scope=local for local component library or scope=goodrain for cloud app market.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "scope": {"type": "string", "enum": ["local", "goodrain"]},
+                    "market_name": {"type": "string"},
+                    "preferred_app_id": {"type": "string"},
+                    "preferred_version": {"type": "string"}
+                },
+                "required": ["team_name", "region_name", "app_id"]
+            }
+        }
+
+    def _tool_create_app_share_record(self):
+        return {
+            "name": "rainbond_create_app_share_record",
+            "description": "Create a draft share record for publish or snapshot configuration. For local publish keep scope empty; for cloud publish set scope=goodrain and target.store_id. Set snapshot_mode=true to enter the snapshot creation flow.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "scope": {"type": "string", "enum": ["", "goodrain"]},
+                    "target": {"type": "object"},
+                    "snapshot_mode": {"type": "boolean"},
+                    "snapshot_app_id": {"type": "string"},
+                    "snapshot_version": {"type": "string"}
+                },
+                "required": ["team_name", "region_name", "app_id"]
+            }
+        }
+
+    def _tool_list_app_share_records(self):
+        return {
+            "name": "rainbond_list_app_share_records",
+            "description": "List publish records shown in the app version publish drawer.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "page": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE},
+                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                },
+                "required": ["team_name", "region_name", "app_id"]
+            }
+        }
+
+    def _tool_get_app_share_record(self):
+        return {
+            "name": "rainbond_get_app_share_record",
+            "description": "Get one publish record used by the publish configuration page.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "record_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "record_id"]
+            }
+        }
+
+    def _tool_delete_app_share_record(self):
+        return {
+            "name": "rainbond_delete_app_share_record",
+            "description": "Delete or hide a finished publish record from the publish record drawer.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "record_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "record_id"]
+            }
+        }
+
+    def _tool_get_app_share_info(self):
+        return {
+            "name": "rainbond_get_app_share_info",
+            "description": "Get the draft share content for share step one. Returns publish_mode=snapshot when the draft is based on a snapshot version, otherwise publish_mode=runtime.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "share_id": {"type": "integer", "minimum": 1},
+                    "scope": {"type": "string"}
+                },
+                "required": ["team_name", "region_name", "share_id"]
+            }
+        }
+
+    def _tool_submit_app_share_info(self):
+        return {
+            "name": "rainbond_submit_app_share_info",
+            "description": "Submit share step one data. app_version_info is required; runtime publish may also include share_service_list, share_plugin_list, and share_k8s_resources.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "share_id": {"type": "integer", "minimum": 1},
+                    "use_force": {"type": "boolean"},
+                    "is_plugin": {"type": "boolean"},
+                    "app_version_info": {"type": "object"},
+                    "share_service_list": {"type": "array", "items": {"type": "object"}},
+                    "share_plugin_list": {"type": "array", "items": {"type": "object"}},
+                    "share_k8s_resources": {"type": "array", "items": {"type": "object"}}
+                },
+                "required": ["team_name", "region_name", "share_id", "app_version_info"]
+            }
+        }
+
+    def _tool_list_app_share_events(self):
+        return {
+            "name": "rainbond_list_app_share_events",
+            "description": "List share step two events for both components and plugins.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "share_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "share_id"]
+            }
+        }
+
+    def _tool_start_app_share_event(self):
+        return {
+            "name": "rainbond_start_app_share_event",
+            "description": "Trigger a share step two event. Use event_type=service for component media sync or event_type=plugin for plugin sync.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "share_id": {"type": "integer", "minimum": 1},
+                    "event_id": {"type": "integer", "minimum": 1},
+                    "event_type": {"type": "string", "enum": ["service", "plugin"]}
+                },
+                "required": ["team_name", "region_name", "share_id", "event_id"]
+            }
+        }
+
+    def _tool_get_app_share_event(self):
+        return {
+            "name": "rainbond_get_app_share_event",
+            "description": "Query one share step two event status for a component or plugin event.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "share_id": {"type": "integer", "minimum": 1},
+                    "event_id": {"type": "integer", "minimum": 1},
+                    "event_type": {"type": "string", "enum": ["service", "plugin"]}
+                },
+                "required": ["team_name", "region_name", "share_id", "event_id"]
+            }
+        }
+
+    def _tool_complete_app_share(self):
+        return {
+            "name": "rainbond_complete_app_share",
+            "description": "Complete the publish workflow after all share events succeed.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "share_id": {"type": "integer", "minimum": 1},
+                    "is_plugin": {"type": "boolean"}
+                },
+                "required": ["team_name", "region_name", "share_id"]
+            }
+        }
+
+    def _tool_giveup_app_share(self):
+        return {
+            "name": "rainbond_giveup_app_share",
+            "description": "Abort an unfinished share workflow and clean up its draft state.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "share_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "share_id"]
+            }
+        }
+
     def _tool_build_component(self):
         return {
             "name": "rainbond_build_component",
@@ -3463,6 +4870,175 @@ class MCPQueryService(object):
                     "is_deploy": {"type": "boolean"}
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
+            }
+        }
+
+    def _tool_get_app_last_upgrade_record(self):
+        return {
+            "name": "rainbond_get_app_last_upgrade_record",
+            "description": "Get the latest upgrade or rollback record for the specified application.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "upgrade_group_id": {"type": "integer", "minimum": 1},
+                    "record_type": {"type": "string", "enum": ["upgrade", "rollback"]}
+                },
+                "required": ["team_name", "region_name", "app_id"]
+            }
+        }
+
+    def _tool_query_app_upgrade_records(self):
+        return {
+            "name": "rainbond_query_app_upgrade_records",
+            "description": "Query paginated upgrade records for the specified application.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "record_type": {"type": "string", "enum": ["upgrade", "rollback"]},
+                    "page": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE},
+                    "page_size": {"type": "integer", "minimum": 1, "maximum": self.MAX_PAGE_SIZE}
+                },
+                "required": ["team_name", "region_name", "app_id"]
+            }
+        }
+
+    def _tool_create_app_upgrade_record(self):
+        return {
+            "name": "rainbond_create_app_upgrade_record",
+            "description": "Create a new upgrade record for a specific upgrade group in the application.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "upgrade_group_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "upgrade_group_id"]
+            }
+        }
+
+    def _tool_get_app_upgrade_record(self):
+        return {
+            "name": "rainbond_get_app_upgrade_record",
+            "description": "Get one upgrade record with service-level status details and snapshot metadata.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "record_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "record_id"]
+            }
+        }
+
+    def _tool_get_app_upgrade_detail(self):
+        return {
+            "name": "rainbond_get_app_upgrade_detail",
+            "description": "Get upgrade record context together with available target versions for that record.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "record_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "record_id"]
+            }
+        }
+
+    def _tool_get_app_upgrade_changes(self):
+        return {
+            "name": "rainbond_get_app_upgrade_changes",
+            "description": "Get property changes for a target upgrade version before executing the upgrade.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "version": {"type": "string"},
+                    "upgrade_group_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "version"]
+            }
+        }
+
+    def _tool_execute_app_upgrade_record(self):
+        return {
+            "name": "rainbond_execute_app_upgrade_record",
+            "description": "Execute one upgrade record with the selected target version and optional component subset.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "record_id": {"type": "integer", "minimum": 1},
+                    "version": {"type": "string"},
+                    "services": {
+                        "type": "array",
+                        "items": {"type": "object"}
+                    }
+                },
+                "required": ["team_name", "region_name", "app_id", "record_id", "version"]
+            }
+        }
+
+    def _tool_deploy_app_upgrade_record(self):
+        return {
+            "name": "rainbond_deploy_app_upgrade_record",
+            "description": "Redeploy or continue a specific upgrade/rollback record.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "record_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "record_id"]
+            }
+        }
+
+    def _tool_get_app_rollback_records(self):
+        return {
+            "name": "rainbond_get_app_rollback_records",
+            "description": "List rollback records derived from a specific upgrade record.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "record_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "record_id"]
+            }
+        }
+
+    def _tool_rollback_app_upgrade_record(self):
+        return {
+            "name": "rainbond_rollback_app_upgrade_record",
+            "description": "Rollback a specific upgrade record using its internal snapshot.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "record_id": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "record_id"]
             }
         }
 
@@ -3484,7 +5060,7 @@ class MCPQueryService(object):
     def _tool_upgrade_app(self):
         return {
             "name": "rainbond_upgrade_app",
-            "description": "Upgrade an application using direct console upgrade flow.",
+            "description": "Upgrade an application using the direct high-level console upgrade flow.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -3721,6 +5297,101 @@ class MCPQueryService(object):
                     "is_deploy": {"type": "boolean"}
                 },
                 "required": ["team_name", "region_name", "app_id", "event_id", "service_cname"]
+            }
+        }
+
+    def _tool_init_package_upload(self):
+        return {
+            "name": "rainbond_init_package_upload",
+            "description": "Initialize a package upload event and return the upload endpoint before sending the package file.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "component_id": {"type": "string", "description": "可选。已有组件重传时用于关联历史上传记录。"}
+                },
+                "required": ["team_name", "region_name"]
+            }
+        }
+
+    def _tool_upload_package_file(self):
+        return {
+            "name": "rainbond_upload_package_file",
+            "description": "Upload a local package file or directory to an initialized package upload event; directories are zipped automatically.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "event_id": {"type": "string"},
+                    "local_path": {
+                        "type": "string",
+                        "description": "本地文件或目录路径。若传目录，会先压缩为 zip 后再上传。"
+                    },
+                    "archive_name": {
+                        "type": "string",
+                        "description": "可选。目录压缩时使用的 zip 文件名；未传则默认用目录名并自动补齐 .zip。"
+                    }
+                },
+                "required": ["team_name", "region_name", "event_id", "local_path"]
+            }
+        }
+
+    def _tool_get_package_upload_status(self):
+        return {
+            "name": "rainbond_get_package_upload_status",
+            "description": "Get uploaded package file names for a package upload event.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "event_id": {"type": "string"}
+                },
+                "required": ["team_name", "region_name", "event_id"]
+            }
+        }
+
+    def _tool_delete_package_upload(self):
+        return {
+            "name": "rainbond_delete_package_upload",
+            "description": "Delete uploaded package artifacts for a package upload event and mark the upload record as deleted.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "event_id": {"type": "string"}
+                },
+                "required": ["team_name", "region_name", "event_id"]
+            }
+        }
+
+    def _tool_create_component_from_local_package(self):
+        return {
+            "name": "rainbond_create_component_from_local_package",
+            "description": "Create a component from a local package file or directory in one flow: zip if needed, upload, detect, build, and optionally deploy.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "local_path": {
+                        "type": "string",
+                        "description": "本地文件或目录路径。目录会先压缩为 zip，再走软件包上传构建流程。"
+                    },
+                    "archive_name": {
+                        "type": "string",
+                        "description": "可选。目录压缩时使用的 zip 文件名；未传则默认使用目录名。"
+                    },
+                    "service_cname": {"type": "string"},
+                    "k8s_component_name": {"type": "string"},
+                    "arch": {"type": "string"},
+                    "is_deploy": {"type": "boolean"}
+                },
+                "required": ["team_name", "region_name", "app_id", "local_path", "service_cname"]
             }
         }
 
