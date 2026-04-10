@@ -169,6 +169,8 @@ class VMRunCreateView(RegionTenantHeaderView):
                 self.response_region, self.tenant, self.user, service_cname, k8s_component_name, image, arch, event_id, vm_url)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
+            # The VM component is only persisted in console at this point.
+            # Region-side service registration happens later and will sync these attrs.
             vms.save_vm_runtime_config(
                 self.tenant.tenant_id,
                 new_service.service_id,
@@ -180,11 +182,6 @@ class VMRunCreateView(RegionTenantHeaderView):
                     "disk_layout": template_payload.get("disk_layout") if template_payload else [],
                     "boot_mode": boot_mode,
                     "os_name": guest_os_name
-                },
-                sync_context={
-                    "tenant_name": self.tenant.tenant_name or self.tenant.tenant_id,
-                    "region_name": new_service.service_region,
-                    "service_alias": new_service.service_alias,
                 })
             if template_payload:
                 for disk in template_payload.get("data_disks", []):
