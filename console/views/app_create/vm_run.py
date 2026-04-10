@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from console.exception.bcode import ErrK8sComponentNameExists, ErrVMImageNameExists
 from console.exception.main import ResourceNotEnoughException
 from console.repositories.virtual_machine import vm_repo
+from console.services.app_config.volume_service import volume_service
 from console.services.app import app_service
 from console.services.virtual_machine import vms
 from console.views.base import RegionTenantHeaderView
@@ -60,6 +61,8 @@ class VMRunCreateView(RegionTenantHeaderView):
         image_name = request.data.get("image_name", "")
         source_type = request.data.get("source_type", "")
         asset_id = request.data.get("asset_id", "")
+        template_id = request.data.get("template_id", "")
+        template_version_id = request.data.get("template_version_id", "")
         event_id = request.data.get("event_id", "")
         vm_url = request.data.get("vm_url", "")
         boot_mode = request.data.get("boot_mode", "")
@@ -84,6 +87,7 @@ class VMRunCreateView(RegionTenantHeaderView):
         try:
             vms.validate_vm_runtime_config(runtime_config)
             asset = None
+            template_payload = None
             if event_id != "" or vm_url != "":
                 asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
                 if asset:
@@ -118,13 +122,32 @@ class VMRunCreateView(RegionTenantHeaderView):
                         })
                     asset_id = asset.ID
             else:
+                if template_version_id:
+                    try:
+                        template_payload = vms.resolve_vm_template_for_create(
+                            self.tenant.tenant_id, template_id, template_version_id
+                        )
+                    except ValueError as err:
+                        return Response(general_message(409, "vm template not ready", str(err)), status=409)
+                    if not template_payload:
+                        return Response(general_message(404, "vm template not found", "虚拟机模板不存在"), status=404)
+                    image = template_payload["image_url"]
+                    asset_id = template_payload.get("asset_id") or asset_id
+                    image_name = image_name or self.template_name_from_payload(template_payload)
+                    runtime_snapshot = template_payload.get("runtime_snapshot", {})
+                    if "boot_mode" not in request.data and runtime_snapshot.get("boot_mode"):
+                        boot_mode = runtime_snapshot.get("boot_mode")
+                    for key in ("network_mode", "network_name", "fixed_ip", "gpu_enabled", "gpu_resources", "usb_enabled", "usb_resources"):
+                        if key not in request.data and key in runtime_snapshot:
+                            runtime_config[key] = runtime_snapshot.get(key)
                 if asset_id:
                     asset = vm_repo.get_vm_image_instance_by_id(self.tenant.tenant_id, asset_id)
                 if not asset and image_name:
                     asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
-                if asset and not vms.is_vm_asset_ready(asset):
+                if not template_payload and asset and not vms.is_vm_asset_ready(asset):
                     return Response(general_message(409, "vm image not ready", "虚拟机镜像导出尚未完成，请稍后再试"), status=409)
-                image = asset.image_url if asset else ""
+                if not template_payload:
+                    image = asset.image_url if asset else ""
                 if asset:
                     asset_id = asset.ID
                 if not image:
@@ -139,8 +162,27 @@ class VMRunCreateView(RegionTenantHeaderView):
                 {
                     **runtime_config,
                     "asset_id": asset_id,
+                    "template_id": template_payload.get("template_id") if template_payload else "",
+                    "template_version_id": template_payload.get("template_version_id") if template_payload else "",
+                    "disk_layout": template_payload.get("disk_layout") if template_payload else [],
                     "boot_mode": boot_mode
                 })
+            if template_payload:
+                for disk in template_payload.get("data_disks", []):
+                    settings = {
+                        "volume_capacity": self.bytes_to_gib(disk.get("size_bytes"))
+                    }
+                    volume_service.add_service_volume(
+                        self.tenant,
+                        new_service,
+                        "/disk",
+                        "vm-file",
+                        disk.get("disk_key") or "disk",
+                        "",
+                        settings,
+                        self.user.nick_name,
+                        mode=None
+                    )
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                                 new_service.service_id)
             if code != 200:
@@ -151,3 +193,20 @@ class VMRunCreateView(RegionTenantHeaderView):
         except ValueError as err:
             return Response(general_message(400, "invalid vm runtime config", str(err)), status=400)
         return Response(result, status=result["code"])
+
+    @staticmethod
+    def bytes_to_gib(value):
+        try:
+            size_bytes = int(value or 0)
+        except (TypeError, ValueError):
+            size_bytes = 0
+        if size_bytes <= 0:
+            return 10
+        gib = size_bytes // (1024 * 1024 * 1024)
+        if size_bytes % (1024 * 1024 * 1024) != 0:
+            gib += 1
+        return gib or 10
+
+    @staticmethod
+    def template_name_from_payload(payload):
+        return "template-image-{}".format(payload.get("template_version_id"))

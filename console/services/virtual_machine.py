@@ -2,9 +2,16 @@ import json
 
 from console.models.main import ComponentK8sAttributes
 from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.repositories.vm_template import vm_template_repo
 from console.repositories.virtual_machine import vm_repo
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantServiceInfo, VirtualMachineImage
+from www.models.main import (
+    TenantServiceInfo,
+    VMTemplate,
+    VMTemplateDisk,
+    VMTemplateVersion,
+    VirtualMachineImage,
+)
 
 region_api = RegionInvokeApi()
 
@@ -19,6 +26,9 @@ VM_RUNTIME_ATTR_SPECS = {
     "vm_asset_id": "string",
     "vm_asset_clone_source": "string",
     "vm_boot_mode": "string",
+    "vm_template_id": "string",
+    "vm_template_version_id": "string",
+    "vm_disk_layout": "json",
 }
 VM_RUNTIME_MANAGED_KEYS = set(VM_RUNTIME_ATTR_SPECS.keys())
 VM_RUNTIME_LIST_KEYS = ("vm_gpu_resources", "vm_usb_resources")
@@ -27,6 +37,334 @@ VM_DISK_ASSET_KIND = "disk"
 
 
 class VirtualMachineService(object):
+    def save_vm_template(self, service, region_name, tenant_name, template_name, vm_status, description="",
+                         include_data_disks=True):
+        if getattr(service, "extend_method", "") != "vm":
+            raise ValueError("only vm service supports template")
+
+        template = vm_template_repo.get_template_by_name(service.tenant_id, template_name)
+        if not template:
+            template = vm_template_repo.create_template(
+                tenant_id=service.tenant_id,
+                name=template_name,
+                description=description or "",
+                status="generating",
+                source_service_id=service.service_id
+            )
+        else:
+            template.description = description if description is not None else template.description
+            template.source_service_id = service.service_id
+
+        version = vm_template_repo.create_template_version(
+            tenant_id=service.tenant_id,
+            template_id=template.ID,
+            version=self._next_vm_template_version(service.tenant_id, template.ID),
+            status="generating",
+            recoverability="partial",
+            source_service_id=service.service_id,
+            source_service_alias=service.service_alias,
+            source_vm_status=vm_status or "",
+            include_data_disks=bool(include_data_disks),
+            runtime_snapshot_json="{}"
+        )
+        template.latest_version_id = version.ID
+        template.status = "generating" if not template.disabled else "disabled"
+        vm_template_repo.save_template(template)
+
+        latest_ready_version = None
+        if template.latest_ready_version_id:
+            latest_ready_version = vm_template_repo.get_template_version(service.tenant_id, template.latest_ready_version_id)
+
+        version = self._generate_vm_template_version(
+            template=template,
+            version=version,
+            service=service,
+            region_name=region_name,
+            tenant_name=tenant_name,
+            vm_status=vm_status,
+            description=description,
+            include_data_disks=include_data_disks
+        )
+        template.refresh_from_db()
+        if template.latest_ready_version_id:
+            latest_ready_version = vm_template_repo.get_template_version(service.tenant_id, template.latest_ready_version_id)
+        return self.serialize_vm_template(
+            template,
+            latest_version=version,
+            latest_ready_version=latest_ready_version
+        )
+
+    def retry_vm_template_version(self, tenant_id, template_id, version_id, region_name, tenant_name):
+        template = vm_template_repo.get_template(tenant_id, template_id)
+        if not template:
+            return None
+        version = vm_template_repo.get_template_version(tenant_id, version_id)
+        if not version or version.template_id != template.ID:
+            return None
+
+        service = TenantServiceInfo.objects.filter(
+            tenant_id=tenant_id, service_id=version.source_service_id
+        ).first()
+        if not service:
+            raise ValueError("source vm service not found")
+
+        latest_ready_version = None
+        if template.latest_ready_version_id:
+            latest_ready_version = vm_template_repo.get_template_version(tenant_id, template.latest_ready_version_id)
+
+        vm_template_repo.delete_template_disks(tenant_id, version.ID)
+        version.status = "generating"
+        version.recoverability = "partial"
+        version.status_message = ""
+        version.export_id = ""
+        version.snapshot_name = ""
+        version.snapshot_source = ""
+        version.disk_count = 0
+        vm_template_repo.save_template_version(version)
+
+        version = self._generate_vm_template_version(
+            template=template,
+            version=version,
+            service=service,
+            region_name=region_name,
+            tenant_name=tenant_name,
+            vm_status=version.source_vm_status or "closed",
+            description=template.description or "",
+            include_data_disks=version.include_data_disks
+        )
+        return self.serialize_vm_template_version(version, disks=vm_template_repo.list_template_disks(tenant_id, version.ID))
+
+    def resolve_vm_template_for_create(self, tenant_id, template_id, template_version_id):
+        template = vm_template_repo.get_template(tenant_id, template_id) if template_id else None
+        version = vm_template_repo.get_template_version(tenant_id, template_version_id)
+        if not version:
+            return None
+        if template and version.template_id != template.ID:
+            return None
+        disks = list(vm_template_repo.list_template_disks(tenant_id, version.ID))
+        root_disk = next((disk for disk in disks if disk.disk_role == "root"), None)
+        if not root_disk or not root_disk.image_url:
+            raise ValueError("template root disk is not ready")
+        disk_layout = [self.serialize_vm_template_disk_layout_item(disk) for disk in disks]
+        return {
+            "template_id": version.template_id,
+            "template_version_id": version.ID,
+            "asset_id": version.root_asset_id,
+            "image_url": root_disk.image_url,
+            "runtime_snapshot": self._load_json(version.runtime_snapshot_json, {}),
+            "disk_layout": disk_layout,
+            "data_disks": [item for item in disk_layout if item.get("disk_role") != "root"],
+        }
+
+    def list_vm_templates(self, tenant_id):
+        templates = list(vm_template_repo.list_templates(tenant_id))
+        version_ids = []
+        for template in templates:
+            if template.latest_version_id:
+                version_ids.append(template.latest_version_id)
+            if template.latest_ready_version_id:
+                version_ids.append(template.latest_ready_version_id)
+        versions = {
+            version.ID: version
+            for version in vm_template_repo.get_template_versions_by_ids(tenant_id, list(set(version_ids)))
+        }
+        return [
+            self.serialize_vm_template(
+                template,
+                latest_version=versions.get(template.latest_version_id),
+                latest_ready_version=versions.get(template.latest_ready_version_id)
+            )
+            for template in templates
+        ]
+
+    def get_vm_template_detail(self, tenant_id, template_id):
+        template = vm_template_repo.get_template(tenant_id, template_id)
+        if not template:
+            return None
+        versions = list(vm_template_repo.list_template_versions(tenant_id, template.ID))
+        version_ids = [version.ID for version in versions]
+        disks = list(vm_template_repo.list_template_disks_by_version_ids(tenant_id, version_ids))
+        disk_map = {}
+        for disk in disks:
+            disk_map.setdefault(disk.template_version_id, []).append(disk)
+        return self.serialize_vm_template(
+            template,
+            versions=versions,
+            latest_version=next((version for version in versions if version.ID == template.latest_version_id), None),
+            latest_ready_version=next((version for version in versions if version.ID == template.latest_ready_version_id), None),
+            disk_map=disk_map,
+            include_versions=True
+        )
+
+    def set_vm_template_disabled(self, tenant_id, template_id, disabled):
+        template = vm_template_repo.get_template(tenant_id, template_id)
+        if not template:
+            return None
+        template.disabled = bool(disabled)
+        if template.disabled:
+            template.status = "disabled"
+        elif template.status == "disabled":
+            template.status = "ready" if template.latest_ready_version_id else "generating"
+        vm_template_repo.save_template(template)
+        latest_ready_version = None
+        latest_version = None
+        version_ids = [template.latest_version_id, template.latest_ready_version_id]
+        versions = {
+            version.ID: version for version in vm_template_repo.get_template_versions_by_ids(
+                tenant_id, [version_id for version_id in version_ids if version_id]
+            )
+        }
+        if template.latest_version_id:
+            latest_version = versions.get(template.latest_version_id)
+        if template.latest_ready_version_id:
+            latest_ready_version = versions.get(template.latest_ready_version_id)
+        return self.serialize_vm_template(
+            template,
+            latest_version=latest_version,
+            latest_ready_version=latest_ready_version
+        )
+
+    def _generate_vm_template_version(self, template, version, service, region_name, tenant_name, vm_status,
+                                      description="", include_data_disks=True):
+        runtime_snapshot = self.get_vm_runtime_config(service.service_id)
+        source_asset = self.get_vm_asset_for_service(service, runtime_snapshot.get("asset_id"))
+        version.runtime_snapshot_json = json.dumps(runtime_snapshot)
+        version.boot_mode = runtime_snapshot.get("boot_mode", "") or getattr(source_asset, "boot_mode", "")
+        version.arch = getattr(source_asset, "arch", "") or "amd64"
+        version.os_name = getattr(source_asset, "os_name", "")
+        version.root_asset_id = getattr(source_asset, "ID", None)
+
+        request_body = {
+            "name": self._build_vm_template_export_name(template, version),
+            "description": description or template.description or "",
+            "export_all_disks": bool(include_data_disks),
+            "source_kind": "vm",
+        }
+        if vm_status != "closed":
+            snapshot_name = self._create_vm_template_snapshot(region_name, tenant_name, service.service_alias, template, version)
+            version.snapshot_name = snapshot_name
+            version.snapshot_source = "snapshot"
+            request_body["source_kind"] = "snapshot"
+            request_body["snapshot_name"] = snapshot_name
+        else:
+            version.snapshot_source = "vm"
+
+        _, body = region_api.start_vm_export(region_name, tenant_name, service.service_alias, request_body)
+        bean = body.get("bean", {}) if isinstance(body, dict) else {}
+        disks = self._filter_vm_template_disks(bean.get("disks", []), include_data_disks)
+        version.export_id = bean.get("export_id", "")
+        version.disk_count = len(disks)
+        version.status = self._determine_vm_template_version_status(disks, bean.get("status"))
+        version.recoverability = self._determine_vm_template_recoverability(version.status)
+        version.status_message = self._build_vm_template_status_message(disks, bean.get("message", ""))
+        vm_template_repo.save_template_version(version)
+        self._replace_vm_template_disks(version, disks)
+
+        template.latest_version_id = version.ID
+        if version.status in ("ready", "partial"):
+            template.latest_ready_version_id = version.ID
+        if not template.disabled:
+            template.status = version.status
+        vm_template_repo.save_template(template)
+        return version
+
+    def _create_vm_template_snapshot(self, region_name, tenant_name, service_alias, template, version):
+        body = {
+            "name": "{}-{}".format(template.name, version.version).replace("_", "-"),
+            "description": template.description or ""
+        }
+        _, snapshot_body = region_api.create_vm_snapshot(region_name, tenant_name, service_alias, body)
+        bean = snapshot_body.get("bean", {}) if isinstance(snapshot_body, dict) else {}
+        snapshot_name = bean.get("snapshot_name") or body["name"]
+        return snapshot_name
+
+    def _build_vm_template_export_name(self, template, version):
+        return "{}-{}".format(template.name, version.version)
+
+    def _filter_vm_template_disks(self, disks, include_data_disks):
+        normalized = []
+        for disk in disks or []:
+            if not include_data_disks and disk.get("disk_role") != "root":
+                continue
+            normalized.append(disk)
+        return normalized
+
+    def _determine_vm_template_version_status(self, disks, export_status):
+        export_status = str(export_status or "").lower()
+        if export_status in ("failed", "error"):
+            return "failed"
+        root_disk = next((disk for disk in disks if disk.get("disk_role") == "root"), None)
+        if not root_disk:
+            return "failed"
+        if str(root_disk.get("status", "")).lower() == "failed":
+            return "failed"
+        if any(str(disk.get("status", "")).lower() in ("exporting", "", "pending") for disk in disks):
+            return "generating"
+        if any(disk.get("disk_role") != "root" and str(disk.get("status", "")).lower() == "failed" for disk in disks):
+            return "partial"
+        if self._requires_partial_vm_template_due_to_restore_limit(disks):
+            return "partial"
+        return "ready"
+
+    def _determine_vm_template_recoverability(self, status):
+        if status == "ready":
+            return "full"
+        return "partial"
+
+    def _build_vm_template_status_message(self, disks, export_message):
+        messages = []
+        if export_message:
+            messages.append(str(export_message))
+        for disk in disks or []:
+            if str(disk.get("status", "")).lower() == "failed" and disk.get("message"):
+                messages.append(str(disk.get("message")))
+        if self._requires_partial_vm_template_due_to_restore_limit(disks):
+            messages.append("data disk content restore is not supported yet")
+        return "; ".join(messages)
+
+    def _requires_partial_vm_template_due_to_restore_limit(self, disks):
+        return any(str(disk.get("disk_role", "")).lower() != "root" for disk in (disks or []))
+
+    def _replace_vm_template_disks(self, version, disks):
+        vm_template_repo.delete_template_disks(version.tenant_id, version.ID)
+        for index, disk in enumerate(disks):
+            vm_template_repo.create_template_disk(
+                tenant_id=version.tenant_id,
+                template_version_id=version.ID,
+                disk_key=disk.get("disk_key", ""),
+                disk_name=disk.get("disk_name", disk.get("disk_key", "")),
+                disk_role=disk.get("disk_role", "data"),
+                order_index=index,
+                boot=disk.get("disk_role") == "root",
+                source_kind="pvc",
+                pvc_namespace=disk.get("pvc_namespace", ""),
+                pvc_name=disk.get("pvc_name", ""),
+                image_url=disk.get("download_url", ""),
+                source_uri=disk.get("export_name", ""),
+                format=disk.get("format", ""),
+                size_bytes=self._to_int(disk.get("size_bytes"), 0) or 0,
+                checksum=disk.get("checksum", ""),
+                status=disk.get("status", "exporting"),
+                status_message=disk.get("message", ""),
+                extra_json=json.dumps({
+                    "export_name": disk.get("export_name", ""),
+                    "boot_order": disk.get("boot_order"),
+                })
+            )
+
+    def _next_vm_template_version(self, tenant_id, template_id):
+        versions = list(vm_template_repo.list_template_versions(tenant_id, template_id))
+        max_number = 0
+        for version in versions:
+            raw = str(version.version or "").lower().strip()
+            if raw.startswith("v"):
+                raw = raw[1:]
+            try:
+                max_number = max(max_number, int(raw))
+            except (TypeError, ValueError):
+                continue
+        return "v{}".format(max_number + 1)
+
     def list_vm_image(self, tenant_id):
         vm_images = list(vm_repo.get_vm_images_by_tenant_id(tenant_id))
         source_ids = [vm_image.source_asset_id for vm_image in vm_images if vm_image.source_asset_id]
@@ -173,6 +511,9 @@ class VirtualMachineService(object):
             "asset_id": self._to_int(attrs.get("vm_asset_id")),
             "asset_clone_source": attrs.get("vm_asset_clone_source", ""),
             "boot_mode": attrs.get("vm_boot_mode", ""),
+            "template_id": self._to_int(attrs.get("vm_template_id")),
+            "template_version_id": self._to_int(attrs.get("vm_template_version_id")),
+            "disk_layout": self._as_list_of_dicts(attrs.get("vm_disk_layout")),
             "network_mode": attrs.get("vm_network_mode") or "random",
             "network_name": attrs.get("vm_network_name", ""),
             "fixed_ip": attrs.get("vm_fixed_ip", ""),
@@ -280,6 +621,131 @@ class VirtualMachineService(object):
             name="vm_asset_id").values_list("component_id", flat=True)
         return active_vm_services.exclude(service_id__in=bound_service_ids).filter(image=vm_image.image_url).count()
 
+    def serialize_vm_template(self, template, latest_version=None, latest_ready_version=None, versions=None, disk_map=None,
+                              include_versions=False):
+        if not template:
+            return {}
+        latest_ready_version = latest_ready_version or latest_version
+        latest_disk_count = 0
+        if latest_ready_version:
+            latest_disk_count = int(latest_ready_version.disk_count or 0)
+        elif latest_version:
+            latest_disk_count = int(latest_version.disk_count or 0)
+        data = {
+            "id": template.ID,
+            "name": template.name,
+            "description": template.description or "",
+            "status": template.status or "generating",
+            "can_instantiate": self.can_instantiate_vm_template(template, latest_ready_version),
+            "source_service_id": template.source_service_id or "",
+            "disabled": bool(template.disabled),
+            "labels": self._load_json(template.labels_json, {}),
+            "disk_count": latest_disk_count,
+            "latest_version_id": template.latest_version_id,
+            "latest_ready_version_id": template.latest_ready_version_id,
+            "latest_version": self.serialize_vm_template_version_summary(latest_version),
+            "latest_ready_version": self.serialize_vm_template_version_summary(latest_ready_version),
+            "create_time": self._format_datetime(getattr(template, "create_time", None)),
+            "update_time": self._format_datetime(getattr(template, "update_time", None)),
+        }
+        if include_versions:
+            data["versions"] = [
+                self.serialize_vm_template_version(version, disks=(disk_map or {}).get(version.ID, []))
+                for version in (versions or [])
+            ]
+        return data
+
+    def can_instantiate_vm_template(self, template, latest_ready_version=None):
+        if not template or bool(template.disabled):
+            return False
+        if latest_ready_version:
+            return self.can_instantiate_vm_template_version(latest_ready_version)
+        return (template.status or "") in ("ready", "partial")
+
+    def serialize_vm_template_version_summary(self, version):
+        if not version:
+            return None
+        return {
+            "id": version.ID,
+            "version": version.version,
+            "status": version.status or "generating",
+            "recoverability": version.recoverability or "partial"
+        }
+
+    def serialize_vm_template_version(self, version, disks=None):
+        if not version:
+            return {}
+        return {
+            "id": version.ID,
+            "version": version.version,
+            "status": version.status or "generating",
+            "recoverability": version.recoverability or "partial",
+            "status_message": version.status_message or "",
+            "source_service_id": version.source_service_id or "",
+            "source_service_alias": version.source_service_alias or "",
+            "source_vm_status": version.source_vm_status or "",
+            "snapshot_name": version.snapshot_name or "",
+            "snapshot_source": version.snapshot_source or "",
+            "export_id": version.export_id or "",
+            "include_data_disks": bool(version.include_data_disks),
+            "disk_count": int(version.disk_count or 0),
+            "boot_mode": version.boot_mode or "",
+            "arch": version.arch or "amd64",
+            "os_name": version.os_name or "",
+            "runtime_snapshot": self._load_json(version.runtime_snapshot_json, {}),
+            "root_asset_id": version.root_asset_id,
+            "can_instantiate": self.can_instantiate_vm_template_version(version),
+            "disks": [self.serialize_vm_template_disk(disk) for disk in (disks or [])],
+            "create_time": self._format_datetime(getattr(version, "create_time", None)),
+            "update_time": self._format_datetime(getattr(version, "update_time", None)),
+        }
+
+    def can_instantiate_vm_template_version(self, version):
+        if not version:
+            return False
+        return (version.status or "") in ("ready", "partial")
+
+    def serialize_vm_template_disk(self, disk):
+        if not disk:
+            return {}
+        return {
+            "id": disk.ID,
+            "disk_key": disk.disk_key,
+            "disk_name": disk.disk_name or "",
+            "disk_role": disk.disk_role or "data",
+            "order_index": int(disk.order_index or 0),
+            "boot": bool(disk.boot),
+            "source_kind": disk.source_kind or "pvc",
+            "pvc_namespace": disk.pvc_namespace or "",
+            "pvc_name": disk.pvc_name or "",
+            "image_url": disk.image_url or "",
+            "source_uri": disk.source_uri or "",
+            "format": disk.format or self._infer_asset_format(disk.source_uri, disk.image_url, disk.disk_name),
+            "size_bytes": int(disk.size_bytes or 0),
+            "checksum": disk.checksum or "",
+            "status": disk.status or "exporting",
+            "status_message": disk.status_message or "",
+            "content_restore_supported": str(disk.disk_role or "").lower() == "root",
+            "extra": self._load_json(disk.extra_json, {}),
+            "create_time": self._format_datetime(getattr(disk, "create_time", None)),
+            "update_time": self._format_datetime(getattr(disk, "update_time", None)),
+        }
+
+    def serialize_vm_template_disk_layout_item(self, disk):
+        extra = self._load_json(disk.extra_json, {})
+        return {
+            "disk_key": disk.disk_key,
+            "disk_name": disk.disk_name or "",
+            "disk_role": disk.disk_role or "data",
+            "order_index": int(disk.order_index or 0),
+            "boot_order": self._to_int(extra.get("boot_order"), None),
+            "boot": bool(disk.boot),
+            "image_url": disk.image_url or "",
+            "size_bytes": int(disk.size_bytes or 0),
+            "status": disk.status or "exporting",
+            "content_restore_supported": str(disk.disk_role or "").lower() == "root",
+        }
+
     def _build_vm_runtime_attrs(self, runtime_config):
         attrs = {
             "vm_network_mode": runtime_config.get("network_mode") or "random"
@@ -304,6 +770,18 @@ class VirtualMachineService(object):
         asset_id = runtime_config.get("asset_id")
         if asset_id not in (None, ""):
             attrs["vm_asset_id"] = str(asset_id)
+
+        template_id = runtime_config.get("template_id")
+        if template_id not in (None, ""):
+            attrs["vm_template_id"] = str(template_id)
+
+        template_version_id = runtime_config.get("template_version_id")
+        if template_version_id not in (None, ""):
+            attrs["vm_template_version_id"] = str(template_version_id)
+
+        disk_layout = runtime_config.get("disk_layout")
+        if disk_layout not in (None, "", []):
+            attrs["vm_disk_layout"] = json.dumps(disk_layout)
 
         clone_source = runtime_config.get("clone_source_id") or runtime_config.get("clone_source_name")
         if clone_source not in (None, ""):
@@ -391,6 +869,20 @@ class VirtualMachineService(object):
             except Exception:
                 pass
             return [item.strip() for item in value.split(",") if item.strip()]
+        return []
+
+    def _as_list_of_dicts(self, value):
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, dict)]
+        if not value:
+            return []
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    return [item for item in parsed if isinstance(item, dict)]
+            except Exception:
+                return []
         return []
 
     def _to_int(self, value, default=None):

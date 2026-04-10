@@ -982,6 +982,97 @@ class VirtualMachineImage(BaseModel):
     extra_json = models.TextField(default="{}", blank=True, help_text="扩展信息JSON")
 
 
+class VMTemplate(BaseModel):
+    """虚拟机模板主记录"""
+
+    class Meta:
+        db_table = "vm_template"
+        unique_together = (("tenant_id", "name"),)
+        indexes = [
+            models.Index(fields=["tenant_id", "status"]),
+            models.Index(fields=["tenant_id", "latest_ready_version_id"]),
+        ]
+
+    tenant_id = models.CharField(max_length=32, help_text="租户id")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text="更新时间")
+    name = models.CharField(max_length=64, help_text="模板名称")
+    description = models.TextField(default="", blank=True, help_text="模板说明")
+    status = models.CharField(max_length=32, default="generating", help_text="模板状态")
+    latest_version_id = models.IntegerField(null=True, blank=True, help_text="最新版本ID")
+    latest_ready_version_id = models.IntegerField(null=True, blank=True, help_text="最新可用版本ID")
+    source_service_id = models.CharField(max_length=64, default="", blank=True, help_text="来源服务ID")
+    creator = models.IntegerField(null=True, blank=True, help_text="创建者")
+    disabled = models.BooleanField(default=False, help_text="是否停用")
+    labels_json = models.TextField(default="{}", blank=True, help_text="标签JSON")
+
+
+class VMTemplateVersion(BaseModel):
+    """虚拟机模板版本记录"""
+
+    class Meta:
+        db_table = "vm_template_version"
+        unique_together = (("template_id", "version"),)
+        indexes = [
+            models.Index(fields=["tenant_id", "template_id"]),
+            models.Index(fields=["tenant_id", "status"]),
+        ]
+
+    tenant_id = models.CharField(max_length=32, help_text="租户id")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text="更新时间")
+    template_id = models.IntegerField(help_text="模板ID")
+    version = models.CharField(max_length=32, help_text="版本号")
+    status = models.CharField(max_length=32, default="generating", help_text="版本状态")
+    recoverability = models.CharField(max_length=16, default="partial", help_text="可恢复性")
+    status_message = models.TextField(default="", blank=True, help_text="状态消息")
+    source_service_id = models.CharField(max_length=64, default="", blank=True, help_text="来源服务ID")
+    source_service_alias = models.CharField(max_length=64, default="", blank=True, help_text="来源服务别名")
+    source_vm_status = models.CharField(max_length=32, default="", blank=True, help_text="来源虚拟机状态")
+    snapshot_name = models.CharField(max_length=128, default="", blank=True, help_text="快照名称")
+    snapshot_source = models.CharField(max_length=32, default="", blank=True, help_text="快照来源")
+    export_id = models.CharField(max_length=64, default="", blank=True, help_text="导出任务ID")
+    include_data_disks = models.BooleanField(default=True, help_text="是否包含数据盘")
+    disk_count = models.IntegerField(default=0, help_text="磁盘数量")
+    boot_mode = models.CharField(max_length=32, default="", blank=True, help_text="启动模式")
+    arch = models.CharField(max_length=32, default="amd64", blank=True, help_text="架构")
+    os_name = models.CharField(max_length=128, default="", blank=True, help_text="操作系统名称")
+    runtime_snapshot_json = models.TextField(default="{}", blank=True, help_text="运行配置快照")
+    root_asset_id = models.IntegerField(null=True, blank=True, help_text="根盘资产ID")
+
+
+class VMTemplateDisk(BaseModel):
+    """虚拟机模板磁盘明细"""
+
+    class Meta:
+        db_table = "vm_template_disk"
+        indexes = [
+            models.Index(fields=["tenant_id", "template_version_id"]),
+            models.Index(fields=["tenant_id", "disk_role"]),
+        ]
+
+    tenant_id = models.CharField(max_length=32, help_text="租户id")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text="更新时间")
+    template_version_id = models.IntegerField(help_text="模板版本ID")
+    disk_key = models.CharField(max_length=64, help_text="磁盘键")
+    disk_name = models.CharField(max_length=64, default="", blank=True, help_text="磁盘名称")
+    disk_role = models.CharField(max_length=16, default="data", help_text="磁盘角色")
+    order_index = models.IntegerField(default=0, help_text="顺序")
+    boot = models.BooleanField(default=False, help_text="是否启动盘")
+    source_kind = models.CharField(max_length=32, default="pvc", blank=True, help_text="来源类型")
+    pvc_namespace = models.CharField(max_length=128, default="", blank=True, help_text="PVC 命名空间")
+    pvc_name = models.CharField(max_length=128, default="", blank=True, help_text="PVC 名称")
+    image_url = models.CharField(max_length=2048, default="", blank=True, help_text="磁盘下载地址")
+    source_uri = models.CharField(max_length=2048, default="", blank=True, help_text="来源地址")
+    format = models.CharField(max_length=32, default="", blank=True, help_text="磁盘格式")
+    size_bytes = models.BigIntegerField(default=0, help_text="磁盘大小")
+    checksum = models.CharField(max_length=255, default="", blank=True, help_text="磁盘校验和")
+    status = models.CharField(max_length=32, default="exporting", help_text="磁盘状态")
+    status_message = models.TextField(default="", blank=True, help_text="状态消息")
+    extra_json = models.TextField(default="{}", blank=True, help_text="扩展信息JSON")
+
+
 class TaskEvent(BaseModel):
     class Meta:
         db_table = 'task_event'

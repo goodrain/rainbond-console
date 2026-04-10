@@ -108,6 +108,12 @@ from console.views.log_proxy import LogProxyView
 from console.views.login_event import LoginEventView
 from console.views.logos import ConfigRUDView, InitPerms, PhpConfigView, ConfigOSSView, UserSourceView
 from console.views.message import UserMessageView
+from console.views.vm_template import (
+    AppVMTemplateView,
+    VirtualMachineTemplateListView,
+    VirtualMachineTemplateManageView,
+    VirtualMachineTemplateVersionRetryView,
+)
 from console.views.oauth import (EnterpriseOauthService, OauthConfig, OAuthGitCodeDetection, OAuthGitUserRepositories,
                                  OAuthGitUserRepository, OAuthGitUserRepositoryBranches, OAuthServerAuthorize,
                                  OAuthServerUserAuthorize, OauthService, OauthServiceInfo, OAuthServiceRedirect,
@@ -558,6 +564,8 @@ urlpatterns = [
         perms.APP_OVERVIEW_CREATE),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-export$', AppVMExportView.as_view(),
         perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-templates$', AppVMTemplateView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     # 是否安装性能分析插件
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/analyze_plugins', AppAnalyzePluginView.as_view()),
     # 应用简要信息
@@ -651,6 +659,11 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/vm/capabilities$', VirtualMachineCapabilityView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/vm/assets$', VirtualMachineAssetListView.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/vm/assets/(?P<asset_id>[\w\-]+)$', VirtualMachineAssetManageView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/vm/templates$', VirtualMachineTemplateListView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/vm/templates/(?P<template_id>[\w\-]+)$',
+        VirtualMachineTemplateManageView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/vm/templates/(?P<template_id>[\w\-]+)/versions/(?P<version_id>[\w\-]+)/retry$',
+        VirtualMachineTemplateVersionRetryView.as_view()),
     # gateway api
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch-gateway-http-route$', GatewayRouteBatch.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/gateway-http-route$', GatewayRoute.as_view()),
