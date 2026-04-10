@@ -139,6 +139,7 @@ class VMTemplateServiceTests(TestCase):
         self.assertEqual(2, len(detail["versions"][0]["disks"]))
         self.assertEqual("root", detail["versions"][0]["disks"][0]["disk_role"])
         self.assertTrue(detail["versions"][0]["disks"][0]["content_restore_supported"])
+        self.assertEqual(1, detail["versions"][0]["disks"][0]["boot_order"])
         self.assertEqual("data", detail["versions"][0]["disks"][1]["disk_role"])
         self.assertFalse(detail["versions"][0]["disks"][1]["content_restore_supported"])
 

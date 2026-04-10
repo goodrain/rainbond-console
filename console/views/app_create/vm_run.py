@@ -137,7 +137,9 @@ class VMRunCreateView(RegionTenantHeaderView):
                     runtime_snapshot = template_payload.get("runtime_snapshot", {})
                     if "boot_mode" not in request.data and runtime_snapshot.get("boot_mode"):
                         boot_mode = runtime_snapshot.get("boot_mode")
-                    for key in ("network_mode", "network_name", "fixed_ip", "gpu_enabled", "gpu_resources", "usb_enabled", "usb_resources"):
+                    for key in (
+                            "network_mode", "network_name", "fixed_ip", "gpu_enabled", "gpu_resources",
+                            "usb_enabled", "usb_resources"):
                         if key not in request.data and key in runtime_snapshot:
                             runtime_config[key] = runtime_snapshot.get(key)
                 if asset_id:
@@ -183,6 +185,11 @@ class VMRunCreateView(RegionTenantHeaderView):
                         self.user.nick_name,
                         mode=None
                     )
+                vms.save_vm_disk_imports(
+                    self.tenant.tenant_id,
+                    new_service.service_id,
+                    template_payload.get("data_disks", [])
+                )
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                                 new_service.service_id)
             if code != 200:

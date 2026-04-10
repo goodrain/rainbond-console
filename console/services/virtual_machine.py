@@ -6,6 +6,7 @@ from console.repositories.vm_template import vm_template_repo
 from console.repositories.virtual_machine import vm_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import (
+    Tenants,
     TenantServiceInfo,
     VMTemplate,
     VMTemplateDisk,
@@ -32,6 +33,7 @@ VM_RUNTIME_ATTR_SPECS = {
 }
 VM_RUNTIME_MANAGED_KEYS = set(VM_RUNTIME_ATTR_SPECS.keys())
 VM_RUNTIME_LIST_KEYS = ("vm_gpu_resources", "vm_usb_resources")
+VM_DISK_IMPORT_ATTR_NAME = "vm_disk_imports"
 VM_MACHINE_ASSET_KIND = "machine"
 VM_DISK_ASSET_KIND = "disk"
 
@@ -319,11 +321,28 @@ class VirtualMachineService(object):
             if str(disk.get("status", "")).lower() == "failed" and disk.get("message"):
                 messages.append(str(disk.get("message")))
         if self._requires_partial_vm_template_due_to_restore_limit(disks):
-            messages.append("data disk content restore is not supported yet")
+            messages.append("some data disks are missing import sources")
         return "; ".join(messages)
 
     def _requires_partial_vm_template_due_to_restore_limit(self, disks):
-        return any(str(disk.get("disk_role", "")).lower() != "root" for disk in (disks or []))
+        for disk in disks or []:
+            if str(disk.get("disk_role", "")).lower() == "root":
+                continue
+            if not self._is_disk_export_content_restore_supported(disk):
+                return True
+        return False
+
+    def _is_disk_export_content_restore_supported(self, disk):
+        if not disk:
+            return False
+        return bool(disk.get("download_url")) and str(disk.get("status", "")).lower() != "failed"
+
+    def _is_template_disk_content_restore_supported(self, disk):
+        if not disk:
+            return False
+        image_url = getattr(disk, "image_url", "")
+        status = str(getattr(disk, "status", "") or "").lower()
+        return bool(image_url) and status != "failed"
 
     def _replace_vm_template_disks(self, version, disks):
         vm_template_repo.delete_template_disks(version.tenant_id, version.ID)
@@ -531,22 +550,40 @@ class VirtualMachineService(object):
             for attr in k8s_attribute_repo.get_by_component_id(service_id)
             if attr.name in VM_RUNTIME_MANAGED_KEYS
         }
+        sync_context = self._get_vm_attr_sync_context(service_id)
         for name in VM_RUNTIME_MANAGED_KEYS:
             value = attrs.get(name)
             if value is None:
                 if name in current_attrs:
-                    k8s_attribute_repo.delete(service_id, name)
+                    self._persist_managed_k8s_attribute(
+                        tenant_id,
+                        service_id,
+                        name,
+                        VM_RUNTIME_ATTR_SPECS[name],
+                        None,
+                        sync_context=sync_context
+                    )
                 continue
-            save_type = VM_RUNTIME_ATTR_SPECS[name]
-            if name in current_attrs:
-                k8s_attribute_repo.update(service_id, name, save_type=save_type, attribute_value=value)
-            else:
-                k8s_attribute_repo.create(
-                    tenant_id=tenant_id,
-                    component_id=service_id,
-                    name=name,
-                    save_type=save_type,
-                    attribute_value=value)
+            self._persist_managed_k8s_attribute(
+                tenant_id,
+                service_id,
+                name,
+                VM_RUNTIME_ATTR_SPECS[name],
+                value,
+                sync_context=sync_context
+            )
+
+    def save_vm_disk_imports(self, tenant_id, service_id, disk_imports):
+        normalized = self._normalize_vm_disk_imports(disk_imports)
+        self._persist_managed_k8s_attribute(
+            tenant_id,
+            service_id,
+            VM_DISK_IMPORT_ATTR_NAME,
+            "json",
+            json.dumps(normalized) if normalized else None,
+            sync_context=self._get_vm_attr_sync_context(service_id)
+        )
+        return normalized
 
     def validate_vm_runtime_config(self, runtime_config):
         network_mode = runtime_config.get("network_mode") or "random"
@@ -708,12 +745,17 @@ class VirtualMachineService(object):
     def serialize_vm_template_disk(self, disk):
         if not disk:
             return {}
+        extra = self._load_json(disk.extra_json, {})
+        boot_order = self._to_int(extra.get("boot_order"), None)
+        if boot_order is None:
+            boot_order = 1 if bool(disk.boot) else int(disk.order_index or 0) + 1
         return {
             "id": disk.ID,
             "disk_key": disk.disk_key,
             "disk_name": disk.disk_name or "",
             "disk_role": disk.disk_role or "data",
             "order_index": int(disk.order_index or 0),
+            "boot_order": boot_order,
             "boot": bool(disk.boot),
             "source_kind": disk.source_kind or "pvc",
             "pvc_namespace": disk.pvc_namespace or "",
@@ -725,8 +767,8 @@ class VirtualMachineService(object):
             "checksum": disk.checksum or "",
             "status": disk.status or "exporting",
             "status_message": disk.status_message or "",
-            "content_restore_supported": str(disk.disk_role or "").lower() == "root",
-            "extra": self._load_json(disk.extra_json, {}),
+            "content_restore_supported": self._is_template_disk_content_restore_supported(disk),
+            "extra": extra,
             "create_time": self._format_datetime(getattr(disk, "create_time", None)),
             "update_time": self._format_datetime(getattr(disk, "update_time", None)),
         }
@@ -741,9 +783,12 @@ class VirtualMachineService(object):
             "boot_order": self._to_int(extra.get("boot_order"), None),
             "boot": bool(disk.boot),
             "image_url": disk.image_url or "",
+            "source_uri": disk.source_uri or "",
+            "format": disk.format or "",
+            "checksum": disk.checksum or "",
             "size_bytes": int(disk.size_bytes or 0),
             "status": disk.status or "exporting",
-            "content_restore_supported": str(disk.disk_role or "").lower() == "root",
+            "content_restore_supported": self._is_template_disk_content_restore_supported(disk),
         }
 
     def _build_vm_runtime_attrs(self, runtime_config):
@@ -792,6 +837,100 @@ class VirtualMachineService(object):
             attrs["vm_boot_mode"] = str(boot_mode)
 
         return attrs
+
+    def _normalize_vm_disk_imports(self, disk_imports):
+        normalized = {}
+        for disk in disk_imports or []:
+            volume_name = disk.get("volume_name") or disk.get("disk_key") or disk.get("disk_name")
+            image_url = disk.get("image_url") or ""
+            if not volume_name or not image_url:
+                continue
+            volume_name = str(volume_name)
+            normalized[volume_name] = {
+                "volume_name": volume_name,
+                "disk_key": disk.get("disk_key") or volume_name,
+                "disk_name": disk.get("disk_name") or volume_name,
+                "image_url": image_url,
+                "source_uri": disk.get("source_uri") or "",
+                "format": disk.get("format") or "",
+                "checksum": disk.get("checksum") or "",
+            }
+        return normalized
+
+    def _persist_managed_k8s_attribute(self, tenant_id, service_id, name, save_type, value, sync_context=None):
+        current_attr = k8s_attribute_repo.get_by_component_id_name(service_id, name).first()
+        existed = bool(current_attr)
+        if value is None:
+            if current_attr:
+                k8s_attribute_repo.delete(service_id, name)
+                self._sync_managed_k8s_attribute(sync_context, name, None, None, existed_before=True)
+            return
+
+        if current_attr:
+            k8s_attribute_repo.update(service_id, name, save_type=save_type, attribute_value=value)
+        else:
+            k8s_attribute_repo.create(
+                tenant_id=tenant_id,
+                component_id=service_id,
+                name=name,
+                save_type=save_type,
+                attribute_value=value
+            )
+        self._sync_managed_k8s_attribute(sync_context, name, save_type, value, existed_before=existed)
+
+    def _get_vm_attr_sync_context(self, service_id):
+        service = TenantServiceInfo.objects.filter(service_id=service_id).first()
+        if not service or getattr(service, "create_status", "") != "complete":
+            return None
+        tenant = Tenants.objects.filter(tenant_id=service.tenant_id).first()
+        tenant_name = getattr(tenant, "tenant_name", "") or service.tenant_id
+        if not tenant_name or not getattr(service, "service_region", "") or not getattr(service, "service_alias", ""):
+            return None
+        return {
+            "tenant_name": tenant_name,
+            "region_name": service.service_region,
+            "service_alias": service.service_alias,
+        }
+
+    def _sync_managed_k8s_attribute(self, sync_context, name, save_type, value, existed_before):
+        if not sync_context:
+            return
+        if value is None:
+            region_api.delete_component_k8s_attribute(
+                sync_context["tenant_name"],
+                sync_context["region_name"],
+                sync_context["service_alias"],
+                {"name": name}
+            )
+            return
+
+        payload = {
+            "name": name,
+            "save_type": save_type,
+            "attribute_value": value,
+        }
+        if existed_before:
+            region_api.update_component_k8s_attribute(
+                sync_context["tenant_name"],
+                sync_context["region_name"],
+                sync_context["service_alias"],
+                payload
+            )
+        else:
+            try:
+                region_api.create_component_k8s_attribute(
+                    sync_context["tenant_name"],
+                    sync_context["region_name"],
+                    sync_context["service_alias"],
+                    payload
+                )
+            except Exception:
+                region_api.update_component_k8s_attribute(
+                    sync_context["tenant_name"],
+                    sync_context["region_name"],
+                    sync_context["service_alias"],
+                    payload
+                )
 
     def _normalize_asset_payload(self, payload):
         normalized = dict(payload)

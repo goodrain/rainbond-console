@@ -166,10 +166,19 @@ class VMTemplateInstantiationTests(TestCase):
             to_dict=lambda: {"service_id": "service-new", "service_alias": "gr123456"}
         )
 
-        with mock.patch("console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate", return_value=False, create=True), \
-                mock.patch("console.views.app_create.vm_run.app_service.create_vm_run_app", return_value=(200, "创建成功", new_service), create=True), \
-                mock.patch("console.views.app_create.vm_run.group_service.add_service_to_group", return_value=(200, "success")), \
-                mock.patch("console.views.app_create.vm_run.volume_service.add_service_volume") as add_volume_mock:
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                return_value=False,
+                create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.app_service.create_vm_run_app",
+                    return_value=(200, "创建成功", new_service),
+                    create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.group_service.add_service_to_group",
+                    return_value=(200, "success")), \
+                mock.patch(
+                    "console.views.app_create.vm_run.volume_service.add_service_volume") as add_volume_mock:
             response = view.post(request)
 
         self.assertEqual(response.status_code, 200)
@@ -185,6 +194,21 @@ class VMTemplateInstantiationTests(TestCase):
         self.assertEqual(1, disk_layout[0]["boot_order"])
         self.assertEqual("data", disk_layout[1]["disk_role"])
         self.assertEqual(2, disk_layout[1]["boot_order"])
+        disk_imports = json.loads(attrs["vm_disk_imports"])
+        self.assertEqual(
+            {
+                "data-1": {
+                    "volume_name": "data-1",
+                    "disk_key": "data-1",
+                    "disk_name": "data-1",
+                    "image_url": "https://download/data.qcow2",
+                    "source_uri": "",
+                    "format": "",
+                    "checksum": "",
+                }
+            },
+            disk_imports
+        )
         add_volume_mock.assert_called_once()
         _, _, volume_path, volume_type, volume_name = add_volume_mock.call_args[0][:5]
         self.assertEqual("/disk", volume_path)

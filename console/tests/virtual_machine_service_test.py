@@ -292,6 +292,97 @@ class VirtualMachineServiceTests(TestCase):
         self.assertEqual(json.dumps({"app": "demo"}), attrs["labels"])
         self.assertEqual("random", attrs["vm_network_mode"])
 
+    def test_save_vm_runtime_config_syncs_region_when_service_is_complete(self):
+        TenantServiceInfo.objects.create(
+            service_id="service-a",
+            tenant_id="tenant-a",
+            service_key="service-a",
+            service_alias="service-a",
+            service_region="demo-region",
+            category="application",
+            version="v1",
+            image="demo/image",
+            extend_method="vm",
+            create_status="complete",
+            k8s_component_name="service-a-k8s"
+        )
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id="service-a",
+            name="vm_network_name",
+            save_type="string",
+            attribute_value="stale-network"
+        )
+
+        with mock.patch("console.services.virtual_machine.region_api.create_component_k8s_attribute", create=True) as create_attr, \
+                mock.patch("console.services.virtual_machine.region_api.update_component_k8s_attribute", create=True) as update_attr, \
+                mock.patch("console.services.virtual_machine.region_api.delete_component_k8s_attribute", create=True) as delete_attr:
+            vms.save_vm_runtime_config(
+                "tenant-a",
+                "service-a",
+                {
+                    "network_mode": "random",
+                    "network_name": "",
+                    "fixed_ip": "",
+                    "gpu_enabled": False,
+                    "gpu_resources": [],
+                    "usb_enabled": False,
+                    "usb_resources": [],
+                }
+            )
+
+        create_attr.assert_called_once_with(
+            "tenant-a",
+            "demo-region",
+            "service-a",
+            {"name": "vm_network_mode", "save_type": "string", "attribute_value": "random"},
+        )
+        update_attr.assert_not_called()
+        delete_attr.assert_called_once_with(
+            "tenant-a",
+            "demo-region",
+            "service-a",
+            {"name": "vm_network_name"},
+        )
+
+    def test_save_vm_disk_imports_persists_json_payload(self):
+        imports = vms.save_vm_disk_imports(
+            "tenant-a",
+            "service-a",
+            [
+                {
+                    "disk_key": "data-1",
+                    "disk_name": "data-1",
+                    "image_url": "https://download/data-1.qcow2",
+                    "source_uri": "evt-1-data-1",
+                    "format": "qcow2",
+                    "checksum": "sha256:data-1",
+                },
+                {
+                    "disk_name": "missing-key",
+                    "image_url": "",
+                }
+            ]
+        )
+
+        attr = ComponentK8sAttributes.objects.get(component_id="service-a", name="vm_disk_imports")
+        self.assertEqual("json", attr.save_type)
+        self.assertEqual(imports, json.loads(attr.attribute_value))
+        self.assertEqual(
+            {
+                "data-1": {
+                    "volume_name": "data-1",
+                    "disk_key": "data-1",
+                    "disk_name": "data-1",
+                    "image_url": "https://download/data-1.qcow2",
+                    "source_uri": "evt-1-data-1",
+                    "format": "qcow2",
+                    "checksum": "sha256:data-1",
+                }
+            },
+            imports,
+        )
+
     def test_get_vm_profile_returns_asset_runtime_and_connections(self):
         asset = VirtualMachineImage.objects.create(
             tenant_id="tenant-a",

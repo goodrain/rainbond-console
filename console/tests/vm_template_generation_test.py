@@ -193,7 +193,7 @@ class VMTemplateGenerationTests(TestCase):
         self.assertEqual("vm", export_request["source_kind"])
         self.assertEqual(False, export_request["export_all_disks"])
 
-    def test_save_vm_template_with_data_disks_marks_partial_until_disk_restore_supported(self):
+    def test_save_vm_template_with_data_disks_marks_ready_when_export_urls_exist(self):
         source_asset = self._create_source_asset()
         service = SimpleNamespace(
             tenant_id="tenant-a",
@@ -243,10 +243,10 @@ class VMTemplateGenerationTests(TestCase):
         template = VMTemplate.objects.get(tenant_id="tenant-a", name="ubuntu-data")
         version = VMTemplateVersion.objects.get(template_id=template.ID)
 
-        self.assertEqual("partial", template.status)
-        self.assertEqual("partial", version.status)
-        self.assertEqual("partial", version.recoverability)
-        self.assertIn("data disk content restore", version.status_message)
+        self.assertEqual("ready", template.status)
+        self.assertEqual("ready", version.status)
+        self.assertEqual("full", version.recoverability)
+        self.assertEqual("", version.status_message)
 
     def test_retry_vm_template_version_restarts_generation(self):
         service = self._create_vm_service()
