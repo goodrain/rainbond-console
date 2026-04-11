@@ -884,6 +884,14 @@ class AppService(object):
                         tenant.tenant_name, service.service_region, service.service_alias, body)
                     logger.info("[compose-debug] synced k8s attribute {0} to region OK".format(attr.name))
                 except Exception as e:
+                    if "already exist" in str(e):
+                        try:
+                            region_api.update_component_k8s_attribute(
+                                tenant.tenant_name, service.service_region, service.service_alias, body)
+                            logger.info("[compose-debug] updated existing k8s attribute {0} in region".format(attr.name))
+                            continue
+                        except Exception as update_err:
+                            logger.warning("[compose-debug] update existing k8s attribute {0} to region FAILED: {1}".format(attr.name, update_err))
                     logger.warning("[compose-debug] sync k8s attribute {0} to region FAILED: {1}".format(attr.name, e))
         except Exception as e:
             logger.warning("[compose-debug] query k8s attributes for sync FAILED: {0}".format(e))
