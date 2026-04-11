@@ -6397,6 +6397,10 @@
         {
           "path": "console/tests/virtual_machine_service_test.py",
           "selector": "VirtualMachineServiceTests.test_delete_vm_image_blocks_active_vm_asset_reference"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_delete_vm_image_ignores_incomplete_vm_service_reference"
         }
       ],
       "test_type": "regression",

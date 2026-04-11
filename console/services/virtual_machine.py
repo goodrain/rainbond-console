@@ -659,7 +659,11 @@ class VirtualMachineService(object):
         }
 
     def get_vm_asset_reference_count(self, tenant_id, vm_image):
-        active_vm_services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, extend_method="vm")
+        # Incomplete VM rows are transient and should not block asset deletion or inflate catalog references.
+        active_vm_services = TenantServiceInfo.objects.filter(
+            tenant_id=tenant_id,
+            extend_method="vm",
+            create_status="complete")
         active_vm_service_ids = active_vm_services.values_list("service_id", flat=True)
         attr_refs = ComponentK8sAttributes.objects.filter(
             tenant_id=tenant_id,

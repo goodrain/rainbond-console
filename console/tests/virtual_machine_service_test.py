@@ -13,6 +13,29 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 import sys  # noqa: E402
 
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "openapi_client" not in sys.modules:
+    openapi_client_module = ModuleType("openapi_client")
+    configuration_module = ModuleType("openapi_client.configuration")
+    rest_module = ModuleType("openapi_client.rest")
+
+    class _DummyConfiguration(object):
+        def __init__(self):
+            self.client_side_validation = False
+            self.host = ""
+            self.api_key = {}
+
+    class _DummyApiException(Exception):
+        status = 500
+        body = ""
+
+    openapi_client_module.ApiClient = object
+    openapi_client_module.MarketOpenapiApi = object
+    configuration_module.Configuration = _DummyConfiguration
+    rest_module.ApiException = _DummyApiException
+
+    sys.modules["openapi_client"] = openapi_client_module
+    sys.modules["openapi_client.configuration"] = configuration_module
+    sys.modules["openapi_client.rest"] = rest_module
 
 import django  # noqa: E402
 
@@ -29,7 +52,7 @@ from www.models.main import TenantServiceInfo, VirtualMachineImage  # noqa: E402
 
 class VirtualMachineServiceTests(TestCase):
 
-    def _create_vm_service(self, tenant_id, service_id, image, extend_method="vm"):
+    def _create_vm_service(self, tenant_id, service_id, image, extend_method="vm", create_status="complete"):
         return TenantServiceInfo.objects.create(
             service_id=service_id,
             tenant_id=tenant_id,
@@ -40,6 +63,7 @@ class VirtualMachineServiceTests(TestCase):
             version="v1",
             image=image,
             extend_method=extend_method,
+            create_status=create_status,
             k8s_component_name="{}-k8s".format(service_id)
         )
 
@@ -133,6 +157,30 @@ class VirtualMachineServiceTests(TestCase):
 
         with self.assertRaises(ValueError):
             vms.delete_vm_image("tenant-a", asset.ID)
+
+    # capability_id: console.vm-asset.delete-active-reference-guard
+    def test_delete_vm_image_ignores_incomplete_vm_service_reference(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="creating-asset",
+            image_url="demo/creating-asset"
+        )
+        service = self._create_vm_service("tenant-a", "service-creating", asset.image_url)
+        service.create_status = "creating"
+        service.save(update_fields=["create_status"])
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id=service.service_id,
+            name="vm_asset_id",
+            save_type="string",
+            attribute_value=str(asset.ID)
+        )
+
+        serialized = vms.get_vm_asset("tenant-a", asset.ID)
+
+        self.assertEqual(0, serialized["reference_count"])
+        deleted, _ = vms.delete_vm_image("tenant-a", asset.ID)
+        self.assertEqual(1, deleted)
 
     def test_list_vm_image_returns_asset_catalog_metadata(self):
         source = VirtualMachineImage.objects.create(
@@ -243,7 +291,7 @@ class VirtualMachineServiceTests(TestCase):
         with mock.patch("console.services.app.service_group_relation_repo.get_group_id_by_service", return_value=1), \
                 mock.patch("console.services.app.region_app_repo.get_region_app_id", return_value="region-app-1"), \
                 mock.patch("console.services.app.region_api.create_service") as create_service_mock, \
-                mock.patch("console.services.app.region_api.create_component_k8s_attribute", create=True), \
+                mock.patch("console.services.app.region_api.create_component_k8s_attribute", create=True) as create_attr, \
                 mock.patch("console.services.app.arch_service.update_affinity_by_arch"):
             app_service.create_region_service(tenant, service, "tester")
 
@@ -261,7 +309,7 @@ class VirtualMachineServiceTests(TestCase):
                 for item in create_payload["component_k8s_attributes"]
             }
         )
-        app_service.region_api.create_component_k8s_attribute.assert_not_called()
+        create_attr.assert_not_called()
 
     def test_save_vm_runtime_config_preserves_non_vm_attrs_and_refreshes_vm_extension_keys(self):
         ComponentK8sAttributes.objects.create(
