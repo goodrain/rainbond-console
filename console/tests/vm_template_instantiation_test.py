@@ -267,3 +267,57 @@ class VMTemplateInstantiationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("sync_context", save_runtime_mock.call_args.kwargs)
+
+    def test_vm_run_create_passes_gpu_count_into_runtime_config(self):
+        factory = APIRequestFactory()
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+
+        request = view.initialize_request(factory.post(
+            "/console/teams/demo-team/apps/create/vm",
+            {
+                "group_id": 7,
+                "service_cname": "gpu-vm",
+                "k8s_component_name": "gpu-vm",
+                "template_id": self.template.ID,
+                "template_version_id": self.version.ID,
+                "gpu_enabled": True,
+                "gpu_resources": ["gpu.example.com/A10"],
+                "gpu_count": 2
+            },
+            format="json"
+        ))
+
+        new_service = SimpleNamespace(
+            service_id="service-new",
+            service_alias="gr123456",
+            service_region="demo-region",
+            service_source="vm_run",
+            create_status="creating",
+            to_dict=lambda: {"service_id": "service-new", "service_alias": "gr123456"}
+        )
+
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                return_value=False,
+                create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.app_service.create_vm_run_app",
+                    return_value=(200, "创建成功", new_service),
+                    create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.group_service.add_service_to_group",
+                    return_value=(200, "success")), \
+                mock.patch(
+                    "console.views.app_create.vm_run.vms.save_vm_runtime_config") as save_runtime_mock, \
+                mock.patch(
+                    "console.views.app_create.vm_run.vms.save_vm_disk_imports"), \
+                mock.patch(
+                    "console.views.app_create.vm_run.volume_service.add_service_volume"):
+            response = view.post(request)
+
+        self.assertEqual(response.status_code, 200)
+        runtime_config = save_runtime_mock.call_args.args[2]
+        self.assertEqual(2, runtime_config["gpu_count"])

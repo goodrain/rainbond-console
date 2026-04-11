@@ -68,6 +68,7 @@ class VMRunCreateView(RegionTenantHeaderView):
         boot_mode = request.data.get("boot_mode", "")
         gpu_enabled = request.data.get("gpu_enabled", False)
         gpu_resources = request.data.get("gpu_resources", [])
+        gpu_count = request.data.get("gpu_count", 1 if gpu_enabled else 0)
         usb_enabled = request.data.get("usb_enabled", False)
         usb_resources = request.data.get("usb_resources", [])
         network_mode = request.data.get("network_mode", "random")
@@ -77,6 +78,7 @@ class VMRunCreateView(RegionTenantHeaderView):
         runtime_config = {
             "gpu_enabled": gpu_enabled,
             "gpu_resources": gpu_resources,
+            "gpu_count": gpu_count,
             "usb_enabled": usb_enabled,
             "usb_resources": usb_resources,
             "network_mode": network_mode,
@@ -143,6 +145,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                         boot_mode = runtime_snapshot.get("boot_mode")
                     for key in (
                             "network_mode", "network_name", "fixed_ip", "os_family", "gpu_enabled", "gpu_resources",
+                            "gpu_count",
                             "usb_enabled", "usb_resources"):
                         if key not in request.data and key in runtime_snapshot:
                             runtime_config[key] = runtime_snapshot.get(key)

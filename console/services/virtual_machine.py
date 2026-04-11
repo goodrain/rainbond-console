@@ -24,6 +24,7 @@ VM_RUNTIME_ATTR_SPECS = {
     "vm_os_name": "string",
     "vm_gpu_enabled": "string",
     "vm_gpu_resources": "json",
+    "vm_gpu_count": "string",
     "vm_usb_enabled": "string",
     "vm_usb_resources": "json",
     "vm_asset_id": "string",
@@ -542,6 +543,10 @@ class VirtualMachineService(object):
             "os_name": attrs.get("vm_os_name", ""),
             "gpu_enabled": self._as_bool(attrs.get("vm_gpu_enabled")),
             "gpu_resources": self._as_list(attrs.get("vm_gpu_resources")),
+            "gpu_count": self._to_int(
+                attrs.get("vm_gpu_count"),
+                1 if self._as_bool(attrs.get("vm_gpu_enabled")) else 0
+            ),
             "usb_enabled": self._as_bool(attrs.get("vm_usb_enabled")),
             "usb_resources": self._as_list(attrs.get("vm_usb_resources")),
         }
@@ -600,6 +605,11 @@ class VirtualMachineService(object):
         gpu_resources = self._as_list(runtime_config.get("gpu_resources"))
         if gpu_enabled and not gpu_resources:
             raise ValueError("gpu_enabled requires gpu_resources")
+        gpu_count = self._to_int(runtime_config.get("gpu_count"), 1 if gpu_enabled else 0)
+        if gpu_enabled and (gpu_count is None or gpu_count < 1):
+            raise ValueError("gpu_enabled requires gpu_count")
+        if gpu_enabled and gpu_count > 1 and len(gpu_resources) != 1:
+            raise ValueError("gpu_count greater than 1 requires exactly one gpu resource")
 
         usb_enabled = self._as_bool(runtime_config.get("usb_enabled"))
         usb_resources = self._as_list(runtime_config.get("usb_resources"))
@@ -817,6 +827,7 @@ class VirtualMachineService(object):
         if gpu_enabled and gpu_resources:
             attrs["vm_gpu_enabled"] = "true"
             attrs["vm_gpu_resources"] = json.dumps(gpu_resources)
+            attrs["vm_gpu_count"] = str(self._to_int(runtime_config.get("gpu_count"), 1) or 1)
 
         usb_enabled = self._as_bool(runtime_config.get("usb_enabled"))
         usb_resources = self._as_list(runtime_config.get("usb_resources"))
