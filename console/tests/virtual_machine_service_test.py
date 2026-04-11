@@ -261,6 +261,7 @@ class VirtualMachineServiceTests(TestCase):
                 for item in create_payload["component_k8s_attributes"]
             }
         )
+        app_service.region_api.create_component_k8s_attribute.assert_not_called()
 
     def test_save_vm_runtime_config_preserves_non_vm_attrs_and_refreshes_vm_extension_keys(self):
         ComponentK8sAttributes.objects.create(

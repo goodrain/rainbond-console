@@ -20,7 +20,6 @@ from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.event_repo import event_repo
 from console.repositories.group import (group_service_relation_repo, tenant_service_group_repo, group_repo)
-from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.repositories.label_repo import service_label_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
@@ -687,8 +686,6 @@ class AppManageService(AppManageBase):
             service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
             clone_url = service.git_url
             service_dict["arch"] = service.arch
-            if service.extend_method == "vm":
-                service_dict["configs"] = self._get_vm_runtime_configs(service)
             # 源码
             if kind == "build_from_source_code" or kind == "source":
                 source_code = dict()
@@ -831,17 +828,6 @@ class AppManageService(AppManageBase):
                             service_dict["slug_info"] = extend_info
             deploy_infos_list.append(service_dict)
         return 200, body
-
-    @staticmethod
-    def _get_vm_runtime_configs(service):
-        attrs = k8s_attribute_repo.get_by_component_id(service.service_id)
-        if not attrs:
-            return {}
-        configs = {}
-        for attr in attrs:
-            if attr.name.startswith("vm_") and attr.attribute_value not in (None, ""):
-                configs[attr.name] = attr.attribute_value
-        return configs
 
     def vertical_upgrade(self, tenant, service, user, new_memory, oauth_instance, new_gpu=None, new_cpu=None):
         """组件垂直升级"""

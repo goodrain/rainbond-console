@@ -73,7 +73,6 @@ class VMCreateFlowRegressionTests(TestCase):
             {
                 "gpu_enabled": True,
                 "gpu_resources": ["gpu.example.com/A10"],
-                "gpu_count": 3,
                 "usb_enabled": True,
                 "usb_resources": ["kubevirt.io/usb-a"],
                 "network_mode": "fixed",
@@ -96,7 +95,6 @@ class VMCreateFlowRegressionTests(TestCase):
         self.assertEqual("10.250.250.10/24", attrs["vm_fixed_ip"])
         self.assertEqual("true", attrs["vm_gpu_enabled"])
         self.assertEqual("[\"gpu.example.com/A10\"]", attrs["vm_gpu_resources"])
-        self.assertEqual("3", attrs["vm_gpu_count"])
         self.assertEqual("true", attrs["vm_usb_enabled"])
         self.assertEqual("[\"kubevirt.io/usb-a\"]", attrs["vm_usb_resources"])
         self.assertEqual("18", attrs["vm_asset_id"])
@@ -117,7 +115,6 @@ class VMCreateFlowRegressionTests(TestCase):
             ("vm_fixed_ip", "10.250.250.10/24"),
             ("vm_gpu_enabled", "true"),
             ("vm_gpu_resources", json.dumps(["gpu.example.com/A10"])),
-            ("vm_gpu_count", "3"),
             ("vm_usb_enabled", "true"),
             ("vm_usb_resources", json.dumps(["kubevirt.io/usb-a"])),
             ("vm_asset_id", "18"),
@@ -179,14 +176,6 @@ class VMCreateFlowRegressionTests(TestCase):
             vms.validate_vm_runtime_config({
                 "gpu_enabled": True,
                 "gpu_resources": []
-            })
-
-    def test_validate_vm_runtime_config_requires_single_gpu_resource_when_count_exceeds_one(self):
-        with self.assertRaises(ValueError):
-            vms.validate_vm_runtime_config({
-                "gpu_enabled": True,
-                "gpu_resources": ["gpu.example.com/A10", "nvidia.com/T4"],
-                "gpu_count": 2
             })
 
     def test_validate_vm_runtime_config_requires_usb_resources_when_enabled(self):

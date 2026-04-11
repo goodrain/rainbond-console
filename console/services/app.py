@@ -859,10 +859,11 @@ class AppService(object):
         component_k8s_attributes = self.__get_component_k8s_attributes_payload(service)
         if component_k8s_attributes:
             data["component_k8s_attributes"] = component_k8s_attributes
-        # create in region
+        # Create in region and let region persist the current k8s attrs in the same request.
         region_api.create_service(service.service_region, tenant.tenant_name, data)
-        # sync k8s attributes from console DB to region DB
-        self.__sync_k8s_attributes_to_region(tenant, service)
+        # Legacy fallback: if the payload had no attrs, keep the old sync path.
+        if not component_k8s_attributes:
+            self.__sync_k8s_attributes_to_region(tenant, service)
         # conponent install complete
         service.create_status = "complete"
         service.save()
