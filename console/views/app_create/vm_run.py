@@ -17,7 +17,21 @@ from www.utils.return_message import general_message
 from console.services.group_service import group_service
 
 logger = logging.getLogger("default")
-PUBLIC_VM_IMAGE_NAMES = {"centos7.9", "anolisos7.9", "deepin20.9", "ubuntu23.10"}
+PUBLIC_VM_IMAGES = {
+    "ubuntu-22.04.5-lts": {
+        "url": "https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/22.04/ubuntu-22.04.5-live-server-amd64.iso",
+        "os_name": "Ubuntu 22.04.5 LTS"
+    },
+    "debian-13.4.0-standard": {
+        "url": "https://mirrors.tuna.tsinghua.edu.cn/debian-cd/current-live/amd64/iso-hybrid/debian-live-13.4.0-amd64-standard.iso",
+        "os_name": "Debian 13.4.0 Standard"
+    },
+    "centos-stream-9-dvd1": {
+        "url": "https://mirrors.tuna.tsinghua.edu.cn/centos-stream/9-stream/BaseOS/x86_64/iso/CentOS-Stream-9-latest-x86_64-dvd1.iso",
+        "os_name": "CentOS Stream 9 DVD1"
+    }
+}
+PUBLIC_VM_IMAGE_NAMES = set(PUBLIC_VM_IMAGES.keys())
 
 
 class VMRunCreateView(RegionTenantHeaderView):
@@ -86,6 +100,7 @@ class VMRunCreateView(RegionTenantHeaderView):
             "fixed_ip": fixed_ip,
             "os_family": os_family
         }
+        public_vm_meta = PUBLIC_VM_IMAGES.get(image_name)
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             raise ErrK8sComponentNameExists
         try:
@@ -111,14 +126,19 @@ class VMRunCreateView(RegionTenantHeaderView):
                             resolved_source_type = "public"
                         else:
                             resolved_source_type = "url"
+                    source_uri = vm_url or "/grdata/package_build/temp/events/{}".format(event_id)
+                    os_name = image_name
+                    if resolved_source_type == "public" and public_vm_meta:
+                        source_uri = public_vm_meta["url"]
+                        os_name = public_vm_meta["os_name"]
                     asset = vms.create_vm_image_asset(
                         self.tenant.tenant_id,
                         image_name,
                         image,
                         source_type=resolved_source_type,
-                        source_uri=vm_url or "/grdata/package_build/temp/events/{}".format(event_id),
+                        source_uri=source_uri,
                         arch=arch,
-                        os_name=image_name,
+                        os_name=os_name,
                         build_event_id=event_id,
                         is_public_template=resolved_source_type == "public",
                         boot_mode=boot_mode,
