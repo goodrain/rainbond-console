@@ -20,6 +20,8 @@ VM_RUNTIME_ATTR_SPECS = {
     "vm_network_mode": "string",
     "vm_network_name": "string",
     "vm_fixed_ip": "string",
+    "vm_gateway": "string",
+    "vm_dns_servers": "string",
     "vm_os_family": "string",
     "vm_os_name": "string",
     "vm_gpu_enabled": "string",
@@ -539,6 +541,8 @@ class VirtualMachineService(object):
             "network_mode": attrs.get("vm_network_mode") or "random",
             "network_name": attrs.get("vm_network_name", ""),
             "fixed_ip": attrs.get("vm_fixed_ip", ""),
+            "gateway": attrs.get("vm_gateway", ""),
+            "dns_servers": attrs.get("vm_dns_servers", ""),
             "os_family": attrs.get("vm_os_family", ""),
             "os_name": attrs.get("vm_os_name", ""),
             "gpu_enabled": self._as_bool(attrs.get("vm_gpu_enabled")),
@@ -813,6 +817,8 @@ class VirtualMachineService(object):
         if attrs["vm_network_mode"] == "fixed":
             attrs["vm_network_name"] = runtime_config.get("network_name") or ""
             attrs["vm_fixed_ip"] = runtime_config.get("fixed_ip") or ""
+            attrs["vm_gateway"] = runtime_config.get("gateway") or ""
+            attrs["vm_dns_servers"] = runtime_config.get("dns_servers") or ""
 
         os_family = runtime_config.get("os_family")
         if os_family not in (None, ""):

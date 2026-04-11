@@ -88,6 +88,8 @@ class VMRunCreateView(RegionTenantHeaderView):
         network_mode = request.data.get("network_mode", "random")
         network_name = request.data.get("network_name", "")
         fixed_ip = request.data.get("fixed_ip", "")
+        gateway = request.data.get("gateway", "")
+        dns_servers = request.data.get("dns_servers", "")
         os_family = request.data.get("os_family", "")
         runtime_config = {
             "gpu_enabled": gpu_enabled,
@@ -98,6 +100,8 @@ class VMRunCreateView(RegionTenantHeaderView):
             "network_mode": network_mode,
             "network_name": network_name,
             "fixed_ip": fixed_ip,
+            "gateway": gateway,
+            "dns_servers": dns_servers,
             "os_family": os_family
         }
         public_vm_meta = PUBLIC_VM_IMAGES.get(image_name)
@@ -164,7 +168,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                     if "boot_mode" not in request.data and runtime_snapshot.get("boot_mode"):
                         boot_mode = runtime_snapshot.get("boot_mode")
                     for key in (
-                            "network_mode", "network_name", "fixed_ip", "os_family", "gpu_enabled", "gpu_resources",
+                            "network_mode", "network_name", "fixed_ip", "gateway", "dns_servers", "os_family", "gpu_enabled", "gpu_resources",
                             "gpu_count",
                             "usb_enabled", "usb_resources"):
                         if key not in request.data and key in runtime_snapshot:
