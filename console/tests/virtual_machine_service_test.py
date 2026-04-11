@@ -22,6 +22,7 @@ from django.test import TestCase  # noqa: E402
 
 from console.models.main import ComponentK8sAttributes  # noqa: E402
 from console.repositories.virtual_machine import vm_repo  # noqa: E402
+from console.services.app import app_service  # noqa: E402
 from console.services.virtual_machine import vms  # noqa: E402
 from www.models.main import TenantServiceInfo, VirtualMachineImage  # noqa: E402
 
@@ -181,6 +182,85 @@ class VirtualMachineServiceTests(TestCase):
             "id": source.ID,
             "name": source.name
         }, cloned["source_asset"])
+
+    def test_create_region_service_includes_component_k8s_attributes(self):
+        service = TenantServiceInfo.objects.create(
+            service_id="service-region-a",
+            tenant_id="tenant-a",
+            service_key="service-region-a",
+            service_alias="service-region-a",
+            service_cname="service-region-a",
+            service_region="demo-region",
+            category="application",
+            version="v1",
+            image="demo/image",
+            extend_method="vm",
+            min_cpu=1000,
+            min_memory=1024,
+            min_node=1,
+            create_status="creating",
+            service_source="vm_run",
+            code_from="image_manual",
+            namespace="default",
+            service_type="application",
+            k8s_component_name="service-region-a-k8s"
+        )
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id=service.service_id,
+            name="vm_network_mode",
+            save_type="string",
+            attribute_value="fixed"
+        )
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id=service.service_id,
+            name="vm_network_name",
+            save_type="string",
+            attribute_value="rbd-plugins/bridge-test"
+        )
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id=service.service_id,
+            name="vm_fixed_ip",
+            save_type="string",
+            attribute_value="172.16.20.230/24"
+        )
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id=service.service_id,
+            name="vm_os_family",
+            save_type="string",
+            attribute_value="windows"
+        )
+
+        tenant = SimpleNamespace(
+            tenant_id="tenant-a",
+            tenant_name="tenant-a",
+            enterprise_id="enterprise-a"
+        )
+
+        with mock.patch("console.services.app.service_group_relation_repo.get_group_id_by_service", return_value=1), \
+                mock.patch("console.services.app.region_app_repo.get_region_app_id", return_value="region-app-1"), \
+                mock.patch("console.services.app.region_api.create_service") as create_service_mock, \
+                mock.patch("console.services.app.region_api.create_component_k8s_attribute", create=True), \
+                mock.patch("console.services.app.arch_service.update_affinity_by_arch"):
+            app_service.create_region_service(tenant, service, "tester")
+
+        create_payload = create_service_mock.call_args[0][2]
+        self.assertIn("component_k8s_attributes", create_payload)
+        self.assertEqual(
+            {
+                ("vm_network_mode", "fixed"),
+                ("vm_network_name", "rbd-plugins/bridge-test"),
+                ("vm_fixed_ip", "172.16.20.230/24"),
+                ("vm_os_family", "windows"),
+            },
+            {
+                (item["name"], item["attribute_value"])
+                for item in create_payload["component_k8s_attributes"]
+            }
+        )
 
     def test_save_vm_runtime_config_preserves_non_vm_attrs_and_refreshes_vm_extension_keys(self):
         ComponentK8sAttributes.objects.create(
