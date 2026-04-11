@@ -600,8 +600,6 @@ class VirtualMachineService(object):
 
     def validate_vm_runtime_config(self, runtime_config):
         network_mode = runtime_config.get("network_mode") or "random"
-        if network_mode == "fixed" and not runtime_config.get("network_name"):
-            raise ValueError("fixed vm network mode requires network_name")
         if network_mode == "fixed" and not runtime_config.get("fixed_ip"):
             raise ValueError("fixed vm network mode requires fixed_ip")
 

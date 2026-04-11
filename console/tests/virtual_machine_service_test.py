@@ -589,13 +589,12 @@ class VirtualMachineServiceTests(TestCase):
         self.assertEqual(["kubevirt.io/usb-a"], profile["runtime"]["usb_resources"])
         self.assertEqual("http://example.com/vnc", profile["connections"]["vnc_url"])
 
-    def test_validate_vm_runtime_config_requires_fixed_network_name(self):
-        with self.assertRaises(ValueError):
-            vms.validate_vm_runtime_config({
-                "network_mode": "fixed",
-                "network_name": "",
-                "fixed_ip": "10.250.250.10/24"
-            })
+    def test_validate_vm_runtime_config_allows_fixed_ip_without_network_name(self):
+        vms.validate_vm_runtime_config({
+            "network_mode": "fixed",
+            "network_name": "",
+            "fixed_ip": "10.250.250.10/24"
+        })
 
     def test_validate_vm_runtime_config_requires_fixed_ip(self):
         with self.assertRaises(ValueError):

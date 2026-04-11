@@ -2,6 +2,7 @@ import collections
 import json
 import os
 from types import ModuleType, SimpleNamespace
+import unittest
 from unittest import mock
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
@@ -101,6 +102,26 @@ class VMCreateFlowRegressionTests(TestCase):
         self.assertEqual("7", attrs["vm_asset_clone_source"])
         self.assertEqual("uefi", attrs["vm_boot_mode"])
 
+    def test_save_vm_runtime_config_allows_fixed_ip_without_network_name(self):
+        vms.save_vm_runtime_config(
+            "tenant-a",
+            "service-a",
+            {
+                "network_mode": "fixed",
+                "network_name": "",
+                "fixed_ip": "10.42.124.90/24"
+            }
+        )
+
+        attrs = {
+            item.name: item.attribute_value
+            for item in ComponentK8sAttributes.objects.filter(component_id="service-a")
+        }
+
+        self.assertEqual("fixed", attrs["vm_network_mode"])
+        self.assertEqual("", attrs["vm_network_name"])
+        self.assertEqual("10.42.124.90/24", attrs["vm_fixed_ip"])
+
     def test_save_vm_runtime_config_removes_disabled_vm_extension_keys(self):
         ComponentK8sAttributes.objects.create(
             tenant_id="tenant-a",
@@ -155,13 +176,12 @@ class VMCreateFlowRegressionTests(TestCase):
         self.assertEqual(json.dumps({"app": "demo"}), attrs["labels"])
         self.assertEqual("random", attrs["vm_network_mode"])
 
-    def test_validate_vm_runtime_config_requires_fixed_network_name(self):
-        with self.assertRaises(ValueError):
-            vms.validate_vm_runtime_config({
-                "network_mode": "fixed",
-                "network_name": "",
-                "fixed_ip": "10.250.250.10/24"
-            })
+    def test_validate_vm_runtime_config_allows_fixed_ip_without_network_name(self):
+        vms.validate_vm_runtime_config({
+            "network_mode": "fixed",
+            "network_name": "",
+            "fixed_ip": "10.250.250.10/24"
+        })
 
     def test_validate_vm_runtime_config_requires_fixed_ip(self):
         with self.assertRaises(ValueError):
@@ -191,3 +211,29 @@ class VMCreateFlowRegressionTests(TestCase):
 
         self.assertTrue(vms.is_vm_asset_ready(ready_asset))
         self.assertFalse(vms.is_vm_asset_ready(exporting_asset))
+
+
+class VMCreateFlowRegressionUnitTests(unittest.TestCase):
+
+    def test_save_vm_runtime_config_persists_empty_network_name_for_pod_fixed_ip(self):
+        with mock.patch("console.services.virtual_machine.k8s_attribute_repo.get_by_component_id", return_value=[]), \
+                mock.patch.object(vms, "_persist_managed_k8s_attribute") as persist_attr:
+            vms.save_vm_runtime_config(
+                "tenant-a",
+                "service-a",
+                {
+                    "network_mode": "fixed",
+                    "network_name": "",
+                    "fixed_ip": "10.42.124.90/24"
+                },
+                sync_context={"skip": True}
+            )
+
+        persisted = {
+            call.args[2]: call.args[4]
+            for call in persist_attr.call_args_list
+        }
+
+        self.assertEqual("fixed", persisted["vm_network_mode"])
+        self.assertEqual("", persisted["vm_network_name"])
+        self.assertEqual("10.42.124.90/24", persisted["vm_fixed_ip"])
