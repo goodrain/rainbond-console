@@ -10,6 +10,7 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
         setattr(collections, attr, getattr(collections.abc, attr))
 
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+sys.modules.setdefault("openapi_client", ModuleType("openapi_client"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
@@ -47,27 +48,27 @@ class AppVMExportViewTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["msg_show"], "虚拟机镜像名称已存在")
 
-    def test_post_rejects_export_when_vm_closed(self):
-        request = self.view.initialize_request(
-            self.factory.post("/console/teams/demo-team/apps/demo-vm/vm-export", {"name": "snapshot-1"}, format="json")
-        )
-
-        with mock.patch("console.views.app_overview.vm_repo.get_vm_image_by_tenant_id_and_name") as query_mock, \
-                mock.patch("console.views.app_overview.app_service.get_service_status", return_value={"status": "closed"}), \
-                mock.patch("console.views.app_overview.vms.start_vm_export", side_effect=ValueError("vm export requires running or paused status")):
-            query_mock.return_value.exists.return_value = False
-            response = self.view.post(request)
-
-        self.assertEqual(response.status_code, 409)
-        self.assertEqual(response.data["msg"], "vm export forbidden")
-
-    def test_post_starts_export_when_vm_running(self):
+    def test_post_rejects_export_when_vm_running(self):
         request = self.view.initialize_request(
             self.factory.post("/console/teams/demo-team/apps/demo-vm/vm-export", {"name": "snapshot-1"}, format="json")
         )
 
         with mock.patch("console.views.app_overview.vm_repo.get_vm_image_by_tenant_id_and_name") as query_mock, \
                 mock.patch("console.views.app_overview.app_service.get_service_status", return_value={"status": "running"}), \
+                mock.patch("console.views.app_overview.vms.start_vm_export", side_effect=ValueError("vm export requires closed status")):
+            query_mock.return_value.exists.return_value = False
+            response = self.view.post(request)
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data["msg"], "vm export forbidden")
+
+    def test_post_starts_export_when_vm_closed(self):
+        request = self.view.initialize_request(
+            self.factory.post("/console/teams/demo-team/apps/demo-vm/vm-export", {"name": "snapshot-1"}, format="json")
+        )
+
+        with mock.patch("console.views.app_overview.vm_repo.get_vm_image_by_tenant_id_and_name") as query_mock, \
+                mock.patch("console.views.app_overview.app_service.get_service_status", return_value={"status": "closed"}), \
                 mock.patch("console.views.app_overview.vms.start_vm_export", return_value={"id": 12, "status": "exporting"}) as start_mock:
             query_mock.return_value.exists.return_value = False
             response = self.view.post(request)

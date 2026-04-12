@@ -26,7 +26,7 @@ from www.models.main import VirtualMachineImage
 
 class VMExportServiceTests(TestCase):
 
-    def test_start_vm_export_creates_snapshot_when_vm_running(self):
+    def test_start_vm_export_uses_direct_export_when_vm_closed(self):
         service = SimpleNamespace(
             tenant_id="tenant-a",
             service_id="service-a",
@@ -36,8 +36,7 @@ class VMExportServiceTests(TestCase):
         )
 
         with mock.patch(
-            "console.services.virtual_machine.region_api.create_vm_snapshot",
-            return_value=(None, {"bean": {"snapshot_name": "snap-1"}})
+            "console.services.virtual_machine.region_api.create_vm_snapshot"
         ) as snapshot_mock, mock.patch("console.services.virtual_machine.region_api.start_vm_export", return_value=(None, {
             "bean": {
                 "export_id": "evt-1",
@@ -60,17 +59,17 @@ class VMExportServiceTests(TestCase):
                 region_name="demo-region",
                 tenant_name="demo-team",
                 export_name="snapshot-1",
-                vm_status="running",
+                vm_status="closed",
                 description="demo export"
             )
 
-        snapshot_mock.assert_called_once()
+        snapshot_mock.assert_not_called()
         export_request = export_mock.call_args[0][3]
-        self.assertEqual("snapshot", export_request["source_kind"])
-        self.assertEqual("snap-1", export_request["snapshot_name"])
-        self.assertEqual("running", asset["extra"]["export_request"]["vm_status"])
+        self.assertEqual("vm", export_request["source_kind"])
+        self.assertNotIn("snapshot_name", export_request)
+        self.assertEqual("closed", asset["extra"]["export_request"]["vm_status"])
 
-    def test_start_vm_export_rejects_closed_status(self):
+    def test_start_vm_export_rejects_running_status(self):
         service = SimpleNamespace(
             tenant_id="tenant-a",
             service_id="service-a",
@@ -85,7 +84,7 @@ class VMExportServiceTests(TestCase):
                 region_name="demo-region",
                 tenant_name="demo-team",
                 export_name="snapshot-1",
-                vm_status="closed"
+                vm_status="running"
             )
 
     def test_start_vm_export_creates_machine_asset_and_disk_records(self):
@@ -98,9 +97,8 @@ class VMExportServiceTests(TestCase):
         )
 
         with mock.patch(
-            "console.services.virtual_machine.region_api.create_vm_snapshot",
-            return_value=(None, {"bean": {"snapshot_name": "snap-1"}})
-        ), mock.patch("console.services.virtual_machine.region_api.start_vm_export", return_value=(None, {
+            "console.services.virtual_machine.region_api.create_vm_snapshot"
+        ) as snapshot_mock, mock.patch("console.services.virtual_machine.region_api.start_vm_export", return_value=(None, {
             "bean": {
                 "export_id": "evt-1",
                 "status": "exporting",
@@ -131,17 +129,18 @@ class VMExportServiceTests(TestCase):
                 region_name="demo-region",
                 tenant_name="demo-team",
                 export_name="snapshot-1",
-                vm_status="running"
+                vm_status="closed"
             )
 
+        snapshot_mock.assert_not_called()
         self.assertEqual("machine", asset["asset_kind"])
         self.assertEqual("vm_export", asset["source_type"])
         self.assertEqual("exporting", asset["status"])
         self.assertEqual(2, asset["disk_count"])
         self.assertEqual("evt-1", asset["build_event_id"])
         self.assertEqual("service-a", asset["source_service_id"])
-        self.assertEqual("running", asset["extra"]["export_request"]["vm_status"])
-        self.assertEqual("snapshot", asset["extra"]["export_request"]["source_kind"])
+        self.assertEqual("closed", asset["extra"]["export_request"]["vm_status"])
+        self.assertEqual("vm", asset["extra"]["export_request"]["source_kind"])
         self.assertEqual(2, len(asset["disks"]))
 
     def test_sync_vm_export_status_updates_parent_and_disks(self):

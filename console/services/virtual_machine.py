@@ -42,7 +42,7 @@ VM_RUNTIME_LIST_KEYS = ("vm_gpu_resources", "vm_usb_resources")
 VM_DISK_IMPORT_ATTR_NAME = "vm_disk_imports"
 VM_MACHINE_ASSET_KIND = "machine"
 VM_DISK_ASSET_KIND = "disk"
-VM_EXPORT_ALLOWED_STATUSES = ("running", "paused")
+VM_EXPORT_ALLOWED_STATUSES = ("closed",)
 
 
 class VirtualMachineService(object):
@@ -471,23 +471,15 @@ class VirtualMachineService(object):
             raise ValueError("only vm service supports export")
         vm_status = str(vm_status or "").lower()
         if vm_status not in VM_EXPORT_ALLOWED_STATUSES:
-            raise ValueError("vm export requires running or paused status")
+            raise ValueError("vm export requires closed status")
 
         runtime_snapshot = self.get_vm_runtime_config(service.service_id)
         source_asset = self.get_vm_asset_for_service(service, runtime_snapshot.get("asset_id"))
-        snapshot_name = self._create_vm_export_snapshot(
-            region_name,
-            tenant_name,
-            service.service_alias,
-            export_name,
-            description
-        )
         request_body = {
             "name": export_name,
             "description": description,
             "export_all_disks": True,
-            "source_kind": "snapshot",
-            "snapshot_name": snapshot_name,
+            "source_kind": "vm",
         }
         _, body = region_api.start_vm_export(region_name, tenant_name, service.service_alias, request_body)
         bean = body.get("bean", {}) if isinstance(body, dict) else {}
@@ -511,8 +503,8 @@ class VirtualMachineService(object):
                     "description": description,
                     "vm_status": vm_status,
                     "export_all_disks": True,
-                    "source_kind": "snapshot",
-                    "snapshot_name": snapshot_name,
+                    "source_kind": "vm",
+                    "snapshot_name": "",
                 },
                 "runtime_snapshot": runtime_snapshot,
                 "disks": disks,
