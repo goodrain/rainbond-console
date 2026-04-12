@@ -26,7 +26,51 @@ from www.models.main import VirtualMachineImage
 
 class VMExportServiceTests(TestCase):
 
-    def test_start_vm_export_requires_closed_status(self):
+    def test_start_vm_export_creates_snapshot_when_vm_running(self):
+        service = SimpleNamespace(
+            tenant_id="tenant-a",
+            service_id="service-a",
+            service_alias="demo-vm",
+            extend_method="vm",
+            image="demo/image"
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.create_vm_snapshot",
+            return_value=(None, {"bean": {"snapshot_name": "snap-1"}})
+        ) as snapshot_mock, mock.patch("console.services.virtual_machine.region_api.start_vm_export", return_value=(None, {
+            "bean": {
+                "export_id": "evt-1",
+                "status": "exporting",
+                "disks": [
+                    {
+                        "disk_key": "rootdisk",
+                        "disk_name": "rootdisk",
+                        "disk_role": "root",
+                        "pvc_name": "rootdisk-pvc",
+                        "pvc_namespace": "demo-ns",
+                        "export_name": "evt-1-rootdisk",
+                        "status": "exporting",
+                    }
+                ]
+            }
+        })) as export_mock:
+            asset = vms.start_vm_export(
+                service,
+                region_name="demo-region",
+                tenant_name="demo-team",
+                export_name="snapshot-1",
+                vm_status="running",
+                description="demo export"
+            )
+
+        snapshot_mock.assert_called_once()
+        export_request = export_mock.call_args[0][3]
+        self.assertEqual("snapshot", export_request["source_kind"])
+        self.assertEqual("snap-1", export_request["snapshot_name"])
+        self.assertEqual("running", asset["extra"]["export_request"]["vm_status"])
+
+    def test_start_vm_export_rejects_invalid_vm_status(self):
         service = SimpleNamespace(
             tenant_id="tenant-a",
             service_id="service-a",
@@ -41,7 +85,7 @@ class VMExportServiceTests(TestCase):
                 region_name="demo-region",
                 tenant_name="demo-team",
                 export_name="snapshot-1",
-                vm_status="running"
+                vm_status="undeploy"
             )
 
     def test_start_vm_export_creates_machine_asset_and_disk_records(self):
