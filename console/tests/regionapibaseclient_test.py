@@ -168,3 +168,29 @@ class RegionApiBaseHttpClientTestCase(TestCase):
             error.msg_show,
             "当前数据中心未启用 KubeVirt 虚拟机快照能力，无法导出虚拟机镜像。请先启用 snapshot feature gate 后重试。"
         )
+
+    # capability_id: console.region-api.vm-export-feature-gate-msg
+    def test_check_status_translates_export_feature_gate_error_to_actionable_msg_show(self):
+        client = RegionApiBaseHttpClient()
+        raw_message = (
+            'admission webhook "virtualmachineexport-validator.export.kubevirt.io" denied the request: '
+            'vm export feature gate not enabled'
+        )
+
+        with self.assertRaises(ServiceHandleException) as context:
+            client._check_status(
+                url="/v2/tenants/demo/services/demo-vm/vm-exports",
+                method="POST",
+                status=500,
+                content=json.dumps({
+                    "code": 500,
+                    "msg": raw_message
+                }),
+            )
+
+        error = context.exception
+        self.assertEqual(error.msg, raw_message)
+        self.assertEqual(
+            error.msg_show,
+            "当前数据中心未启用 KubeVirt 虚拟机导出能力，无法导出虚拟机镜像。请先启用 VMExport feature gate 后重试。"
+        )
