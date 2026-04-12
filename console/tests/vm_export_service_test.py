@@ -70,7 +70,7 @@ class VMExportServiceTests(TestCase):
         self.assertEqual("snap-1", export_request["snapshot_name"])
         self.assertEqual("running", asset["extra"]["export_request"]["vm_status"])
 
-    def test_start_vm_export_rejects_invalid_vm_status(self):
+    def test_start_vm_export_rejects_closed_status(self):
         service = SimpleNamespace(
             tenant_id="tenant-a",
             service_id="service-a",
@@ -85,7 +85,7 @@ class VMExportServiceTests(TestCase):
                 region_name="demo-region",
                 tenant_name="demo-team",
                 export_name="snapshot-1",
-                vm_status="undeploy"
+                vm_status="closed"
             )
 
     def test_start_vm_export_creates_machine_asset_and_disk_records(self):
@@ -97,7 +97,10 @@ class VMExportServiceTests(TestCase):
             image="demo/image"
         )
 
-        with mock.patch("console.services.virtual_machine.region_api.start_vm_export", return_value=(None, {
+        with mock.patch(
+            "console.services.virtual_machine.region_api.create_vm_snapshot",
+            return_value=(None, {"bean": {"snapshot_name": "snap-1"}})
+        ), mock.patch("console.services.virtual_machine.region_api.start_vm_export", return_value=(None, {
             "bean": {
                 "export_id": "evt-1",
                 "status": "exporting",
@@ -128,7 +131,7 @@ class VMExportServiceTests(TestCase):
                 region_name="demo-region",
                 tenant_name="demo-team",
                 export_name="snapshot-1",
-                vm_status="closed"
+                vm_status="running"
             )
 
         self.assertEqual("machine", asset["asset_kind"])
@@ -137,7 +140,8 @@ class VMExportServiceTests(TestCase):
         self.assertEqual(2, asset["disk_count"])
         self.assertEqual("evt-1", asset["build_event_id"])
         self.assertEqual("service-a", asset["source_service_id"])
-        self.assertEqual("closed", asset["extra"]["export_request"]["vm_status"])
+        self.assertEqual("running", asset["extra"]["export_request"]["vm_status"])
+        self.assertEqual("snapshot", asset["extra"]["export_request"]["source_kind"])
         self.assertEqual(2, len(asset["disks"]))
 
     def test_sync_vm_export_status_updates_parent_and_disks(self):

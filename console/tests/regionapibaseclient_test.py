@@ -142,3 +142,29 @@ class RegionApiBaseHttpClientTestCase(TestCase):
         self.assertEqual(
             error.msg_show,
             "域名 yangshanshu.core.lchuike.com 与命名空间 tenant-a 下资源 existing-cert 的现有证书配置冲突，请先清理冲突配置后重试。")
+
+    # capability_id: console.region-api.vm-snapshot-feature-gate-msg
+    def test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show(self):
+        client = RegionApiBaseHttpClient()
+        raw_message = (
+            'admission webhook "virtualmachinesnapshot-validator.snapshot.kubevirt.io" denied the request: '
+            'snapshot feature gate not enabled'
+        )
+
+        with self.assertRaises(ServiceHandleException) as context:
+            client._check_status(
+                url="/v2/tenants/demo/services/demo-vm/vm-snapshots",
+                method="POST",
+                status=500,
+                content=json.dumps({
+                    "code": 500,
+                    "msg": raw_message
+                }),
+            )
+
+        error = context.exception
+        self.assertEqual(error.msg, raw_message)
+        self.assertEqual(
+            error.msg_show,
+            "当前数据中心未启用 KubeVirt 虚拟机快照能力，无法导出虚拟机镜像。请先启用 snapshot feature gate 后重试。"
+        )

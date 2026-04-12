@@ -40,6 +40,9 @@ FREQUENT_OPERATION_MESSAGES = (
     "wait a moment please",
     "just wait a moment",
 )
+VM_SNAPSHOT_FEATURE_GATE_DISABLED_RE = re.compile(
+    r"snapshot feature gate not enabled",
+    re.IGNORECASE)
 
 
 def build_region_error_msg_show(message):
@@ -47,6 +50,9 @@ def build_region_error_msg_show(message):
     if msg_show:
         return msg_show
     msg_show = build_domain_conflict_msg_show(message)
+    if msg_show:
+        return msg_show
+    msg_show = build_vm_snapshot_feature_gate_msg_show(message)
     if msg_show:
         return msg_show
     return message
@@ -83,6 +89,12 @@ def build_domain_conflict_msg_show(message):
     return (
         "域名 {domain} 与命名空间 {namespace} 下资源 {resource} 的现有证书配置冲突，请先清理冲突配置后重试。"
     ).format(**details)
+
+
+def build_vm_snapshot_feature_gate_msg_show(message):
+    if not message or not VM_SNAPSHOT_FEATURE_GATE_DISABLED_RE.search(message):
+        return None
+    return "当前数据中心未启用 KubeVirt 虚拟机快照能力，无法导出虚拟机镜像。请先启用 snapshot feature gate 后重试。"
 
 
 def is_frequent_operation_message(message):
