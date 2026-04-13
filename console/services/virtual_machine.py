@@ -2,6 +2,7 @@ import logging
 import json
 import re
 
+from console.exception.main import ServiceHandleException
 from console.models.main import ComponentK8sAttributes
 from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.services.vm_boot_source import (
@@ -595,7 +596,19 @@ class VirtualMachineService(object):
             return asset
         if not region_name or not tenant_name:
             return asset
-        self.sync_vm_export_status(asset, region_name, tenant_name)
+        try:
+            self.sync_vm_export_status(asset, region_name, tenant_name)
+        except Exception as err:
+            if self._is_missing_vm_export_error(err, getattr(asset, "build_event_id", "")):
+                logger.warning(
+                    "vm export asset sync fallback: asset=%s export_id=%s err=%s",
+                    getattr(asset, "ID", ""),
+                    getattr(asset, "build_event_id", ""),
+                    err,
+                )
+                self._mark_vm_export_asset_missing(asset)
+            else:
+                raise
         asset.refresh_from_db()
         return asset
 
@@ -1091,6 +1104,50 @@ class VirtualMachineService(object):
     def _is_http_source(self, value):
         value = str(value or "").strip().lower()
         return value.startswith("http://") or value.startswith("https://")
+
+    def _is_missing_vm_export_error(self, err, export_id=""):
+        message = self._flatten_vm_export_error_message(err)
+        if "vm export" not in message or "not found" not in message:
+            return False
+        if export_id and export_id.lower() not in message:
+            return False
+        return True
+
+    def _flatten_vm_export_error_message(self, err):
+        parts = []
+
+        def collect(value):
+            if value in (None, ""):
+                return
+            if isinstance(value, dict):
+                for item in value.values():
+                    collect(item)
+                return
+            if isinstance(value, (list, tuple, set)):
+                for item in value:
+                    collect(item)
+                return
+            parts.append(str(value))
+
+        if isinstance(err, ServiceHandleException):
+            collect(err.msg)
+            collect(err.msg_show)
+            collect(err.details)
+        collect(getattr(err, "message", None))
+        collect(str(err))
+        return " ".join(parts).lower()
+
+    def _mark_vm_export_asset_missing(self, asset):
+        if not asset:
+            return
+        extra = self._load_json(asset.extra_json, {})
+        extra["export_record_missing"] = True
+        extra["latest_export_error"] = "vm export not found"
+        extra["latest_export_status"] = extra.get("latest_export_status") or asset.status
+        if not getattr(asset, "image_url", "") and getattr(asset, "status", "") not in ("ready", "failed"):
+            asset.status = "failed"
+        asset.extra_json = json.dumps(extra)
+        asset.save()
 
     def _normalize_vm_disk_imports(self, disk_imports):
         normalized = {}

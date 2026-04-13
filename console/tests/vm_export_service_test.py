@@ -20,6 +20,7 @@ django.setup()
 
 from django.test import TestCase
 
+from console.exception.main import ServiceHandleException
 from console.services.virtual_machine import vms
 from www.models.main import VirtualMachineImage
 
@@ -196,3 +197,103 @@ class VMExportServiceTests(TestCase):
         self.assertEqual("ready", asset["status"])
         self.assertEqual(2, len(asset["disks"]))
         self.assertEqual("https://download/rootdisk", asset["disks"][0]["download_url"])
+
+    def test_sync_vm_export_asset_record_keeps_ready_asset_when_region_export_is_missing(self):
+        parent = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="snapshot-1",
+            image_url="https://download/rootdisk",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            status="ready",
+            build_event_id="evt-1",
+            extra_json=json.dumps({
+                "asset_kind": "machine",
+                "disk_count": 1,
+                "source_service_id": "service-a",
+                "disks": [
+                    {"disk_key": "rootdisk", "disk_role": "root", "download_url": "https://download/rootdisk"},
+                ]
+            })
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.get_vm_export_status",
+            side_effect=ServiceHandleException(
+                msg={
+                    "httpcode": 500,
+                    "body": {"msg": "vm export evt-1 not found"},
+                },
+                msg_show="数据中心操作故障 vm export evt-1 not found",
+                status_code=500
+            )
+        ):
+            asset = vms.sync_vm_export_asset_record(parent, region_name="demo-region", tenant_name="demo-team")
+
+        self.assertEqual("ready", asset.status)
+        extra = json.loads(asset.extra_json)
+        self.assertTrue(extra["export_record_missing"])
+        self.assertEqual("vm export not found", extra["latest_export_error"])
+
+    def test_sync_vm_export_asset_record_marks_unfinished_asset_failed_when_region_export_is_missing(self):
+        parent = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="snapshot-1",
+            image_url="",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            status="exporting",
+            build_event_id="evt-1",
+            extra_json=json.dumps({
+                "asset_kind": "machine",
+                "disk_count": 1,
+                "source_service_id": "service-a",
+                "disks": [
+                    {"disk_key": "rootdisk", "disk_role": "root"},
+                ]
+            })
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.get_vm_export_status",
+            side_effect=ServiceHandleException(
+                msg={"body": {"msg": "vm export evt-1 not found"}},
+                msg_show="数据中心操作故障 vm export evt-1 not found",
+                status_code=500
+            )
+        ):
+            asset = vms.sync_vm_export_asset_record(parent, region_name="demo-region", tenant_name="demo-team")
+
+        self.assertEqual("failed", asset.status)
+        extra = json.loads(asset.extra_json)
+        self.assertTrue(extra["export_record_missing"])
+
+    def test_sync_vm_export_asset_record_re_raises_non_missing_errors(self):
+        parent = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="snapshot-1",
+            image_url="",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            status="exporting",
+            build_event_id="evt-1",
+            extra_json=json.dumps({
+                "asset_kind": "machine",
+                "disk_count": 1,
+                "source_service_id": "service-a",
+                "disks": [
+                    {"disk_key": "rootdisk", "disk_role": "root"},
+                ]
+            })
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.get_vm_export_status",
+            side_effect=ServiceHandleException(
+                msg="region timeout",
+                msg_show="访问数据中心异常，请稍后重试",
+                status_code=500
+            )
+        ):
+            with self.assertRaises(ServiceHandleException):
+                vms.sync_vm_export_asset_record(parent, region_name="demo-region", tenant_name="demo-team")
