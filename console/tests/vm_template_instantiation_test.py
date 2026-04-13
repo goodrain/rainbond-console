@@ -341,3 +341,66 @@ class VMTemplateInstantiationTests(TestCase):
         _, create_args, _ = create_vm_run_app_mock.mock_calls[0]
         self.assertEqual("tenant-ns:exported-win", create_args[5])
         self.assertEqual("https://download/exported-root.qcow2", create_args[8])
+
+    def test_vm_run_create_refreshes_vm_export_asset_before_ready_guard(self):
+        machine_asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="exported-win",
+            image_url="",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            status="exporting"
+        )
+        factory = APIRequestFactory()
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+
+        request = view.initialize_request(factory.post(
+            "/console/teams/demo-team/apps/create/vm",
+            {
+                "group_id": 7,
+                "service_cname": "exported-vm",
+                "k8s_component_name": "exported-vm",
+                "asset_id": machine_asset.ID,
+                "image_name": machine_asset.name
+            },
+            format="json"
+        ))
+
+        new_service = SimpleNamespace(
+            service_id="service-new",
+            service_alias="gr123456",
+            service_source="vm_run",
+            create_status="creating",
+            to_dict=lambda: {"service_id": "service-new", "service_alias": "gr123456"}
+        )
+
+        def _sync(current_asset, region_name, tenant_name):
+            current_asset.status = "ready"
+            current_asset.image_url = "https://download/exported-root.qcow2"
+            current_asset.save(update_fields=["status", "image_url"])
+            return {"id": current_asset.ID, "status": "ready"}
+
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                return_value=False,
+                create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.app_service.create_vm_run_app",
+                    return_value=(200, "创建成功", new_service),
+                    create=True) as create_vm_run_app_mock, \
+                mock.patch(
+                    "console.views.app_create.vm_run.group_service.add_service_to_group",
+                    return_value=(200, "success")), \
+                mock.patch(
+                    "console.views.app_create.vm_run.vms.sync_vm_export_asset_record",
+                    side_effect=_sync) as sync_mock:
+            response = view.post(request)
+
+        self.assertEqual(response.status_code, 200)
+        sync_mock.assert_called_once()
+        _, create_args, _ = create_vm_run_app_mock.mock_calls[0]
+        self.assertEqual("tenant-ns:exported-win", create_args[5])
+        self.assertEqual("https://download/exported-root.qcow2", create_args[8])

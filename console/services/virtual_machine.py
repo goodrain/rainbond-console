@@ -419,8 +419,12 @@ class VirtualMachineService(object):
                 continue
         return "v{}".format(max_number + 1)
 
-    def list_vm_image(self, tenant_id):
+    def list_vm_image(self, tenant_id, region_name=None, tenant_name=None):
         vm_images = list(vm_repo.get_vm_images_by_tenant_id(tenant_id))
+        vm_images = [
+            self.sync_vm_export_asset_record(vm_image, region_name, tenant_name)
+            for vm_image in vm_images
+        ]
         source_ids = [vm_image.source_asset_id for vm_image in vm_images if vm_image.source_asset_id]
         source_map = {}
         if source_ids:
@@ -430,10 +434,11 @@ class VirtualMachineService(object):
             }
         return [self.serialize_vm_image(vm_image, source_map.get(vm_image.source_asset_id)) for vm_image in vm_images]
 
-    def get_vm_asset(self, tenant_id, asset_id):
+    def get_vm_asset(self, tenant_id, asset_id, region_name=None, tenant_name=None):
         vm_image = vm_repo.get_vm_image_instance_by_id(tenant_id, asset_id)
         if not vm_image:
             return None
+        vm_image = self.sync_vm_export_asset_record(vm_image, region_name, tenant_name)
         source_asset = None
         if vm_image.source_asset_id:
             source_asset = vm_repo.get_vm_image_instance_by_id(tenant_id, vm_image.source_asset_id)
@@ -583,6 +588,15 @@ class VirtualMachineService(object):
         asset.extra_json = json.dumps(extra)
         asset.save()
         return self.serialize_vm_image(asset)
+
+    def sync_vm_export_asset_record(self, asset, region_name=None, tenant_name=None):
+        if not asset or getattr(asset, "source_type", "") != "vm_export":
+            return asset
+        if not region_name or not tenant_name:
+            return asset
+        self.sync_vm_export_status(asset, region_name, tenant_name)
+        asset.refresh_from_db()
+        return asset
 
     def get_latest_vm_export_asset(self, tenant_id, service_id):
         return VirtualMachineImage.objects.filter(

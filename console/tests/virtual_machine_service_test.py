@@ -231,6 +231,53 @@ class VirtualMachineServiceTests(TestCase):
             "name": source.name
         }, cloned["source_asset"])
 
+    def test_list_vm_image_syncs_vm_export_assets_when_region_context_provided(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="exported-win",
+            image_url="",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            status="exporting"
+        )
+
+        def _sync(current_asset, region_name, tenant_name):
+            current_asset.status = "ready"
+            current_asset.image_url = "https://download/exported-root.qcow2"
+            current_asset.save(update_fields=["status", "image_url"])
+            return {"id": current_asset.ID, "status": "ready"}
+
+        with mock.patch.object(vms, "sync_vm_export_status", side_effect=_sync) as sync_mock:
+            result = vms.list_vm_image("tenant-a", region_name="demo-region", tenant_name="demo-team")
+
+        self.assertEqual(1, len(result))
+        self.assertEqual("ready", result[0]["status"])
+        self.assertEqual("https://download/exported-root.qcow2", result[0]["image_url"])
+        sync_mock.assert_called_once_with(asset, "demo-region", "demo-team")
+
+    def test_get_vm_asset_syncs_vm_export_asset_when_region_context_provided(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="exported-win",
+            image_url="",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            status="exporting"
+        )
+
+        def _sync(current_asset, region_name, tenant_name):
+            current_asset.status = "ready"
+            current_asset.image_url = "https://download/exported-root.qcow2"
+            current_asset.save(update_fields=["status", "image_url"])
+            return {"id": current_asset.ID, "status": "ready"}
+
+        with mock.patch.object(vms, "sync_vm_export_status", side_effect=_sync) as sync_mock:
+            serialized = vms.get_vm_asset("tenant-a", asset.ID, region_name="demo-region", tenant_name="demo-team")
+
+        self.assertEqual("ready", serialized["status"])
+        self.assertEqual("https://download/exported-root.qcow2", serialized["image_url"])
+        sync_mock.assert_called_once_with(asset, "demo-region", "demo-team")
+
     def test_create_region_service_includes_component_k8s_attributes(self):
         service = TenantServiceInfo.objects.create(
             service_id="service-region-a",

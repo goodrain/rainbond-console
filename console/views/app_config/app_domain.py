@@ -1516,7 +1516,7 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
 
 class VirtualMachineImageView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
-        data = vms.list_vm_image(self.tenant.tenant_id)
+        data = vms.list_vm_image(self.tenant.tenant_id, self.response_region, self.tenant.tenant_name)
         result = general_message(200, "success", "查询成功", list=data)
         return Response(result, status=result["code"])
 
@@ -1530,7 +1530,7 @@ class VirtualMachineCapabilityView(RegionTenantHeaderView):
 
 class VirtualMachineAssetListView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
-        data = vms.list_vm_image(self.tenant.tenant_id)
+        data = vms.list_vm_image(self.tenant.tenant_id, self.response_region, self.tenant.tenant_name)
         result = general_message(200, "success", "查询成功", list=data)
         return Response(result, status=result["code"])
 
@@ -1538,7 +1538,7 @@ class VirtualMachineAssetListView(RegionTenantHeaderView):
 class VirtualMachineAssetManageView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
         asset_id = kwargs.get("asset_id")
-        asset = vms.get_vm_asset(self.tenant.tenant_id, asset_id)
+        asset = vms.get_vm_asset(self.tenant.tenant_id, asset_id, self.response_region, self.tenant.tenant_name)
         if not asset:
             return Response(general_message(404, "vm asset not found", "虚拟机镜像资产不存在"), status=404)
         result = general_message(200, "success", "查询成功", bean=asset)
