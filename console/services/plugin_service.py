@@ -2,7 +2,6 @@
 import logging
 from urllib.parse import urlparse, urlunparse
 
-from console.services.app_config import port_service
 from console.services.team_services import team_services
 from console.services.platform_plugin_service import platform_plugin_service
 from console.repositories.region_app import region_app_repo
@@ -10,7 +9,6 @@ from console.repositories.app_config import domain_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
 
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantServiceInfo
 
 region_api = RegionInvokeApi()
 
@@ -18,6 +16,20 @@ logger = logging.getLogger('default')
 
 
 class RainbondPluginService(object):
+    @staticmethod
+    def _parse_frontend_service(frontend_service):
+        frontend_service = str(frontend_service or "").strip()
+        if not frontend_service:
+            return "", None
+        parse_target = frontend_service
+        if not parse_target.startswith(("http://", "https://")):
+            parse_target = "http://" + parse_target
+        parsed = urlparse(parse_target)
+        service_name = parsed.hostname or ""
+        if "." in service_name:
+            service_name = service_name.split(".", 1)[0]
+        return service_name, parsed.port
+
     @staticmethod
     def _request_host_name(request):
         if not request or not hasattr(request, "get_host"):
@@ -57,29 +69,69 @@ class RainbondPluginService(object):
 
         return raw_url.rstrip("/")
 
-    def _resolve_vm_plugin_urls(self, plugin, app_id, team, app_component_rels, request=None):
+    def _get_ns_service_resource(self, region_name, team_name, service_name):
+        if not team_name or not service_name:
+            return {}
+        try:
+            _, body = region_api.get_tenant_ns_resource(
+                region_name,
+                team_name,
+                service_name,
+                params={"group": "", "version": "v1", "resource": "services"}
+            )
+        except Exception as err:
+            logger.warning(
+                "failed to get service resource for vm plugin region=%s team=%s service=%s: %s",
+                region_name,
+                team_name,
+                service_name,
+                err
+            )
+            return {}
+        bean = body.get("bean", {}) if isinstance(body, dict) else {}
+        return bean if isinstance(bean, dict) else {}
+
+    def _build_service_nodeport_url(self, service_resource, target_port, request=None):
+        spec = service_resource.get("spec", {}) if isinstance(service_resource, dict) else {}
+        ports = spec.get("ports", []) if isinstance(spec, dict) else []
+        if not isinstance(ports, list):
+            return ""
+
+        matched_ports = []
+        if target_port is not None:
+            for port in ports:
+                if not isinstance(port, dict):
+                    continue
+                if port.get("port") == target_port or str(port.get("targetPort", "")) == str(target_port):
+                    matched_ports.append(port)
+
+        for port in matched_ports or ports:
+            if not isinstance(port, dict):
+                continue
+            node_port = port.get("nodePort")
+            if node_port:
+                return self._normalize_access_url("0.0.0.0:{}".format(node_port), request=request)
+        return ""
+
+    def _resolve_vm_plugin_urls(self, plugin, app_id, team, app_component_rels, region_name, request=None):
         if plugin.get("name") != "rainbond-vm":
             return []
         frontend_component_name = plugin.get("frontend_component", "")
-        if not frontend_component_name or not team or not app_component_rels.get(app_id):
+        if not team:
             return []
+        frontend_service_name, target_port = self._parse_frontend_service(plugin.get("frontend_service"))
+        candidate_service_names = []
+        for name in (frontend_component_name, frontend_service_name):
+            name = str(name or "").strip()
+            if name and name not in candidate_service_names:
+                candidate_service_names.append(name)
 
-        frontend_component = TenantServiceInfo.objects.filter(
-            tenant_id=team.tenant_id,
-            service_id__in=app_component_rels[app_id],
-            service_cname=frontend_component_name
-        ).first()
-        if not frontend_component:
-            return []
-
-        _, access_info = port_service.get_access_info(team, frontend_component)
-        urls = []
-        for item in access_info or []:
-            for raw_url in item.get("access_urls") or []:
-                url = self._normalize_access_url(raw_url, request=request)
-                if url and url not in urls:
-                    urls.append(url)
-        return urls
+        for service_name in candidate_service_names:
+            service_resource = self._get_ns_service_resource(region_name, team.tenant_name, service_name)
+            nodeport_url = self._build_service_nodeport_url(service_resource, target_port, request=request)
+            if nodeport_url:
+                return [nodeport_url]
+        return []
 
     def get_vm_plugin_url(self, enterprise_id, region_name, request=None):
         plugins, _ = self.list_plugins(enterprise_id, region_name, official=True, request=request)
@@ -184,6 +236,7 @@ class RainbondPluginService(object):
                     app_id,
                     teams_by_name.get(plugin["team_name"]),
                     app_component_rels,
+                    region_name,
                     request=request
                 )
             plugin["urls"] = [self._normalize_access_url(url, request=request) for url in plugin["urls"] if url]
