@@ -1,3 +1,4 @@
+import logging
 import json
 import re
 
@@ -21,6 +22,7 @@ from www.models.main import (
 )
 
 region_api = RegionInvokeApi()
+logger = logging.getLogger("default")
 
 VM_RUNTIME_ATTR_SPECS = {
     "vm_network_mode": "string",
@@ -458,7 +460,45 @@ class VirtualMachineService(object):
             raise ValueError("vm asset is still referenced")
         return vm_repo.delete_vm_image_by_id(tenant_id, asset_id)
 
-    def get_vm_profile(self, service, connections=None):
+    def get_vm_current_pod_ip(self, tenant, service):
+        if getattr(service, "extend_method", "") != "vm" or not tenant:
+            return ""
+        try:
+            body = region_api.get_service_pods(
+                service.service_region,
+                tenant.tenant_name,
+                service.service_alias,
+                tenant.enterprise_id
+            )
+        except Exception as err:
+            logger.exception(err)
+            return ""
+
+        bean = body.get("bean", {}) if isinstance(body, dict) else {}
+        if not isinstance(bean, dict):
+            return ""
+
+        def pick_pod_ip(pods, running_only=False):
+            for pod in pods or []:
+                if not isinstance(pod, dict):
+                    continue
+                pod_ip = str(pod.get("pod_ip") or "").strip()
+                if not pod_ip:
+                    continue
+                pod_status = str(pod.get("pod_status") or "").strip().lower()
+                if running_only and pod_status != "running":
+                    continue
+                return pod_ip
+            return ""
+
+        for running_only in (True, False):
+            for group_key in ("new_pods", "old_pods"):
+                pod_ip = pick_pod_ip(bean.get(group_key), running_only=running_only)
+                if pod_ip:
+                    return pod_ip
+        return ""
+
+    def get_vm_profile(self, service, connections=None, current_pod_ip=""):
         if getattr(service, "extend_method", "") != "vm":
             return {}
         runtime = self.get_vm_runtime_config(service.service_id)
@@ -468,6 +508,7 @@ class VirtualMachineService(object):
             "asset": self.serialize_vm_image(asset) if asset else {},
             "runtime": runtime,
             "latest_export": self.serialize_vm_image(latest_export) if latest_export else {},
+            "current_pod_ip": current_pod_ip or "",
             "connections": connections or {
                 "vnc_url": "",
                 "console_url": ""

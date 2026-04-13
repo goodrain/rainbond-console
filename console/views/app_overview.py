@@ -90,9 +90,11 @@ class AppDetailView(AppBaseView):
         service_model["disk_cap"] = 10
         if self.service.extend_method == "vm":
             vm_url = build_vm_vnc_url(self.tenant, self.service, app_k8s_name, vm_url)
+            current_pod_ip = vms.get_vm_current_pod_ip(self.tenant, self.service)
             bean["vm_url"] = vm_url
             bean["vm_profile"] = vms.get_vm_profile(
                 self.service,
+                current_pod_ip=current_pod_ip,
                 connections={
                     "vnc_url": vm_url,
                     "console_url": ""
@@ -184,8 +186,10 @@ class AppVMProfileView(AppBaseView):
         group_map = group_service.get_services_group_name([self.service.service_id])
         app_k8s_name = group_map.get(self.service.service_id)["k8s_app"]
         vnc_url = build_vm_vnc_url(self.tenant, self.service, app_k8s_name, vm_url)
+        current_pod_ip = vms.get_vm_current_pod_ip(self.tenant, self.service)
         profile = vms.get_vm_profile(
             self.service,
+            current_pod_ip=current_pod_ip,
             connections={
                 "vnc_url": vnc_url,
                 "console_url": ""

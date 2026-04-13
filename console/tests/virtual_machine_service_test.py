@@ -620,6 +620,7 @@ class VirtualMachineServiceTests(TestCase):
                 image=asset.image_url,
                 extend_method="vm"
             ),
+            current_pod_ip="10.42.0.15",
             connections={
                 "vnc_url": "http://example.com/vnc",
                 "console_url": ""
@@ -635,7 +636,47 @@ class VirtualMachineServiceTests(TestCase):
         self.assertEqual(["gpu.example.com/A10"], profile["runtime"]["gpu_resources"])
         self.assertTrue(profile["runtime"]["usb_enabled"])
         self.assertEqual(["kubevirt.io/usb-a"], profile["runtime"]["usb_resources"])
+        self.assertEqual("10.42.0.15", profile["current_pod_ip"])
         self.assertEqual("http://example.com/vnc", profile["connections"]["vnc_url"])
+
+    def test_get_vm_current_pod_ip_prefers_running_new_pod(self):
+        tenant = SimpleNamespace(
+            tenant_name="demo-team",
+            enterprise_id="eid-demo"
+        )
+        service = SimpleNamespace(
+            service_region="demo-region",
+            service_alias="service-a",
+            extend_method="vm"
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.get_service_pods",
+            return_value={
+                "bean": {
+                    "new_pods": [
+                        {
+                            "pod_name": "service-a-1",
+                            "pod_ip": "10.42.0.15",
+                            "pod_status": "Pending"
+                        },
+                        {
+                            "pod_name": "service-a-2",
+                            "pod_ip": "10.42.0.16",
+                            "pod_status": "Running"
+                        }
+                    ],
+                    "old_pods": [
+                        {
+                            "pod_name": "service-a-old",
+                            "pod_ip": "10.42.0.14",
+                            "pod_status": "Running"
+                        }
+                    ]
+                }
+            }
+        ):
+            self.assertEqual("10.42.0.16", vms.get_vm_current_pod_ip(tenant, service))
 
     def test_validate_vm_runtime_config_allows_fixed_ip_without_network_name(self):
         vms.validate_vm_runtime_config({
