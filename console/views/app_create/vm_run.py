@@ -265,6 +265,18 @@ class VMRunCreateView(RegionTenantHeaderView):
                 image_url=image,
                 source_uri=vm_url or getattr(asset, "source_uri", ""),
             )
+            logger.info(
+                "vm create resolved source: tenant=%s service=%s source_type=%s asset_id=%s template_version_id=%s boot_source_format=%s image=%s vm_url=%s disk_import_count=%s",
+                getattr(self.tenant, "tenant_name", ""),
+                service_cname,
+                source_type or getattr(asset, "source_type", ""),
+                asset_id,
+                template_payload.get("template_version_id") if template_payload else "",
+                boot_source_format,
+                image,
+                vm_url,
+                len(disk_imports),
+            )
             if template_payload:
                 for disk in template_payload.get("data_disks", []):
                     settings = {

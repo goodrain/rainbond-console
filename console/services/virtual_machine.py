@@ -453,6 +453,16 @@ class VirtualMachineService(object):
             "image_url": image_url,
             **params
         })
+        logger.info(
+            "vm asset create prepared: tenant_id=%s name=%s source_type=%s format=%s image=%s source_uri=%s build_event_id=%s",
+            tenant_id,
+            payload.get("name", ""),
+            payload.get("source_type", ""),
+            payload.get("format", ""),
+            payload.get("image_url", ""),
+            payload.get("source_uri", ""),
+            payload.get("build_event_id", ""),
+        )
         return vm_repo.create_vm_image(**payload)
 
     def get_vm_capabilities(self, region_name, tenant_name):
@@ -587,6 +597,14 @@ class VirtualMachineService(object):
         asset.status = bean.get("status") or asset.status
         if root_disk and root_disk.get("download_url"):
             asset.image_url = root_disk.get("download_url")
+        logger.info(
+            "vm export asset sync: asset_id=%s export_id=%s status=%s root_url=%s disk_count=%s",
+            getattr(asset, "ID", ""),
+            getattr(asset, "build_event_id", ""),
+            asset.status,
+            root_disk.get("download_url", "") if root_disk else "",
+            len(disks),
+        )
         asset.extra_json = json.dumps(extra)
         asset.save()
         return self.serialize_vm_image(asset)
@@ -689,6 +707,13 @@ class VirtualMachineService(object):
 
     def save_vm_disk_imports(self, tenant_id, service_id, disk_imports):
         normalized = self._normalize_vm_disk_imports(disk_imports)
+        logger.info(
+            "vm disk imports prepared: tenant_id=%s service_id=%s disk_count=%s volumes=%s",
+            tenant_id,
+            service_id,
+            len(normalized),
+            ",".join(sorted(normalized.keys())),
+        )
         self._persist_managed_k8s_attribute(
             tenant_id,
             service_id,
@@ -1019,6 +1044,20 @@ class VirtualMachineService(object):
                 disk for disk in (template_payload.get("data_disks") or [])
                 if disk.get("image_url")
             ])
+        logger.info(
+            "vm create disk imports resolved: image_name=%s source_uri=%s root_import=%s disk_count=%s boot_source_format=%s",
+            image_name,
+            source_uri,
+            bool(root_import),
+            len(imports),
+            self.infer_vm_boot_source_format(
+                asset=asset,
+                template_payload=template_payload,
+                image_name=image_name,
+                image_url=image_url,
+                source_uri=source_uri,
+            ),
+        )
         return imports
 
     def resolve_vm_boot_mode(self,
