@@ -188,10 +188,17 @@ class VMRunCreateView(RegionTenantHeaderView):
                     image = asset.image_url if asset else ""
                 if asset:
                     asset_id = asset.ID
+                    if not image_name:
+                        image_name = getattr(asset, "name", "") or image_name
                     if not guest_os_name:
                         guest_os_name = getattr(asset, "os_name", "") or image_name
                 if not image:
                     return Response(general_message(404, "vm image not found", "虚拟机镜像不存在"), status=404)
+                if not (event_id or vm_url):
+                    boot_source = vms.resolve_vm_boot_source(self.tenant, image_name, image)
+                    image = boot_source["image"]
+                    if boot_source["vm_url"]:
+                        vm_url = boot_source["vm_url"]
             code, msg_show, new_service = app_service.create_vm_run_app(
                 self.response_region, self.tenant, self.user, service_cname, k8s_component_name, image, arch, event_id, vm_url)
             if code != 200:

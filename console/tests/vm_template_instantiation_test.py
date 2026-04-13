@@ -65,7 +65,7 @@ class VMTemplateInstantiationTests(TestCase):
         self.root_asset = VirtualMachineImage.objects.create(
             tenant_id="tenant-a",
             name="root-image",
-            image_url="https://download/root.qcow2",
+            image_url="tenant-ns:root-image",
             source_type="vm_export",
             source_uri="service://service-a",
             status="ready",
@@ -110,6 +110,13 @@ class VMTemplateInstantiationTests(TestCase):
             size_bytes=20 * 1024 * 1024 * 1024,
             extra_json=json.dumps({"boot_order": 1})
         )
+        root_disk = VMTemplateDisk.objects.get(
+            tenant_id="tenant-a",
+            template_version_id=self.version.ID,
+            disk_key="rootdisk"
+        )
+        root_disk.image_url = "https://download/root.qcow2"
+        root_disk.save(update_fields=["image_url"])
         VMTemplateDisk.objects.create(
             tenant_id="tenant-a",
             template_version_id=self.version.ID,
@@ -127,7 +134,7 @@ class VMTemplateInstantiationTests(TestCase):
     def test_resolve_vm_template_for_create_returns_root_image_and_disk_layout(self):
         payload = vms.resolve_vm_template_for_create("tenant-a", self.template.ID, self.version.ID)
 
-        self.assertEqual(self.root_asset.image_url, payload["image_url"])
+        self.assertEqual("https://download/root.qcow2", payload["image_url"])
         self.assertEqual(self.root_asset.ID, payload["asset_id"])
         self.assertEqual("uefi", payload["runtime_snapshot"]["boot_mode"])
         self.assertEqual(2, len(payload["disk_layout"]))
@@ -139,7 +146,7 @@ class VMTemplateInstantiationTests(TestCase):
     def test_vm_run_create_with_template_version_persists_template_attrs_and_adds_data_disk_volumes(self):
         factory = APIRequestFactory()
         view = VMRunCreateView()
-        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team")
+        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns")
         view.response_region = "demo-region"
         view.user = SimpleNamespace(pk=1, nick_name="tester")
 
@@ -173,7 +180,7 @@ class VMTemplateInstantiationTests(TestCase):
                 mock.patch(
                     "console.views.app_create.vm_run.app_service.create_vm_run_app",
                     return_value=(200, "创建成功", new_service),
-                    create=True), \
+                    create=True) as create_vm_run_app_mock, \
                 mock.patch(
                     "console.views.app_create.vm_run.group_service.add_service_to_group",
                     return_value=(200, "success")), \
@@ -182,6 +189,9 @@ class VMTemplateInstantiationTests(TestCase):
             response = view.post(request)
 
         self.assertEqual(response.status_code, 200)
+        _, create_args, _ = create_vm_run_app_mock.mock_calls[0]
+        self.assertEqual("tenant-ns:template-image-{}".format(self.version.ID), create_args[5])
+        self.assertEqual("https://download/root.qcow2", create_args[8])
         attrs = {
             item.name: item.attribute_value
             for item in ComponentK8sAttributes.objects.filter(component_id="service-new")
@@ -218,7 +228,7 @@ class VMTemplateInstantiationTests(TestCase):
     def test_vm_run_create_does_not_force_region_attr_sync_before_service_registration(self):
         factory = APIRequestFactory()
         view = VMRunCreateView()
-        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team")
+        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns")
         view.response_region = "demo-region"
         view.user = SimpleNamespace(pk=1, nick_name="tester")
 
@@ -267,3 +277,67 @@ class VMTemplateInstantiationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("sync_context", save_runtime_mock.call_args.kwargs)
+
+    def test_vm_run_create_from_machine_asset_internalizes_http_root_disk_before_boot(self):
+        machine_asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="exported-win",
+            image_url="https://download/exported-root.qcow2",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            status="ready",
+            extra_json=json.dumps({
+                "asset_kind": "machine",
+                "disk_count": 1,
+                "disks": [
+                    {
+                        "disk_key": "rootdisk",
+                        "disk_role": "root",
+                        "download_url": "https://download/exported-root.qcow2",
+                    }
+                ]
+            })
+        )
+        factory = APIRequestFactory()
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+
+        request = view.initialize_request(factory.post(
+            "/console/teams/demo-team/apps/create/vm",
+            {
+                "group_id": 7,
+                "service_cname": "exported-vm",
+                "k8s_component_name": "exported-vm",
+                "asset_id": machine_asset.ID,
+                "image_name": machine_asset.name
+            },
+            format="json"
+        ))
+
+        new_service = SimpleNamespace(
+            service_id="service-new",
+            service_alias="gr123456",
+            service_source="vm_run",
+            create_status="creating",
+            to_dict=lambda: {"service_id": "service-new", "service_alias": "gr123456"}
+        )
+
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                return_value=False,
+                create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.app_service.create_vm_run_app",
+                    return_value=(200, "创建成功", new_service),
+                    create=True) as create_vm_run_app_mock, \
+                mock.patch(
+                    "console.views.app_create.vm_run.group_service.add_service_to_group",
+                    return_value=(200, "success")):
+            response = view.post(request)
+
+        self.assertEqual(response.status_code, 200)
+        _, create_args, _ = create_vm_run_app_mock.mock_calls[0]
+        self.assertEqual("tenant-ns:exported-win", create_args[5])
+        self.assertEqual("https://download/exported-root.qcow2", create_args[8])

@@ -3,6 +3,11 @@ import re
 
 from console.models.main import ComponentK8sAttributes
 from console.repositories.k8s_attribute import k8s_attribute_repo
+from console.services.vm_boot_source import (
+    build_vm_runtime_image_name,
+    requires_vm_source_build,
+    resolve_vm_boot_source as resolve_vm_boot_source_binding,
+)
 from console.repositories.vm_template import vm_template_repo
 from console.repositories.virtual_machine import vm_repo
 from www.apiclient.regionapi import RegionInvokeApi
@@ -164,6 +169,9 @@ class VirtualMachineService(object):
             "disk_layout": disk_layout,
             "data_disks": [item for item in disk_layout if item.get("disk_role") != "root"],
         }
+
+    def resolve_vm_boot_source(self, tenant, image_name, image_url):
+        return resolve_vm_boot_source_binding(tenant, image_name, image_url)
 
     def list_vm_templates(self, tenant_id):
         templates = list(vm_template_repo.list_templates(tenant_id))
@@ -1039,6 +1047,12 @@ class VirtualMachineService(object):
                 if candidate.endswith(suffix):
                     return suffix.lstrip(".")
         return ""
+
+    def _requires_vm_source_build(self, image_url):
+        return requires_vm_source_build(image_url)
+
+    def _build_vm_runtime_image_name(self, tenant, image_name):
+        return build_vm_runtime_image_name(tenant, image_name)
 
     def _format_datetime(self, value):
         if not value:
