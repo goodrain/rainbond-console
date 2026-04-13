@@ -1081,6 +1081,16 @@ class VirtualMachineService(object):
         if boot_mode:
             return boot_mode
 
+        source_format = (boot_source_format or self.infer_vm_boot_source_format(
+            asset=asset,
+            template_payload=template_payload,
+            image_name=image_name,
+            image_url=image_url,
+            source_uri=source_uri,
+        ) or "").strip().lower()
+        if source_format == "iso":
+            return ""
+
         runtime_snapshot = (template_payload or {}).get("runtime_snapshot") or {}
         boot_mode = self._normalize_vm_boot_mode(runtime_snapshot.get("boot_mode"))
         if boot_mode:
@@ -1098,16 +1108,6 @@ class VirtualMachineService(object):
 
         guest_os_family = self._infer_vm_guest_os_family(runtime_config=runtime_config, asset=asset, image_name=image_name)
         if guest_os_family != "windows":
-            return ""
-
-        source_format = (boot_source_format or self.infer_vm_boot_source_format(
-            asset=asset,
-            template_payload=template_payload,
-            image_name=image_name,
-            image_url=image_url,
-            source_uri=source_uri,
-        ) or "").strip().lower()
-        if source_format == "iso":
             return ""
 
         return "uefi"

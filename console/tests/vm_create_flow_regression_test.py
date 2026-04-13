@@ -268,6 +268,17 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
 
         self.assertEqual("", mode)
 
+    def test_resolve_vm_boot_mode_ignores_asset_boot_mode_for_windows_iso(self):
+        mode = vms.resolve_vm_boot_mode(
+            requested_boot_mode="",
+            asset=SimpleNamespace(boot_mode="uefi", os_name="Windows Server", name="windows-installer"),
+            runtime_config={"os_family": "windows"},
+            image_name="windows-installer",
+            boot_source_format="iso"
+        )
+
+        self.assertEqual("", mode)
+
     def test_infer_vm_boot_source_format_keeps_legacy_upload_asset_unspecified_when_unknown(self):
         fmt = vms.infer_vm_boot_source_format(
             asset=SimpleNamespace(
