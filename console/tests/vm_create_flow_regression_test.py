@@ -267,3 +267,31 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
         )
 
         self.assertEqual("", mode)
+
+    def test_infer_vm_boot_source_format_keeps_legacy_upload_asset_unspecified_when_unknown(self):
+        fmt = vms.infer_vm_boot_source_format(
+            asset=SimpleNamespace(
+                source_type="upload",
+                format="",
+                source_uri="/grdata/package_build/temp/events/evt-1",
+                image_url="tenant-ns:windows-installer",
+                name="windows-installer"
+            ),
+            image_name="windows-installer"
+        )
+
+        self.assertEqual("", fmt)
+
+    def test_infer_vm_boot_source_format_keeps_vm_export_asset_as_disk_without_suffix(self):
+        fmt = vms.infer_vm_boot_source_format(
+            asset=SimpleNamespace(
+                source_type="vm_export",
+                format="",
+                source_uri="service://service-a",
+                image_url="tenant-ns:exported-root",
+                name="exported-root"
+            ),
+            image_name="exported-root"
+        )
+
+        self.assertEqual("disk", fmt)

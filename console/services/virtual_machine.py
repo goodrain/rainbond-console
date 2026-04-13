@@ -996,13 +996,11 @@ class VirtualMachineService(object):
             )
             if inferred:
                 return inferred
-            if getattr(asset, "source_type", "") in ("vm_export", "upload", "url"):
+            if getattr(asset, "source_type", "") == "vm_export":
                 return "disk"
         inferred = self._infer_asset_format(source_uri, image_url, image_name)
         if inferred:
             return inferred
-        if source_uri or image_url:
-            return "disk"
         return ""
 
     def build_vm_create_disk_imports(self, asset=None, template_payload=None, image_name="", image_url="", source_uri=""):

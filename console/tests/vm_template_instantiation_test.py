@@ -500,6 +500,7 @@ class VMTemplateInstantiationTests(TestCase):
                 "source_type": "upload",
                 "event_id": "upload-event-1",
                 "image_name": "win1021h1",
+                "format": "qcow2",
                 "os_family": "windows"
             },
             format="json"
@@ -532,8 +533,68 @@ class VMTemplateInstantiationTests(TestCase):
             for item in ComponentK8sAttributes.objects.filter(component_id="service-new-upload")
         }
         self.assertEqual("uefi", attrs["vm_boot_mode"])
+        self.assertEqual("qcow2", attrs["vm_boot_source_format"])
         created_asset = VirtualMachineImage.objects.get(tenant_id="tenant-a", name="win1021h1")
+        self.assertEqual("qcow2", created_asset.format)
         self.assertEqual("uefi", created_asset.boot_mode)
+
+    def test_vm_run_create_from_upload_iso_keeps_boot_media_out_of_root_imports(self):
+        factory = APIRequestFactory()
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+
+        request = view.initialize_request(factory.post(
+            "/console/teams/demo-team/apps/create/vm",
+            {
+                "group_id": 7,
+                "service_cname": "uploaded-iso-vm",
+                "k8s_component_name": "uploaded-iso-vm",
+                "source_type": "upload",
+                "event_id": "upload-event-iso",
+                "image_name": "windows-installer",
+                "format": "iso"
+            },
+            format="json"
+        ))
+
+        new_service = SimpleNamespace(
+            service_id="service-new-upload-iso",
+            service_alias="gr123460",
+            service_source="vm_run",
+            create_status="creating",
+            to_dict=lambda: {"service_id": "service-new-upload-iso", "service_alias": "gr123460"}
+        )
+
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                return_value=False,
+                create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.app_service.create_vm_run_app",
+                    return_value=(200, "创建成功", new_service),
+                    create=True) as create_vm_run_app_mock, \
+                mock.patch(
+                    "console.views.app_create.vm_run.group_service.add_service_to_group",
+                    return_value=(200, "success")):
+            response = view.post(request)
+
+        self.assertEqual(response.status_code, 200)
+        _, create_args, _ = create_vm_run_app_mock.mock_calls[0]
+        self.assertEqual("tenant-ns:windows-installer", create_args[5])
+        self.assertEqual("upload-event-iso", create_args[7])
+        self.assertEqual("", create_args[8])
+        attrs = {
+            item.name: item.attribute_value
+            for item in ComponentK8sAttributes.objects.filter(component_id="service-new-upload-iso")
+        }
+        self.assertEqual("iso", attrs["vm_boot_source_format"])
+        self.assertFalse(
+            ComponentK8sAttributes.objects.filter(component_id="service-new-upload-iso", name="vm_disk_imports").exists()
+        )
+        created_asset = VirtualMachineImage.objects.get(tenant_id="tenant-a", name="windows-installer")
+        self.assertEqual("iso", created_asset.format)
 
     def test_vm_run_create_refreshes_vm_export_asset_before_ready_guard(self):
         machine_asset = VirtualMachineImage.objects.create(
