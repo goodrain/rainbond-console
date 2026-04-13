@@ -176,6 +176,9 @@ class GrayReleaseService(object):
                     status_code=400
                 )
 
+            route_sync_port = new_port.container_port
+            original_port = None
+
             # 构建新的 backends 配置（包含权重）
             new_backends = []
 
@@ -207,6 +210,17 @@ class GrayReleaseService(object):
                     logger.info(f"[GrayRelease] Added original backend: {original_port.k8s_service_name}:{original_port.container_port} (weight={original_weight})")
                 else:
                     logger.warning(f"[GrayRelease] Original service port not found, skipping original backend: {original_service.service_id}")
+
+            if original_port:
+                route_sync_port = original_port.container_port
+            else:
+                original_route_port = TenantServicesPort.objects.filter(
+                    tenant_id=team.tenant_id,
+                    service_id=original_service.service_id,
+                    is_outer_service=True
+                ).first()
+                if original_route_port:
+                    route_sync_port = original_route_port.container_port
 
             # 获取路由名称
             original_name = domain.get("name", "")
@@ -281,7 +295,11 @@ class GrayReleaseService(object):
 
                 # 调用 RegionAPI 更新路由 - 使用正确的 ApisixRoute 接口
                 # 构建请求路径 - 添加 appID 查询参数
-                path = f"/api-gateway/v1/{team.tenant_name}/routes/http?appID={app.app_id}"
+                path = (
+                    f"/api-gateway/v1/{team.tenant_name}/routes/http"
+                    f"?appID={app.app_id}&service_alias={original_service.service_alias}"
+                    f"&port={route_sync_port}"
+                )
                 # 构建请求体 - 使用后端期望的格式
                 put_body = {
                     "name": route_name,
