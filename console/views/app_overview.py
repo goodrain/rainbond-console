@@ -28,6 +28,7 @@ from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import app_plugin_service
+from console.services.plugin_service import rbd_plugin_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.kubeblocks_service import kubeblocks_service
@@ -89,6 +90,11 @@ class AppDetailView(AppBaseView):
         volumes = volume_repo.get_service_volumes_with_config_file(self.service.service_id)
         service_model["disk_cap"] = 10
         if self.service.extend_method == "vm":
+            vm_url = rbd_plugin_service.get_vm_plugin_url(
+                self.tenant.enterprise_id,
+                self.service.service_region,
+                request=request
+            ) or vm_url
             vm_url = build_vm_vnc_url(self.tenant, self.service, app_k8s_name, vm_url)
             current_pod_ip = vms.get_vm_current_pod_ip(self.tenant, self.service)
             bean["vm_url"] = vm_url
@@ -185,6 +191,11 @@ class AppVMProfileView(AppBaseView):
         vm_url = request.GET.get("vm_url", "")
         group_map = group_service.get_services_group_name([self.service.service_id])
         app_k8s_name = group_map.get(self.service.service_id)["k8s_app"]
+        vm_url = rbd_plugin_service.get_vm_plugin_url(
+            self.tenant.enterprise_id,
+            self.service.service_region,
+            request=request
+        ) or vm_url
         vnc_url = build_vm_vnc_url(self.tenant, self.service, app_k8s_name, vm_url)
         current_pod_ip = vms.get_vm_current_pod_ip(self.tenant, self.service)
         profile = vms.get_vm_profile(

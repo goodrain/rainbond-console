@@ -1,9 +1,56 @@
+import collections
+import os
+import sys
+from types import ModuleType, SimpleNamespace
 from unittest import TestCase, mock
 
+for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
+    if not hasattr(collections, attr):
+        setattr(collections, attr, getattr(collections.abc, attr))
+
+openapi_client_module = ModuleType("openapi_client")
+openapi_client_module.ApiClient = lambda configuration=None: SimpleNamespace(configuration=configuration)
+openapi_client_module.MarketOpenapiApi = lambda client=None: SimpleNamespace(client=client)
+
+openapi_client_configuration = ModuleType("openapi_client.configuration")
+
+
+class _OpenAPIConfiguration(object):
+    def __init__(self):
+        self.client_side_validation = False
+        self.host = ""
+        self.api_key = {}
+
+
+openapi_client_configuration.Configuration = _OpenAPIConfiguration
+
+openapi_client_rest = ModuleType("openapi_client.rest")
+
+
+class _ApiException(Exception):
+    def __init__(self, status=400, body=""):
+        super().__init__(body)
+        self.status = status
+        self.body = body
+
+
+openapi_client_rest.ApiException = _ApiException
+
+sys.modules.setdefault("openapi_client", openapi_client_module)
+sys.modules.setdefault("openapi_client.configuration", openapi_client_configuration)
+sys.modules.setdefault("openapi_client.rest", openapi_client_rest)
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
+
+import django  # noqa: E402
+
+django.setup()
+
+from console.services import plugin_service  # noqa: E402
 from console.services.plugin_service import rbd_plugin_service
 
 
 class RainbondPluginServiceTests(TestCase):
+    # capability_id: console.platform-plugin.vm-access-url-fallback
 
     def test_official_plugin_without_market_metadata_does_not_require_auth(self):
         region_plugins = {
@@ -68,3 +115,63 @@ class RainbondPluginServiceTests(TestCase):
 
         self.assertFalse(need_authz)
         self.assertEqual("free", plugins[0].get("app_level"))
+
+    # capability_id: console.platform-plugin.vm-access-url-fallback
+    def test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing(self):
+        request = mock.Mock()
+        request.scheme = "https"
+        request.get_host.return_value = "console.example.com:7070"
+        region_plugins = {
+            "list": [
+                {
+                    "name": "rainbond-vm",
+                    "region_app_id": "region-app-2",
+                    "team_name": "rbd-plugins",
+                    "alias": "虚拟机管理",
+                    "backend": "",
+                    "access_urls": [],
+                    "frontend_component": "virtvnc",
+                }
+            ]
+        }
+        team = mock.Mock()
+        team.tenant_id = "tenant-1"
+        team.tenant_name = "rbd-plugins"
+        region_app = mock.Mock()
+        region_app.region_app_id = "region-app-2"
+        region_app.app_id = 72
+        relation = mock.Mock()
+        relation.group_id = 72
+        relation.service_id = "svc-frontend"
+        frontend_component = mock.Mock()
+        frontend_component.service_id = "svc-frontend"
+        frontend_component.service_cname = "virtvnc"
+
+        with mock.patch("console.services.plugin_service.region_api.list_plugins", return_value=(None, region_plugins)), \
+                mock.patch("console.services.plugin_service.team_services.list_by_team_names", return_value=[team]), \
+                mock.patch("console.services.plugin_service.region_app_repo.list_by_region_app_ids", return_value=[region_app]), \
+                mock.patch("console.services.plugin_service.service_group_relation_repo.list_by_tenant_ids", return_value=[relation]), \
+                mock.patch("console.services.plugin_service.domain_repo.list_by_component_ids", return_value=[]), \
+                mock.patch("console.services.plugin_service.platform_plugin_service._get_market_platform_plugins",
+                           return_value=(mock.Mock(), [])), \
+                mock.patch("console.services.plugin_service.platform_plugin_service._select_market_plugin",
+                           return_value=None), \
+                mock.patch.object(
+                    plugin_service,
+                    "TenantServiceInfo",
+                    SimpleNamespace(objects=SimpleNamespace(filter=mock.Mock())),
+                    create=True
+                ) as tenant_service_info_mock, \
+                mock.patch.object(
+                    plugin_service,
+                    "port_service",
+                    SimpleNamespace(get_access_info=mock.Mock(
+                        return_value=("stream_outer", [{"access_urls": ["0.0.0.0:30001"]}])
+                    )),
+                    create=True
+                ) as port_service_mock:
+            tenant_service_info_mock.objects.filter.return_value.first.return_value = frontend_component
+            plugins, _ = rbd_plugin_service.list_plugins("eid", "rainbond", official=True, request=request)
+
+        self.assertEqual(["https://console.example.com:30001"], plugins[0]["urls"])
+        port_service_mock.get_access_info.assert_called_once_with(team, frontend_component)
