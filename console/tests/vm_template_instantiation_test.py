@@ -369,6 +369,64 @@ class VMTemplateInstantiationTests(TestCase):
             json.loads(attrs["vm_disk_imports"]),
         )
 
+    def test_vm_run_create_from_existing_disk_asset_persists_asset_boot_mode_when_request_omits_it(self):
+        machine_asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="exported-win-uefi",
+            image_url="tenant-ns:exported-win-uefi",
+            source_type="upload",
+            source_uri="/grdata/package_build/temp/events/uploaded-win.qcow2",
+            status="ready",
+            format="qcow2",
+            boot_mode="uefi"
+        )
+        factory = APIRequestFactory()
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+
+        request = view.initialize_request(factory.post(
+            "/console/teams/demo-team/apps/create/vm",
+            {
+                "group_id": 7,
+                "service_cname": "exported-vm-uefi",
+                "k8s_component_name": "exported-vm-uefi",
+                "asset_id": machine_asset.ID,
+                "image_name": machine_asset.name,
+                "os_family": "windows"
+            },
+            format="json"
+        ))
+
+        new_service = SimpleNamespace(
+            service_id="service-new-uefi",
+            service_alias="gr123458",
+            service_source="vm_run",
+            create_status="creating",
+            to_dict=lambda: {"service_id": "service-new-uefi", "service_alias": "gr123458"}
+        )
+
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                return_value=False,
+                create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.app_service.create_vm_run_app",
+                    return_value=(200, "创建成功", new_service),
+                    create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.group_service.add_service_to_group",
+                    return_value=(200, "success")):
+            response = view.post(request)
+
+        self.assertEqual(response.status_code, 200)
+        attrs = {
+            item.name: item.attribute_value
+            for item in ComponentK8sAttributes.objects.filter(component_id="service-new-uefi")
+        }
+        self.assertEqual("uefi", attrs["vm_boot_mode"])
+
     def test_vm_run_create_from_iso_asset_keeps_boot_media_out_of_root_imports(self):
         iso_asset = VirtualMachineImage.objects.create(
             tenant_id="tenant-a",
@@ -425,6 +483,57 @@ class VMTemplateInstantiationTests(TestCase):
         self.assertFalse(
             ComponentK8sAttributes.objects.filter(component_id="service-new-iso", name="vm_disk_imports").exists()
         )
+
+    def test_vm_run_create_from_windows_upload_defaults_disk_boot_mode_to_uefi(self):
+        factory = APIRequestFactory()
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+
+        request = view.initialize_request(factory.post(
+            "/console/teams/demo-team/apps/create/vm",
+            {
+                "group_id": 7,
+                "service_cname": "uploaded-win-vm",
+                "k8s_component_name": "uploaded-win-vm",
+                "source_type": "upload",
+                "event_id": "upload-event-1",
+                "image_name": "win1021h1",
+                "os_family": "windows"
+            },
+            format="json"
+        ))
+
+        new_service = SimpleNamespace(
+            service_id="service-new-upload",
+            service_alias="gr123459",
+            service_source="vm_run",
+            create_status="creating",
+            to_dict=lambda: {"service_id": "service-new-upload", "service_alias": "gr123459"}
+        )
+
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                return_value=False,
+                create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.app_service.create_vm_run_app",
+                    return_value=(200, "创建成功", new_service),
+                    create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.group_service.add_service_to_group",
+                    return_value=(200, "success")):
+            response = view.post(request)
+
+        self.assertEqual(response.status_code, 200)
+        attrs = {
+            item.name: item.attribute_value
+            for item in ComponentK8sAttributes.objects.filter(component_id="service-new-upload")
+        }
+        self.assertEqual("uefi", attrs["vm_boot_mode"])
+        created_asset = VirtualMachineImage.objects.get(tenant_id="tenant-a", name="win1021h1")
+        self.assertEqual("uefi", created_asset.boot_mode)
 
     def test_vm_run_create_refreshes_vm_export_asset_before_ready_guard(self):
         machine_asset = VirtualMachineImage.objects.create(

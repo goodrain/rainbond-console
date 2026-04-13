@@ -237,3 +237,33 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
         self.assertEqual("fixed", persisted["vm_network_mode"])
         self.assertEqual("", persisted["vm_network_name"])
         self.assertEqual("10.42.124.90/24", persisted["vm_fixed_ip"])
+
+    def test_resolve_vm_boot_mode_prefers_asset_metadata_when_request_omits_it(self):
+        mode = vms.resolve_vm_boot_mode(
+            requested_boot_mode="",
+            asset=SimpleNamespace(boot_mode="uefi", os_name="Windows 10", name="win10"),
+            runtime_config={"os_family": "windows"},
+            image_name="win10"
+        )
+
+        self.assertEqual("uefi", mode)
+
+    def test_resolve_vm_boot_mode_defaults_windows_disk_source_to_uefi(self):
+        mode = vms.resolve_vm_boot_mode(
+            requested_boot_mode="",
+            runtime_config={"os_family": "windows"},
+            image_name="win1021h1",
+            boot_source_format="disk"
+        )
+
+        self.assertEqual("uefi", mode)
+
+    def test_resolve_vm_boot_mode_does_not_force_uefi_for_windows_iso(self):
+        mode = vms.resolve_vm_boot_mode(
+            requested_boot_mode="",
+            runtime_config={"os_family": "windows"},
+            image_name="windows-installer",
+            boot_source_format="iso"
+        )
+
+        self.assertEqual("", mode)

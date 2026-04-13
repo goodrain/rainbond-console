@@ -1023,6 +1023,50 @@ class VirtualMachineService(object):
             ])
         return imports
 
+    def resolve_vm_boot_mode(self,
+                             requested_boot_mode="",
+                             asset=None,
+                             template_payload=None,
+                             runtime_config=None,
+                             image_name="",
+                             image_url="",
+                             source_uri="",
+                             boot_source_format=""):
+        boot_mode = self._normalize_vm_boot_mode(requested_boot_mode)
+        if boot_mode:
+            return boot_mode
+
+        runtime_snapshot = (template_payload or {}).get("runtime_snapshot") or {}
+        boot_mode = self._normalize_vm_boot_mode(runtime_snapshot.get("boot_mode"))
+        if boot_mode:
+            return boot_mode
+
+        if asset:
+            boot_mode = self._normalize_vm_boot_mode(getattr(asset, "boot_mode", ""))
+            if boot_mode:
+                return boot_mode
+
+            extra = self._load_json(getattr(asset, "extra_json", ""), {})
+            boot_mode = self._normalize_vm_boot_mode((extra.get("runtime_snapshot") or {}).get("boot_mode"))
+            if boot_mode:
+                return boot_mode
+
+        guest_os_family = self._infer_vm_guest_os_family(runtime_config=runtime_config, asset=asset, image_name=image_name)
+        if guest_os_family != "windows":
+            return ""
+
+        source_format = (boot_source_format or self.infer_vm_boot_source_format(
+            asset=asset,
+            template_payload=template_payload,
+            image_name=image_name,
+            image_url=image_url,
+            source_uri=source_uri,
+        ) or "").strip().lower()
+        if source_format == "iso":
+            return ""
+
+        return "uefi"
+
     def _build_vm_root_disk_import(self, asset=None, template_payload=None, image_name="", image_url="", source_uri=""):
         boot_source_format = self.infer_vm_boot_source_format(
             asset=asset,
@@ -1099,6 +1143,25 @@ class VirtualMachineService(object):
         for candidate in candidates:
             if self._is_http_source(candidate):
                 return candidate
+        return ""
+
+    def _normalize_vm_boot_mode(self, value):
+        return str(value or "").strip().lower()
+
+    def _infer_vm_guest_os_family(self, runtime_config=None, asset=None, image_name=""):
+        runtime_config = runtime_config or {}
+        explicit = str(runtime_config.get("os_family") or "").strip().lower()
+        if explicit in ("windows", "linux"):
+            return explicit
+
+        hints = [
+            getattr(asset, "os_name", "") if asset else "",
+            getattr(asset, "name", "") if asset else "",
+            image_name,
+        ]
+        merged_hint = " ".join([str(item or "") for item in hints]).strip().lower()
+        if "windows" in merged_hint:
+            return "windows"
         return ""
 
     def _is_http_source(self, value):

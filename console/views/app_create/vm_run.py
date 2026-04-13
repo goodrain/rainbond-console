@@ -104,6 +104,7 @@ class VMRunCreateView(RegionTenantHeaderView):
             "dns_servers": dns_servers,
             "os_family": os_family
         }
+        asset_created = False
         public_vm_meta = PUBLIC_VM_IMAGES.get(image_name)
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             raise ErrK8sComponentNameExists
@@ -150,6 +151,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                         extra={
                             "created_from": "vm_run"
                         })
+                    asset_created = True
                     asset_id = asset.ID
                 boot_source_format = vms.infer_vm_boot_source_format(
                     asset=asset,
@@ -219,6 +221,19 @@ class VMRunCreateView(RegionTenantHeaderView):
                     image = boot_source["image"]
                     if boot_source["vm_url"]:
                         vm_url = boot_source["vm_url"]
+            boot_mode = vms.resolve_vm_boot_mode(
+                requested_boot_mode=boot_mode,
+                asset=asset if not template_payload else None,
+                template_payload=template_payload,
+                runtime_config=runtime_config,
+                image_name=image_name,
+                image_url=image,
+                source_uri=vm_url or getattr(asset, "source_uri", ""),
+                boot_source_format=boot_source_format,
+            )
+            if asset_created and asset and boot_mode and getattr(asset, "boot_mode", "") != boot_mode:
+                asset.boot_mode = boot_mode
+                asset.save(update_fields=["boot_mode"])
             code, msg_show, new_service = app_service.create_vm_run_app(
                 self.response_region, self.tenant, self.user, service_cname, k8s_component_name, image, arch, event_id, vm_url)
             if code != 200:
