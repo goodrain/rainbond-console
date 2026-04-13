@@ -40,6 +40,7 @@ VM_RUNTIME_ATTR_SPECS = {
     "vm_asset_id": "string",
     "vm_asset_clone_source": "string",
     "vm_boot_mode": "string",
+    "vm_boot_source_format": "string",
     "vm_template_id": "string",
     "vm_template_version_id": "string",
     "vm_disk_layout": "json",
@@ -954,7 +955,142 @@ class VirtualMachineService(object):
         if boot_mode:
             attrs["vm_boot_mode"] = str(boot_mode)
 
+        boot_source_format = runtime_config.get("boot_source_format")
+        if boot_source_format not in (None, ""):
+            attrs["vm_boot_source_format"] = str(boot_source_format)
+
         return attrs
+
+    def infer_vm_boot_source_format(self, asset=None, template_payload=None, image_name="", image_url="", source_uri=""):
+        root_disk = self._extract_root_disk_payload(asset=asset, template_payload=template_payload)
+        if root_disk:
+            inferred = root_disk.get("format") or self._infer_asset_format(
+                root_disk.get("source_uri"),
+                root_disk.get("image_url"),
+                root_disk.get("disk_name"),
+                root_disk.get("disk_key"),
+                image_name,
+            )
+            return inferred or "disk"
+        if asset:
+            inferred = getattr(asset, "format", "") or self._infer_asset_format(
+                getattr(asset, "source_uri", ""),
+                getattr(asset, "image_url", ""),
+                getattr(asset, "name", ""),
+                source_uri,
+                image_url,
+                image_name,
+            )
+            if inferred:
+                return inferred
+            if getattr(asset, "source_type", "") in ("vm_export", "upload", "url"):
+                return "disk"
+        inferred = self._infer_asset_format(source_uri, image_url, image_name)
+        if inferred:
+            return inferred
+        if source_uri or image_url:
+            return "disk"
+        return ""
+
+    def build_vm_create_disk_imports(self, asset=None, template_payload=None, image_name="", image_url="", source_uri=""):
+        imports = []
+        root_import = self._build_vm_root_disk_import(
+            asset=asset,
+            template_payload=template_payload,
+            image_name=image_name,
+            image_url=image_url,
+            source_uri=source_uri,
+        )
+        if root_import:
+            imports.append(root_import)
+        if template_payload:
+            imports.extend([
+                disk for disk in (template_payload.get("data_disks") or [])
+                if disk.get("image_url")
+            ])
+        return imports
+
+    def _build_vm_root_disk_import(self, asset=None, template_payload=None, image_name="", image_url="", source_uri=""):
+        boot_source_format = self.infer_vm_boot_source_format(
+            asset=asset,
+            template_payload=template_payload,
+            image_name=image_name,
+            image_url=image_url,
+            source_uri=source_uri,
+        )
+        if boot_source_format == "iso":
+            return None
+
+        root_disk = self._extract_root_disk_payload(asset=asset, template_payload=template_payload)
+        if root_disk:
+            restore_url = root_disk.get("image_url") or ""
+            if not self._is_http_source(restore_url):
+                return None
+            return {
+                "volume_name": "disk",
+                "disk_key": root_disk.get("disk_key") or "rootdisk",
+                "disk_name": root_disk.get("disk_name") or root_disk.get("disk_key") or "rootdisk",
+                "image_url": restore_url,
+                "source_uri": root_disk.get("source_uri") or "",
+                "format": root_disk.get("format") or "",
+                "checksum": root_disk.get("checksum") or "",
+            }
+
+        restore_url = self._resolve_root_restore_url(asset=asset, image_url=image_url, source_uri=source_uri)
+        if not self._is_http_source(restore_url):
+            return None
+        return {
+            "volume_name": "disk",
+            "disk_key": "rootdisk",
+            "disk_name": "rootdisk",
+            "image_url": restore_url,
+            "source_uri": "",
+            "format": boot_source_format or "",
+            "checksum": "",
+        }
+
+    def _extract_root_disk_payload(self, asset=None, template_payload=None):
+        if template_payload:
+            for disk in template_payload.get("disk_layout") or []:
+                if str(disk.get("disk_role", "")).lower() == "root":
+                    return {
+                        "disk_key": disk.get("disk_key") or "rootdisk",
+                        "disk_name": disk.get("disk_name") or disk.get("disk_key") or "rootdisk",
+                        "image_url": disk.get("image_url") or "",
+                        "source_uri": disk.get("source_uri") or "",
+                        "format": disk.get("format") or "",
+                        "checksum": disk.get("checksum") or "",
+                    }
+        if asset:
+            extra = self._load_json(getattr(asset, "extra_json", ""), {})
+            for disk in extra.get("disks", []):
+                if str(disk.get("disk_role", "")).lower() == "root":
+                    return {
+                        "disk_key": disk.get("disk_key") or "rootdisk",
+                        "disk_name": disk.get("disk_name") or disk.get("disk_key") or "rootdisk",
+                        "image_url": disk.get("download_url") or disk.get("image_url") or "",
+                        "source_uri": disk.get("source_uri") or disk.get("export_name") or "",
+                        "format": disk.get("format") or "",
+                        "checksum": disk.get("checksum") or "",
+                    }
+        return None
+
+    def _resolve_root_restore_url(self, asset=None, image_url="", source_uri=""):
+        candidates = []
+        if asset:
+            candidates.extend([
+                getattr(asset, "image_url", ""),
+                getattr(asset, "source_uri", ""),
+            ])
+        candidates.extend([image_url, source_uri])
+        for candidate in candidates:
+            if self._is_http_source(candidate):
+                return candidate
+        return ""
+
+    def _is_http_source(self, value):
+        value = str(value or "").strip().lower()
+        return value.startswith("http://") or value.startswith("https://")
 
     def _normalize_vm_disk_imports(self, disk_imports):
         normalized = {}

@@ -207,6 +207,15 @@ class VMTemplateInstantiationTests(TestCase):
         disk_imports = json.loads(attrs["vm_disk_imports"])
         self.assertEqual(
             {
+                "disk": {
+                    "volume_name": "disk",
+                    "disk_key": "rootdisk",
+                    "disk_name": "rootdisk",
+                    "image_url": "https://download/root.qcow2",
+                    "source_uri": "",
+                    "format": "",
+                    "checksum": "",
+                },
                 "data-1": {
                     "volume_name": "data-1",
                     "disk_key": "data-1",
@@ -341,6 +350,81 @@ class VMTemplateInstantiationTests(TestCase):
         _, create_args, _ = create_vm_run_app_mock.mock_calls[0]
         self.assertEqual("tenant-ns:exported-win", create_args[5])
         self.assertEqual("https://download/exported-root.qcow2", create_args[8])
+        attrs = {
+            item.name: item.attribute_value
+            for item in ComponentK8sAttributes.objects.filter(component_id="service-new")
+        }
+        self.assertEqual(
+            {
+                "disk": {
+                    "volume_name": "disk",
+                    "disk_key": "rootdisk",
+                    "disk_name": "rootdisk",
+                    "image_url": "https://download/exported-root.qcow2",
+                    "source_uri": "",
+                    "format": "",
+                    "checksum": "",
+                }
+            },
+            json.loads(attrs["vm_disk_imports"]),
+        )
+
+    def test_vm_run_create_from_iso_asset_keeps_boot_media_out_of_root_imports(self):
+        iso_asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="windows-installer",
+            image_url="https://download/windows-server.iso",
+            source_type="upload",
+            source_uri="/tmp/windows-server.iso",
+            status="ready",
+            format="iso"
+        )
+        factory = APIRequestFactory()
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+
+        request = view.initialize_request(factory.post(
+            "/console/teams/demo-team/apps/create/vm",
+            {
+                "group_id": 7,
+                "service_cname": "installer-vm",
+                "k8s_component_name": "installer-vm",
+                "asset_id": iso_asset.ID,
+                "image_name": iso_asset.name
+            },
+            format="json"
+        ))
+
+        new_service = SimpleNamespace(
+            service_id="service-new-iso",
+            service_alias="gr123457",
+            service_source="vm_run",
+            create_status="creating",
+            to_dict=lambda: {"service_id": "service-new-iso", "service_alias": "gr123457"}
+        )
+
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                return_value=False,
+                create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.app_service.create_vm_run_app",
+                    return_value=(200, "创建成功", new_service),
+                    create=True) as create_vm_run_app_mock, \
+                mock.patch(
+                    "console.views.app_create.vm_run.group_service.add_service_to_group",
+                    return_value=(200, "success")):
+            response = view.post(request)
+
+        self.assertEqual(response.status_code, 200)
+        _, create_args, _ = create_vm_run_app_mock.mock_calls[0]
+        self.assertEqual("tenant-ns:windows-installer", create_args[5])
+        self.assertEqual("https://download/windows-server.iso", create_args[8])
+        self.assertFalse(
+            ComponentK8sAttributes.objects.filter(component_id="service-new-iso", name="vm_disk_imports").exists()
+        )
 
     def test_vm_run_create_refreshes_vm_export_asset_before_ready_guard(self):
         machine_asset = VirtualMachineImage.objects.create(

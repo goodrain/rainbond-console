@@ -112,6 +112,7 @@ class VMRunCreateView(RegionTenantHeaderView):
             asset = None
             template_payload = None
             guest_os_name = ""
+            boot_source_format = ""
             if event_id != "" or vm_url != "":
                 asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
                 if asset:
@@ -150,6 +151,12 @@ class VMRunCreateView(RegionTenantHeaderView):
                             "created_from": "vm_run"
                         })
                     asset_id = asset.ID
+                boot_source_format = vms.infer_vm_boot_source_format(
+                    asset=asset,
+                    image_name=image_name,
+                    image_url=image,
+                    source_uri=vm_url or getattr(asset, "source_uri", ""),
+                )
                 guest_os_name = getattr(asset, "os_name", "") or image_name
             else:
                 if template_version_id:
@@ -178,6 +185,11 @@ class VMRunCreateView(RegionTenantHeaderView):
                         runtime_snapshot.get("os_name") or
                         image_name
                     )
+                    boot_source_format = vms.infer_vm_boot_source_format(
+                        template_payload=template_payload,
+                        image_name=image_name,
+                        image_url=image,
+                    )
                 if asset_id:
                     asset = vm_repo.get_vm_image_instance_by_id(self.tenant.tenant_id, asset_id)
                 if not asset and image_name:
@@ -193,6 +205,13 @@ class VMRunCreateView(RegionTenantHeaderView):
                         image_name = getattr(asset, "name", "") or image_name
                     if not guest_os_name:
                         guest_os_name = getattr(asset, "os_name", "") or image_name
+                    if not template_payload:
+                        boot_source_format = vms.infer_vm_boot_source_format(
+                            asset=asset,
+                            image_name=image_name,
+                            image_url=image,
+                            source_uri=getattr(asset, "source_uri", ""),
+                        )
                 if not image:
                     return Response(general_message(404, "vm image not found", "虚拟机镜像不存在"), status=404)
                 if not (event_id or vm_url):
@@ -216,8 +235,16 @@ class VMRunCreateView(RegionTenantHeaderView):
                     "template_version_id": template_payload.get("template_version_id") if template_payload else "",
                     "disk_layout": template_payload.get("disk_layout") if template_payload else [],
                     "boot_mode": boot_mode,
+                    "boot_source_format": boot_source_format,
                     "os_name": guest_os_name
                 })
+            disk_imports = vms.build_vm_create_disk_imports(
+                asset=asset if not template_payload else None,
+                template_payload=template_payload,
+                image_name=image_name,
+                image_url=image,
+                source_uri=vm_url or getattr(asset, "source_uri", ""),
+            )
             if template_payload:
                 for disk in template_payload.get("data_disks", []):
                     settings = {
@@ -234,10 +261,11 @@ class VMRunCreateView(RegionTenantHeaderView):
                         self.user.nick_name,
                         mode=None
                     )
+            if disk_imports:
                 vms.save_vm_disk_imports(
                     self.tenant.tenant_id,
                     new_service.service_id,
-                    template_payload.get("data_disks", [])
+                    disk_imports
                 )
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                                 new_service.service_id)
