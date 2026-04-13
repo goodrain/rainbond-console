@@ -13,6 +13,7 @@ from console.services.vm_boot_source import (
 from console.repositories.vm_template import vm_template_repo
 from console.repositories.virtual_machine import vm_repo
 from www.apiclient.regionapi import RegionInvokeApi
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import (
     Tenants,
     TenantServiceInfo,
@@ -625,6 +626,13 @@ class VirtualMachineService(object):
                     err,
                 )
                 self._mark_vm_export_asset_missing(asset)
+            elif self._is_region_resource_missing_error(err):
+                logger.warning(
+                    "vm export asset sync skipped missing region resource: asset=%s export_id=%s err=%s",
+                    getattr(asset, "ID", ""),
+                    getattr(asset, "build_event_id", ""),
+                    err,
+                )
             else:
                 raise
         asset.refresh_from_db()
@@ -1248,6 +1256,21 @@ class VirtualMachineService(object):
             asset.status = "failed"
         asset.extra_json = json.dumps(extra)
         asset.save()
+
+    def _is_region_resource_missing_error(self, err):
+        if isinstance(err, RegionApiBaseHttpClient.CallApiError):
+            if getattr(err, "status", None) == 404:
+                return True
+            message = getattr(err, "message", {}) or {}
+            if isinstance(message, dict) and message.get("httpcode") == 404:
+                return True
+        if isinstance(err, ServiceHandleException):
+            if getattr(err, "status_code", None) == 404:
+                return True
+            raw = getattr(err, "msg", None)
+            if isinstance(raw, dict) and raw.get("httpcode") == 404:
+                return True
+        return False
 
     def _normalize_vm_disk_imports(self, disk_imports):
         normalized = {}

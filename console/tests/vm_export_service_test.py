@@ -22,6 +22,7 @@ from django.test import TestCase
 
 from console.exception.main import ServiceHandleException
 from console.services.virtual_machine import vms
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import VirtualMachineImage
 
 
@@ -297,3 +298,40 @@ class VMExportServiceTests(TestCase):
         ):
             with self.assertRaises(ServiceHandleException):
                 vms.sync_vm_export_asset_record(parent, region_name="demo-region", tenant_name="demo-team")
+
+    def test_sync_vm_export_asset_record_ignores_region_404_errors(self):
+        parent = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="snapshot-1",
+            image_url="https://download/rootdisk",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            status="ready",
+            build_event_id="evt-1",
+            extra_json=json.dumps({
+                "asset_kind": "machine",
+                "disk_count": 1,
+                "source_service_id": "service-a",
+                "disks": [
+                    {"disk_key": "rootdisk", "disk_role": "root", "download_url": "https://download/rootdisk"},
+                ]
+            })
+        )
+
+        region_404 = RegionApiBaseHttpClient.CallApiError(
+            "region api",
+            "http://region/v2/tenants/demo/services/demo/vm-exports/evt-1",
+            "GET",
+            mock.Mock(status=404),
+            {"msg": "not found"},
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.get_vm_export_status",
+            side_effect=region_404
+        ):
+            asset = vms.sync_vm_export_asset_record(parent, region_name="demo-region", tenant_name="demo-team")
+
+        self.assertEqual("ready", asset.status)
+        extra = json.loads(asset.extra_json)
+        self.assertFalse(extra.get("export_record_missing", False))
