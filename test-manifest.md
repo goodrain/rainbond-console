@@ -349,6 +349,8 @@
 | console.version.sort-desc | 按降序排列版本字符串 | active | regression | console.utils.version.sorted_versions | console/tests/utils/version_test.py::VersionUtilsTests.test_sorted_versions |
 | console.vm-asset.delete-active-reference-guard | 仅当活跃虚拟机仍引用时阻止删除镜像资产 | active | regression | console.services.virtual_machine.VirtualMachineService.delete_vm_image | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_ignores_orphan_vm_asset_attrs<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_blocks_active_vm_asset_reference<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_ignores_incomplete_vm_service_reference |
 | console.vm-overview.vnc-url-plugin-fallback | 在缺少查询参数时从插件回填虚拟机概览 VNC 地址 | active | regression | console.views.app_overview.AppDetailView.get | console/tests/vm_detail_view_test.py::AppVMDetailViewTests.test_get_builds_vm_vnc_url_from_plugin_fallback_when_query_param_missing |
+| rainbond-console.vm-export.asset-ready-storage-status | vm 导出资产需要对象存储就绪才算可用 | active | regression | console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready | console/tests/vm_create_flow_regression_test.py::VMCreateFlowRegressionUnitTests::test_is_vm_asset_ready_requires_storage_ready_for_vm_export_machine_assets |
+| rainbond-console.vm-run.vm-export-machine-restore-plan | 从 vm 导出资产清单恢复整机多盘 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_template_instantiation_test.py::VMTemplateInstantiationTests::test_vm_run_create_restores_all_vm_export_disks_from_machine_manifest |
 
 ## 详情
 
@@ -3801,3 +3803,23 @@
 - 业务入口: `console.views.app_overview.AppDetailView.get`
 - 代码路径: `console/views/app_overview.py`
 - 测试路径: `console/tests/vm_detail_view_test.py::AppVMDetailViewTests.test_get_builds_vm_vnc_url_from_plugin_fallback_when_query_param_missing`
+
+### vm 导出资产需要对象存储就绪才算可用
+
+- Capability ID: `rainbond-console.vm-export.asset-ready-storage-status`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service`
+- 业务入口: `console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready`
+- 代码路径: `console/services/virtual_machine.py`
+- 测试路径: `console/tests/vm_create_flow_regression_test.py::VMCreateFlowRegressionUnitTests::test_is_vm_asset_ready_requires_storage_ready_for_vm_export_machine_assets`
+
+### 从 vm 导出资产清单恢复整机多盘
+
+- Capability ID: `rainbond-console.vm-run.vm-export-machine-restore-plan`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view`
+- 业务入口: `console.views.app_create.vm_run.VMRunCreateView.post`
+- 代码路径: `console/views/app_create/vm_run.py`
+- 测试路径: `console/tests/vm_template_instantiation_test.py::VMTemplateInstantiationTests::test_vm_run_create_restores_all_vm_export_disks_from_machine_manifest`

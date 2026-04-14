@@ -1,3 +1,4 @@
+# capability_id: rainbond-console.vm-run.vm-export-machine-restore-plan
 import collections
 import json
 import os
@@ -658,3 +659,113 @@ class VMTemplateInstantiationTests(TestCase):
         _, create_args, _ = create_vm_run_app_mock.mock_calls[0]
         self.assertEqual("tenant-ns:exported-win", create_args[5])
         self.assertEqual("https://download/exported-root.qcow2", create_args[8])
+
+    def test_vm_run_create_restores_all_vm_export_disks_from_machine_manifest(self):
+        machine_asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="exported-win",
+            image_url="s3://vm-assets/vm-export/tenant-a/asset-101/rootdisk.qcow2",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            status="ready",
+            extra_json=json.dumps({
+                "storage_status": "ready",
+                "machine_manifest": {
+                    "version": "v1",
+                    "root_disk_key": "rootdisk",
+                    "disks": [
+                        {
+                            "disk_key": "rootdisk",
+                            "disk_name": "rootdisk",
+                            "disk_role": "root",
+                            "boot_order": 1,
+                            "object_key": "vm-export/tenant-a/asset-101/rootdisk.qcow2",
+                            "object_uri": "s3://vm-assets/vm-export/tenant-a/asset-101/rootdisk.qcow2",
+                            "format": "qcow2",
+                            "size_bytes": 42949672960
+                        },
+                        {
+                            "disk_key": "data-1",
+                            "disk_name": "data-1",
+                            "disk_role": "data",
+                            "boot_order": 2,
+                            "object_key": "vm-export/tenant-a/asset-101/data-1.qcow2",
+                            "object_uri": "s3://vm-assets/vm-export/tenant-a/asset-101/data-1.qcow2",
+                            "format": "qcow2",
+                            "size_bytes": 214748364800
+                        }
+                    ]
+                }
+            })
+        )
+        factory = APIRequestFactory()
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns")
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+
+        request = view.initialize_request(factory.post(
+            "/console/teams/demo-team/apps/create/vm",
+            {
+                "group_id": 7,
+                "service_cname": "restored-vm",
+                "k8s_component_name": "restored-vm",
+                "asset_id": machine_asset.ID,
+                "image_name": machine_asset.name
+            },
+            format="json"
+        ))
+
+        new_service = SimpleNamespace(
+            service_id="service-new-machine",
+            service_alias="gr999999",
+            service_source="vm_run",
+            create_status="creating",
+            to_dict=lambda: {"service_id": "service-new-machine", "service_alias": "gr999999"}
+        )
+
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                return_value=False,
+                create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.app_service.create_vm_run_app",
+                    return_value=(200, "创建成功", new_service),
+                    create=True) as create_vm_run_app_mock, \
+                mock.patch(
+                    "console.views.app_create.vm_run.group_service.add_service_to_group",
+                    return_value=(200, "success")), \
+                mock.patch(
+                    "console.views.app_create.vm_run.vms.sync_vm_export_asset_record",
+                    side_effect=lambda asset, region_name, tenant_name: asset), \
+                mock.patch(
+                    "console.views.app_create.vm_run.vms.resolve_vm_export_restore_plan",
+                    return_value={
+                        "boot_source_format": "disk",
+                        "disk_layout": [
+                            {"disk_key": "rootdisk", "disk_name": "rootdisk", "disk_role": "root", "boot_order": 1, "boot": True},
+                            {"disk_key": "data-1", "disk_name": "data-1", "disk_role": "data", "boot_order": 2, "boot": False}
+                        ],
+                        "disk_imports": [
+                            {"volume_name": "disk", "disk_key": "rootdisk", "disk_name": "rootdisk", "image_url": "https://signed/rootdisk.qcow2", "format": "qcow2"},
+                            {"volume_name": "data-1", "disk_key": "data-1", "disk_name": "data-1", "image_url": "https://signed/data-1.qcow2", "format": "qcow2"}
+                        ]
+                    }) as restore_plan_mock:
+            response = view.post(request)
+
+        self.assertEqual(response.status_code, 200)
+        restore_plan_mock.assert_called_once()
+        _, create_args, _ = create_vm_run_app_mock.mock_calls[0]
+        self.assertEqual("tenant-ns:exported-win", create_args[5])
+        self.assertEqual("", create_args[8])
+        attrs = {
+            item.name: item.attribute_value
+            for item in ComponentK8sAttributes.objects.filter(component_id="service-new-machine")
+        }
+        disk_layout = json.loads(attrs["vm_disk_layout"])
+        self.assertEqual(2, len(disk_layout))
+        self.assertEqual("root", disk_layout[0]["disk_role"])
+        disk_imports = json.loads(attrs["vm_disk_imports"])
+        self.assertEqual(2, len(disk_imports))
+        self.assertEqual("disk", disk_imports["disk"]["volume_name"])
+        self.assertEqual("data-1", disk_imports["data-1"]["volume_name"])

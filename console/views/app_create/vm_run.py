@@ -11,6 +11,7 @@ from console.exception.main import ResourceNotEnoughException
 from console.repositories.virtual_machine import vm_repo
 from console.services.app_config import volume_service
 from console.services.app import app_service
+from console.services.vm_boot_source import build_vm_runtime_image_name
 from console.services.virtual_machine import vms
 from console.views.base import RegionTenantHeaderView
 from www.utils.return_message import general_message
@@ -106,6 +107,7 @@ class VMRunCreateView(RegionTenantHeaderView):
             "os_family": os_family
         }
         asset_created = False
+        restore_plan = None
         public_vm_meta = PUBLIC_VM_IMAGES.get(image_name)
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             raise ErrK8sComponentNameExists
@@ -219,9 +221,18 @@ class VMRunCreateView(RegionTenantHeaderView):
                                 image_url=image,
                                 source_uri=getattr(asset, "source_uri", ""),
                             )
+                if not template_payload and asset and vms.has_vm_export_machine_manifest(asset):
+                    restore_plan = vms.resolve_vm_export_restore_plan(
+                        asset,
+                        self.response_region,
+                        self.tenant.tenant_name,
+                    )
+                    image = build_vm_runtime_image_name(self.tenant, image_name or getattr(asset, "name", ""))
+                    vm_url = ""
+                    boot_source_format = restore_plan.get("boot_source_format") or boot_source_format or "disk"
                 if not image:
                     return Response(general_message(404, "vm image not found", "虚拟机镜像不存在"), status=404)
-                if not (event_id or vm_url):
+                if not restore_plan and not (event_id or vm_url):
                     boot_source = vms.resolve_vm_boot_source(self.tenant, image_name, image)
                     image = boot_source["image"]
                     if boot_source["vm_url"]:
@@ -253,12 +264,12 @@ class VMRunCreateView(RegionTenantHeaderView):
                     "asset_id": asset_id,
                     "template_id": template_payload.get("template_id") if template_payload else "",
                     "template_version_id": template_payload.get("template_version_id") if template_payload else "",
-                    "disk_layout": template_payload.get("disk_layout") if template_payload else [],
+                    "disk_layout": restore_plan.get("disk_layout") if restore_plan else (template_payload.get("disk_layout") if template_payload else []),
                     "boot_mode": boot_mode,
                     "boot_source_format": boot_source_format,
                     "os_name": guest_os_name
                 })
-            disk_imports = vms.build_vm_create_disk_imports(
+            disk_imports = restore_plan.get("disk_imports") if restore_plan else vms.build_vm_create_disk_imports(
                 asset=asset if not template_payload else None,
                 template_payload=template_payload,
                 image_name=image_name,

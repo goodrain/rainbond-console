@@ -1,3 +1,4 @@
+# capability_id: rainbond-console.vm-export.asset-ready-storage-status
 import collections
 import json
 import os
@@ -306,3 +307,32 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
         )
 
         self.assertEqual("disk", fmt)
+
+    def test_is_vm_asset_ready_requires_storage_ready_for_vm_export_machine_assets(self):
+        ready_asset = SimpleNamespace(
+            source_type="vm_export",
+            status="ready",
+            image_url="s3://vm-assets/rootdisk.qcow2",
+            extra_json=json.dumps({
+                "storage_status": "ready",
+                "machine_manifest": {
+                    "version": "v1",
+                    "disks": [{"disk_key": "rootdisk", "disk_role": "root"}]
+                }
+            })
+        )
+        exporting_asset = SimpleNamespace(
+            source_type="vm_export",
+            status="ready",
+            image_url="s3://vm-assets/rootdisk.qcow2",
+            extra_json=json.dumps({
+                "storage_status": "exporting",
+                "machine_manifest": {
+                    "version": "v1",
+                    "disks": [{"disk_key": "rootdisk", "disk_role": "root"}]
+                }
+            })
+        )
+
+        self.assertTrue(vms.is_vm_asset_ready(ready_asset))
+        self.assertFalse(vms.is_vm_asset_ready(exporting_asset))

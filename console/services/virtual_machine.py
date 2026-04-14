@@ -574,6 +574,7 @@ class VirtualMachineService(object):
                     "snapshot_name": "",
                 },
                 "runtime_snapshot": runtime_snapshot,
+                "storage_status": "exporting",
                 "disks": disks,
             }
         )
@@ -596,7 +597,22 @@ class VirtualMachineService(object):
 
         root_disk = next((disk for disk in disks if disk.get("disk_role") == "root"), None)
         asset.status = bean.get("status") or asset.status
-        if root_disk and root_disk.get("download_url"):
+        if self._should_persist_vm_export_asset(asset, bean, extra):
+            asset.status = "exporting"
+            persist_payload = {
+                "asset_id": getattr(asset, "ID", 0),
+                "asset_name": getattr(asset, "name", ""),
+            }
+            _, persist_body = region_api.persist_vm_export(
+                region_name,
+                tenant_name,
+                extra.get("source_service_alias", ""),
+                asset.build_event_id,
+                persist_payload,
+            )
+            persist_bean = persist_body.get("bean", {}) if isinstance(persist_body, dict) else {}
+            self._apply_vm_export_persist_result(asset, extra, persist_bean)
+        elif root_disk and root_disk.get("download_url"):
             asset.image_url = root_disk.get("download_url")
         logger.info(
             "vm export asset sync: asset_id=%s export_id=%s status=%s root_url=%s disk_count=%s",
@@ -646,7 +662,18 @@ class VirtualMachineService(object):
         ).order_by("-ID").first()
 
     def is_vm_asset_ready(self, asset):
-        return bool(asset and getattr(asset, "status", "") == "ready" and getattr(asset, "image_url", ""))
+        if not asset:
+            return False
+        if getattr(asset, "source_type", "") == "vm_export":
+            extra = self._load_json(getattr(asset, "extra_json", ""), {})
+            manifest = extra.get("machine_manifest") or {}
+            return bool(
+                getattr(asset, "status", "") == "ready" and
+                extra.get("storage_status") == "ready" and
+                isinstance(manifest.get("disks"), list) and
+                len(manifest.get("disks")) > 0
+            )
+        return bool(getattr(asset, "status", "") == "ready" and getattr(asset, "image_url", ""))
 
     def get_vm_asset_for_service(self, service, asset_id=None):
         tenant_id = getattr(service, "tenant_id", "")
@@ -1177,6 +1204,27 @@ class VirtualMachineService(object):
                     }
         return None
 
+    def has_vm_export_machine_manifest(self, asset):
+        if not asset or getattr(asset, "source_type", "") != "vm_export":
+            return False
+        extra = self._load_json(getattr(asset, "extra_json", ""), {})
+        manifest = extra.get("machine_manifest") or {}
+        return isinstance(manifest.get("disks"), list) and len(manifest.get("disks")) > 0
+
+    def resolve_vm_export_restore_plan(self, asset, region_name, tenant_name):
+        if not asset:
+            return {}
+        extra = self._load_json(getattr(asset, "extra_json", ""), {})
+        manifest = extra.get("machine_manifest") or {}
+        if not manifest:
+            return {}
+        _, body = region_api.get_vm_asset_restore_plan(
+            region_name,
+            tenant_name,
+            {"manifest": manifest},
+        )
+        return body.get("bean", {}) if isinstance(body, dict) else {}
+
     def _resolve_root_restore_url(self, asset=None, image_url="", source_uri=""):
         candidates = []
         if asset:
@@ -1212,6 +1260,39 @@ class VirtualMachineService(object):
     def _is_http_source(self, value):
         value = str(value or "").strip().lower()
         return value.startswith("http://") or value.startswith("https://")
+
+    def _should_persist_vm_export_asset(self, asset, bean, extra):
+        if not asset or getattr(asset, "source_type", "") != "vm_export":
+            return False
+        if extra.get("storage_status") == "ready":
+            return False
+        if (bean or {}).get("status") != "ready":
+            return False
+        disks = (bean or {}).get("disks") or []
+        if not disks:
+            return False
+        return all(disk.get("download_url") for disk in disks)
+
+    def _apply_vm_export_persist_result(self, asset, extra, persist_bean):
+        if not persist_bean:
+            return
+        extra["storage_status"] = persist_bean.get("status") or extra.get("storage_status") or "exporting"
+        if persist_bean.get("storage_backend"):
+            extra["storage_backend"] = persist_bean.get("storage_backend")
+            asset.storage_backend = persist_bean.get("storage_backend")
+        if persist_bean.get("storage_bucket"):
+            extra["storage_bucket"] = persist_bean.get("storage_bucket")
+        if persist_bean.get("storage_prefix"):
+            extra["storage_prefix"] = persist_bean.get("storage_prefix")
+        if persist_bean.get("machine_manifest"):
+            extra["machine_manifest"] = persist_bean.get("machine_manifest")
+        root_object_uri = persist_bean.get("root_object_uri") or ""
+        if root_object_uri:
+            asset.image_url = root_object_uri
+        if extra.get("storage_status") == "ready":
+            asset.status = "ready"
+        else:
+            asset.status = persist_bean.get("status") or "exporting"
 
     def _is_missing_vm_export_error(self, err, export_id=""):
         message = self._flatten_vm_export_error_message(err)

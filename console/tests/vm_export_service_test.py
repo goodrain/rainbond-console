@@ -199,6 +199,104 @@ class VMExportServiceTests(TestCase):
         self.assertEqual(2, len(asset["disks"]))
         self.assertEqual("https://download/rootdisk", asset["disks"][0]["download_url"])
 
+    def test_sync_vm_export_status_persists_machine_manifest_before_marking_ready(self):
+        parent = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="snapshot-1",
+            image_url="",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            status="exporting",
+            build_event_id="evt-1",
+            extra_json=json.dumps({
+                "asset_kind": "machine",
+                "disk_count": 2,
+                "source_service_id": "service-a",
+                "source_service_alias": "demo-vm",
+                "runtime_snapshot": {"boot_mode": "uefi"},
+                "disks": [
+                    {"disk_key": "rootdisk", "disk_role": "root"},
+                    {"disk_key": "data-1", "disk_role": "data"},
+                ]
+            })
+        )
+
+        with mock.patch("console.services.virtual_machine.region_api.get_vm_export_status", return_value=(None, {
+            "bean": {
+                "export_id": "evt-1",
+                "status": "ready",
+                "disks": [
+                    {
+                        "disk_key": "rootdisk",
+                        "disk_name": "rootdisk",
+                        "disk_role": "root",
+                        "pvc_name": "rootdisk-pvc",
+                        "pvc_namespace": "demo-ns",
+                        "export_name": "evt-1-rootdisk",
+                        "status": "ready",
+                        "download_url": "https://download/rootdisk"
+                    },
+                    {
+                        "disk_key": "data-1",
+                        "disk_name": "data-1",
+                        "disk_role": "data",
+                        "pvc_name": "data-pvc",
+                        "pvc_namespace": "demo-ns",
+                        "export_name": "evt-1-data-1",
+                        "status": "ready",
+                        "download_url": "https://download/data-1"
+                    }
+                ]
+            }
+        })), mock.patch("console.services.virtual_machine.region_api.persist_vm_export", return_value=(None, {
+            "bean": {
+                "status": "ready",
+                "storage_backend": "s3",
+                "storage_bucket": "vm-assets",
+                "storage_prefix": "vm-export/tenant-a/asset-101/",
+                "root_object_uri": "s3://vm-assets/vm-export/tenant-a/asset-101/rootdisk.qcow2",
+                "machine_manifest": {
+                    "version": "v1",
+                    "arch": "amd64",
+                    "boot_mode": "uefi",
+                    "root_disk_key": "rootdisk",
+                    "disks": [
+                        {
+                            "disk_key": "rootdisk",
+                            "disk_name": "rootdisk",
+                            "disk_role": "root",
+                            "boot_order": 1,
+                            "object_key": "vm-export/tenant-a/asset-101/rootdisk.qcow2",
+                            "object_uri": "s3://vm-assets/vm-export/tenant-a/asset-101/rootdisk.qcow2",
+                            "format": "qcow2",
+                            "size_bytes": 42949672960
+                        },
+                        {
+                            "disk_key": "data-1",
+                            "disk_name": "data-1",
+                            "disk_role": "data",
+                            "boot_order": 2,
+                            "object_key": "vm-export/tenant-a/asset-101/data-1.qcow2",
+                            "object_uri": "s3://vm-assets/vm-export/tenant-a/asset-101/data-1.qcow2",
+                            "format": "qcow2",
+                            "size_bytes": 214748364800
+                        }
+                    ]
+                }
+            }
+        })) as persist_mock:
+            asset = vms.sync_vm_export_status(parent, region_name="demo-region", tenant_name="demo-team")
+
+        self.assertEqual("ready", asset["status"])
+        self.assertEqual("s3://vm-assets/vm-export/tenant-a/asset-101/rootdisk.qcow2", asset["image_url"])
+        persist_mock.assert_called_once()
+        parent.refresh_from_db()
+        extra = json.loads(parent.extra_json)
+        self.assertEqual("ready", extra["storage_status"])
+        self.assertEqual("s3", extra["storage_backend"])
+        self.assertEqual("vm-assets", extra["storage_bucket"])
+        self.assertEqual(2, len(extra["machine_manifest"]["disks"]))
+
     def test_sync_vm_export_asset_record_keeps_ready_asset_when_region_export_is_missing(self):
         parent = VirtualMachineImage.objects.create(
             tenant_id="tenant-a",

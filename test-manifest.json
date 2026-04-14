@@ -6441,6 +6441,42 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "rainbond-console.vm-export.asset-ready-storage-status",
+      "title": "Require storage-ready status for vm export assets",
+      "title_zh": "vm \u5bfc\u51fa\u8d44\u4ea7\u9700\u8981\u5bf9\u8c61\u5b58\u50a8\u5c31\u7eea\u624d\u7b97\u53ef\u7528",
+      "interface_type": "service_method",
+      "interface": "console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_create_flow_regression_test.py",
+          "selector": "VMCreateFlowRegressionUnitTests::test_is_vm_asset_ready_requires_storage_ready_for_vm_export_machine_assets"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "rainbond-console.vm-run.vm-export-machine-restore-plan",
+      "title": "Restore all machine disks from vm export asset manifest",
+      "title_zh": "\u4ece vm \u5bfc\u51fa\u8d44\u4ea7\u6e05\u5355\u6062\u590d\u6574\u673a\u591a\u76d8",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
+      "code_paths": [
+        "console/views/app_create/vm_run.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_template_instantiation_test.py",
+          "selector": "VMTemplateInstantiationTests::test_vm_run_create_restores_all_vm_export_disks_from_machine_manifest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
