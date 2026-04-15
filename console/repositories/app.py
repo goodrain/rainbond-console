@@ -10,9 +10,10 @@ from console.exception.main import ServiceHandleException
 from console.models.main import (AppMarket, RainbondCenterAppTag, RainbondCenterAppTagsRelation, ServiceRecycleBin,
                                  ServiceRelationRecycleBin, ServiceSourceInfo)
 from console.repositories.base import BaseConnection
+from console.repositories.team_repo import team_repo
 from django.db import transaction
 from docker_image import reference
-from www.models.main import (ServiceWebhooks, TenantServiceInfo, TenantServiceInfoDelete)
+from www.models.main import (ServiceGroup, ServiceGroupRelation, ServiceWebhooks, TenantServiceInfo, TenantServiceInfoDelete)
 
 logger = logging.getLogger('default')
 
@@ -220,6 +221,39 @@ class TenantServiceInfoRepository(object):
 
     def get_services_by_team_and_region(self, team_id, region_name):
         return TenantServiceInfo.objects.filter(tenant_id=team_id, service_region=region_name).all()
+
+    def list_basic_infos_by_team_and_region(self, team_id, region_name):
+        services = TenantServiceInfo.objects.filter(
+            tenant_id=team_id, service_region=region_name).order_by("-update_time")
+        service_ids = [service.service_id for service in services]
+        if not service_ids:
+            return []
+
+        relations = ServiceGroupRelation.objects.filter(
+            tenant_id=team_id, region_name=region_name, service_id__in=service_ids)
+        relation_map = {relation.service_id: relation.group_id for relation in relations}
+        group_ids = list(set([relation.group_id for relation in relations]))
+        groups = ServiceGroup.objects.filter(ID__in=group_ids)
+        group_name_map = {group.ID: group.group_name for group in groups}
+
+        result = []
+        for service in services:
+            group_id = relation_map.get(service.service_id, -1)
+            update_time = service.update_time.strftime("%Y-%m-%d %H:%M:%S") if service.update_time else ""
+            result.append({
+                "service_id": service.service_id,
+                "service_alias": service.service_alias,
+                "service_cname": service.service_cname,
+                "service_key": service.service_key,
+                "k8s_component_name": service.k8s_component_name,
+                "service_source": service.service_source,
+                "create_status": service.create_status,
+                "group_id": group_id,
+                "group_name": group_name_map.get(group_id, "未分组") if group_id != -1 else "未分组",
+                "region_name": service.service_region,
+                "update_time": update_time,
+            })
+        return result
 
     @staticmethod
     def bulk_create(components: [TenantServiceInfo]):
