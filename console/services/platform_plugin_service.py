@@ -29,6 +29,60 @@ PLUGIN_TEAM_ALIAS = "平台插件"
 
 
 class PlatformPluginService(object):
+    ARCH_PLUGIN_SUFFIXES = ("-ARM64", "-AMD64")
+
+    def _strip_plugin_arch_suffix(self, plugin_id):
+        plugin_id = str(plugin_id or "").strip()
+        upper_plugin_id = plugin_id.upper()
+        for suffix in self.ARCH_PLUGIN_SUFFIXES:
+            if upper_plugin_id.endswith(suffix):
+                return plugin_id[:-len(suffix)]
+        return plugin_id
+
+    def _resolve_plugin_mapping_app_key(self, plugin_mapping, plugin_id):
+        plugin_id = str(plugin_id or "").strip()
+        if not plugin_id or not plugin_mapping:
+            return None
+        if plugin_id in plugin_mapping:
+            return plugin_mapping[plugin_id]
+        normalized_plugin_id = self._strip_plugin_arch_suffix(plugin_id)
+        for mapping_plugin_id, app_key in plugin_mapping.items():
+            if self._strip_plugin_arch_suffix(mapping_plugin_id) == normalized_plugin_id:
+                return app_key
+        return None
+
+    def _is_plugin_authorized(self, plugin_mapping, plugin_id):
+        return bool(self._resolve_plugin_mapping_app_key(plugin_mapping, plugin_id))
+
+    def _extract_arch_hint(self, plugin_info):
+        if not isinstance(plugin_info, dict):
+            return ""
+        arch_keys = [
+            "arch",
+            "architecture",
+            "architectures",
+            "arches",
+            "supported_arch",
+            "supported_arches",
+            "supported_architectures",
+            "support_arch",
+            "support_arches",
+            "support_architectures",
+            "build_arch",
+            "build_arches",
+            "version_arch",
+            "version_arches",
+            "latest_version_arch",
+            "latest_version_arches",
+            "template_arch",
+            "template_arches",
+        ]
+        for key in arch_keys:
+            value = plugin_info.get(key)
+            if value not in (None, "", [], {}):
+                return value
+        return ""
+
     def _plugin_debug_summary(self, plugin_info):
         if not plugin_info:
             return {}
@@ -38,6 +92,8 @@ class PlatformPluginService(object):
             "app_level": self._normalize_app_level(plugin_info),
             "plugin_name": plugin_info.get("plugin_name") or plugin_info.get("name", ""),
             "latest_version": plugin_info.get("latest_version", ""),
+            "arch_hint": self._extract_arch_hint(plugin_info),
+            "keys": sorted(plugin_info.keys()),
         }
 
     def _get_license_bean(self, enterprise_id, region_name):
@@ -67,8 +123,20 @@ class PlatformPluginService(object):
 
     def _get_market_platform_plugins(self, enterprise_id):
         market = self._build_platform_market(enterprise_id)
+        logger.info(
+            "platform plugin market fetch enterprise_id=%s market_url=%s market_domain=%s has_access_key=%s",
+            enterprise_id,
+            market.url,
+            market.domain,
+            bool(market.access_key),
+        )
         data = app_store.get_platform_plugins(market, page=1, page_size=-1)
         plugins = data.get("plugins", []) if data else []
+        logger.info(
+            "platform plugin market fetch result enterprise_id=%s plugin_count=%s",
+            enterprise_id,
+            len(plugins),
+        )
         return market, plugins
 
     def _get_installed_plugins(self, enterprise_id, region_name):
@@ -105,20 +173,42 @@ class PlatformPluginService(object):
     def _select_market_plugin(self, market_plugins, plugin_id, plugin_mapping):
         candidates = [item for item in market_plugins if item.get("plugin_id") == plugin_id]
         if not candidates:
+            logger.info("platform plugin select plugin_id=%s reason=no_candidates", plugin_id)
             return None
 
+        candidate_summaries = [self._plugin_debug_summary(item) for item in candidates]
         free_candidates = [item for item in candidates if self._normalize_app_level(item) == "free"]
         if free_candidates:
-            return free_candidates[0]
+            selected = free_candidates[0]
+            logger.info(
+                "platform plugin select plugin_id=%s reason=prefer_free candidates=%s selected=%s",
+                plugin_id,
+                json.dumps(candidate_summaries, ensure_ascii=False, sort_keys=True),
+                json.dumps(self._plugin_debug_summary(selected), ensure_ascii=False, sort_keys=True),
+            )
+            return selected
 
-        app_key = (plugin_mapping or {}).get(plugin_id)
+        app_key = self._resolve_plugin_mapping_app_key(plugin_mapping, plugin_id)
         if app_key:
             for item in candidates:
                 item_app_key = item.get("appKeyID") or item.get("app_key")
                 if item_app_key == app_key:
+                    logger.info(
+                        "platform plugin select plugin_id=%s reason=match_license_app_key candidates=%s selected=%s",
+                        plugin_id,
+                        json.dumps(candidate_summaries, ensure_ascii=False, sort_keys=True),
+                        json.dumps(self._plugin_debug_summary(item), ensure_ascii=False, sort_keys=True),
+                    )
                     return item
 
-        return candidates[0]
+        selected = candidates[0]
+        logger.info(
+            "platform plugin select plugin_id=%s reason=first_candidate candidates=%s selected=%s",
+            plugin_id,
+            json.dumps(candidate_summaries, ensure_ascii=False, sort_keys=True),
+            json.dumps(self._plugin_debug_summary(selected), ensure_ascii=False, sort_keys=True),
+        )
+        return selected
 
     def list_platform_plugins(self, enterprise_id, region_name):
         """
@@ -140,12 +230,23 @@ class PlatformPluginService(object):
             market_plugins = []
 
         logger.info(
-            "platform plugin list source summary enterprise_id=%s region_name=%s license_valid=%s mapping_keys=%s market_plugin_count=%s",
+            "platform plugin list source summary enterprise_id=%s region_name=%s "
+            "license_valid=%s mapping_keys=%s market_plugin_count=%s",
             enterprise_id,
             region_name,
             has_valid_license,
             list(plugin_mapping.keys()),
             len(market_plugins),
+        )
+        logger.info(
+            "platform plugin list market raw enterprise_id=%s region_name=%s plugins=%s",
+            enterprise_id,
+            region_name,
+            json.dumps(
+                [self._plugin_debug_summary(item) for item in market_plugins],
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
         )
 
         result = []
@@ -161,9 +262,11 @@ class PlatformPluginService(object):
                 continue
 
             app_level = self._normalize_app_level(market_plugin)
-            if has_valid_license and app_level != "free" and plugin_id not in plugin_mapping:
+            if has_valid_license and app_level != "free" and not self._is_plugin_authorized(
+                    plugin_mapping, plugin_id):
                 logger.info(
-                    "platform plugin filtered by license enterprise_id=%s region_name=%s plugin_id=%s app_level=%s mapping_keys=%s",
+                    "platform plugin filtered by license enterprise_id=%s region_name=%s "
+                    "plugin_id=%s app_level=%s mapping_keys=%s",
                     enterprise_id,
                     region_name,
                     plugin_id,
@@ -278,7 +381,8 @@ class PlatformPluginService(object):
                 market_plugin.get("latest_version", ""),
             )
         else:
-            if plugin_id not in plugin_mapping:
+            authorized_app_key = self._resolve_plugin_mapping_app_key(plugin_mapping, plugin_id)
+            if not authorized_app_key:
                 logger.warning(
                     "platform plugin install unauthorized enterprise plugin plugin_id=%s selected=%s mapping_keys=%s",
                     plugin_id,
@@ -288,7 +392,7 @@ class PlatformPluginService(object):
                 raise ServiceHandleException(msg="plugin not authorized", msg_show="该插件未授权")
             if not license_access_key:
                 raise ServiceHandleException(msg="no access_key in license", msg_show="授权信息中缺少 access_key")
-            app_key = plugin_mapping[plugin_id]
+            app_key = authorized_app_key
             market = AppMarket(
                 name="__platform_plugin__",
                 url=MARKET_HOST,
