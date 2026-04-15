@@ -105,6 +105,15 @@ class AppStore(object):
         headers = {}
         if store.access_key:
             headers["Authorization"] = store.access_key
+        logger.info(
+            "app store platform plugin request url=%s market_domain=%s query=%s page=%s page_size=%s has_access_key=%s",
+            "{0}/app-server/openapi/apps/platform-plugins".format(store.url.rstrip("/")),
+            store.domain,
+            query,
+            page,
+            page_size,
+            bool(store.access_key),
+        )
         response = requests.get(
             "{0}/app-server/openapi/apps/platform-plugins".format(store.url.rstrip("/")),
             headers=headers,
@@ -115,6 +124,11 @@ class AppStore(object):
                 "pageSize": page_size,
             },
             timeout=15,
+        )
+        logger.info(
+            "app store platform plugin response status_code=%s request_url=%s",
+            response.status_code,
+            response.url,
         )
         response.raise_for_status()
         return response.json()

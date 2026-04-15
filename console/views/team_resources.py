@@ -5,6 +5,7 @@ import yaml
 from django.http.response import StreamingHttpResponse
 from rest_framework.response import Response
 
+from console.repositories.app import service_repo
 from console.repositories.helm import helm_repo
 from console.repositories.helm_release_source import helm_release_source_repo
 from console.services.app_actions import ws_service
@@ -181,6 +182,12 @@ class NsResourcesView(TenantHeaderView):
         return Response(data, status=status_code)
 
 
+class TeamComponentsView(TenantHeaderView):
+    def get(self, request, team_name, region_name, *args, **kwargs):
+        components = service_repo.list_basic_infos_by_team_and_region(self.tenant.tenant_id, region_name)
+        return Response(general_message(200, "success", "OK", list=components))
+
+
 class NsResourceDetailView(TenantHeaderView):
     def get(self, request, team_name, region_name, name, *args, **kwargs):
         params = {k: v for k, v in request.GET.items()}
@@ -318,7 +325,8 @@ class ResourceCenterPodLogsView(TenantHeaderView):
         stream = region_api.get_resource_center_pod_log(region_name, team_name, pod_name, params=params)
 
         logger.info(
-            "resource center pod logs upstream connected team=%s region=%s pod=%s status=%s content_type=%s transfer_encoding=%s",
+            "resource center pod logs upstream connected team=%s region=%s pod=%s "
+            "status=%s content_type=%s transfer_encoding=%s",
             team_name,
             region_name,
             pod_name,

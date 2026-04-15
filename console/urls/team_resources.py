@@ -4,6 +4,7 @@ from django.conf.urls import url
 from console.views.team_resources import (
     NsResourceTypesView,
     NsResourcesView,
+    TeamComponentsView,
     NsResourceDetailView,
     HelmReleasesView,
     HelmChartPreviewView,
@@ -18,6 +19,8 @@ from console.views.team_resources import (
 )
 
 urlpatterns = [
+    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/components$',
+        TeamComponentsView.as_view()),
     url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/ns-resource-types$',
         NsResourceTypesView.as_view()),
     url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/ns-resources$',
@@ -34,7 +37,9 @@ urlpatterns = [
         HelmReleaseHistoryView.as_view()),
     url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/helm/releases/(?P<release_name>[^/]+)/rollback$',
         HelmReleaseRollbackView.as_view()),
-    url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/workloads/(?P<resource>[^/]+)/(?P<name>[^/]+)$',
+    url(
+        r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/workloads/'
+        r'(?P<resource>[^/]+)/(?P<name>[^/]+)$',
         ResourceCenterWorkloadDetailView.as_view()),
     url(r'^teams/(?P<team_name>[^/]+)/regions/(?P<region_name>[^/]+)/resource-center/pods/(?P<pod_name>[^/]+)$',
         ResourceCenterPodDetailView.as_view()),

@@ -12,6 +12,51 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 
+openapi_client_module = sys.modules.setdefault("openapi_client", ModuleType("openapi_client"))
+openapi_client_module.__path__ = []
+
+
+class _OpenAPIConfiguration(object):
+    def __init__(self):
+        self.client_side_validation = False
+        self.host = ""
+        self.api_key = {}
+
+
+class _OpenAPIApiException(Exception):
+    def __init__(self, status=None, body=""):
+        super(_OpenAPIApiException, self).__init__(body)
+        self.status = status
+        self.body = body
+
+
+class _OpenAPIApiClient(object):
+    def __init__(self, configuration=None):
+        self.configuration = configuration
+
+
+class _OpenAPIMarketClient(object):
+    def __init__(self, api_client=None):
+        self.api_client = api_client
+
+
+class _OpenAPIRequestBody(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+
+openapi_client_module.ApiClient = _OpenAPIApiClient
+openapi_client_module.MarketOpenapiApi = _OpenAPIMarketClient
+openapi_client_module.V1AppModelCreateRequest = _OpenAPIRequestBody
+openapi_client_module.V1CreateAppPaaSVersionRequest = _OpenAPIRequestBody
+
+openapi_client_configuration = sys.modules.setdefault("openapi_client.configuration",
+                                                      ModuleType("openapi_client.configuration"))
+openapi_client_configuration.Configuration = _OpenAPIConfiguration
+
+openapi_client_rest = sys.modules.setdefault("openapi_client.rest", ModuleType("openapi_client.rest"))
+openapi_client_rest.ApiException = _OpenAPIApiException
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
@@ -31,7 +76,12 @@ from console.views import team_resources  # noqa: E402
 from www.apiclient.regionapi import RegionInvokeApi  # noqa: E402
 
 
- # capability_id: console.helm-release.delete
+class Obj(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+
+# capability_id: console.helm-release.delete
 class HelmReleasesViewTestCase(TestCase):
     # capability_id: console.helm-release.list
     def test_get_uses_team_namespace_for_helm_release_lookup(self):
@@ -120,10 +170,10 @@ class HelmReleasesViewTestCase(TestCase):
             with mock.patch.object(team_resources.region_api,
                                    "install_tenant_helm_release",
                                    return_value=({}, {
-                                   "bean": {
-                                       "release_name": "demo-release"
-                                   }
-                               })) as install_mock:
+                                       "bean": {
+                                           "release_name": "demo-release"
+                                       }
+                                   })) as install_mock:
                 response = view.post(request, "demo-team", "demo-region")
 
         install_mock.assert_called_once_with("demo-region", "demo-team", expected_payload)
@@ -201,7 +251,8 @@ class HelmReleasesViewTestCase(TestCase):
         view = HelmReleaseDetailView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
         factory = APIRequestFactory()
-        request = view.initialize_request(factory.put("/console/team-resources/helm/releases/demo-release", payload, format="json"))
+        request = view.initialize_request(
+            factory.put("/console/team-resources/helm/releases/demo-release", payload, format="json"))
 
         with mock.patch.object(team_resources.region_api,
                                "upgrade_tenant_helm_release",
@@ -240,7 +291,8 @@ class HelmReleasesViewTestCase(TestCase):
         view = HelmReleaseDetailView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
         factory = APIRequestFactory()
-        request = view.initialize_request(factory.put("/console/team-resources/helm/releases/demo-release", payload, format="json"))
+        request = view.initialize_request(
+            factory.put("/console/team-resources/helm/releases/demo-release", payload, format="json"))
 
         with mock.patch.object(team_resources, "helm_repo", create=True) as helm_repo_mock:
             helm_repo_mock.get_helm_repo_by_name.return_value = {
@@ -423,7 +475,9 @@ class HelmReleasesViewTestCase(TestCase):
         request = APIRequestFactory().delete("/console/team-resources/helm/releases/demo-release")
 
         with mock.patch.object(team_resources, "helm_release_source_repo", create=True) as source_repo_mock:
-            with mock.patch.object(team_resources.region_api, "uninstall_tenant_helm_release", return_value=({}, {})) as delete_mock:
+            with mock.patch.object(team_resources.region_api,
+                                   "uninstall_tenant_helm_release",
+                                   return_value=({}, {})) as delete_mock:
                 response = view.delete(request, "demo-team", "demo-region", "demo-release")
 
         delete_mock.assert_called_once_with("demo-region", "demo-team", "demo-release", namespace="demo-ns")
@@ -441,7 +495,8 @@ class HelmReleasesViewTestCase(TestCase):
         view = HelmReleaseRollbackView()
         view.tenant = mock.Mock(namespace="demo-ns", tenant_name="demo-team")
         factory = APIRequestFactory()
-        request = view.initialize_request(factory.post("/console/team-resources/helm/releases/demo-release/rollback", payload, format="json"))
+        request = view.initialize_request(
+            factory.post("/console/team-resources/helm/releases/demo-release/rollback", payload, format="json"))
 
         with mock.patch.object(team_resources.region_api,
                                "rollback_tenant_helm_release",
@@ -582,7 +637,8 @@ class ResourceCenterPodLogsViewTestCase(TestCase):
         view = ResourceCenterPodLogsView()
         upstream_stream = mock.Mock(status=200, headers={})
         upstream_stream.stream.return_value = iter([b"data: hello\n\n"])
-        request = APIRequestFactory().get("/console/teams/demo-team/regions/demo-region/resource-center/pods/demo-pod/logs?container=demo&lines=200")
+        request = APIRequestFactory().get(
+            "/console/teams/demo-team/regions/demo-region/resource-center/pods/demo-pod/logs?container=demo&lines=200")
 
         with mock.patch.object(team_resources.region_api, "get_resource_center_pod_log", return_value=upstream_stream):
             response = view.get(request, "demo-team", "demo-region", "demo-pod")
@@ -591,3 +647,35 @@ class ResourceCenterPodLogsViewTestCase(TestCase):
 
         self.assertEqual(next(chunks), b": heartbeat\n\n")
         self.assertEqual(next(chunks), b"data: hello\n\n")
+
+
+class TeamComponentsViewTestCase(TestCase):
+    def test_get_returns_team_components_from_console_storage_only(self):
+        view = team_resources.TeamComponentsView()
+        view.tenant = Obj(tenant_id="team-id", tenant_name="demo-team")
+        request = APIRequestFactory().get("/console/teams/demo-team/regions/demo-region/components")
+        components = [
+            {
+                "service_id": "svc-1",
+                "service_alias": "web",
+                "service_cname": "Web",
+                "service_key": "web-key",
+                "k8s_component_name": "web",
+                "service_source": "source_code",
+                "create_status": "complete",
+                "group_id": 12,
+                "group_name": "demo-app",
+                "region_name": "demo-region",
+                "update_time": "2026-04-15 10:00:00",
+            }
+        ]
+
+        with mock.patch.object(team_resources.service_repo, "list_basic_infos_by_team_and_region",
+                               return_value=components) as list_mock, \
+                mock.patch.object(team_resources.region_api, "get_tenant_ns_resources") as region_mock:
+            response = view.get(request, "demo-team", "demo-region")
+
+        list_mock.assert_called_once_with("team-id", "demo-region")
+        region_mock.assert_not_called()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["list"], components)
