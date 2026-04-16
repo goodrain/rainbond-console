@@ -6444,8 +6444,8 @@
     },
     {
       "id": "rainbond-console.vm-run.disk-asset-create",
-      "title": "Create vm from existing disk asset source URI",
-      "title_zh": "\u4ece\u73b0\u6709\u78c1\u76d8\u8d44\u4ea7\u7684\u6e90\u5730\u5740\u521b\u5efa\u865a\u62df\u673a",
+      "title": "Reuse ready runtime image when creating vm from existing disk asset",
+      "title_zh": "\u4ece\u73b0\u6709\u78c1\u76d8\u8d44\u4ea7\u521b\u5efa\u865a\u62df\u673a\u65f6\u590d\u7528\u5df2\u5c31\u7eea\u8fd0\u884c\u65f6\u955c\u50cf",
       "interface_type": "view_endpoint",
       "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
       "code_paths": [
@@ -6455,7 +6455,7 @@
       "tests": [
         {
           "path": "console/tests/vm_asset_instantiation_test.py",
-          "selector": "VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_uses_source_uri_for_vm_build"
+          "selector": "VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image"
         }
       ],
       "test_type": "regression",

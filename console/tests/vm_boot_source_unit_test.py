@@ -41,7 +41,7 @@ class VMBootSourceUnitTests(unittest.TestCase):
 
         self.assertEqual("demo-team:template-image-7", resolved["image"])
 
-    def test_source_uri_fallback_rebuilds_internal_asset_from_local_source(self):
+    def test_ready_internal_runtime_image_is_reused_even_with_source_uri(self):
         tenant = SimpleNamespace(namespace="tenant-ns")
 
         resolved = resolve_vm_boot_source(
@@ -52,7 +52,7 @@ class VMBootSourceUnitTests(unittest.TestCase):
         )
 
         self.assertEqual("tenant-ns:uploaded-win", resolved["image"])
-        self.assertEqual("/grdata/package_build/temp/events/uploaded-win.qcow2", resolved["vm_url"])
+        self.assertEqual("", resolved["vm_url"])
 
 
 if __name__ == "__main__":

@@ -15,6 +15,29 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 import sys  # noqa: E402
 
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "openapi_client" not in sys.modules:
+    openapi_client_module = ModuleType("openapi_client")
+    configuration_module = ModuleType("openapi_client.configuration")
+    rest_module = ModuleType("openapi_client.rest")
+
+    class _DummyConfiguration(object):
+        def __init__(self):
+            self.client_side_validation = False
+            self.host = ""
+            self.api_key = {}
+
+    class _DummyApiException(Exception):
+        status = 500
+        body = ""
+
+    openapi_client_module.ApiClient = object
+    openapi_client_module.MarketOpenapiApi = object
+    configuration_module.Configuration = _DummyConfiguration
+    rest_module.ApiException = _DummyApiException
+
+    sys.modules["openapi_client"] = openapi_client_module
+    sys.modules["openapi_client.configuration"] = configuration_module
+    sys.modules["openapi_client.rest"] = rest_module
 
 import django  # noqa: E402
 
@@ -29,7 +52,7 @@ from www.models.main import VirtualMachineImage  # noqa: E402
 
 
 class VMAssetInstantiationTests(TestCase):
-    def test_vm_run_create_from_existing_disk_asset_uses_source_uri_for_vm_build(self):
+    def test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image(self):
         asset = VirtualMachineImage.objects.create(
             tenant_id="tenant-a",
             name="uploaded-root",
@@ -82,7 +105,7 @@ class VMAssetInstantiationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         _, create_args, _ = create_vm_run_app_mock.mock_calls[0]
         self.assertEqual("tenant-ns:uploaded-root", create_args[5])
-        self.assertEqual("/grdata/package_build/temp/events/uploaded-root.qcow2", create_args[8])
+        self.assertEqual("", create_args[8])
         attrs = {
             item.name: item.attribute_value
             for item in ComponentK8sAttributes.objects.filter(component_id="service-new-uploaded-root")

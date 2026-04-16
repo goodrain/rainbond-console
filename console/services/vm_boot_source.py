@@ -1,7 +1,14 @@
 def resolve_vm_boot_source(tenant, image_name, image_url, source_uri=""):
-    boot_source = image_url
-    if not requires_vm_source_build(boot_source) and requires_vm_source_build(source_uri):
-        boot_source = source_uri
+    image_url = str(image_url or "").strip()
+    source_uri = str(source_uri or "").strip()
+
+    if image_url and not requires_vm_source_build(image_url):
+        return {
+            "image": image_url,
+            "vm_url": "",
+        }
+
+    boot_source = image_url or source_uri
     if not requires_vm_source_build(boot_source):
         return {
             "image": image_url,
