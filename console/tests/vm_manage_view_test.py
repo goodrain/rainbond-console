@@ -52,12 +52,37 @@ django.setup()
 from django.test import TestCase  # noqa: E402
 from rest_framework.test import APIRequestFactory  # noqa: E402
 
-from console.views.app_manage import PauseAppView, UNPauseAppView  # noqa: E402
+from console.views.app_manage import PauseAppView, StartAppView, UNPauseAppView  # noqa: E402
 
 
 class VMManageViewTests(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
+
+    def test_start_view_returns_specific_failure_reason(self):
+        view = StartAppView()
+        view.tenant = SimpleNamespace(tenant_name="demo-team")
+        view.service = SimpleNamespace(
+            service_alias="demo-vm",
+            service_region="demo-region",
+            service_cname="demo-vm",
+            update_time=None,
+            save=lambda: None,
+            extend_method="vm",
+        )
+        view.user = SimpleNamespace(nick_name="tester", enterprise_id="eid")
+        view.app = SimpleNamespace(ID=1)
+        view.oauth_instance = None
+
+        request = view.initialize_request(
+            self.factory.post("/console/teams/demo-team/apps/demo-vm/start", {}, format="json")
+        )
+
+        with mock.patch("console.views.app_manage.app_manage_service.start", return_value=(500, "vm start blocked: no schedulable node")):
+            response = view.post(request)
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual("vm start blocked: no schedulable node", response.data["msg_show"])
 
     def test_pause_view_returns_service_failure_code(self):
         view = PauseAppView()
