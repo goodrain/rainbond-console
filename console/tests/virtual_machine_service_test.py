@@ -58,6 +58,7 @@ class VirtualMachineServiceTests(TestCase):
             tenant_id=tenant_id,
             service_key=service_id,
             service_alias=service_id,
+            service_cname=service_id,
             service_region="demo-region",
             category="application",
             version="v1",
@@ -138,6 +139,30 @@ class VirtualMachineServiceTests(TestCase):
 
         self.assertEqual(1, deleted)
         self.assertFalse(VirtualMachineImage.objects.filter(tenant_id="tenant-a", ID=asset.ID).exists())
+
+    def test_delete_vm_image_deletes_live_vm_export_resource(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="service-a",
+            image_url="https://download/rootdisk",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            build_event_id="service-a",
+            extra_json=json.dumps({
+                "source_service_alias": "demo-vm",
+                "source_service_cname": "Windows 测试机",
+                "display_name": "Windows 测试机",
+                "disks": [
+                    {"disk_key": "rootdisk", "disk_role": "root", "download_url": "https://download/rootdisk"},
+                ]
+            })
+        )
+
+        with mock.patch("console.services.virtual_machine.region_api.delete_vm_export") as delete_mock:
+            deleted, _ = vms.delete_vm_image("tenant-a", asset.ID, region_name="demo-region", tenant_name="demo-team")
+
+        self.assertEqual(1, deleted)
+        delete_mock.assert_called_once_with("demo-region", "demo-team", "demo-vm", "service-a")
 
     # capability_id: console.vm-asset.delete-active-reference-guard
     def test_delete_vm_image_blocks_active_vm_asset_reference(self):
@@ -241,7 +266,7 @@ class VirtualMachineServiceTests(TestCase):
             status="exporting"
         )
 
-        def _sync(current_asset, region_name, tenant_name):
+        def _sync(current_asset, region_name, tenant_name, allow_persist=True):
             current_asset.status = "ready"
             current_asset.image_url = "https://download/exported-root.qcow2"
             current_asset.save(update_fields=["status", "image_url"])
@@ -253,7 +278,54 @@ class VirtualMachineServiceTests(TestCase):
         self.assertEqual(1, len(result))
         self.assertEqual("ready", result[0]["status"])
         self.assertEqual("https://download/exported-root.qcow2", result[0]["image_url"])
-        sync_mock.assert_called_once_with(asset, "demo-region", "demo-team")
+        sync_mock.assert_called_once_with(asset, "demo-region", "demo-team", allow_persist=False)
+
+    def test_list_vm_image_returns_display_name_for_vm_export_asset(self):
+        VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="service-a",
+            image_url="",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            status="exporting",
+            build_event_id="service-a",
+            extra_json=json.dumps({
+                "asset_kind": "machine",
+                "disk_count": 1,
+                "source_service_id": "service-a",
+                "source_service_alias": "demo-vm",
+                "source_service_cname": "Windows 测试机",
+                "display_name": "Windows 测试机",
+                "disks": [
+                    {"disk_key": "rootdisk", "disk_role": "root"},
+                ]
+            })
+        )
+
+        with mock.patch("console.services.virtual_machine.region_api.get_vm_export_status", return_value=(None, {
+            "bean": {
+                "export_id": "service-a",
+                "status": "ready",
+                "disks": [
+                    {
+                        "disk_key": "rootdisk",
+                        "disk_name": "rootdisk",
+                        "disk_role": "root",
+                        "pvc_name": "rootdisk-pvc",
+                        "pvc_namespace": "default",
+                        "export_name": "evt-1-rootdisk",
+                        "status": "ready",
+                        "download_url": "https://download/rootdisk"
+                    }
+                ]
+            }
+        })):
+            result = vms.list_vm_image("tenant-a", region_name="demo-region", tenant_name="demo-team")
+
+        self.assertEqual(1, len(result))
+        self.assertEqual("ready", result[0]["status"])
+        self.assertEqual("https://download/rootdisk", result[0]["image_url"])
+        self.assertEqual("Windows 测试机", result[0]["display_name"])
 
     def test_get_vm_asset_syncs_vm_export_asset_when_region_context_provided(self):
         asset = VirtualMachineImage.objects.create(
@@ -265,7 +337,7 @@ class VirtualMachineServiceTests(TestCase):
             status="exporting"
         )
 
-        def _sync(current_asset, region_name, tenant_name):
+        def _sync(current_asset, region_name, tenant_name, allow_persist=True):
             current_asset.status = "ready"
             current_asset.image_url = "https://download/exported-root.qcow2"
             current_asset.save(update_fields=["status", "image_url"])
@@ -276,7 +348,49 @@ class VirtualMachineServiceTests(TestCase):
 
         self.assertEqual("ready", serialized["status"])
         self.assertEqual("https://download/exported-root.qcow2", serialized["image_url"])
-        sync_mock.assert_called_once_with(asset, "demo-region", "demo-team")
+        sync_mock.assert_called_once_with(asset, "demo-region", "demo-team", allow_persist=True)
+
+    def test_build_vm_create_disk_imports_includes_live_export_data_disks(self):
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="service-a",
+            image_url="https://download/rootdisk",
+            source_type="vm_export",
+            source_uri="service://service-a",
+            status="ready",
+            extra_json=json.dumps({
+                "disks": [
+                    {
+                        "disk_key": "rootdisk",
+                        "disk_name": "rootdisk",
+                        "disk_role": "root",
+                        "download_url": "https://download/rootdisk",
+                        "format": "qcow2"
+                    },
+                    {
+                        "disk_key": "data-1",
+                        "disk_name": "data-1",
+                        "disk_role": "data",
+                        "download_url": "https://download/data-1",
+                        "format": "qcow2",
+                        "size_bytes": 21474836480
+                    }
+                ]
+            })
+        )
+
+        imports = vms.build_vm_create_disk_imports(asset=asset)
+        disk_layout = vms.build_vm_export_disk_layout(asset)
+        data_disks = vms.resolve_vm_export_data_disks(asset)
+
+        self.assertEqual(2, len(imports))
+        self.assertEqual("disk", imports[0]["volume_name"])
+        self.assertEqual("data-1", imports[1]["volume_name"])
+        self.assertEqual(2, len(disk_layout))
+        self.assertEqual("root", disk_layout[0]["disk_role"])
+        self.assertEqual("data", disk_layout[1]["disk_role"])
+        self.assertEqual(1, len(data_disks))
+        self.assertEqual(21474836480, data_disks[0]["size_bytes"])
 
     def test_create_region_service_includes_component_k8s_attributes(self):
         service = TenantServiceInfo.objects.create(

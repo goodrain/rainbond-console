@@ -1547,7 +1547,7 @@ class VirtualMachineAssetManageView(RegionTenantHeaderView):
     def delete(self, request, *args, **kwargs):
         asset_id = kwargs.get("asset_id")
         try:
-            deleted, _ = vms.delete_vm_image(self.tenant.tenant_id, asset_id)
+            deleted, _ = vms.delete_vm_image(self.tenant.tenant_id, asset_id, self.response_region, self.tenant.tenant_name)
         except ValueError:
             result = general_message(409, "vm asset is referenced", "虚拟机镜像资产仍被引用，无法删除")
             return Response(result, status=409)

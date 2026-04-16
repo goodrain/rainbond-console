@@ -308,29 +308,27 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
 
         self.assertEqual("disk", fmt)
 
-    def test_is_vm_asset_ready_requires_storage_ready_for_vm_export_machine_assets(self):
+    def test_is_vm_asset_ready_requires_ready_live_export_urls_for_vm_export_assets(self):
         ready_asset = SimpleNamespace(
             source_type="vm_export",
             status="ready",
-            image_url="s3://vm-assets/rootdisk.qcow2",
+            image_url="https://download/rootdisk.qcow2",
             extra_json=json.dumps({
-                "storage_status": "ready",
-                "machine_manifest": {
-                    "version": "v1",
-                    "disks": [{"disk_key": "rootdisk", "disk_role": "root"}]
-                }
+                "disks": [
+                    {"disk_key": "rootdisk", "disk_role": "root", "download_url": "https://download/rootdisk.qcow2"},
+                    {"disk_key": "data-1", "disk_role": "data", "download_url": "https://download/data-1.qcow2"}
+                ]
             })
         )
         exporting_asset = SimpleNamespace(
             source_type="vm_export",
             status="ready",
-            image_url="s3://vm-assets/rootdisk.qcow2",
+            image_url="https://download/rootdisk.qcow2",
             extra_json=json.dumps({
-                "storage_status": "exporting",
-                "machine_manifest": {
-                    "version": "v1",
-                    "disks": [{"disk_key": "rootdisk", "disk_role": "root"}]
-                }
+                "disks": [
+                    {"disk_key": "rootdisk", "disk_role": "root", "download_url": "https://download/rootdisk.qcow2"},
+                    {"disk_key": "data-1", "disk_role": "data"}
+                ]
             })
         )
 

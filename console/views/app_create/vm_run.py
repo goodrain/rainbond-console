@@ -183,7 +183,17 @@ class VMRunCreateView(RegionTenantHeaderView):
                             image_url=image,
                             source_uri=getattr(asset, "source_uri", ""),
                         )
-                    if vms.has_vm_export_machine_manifest(asset):
+                    live_disk_imports = self.resolve_disk_imports(
+                        asset=asset,
+                        restore_plan=None,
+                        image_name=image_name,
+                        image_url=image,
+                        source_uri=getattr(asset, "source_uri", ""),
+                    )
+                    root_import = self.find_root_disk_import({"disk_imports": live_disk_imports})
+                    if root_import and root_import.get("image_url"):
+                        image = root_import.get("image_url")
+                    if getattr(asset, "source_type", "") == "vm_export" and not live_disk_imports and vms.has_vm_export_machine_manifest(asset):
                         restore_plan = vms.resolve_vm_export_restore_plan(
                             asset,
                             self.response_region,
@@ -229,7 +239,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                 {
                     **runtime_config,
                     "asset_id": asset_id,
-                    "disk_layout": restore_plan.get("disk_layout") if restore_plan else [],
+                    "disk_layout": vms.build_vm_export_disk_layout(asset) if asset and getattr(asset, "source_type", "") == "vm_export" and not restore_plan else (restore_plan.get("disk_layout") if restore_plan else []),
                     "boot_mode": boot_mode,
                     "boot_source_format": boot_source_format,
                     "os_name": guest_os_name
@@ -303,6 +313,8 @@ class VMRunCreateView(RegionTenantHeaderView):
 
     @staticmethod
     def resolve_exported_data_disks(asset=None, restore_plan=None):
+        if asset and getattr(asset, "source_type", "") == "vm_export" and not restore_plan:
+            return vms.resolve_vm_export_data_disks(asset)
         if not asset or not restore_plan:
             return []
         extra = vms._load_json(getattr(asset, "extra_json", ""), {})

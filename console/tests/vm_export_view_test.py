@@ -30,33 +30,45 @@ class AppVMExportViewTests(TestCase):
             tenant_id="tenant-a",
             service_id="service-a",
             service_alias="demo-vm",
+            service_cname="Windows 测试机",
             extend_method="vm",
             image="demo/image"
         )
         self.view.response_region = "demo-region"
         self.view.app = SimpleNamespace(ID=1)
 
-    def test_post_rejects_duplicate_export_name(self):
+    def test_post_requests_confirmation_when_existing_export_found(self):
         request = self.view.initialize_request(
-            self.factory.post("/console/teams/demo-team/apps/demo-vm/vm-export", {"name": "snapshot-1"}, format="json")
+            self.factory.post("/console/teams/demo-team/apps/demo-vm/vm-export", {}, format="json")
         )
 
-        with mock.patch("console.views.app_overview.vm_repo.get_vm_image_by_tenant_id_and_name") as query_mock:
-            query_mock.return_value.exists.return_value = True
+        with mock.patch("console.views.app_overview.vms.list_vm_export_assets_for_service", return_value=[
+            SimpleNamespace(
+                ID=12,
+                name="service-a",
+                status="ready",
+                source_type="vm_export",
+                extra_json='{"display_name":"Windows 测试机"}'
+            )
+        ]), mock.patch("console.views.app_overview.vms.build_vm_export_confirmation_payload", return_value={
+            "id": 12,
+            "display_name": "Windows 测试机",
+            "status": "ready",
+        }):
             response = self.view.post(request)
 
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["msg_show"], "虚拟机镜像名称已存在")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["data"]["bean"]["requires_confirmation"])
+        self.assertEqual("Windows 测试机", response.data["data"]["bean"]["existing_asset"]["display_name"])
 
     def test_post_rejects_export_when_vm_running(self):
         request = self.view.initialize_request(
-            self.factory.post("/console/teams/demo-team/apps/demo-vm/vm-export", {"name": "snapshot-1"}, format="json")
+            self.factory.post("/console/teams/demo-team/apps/demo-vm/vm-export", {}, format="json")
         )
 
-        with mock.patch("console.views.app_overview.vm_repo.get_vm_image_by_tenant_id_and_name") as query_mock, \
+        with mock.patch("console.views.app_overview.vms.list_vm_export_assets_for_service", return_value=[]), \
                 mock.patch("console.views.app_overview.app_service.get_service_status", return_value={"status": "running"}), \
                 mock.patch("console.views.app_overview.vms.start_vm_export", side_effect=ValueError("vm export requires closed status")):
-            query_mock.return_value.exists.return_value = False
             response = self.view.post(request)
 
         self.assertEqual(response.status_code, 409)
@@ -64,17 +76,33 @@ class AppVMExportViewTests(TestCase):
 
     def test_post_starts_export_when_vm_closed(self):
         request = self.view.initialize_request(
-            self.factory.post("/console/teams/demo-team/apps/demo-vm/vm-export", {"name": "snapshot-1"}, format="json")
+            self.factory.post("/console/teams/demo-team/apps/demo-vm/vm-export", {}, format="json")
         )
 
-        with mock.patch("console.views.app_overview.vm_repo.get_vm_image_by_tenant_id_and_name") as query_mock, \
+        with mock.patch("console.views.app_overview.vms.list_vm_export_assets_for_service", return_value=[]), \
                 mock.patch("console.views.app_overview.app_service.get_service_status", return_value={"status": "closed"}), \
                 mock.patch("console.views.app_overview.vms.start_vm_export", return_value={"id": 12, "status": "exporting"}) as start_mock:
-            query_mock.return_value.exists.return_value = False
             response = self.view.post(request)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["data"]["bean"]["id"], 12)
+        start_mock.assert_called_once()
+
+    def test_post_replaces_existing_export_when_confirmed(self):
+        request = self.view.initialize_request(
+            self.factory.post("/console/teams/demo-team/apps/demo-vm/vm-export", {"force_replace": True}, format="json")
+        )
+
+        with mock.patch("console.views.app_overview.vms.list_vm_export_assets_for_service", return_value=[
+            SimpleNamespace(ID=12)
+        ]), \
+                mock.patch("console.views.app_overview.vms.replace_vm_export_assets_for_service") as replace_mock, \
+                mock.patch("console.views.app_overview.app_service.get_service_status", return_value={"status": "closed"}), \
+                mock.patch("console.views.app_overview.vms.start_vm_export", return_value={"id": 12, "status": "exporting"}) as start_mock:
+            response = self.view.post(request)
+
+        self.assertEqual(response.status_code, 200)
+        replace_mock.assert_called_once_with(self.view.service, "demo-region", "demo-team")
         start_mock.assert_called_once()
 
     def test_get_returns_latest_export_status(self):
