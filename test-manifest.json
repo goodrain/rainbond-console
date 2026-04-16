@@ -6443,9 +6443,28 @@
       "status": "active"
     },
     {
+      "id": "rainbond-console.vm-run.disk-asset-create",
+      "title": "Create vm from existing disk asset source URI",
+      "title_zh": "\u4ece\u73b0\u6709\u78c1\u76d8\u8d44\u4ea7\u7684\u6e90\u5730\u5740\u521b\u5efa\u865a\u62df\u673a",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
+      "code_paths": [
+        "console/views/app_create/vm_run.py",
+        "console/services/vm_boot_source.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_uses_source_uri_for_vm_build"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "rainbond-console.vm-export.asset-ready-storage-status",
-      "title": "Require storage-ready status for vm export assets",
-      "title_zh": "vm \u5bfc\u51fa\u8d44\u4ea7\u9700\u8981\u5bf9\u8c61\u5b58\u50a8\u5c31\u7eea\u624d\u7b97\u53ef\u7528",
+      "title": "Require ready root download URL for vm export assets",
+      "title_zh": "vm \u5bfc\u51fa\u8d44\u4ea7\u9700\u8981\u6839\u76d8\u4e0b\u8f7d\u5730\u5740\u5c31\u7eea\u624d\u7b97\u53ef\u7528",
       "interface_type": "service_method",
       "interface": "console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready",
       "code_paths": [
@@ -6461,9 +6480,9 @@
       "status": "active"
     },
     {
-      "id": "rainbond-console.vm-run.vm-export-machine-restore-plan",
-      "title": "Restore all machine disks from vm export asset manifest",
-      "title_zh": "\u4ece vm \u5bfc\u51fa\u8d44\u4ea7\u6e05\u5355\u6062\u590d\u6574\u673a\u591a\u76d8",
+      "id": "rainbond-console.vm-run.vm-export-multi-disk-create",
+      "title": "Create vm from exported manifest with data disk restore",
+      "title_zh": "\u4ece vm \u5bfc\u51fa\u6e05\u5355\u521b\u5efa\u865a\u62df\u673a\u5e76\u6062\u590d\u6570\u636e\u76d8",
       "interface_type": "view_endpoint",
       "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
       "code_paths": [
@@ -6471,8 +6490,8 @@
       ],
       "tests": [
         {
-          "path": "console/tests/vm_template_instantiation_test.py",
-          "selector": "VMTemplateInstantiationTests::test_vm_run_create_restores_all_vm_export_disks_from_machine_manifest"
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests::test_vm_run_create_uses_exported_root_and_restores_data_disks"
         }
       ],
       "test_type": "regression",

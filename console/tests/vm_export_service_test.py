@@ -192,6 +192,19 @@ class VMExportServiceTests(TestCase):
                     }
                 ]
             }
+        })), mock.patch("console.services.virtual_machine.region_api.persist_vm_export", return_value=(None, {
+            "bean": {
+                "status": "ready",
+                "root_object_uri": "s3://vm-assets/rootdisk.qcow2",
+                "machine_manifest": {
+                    "version": "v1",
+                    "root_disk_key": "rootdisk",
+                    "disks": [
+                        {"disk_key": "rootdisk", "disk_role": "root"},
+                        {"disk_key": "data-1", "disk_role": "data"}
+                    ]
+                }
+            }
         })):
             asset = vms.sync_vm_export_status(parent, region_name="demo-region", tenant_name="demo-team")
 

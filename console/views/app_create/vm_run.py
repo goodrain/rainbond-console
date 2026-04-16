@@ -11,7 +11,6 @@ from console.exception.main import ResourceNotEnoughException
 from console.repositories.virtual_machine import vm_repo
 from console.services.app_config import volume_service
 from console.services.app import app_service
-from console.services.vm_boot_source import build_vm_runtime_image_name
 from console.services.virtual_machine import vms
 from console.views.base import RegionTenantHeaderView
 from www.utils.return_message import general_message
@@ -76,8 +75,6 @@ class VMRunCreateView(RegionTenantHeaderView):
         image_name = request.data.get("image_name", "")
         source_type = request.data.get("source_type", "")
         asset_id = request.data.get("asset_id", "")
-        template_id = request.data.get("template_id", "")
-        template_version_id = request.data.get("template_version_id", "")
         event_id = request.data.get("event_id", "")
         vm_url = request.data.get("vm_url", "")
         source_format = request.data.get("format", "")
@@ -114,7 +111,6 @@ class VMRunCreateView(RegionTenantHeaderView):
         try:
             vms.validate_vm_runtime_config(runtime_config)
             asset = None
-            template_payload = None
             guest_os_name = ""
             boot_source_format = source_format or ""
             if event_id != "" or vm_url != "":
@@ -166,81 +162,52 @@ class VMRunCreateView(RegionTenantHeaderView):
                     )
                 guest_os_name = getattr(asset, "os_name", "") or image_name
             else:
-                if template_version_id:
-                    try:
-                        template_payload = vms.resolve_vm_template_for_create(
-                            self.tenant.tenant_id, template_id, template_version_id
-                        )
-                    except ValueError as err:
-                        return Response(general_message(409, "vm template not ready", str(err)), status=409)
-                    if not template_payload:
-                        return Response(general_message(404, "vm template not found", "虚拟机模板不存在"), status=404)
-                    image = template_payload["image_url"]
-                    asset_id = template_payload.get("asset_id") or asset_id
-                    image_name = image_name or self.template_name_from_payload(template_payload)
-                    runtime_snapshot = template_payload.get("runtime_snapshot", {})
-                    if "boot_mode" not in request.data and runtime_snapshot.get("boot_mode"):
-                        boot_mode = runtime_snapshot.get("boot_mode")
-                    for key in (
-                            "network_mode", "network_name", "fixed_ip", "gateway", "dns_servers", "os_family", "gpu_enabled", "gpu_resources",
-                            "gpu_count",
-                            "usb_enabled", "usb_resources"):
-                        if key not in request.data and key in runtime_snapshot:
-                            runtime_config[key] = runtime_snapshot.get(key)
-                    guest_os_name = (
-                        template_payload.get("os_name") or
-                        runtime_snapshot.get("os_name") or
-                        image_name
-                    )
-                    if not boot_source_format:
-                        boot_source_format = vms.infer_vm_boot_source_format(
-                            template_payload=template_payload,
-                            image_name=image_name,
-                            image_url=image,
-                        )
                 if asset_id:
                     asset = vm_repo.get_vm_image_instance_by_id(self.tenant.tenant_id, asset_id)
                 if not asset and image_name:
                     asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
                 asset = vms.sync_vm_export_asset_record(asset, self.response_region, self.tenant.tenant_name)
-                if not template_payload and asset and not vms.is_vm_asset_ready(asset):
+                if asset and not vms.is_vm_asset_ready(asset):
                     return Response(general_message(409, "vm image not ready", "虚拟机镜像导出尚未完成，请稍后再试"), status=409)
-                if not template_payload:
-                    image = asset.image_url if asset else ""
+                image = asset.image_url if asset else ""
                 if asset:
                     asset_id = asset.ID
                     if not image_name:
                         image_name = getattr(asset, "name", "") or image_name
                     if not guest_os_name:
                         guest_os_name = getattr(asset, "os_name", "") or image_name
-                    if not template_payload:
-                        if not boot_source_format:
-                            boot_source_format = vms.infer_vm_boot_source_format(
-                                asset=asset,
-                                image_name=image_name,
-                                image_url=image,
-                                source_uri=getattr(asset, "source_uri", ""),
-                            )
-                if not template_payload and asset and vms.has_vm_export_machine_manifest(asset):
-                    restore_plan = vms.resolve_vm_export_restore_plan(
-                        asset,
-                        self.response_region,
-                        self.tenant.tenant_name,
-                    )
-                    image = build_vm_runtime_image_name(self.tenant, image_name or getattr(asset, "name", ""))
-                    vm_url = ""
-                    boot_source_format = restore_plan.get("boot_source_format") or boot_source_format or "disk"
+                    if not boot_source_format:
+                        boot_source_format = vms.infer_vm_boot_source_format(
+                            asset=asset,
+                            image_name=image_name,
+                            image_url=image,
+                            source_uri=getattr(asset, "source_uri", ""),
+                        )
+                    if vms.has_vm_export_machine_manifest(asset):
+                        restore_plan = vms.resolve_vm_export_restore_plan(
+                            asset,
+                            self.response_region,
+                            self.tenant.tenant_name,
+                        )
+                        root_import = self.find_root_disk_import(restore_plan)
+                        if root_import and root_import.get("image_url"):
+                            image = root_import.get("image_url")
+                        boot_source_format = restore_plan.get("boot_source_format") or boot_source_format or "disk"
                 if not image:
                     return Response(general_message(404, "vm image not found", "虚拟机镜像不存在"), status=404)
-                if not restore_plan and not (event_id or vm_url):
-                    boot_source = vms.resolve_vm_boot_source(self.tenant, image_name, image)
+                if not (event_id or vm_url):
+                    boot_source = vms.resolve_vm_boot_source(
+                        self.tenant,
+                        image_name,
+                        image,
+                        source_uri=getattr(asset, "source_uri", "")
+                    )
                     image = boot_source["image"]
                     if boot_source["vm_url"]:
                         vm_url = boot_source["vm_url"]
             boot_mode = vms.resolve_vm_boot_mode(
                 requested_boot_mode=boot_mode,
-                asset=asset if not template_payload else None,
-                template_payload=template_payload,
+                asset=asset,
                 runtime_config=runtime_config,
                 image_name=image_name,
                 image_url=image,
@@ -262,48 +229,43 @@ class VMRunCreateView(RegionTenantHeaderView):
                 {
                     **runtime_config,
                     "asset_id": asset_id,
-                    "template_id": template_payload.get("template_id") if template_payload else "",
-                    "template_version_id": template_payload.get("template_version_id") if template_payload else "",
-                    "disk_layout": restore_plan.get("disk_layout") if restore_plan else (template_payload.get("disk_layout") if template_payload else []),
+                    "disk_layout": restore_plan.get("disk_layout") if restore_plan else [],
                     "boot_mode": boot_mode,
                     "boot_source_format": boot_source_format,
                     "os_name": guest_os_name
                 })
-            disk_imports = restore_plan.get("disk_imports") if restore_plan else vms.build_vm_create_disk_imports(
-                asset=asset if not template_payload else None,
-                template_payload=template_payload,
+            disk_imports = self.resolve_disk_imports(
+                asset=asset,
+                restore_plan=restore_plan,
                 image_name=image_name,
                 image_url=image,
                 source_uri=vm_url or getattr(asset, "source_uri", ""),
             )
             logger.info(
-                "vm create resolved source: tenant=%s service=%s source_type=%s asset_id=%s template_version_id=%s boot_source_format=%s image=%s vm_url=%s disk_import_count=%s",
+                "vm create resolved source: tenant=%s service=%s source_type=%s asset_id=%s boot_source_format=%s image=%s vm_url=%s disk_import_count=%s",
                 getattr(self.tenant, "tenant_name", ""),
                 service_cname,
                 source_type or getattr(asset, "source_type", ""),
                 asset_id,
-                template_payload.get("template_version_id") if template_payload else "",
                 boot_source_format,
                 image,
                 vm_url,
                 len(disk_imports),
             )
-            if template_payload:
-                for disk in template_payload.get("data_disks", []):
-                    settings = {
+            for disk in self.resolve_exported_data_disks(asset, restore_plan):
+                volume_service.add_service_volume(
+                    self.tenant,
+                    new_service,
+                    "/disk",
+                    "vm-file",
+                    disk.get("disk_key") or "disk",
+                    "",
+                    {
                         "volume_capacity": self.bytes_to_gib(disk.get("size_bytes"))
-                    }
-                    volume_service.add_service_volume(
-                        self.tenant,
-                        new_service,
-                        "/disk",
-                        "vm-file",
-                        disk.get("disk_key") or "disk",
-                        "",
-                        settings,
-                        self.user.nick_name,
-                        mode=None
-                    )
+                    },
+                    self.user.nick_name,
+                    mode=None
+                )
             if disk_imports:
                 vms.save_vm_disk_imports(
                     self.tenant.tenant_id,
@@ -322,6 +284,46 @@ class VMRunCreateView(RegionTenantHeaderView):
         return Response(result, status=result["code"])
 
     @staticmethod
+    def find_root_disk_import(restore_plan):
+        for disk in (restore_plan or {}).get("disk_imports", []) or []:
+            if (disk.get("volume_name") or "") == "disk":
+                return disk
+        return None
+
+    @staticmethod
+    def resolve_disk_imports(asset=None, restore_plan=None, image_name="", image_url="", source_uri=""):
+        if restore_plan:
+            return list(restore_plan.get("disk_imports") or [])
+        return vms.build_vm_create_disk_imports(
+            asset=asset,
+            image_name=image_name,
+            image_url=image_url,
+            source_uri=source_uri,
+        )
+
+    @staticmethod
+    def resolve_exported_data_disks(asset=None, restore_plan=None):
+        if not asset or not restore_plan:
+            return []
+        extra = vms._load_json(getattr(asset, "extra_json", ""), {})
+        manifest = extra.get("machine_manifest") or {}
+        manifest_by_key = {
+            disk.get("disk_key"): disk
+            for disk in (manifest.get("disks") or [])
+            if disk.get("disk_key")
+        }
+        resolved = []
+        for disk in (restore_plan.get("disk_layout") or []):
+            if str(disk.get("disk_role", "")).lower() == "root":
+                continue
+            manifest_disk = manifest_by_key.get(disk.get("disk_key"), {})
+            resolved.append({
+                "disk_key": disk.get("disk_key"),
+                "size_bytes": manifest_disk.get("size_bytes", 0),
+            })
+        return resolved
+
+    @staticmethod
     def bytes_to_gib(value):
         try:
             size_bytes = int(value or 0)
@@ -333,7 +335,3 @@ class VMRunCreateView(RegionTenantHeaderView):
         if size_bytes % (1024 * 1024 * 1024) != 0:
             gib += 1
         return gib or 10
-
-    @staticmethod
-    def template_name_from_payload(payload):
-        return "template-image-{}".format(payload.get("template_version_id"))
