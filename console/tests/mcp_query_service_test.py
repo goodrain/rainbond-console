@@ -1870,6 +1870,53 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.port_service.manage_port")
+    # capability_id: console.component.port-open-public
+    def test_manage_component_ports_enable_outer_passes_app_context_to_port_service(
+            self,
+            mock_manage_port,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        port = Obj(container_port=80, protocol="http", is_inner_service=True, is_outer_service=True)
+        port.to_dict = lambda: {
+            "container_port": 80,
+            "protocol": "http",
+            "is_inner_service": True,
+            "is_outer_service": True,
+        }
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_manage_port.return_value = (200, "success", port)
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_manage_component_ports",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "operation": "enable_outer",
+                "port": 80,
+            },
+        )
+
+        self.assertEqual(result["container_port"], 80)
+        self.assertEqual(mock_manage_port.call_args[0][4], "open_outer")
+        self.assertIs(mock_manage_port.call_args[1]["app"], self.app)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     @patch.object(mcp_query_service, "handle_component_ports")
     # capability_id: console.component.port-open-inner
     def test_manage_component_ports_enable_inner_maps_to_open_inner(
