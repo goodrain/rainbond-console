@@ -999,7 +999,16 @@ class MCPQueryService(object):
             port_alias = arguments.get("port_alias")
             k8s_service_name = arguments.get("k8s_service_name", "") or ""
             code, msg, port_info = port_service.manage_port(
-                team, service, app.region_name, port, action, protocol, port_alias, k8s_service_name, user.nick_name
+                team,
+                service,
+                app.region_name,
+                port,
+                action,
+                protocol,
+                port_alias,
+                k8s_service_name,
+                user.nick_name,
+                app=app,
             )
             if code != 200:
                 self._raise_port_tool_error("change port fail", msg, code)
