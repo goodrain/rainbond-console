@@ -732,6 +732,11 @@ class VirtualMachineService(object):
             boot_mode = self._normalize_vm_boot_mode((extra.get("runtime_snapshot") or {}).get("boot_mode"))
             if boot_mode:
                 return boot_mode
+            if getattr(asset, "source_type", "") == "vm_export":
+                # Live VM exports should inherit the source disk's native boot mode.
+                # If we have no explicit metadata, keep the field empty so KubeVirt
+                # falls back to BIOS instead of forcing Windows exports onto UEFI.
+                return ""
 
         guest_os_family = self._infer_vm_guest_os_family(runtime_config=runtime_config, asset=asset, image_name=image_name)
         if guest_os_family != "windows":

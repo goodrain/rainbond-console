@@ -280,6 +280,23 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
 
         self.assertEqual("", mode)
 
+    def test_resolve_vm_boot_mode_does_not_force_uefi_for_windows_vm_export_without_metadata(self):
+        mode = vms.resolve_vm_boot_mode(
+            requested_boot_mode="",
+            asset=SimpleNamespace(
+                source_type="vm_export",
+                boot_mode="",
+                os_name="Windows 10",
+                name="win-export",
+                extra_json='{"runtime_snapshot": {"boot_mode": ""}}'
+            ),
+            runtime_config={"os_family": "windows"},
+            image_name="win-export",
+            boot_source_format="disk"
+        )
+
+        self.assertEqual("", mode)
+
     def test_infer_vm_boot_source_format_keeps_legacy_upload_asset_unspecified_when_unknown(self):
         fmt = vms.infer_vm_boot_source_format(
             asset=SimpleNamespace(
