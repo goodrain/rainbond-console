@@ -56,7 +56,7 @@ class AppServiceTests(SimpleTestCase):
 
         service = Obj()
         service.save = lambda: None
-        user = Obj(github_token=None)
+        user = Obj(github_token="token-1")
 
         code, msg = app_service.init_repositories(
             service,
@@ -77,4 +77,30 @@ class AppServiceTests(SimpleTestCase):
         self.assertEqual(service.git_url, "https://github.com/goodrain/rainbond.git")
         self.assertEqual(service.code_from, "github")
         self.assertEqual(service.code_version, "main")
-        mock_create_hook.assert_called_once_with("goodrain", "rainbond", None)
+        mock_create_hook.assert_called_once_with("goodrain", "rainbond", "token-1")
+
+    @patch("console.services.app.gitHubClient.createReposHook")
+    def test_init_repositories_skips_github_hook_without_github_token(self, mock_create_hook):
+        from console.services.app import app_service
+
+        service = Obj()
+        service.save = lambda: None
+        user = Obj()
+
+        code, msg = app_service.init_repositories(
+            service,
+            user,
+            "github",
+            "https://github.com/goodrain/rainbond.git",
+            None,
+            "main",
+            None,
+            None,
+            None,
+            None,
+        )
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "success")
+        self.assertEqual(service.git_project_id, 0)
+        mock_create_hook.assert_not_called()

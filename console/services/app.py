@@ -175,9 +175,11 @@ class AppService(object):
             service.code_from = service_code_from
             service.code_version = service_code_version
             service.save()
-            code_user = service_code_clone_url.split("/")[3]
-            code_project_name = service_code_clone_url.split("/")[4].split(".")[0]
-            gitHubClient.createReposHook(code_user, code_project_name, user.github_token)
+            github_token = getattr(user, "github_token", None)
+            if github_token:
+                code_user = service_code_clone_url.split("/")[3]
+                code_project_name = service_code_clone_url.split("/")[4].split(".")[0]
+                gitHubClient.createReposHook(code_user, code_project_name, github_token)
         elif service_code_from.split("oauth_")[-1] in list(support_oauth_type.keys()):
 
             if not service_code_clone_url:
