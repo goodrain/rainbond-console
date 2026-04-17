@@ -170,7 +170,7 @@ class AppService(object):
         elif service_code_from == SourceCodeType.GITHUB:
             if not service_code_clone_url:
                 return 403, "代码信息不全"
-            service.git_project_id = service_code_id
+            service.git_project_id = service_code_id if service_code_id not in (None, "") else 0
             service.git_url = service_code_clone_url
             service.code_from = service_code_from
             service.code_version = service_code_version
