@@ -117,7 +117,7 @@ class RainbondPluginServiceTests(TestCase):
         self.assertEqual("free", plugins[0].get("app_level"))
 
     # capability_id: console.platform-plugin.vm-access-url-fallback
-    def test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing(self):
+    def test_official_vm_plugin_uses_fixed_virtvnc_nodeport_when_region_urls_missing(self):
         request = mock.Mock()
         request.scheme = "https"
         request.get_host.return_value = "console.example.com:7070"
@@ -130,7 +130,7 @@ class RainbondPluginServiceTests(TestCase):
                     "alias": "虚拟机管理",
                     "backend": "",
                     "access_urls": [],
-                    "frontend_component": "virtvnc",
+                    "frontend_component": "vm-ui",
                     "frontend_service": "gr785cf6.rbd-plugins.svc.cluster.local:8001/static/main.js",
                 }
             ]
@@ -144,16 +144,20 @@ class RainbondPluginServiceTests(TestCase):
         relation = mock.Mock()
         relation.group_id = 72
         relation.service_id = "svc-frontend"
-        service_body = {
-            "bean": {
-                "spec": {
-                    "ports": [
-                        {"port": 9000, "nodePort": 30002},
-                        {"port": 8001, "nodePort": 30000},
-                    ]
+        service_bodies = {
+            "virtvnc": {
+                "bean": {
+                    "spec": {
+                        "ports": [
+                            {"port": 8001, "nodePort": 31002},
+                        ]
+                    }
                 }
             }
         }
+
+        def service_lookup(region_name, team_name, service_name, params=None):
+            return None, service_bodies.get(service_name, {"bean": {"spec": {"ports": []}}})
 
         with mock.patch("console.services.plugin_service.region_api.list_plugins", return_value=(None, region_plugins)), \
                 mock.patch("console.services.plugin_service.team_services.list_by_team_names", return_value=[team]), \
@@ -161,14 +165,14 @@ class RainbondPluginServiceTests(TestCase):
                 mock.patch("console.services.plugin_service.service_group_relation_repo.list_by_tenant_ids", return_value=[relation]), \
                 mock.patch("console.services.plugin_service.domain_repo.list_by_component_ids", return_value=[]), \
                 mock.patch("console.services.plugin_service.region_api.get_tenant_ns_resource",
-                           return_value=(None, service_body)) as service_query_mock, \
+                           side_effect=service_lookup) as service_query_mock, \
                 mock.patch("console.services.plugin_service.platform_plugin_service._get_market_platform_plugins",
                            return_value=(mock.Mock(), [])), \
                 mock.patch("console.services.plugin_service.platform_plugin_service._select_market_plugin",
                            return_value=None):
             plugins, _ = rbd_plugin_service.list_plugins("eid", "rainbond", official=True, request=request)
 
-        self.assertEqual(["https://console.example.com:30000"], plugins[0]["urls"])
+        self.assertEqual(["https://console.example.com:31002"], plugins[0]["urls"])
         service_query_mock.assert_called_once_with(
             "rainbond",
             "rbd-plugins",
@@ -176,7 +180,7 @@ class RainbondPluginServiceTests(TestCase):
             params={"group": "", "version": "v1", "resource": "services"}
         )
 
-    def test_official_vm_plugin_prefers_frontend_component_nodeport_over_reported_access_urls(self):
+    def test_official_vm_plugin_prefers_fixed_virtvnc_nodeport_over_reported_access_urls(self):
         request = mock.Mock()
         request.scheme = "http"
         request.get_host.return_value = "172.16.20.221:7070"
@@ -191,7 +195,7 @@ class RainbondPluginServiceTests(TestCase):
                     "access_urls": [
                         "http://grc5c12c-8080-yds31grp.172.16.20.221.nip.io"
                     ],
-                    "frontend_component": "virtvnc",
+                    "frontend_component": "vm-ui",
                     "frontend_service": "gr785cf6.rbd-plugins.svc.cluster.local:8001/static/main.js",
                 }
             ]
@@ -205,16 +209,20 @@ class RainbondPluginServiceTests(TestCase):
         relation = mock.Mock()
         relation.group_id = 72
         relation.service_id = "svc-frontend"
-        service_body = {
-            "bean": {
-                "spec": {
-                    "ports": [
-                        {"port": 9000, "nodePort": 30002},
-                        {"port": 8001, "nodePort": 30000},
-                    ]
+        service_bodies = {
+            "virtvnc": {
+                "bean": {
+                    "spec": {
+                        "ports": [
+                            {"port": 8001, "nodePort": 31002},
+                        ]
+                    }
                 }
             }
         }
+
+        def service_lookup(region_name, team_name, service_name, params=None):
+            return None, service_bodies.get(service_name, {"bean": {"spec": {"ports": []}}})
 
         with mock.patch("console.services.plugin_service.region_api.list_plugins", return_value=(None, region_plugins)), \
                 mock.patch("console.services.plugin_service.team_services.list_by_team_names", return_value=[team]), \
@@ -222,11 +230,11 @@ class RainbondPluginServiceTests(TestCase):
                 mock.patch("console.services.plugin_service.service_group_relation_repo.list_by_tenant_ids", return_value=[relation]), \
                 mock.patch("console.services.plugin_service.domain_repo.list_by_component_ids", return_value=[]), \
                 mock.patch("console.services.plugin_service.region_api.get_tenant_ns_resource",
-                           return_value=(None, service_body)), \
+                           side_effect=service_lookup), \
                 mock.patch("console.services.plugin_service.platform_plugin_service._get_market_platform_plugins",
                            return_value=(mock.Mock(), [])), \
                 mock.patch("console.services.plugin_service.platform_plugin_service._select_market_plugin",
                            return_value=None):
             plugins, _ = rbd_plugin_service.list_plugins("eid", "rainbond", official=True, request=request)
 
-        self.assertEqual(["http://172.16.20.221:30000"], plugins[0]["urls"])
+        self.assertEqual(["http://172.16.20.221:31002"], plugins[0]["urls"])

@@ -14,6 +14,8 @@ region_api = RegionInvokeApi()
 
 logger = logging.getLogger('default')
 
+VM_PLUGIN_VNC_SERVICE_NAME = "virtvnc"
+
 
 class RainbondPluginService(object):
     @staticmethod
@@ -116,21 +118,17 @@ class RainbondPluginService(object):
     def _resolve_vm_plugin_urls(self, plugin, app_id, team, app_component_rels, region_name, request=None):
         if plugin.get("name") != "rainbond-vm":
             return []
-        frontend_component_name = plugin.get("frontend_component", "")
         if not team:
             return []
-        frontend_service_name, target_port = self._parse_frontend_service(plugin.get("frontend_service"))
-        candidate_service_names = []
-        for name in (frontend_component_name, frontend_service_name):
-            name = str(name or "").strip()
-            if name and name not in candidate_service_names:
-                candidate_service_names.append(name)
-
-        for service_name in candidate_service_names:
-            service_resource = self._get_ns_service_resource(region_name, team.tenant_name, service_name)
-            nodeport_url = self._build_service_nodeport_url(service_resource, target_port, request=request)
-            if nodeport_url:
-                return [nodeport_url]
+        _, target_port = self._parse_frontend_service(plugin.get("frontend_service"))
+        service_resource = self._get_ns_service_resource(
+            region_name,
+            team.tenant_name,
+            VM_PLUGIN_VNC_SERVICE_NAME
+        )
+        nodeport_url = self._build_service_nodeport_url(service_resource, target_port, request=request)
+        if nodeport_url:
+            return [nodeport_url]
         return []
 
     def get_vm_plugin_url(self, enterprise_id, region_name, request=None):
