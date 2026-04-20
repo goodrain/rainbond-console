@@ -224,14 +224,9 @@ class RainbondPluginService(object):
             plugin["display_name"] = plugin["alias"]
             plugin["backend"] = plugin.get("backend", "")
             access_urls = plugin.get("access_urls") or []
-            if official and isinstance(access_urls, (list, tuple)) and len(access_urls) > 0:
-                plugin["urls"] = list(access_urls)
-            elif app_component_rels.get(app_id):
-                for component_id in app_component_rels[app_id]:
-                    if component_url_rels.get(component_id):
-                        plugin["urls"].extend(component_url_rels[component_id])
-            if official and not plugin["urls"]:
-                plugin["urls"] = self._resolve_vm_plugin_urls(
+            preferred_vm_urls = []
+            if official and plugin.get("name") == "rainbond-vm":
+                preferred_vm_urls = self._resolve_vm_plugin_urls(
                     plugin,
                     app_id,
                     teams_by_name.get(plugin["team_name"]),
@@ -239,6 +234,14 @@ class RainbondPluginService(object):
                     region_name,
                     request=request
                 )
+            if preferred_vm_urls:
+                plugin["urls"] = preferred_vm_urls
+            elif official and isinstance(access_urls, (list, tuple)) and len(access_urls) > 0:
+                plugin["urls"] = list(access_urls)
+            elif app_component_rels.get(app_id):
+                for component_id in app_component_rels[app_id]:
+                    if component_url_rels.get(component_id):
+                        plugin["urls"].extend(component_url_rels[component_id])
             plugin["urls"] = [self._normalize_access_url(url, request=request) for url in plugin["urls"] if url]
         return plugins, need_authz
 
