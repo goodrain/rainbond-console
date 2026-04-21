@@ -4329,7 +4329,30 @@ class MCPQueryService(object):
                         "description": "环境变量范围，默认 inner。该工具只支持 inner，也支持别名 local/self/runtime"
                     },
                     "is_change": {"type": "boolean"},
-                    "build_env_dict": {"type": "object"}
+                    "build_env_dict": {
+                        "type": "object",
+                        "description": (
+                            "全量替换源码构建参数字典。适合 replace_build_envs；不要把普通运行时环境变量放到这里。"
+                            "常见键：通用 BUILD_TYPE=cnb、BUILD_NO_CACHE=true、BUILD_PROCFILE；"
+                            "Node.js/static 用 CNB_FRAMEWORK、CNB_NODE_VERSION、CNB_NODE_ENV、CNB_BUILD_SCRIPT、"
+                            "CNB_OUTPUT_DIR、CNB_START_SCRIPT、CNB_PACKAGE_TOOL、CNB_MIRROR_SOURCE、"
+                            "CNB_MIRROR_NPMRC/CNB_MIRROR_YARNRC/CNB_MIRROR_PNPMRC；"
+                            "Java 用 BP_JVM_VERSION、BP_JVM_TYPE、BP_MAVEN_SETTINGS_PATH、"
+                            "BP_MAVEN_BUILD_ARGUMENTS、BP_MAVEN_ADDITIONAL_BUILD_ARGUMENTS、"
+                            "BP_MAVEN_BUILT_MODULE、BP_MAVEN_BUILT_ARTIFACT、"
+                            "BP_GRADLE_BUILD_ARGUMENTS、BP_GRADLE_ADDITIONAL_BUILD_ARGUMENTS，"
+                            "兼容键 BUILD_MAVEN_SETTING_NAME；"
+                            "Python 用 BP_CPYTHON_VERSION、BUILD_PIP_INDEX_URL、BUILD_PIP_TRUSTED_HOST、"
+                            "BUILD_CONDA_SOLVER、BUILD_PROCFILE；"
+                            "Golang 用 BP_GO_VERSION、GOPROXY、GOPRIVATE、BP_GO_TARGETS、"
+                            "BP_GO_BUILD_FLAGS、BP_GO_BUILD_LDFLAGS、BUILD_PROCFILE；"
+                            "PHP 用 BP_PHP_VERSION、BP_COMPOSER_INSTALL_OPTIONS、BP_PHP_WEB_DIR、BUILD_PROCFILE；"
+                            ".NET 用 BP_DOTNET_FRAMEWORK_VERSION、BP_DOTNET_PROJECT_PATH、"
+                            "BP_DOTNET_PUBLISH_FLAGS、BUILD_NUGET_CONFIG_NAME、BUILD_PROCFILE。"
+                            "敏感认证如 COMPOSER_AUTH、运行期变量如 NODE_OPTIONS/JAVA_TOOL_OPTIONS "
+                            "建议改用普通环境变量工具。"
+                        )
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "operation"]
             }
@@ -4915,7 +4938,21 @@ class MCPQueryService(object):
                     "region_name": {"type": "string"},
                     "app_id": {"type": "integer", "minimum": 1},
                     "service_id": {"type": "string"},
-                    "build_info": {"type": "object"},
+                    "build_info": {
+                        "type": "object",
+                        "description": (
+                            "构建确认阶段使用的少量结构化参数。支持 repo_url、branch、username、password。"
+                            "repo_url=源码仓库地址或镜像地址；branch=源码分支或标签（源码构建时生效）；"
+                            "username/password=仓库或镜像仓库凭据。构建参数请不要放在 build_info 中，"
+                            "应改用 rainbond_manage_component_envs(operation=replace_build_envs, build_env_dict=...)."
+                        ),
+                        "properties": {
+                            "repo_url": {"type": "string", "description": "源码仓库地址或镜像地址。"},
+                            "branch": {"type": "string", "description": "源码分支或标签；仅源码构建组件生效。"},
+                            "username": {"type": "string", "description": "源码仓库或镜像仓库用户名。"},
+                            "password": {"type": "string", "description": "源码仓库或镜像仓库密码/令牌。"},
+                        }
+                    },
                     "is_deploy": {"type": "boolean"}
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
@@ -5294,14 +5331,15 @@ class MCPQueryService(object):
                     "code_from": {
                         "type": "string",
                         "description": (
-                            "源码来源标识。推荐优先使用：git（通用 Git/Gitee/GitLab 仓库）、"
+                            "源码来源标识。推荐优先使用 git/github/oauth_xxx："
+                            "git（通用 Git/Gitee/GitLab 仓库）、"
                             "github（GitHub 仓库）、oauth_xxx（OAuth 代码仓库，如 oauth_github）。"
                             "也兼容 gitlab_manual、gitlab_self、gitlab_new、gitlab_exit、gitlab_demo；"
                             "若不确定，优先传 git。"
                         )
                     },
                     "service_cname": {"type": "string"},
-                    "git_url": {"type": "string"},
+                    "git_url": {"type": "string", "description": "源码仓库地址或对象存储制品地址。"},
                     "git_project_id": {"type": "string"},
                     "code_version": {"type": "string"},
                     "username": {"type": "string"},
@@ -5311,8 +5349,11 @@ class MCPQueryService(object):
                         "enum": ["git", "svn", "oss"],
                         "description": "源码地址类型：git=Git仓库，svn=SVN仓库，oss=对象存储制品地址"
                     },
-                    "version_type": {"type": "string"},
-                    "subdirectories": {"type": "string"},
+                    "version_type": {"type": "string", "description": "源码版本类型；tag 会被标准化为 tag:<name>。"},
+                    "subdirectories": {
+                        "type": "string",
+                        "description": "源码子目录。MCP 会把它标准化追加到 git_url，例如 ?dir=services/api。"
+                    },
                     "check_uuid": {"type": "string"},
                     "event_id": {"type": "string"},
                     "oauth_service_id": {"type": "string"},
@@ -5322,7 +5363,11 @@ class MCPQueryService(object):
                     "is_deploy": {"type": "boolean"},
                     "prefer_dockerfile_when_detected": {
                         "type": "boolean",
-                        "description": "仅 MCP 使用。若检测结果同时命中 Dockerfile 和语言型构建方式（如 Node.js），优先选择 Dockerfile。默认 false，不影响前端默认流程。"
+                        "description": (
+                            "仅 MCP 使用。若检测结果同时命中 Dockerfile 和语言型构建方式（如 Node.js），"
+                            "优先选择 Dockerfile。默认 false，不影响前端默认流程。"
+                            "当前 MCP 仅支持布尔偏好，不支持指定具体 dockerfile_path。"
+                        )
                     }
                 },
                 "required": ["team_name", "region_name", "app_id", "code_from", "service_cname", "git_url"]

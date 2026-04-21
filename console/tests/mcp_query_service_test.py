@@ -342,9 +342,13 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         tool = mcp_query_service._tool_create_component_from_source()
 
         code_from_schema = tool["inputSchema"]["properties"]["code_from"]
+        prefer_dockerfile_schema = tool["inputSchema"]["properties"]["prefer_dockerfile_when_detected"]
+        subdirectories_schema = tool["inputSchema"]["properties"]["subdirectories"]
 
         self.assertIn("git/github/oauth_xxx", code_from_schema["description"])
         self.assertIn("gitlab_manual", code_from_schema["description"])
+        self.assertIn("不支持指定具体 dockerfile_path", prefer_dockerfile_schema["description"])
+        self.assertIn("?dir=", subdirectories_schema["description"])
 
     # capability_id: console.package-upload.local-path-schema
     def test_upload_package_file_tool_schema_exposes_local_path_guidance(self):
@@ -374,9 +378,28 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
 
         envs_schema = tool["inputSchema"]["properties"]["envs"]
         attr_name_schema = tool["inputSchema"]["properties"]["attr_name"]
+        build_env_dict_schema = tool["inputSchema"]["properties"]["build_env_dict"]
 
         self.assertIn("upsert", envs_schema["description"])
         self.assertIn("单条", attr_name_schema["description"])
+        self.assertIn("BUILD_NO_CACHE", build_env_dict_schema["description"])
+        self.assertIn("CNB_FRAMEWORK", build_env_dict_schema["description"])
+        self.assertIn("BP_JVM_VERSION", build_env_dict_schema["description"])
+        self.assertIn("BP_GO_VERSION", build_env_dict_schema["description"])
+        self.assertIn("BP_DOTNET_FRAMEWORK_VERSION", build_env_dict_schema["description"])
+
+    # capability_id: console.component.build-component-schema
+    def test_build_component_tool_schema_exposes_build_info_guidance(self):
+        tool = mcp_query_service._tool_build_component()
+
+        build_info_schema = tool["inputSchema"]["properties"]["build_info"]
+
+        self.assertIn("repo_url", build_info_schema["description"])
+        self.assertIn("branch", build_info_schema["description"])
+        self.assertIn("username", build_info_schema["description"])
+        self.assertIn("replace_build_envs", build_info_schema["description"])
+        self.assertEqual(build_info_schema["properties"]["repo_url"]["type"], "string")
+        self.assertEqual(build_info_schema["properties"]["password"]["type"], "string")
 
     # capability_id: console.component.operation-aliases
     def test_normalize_component_operation_aliases(self):
