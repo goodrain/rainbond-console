@@ -17,6 +17,7 @@ from console.repositories.deploy_repo import deploy_repo
 from console.repositories.enterprise_repo import enterprise_repo, enterprise_user_perm_repo
 from console.repositories.group import group_repo, group_service_relation_repo
 from console.repositories.market_app_repo import rainbond_app_repo
+from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.repositories.share_repo import share_repo
 from console.repositories.team_repo import team_repo
 from console.repositories.upgrade_repo import upgrade_repo
@@ -44,6 +45,7 @@ from console.services.source_component_service import source_component_service
 from console.services.team_services import team_services
 from console.services.upgrade_services import upgrade_service
 from console.utils.source_build_state import build_compile_env_payload, read_compile_env_state
+from console.utils.oauth.oauth_types import get_oauth_instance
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.crypt import make_uuid
 
@@ -232,6 +234,7 @@ class MCPQueryService(object):
             self._tool_get_current_user(), self._tool_get_app_detail(), self._tool_create_app(),
             self._tool_get_component_summary(), self._tool_get_component_detail(),
             self._tool_get_component_logs(), self._tool_get_component_events(), self._tool_get_component_build_logs(),
+            self._tool_get_component_build_source(), self._tool_update_component_build_source(),
             self._tool_create_component(),
             self._tool_delete_component(), self._tool_operate_app(), self._tool_manage_component_envs(),
             self._tool_manage_component_connection_envs(),
@@ -296,6 +299,10 @@ class MCPQueryService(object):
             return self.get_component_logs(user, arguments)
         if name == "rainbond_get_component_build_logs":
             return self.get_component_build_logs(user, arguments)
+        if name == "rainbond_get_component_build_source":
+            return self.get_component_build_source(user, arguments)
+        if name == "rainbond_update_component_build_source":
+            return self.update_component_build_source(user, arguments)
         if name == "rainbond_get_component_detail":
             return self.get_component_detail(user, arguments)
         if name == "rainbond_get_component_events":
@@ -711,6 +718,152 @@ class MCPQueryService(object):
             "event_id": event_id,
             "items": items,
             "total": len(items),
+        }
+
+    def _get_component_build_source_snapshot(self, team, app, service):
+        build_infos = base_service.get_build_infos(team, [service.service_id])
+        bean = dict(build_infos.get(service.service_id) or {})
+        username = bean.pop("user", bean.pop("user_name", "")) or ""
+        has_password = bool(bean.pop("password", ""))
+        bean["username"] = username
+        bean["has_password"] = has_password
+        bean.setdefault("service_source", getattr(service, "service_source", ""))
+        bean.setdefault("arch", getattr(service, "arch", ""))
+        try:
+            _, body = region_api.get_cluster_nodes_arch(app.region_name)
+            bean["arch_options"] = list(set((body or {}).get("list") or []))
+        except Exception:
+            bean["arch_options"] = []
+        return bean
+
+    def get_component_build_source(self, user, arguments):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        return {
+            "app_id": app.ID,
+            "service_id": service.service_id,
+            "build_source": self._get_component_build_source_snapshot(team, app, service),
+        }
+
+    def update_component_build_source(self, user, arguments):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        target_source = self._require_string(arguments, "service_source").strip().lower()
+        if target_source not in ("source_code", "docker_run", "docker_image"):
+            raise ServiceHandleException(msg="invalid service_source", msg_show="参数service_source无效", status_code=400)
+
+        source_record = service_source_repo.get_service_source(team.tenant_id, service.service_id)
+        has_username = "username" in arguments or "user_name" in arguments
+        has_password = "password" in arguments
+        username = arguments.get("username", arguments.get("user_name", ""))
+        password = arguments.get("password", "")
+        if source_record:
+            if has_username:
+                source_record.user_name = username
+            if has_password:
+                source_record.password = password
+            if has_username or has_password:
+                source_record.save()
+        elif has_username or has_password:
+            console_app_service.create_service_source_info(team, service, username, password)
+
+        old_arch = getattr(service, "arch", "")
+        new_arch = (arguments.get("arch") or old_arch or "").strip()
+
+        if target_source == "source_code":
+            normalized_git_url = self._normalize_source_git_url(
+                arguments.get("git_url") or getattr(service, "git_url", "") or "",
+                arguments.get("subdirectories"),
+            )
+            server_type = (arguments.get("server_type") or getattr(service, "server_type", "") or "").strip()
+            if not server_type and normalized_git_url:
+                server_type = source_component_service.infer_server_type(normalized_git_url, None)
+            is_oauth = self._parse_bool_with_default(arguments.get("is_oauth"), False)
+            normalized_code_version = arguments.get("code_version")
+            if normalized_code_version is not None:
+                normalized_code_version = self._normalize_source_code_version(
+                    normalized_code_version,
+                    arguments.get("version_type"),
+                )
+            elif server_type == "oss":
+                normalized_code_version = ""
+            else:
+                normalized_code_version = getattr(service, "code_version", "") or "master"
+
+            if is_oauth:
+                oauth_service_id = self._require_string(arguments, "oauth_service_id")
+                try:
+                    oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=oauth_service_id)
+                    oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=oauth_service_id, user_id=user.user_id)
+                except Exception:
+                    raise ServiceHandleException(
+                        msg="oauth service invalid",
+                        msg_show="Oauth服务可能已被删除，请重新配置",
+                        status_code=400,
+                    )
+                try:
+                    instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+                except Exception:
+                    raise ServiceHandleException(msg="oauth service invalid", msg_show="未找到OAuth服务", status_code=400)
+                if not instance.is_git_oauth():
+                    raise ServiceHandleException(
+                        msg="oauth service invalid",
+                        msg_show="该OAuth服务不是代码仓库类型",
+                        status_code=400,
+                    )
+                service.code_from = "oauth_" + oauth_service.oauth_type
+                service.oauth_service_id = oauth_service_id
+                service.git_full_name = arguments.get("full_name", "") or getattr(service, "git_full_name", "")
+            else:
+                service.code_from = ""
+            if normalized_git_url:
+                service.git_url = normalized_git_url
+            service.code_version = normalized_code_version
+            service.service_source = "source_code"
+            service.server_type = server_type
+            service.cmd = ""
+            service.image = ""
+            service.service_key = "application"
+        else:
+            image = arguments.get("image") or getattr(service, "image", "")
+            if image:
+                version = image.split(":")[-1] if ":" in image else "latest"
+                if ":" not in image:
+                    image = image + ":" + version
+                service.image = image
+                service.version = version
+            if "cmd" in arguments:
+                service.cmd = arguments.get("cmd", "") or ""
+            elif target_source != getattr(service, "service_source", ""):
+                service.cmd = ""
+            if "server_type" in arguments:
+                service.server_type = arguments.get("server_type", "") or ""
+            service.service_source = "docker_image"
+            service.git_url = ""
+            service.code_from = "image_manual"
+            service.service_key = "application"
+            service.language = ""
+
+        service.arch = new_arch
+        service.save()
+        if old_arch != new_arch:
+            arch_service.update_affinity_by_arch(new_arch, team, app.region_name, service)
+
+        return {
+            "updated": True,
+            "app_id": app.ID,
+            "service_id": service.service_id,
+            "build_source": self._get_component_build_source_snapshot(team, app, service),
         }
 
     def create_component(self, user, arguments):
@@ -4429,6 +4582,60 @@ class MCPQueryService(object):
                     "event_id": {"type": "string", "description": "构建事件 ID，一般来自构建、创建或部署操作的返回值"}
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "event_id"]
+            }
+        }
+
+    def _tool_get_component_build_source(self):
+        return {
+            "name": "rainbond_get_component_build_source",
+            "description": "Get current build source summary for a component, including source type, repo/image info, build strategy, build envs, and available arch options. Passwords are not returned.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id"]
+            }
+        }
+
+    def _tool_update_component_build_source(self):
+        return {
+            "name": "rainbond_update_component_build_source",
+            "description": "Update the component build source. Use this for switching between source_code and docker_run/image-manual style inputs; do not use it for build_env_dict updates.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                    "service_source": {
+                        "type": "string",
+                        "enum": ["source_code", "docker_run", "docker_image"],
+                        "description": "目标构建源类型。source_code=源码构建；docker_run/docker_image=镜像构建。"
+                    },
+                    "git_url": {"type": "string", "description": "源码仓库地址或对象存储制品地址。"},
+                    "subdirectories": {"type": "string", "description": "源码子目录，会标准化追加到 git_url，例如 ?dir=services/api。"},
+                    "code_version": {"type": "string", "description": "源码分支、提交或标签名。"},
+                    "version_type": {"type": "string", "description": "源码版本类型；tag 会被标准化为 tag:<name>。"},
+                    "server_type": {
+                        "type": "string",
+                        "enum": ["git", "svn", "oss"],
+                        "description": "源码地址类型：git=Git仓库，svn=SVN仓库，oss=对象存储制品地址。"
+                    },
+                    "username": {"type": "string", "description": "源码仓库或镜像仓库用户名。"},
+                    "password": {"type": "string", "description": "源码仓库或镜像仓库密码/令牌。"},
+                    "is_oauth": {"type": "boolean", "description": "为 true 时按 OAuth 代码仓库处理。"},
+                    "oauth_service_id": {"type": "string", "description": "仅 is_oauth=true 时使用。"},
+                    "full_name": {"type": "string", "description": "仅 OAuth 代码仓库时使用的仓库全名。"},
+                    "image": {"type": "string", "description": "镜像地址；目标为 docker_run/docker_image 时使用。"},
+                    "cmd": {"type": "string", "description": "镜像启动命令；目标为 docker_run/docker_image 时使用。"},
+                    "arch": {"type": "string", "description": "目标架构，例如 amd64、arm64。"},
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id", "service_source"]
             }
         }
 

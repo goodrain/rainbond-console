@@ -48,6 +48,8 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("rainbond_get_component_logs", tool_names)
         self.assertIn("rainbond_get_component_events", tool_names)
         self.assertIn("rainbond_get_component_build_logs", tool_names)
+        self.assertIn("rainbond_get_component_build_source", tool_names)
+        self.assertIn("rainbond_update_component_build_source", tool_names)
         self.assertIn("rainbond_create_component", tool_names)
         self.assertIn("rainbond_delete_component", tool_names)
         self.assertIn("rainbond_operate_app", tool_names)
@@ -162,6 +164,8 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("rainbond_get_component_logs", tool_names)
         self.assertIn("rainbond_get_component_events", tool_names)
         self.assertIn("rainbond_get_component_build_logs", tool_names)
+        self.assertIn("rainbond_get_component_build_source", tool_names)
+        self.assertIn("rainbond_update_component_build_source", tool_names)
         self.assertIn("rainbond_create_component", tool_names)
         self.assertIn("rainbond_delete_component", tool_names)
         self.assertIn("rainbond_operate_app", tool_names)
@@ -2294,6 +2298,125 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
         self.assertEqual(result["image"], "nginx:latest")
         self.assertEqual(result["version"], "latest")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.base_service.get_build_infos")
+    @patch("console.services.mcp_query_service.region_api.get_cluster_nodes_arch")
+    # capability_id: console.component.build-source-get
+    def test_get_component_build_source_returns_sanitized_summary(
+            self,
+            mock_get_arch,
+            mock_get_build_infos,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_build_infos.return_value = {
+            "svc-1": {
+                "service_source": "source_code",
+                "git_url": "https://git.example.com/demo.git",
+                "code_version": "master",
+                "server_type": "git",
+                "build_env_dict": {"BUILD_TYPE": "cnb"},
+                "build_strategy": "cnb",
+                "user": "git-user",
+                "password": "secret-token",
+            }
+        }
+        mock_get_arch.return_value = (None, {"list": ["amd64", "arm64", "amd64"]})
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_component_build_source",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+            },
+        )
+
+        self.assertEqual(result["service_id"], "svc-1")
+        self.assertEqual(result["build_source"]["git_url"], "https://git.example.com/demo.git")
+        self.assertEqual(result["build_source"]["username"], "git-user")
+        self.assertTrue(result["build_source"]["has_password"])
+        self.assertNotIn("password", result["build_source"])
+        self.assertEqual(sorted(result["build_source"]["arch_options"]), ["amd64", "arm64"])
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch.object(mcp_query_service, "_get_component_build_source_snapshot")
+    @patch("console.services.mcp_query_service.service_source_repo.get_service_source")
+    @patch("console.services.mcp_query_service.arch_service.update_affinity_by_arch")
+    # capability_id: console.component.build-source-update
+    def test_update_component_build_source_updates_source_code_fields(
+            self,
+            mock_update_affinity,
+            mock_get_service_source,
+            mock_snapshot,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        source_record = Obj(user_name="old-user", password="old-pass", save=lambda: None)
+        self.service.service_source = "source_code"
+        self.service.git_url = "https://git.example.com/old.git"
+        self.service.code_version = "master"
+        self.service.server_type = "git"
+        self.service.arch = "amd64"
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_service_source.return_value = source_record
+        mock_snapshot.return_value = {"service_source": "source_code", "git_url": "https://git.example.com/demo.git?dir=services/api"}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_update_component_build_source",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "service_source": "source_code",
+                "git_url": "https://git.example.com/demo.git",
+                "subdirectories": "services/api",
+                "code_version": "v1.0.0",
+                "version_type": "tag",
+                "server_type": "git",
+                "username": "git-user",
+                "password": "git-pass",
+                "arch": "arm64",
+            },
+        )
+
+        self.assertTrue(result["updated"])
+        self.assertEqual(self.service.git_url, "https://git.example.com/demo.git?dir=services/api")
+        self.assertEqual(self.service.code_version, "tag:v1.0.0")
+        self.assertEqual(self.service.server_type, "git")
+        self.assertEqual(self.service.service_source, "source_code")
+        self.assertEqual(self.service.arch, "arm64")
+        self.assertEqual(source_record.user_name, "git-user")
+        self.assertEqual(source_record.password, "git-pass")
+        mock_update_affinity.assert_called_once_with("arm64", self.team, "rainbond", self.service)
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
