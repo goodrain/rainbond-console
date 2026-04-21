@@ -856,10 +856,14 @@ class AppService(object):
             service.k8s_component_name = service.service_alias
         data["k8s_component_name"] = service.k8s_component_name
         data["job_strategy"] = service.job_strategy
-        # create in region
+        component_k8s_attributes = self.__get_component_k8s_attributes_payload(service)
+        if component_k8s_attributes:
+            data["component_k8s_attributes"] = component_k8s_attributes
+        # Create in region and let region persist the current k8s attrs in the same request.
         region_api.create_service(service.service_region, tenant.tenant_name, data)
-        # sync k8s attributes from console DB to region DB
-        self.__sync_k8s_attributes_to_region(tenant, service)
+        # Legacy fallback: if the payload had no attrs, keep the old sync path.
+        if not component_k8s_attributes:
+            self.__sync_k8s_attributes_to_region(tenant, service)
         # conponent install complete
         service.create_status = "complete"
         service.save()
@@ -881,9 +885,30 @@ class AppService(object):
                         tenant.tenant_name, service.service_region, service.service_alias, body)
                     logger.info("[compose-debug] synced k8s attribute {0} to region OK".format(attr.name))
                 except Exception as e:
+                    if "already exist" in str(e):
+                        try:
+                            region_api.update_component_k8s_attribute(
+                                tenant.tenant_name, service.service_region, service.service_alias, body)
+                            logger.info("[compose-debug] updated existing k8s attribute {0} in region".format(attr.name))
+                            continue
+                        except Exception as update_err:
+                            logger.warning("[compose-debug] update existing k8s attribute {0} to region FAILED: {1}".format(attr.name, update_err))
                     logger.warning("[compose-debug] sync k8s attribute {0} to region FAILED: {1}".format(attr.name, e))
         except Exception as e:
             logger.warning("[compose-debug] query k8s attributes for sync FAILED: {0}".format(e))
+
+    def __get_component_k8s_attributes_payload(self, service):
+        attrs = k8s_attribute_repo.get_by_component_id(service.service_id)
+        if not attrs:
+            return []
+        payload = []
+        for attr in attrs:
+            payload.append({
+                "name": attr.name,
+                "save_type": attr.save_type,
+                "attribute_value": attr.attribute_value,
+            })
+        return payload
 
     def __init_stream_rule_for_region(self, tenant, service, rule, user_name):
 

@@ -15,7 +15,8 @@ from console.views.app_config.app_domain import (
     AppServiceDomainQueryView, AppServiceTcpDomainQueryView, DomainQueryView, DomainView, GatewayCustomConfigurationView,
     GetPortView, GetSeniorUrlView, HttpStrategyView, SecondLevelDomainView, ServiceDomainView, ServiceTcpDomainQueryView,
     ServiceTcpDomainView, TenantCertificateManageView, TenantCertificateView, GatewayRouteBatch, GatewayRoute, TenantService,
-    VirtualMachineImageView, CalibrationCertificate)
+    VirtualMachineImageView, VirtualMachineCapabilityView, VirtualMachineAssetListView,
+    VirtualMachineAssetManageView, CalibrationCertificate)
 from console.views.app_config.app_env import (AppBuildEnvView, AppEnvManageView, AppEnvView)
 from console.views.app_config.app_extend import AppExtendView
 from console.views.app_config.app_label import (AppLabelAvailableView, AppLabelView)
@@ -57,6 +58,7 @@ from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQuery
                                        AppTraceView,
                                        BatchAppMonitorQueryView, MonitorQueryOverConsoleView, MonitorQueryView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView,
+                                        AppVMExportView, AppVMProfileView,
                                         AppGroupVisitView,
                                         AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView,
                                         BuildSourceinfo,
@@ -552,6 +554,10 @@ urlpatterns = [
     # 应用详情
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/detail', AppDetailView.as_view(),
         perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-profile$', AppVMProfileView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-export$', AppVMExportView.as_view(),
+        perms.APP_OVERVIEW_CREATE),
     # 是否安装性能分析插件
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/analyze_plugins', AppAnalyzePluginView.as_view()),
     # 应用简要信息
@@ -642,6 +648,9 @@ urlpatterns = [
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/sld-domain', SecondLevelDomainView.as_view()),
     # 虚拟机镜像
     url(r'^teams/(?P<tenantName>[\w\-]+)/virtual_machine_image$', VirtualMachineImageView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/vm/capabilities$', VirtualMachineCapabilityView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/vm/assets$', VirtualMachineAssetListView.as_view()),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/vm/assets/(?P<asset_id>[\w\-]+)$', VirtualMachineAssetManageView.as_view()),
     # gateway api
     url(r'^teams/(?P<tenantName>[\w\-]+)/batch-gateway-http-route$', GatewayRouteBatch.as_view()),
     url(r'^teams/(?P<tenantName>[\w\-]+)/gateway-http-route$', GatewayRoute.as_view()),

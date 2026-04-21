@@ -53,6 +53,7 @@ from console.enum.component_enum import is_kubeblocks
 from django.conf import settings
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
+from www.apiclient.regionapibaseclient import build_region_error_msg_show
 from www.models.main import ServiceGroupRelation
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -90,6 +91,28 @@ class AppManageBase(object):
         self.ResourceOperationVerticalUpgrade = "vertical-upgrade"
         self.ResourceOperationHorizontalUpgrade = "horizontal-upgrade"
 
+    @staticmethod
+    def extract_region_error_msg_show(err, default="组件异常"):
+        if not err:
+            return default
+        body = getattr(err, "body", None)
+        if isinstance(body, dict):
+            msg = body.get("msg")
+            if msg:
+                return build_region_error_msg_show(msg)
+            nested = body.get("body")
+            if isinstance(nested, dict) and nested.get("msg"):
+                return build_region_error_msg_show(nested.get("msg"))
+            raw = body.get("raw")
+            if raw:
+                return str(raw)
+        message = getattr(err, "message", None)
+        if isinstance(message, dict):
+            msg = message.get("body", {}).get("msg") if isinstance(message.get("body"), dict) else None
+            if msg:
+                return build_region_error_msg_show(msg)
+        return default
+
     def cur_service_memory(self, tenant, cur_service):
         """查询当前组件占用的内存"""
         memory = 0
@@ -125,7 +148,7 @@ class AppManageService(AppManageBase):
                 logger.debug("user {0} start app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, "组件异常"
+                return getattr(e, "status", 507) or 507, self.extract_region_error_msg_show(e)
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, "操作过于频繁，请稍后再试"
@@ -976,7 +999,7 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             pass
         if service.create_status != "complete":
-            vm_repo.delete_vm_image_by_image_url(service.image)
+            vm_repo.delete_vm_image_by_image_url(tenant.tenant_id, service.image)
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)

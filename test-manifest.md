@@ -69,6 +69,12 @@
 | console.app-migration.unfinished-record-empty | 无未完成迁移记录时返回已完成状态 | active | regression | console.views.center_pool.groupapp_migration.MigrateRecordView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrateRecordViewTests.test_get_returns_finished_when_no_unfinished_record |
 | console.app-migration.unfinished-record-guard | 查询未完成迁移记录时必须提供 group_uuid | active | regression | console.views.center_pool.groupapp_migration.MigrateRecordView.get | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrateRecordViewTests.test_get_requires_group_uuid |
 | console.app-migration.usable-region-guard | 目标团队无可用集群时阻止迁移 | active | regression | console.views.center_pool.groupapp_migration.GroupAppsMigrateView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsMigrationViewWorkflowTests.test_post_rejects_when_target_team_has_no_usable_regions |
+| console.app-status.aggregate-rainbond-components | 根据组件状态聚合 Rainbond 应用状态 | active | regression | console.services.group_service.GroupService.get_app_status | console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_get_app_status_uses_component_aggregation_for_rainbond_apps |
+| console.app-status.closed-with-undeploy-components | 将关闭与未部署组件组合识别为应用已关闭 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_closed_and_undeploy_components_make_app_closed |
+| console.app-status.list-closed-with-undeploy-components | 当组件为关闭或未部署时将列表应用状态聚合为关闭 | active | regression | console.services.group_service.GroupService._add_component_status_to_apps | console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_add_component_status_to_apps_marks_closed_when_components_are_closed_or_undeploy |
+| console.app-status.partial-abnormal-mixed-components | 将运行中与异常混合组件识别为部分异常 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_mixed_abnormal_components_make_app_partially_abnormal |
+| console.app-status.partial-abnormal-some-abnormal | 将 some_abnormal 组件识别为部分异常 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_some_abnormal_component_makes_app_partially_abnormal |
+| console.app-status.waiting-is-starting | 将 waiting 组件识别为应用启动中 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_waiting_components_make_app_starting |
 | console.app-upgrade.info | 查询应用升级信息 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_app_upgrade_info] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_upgrade_info_returns_upgrade_items |
 | console.app-version.component-diff-details | 生成应用版本组件差异明细 | active | regression | console.services.app_version_service._build_component_diff_details | console/tests/app_version_test.py::AppVersionServiceComponentDiffDetailTestCase.test_build_component_diff_details_tracks_added_removed_and_field_updates<br>console/tests/app_version_test.py::AppVersionServiceComponentDiffDetailTestCase.test_build_component_diff_details_tracks_connect_envs_and_other_changes |
 | console.app-version.create-snapshot | 创建应用版本快照 | active | regression | console.views.app_version.AppVersionSnapshotListView.post | console/tests/app_version_test.py::AppVersionSnapshotListViewPostTestCase |
@@ -270,6 +276,7 @@
 | console.package-component.multi-service-guard | 单组件流程中拦截多组件制品包检测结果 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_rejects_multi_service_package |
 | console.package-component.require-upload-record | 创建制品包组件前必须存在上传记录 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_existing_upload_record |
 | console.package-component.upload-missing | 制品包列表为空时拦截组件创建 | active | regression | console.services.package_component_service.auto_create_component | console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_uploaded_package_list |
+| console.platform-plugin.vm-access-url-fallback | 从前端组件访问地址回填官方虚拟机插件访问前缀 | active | regression | console.services.plugin_service.RainbondPluginService.list_plugins | console/tests/rbd_plugin_service_test.py::RainbondPluginServiceTests.test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing |
 | console.random.default-version | 生成默认随机版本标识 | active | regression | console.utils.randomutil.make_default_version | console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version |
 | console.region-api.domain-conflict-msg | 将上游域名冲突保留为可操作的 409 错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_domain_conflict_as_conflict_error |
 | console.region-api.helm-resource-conflict-msg | 将 Helm 资源归属冲突转换为可操作错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show |
@@ -340,6 +347,11 @@
 | console.version.compare | 比较语义化风格的版本字符串 | active | regression | console.utils.version.compare_version | console/tests/utils/version_test.py::VersionUtilsTests.test_compare_version |
 | console.version.newer-filter | 筛选出高于当前版本的新版本 | active | regression | console.utils.version.get_new_versions | console/tests/utils/version_test.py::VersionUtilsTests.test_get_new_versions |
 | console.version.sort-desc | 按降序排列版本字符串 | active | regression | console.utils.version.sorted_versions | console/tests/utils/version_test.py::VersionUtilsTests.test_sorted_versions |
+| console.vm-asset.delete-active-reference-guard | 仅当活跃虚拟机仍引用时阻止删除镜像资产 | active | regression | console.services.virtual_machine.VirtualMachineService.delete_vm_image | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_ignores_orphan_vm_asset_attrs<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_blocks_active_vm_asset_reference<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_ignores_incomplete_vm_service_reference |
+| console.vm-overview.vnc-url-plugin-fallback | 在缺少查询参数时从插件回填虚拟机概览 VNC 地址 | active | regression | console.views.app_overview.AppDetailView.get | console/tests/vm_detail_view_test.py::AppVMDetailViewTests.test_get_builds_vm_vnc_url_from_plugin_fallback_when_query_param_missing |
+| rainbond-console.vm-run.disk-asset-create | 从现有磁盘资产创建虚拟机时复用已就绪运行时镜像 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image |
+| rainbond-console.vm-export.asset-ready-storage-status | vm 导出资产需要对象存储就绪才算可用 | active | regression | console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready | console/tests/vm_create_flow_regression_test.py::VMCreateFlowRegressionUnitTests::test_is_vm_asset_ready_requires_storage_ready_for_vm_export_machine_assets |
+| rainbond-console.vm-run.vm-export-multi-disk-create | 从 vm 导出资产恢复根盘和数据盘创建虚拟机 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests::test_vm_run_create_uses_exported_root_and_restores_data_disks |
 
 ## 详情
 
@@ -992,6 +1004,66 @@
 - 业务入口: `console.views.center_pool.groupapp_migration.GroupAppsMigrateView.post`
 - 代码路径: `console/views/center_pool/groupapp_migration.py`
 - 测试路径: `console/tests/groupapp_backup_migration_test.py::GroupAppsMigrationViewWorkflowTests.test_post_rejects_when_target_team_has_no_usable_regions`
+
+### 根据组件状态聚合 Rainbond 应用状态
+
+- Capability ID: `console.app-status.aggregate-rainbond-components`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.group_service.GroupService.get_app_status`
+- 代码路径: `console/services/group_service.py`, `console/services/topological_services.py`
+- 测试路径: `console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_get_app_status_uses_component_aggregation_for_rainbond_apps`
+
+### 将关闭与未部署组件组合识别为应用已关闭
+
+- Capability ID: `console.app-status.closed-with-undeploy-components`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.topological_services.TopologicalService.get_app_status`
+- 代码路径: `console/services/topological_services.py`
+- 测试路径: `console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_closed_and_undeploy_components_make_app_closed`
+
+### 当组件为关闭或未部署时将列表应用状态聚合为关闭
+
+- Capability ID: `console.app-status.list-closed-with-undeploy-components`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.group_service.GroupService._add_component_status_to_apps`
+- 代码路径: `console/services/group_service.py`, `console/services/topological_services.py`
+- 测试路径: `console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_add_component_status_to_apps_marks_closed_when_components_are_closed_or_undeploy`
+
+### 将运行中与异常混合组件识别为部分异常
+
+- Capability ID: `console.app-status.partial-abnormal-mixed-components`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.topological_services.TopologicalService.get_app_status`
+- 代码路径: `console/services/topological_services.py`
+- 测试路径: `console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_mixed_abnormal_components_make_app_partially_abnormal`
+
+### 将 some_abnormal 组件识别为部分异常
+
+- Capability ID: `console.app-status.partial-abnormal-some-abnormal`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.topological_services.TopologicalService.get_app_status`
+- 代码路径: `console/services/topological_services.py`
+- 测试路径: `console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_some_abnormal_component_makes_app_partially_abnormal`
+
+### 将 waiting 组件识别为应用启动中
+
+- Capability ID: `console.app-status.waiting-is-starting`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.topological_services.TopologicalService.get_app_status`
+- 代码路径: `console/services/topological_services.py`
+- 测试路径: `console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_waiting_components_make_app_starting`
 
 ### 查询应用升级信息
 
@@ -3003,6 +3075,16 @@
 - 代码路径: `console/services/package_component_service.py`
 - 测试路径: `console/tests/package_component_service_test.py::PackageComponentServiceTests.test_auto_create_component_requires_uploaded_package_list`
 
+### 从前端组件访问地址回填官方虚拟机插件访问前缀
+
+- Capability ID: `console.platform-plugin.vm-access-url-fallback`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.plugin_service.RainbondPluginService.list_plugins`
+- 代码路径: `console/services/plugin_service.py`
+- 测试路径: `console/tests/rbd_plugin_service_test.py::RainbondPluginServiceTests.test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing`
+
 ### 生成默认随机版本标识
 
 - Capability ID: `console.random.default-version`
@@ -3702,3 +3784,43 @@
 - 业务入口: `console.utils.version.sorted_versions`
 - 代码路径: `console/utils/version.py`
 - 测试路径: `console/tests/utils/version_test.py::VersionUtilsTests.test_sorted_versions`
+
+### 仅当活跃虚拟机仍引用时阻止删除镜像资产
+
+- Capability ID: `console.vm-asset.delete-active-reference-guard`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.virtual_machine.VirtualMachineService.delete_vm_image`
+- 代码路径: `console/services/virtual_machine.py`
+- 测试路径: `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_ignores_orphan_vm_asset_attrs`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_blocks_active_vm_asset_reference`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_ignores_incomplete_vm_service_reference`
+
+### 在缺少查询参数时从插件回填虚拟机概览 VNC 地址
+
+- Capability ID: `console.vm-overview.vnc-url-plugin-fallback`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view_endpoint`
+- 业务入口: `console.views.app_overview.AppDetailView.get`
+- 代码路径: `console/views/app_overview.py`
+- 测试路径: `console/tests/vm_detail_view_test.py::AppVMDetailViewTests.test_get_builds_vm_vnc_url_from_plugin_fallback_when_query_param_missing`
+
+### vm 导出资产需要对象存储就绪才算可用
+
+- Capability ID: `rainbond-console.vm-export.asset-ready-storage-status`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service`
+- 业务入口: `console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready`
+- 代码路径: `console/services/virtual_machine.py`
+- 测试路径: `console/tests/vm_create_flow_regression_test.py::VMCreateFlowRegressionUnitTests::test_is_vm_asset_ready_requires_storage_ready_for_vm_export_machine_assets`
+
+### 从 vm 导出资产清单恢复整机多盘
+
+- Capability ID: `rainbond-console.vm-run.vm-export-multi-disk-create`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `view`
+- 业务入口: `console.views.app_create.vm_run.VMRunCreateView.post`
+- 代码路径: `console/views/app_create/vm_run.py`
+- 测试路径: `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests::test_vm_run_create_uses_exported_root_and_restores_data_disks`

@@ -9,13 +9,29 @@ from rest_framework.response import Response
 from console.exception.bcode import ErrK8sComponentNameExists, ErrVMImageNameExists
 from console.exception.main import ResourceNotEnoughException
 from console.repositories.virtual_machine import vm_repo
+from console.services.app_config import volume_service
 from console.services.app import app_service
+from console.services.virtual_machine import vms
 from console.views.base import RegionTenantHeaderView
-from www.models.main import VirtualMachineImage
 from www.utils.return_message import general_message
 from console.services.group_service import group_service
 
 logger = logging.getLogger("default")
+PUBLIC_VM_IMAGES = {
+    "ubuntu-22.04.5-lts": {
+        "url": "https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/22.04/ubuntu-22.04.5-live-server-amd64.iso",
+        "os_name": "Ubuntu 22.04.5 LTS"
+    },
+    "debian-13.4.0-standard": {
+        "url": "https://mirrors.tuna.tsinghua.edu.cn/debian-cd/current-live/amd64/iso-hybrid/debian-live-13.4.0-amd64-standard.iso",
+        "os_name": "Debian 13.4.0 Standard"
+    },
+    "centos-stream-9-dvd1": {
+        "url": "https://mirrors.tuna.tsinghua.edu.cn/centos-stream/9-stream/BaseOS/x86_64/iso/CentOS-Stream-9-latest-x86_64-dvd1.iso",
+        "os_name": "CentOS Stream 9 DVD1"
+    }
+}
+PUBLIC_VM_IMAGE_NAMES = set(PUBLIC_VM_IMAGES.keys())
 
 
 class VMRunCreateView(RegionTenantHeaderView):
@@ -57,33 +73,215 @@ class VMRunCreateView(RegionTenantHeaderView):
         k8s_component_name = request.data.get("k8s_component_name", "")
         arch = request.data.get("arch", "amd64")
         image_name = request.data.get("image_name", "")
+        source_type = request.data.get("source_type", "")
+        asset_id = request.data.get("asset_id", "")
         event_id = request.data.get("event_id", "")
         vm_url = request.data.get("vm_url", "")
+        source_format = request.data.get("format", "")
+        boot_mode = request.data.get("boot_mode", "")
+        gpu_enabled = request.data.get("gpu_enabled", False)
+        gpu_resources = request.data.get("gpu_resources", [])
+        gpu_count = request.data.get("gpu_count", 1 if gpu_enabled else 0)
+        usb_enabled = request.data.get("usb_enabled", False)
+        usb_resources = request.data.get("usb_resources", [])
+        network_mode = request.data.get("network_mode", "random")
+        network_name = request.data.get("network_name", "")
+        fixed_ip = request.data.get("fixed_ip", "")
+        gateway = request.data.get("gateway", "")
+        dns_servers = request.data.get("dns_servers", "")
+        os_family = request.data.get("os_family", "")
+        runtime_config = {
+            "gpu_enabled": gpu_enabled,
+            "gpu_resources": gpu_resources,
+            "gpu_count": gpu_count,
+            "usb_enabled": usb_enabled,
+            "usb_resources": usb_resources,
+            "network_mode": network_mode,
+            "network_name": network_name,
+            "fixed_ip": fixed_ip,
+            "gateway": gateway,
+            "dns_servers": dns_servers,
+            "os_family": os_family
+        }
+        asset_created = False
+        restore_plan = None
+        public_vm_meta = PUBLIC_VM_IMAGES.get(image_name)
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             raise ErrK8sComponentNameExists
         try:
+            vms.validate_vm_runtime_config(runtime_config)
+            asset = None
+            guest_os_name = ""
+            boot_source_format = source_format or ""
             if event_id != "" or vm_url != "":
-                image = vm_repo.get_vm_image_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
-                if image or len(image) > 0:
-                    if image_name == "centos7.9" or image_name == "anolisos7.9" \
-                            or image_name == "deepin20.9" or image_name == "ubuntu23.10":
-                        image = vm_repo.get_vm_image_url_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
+                asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
+                if asset:
+                    if image_name in PUBLIC_VM_IMAGE_NAMES:
+                        image = asset.image_url
+                        asset_id = asset.ID
                     else:
                         raise ErrVMImageNameExists
                 else:
                     image = self.tenant.namespace + ":" + image_name
-                    vm = VirtualMachineImage(
-                        tenant_id=self.tenant.tenant_id,
-                        name=image_name,
+                    resolved_source_type = source_type
+                    if not resolved_source_type:
+                        if event_id:
+                            resolved_source_type = "upload"
+                        elif image_name in PUBLIC_VM_IMAGE_NAMES:
+                            resolved_source_type = "public"
+                        else:
+                            resolved_source_type = "url"
+                    source_uri = vm_url or "/grdata/package_build/temp/events/{}".format(event_id)
+                    os_name = image_name
+                    if resolved_source_type == "public" and public_vm_meta:
+                        source_uri = public_vm_meta["url"]
+                        os_name = public_vm_meta["os_name"]
+                    asset = vms.create_vm_image_asset(
+                        self.tenant.tenant_id,
+                        image_name,
+                        image,
+                        source_type=resolved_source_type,
+                        source_uri=source_uri,
+                        format=source_format,
+                        arch=arch,
+                        os_name=os_name,
+                        build_event_id=event_id,
+                        is_public_template=resolved_source_type == "public",
+                        boot_mode=boot_mode,
+                        extra={
+                            "created_from": "vm_run"
+                        })
+                    asset_created = True
+                    asset_id = asset.ID
+                if not boot_source_format:
+                    boot_source_format = vms.infer_vm_boot_source_format(
+                        asset=asset,
+                        image_name=image_name,
                         image_url=image,
+                        source_uri=vm_url or getattr(asset, "source_uri", ""),
                     )
-                    vm.save()
+                guest_os_name = getattr(asset, "os_name", "") or image_name
             else:
-                image = vm_repo.get_vm_image_url_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
+                if asset_id:
+                    asset = vm_repo.get_vm_image_instance_by_id(self.tenant.tenant_id, asset_id)
+                if not asset and image_name:
+                    asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
+                asset = vms.sync_vm_export_asset_record(asset, self.response_region, self.tenant.tenant_name)
+                if asset and not vms.is_vm_asset_ready(asset):
+                    return Response(general_message(409, "vm image not ready", "虚拟机镜像导出尚未完成，请稍后再试"), status=409)
+                image = asset.image_url if asset else ""
+                if asset:
+                    asset_id = asset.ID
+                    if not image_name:
+                        image_name = getattr(asset, "name", "") or image_name
+                    if not guest_os_name:
+                        guest_os_name = getattr(asset, "os_name", "") or image_name
+                    if not boot_source_format:
+                        boot_source_format = vms.infer_vm_boot_source_format(
+                            asset=asset,
+                            image_name=image_name,
+                            image_url=image,
+                            source_uri=getattr(asset, "source_uri", ""),
+                        )
+                    live_disk_imports = self.resolve_disk_imports(
+                        asset=asset,
+                        restore_plan=None,
+                        image_name=image_name,
+                        image_url=image,
+                        source_uri=getattr(asset, "source_uri", ""),
+                    )
+                    root_import = self.find_root_disk_import({"disk_imports": live_disk_imports})
+                    if root_import and root_import.get("image_url"):
+                        image = root_import.get("image_url")
+                    if getattr(asset, "source_type", "") == "vm_export" and not live_disk_imports and vms.has_vm_export_machine_manifest(asset):
+                        restore_plan = vms.resolve_vm_export_restore_plan(
+                            asset,
+                            self.response_region,
+                            self.tenant.tenant_name,
+                        )
+                        root_import = self.find_root_disk_import(restore_plan)
+                        if root_import and root_import.get("image_url"):
+                            image = root_import.get("image_url")
+                        boot_source_format = restore_plan.get("boot_source_format") or boot_source_format or "disk"
+                if not image:
+                    return Response(general_message(404, "vm image not found", "虚拟机镜像不存在"), status=404)
+                if not (event_id or vm_url):
+                    boot_source = vms.resolve_vm_boot_source(
+                        self.tenant,
+                        image_name,
+                        image,
+                        source_uri=getattr(asset, "source_uri", "")
+                    )
+                    image = boot_source["image"]
+                    if boot_source["vm_url"]:
+                        vm_url = boot_source["vm_url"]
+            boot_mode = vms.resolve_vm_boot_mode(
+                requested_boot_mode=boot_mode,
+                asset=asset,
+                runtime_config=runtime_config,
+                image_name=image_name,
+                image_url=image,
+                source_uri=vm_url or getattr(asset, "source_uri", ""),
+                boot_source_format=boot_source_format,
+            )
+            if asset_created and asset and boot_mode and getattr(asset, "boot_mode", "") != boot_mode:
+                asset.boot_mode = boot_mode
+                asset.save(update_fields=["boot_mode"])
             code, msg_show, new_service = app_service.create_vm_run_app(
                 self.response_region, self.tenant, self.user, service_cname, k8s_component_name, image, arch, event_id, vm_url)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
+            # The VM component is only persisted in console at this point.
+            # Region-side service registration happens later and will sync these attrs.
+            vms.save_vm_runtime_config(
+                self.tenant.tenant_id,
+                new_service.service_id,
+                {
+                    **runtime_config,
+                    "asset_id": asset_id,
+                    "disk_layout": vms.build_vm_export_disk_layout(asset) if asset and getattr(asset, "source_type", "") == "vm_export" and not restore_plan else (restore_plan.get("disk_layout") if restore_plan else []),
+                    "boot_mode": boot_mode,
+                    "boot_source_format": boot_source_format,
+                    "os_name": guest_os_name
+                })
+            disk_imports = self.resolve_disk_imports(
+                asset=asset,
+                restore_plan=restore_plan,
+                image_name=image_name,
+                image_url=image,
+                source_uri=vm_url or getattr(asset, "source_uri", ""),
+            )
+            logger.info(
+                "vm create resolved source: tenant=%s service=%s source_type=%s asset_id=%s boot_source_format=%s image=%s vm_url=%s disk_import_count=%s",
+                getattr(self.tenant, "tenant_name", ""),
+                service_cname,
+                source_type or getattr(asset, "source_type", ""),
+                asset_id,
+                boot_source_format,
+                image,
+                vm_url,
+                len(disk_imports),
+            )
+            for disk in self.resolve_exported_data_disks(asset, restore_plan):
+                volume_service.add_service_volume(
+                    self.tenant,
+                    new_service,
+                    "/disk",
+                    "vm-file",
+                    disk.get("disk_key") or "disk",
+                    "",
+                    {
+                        "volume_capacity": self.bytes_to_gib(disk.get("size_bytes"))
+                    },
+                    self.user.nick_name,
+                    mode=None
+                )
+            if disk_imports:
+                vms.save_vm_disk_imports(
+                    self.tenant.tenant_id,
+                    new_service.service_id,
+                    disk_imports
+                )
             code, msg_show = group_service.add_service_to_group(self.tenant, self.response_region, group_id,
                                                                 new_service.service_id)
             if code != 200:
@@ -91,4 +289,61 @@ class VMRunCreateView(RegionTenantHeaderView):
             result = general_message(200, "success", "创建成功", bean=new_service.to_dict())
         except ResourceNotEnoughException as re:
             raise re
+        except ValueError as err:
+            return Response(general_message(400, "invalid vm runtime config", str(err)), status=400)
         return Response(result, status=result["code"])
+
+    @staticmethod
+    def find_root_disk_import(restore_plan):
+        for disk in (restore_plan or {}).get("disk_imports", []) or []:
+            if (disk.get("volume_name") or "") == "disk":
+                return disk
+        return None
+
+    @staticmethod
+    def resolve_disk_imports(asset=None, restore_plan=None, image_name="", image_url="", source_uri=""):
+        if restore_plan:
+            return list(restore_plan.get("disk_imports") or [])
+        return vms.build_vm_create_disk_imports(
+            asset=asset,
+            image_name=image_name,
+            image_url=image_url,
+            source_uri=source_uri,
+        )
+
+    @staticmethod
+    def resolve_exported_data_disks(asset=None, restore_plan=None):
+        if asset and getattr(asset, "source_type", "") == "vm_export" and not restore_plan:
+            return vms.resolve_vm_export_data_disks(asset)
+        if not asset or not restore_plan:
+            return []
+        extra = vms._load_json(getattr(asset, "extra_json", ""), {})
+        manifest = extra.get("machine_manifest") or {}
+        manifest_by_key = {
+            disk.get("disk_key"): disk
+            for disk in (manifest.get("disks") or [])
+            if disk.get("disk_key")
+        }
+        resolved = []
+        for disk in (restore_plan.get("disk_layout") or []):
+            if str(disk.get("disk_role", "")).lower() == "root":
+                continue
+            manifest_disk = manifest_by_key.get(disk.get("disk_key"), {})
+            resolved.append({
+                "disk_key": disk.get("disk_key"),
+                "size_bytes": manifest_disk.get("size_bytes", 0),
+            })
+        return resolved
+
+    @staticmethod
+    def bytes_to_gib(value):
+        try:
+            size_bytes = int(value or 0)
+        except (TypeError, ValueError):
+            size_bytes = 0
+        if size_bytes <= 0:
+            return 10
+        gib = size_bytes // (1024 * 1024 * 1024)
+        if size_bytes % (1024 * 1024 * 1024) != 0:
+            gib += 1
+        return gib or 10
