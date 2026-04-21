@@ -919,15 +919,17 @@ class JobStrategy(AppBaseView):
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
+
 # 存储文件管理
 class ManageFile(AppBaseView):
     def get(self, request, *args, **kwargs):
         host_path = request.GET.get("host_path", "")
         pod_name = request.GET.get("pod_name", "")
+        container_name = request.GET.get("container_name", "")
         region_name = request.GET.get("region_name", "")
         try:
             res = group_service.get_file_and_dir(region_name, self.tenant_name, self.service.service_alias, host_path, pod_name,
-                                                 self.tenant.namespace)
+                                                 container_name, self.tenant.namespace)
             region = region_services.get_region_by_region_name(region_name)
         except Exception as e:
             logger.exception(e)
@@ -936,7 +938,7 @@ class ManageFile(AppBaseView):
             "host_path": host_path,
             "ws_url": region.wsurl,
             "namespace": self.tenant.namespace,
-            "container_name": self.service.k8s_component_name
+            "container_name": container_name or self.service.k8s_component_name
         }
         result = general_message(200, "success", "获取成功", list=res, bean=bean)
         return Response(result, status=result["code"])

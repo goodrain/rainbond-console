@@ -1005,8 +1005,9 @@ class GroupService(object):
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
         return region_api.check_app_governance_mode(region_name, tenant.tenant_name, region_app_id, governance_mode)
 
-    def get_file_and_dir(self, region_name, tenant_name, service_alias, path, pod_name, namespace):
-        body = region_api.get_files(region_name, tenant_name, service_alias, quote(path), pod_name, namespace)
+    def get_file_and_dir(self, region_name, tenant_name, service_alias, path, pod_name, container_name, namespace):
+        body = region_api.get_files(region_name, tenant_name, service_alias, quote(path), pod_name, container_name,
+                                    namespace)
         return body["list"]
 
     def get_watch_managed_data(self, tenant, region_name, app_id):

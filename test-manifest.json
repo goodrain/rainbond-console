@@ -6496,6 +6496,43 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.file-manage.selected-container-forwarding",
+      "title": "Forward selected container name when listing managed files",
+      "title_zh": "\u5217\u51fa\u6587\u4ef6\u7ba1\u7406\u5185\u5bb9\u65f6\u900f\u4f20\u7528\u6237\u9009\u62e9\u7684\u5bb9\u5668\u540d",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.GroupService.get_file_and_dir",
+      "code_paths": [
+        "console/services/group_service.py",
+        "console/views/app_overview.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/file_manage_service_test.py",
+          "selector": "test_get_file_and_dir_forwards_selected_container_name"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.file-manage.region-request-timeout",
+      "title": "Use selected container and longer timeout for file-manage region requests",
+      "title_zh": "\u6587\u4ef6\u7ba1\u7406\u533a\u57df\u8bf7\u6c42\u4f7f\u7528\u9009\u5b9a\u5bb9\u5668\u4e0e\u66f4\u957f\u8d85\u65f6",
+      "interface_type": "workflow",
+      "interface": "www.apiclient.regionapi.RegionInvokeApi.get_files",
+      "code_paths": [
+        "www/apiclient/regionapi.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/file_manage_service_test.py",
+          "selector": "test_region_api_get_files_uses_container_name_and_longer_timeout"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
