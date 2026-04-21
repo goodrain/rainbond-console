@@ -46,7 +46,8 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("rainbond_get_component_summary", tool_names)
         self.assertIn("rainbond_get_component_detail", tool_names)
         self.assertIn("rainbond_get_component_logs", tool_names)
-        self.assertNotIn("rainbond_get_component_events", tool_names)
+        self.assertIn("rainbond_get_component_events", tool_names)
+        self.assertIn("rainbond_get_component_build_logs", tool_names)
         self.assertIn("rainbond_create_component", tool_names)
         self.assertIn("rainbond_delete_component", tool_names)
         self.assertIn("rainbond_operate_app", tool_names)
@@ -159,7 +160,8 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("rainbond_get_component_summary", tool_names)
         self.assertIn("rainbond_get_component_detail", tool_names)
         self.assertIn("rainbond_get_component_logs", tool_names)
-        self.assertNotIn("rainbond_get_component_events", tool_names)
+        self.assertIn("rainbond_get_component_events", tool_names)
+        self.assertIn("rainbond_get_component_build_logs", tool_names)
         self.assertIn("rainbond_create_component", tool_names)
         self.assertIn("rainbond_delete_component", tool_names)
         self.assertIn("rainbond_operate_app", tool_names)
@@ -2101,6 +2103,47 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(result["total"], 1)
         self.assertEqual(result["events"][0]["event_id"], "evt-1")
         self.assertFalse(result["has_next"])
+
+    @patch("console.services.mcp_query_service.event_service.get_event_log")
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    # capability_id: console.component.build-logs
+    def test_get_component_build_logs_returns_event_log_items(
+            self,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+            mock_get_event_log,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_event_log.return_value = ["step-1", "step-2"]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_component_build_logs",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "event_id": "evt-build-1",
+            },
+        )
+
+        self.assertEqual(result["service_id"], "svc-1")
+        self.assertEqual(result["event_id"], "evt-build-1")
+        self.assertEqual(result["items"], ["step-1", "step-2"])
+        self.assertEqual(result["total"], 2)
+        mock_get_event_log.assert_called_once_with(self.team, "rainbond", "evt-build-1")
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")

@@ -231,7 +231,8 @@ class MCPQueryService(object):
         tools = [
             self._tool_get_current_user(), self._tool_get_app_detail(), self._tool_create_app(),
             self._tool_get_component_summary(), self._tool_get_component_detail(),
-            self._tool_get_component_logs(), self._tool_create_component(),
+            self._tool_get_component_logs(), self._tool_get_component_events(), self._tool_get_component_build_logs(),
+            self._tool_create_component(),
             self._tool_delete_component(), self._tool_operate_app(), self._tool_manage_component_envs(),
             self._tool_manage_component_connection_envs(),
             self._tool_change_component_image(), self._tool_manage_component_ports(),
@@ -292,6 +293,8 @@ class MCPQueryService(object):
             return self.get_component_summary(user, arguments)
         if name == "rainbond_get_component_logs":
             return self.get_component_logs(user, arguments)
+        if name == "rainbond_get_component_build_logs":
+            return self.get_component_build_logs(user, arguments)
         if name == "rainbond_get_component_detail":
             return self.get_component_detail(user, arguments)
         if name == "rainbond_get_component_events":
@@ -687,6 +690,26 @@ class MCPQueryService(object):
             "page": page,
             "page_size": page_size,
             "has_next": has_next,
+        }
+
+    def get_component_build_logs(self, user, arguments):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        event_id = self._require_string(arguments, "event_id")
+        items = event_service.get_event_log(team, app.region_name, event_id)
+        return {
+            "team_name": team.tenant_name,
+            "region_name": app.region_name,
+            "app_id": app.ID,
+            "service_id": service.service_id,
+            "event_id": event_id,
+            "items": items,
+            "total": len(items),
         }
 
     def create_component(self, user, arguments):
@@ -4365,6 +4388,23 @@ class MCPQueryService(object):
                     "page_size": {"type": "integer", "minimum": 1}
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
+            }
+        }
+
+    def _tool_get_component_build_logs(self):
+        return {
+            "name": "rainbond_get_component_build_logs",
+            "description": "Get build event logs for a component by event_id. The event_id usually comes from build/create/deploy responses.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                    "event_id": {"type": "string", "description": "构建事件 ID，一般来自构建、创建或部署操作的返回值"}
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id", "event_id"]
             }
         }
 
