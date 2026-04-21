@@ -636,3 +636,59 @@ class SourceComponentServiceTests(SimpleTestCase):
         self.assertEqual(result["selected_language"], "dockerfile")
         self.assertEqual(result["detected_language_raw"], "Node.js")
         mock_change_lang_and_package_tool.assert_not_called()
+
+    # capability_id: console.source-component.check-timeout-pending
+    @patch("console.services.source_component_service.group_service.add_service_to_group")
+    @patch("console.services.source_component_service.app_check_service.check_service")
+    @patch("console.services.source_component_service.console_app_service.create_source_code_app")
+    @patch("console.services.source_component_service.console_app_service.is_k8s_component_name_duplicate")
+    def test_auto_create_component_returns_pending_result_when_check_times_out(
+            self,
+            mock_name_duplicate,
+            mock_create_source,
+            mock_check_service,
+            mock_add_to_group,
+    ):
+        from console.services.source_component_service import source_component_service
+
+        user = Obj(user_id=1, pk=1, nick_name="admin")
+        team = Obj(tenant_id="team-1", tenant_name="demo-team", enterprise_id="eid-1")
+        app = Obj(ID=12, region_name="rainbond", group_name="demo-app")
+        service = Obj(
+            service_id="svc-1",
+            service_alias="alias-1",
+            service_cname="component-1",
+            service_region="rainbond",
+            service_source="source_code",
+            create_status="checking",
+            arch="amd64",
+            check_uuid="chk-1",
+        )
+        service.to_dict = lambda: {"service_id": "svc-1", "service_alias": "alias-1"}
+        service.save = lambda: None
+
+        mock_name_duplicate.return_value = False
+        mock_create_source.return_value = (200, "success", service)
+        mock_add_to_group.return_value = (200, "success")
+        mock_check_service.return_value = (200, "success", {"check_uuid": "chk-1"})
+
+        with patch.object(
+                source_component_service,
+                "_wait_for_check_result",
+                side_effect=ServiceHandleException(msg="check timeout", msg_show="代码检测超时", status_code=500),
+        ):
+            result = source_component_service.auto_create_component(
+                team=team,
+                app=app,
+                user=user,
+                service_cname="component-1",
+                code_from="git",
+                git_url="https://git.example.com/demo.git",
+                is_deploy=True,
+            )
+
+        self.assertFalse(result["built"])
+        self.assertEqual(result["workflow_stage"], "checking")
+        self.assertEqual(result["next_action"], "rainbond_get_component_check_result")
+        self.assertEqual(result["check_uuid"], "chk-1")
+        self.assertEqual(result["service_id"], "svc-1")

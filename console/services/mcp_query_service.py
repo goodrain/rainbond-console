@@ -265,6 +265,7 @@ class MCPQueryService(object):
             self._tool_init_package_upload(), self._tool_upload_package_file(),
             self._tool_get_package_upload_status(), self._tool_delete_package_upload(),
             self._tool_create_component_from_local_package(),
+            self._tool_check_component(), self._tool_get_component_check_result(),
             self._tool_create_component_from_image(),
             self._tool_create_app_from_yaml(), self._tool_check_yaml_app(), self._tool_get_yaml_app_check_result(),
             self._tool_query_app_monitor(), self._tool_query_app_monitor_range(),
