@@ -233,6 +233,7 @@ class MCPQueryService(object):
         tools = [
             self._tool_get_current_user(), self._tool_get_app_detail(), self._tool_create_app(),
             self._tool_get_component_summary(), self._tool_get_component_detail(),
+            self._tool_get_component_pods(), self._tool_get_pod_detail(),
             self._tool_get_component_logs(), self._tool_get_component_events(), self._tool_get_component_build_logs(),
             self._tool_get_component_build_source(), self._tool_update_component_build_source(),
             self._tool_create_component(),
@@ -295,6 +296,10 @@ class MCPQueryService(object):
             return self.create_app(user, arguments)
         if name == "rainbond_get_component_summary":
             return self.get_component_summary(user, arguments)
+        if name == "rainbond_get_component_pods":
+            return self.get_component_pods(user, arguments)
+        if name == "rainbond_get_pod_detail":
+            return self.get_pod_detail(user, arguments)
         if name == "rainbond_get_component_logs":
             return self.get_component_logs(user, arguments)
         if name == "rainbond_get_component_build_logs":
@@ -569,6 +574,55 @@ class MCPQueryService(object):
         data["status"] = status_list[0]["status"] if status_list else ""
         data["access_infos"] = domain_service.get_component_access_infos(app.region_name, service.service_id)
         return data
+
+    def get_component_pods(self, user, arguments):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        data = region_api.get_service_pods(
+            app.region_name, team.tenant_name, service.service_alias, team.enterprise_id
+        )
+        pods = self._extract_component_pods(data)
+        items = []
+        for pod in pods:
+            item = {k: v for k, v in pod.items() if not k.startswith("_")}
+            item["group"] = pod.get("_group")
+            item["container_names"] = pod.get("_container_names") or []
+            items.append(item)
+        return {
+            "team_name": team.tenant_name,
+            "region_name": app.region_name,
+            "app_id": app.ID,
+            "service_id": service.service_id,
+            "items": items,
+            "total": len(items),
+        }
+
+    def get_pod_detail(self, user, arguments):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        pod_name = self._require_string(arguments, "pod_name")
+        if getattr(service, "extend_method", "") == "kubeblocks_component":
+            data = region_api.kubeblocks_cluster_pod_detail(
+                app.region_name, service.service_id, pod_name
+            )
+        else:
+            data = region_api.pod_detail(
+                app.region_name, team.tenant_name, service.service_alias, pod_name
+            )
+        pod_detail = self._extract_region_pod_detail(data)
+        if not pod_detail:
+            raise ServiceHandleException(msg="pod not found", msg_show="Pod 不存在", status_code=404)
+        return pod_detail
 
     def get_component_summary(self, user, arguments):
         team, app, service = self._get_team_app_service_context(
@@ -3915,6 +3969,18 @@ class MCPQueryService(object):
             return [name for name in container_data.keys() if name and name != "POD"]
         return []
 
+    @staticmethod
+    def _extract_region_pod_detail(payload):
+        if not isinstance(payload, dict):
+            return payload
+        bean = payload.get("bean")
+        if isinstance(bean, dict):
+            return bean
+        data = payload.get("data")
+        if isinstance(data, dict) and isinstance(data.get("bean"), dict):
+            return data.get("bean")
+        return payload
+
     def _extract_component_pods(self, pods_data):
         if not isinstance(pods_data, dict):
             return []
@@ -4547,6 +4613,39 @@ class MCPQueryService(object):
                     "service_id": {"type": "string"}
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
+            }
+        }
+
+    def _tool_get_component_pods(self):
+        return {
+            "name": "rainbond_get_component_pods",
+            "description": "List runtime pods of the component with normalized group and container names.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"}
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id"]
+            }
+        }
+
+    def _tool_get_pod_detail(self):
+        return {
+            "name": "rainbond_get_pod_detail",
+            "description": "Get runtime diagnostic detail of a specified pod under the component.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                    "pod_name": {"type": "string"}
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id", "pod_name"]
             }
         }
 
