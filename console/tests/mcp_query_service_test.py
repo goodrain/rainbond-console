@@ -45,6 +45,8 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("rainbond_create_app", tool_names)
         self.assertIn("rainbond_get_component_summary", tool_names)
         self.assertIn("rainbond_get_component_detail", tool_names)
+        self.assertIn("rainbond_get_component_pods", tool_names)
+        self.assertIn("rainbond_get_pod_detail", tool_names)
         self.assertIn("rainbond_get_component_logs", tool_names)
         self.assertIn("rainbond_get_component_events", tool_names)
         self.assertIn("rainbond_get_component_build_logs", tool_names)
@@ -161,6 +163,8 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("rainbond_create_app", tool_names)
         self.assertIn("rainbond_get_component_summary", tool_names)
         self.assertIn("rainbond_get_component_detail", tool_names)
+        self.assertIn("rainbond_get_component_pods", tool_names)
+        self.assertIn("rainbond_get_pod_detail", tool_names)
         self.assertIn("rainbond_get_component_logs", tool_names)
         self.assertIn("rainbond_get_component_events", tool_names)
         self.assertIn("rainbond_get_component_build_logs", tool_names)
@@ -1031,6 +1035,157 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(result["autoscaler_rules"]["total"], 1)
         self.assertEqual(result["recent_events"]["total"], 1)
         self.assertEqual(result["resource"]["memory"], 128)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.region_api.get_service_pods")
+    # capability_id: console.component.pods
+    def test_get_component_pods_returns_normalized_runtime_instances(
+            self,
+            mock_get_service_pods,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_service_pods.return_value = {
+            "bean": {
+                "new_pods": [
+                    {
+                        "pod_name": "pod-new-1",
+                        "pod_status": "RUNNING",
+                        "manage_name": "manager",
+                        "container": {"POD": {}, "main": {}, "sidecar": {}}
+                    }
+                ],
+                "old_pods": [
+                    {
+                        "pod_name": "pod-old-1",
+                        "pod_status": "TERMINATING",
+                        "container": [{"container_name": "legacy"}]
+                    }
+                ]
+            }
+        }
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_component_pods",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12, "service_id": "svc-1"},
+        )
+
+        self.assertEqual(result["service_id"], "svc-1")
+        self.assertEqual(result["total"], 2)
+        self.assertEqual(result["items"][0]["pod_name"], "pod-new-1")
+        self.assertEqual(result["items"][0]["group"], "new_pods")
+        self.assertEqual(result["items"][0]["container_names"], ["main", "sidecar"])
+        self.assertEqual(result["items"][1]["group"], "old_pods")
+        self.assertEqual(result["items"][1]["container_names"], ["legacy"])
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.region_api.pod_detail")
+    # capability_id: console.pod.detail
+    def test_get_pod_detail_returns_runtime_diagnostics(
+            self,
+            mock_pod_detail,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_pod_detail.return_value = {
+            "bean": {
+                "name": "pod-new-1",
+                "namespace": "demo-team",
+                "status": {
+                    "type": 7,
+                    "reason": "ContainersNotInitialized",
+                    "message": "containers with incomplete status: [init]"
+                },
+                "init_containers": [{"image": "probe:v1", "state": "Waiting", "reason": "ImagePullBackOff"}],
+                "containers": [{"image": "demo:v1", "state": "Waiting", "reason": "PodInitializing"}],
+                "events": [{"type": "Warning", "reason": "Failed", "message": "ImagePullBackOff"}]
+            }
+        }
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_pod_detail",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "pod_name": "pod-new-1",
+            },
+        )
+
+        self.assertEqual(result["name"], "pod-new-1")
+        self.assertEqual(result["status"]["reason"], "ContainersNotInitialized")
+        self.assertEqual(result["init_containers"][0]["reason"], "ImagePullBackOff")
+        self.assertEqual(result["events"][0]["reason"], "Failed")
+        mock_pod_detail.assert_called_once_with("rainbond", "demo-team", "alias-1", "pod-new-1")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.region_api.kubeblocks_cluster_pod_detail")
+    @patch("console.services.mcp_query_service.region_api.pod_detail")
+    # capability_id: console.pod.detail-kubeblocks
+    def test_get_pod_detail_uses_kubeblocks_endpoint_for_kubeblocks_component(
+            self,
+            mock_pod_detail,
+            mock_kubeblocks_pod_detail,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        self.service.extend_method = "kubeblocks_component"
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_kubeblocks_pod_detail.return_value = {"bean": {"name": "pod-new-1", "status": {"reason": "Running"}}}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_pod_detail",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "pod_name": "pod-new-1",
+            },
+        )
+
+        self.assertEqual(result["name"], "pod-new-1")
+        mock_kubeblocks_pod_detail.assert_called_once_with("rainbond", "svc-1", "pod-new-1")
+        mock_pod_detail.assert_not_called()
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
