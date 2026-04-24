@@ -718,6 +718,12 @@ class VirtualMachineService(object):
         if source_format == "iso":
             return ""
 
+        if asset and getattr(asset, "source_type", "") == "vm_export":
+            # Live exports restore disks only. Do not reuse persisted boot-mode
+            # metadata from the source VM, which may still reflect the original
+            # installer path rather than the exported disk.
+            return ""
+
         runtime_snapshot = (template_payload or {}).get("runtime_snapshot") or {}
         boot_mode = self._normalize_vm_boot_mode(runtime_snapshot.get("boot_mode"))
         if boot_mode:

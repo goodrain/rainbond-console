@@ -6498,6 +6498,24 @@
       "status": "active"
     },
     {
+      "id": "rainbond-console.vm-run.vm-export-ignore-stale-boot-mode",
+      "title": "Ignore stale boot mode metadata when creating vm from exported disks",
+      "title_zh": "\u57fa\u4e8e vm \u5bfc\u51fa\u78c1\u76d8\u521b\u5efa\u865a\u62df\u673a\u65f6\u5ffd\u7565\u8fc7\u671f\u7684\u542f\u52a8\u6a21\u5f0f\u5143\u6570\u636e",
+      "interface_type": "service_method",
+      "interface": "console.services.virtual_machine.VirtualMachineService.resolve_vm_boot_mode",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_create_flow_regression_test.py",
+          "selector": "VMCreateFlowRegressionUnitTests::test_resolve_vm_boot_mode_ignores_stale_vm_export_boot_mode_metadata"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.file-manage.selected-container-forwarding",
       "title": "Forward selected container name when listing managed files",
       "title_zh": "\u5217\u51fa\u6587\u4ef6\u7ba1\u7406\u5185\u5bb9\u65f6\u900f\u4f20\u7528\u6237\u9009\u62e9\u7684\u5bb9\u5668\u540d",

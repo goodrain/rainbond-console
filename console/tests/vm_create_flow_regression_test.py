@@ -1,4 +1,5 @@
 # capability_id: rainbond-console.vm-export.asset-ready-storage-status
+# capability_id: rainbond-console.vm-run.vm-export-ignore-stale-boot-mode
 import collections
 import json
 import os
@@ -289,6 +290,23 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
                 os_name="Windows 10",
                 name="win-export",
                 extra_json='{"runtime_snapshot": {"boot_mode": ""}}'
+            ),
+            runtime_config={"os_family": "windows"},
+            image_name="win-export",
+            boot_source_format="disk"
+        )
+
+        self.assertEqual("", mode)
+
+    def test_resolve_vm_boot_mode_ignores_stale_vm_export_boot_mode_metadata(self):
+        mode = vms.resolve_vm_boot_mode(
+            requested_boot_mode="",
+            asset=SimpleNamespace(
+                source_type="vm_export",
+                boot_mode="uefi",
+                os_name="Windows 10",
+                name="win-export",
+                extra_json='{"runtime_snapshot": {"boot_mode": "uefi"}}'
             ),
             runtime_config={"os_family": "windows"},
             image_name="win-export",
