@@ -10,22 +10,6 @@ region_api = RegionInvokeApi()
 
 
 class ComponentK8sAttributeService(object):
-    @staticmethod
-    def _serialize_json_attribute_value(attribute_value):
-        if isinstance(attribute_value, str):
-            try:
-                json.loads(attribute_value)
-                return attribute_value
-            except (json.JSONDecodeError, ValueError):
-                return json.dumps(attribute_value)
-        if isinstance(attribute_value, dict):
-            return json.dumps(attribute_value)
-        if isinstance(attribute_value, list):
-            if all(isinstance(value, dict) and "key" in value and "value" in value for value in attribute_value):
-                return json.dumps({value["key"]: value["value"] for value in attribute_value})
-            return json.dumps(attribute_value)
-        return json.dumps(attribute_value)
-
     def get_by_component_ids_and_name(self, component_id, name):
         attributes = k8s_attribute_repo.get_by_component_id_name(component_id, name)
         if attributes and attributes[0].save_type == "json" and attributes[0].attribute_value:
@@ -59,7 +43,9 @@ class ComponentK8sAttributeService(object):
     @transaction.atomic
     def create_k8s_attribute(self, tenant, component, region_name, attribute, user_name):
         if attribute["save_type"] == "json":
-            attribute["attribute_value"] = self._serialize_json_attribute_value(attribute.get("attribute_value", []))
+            attribute_value = attribute.get("attribute_value", [])
+            attribute_value_json = json.dumps({value["key"]: value["value"] for value in attribute_value})
+            attribute["attribute_value"] = attribute_value_json
         k8s_attribute_repo.create(tenant_id=tenant.tenant_id, component_id=component.service_id, **attribute)
         attribute['operator'] = user_name
         region_api.create_component_k8s_attribute(tenant.tenant_name, region_name, component.service_alias, attribute)
@@ -68,7 +54,8 @@ class ComponentK8sAttributeService(object):
     def update_k8s_attribute(self, tenant, component, region_name, attribute):
         data = {"attribute_value": attribute.get("attribute_value", "")}
         if attribute.get("save_type", "") == "json":
-            attribute_value_json = self._serialize_json_attribute_value(attribute.get("attribute_value", []))
+            attribute_value = attribute.get("attribute_value", [])
+            attribute_value_json = json.dumps({value["key"]: value["value"] for value in attribute_value})
             attribute["attribute_value"] = attribute_value_json
             data = {"attribute_value": attribute_value_json}
         k8s_attribute_repo.update(component.service_id, attribute["name"], **data)

@@ -1516,42 +1516,6 @@ class GatewayCustomConfigurationView(RegionTenantHeaderView):
 
 class VirtualMachineImageView(RegionTenantHeaderView):
     def get(self, request, *args, **kwargs):
-        data = vms.list_vm_image(self.tenant.tenant_id, self.response_region, self.tenant.tenant_name)
+        data = vms.list_vm_image(self.tenant.tenant_id)
         result = general_message(200, "success", "查询成功", list=data)
-        return Response(result, status=result["code"])
-
-
-class VirtualMachineCapabilityView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
-        data = vms.get_vm_capabilities(self.response_region, self.tenant.tenant_name)
-        result = general_message(200, "success", "查询成功", bean=data)
-        return Response(result, status=result["code"])
-
-
-class VirtualMachineAssetListView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
-        data = vms.list_vm_image(self.tenant.tenant_id, self.response_region, self.tenant.tenant_name)
-        result = general_message(200, "success", "查询成功", list=data)
-        return Response(result, status=result["code"])
-
-
-class VirtualMachineAssetManageView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
-        asset_id = kwargs.get("asset_id")
-        asset = vms.get_vm_asset(self.tenant.tenant_id, asset_id, self.response_region, self.tenant.tenant_name)
-        if not asset:
-            return Response(general_message(404, "vm asset not found", "虚拟机镜像资产不存在"), status=404)
-        result = general_message(200, "success", "查询成功", bean=asset)
-        return Response(result, status=result["code"])
-
-    def delete(self, request, *args, **kwargs):
-        asset_id = kwargs.get("asset_id")
-        try:
-            deleted, _ = vms.delete_vm_image(self.tenant.tenant_id, asset_id, self.response_region, self.tenant.tenant_name)
-        except ValueError:
-            result = general_message(409, "vm asset is referenced", "虚拟机镜像资产仍被引用，无法删除")
-            return Response(result, status=409)
-        if deleted == 0:
-            return Response(general_message(404, "vm asset not found", "虚拟机镜像资产不存在"), status=404)
-        result = general_message(200, "success", "删除成功")
         return Response(result, status=result["code"])

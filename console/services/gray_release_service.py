@@ -325,9 +325,7 @@ class GrayReleaseService(object):
                     team.tenant_name,
                     path,
                     put_body,
-                    app.app_id,
-                    service_alias=original_service.service_alias,
-                    port=str(route_sync_port)
+                    app.app_id
                 )
 
                 logger.info(f"[GrayRelease] Successfully updated route via console API")

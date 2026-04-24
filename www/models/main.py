@@ -952,34 +952,11 @@ class VirtualMachineImage(BaseModel):
 
     class Meta:
         db_table = "virtual_machine_image"
-        unique_together = (("tenant_id", "name"),)
-        indexes = [
-            models.Index(fields=["tenant_id", "status"]),
-            models.Index(fields=["tenant_id", "source_type"]),
-            models.Index(fields=["tenant_id", "source_asset_id"]),
-        ]
 
     tenant_id = models.CharField(max_length=32, help_text="租户id")
-    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
-    update_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text="更新时间")
     name = models.CharField(max_length=64, help_text="镜像名称")
-    image_url = models.CharField(max_length=2048, help_text="镜像地址")
-    source_type = models.CharField(max_length=32, default="existing", help_text="镜像来源类型")
-    source_uri = models.CharField(max_length=2048, default="", blank=True, help_text="来源地址")
-    arch = models.CharField(max_length=32, default="amd64", blank=True, help_text="架构")
-    os_name = models.CharField(max_length=128, default="", blank=True, help_text="操作系统名称")
-    format = models.CharField(max_length=32, default="", blank=True, help_text="镜像格式")
-    size_bytes = models.BigIntegerField(default=0, help_text="镜像大小")
-    checksum = models.CharField(max_length=255, default="", blank=True, help_text="镜像校验和")
-    status = models.CharField(max_length=32, default="ready", help_text="镜像状态")
-    build_event_id = models.CharField(max_length=64, default="", blank=True, help_text="构建事件ID")
-    source_asset_id = models.IntegerField(null=True, blank=True, help_text="源资产ID")
-    clone_mode = models.CharField(max_length=32, default="", blank=True, help_text="克隆模式")
-    is_public_template = models.BooleanField(default=False, help_text="是否公共模板")
-    boot_mode = models.CharField(max_length=32, default="", blank=True, help_text="启动模式")
-    storage_backend = models.CharField(max_length=64, default="", blank=True, help_text="存储后端")
-    labels_json = models.TextField(default="{}", blank=True, help_text="标签JSON")
-    extra_json = models.TextField(default="{}", blank=True, help_text="扩展信息JSON")
+    image_url = models.CharField(max_length=200, help_text="镜像地址")
+
 
 class TaskEvent(BaseModel):
     class Meta:
