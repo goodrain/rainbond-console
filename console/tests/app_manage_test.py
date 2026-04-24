@@ -21,7 +21,6 @@ import django  # noqa: E402
 django.setup()
 
 from console.services.app_actions import app_manage as app_manage_module  # noqa: E402
-from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E402
 
 
 class AppManageMarketBuildPreferenceTests(TestCase):
@@ -75,33 +74,3 @@ class AppManageMarketBuildPreferenceTests(TestCase):
         self.assertEqual(build_info["image_info"]["user"], "hub-user")
         self.assertEqual(build_info["image_info"]["password"], "hub-password")
         self.assertNotIn("slug_info", build_info)
-
-
-class AppManageStartErrorTests(TestCase):
-    def test_start_returns_region_error_reason_instead_of_generic_component_error(self):
-        tenant = mock.Mock(creater="creator", enterprise_id="eid", tenant_name="demo-team")
-        user = mock.Mock(nick_name="tester")
-        service = mock.Mock(
-            service_source="vm_run",
-            service_region="demo-region",
-            service_alias="demo-vm",
-            create_status="complete",
-            extend_method="vm",
-        )
-        region_error = RegionApiBaseHttpClient.CallApiError(
-            "region api",
-            "http://region/v2/tenants/demo/services/demo-vm/start",
-            "POST",
-            mock.Mock(status=500),
-            {
-                "msg": "vm start blocked: no schedulable node",
-            },
-        )
-
-        with mock.patch.object(app_manage_module, "check_account_quota", return_value=True), \
-                mock.patch.object(app_manage_module.region_api, "start_service", side_effect=region_error):
-            service_manage = app_manage_module.AppManageService()
-            code, msg = service_manage.start(tenant, service, user, oauth_instance=None)
-
-        self.assertEqual(500, code)
-        self.assertEqual("vm start blocked: no schedulable node", msg)

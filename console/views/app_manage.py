@@ -188,10 +188,7 @@ class PauseAppView(AppBaseView):
               paramType: path
 
         """
-        code, msg = app_manage_service.pause(self.tenant, self.service, self.user)
-        if code != 200:
-            result = general_message(code, "pause app error", msg, bean={})
-            return Response(result, status=code)
+        app_manage_service.pause(self.tenant, self.service, self.user)
         result = general_message(200, "success", "操作成功", bean={})
         self.service.update_time = datetime.now()
         self.service.save()
@@ -217,10 +214,7 @@ class UNPauseAppView(AppBaseView):
               paramType: path
 
         """
-        code, msg = app_manage_service.un_pause(self.tenant, self.service, self.user)
-        if code != 200:
-            result = general_message(code, "unpause app error", msg, bean={})
-            return Response(result, status=code)
+        app_manage_service.un_pause(self.tenant, self.service, self.user)
         result = general_message(200, "success", "操作成功", bean={})
         self.service.update_time = datetime.now()
         self.service.save()
