@@ -100,7 +100,7 @@ class BuildEnvSanitizeTestCase(TestCase):
         }, "java-maven")
         self.assertNotIn("CNB_FRAMEWORK", build_env_dict)
         self.assertNotIn("CNB_NODE_VERSION", build_env_dict)
-        self.assertNotIn("BUILD_RUNTIMES_MAVEN", build_env_dict)
+        self.assertEqual(build_env_dict["BUILD_RUNTIMES_MAVEN"], "3.9.14")
         self.assertEqual(build_env_dict["BUILD_TYPE"], "cnb")
         self.assertEqual(build_env_dict["BUILD_RUNTIMES"], "17")
 
@@ -116,6 +116,14 @@ class BuildEnvSanitizeTestCase(TestCase):
         self.assertNotIn("HAS_NPMRC", build_env_dict)
         self.assertNotIn("HAS_YARNRC", build_env_dict)
         self.assertEqual(build_env_dict["RUNTIMES"], "17")
+
+    def test_java_slug_build_envs_keep_maven_runtime_version(self):
+        build_env_dict = sanitize_build_env_dict_for_language({
+            "BUILD_RUNTIMES": "17",
+            "BUILD_RUNTIMES_MAVEN": "3.6.3",
+        }, "java-maven")
+        self.assertEqual(build_env_dict["BUILD_RUNTIMES"], "17")
+        self.assertEqual(build_env_dict["BUILD_RUNTIMES_MAVEN"], "3.6.3")
 
     def test_composite_dockerfile_java_uses_java_sanitize_rules(self):
         build_env_dict = sanitize_build_env_dict_for_language({
