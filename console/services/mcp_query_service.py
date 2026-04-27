@@ -1396,15 +1396,19 @@ class MCPQueryService(object):
             volume_id = self._require_int(arguments, "volume_id")
             new_volume_path = self._require_string(arguments, "new_volume_path")
             new_file_content = arguments.get("new_file_content")
+            volume_capacity = arguments.get("volume_capacity")
             mode = arguments.get("mode")
             if mode is not None:
                 mode = self._ensure_volume_mode(mode)
+            if volume_capacity is not None:
+                volume_capacity = self._parse_int_with_default(volume_capacity, 0)
             volume = volume_repo.get_service_volume_by_pk(volume_id)
             if not volume:
                 raise ServiceHandleException(msg="volume is null", msg_show="存储不存在", status_code=400)
             service_config = volume_repo.get_service_config_file(volume)
             if volume.volume_type == "config-file" and not service_config:
                 raise ServiceHandleException(msg="file_content is null", msg_show="配置文件内容不存在", status_code=400)
+            target_volume_capacity = volume.volume_capacity if volume_capacity is None else volume_capacity
             if self.service_requires_region_sync(service):
                 data = {
                     "volume_name": volume.volume_name,
@@ -1414,10 +1418,14 @@ class MCPQueryService(object):
                     "operator": user.nick_name,
                     "mode": mode,
                 }
+                if volume.volume_type != "config-file":
+                    data["volume_capacity"] = target_volume_capacity
                 res, _ = region_api.upgrade_service_volumes(service.service_region, team.tenant_name, service.service_alias, data)
                 if res.status != 200:
                     raise ServiceHandleException(msg="update failed", msg_show="修改失败", status_code=405)
             volume.volume_path = new_volume_path
+            if volume_capacity is not None:
+                volume.volume_capacity = volume_capacity
             if mode is not None:
                 volume.mode = mode
             volume.save()
