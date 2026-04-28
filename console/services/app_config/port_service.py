@@ -350,8 +350,9 @@ class AppPortService(object):
 
     @transaction.atomic
     def delete_port_by_container_port(self, tenant, service, container_port, user_name=''):
-        service_domain = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
-        if len(service_domain) > 1 or len(service_domain) == 1 and service_domain[0].type != 0:
+        service_domains = domain_repo.get_service_domain_by_container_port(service.service_id, container_port)
+        active_service_domains = [domain for domain in service_domains if getattr(domain, "is_outer_service", True)]
+        if len(active_service_domains) > 1 or len(active_service_domains) == 1 and active_service_domains[0].type != 0:
             raise AbortRequest("contains custom domains", "该端口有自定义域名，请先解绑域名", 412)
 
         port = port_repo.get_service_port_by_port(tenant.tenant_id, service.service_id, container_port)
