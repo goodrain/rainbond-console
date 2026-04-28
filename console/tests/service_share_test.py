@@ -458,6 +458,14 @@ class ShareServicePreferredAppTestCase(TestCase):
                 "get_rainbond_app_by_app_id",
                 return_value=preferred_app), \
                 mock.patch.object(
+                    share_services_module.team_repo,
+                    "get_teams_by_enterprise_id",
+                    return_value=[
+                        mock.Mock(tenant_name="demo-team"),
+                        mock.Mock(tenant_name="test-team"),
+                    ],
+                ), \
+                mock.patch.object(
                     service_share.rainbond_app_repo,
                     "get_enterprise_team_apps",
                     return_value=[enterprise_app]) as list_apps_mock, \
@@ -472,7 +480,12 @@ class ShareServicePreferredAppTestCase(TestCase):
                 template_scope="enterprise",
             )
 
-        list_apps_mock.assert_called_once_with("eid", "demo-team", scope="enterprise")
+        list_apps_mock.assert_called_once_with(
+            "eid",
+            "demo-team",
+            scope="enterprise",
+            visible_team_names=["demo-team", "test-team"],
+        )
         self.assertEqual([item["app_id"] for item in app_list], ["enterprise-app"])
 
     # capability_id: console.service-share.resolve-last-shared-app

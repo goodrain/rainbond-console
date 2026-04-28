@@ -22,6 +22,7 @@ from console.repositories.component_graph import component_graph_repo
 from console.repositories.market_app_repo import (app_export_record_repo, rainbond_app_repo)
 from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
+from console.repositories.team_repo import team_repo
 from console.repositories.app_config import domain_repo, configuration_repo, port_repo
 from console.repositories.label_repo import service_label_repo
 from console.repositories.label_repo import label_repo
@@ -1397,7 +1398,18 @@ class ShareService(object):
 
     def get_team_local_apps_versions(self, enterprise_id, team_name, preferred_app_id=None, template_scope=None):
         app_list = []
-        apps = list(rainbond_app_repo.get_enterprise_team_apps(enterprise_id, team_name, scope=template_scope))
+        visible_team_names = None
+        if template_scope == "enterprise":
+            tenants = team_repo.get_teams_by_enterprise_id(enterprise_id)
+            visible_team_names = [tenant.tenant_name for tenant in tenants]
+        apps = list(
+            rainbond_app_repo.get_enterprise_team_apps(
+                enterprise_id,
+                team_name,
+                scope=template_scope,
+                visible_team_names=visible_team_names,
+            )
+        )
         if preferred_app_id:
             preferred_app = rainbond_app_repo.get_rainbond_app_by_app_id(preferred_app_id)
             if preferred_app and template_scope and preferred_app.scope != template_scope:
