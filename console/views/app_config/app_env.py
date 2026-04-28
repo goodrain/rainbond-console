@@ -381,14 +381,15 @@ class AppEnvManageView(AppBaseView):
         if not env_id:
             return Response(general_message(400, "env_id not specify", "环境变量ID未指定"))
         name = request.data.get("name", "")
+        attr_name = request.data.get("attr_name", None)
         attr_value = request.data.get("attr_value", "")
         env = env_var_repo.get_env_by_ids_and_env_id(self.tenant.tenant_id, self.service.service_id, env_id)
         old_information = env_var_service.json_service_env_var(
             attr_name=env.attr_name, attr_value=env.attr_value, name=env.name)
-        new_information = env_var_service.json_service_env_var(attr_name=env.attr_name, attr_value=attr_value,
+        new_information = env_var_service.json_service_env_var(attr_name=attr_name or env.attr_name, attr_value=attr_value,
                                                                name=name)
-        code, msg, env = env_var_service.update_env_by_env_id(self.tenant, self.service, env_id, name, attr_value,
-                                                              self.user.nick_name)
+        code, msg, env = env_var_service.update_env_by_env_id(
+            self.tenant, self.service, env_id, name, attr_value, self.user.nick_name, attr_name=attr_name)
         if code != 200:
             raise AbortRequest(msg="update value error", msg_show=msg, status_code=code)
         result = general_message(200, "success", "更新成功", bean=model_to_dict(env))
