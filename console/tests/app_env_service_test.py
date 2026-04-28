@@ -19,7 +19,23 @@ import django  # noqa: E402
 django.setup()
 
 import console.services.app_config.env_service as env_service_module  # noqa: E402
+import console.repositories.app_config as app_config_repo_module  # noqa: E402
+from console.repositories.app_config import TenantServiceEnvVarRepository  # noqa: E402
 from console.services.app_config.env_service import AppEnvVarService  # noqa: E402
+
+
+class TenantServiceEnvVarRepositoryUpdateTestCase(TestCase):
+    def test_update_env_var_can_update_attr_name_while_filtering_by_old_key(self):
+        queryset = mock.Mock()
+        manager = mock.Mock()
+        manager.filter.return_value = queryset
+
+        with mock.patch.object(app_config_repo_module.TenantServiceEnvVar, "objects", manager):
+            TenantServiceEnvVarRepository().update_env_var(
+                "tenant-id", "service-id", "OLD_KEY", attr_name="NEW_KEY", attr_value="new-value")
+
+        manager.filter.assert_called_once_with(tenant_id="tenant-id", service_id="service-id", attr_name="OLD_KEY")
+        queryset.update.assert_called_once_with(attr_name="NEW_KEY", attr_value="new-value")
 
 
 class AppEnvVarServiceUpdateTestCase(TestCase):
