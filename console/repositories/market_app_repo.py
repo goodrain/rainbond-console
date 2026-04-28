@@ -26,10 +26,13 @@ class RainbondCenterAppRepository(object):
             source=self.HIDDEN_APP_VERSION_SOURCE
         )
 
-    def get_enterprise_team_apps(self, enterprise_id, team_name):
-        return RainbondCenterApp.objects.filter(create_team=team_name, source="local").exclude(
+    def get_enterprise_team_apps(self, enterprise_id, team_name, scope=None):
+        apps = RainbondCenterApp.objects.filter(create_team=team_name, source="local").exclude(
             source=self.HIDDEN_APP_VERSION_SOURCE
-        ).order_by("-create_time")
+        )
+        if scope:
+            apps = apps.filter(scope=scope)
+        return apps.order_by("-create_time")
 
     def delete_helm_shared_apps(self, source):
         return RainbondCenterApp.objects.filter(source=source).delete()
