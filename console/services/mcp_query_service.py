@@ -763,14 +763,14 @@ class MCPQueryService(object):
             self._require_string(arguments, "service_id"),
         )
         event_id = self._require_string(arguments, "event_id")
-        items = event_service.get_event_log(team, app.region_name, event_id)
+        items = event_service.get_event_log(team, app.region_name, event_id) or []
         return {
             "team_name": team.tenant_name,
             "region_name": app.region_name,
             "app_id": app.ID,
             "service_id": service.service_id,
             "event_id": event_id,
-            "items": items or [],
+            "items": items,
             "total": len(items),
         }
 
@@ -3913,8 +3913,14 @@ class MCPQueryService(object):
         return {"items": items, "total": len(items)}
 
     def _read_component_pod_logs(self, team, region_name, service_alias, pod_name, lines, container_name=""):
+        # read_timeout governs how long urllib3 waits for the next chunk
+        # (or the initial HTTP response). 3s was tight enough that
+        # rbd-api regularly took longer than that to send the response
+        # headers, surfacing as 500 -> ReadTimeoutError to MCP clients.
+        # Bumping to 30s keeps streaming responsive for healthy pods
+        # while tolerating a slow-to-respond region service.
         resp = region_api.get_component_pod_log(
-            team.tenant_name, region_name, service_alias, pod_name, lines, container_name, read_timeout=3
+            team.tenant_name, region_name, service_alias, pod_name, lines, container_name, read_timeout=30
         )
         log_list = []
         buffer = ""
