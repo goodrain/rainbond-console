@@ -770,7 +770,7 @@ class MCPQueryService(object):
             "app_id": app.ID,
             "service_id": service.service_id,
             "event_id": event_id,
-            "items": items,
+            "items": items or [],
             "total": len(items),
         }
 
