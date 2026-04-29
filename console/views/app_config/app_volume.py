@@ -392,11 +392,17 @@ class AppVolumeManageView(AppBaseView):
         volume_id = kwargs.get("volume_id", None)
         new_volume_path = request.data.get("new_volume_path", None)
         new_file_content = request.data.get("new_file_content", None)
+        volume_capacity = request.data.get("volume_capacity", None)
         if not volume_id:
             return Response(general_message(400, "volume_id is null", "未指定需要编辑的配置文件存储"), status=400)
         volume = volume_repo.get_service_volume_by_pk(volume_id)
         if not volume:
             return Response(general_message(400, "volume is null", "存储不存在"), status=400)
+        if volume_capacity in ("", None):
+            volume_capacity = None
+        else:
+            volume_capacity = int(volume_capacity)
+        target_volume_capacity = volume.volume_capacity if volume_capacity is None else volume_capacity
         mode = request.data.get("mode")
         if mode is not None:
             mode = ensure_volume_mode(mode)
@@ -409,7 +415,7 @@ class AppVolumeManageView(AppBaseView):
                 return Response(general_message(400, "no change", "没有变化，不需要修改"), status=400)
             file_content = service_config.file_content
         else:
-            if new_volume_path == volume.volume_path:
+            if new_volume_path == volume.volume_path and target_volume_capacity == volume.volume_capacity:
                 return Response(general_message(400, "no change", "没有变化，不需要修改"), status=400)
 
         new_information = volume_service.json_service_volume(
@@ -418,7 +424,7 @@ class AppVolumeManageView(AppBaseView):
             mode=mode,
             file_content=new_file_content,
             volume_type=volume.volume_type,
-            volume_cap=volume.volume_capacity)
+            volume_cap=target_volume_capacity)
         old_information = volume_service.json_service_volume(
             volume_name=volume.volume_name,
             volume_path=volume.volume_path,
@@ -437,6 +443,8 @@ class AppVolumeManageView(AppBaseView):
                 "operator": self.user.nick_name,
                 "mode": mode,
             }
+            if volume.volume_type != "config-file":
+                data["volume_capacity"] = target_volume_capacity
             res, body = region_api.upgrade_service_volumes(self.service.service_region, self.tenant.tenant_name,
                                                            self.service.service_alias, data)
             if res.status != 200:
@@ -444,6 +452,8 @@ class AppVolumeManageView(AppBaseView):
 
         # 更新数据库
         volume.volume_path = new_volume_path
+        if volume_capacity is not None:
+            volume.volume_capacity = volume_capacity
         if mode is not None:
             volume.mode = mode
         volume.save()

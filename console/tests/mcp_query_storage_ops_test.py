@@ -3,6 +3,7 @@ import os
 import sys
 from types import ModuleType
 from unittest.mock import patch
+from unittest import mock
 
 import django
 from django.test import SimpleTestCase
@@ -122,6 +123,38 @@ class ManageComponentStorageTests(SimpleTestCase):
         self.assertEqual(result["volume"]["volume_id"], 55)
         self.assertEqual(result["volume"]["volume_name"], "bulk-vol")
         mock_delete.assert_called_once_with(context_team, context_service, 8, user.nick_name, None)
+
+    # capability_id: console.component.storage-update-volume-capacity
+    def test_update_volume_allows_capacity_change_without_path_change(self):
+        team, app, service = self._make_context()
+        service.service_alias = "service-1"
+        user = self._make_user()
+        volume = Obj(volume_id=11, volume_name="data-vol", volume_path="/data", volume_type="nas", volume_capacity=10, mode=None)
+        volume.save = mock.Mock()
+        arguments = {
+            "team_name": "team-1",
+            "region_name": "region-1",
+            "app_id": 100,
+            "service_id": "service-1",
+            "operation": "update_volume",
+            "volume_id": 11,
+            "new_volume_path": "/data",
+            "volume_capacity": 20,
+        }
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
+            with patch.object(mcp_query_service, "service_requires_region_sync", return_value=True):
+                with patch("console.services.mcp_query_service.volume_repo.get_service_volume_by_pk", return_value=volume):
+                    with patch("console.services.mcp_query_service.volume_repo.get_service_config_file", return_value=None):
+                        with patch(
+                            "console.services.mcp_query_service.region_api.upgrade_service_volumes",
+                            return_value=(Obj(status=200), {}),
+                        ) as mock_region:
+                            result = mcp_query_service.manage_component_storage(user, arguments)
+
+        self.assertTrue(result["updated"])
+        self.assertEqual(volume.volume_capacity, 20)
+        volume.save.assert_called_once_with()
+        self.assertEqual(mock_region.call_args[0][3]["volume_capacity"], 20)
 
     # capability_id: console.component.storage-create-mount
     def test_create_mnt_batches_mounts(self):

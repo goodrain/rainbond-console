@@ -101,9 +101,9 @@ class TenantServiceEnvVarRepository(object):
     def delete_service_env_by_port(self, tenant_id, service_id, container_port):
         TenantServiceEnvVar.objects.filter(tenant_id=tenant_id, service_id=service_id, container_port=container_port).delete()
 
-    def update_env_var(self, tenant_id, service_id, attr_name, **update_params):
+    def update_env_var(self, tenant_id, service_id, old_attr_name, **update_params):
         TenantServiceEnvVar.objects.filter(
-            tenant_id=tenant_id, service_id=service_id, attr_name=attr_name).update(**update_params)
+            tenant_id=tenant_id, service_id=service_id, attr_name=old_attr_name).update(**update_params)
 
     def update_or_create_env_var(self, tenant_id, service_id, attr_name, attr_value):
         """

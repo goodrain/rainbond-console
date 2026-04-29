@@ -59,6 +59,7 @@ class SourceBuildConfigViewTests(TestCase):
             build_strategy="cnb",
             build_env_dict={
                 "BUILD_RUNTIMES": "17",
+                "BUILD_RUNTIMES_MAVEN": "3.9.14",
                 "BUILD_MAVEN_SETTING_NAME": "team-maven",
                 "BUILD_GRADLE_BUILD_ARGUMENTS": "build --info",
             },
@@ -66,7 +67,7 @@ class SourceBuildConfigViewTests(TestCase):
 
         self.assertEqual(strategy, "cnb")
         self.assertNotIn("BUILD_TYPE", envs)
-        self.assertNotIn("BUILD_RUNTIMES_MAVEN", envs)
+        self.assertEqual(envs["BUILD_RUNTIMES_MAVEN"], "3.9.14")
         self.assertEqual(envs["BUILD_MAVEN_SETTING_NAME"], "team-maven")
         self.assertEqual(envs["BUILD_GRADLE_BUILD_ARGUMENTS"], "build --info")
 

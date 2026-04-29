@@ -233,8 +233,6 @@ def sanitize_build_env_dict_for_language(build_env_dict, language):
         sanitized.pop(key, None)
     if str(sanitized.get("TYPE", "")).lower() == "cnb":
         sanitized.pop("TYPE", None)
-    if _is_java_cnb_language(language):
-        sanitized.pop("BUILD_RUNTIMES_MAVEN", None)
     if not supports_cnb_build_strategy(language) and str(sanitized.get("BUILD_TYPE", "")).lower() == "cnb":
         sanitized.pop("BUILD_TYPE", None)
     return sanitized
