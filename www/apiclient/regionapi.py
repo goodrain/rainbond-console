@@ -3213,7 +3213,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return response
 
     def get_component_pod_log(
-            self, tenant_name, region_name, service_alias, pod_name, lines=100, container_name="", read_timeout=3):
+            self, tenant_name, region_name, service_alias, pod_name, lines=100, container_name="", read_timeout=30):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/pods/{}/logs?lines={}".format(
