@@ -4,7 +4,9 @@ import json
 import os
 import sys
 from types import ModuleType
-from unittest import TestCase
+from unittest import TestCase, mock
+
+import urllib3
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
@@ -20,6 +22,7 @@ import django  # noqa: E402
 django.setup()
 
 from console.exception.main import ServiceHandleException  # noqa: E402
+from django.http import StreamingHttpResponse  # noqa: E402
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E402
 
 
@@ -193,4 +196,83 @@ class RegionApiBaseHttpClientTestCase(TestCase):
         self.assertEqual(
             error.msg_show,
             "当前数据中心未启用 KubeVirt 虚拟机导出能力，无法导出虚拟机镜像。请先启用 VMExport feature gate 后重试。"
+        )
+
+    def test_plugin_proxy_request_uses_unlimited_timeout(self):
+        client = RegionApiBaseHttpClient()
+        request = mock.Mock()
+        request.method = "POST"
+        request.body = b"demo"
+        request.META = {
+            "CONTENT_TYPE": "application/octet-stream",
+            "CONTENT_LENGTH": "4",
+        }
+
+        region = mock.Mock()
+        region.url = "http://region-api"
+        proxy_client = mock.Mock()
+        proxy_client.request.return_value = mock.Mock(
+            data=b"ok",
+            status=200,
+            headers={},
+            url="http://region-api/v2/platform/backend/plugins/rainbond-hub/import-previews",
+        )
+
+        with mock.patch("www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name", return_value=region), \
+                mock.patch.object(client, "get_client", return_value=proxy_client):
+            client.proxy(request, "/v2/platform/backend/plugins/rainbond-hub/import-previews", "rainbond")
+
+        _, kwargs = proxy_client.request.call_args
+        self.assertIn("timeout", kwargs)
+        self.assertIsInstance(kwargs["timeout"], urllib3.Timeout)
+        self.assertIsNone(kwargs["timeout"].connect_timeout)
+        self.assertIsNone(kwargs["timeout"].read_timeout)
+
+    def test_plugin_proxy_preserves_event_stream_responses(self):
+        client = RegionApiBaseHttpClient()
+        request = mock.Mock()
+        request.method = "POST"
+        request.body = b'{"stream": true}'
+        request.META = {
+            "CONTENT_TYPE": "application/json",
+            "CONTENT_LENGTH": str(len(request.body)),
+        }
+
+        region = mock.Mock()
+        region.url = "http://region-api"
+
+        class MockStreamingResponse(object):
+            status = 200
+            headers = {"Content-Type": "text/event-stream; charset=utf-8"}
+            url = "http://region-api/v2/platform/backend/plugins/rainbond-ai-engine/api/v1/ai-engine/instances/demo/chat"
+
+            @property
+            def data(self):
+                raise AssertionError("streaming responses should not be buffered via response.data")
+
+            def stream(self, _chunk_size):
+                yield b'data: {"choices":[{"delta":{"content":"he"}}]}\n\n'
+                yield b'data: {"choices":[{"delta":{"content":"llo"}}]}\n\n'
+
+            def release_conn(self):
+                return None
+
+        proxy_client = mock.Mock()
+        proxy_client.request.return_value = MockStreamingResponse()
+
+        with mock.patch("www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name", return_value=region), \
+                mock.patch.object(client, "get_client", return_value=proxy_client):
+            response = client.proxy(
+                request,
+                "/v2/platform/backend/plugins/rainbond-ai-engine/api/v1/ai-engine/instances/demo/chat",
+                "rainbond",
+            )
+
+        self.assertIsInstance(response, StreamingHttpResponse)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/event-stream; charset=utf-8")
+        self.assertEqual(
+            b"".join(response.streaming_content),
+            b'data: {"choices":[{"delta":{"content":"he"}}]}\n\n'
+            b'data: {"choices":[{"delta":{"content":"llo"}}]}\n\n',
         )

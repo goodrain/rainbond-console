@@ -18,7 +18,7 @@ from console.exception.main import ServiceHandleException, ErrClusterLackOfMemor
     ErrClusterAuthLackOfLicenseExpire, ErrTenantLackOfCPU, ErrTenantQuotaCPULack, ErrTenantQuotaMemoryLack
 from console.repositories.region_repo import region_repo
 from django.conf import settings
-from django.http import HttpResponse, QueryDict
+from django.http import HttpResponse, QueryDict, StreamingHttpResponse
 from urllib3.exceptions import MaxRetryError
 
 logger = logging.getLogger('default')
@@ -428,6 +428,8 @@ class RegionApiBaseHttpClient(object):
             requests_args['body'] = request.body
         if 'fields' not in requests_args:
             requests_args['fields'] = QueryDict('', mutable=True)
+        if 'preload_content' not in requests_args:
+            requests_args['preload_content'] = False
 
         # Overwrite any headers and params from the incoming request with explicitly
         # specified values for the requests library.
@@ -445,9 +447,37 @@ class RegionApiBaseHttpClient(object):
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
         client = self.get_client(region_config=region)
-        response = client.request(method=request.method, timeout=20, url="{}{}".format(region.url, url), **requests_args)
+        response = client.request(
+            method=request.method,
+            timeout=urllib3.Timeout(connect=None, read=None),
+            url="{}{}".format(region.url, url),
+            **requests_args
+        )
 
-        proxy_response = HttpResponse(response.data, status=response.status)
+        content_type = response.headers.get("Content-Type", "")
+        is_event_stream = content_type.lower().startswith("text/event-stream")
+
+        if is_event_stream:
+            def event_stream():
+                try:
+                    for chunk in response.stream(4096):
+                        if chunk:
+                            yield chunk
+                finally:
+                    response.release_conn()
+
+            proxy_response = StreamingHttpResponse(
+                event_stream(),
+                status=response.status,
+                content_type=content_type or None,
+            )
+            proxy_response['Content-Encoding'] = 'identity'
+        else:
+            try:
+                body = response.data
+            finally:
+                response.release_conn()
+            proxy_response = HttpResponse(body, status=response.status)
 
         excluded_headers = set([
             # Hop-by-hop headers
