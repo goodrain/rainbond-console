@@ -7,15 +7,15 @@ on:
 jobs:
   unit-test:
     runs-on: ubuntu-latest
-    container: python:3.6-stretch
+    container: python:3.6-buster
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install native dependencies
         run: |
-          echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list
-          echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list
+          echo "deb http://archive.debian.org/debian/ buster main" > /etc/apt/sources.list
+          echo "deb http://archive.debian.org/debian-security buster/updates main" >> /etc/apt/sources.list
           apt-get -o Acquire::Check-Valid-Until=false update
           apt-get install -y --no-install-recommends gcc make default-libmysqlclient-dev sqlite3
 
