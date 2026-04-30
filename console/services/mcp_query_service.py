@@ -3920,7 +3920,7 @@ class MCPQueryService(object):
         # Bumping to 30s keeps streaming responsive for healthy pods
         # while tolerating a slow-to-respond region service.
         resp = region_api.get_component_pod_log(
-            team.tenant_name, region_name, service_alias, pod_name, lines, container_name, read_timeout=30
+            team.tenant_name, region_name, service_alias, pod_name, lines, container_name, read_timeout=30, follow=False
         )
         log_list = []
         buffer = ""

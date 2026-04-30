@@ -3213,7 +3213,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return response
 
     def get_component_pod_log(
-            self, tenant_name, region_name, service_alias, pod_name, lines=100, container_name="", read_timeout=30):
+            self,
+            tenant_name,
+            region_name,
+            service_alias,
+            pod_name,
+            lines=100,
+            container_name="",
+            read_timeout=30,
+            follow=None):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/pods/{}/logs?lines={}".format(
@@ -3221,6 +3229,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         )
         if container_name:
             url += "&container={}".format(container_name)
+        if follow is not None:
+            url += "&follow={}".format("true" if follow else "false")
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
