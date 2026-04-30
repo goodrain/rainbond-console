@@ -5196,3 +5196,43 @@ class MCPQueryServiceDeleteAppTests(SimpleTestCase):
                     "confirmation_token": "invalid-token",
                 },
             )
+
+
+class MCPQueryServiceSerializeModelItemTests(SimpleTestCase):
+
+    # capability_id: console.mcp.serialize-nested-sdk-models
+    def test_serialize_model_item_recurses_into_dict_values(self):
+        class FakeSDKModel(object):
+            def __init__(self, value):
+                self.value = value
+
+            def to_dict(self):
+                return {"value": self.value}
+
+        nested = {
+            "app_id": "abc",
+            "versions": [FakeSDKModel("v1"), FakeSDKModel("v2")],
+            "meta": {"latest": FakeSDKModel("v2")},
+        }
+
+        result = mcp_query_service._serialize_model_item(nested)
+
+        self.assertEqual(result["app_id"], "abc")
+        self.assertEqual(result["versions"], [{"value": "v1"}, {"value": "v2"}])
+        self.assertEqual(result["meta"], {"latest": {"value": "v2"}})
+        json.dumps(result)
+
+    def test_serialize_model_item_handles_object_with_nested_sdk_attribute(self):
+        class FakeSDKModel(object):
+            def to_dict(self):
+                return {"k": "v"}
+
+        class Container(object):
+            def __init__(self):
+                self.name = "demo"
+                self.payload = FakeSDKModel()
+
+        result = mcp_query_service._serialize_model_item(Container())
+
+        self.assertEqual(result, {"name": "demo", "payload": {"k": "v"}})
+        json.dumps(result)

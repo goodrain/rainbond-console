@@ -4255,14 +4255,18 @@ class MCPQueryService(object):
     def _serialize_model_item(obj):
         if obj is None:
             return None
-        if isinstance(obj, dict):
+        if isinstance(obj, (str, int, float, bool)):
             return obj
+        if isinstance(obj, dict):
+            return {k: MCPQueryService._serialize_model_item(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple, set)):
+            return [MCPQueryService._serialize_model_item(v) for v in obj]
         if hasattr(obj, "to_dict") and callable(obj.to_dict):
-            return obj.to_dict()
+            return MCPQueryService._serialize_model_item(obj.to_dict())
         data = {}
         for key, value in getattr(obj, "__dict__", {}).items():
             if not key.startswith("_"):
-                data[key] = value
+                data[key] = MCPQueryService._serialize_model_item(value)
         return data
 
     def _serialize_app_share_record_summary(self, record, user):
