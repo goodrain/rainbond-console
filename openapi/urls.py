@@ -26,6 +26,7 @@ from openapi.views.region_view import ListRegionInfo, RegionInfo, ReplaceRegionI
 from openapi.views.team_view import (ListRegionsView, ListTeamInfo, TeamAppsResourceView, TeamCertificatesLCView,
                                      TeamCertificatesRUDView, TeamEventLogView, TeamInfo, TeamOverviewView,
                                      TeamsResourceView, EntAppModelView)
+from openapi.views.ai_engine_proxy import AIEnginePublicProxyView
 from openapi.views.user_view import (ChangePassword, ChangeUserPassword, ListUsersView, UserInfoView, CurrentUsersView,
                                      UserTenantClose, UserTenantDelete)
 
@@ -62,6 +63,7 @@ urlpatterns = [
     url(r'^v1/users/(?P<user_id>[\w\-]+)/changepwd$', ChangeUserPassword.as_view()),
     url(r'^v1/teams$', ListTeamInfo.as_view()),
     url(r'^v1/app_model$', EntAppModelView.as_view()),
+    url(r'^v1/ai-engine/(?P<team_name>[\w\-]+)/(?P<proxy_path>.*)$', AIEnginePublicProxyView.as_view()),
     url(r'^v1/teams/resource$', TeamsResourceView.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)$', TeamInfo.as_view()),
     url(r'^v1/teams/(?P<team_id>[\w\-]+)/regions$', ListRegionsView.as_view()),
