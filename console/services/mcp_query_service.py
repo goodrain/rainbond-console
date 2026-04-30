@@ -2645,8 +2645,9 @@ class MCPQueryService(object):
         items = app_market_service.get_market_app_model_versions(
             market, app_model_id, query_all=self._parse_bool_with_default(arguments.get("query_all"), False), extend=True
         )
+        serialized_items = [self._serialize_model_item(item) for item in (items or [])]
         page, page_size = self._parse_pagination(arguments)
-        result = self._paginate_data(items, page, page_size)
+        result = self._paginate_data(serialized_items, page, page_size)
         result.update({
             "enterprise_id": enterprise_id,
             "source": source,
