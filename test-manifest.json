@@ -1251,6 +1251,10 @@
         {
           "path": "console/tests/app_version_test.py",
           "selector": "AppVersionSnapshotListViewPostTestCase"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_version_snapshot_calls_app_version_service"
         }
       ],
       "test_type": "regression",
@@ -1388,6 +1392,10 @@
         {
           "path": "console/tests/app_version_test.py",
           "selector": "AppVersionServiceOverviewTestCase.test_get_overview_promotes_partial_rollback_target_to_current_version"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_app_version_overview_returns_version_center_overview"
         }
       ],
       "test_type": "regression",
@@ -4662,7 +4670,7 @@
       "tests": [
         {
           "path": "console/tests/mcp_query_view_test.py",
-          "selector": "MCPQuerySSEViewTests.test_http_delete_closes_session"
+          "selector": "MCPQuerySSEViewTests.test_http_delete_accepts_valid_session_token"
         }
       ],
       "test_type": "regression",
@@ -6397,6 +6405,1286 @@
         {
           "path": "console/tests/utils/version_test.py",
           "selector": "VersionUtilsTests.test_sorted_versions"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-publish.candidates",
+      "title": "App Publish Candidates",
+      "title_zh": "App Publish Candidates",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-publish.candidates]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_app_publish_candidates_returns_models"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-share.complete",
+      "title": "App Share Complete",
+      "title_zh": "App Share Complete",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-share.complete]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_complete_app_share_calls_share_service_complete"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-share.create-record",
+      "title": "App Share Create Record",
+      "title_zh": "App Share Create Record",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-share.create-record]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_share_record_supports_snapshot_mode"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-share.events",
+      "title": "App Share Events",
+      "title_zh": "App Share Events",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-share.events]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_list_app_share_events_returns_service_and_plugin_events"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-share.get-event",
+      "title": "App Share Get Event",
+      "title_zh": "App Share Get Event",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-share.get-event]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_app_share_event_returns_event_status"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-share.giveup",
+      "title": "App Share Giveup",
+      "title_zh": "App Share Giveup",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-share.giveup]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_giveup_app_share_deletes_draft_record"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-share.info",
+      "title": "App Share Info",
+      "title_zh": "App Share Info",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-share.info]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_app_share_info_returns_snapshot_payload"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-share.start-event",
+      "title": "App Share Start Event",
+      "title_zh": "App Share Start Event",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-share.start-event]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_start_app_share_event_calls_sync_event"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-share.submit-info",
+      "title": "App Share Submit Info",
+      "title_zh": "App Share Submit Info",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-share.submit-info]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_submit_app_share_info_calls_share_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-upgrade.changes",
+      "title": "App Upgrade Changes",
+      "title_zh": "App Upgrade Changes",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-upgrade.changes]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_app_upgrade_changes_returns_diff_payload"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-upgrade.create-record",
+      "title": "App Upgrade Create Record",
+      "title_zh": "App Upgrade Create Record",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-upgrade.create-record]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_upgrade_record_calls_upgrade_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-upgrade.deploy-record",
+      "title": "App Upgrade Deploy Record",
+      "title_zh": "App Upgrade Deploy Record",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-upgrade.deploy-record]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_deploy_app_upgrade_record_calls_deploy"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-upgrade.detail",
+      "title": "App Upgrade Detail",
+      "title_zh": "App Upgrade Detail",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-upgrade.detail]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_app_upgrade_detail_returns_record_and_versions"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-upgrade.execute-record",
+      "title": "App Upgrade Execute Record",
+      "title_zh": "App Upgrade Execute Record",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-upgrade.execute-record]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_execute_app_upgrade_record_calls_upgrade_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-upgrade.last-record",
+      "title": "App Upgrade Last Record",
+      "title_zh": "App Upgrade Last Record",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-upgrade.last-record]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_app_last_upgrade_record_returns_snapshot_metadata"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-upgrade.record",
+      "title": "App Upgrade Record",
+      "title_zh": "App Upgrade Record",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-upgrade.record]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_app_upgrade_record_returns_record_detail"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-upgrade.records",
+      "title": "App Upgrade Records",
+      "title_zh": "App Upgrade Records",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-upgrade.records]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_query_app_upgrade_records_returns_paginated_items"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-upgrade.rollback",
+      "title": "App Upgrade Rollback",
+      "title_zh": "App Upgrade Rollback",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-upgrade.rollback]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_rollback_app_upgrade_record_calls_restore"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-upgrade.rollback-records",
+      "title": "App Upgrade Rollback Records",
+      "title_zh": "App Upgrade Rollback Records",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-upgrade.rollback-records]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_app_rollback_records_returns_items"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.create-app-from-snapshot",
+      "title": "App Version Create App From Snapshot",
+      "title_zh": "App Version Create App From Snapshot",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-version.create-app-from-snapshot]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_from_snapshot_version_installs_hidden_template_into_new_app"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.rollback-snapshot",
+      "title": "App Version Rollback Snapshot",
+      "title_zh": "App Version Rollback Snapshot",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-version.rollback-snapshot]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_rollback_app_version_snapshot_returns_rollback_record"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.snapshot-share-image-fallback",
+      "title": "App Version Snapshot Share Image Fallback",
+      "title_zh": "App Version Snapshot Share Image Fallback",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_service",
+      "code_paths": [
+        "console/services/app_version_service.py",
+        "console/views/app_version.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "AppVersionServiceTemplateNormalizationTestCase.test_assemble_app_template_falls_back_to_image_when_share_image_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.snapshots",
+      "title": "App Version Snapshots",
+      "title_zh": "App Version Snapshots",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-version.snapshots]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_list_app_version_snapshots_returns_versions"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app.create-k8s-name-duplicate",
+      "title": "App Create K8s Name Duplicate",
+      "title_zh": "App Create K8s Name Duplicate",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app.create-k8s-name-duplicate]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_exposes_structured_k8s_app_duplicate_error"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.build-component-schema",
+      "title": "Component Build Component Schema",
+      "title_zh": "Component Build Component Schema",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.build-component-schema]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_build_component_tool_schema_exposes_build_info_guidance"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.build-env-preserve-source-build-state",
+      "title": "Component Build Env Preserve Source Build State",
+      "title_zh": "Component Build Env Preserve Source Build State",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.build-env-preserve-source-build-state]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_envs_replace_build_envs_preserves_source_build_state"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.build-logs",
+      "title": "Component Build Logs",
+      "title_zh": "Component Build Logs",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.build-logs]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_component_build_logs_returns_event_log_items"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.build-source-get",
+      "title": "Component Build Source Get",
+      "title_zh": "Component Build Source Get",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.build-source-get]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_component_build_source_returns_sanitized_summary"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.build-source-update",
+      "title": "Component Build Source Update",
+      "title_zh": "Component Build Source Update",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.build-source-update]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_update_component_build_source_updates_source_code_fields"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.create-from-source-prefer-dockerfile",
+      "title": "Component Create From Source Prefer Dockerfile",
+      "title_zh": "Component Create From Source Prefer Dockerfile",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.create-from-source-prefer-dockerfile]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_component_from_source_passes_prefer_dockerfile_flag"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.env-upsert-single-item",
+      "title": "Component Env Upsert Single Item",
+      "title_zh": "Component Env Upsert Single Item",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.env-upsert-single-item]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_envs_upsert_accepts_single_item_shape"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.pods",
+      "title": "Component Pods",
+      "title_zh": "Component Pods",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.pods]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_component_pods_returns_normalized_runtime_instances"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.port-add-invalid-alias",
+      "title": "Component Port Add Invalid Alias",
+      "title_zh": "Component Port Add Invalid Alias",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.port-add-invalid-alias]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_handle_component_ports_add_exposes_structured_alias_validation"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.storage-update-capacity",
+      "title": "Component Storage Update Capacity",
+      "title_zh": "Component Storage Update Capacity",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_config.app_volume.AppVolumeManageView.put",
+      "code_paths": [
+        "console/views/app_config/app_volume.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_volume_view_test.py",
+          "selector": "AppVolumeManageViewTestCase.test_put_allows_updating_volume_capacity_without_path_change"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.storage-update-volume-capacity",
+      "title": "Component Storage Update Volume Capacity",
+      "title_zh": "Component Storage Update Volume Capacity",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[rainbond_manage_component_storage]",
+      "code_paths": [
+        "console/services/mcp_query_service.py",
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_storage_ops_test.py",
+          "selector": "ManageComponentStorageTests.test_update_volume_allows_capacity_change_without_path_change"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.dependency.invalid-container-port",
+      "title": "Dependency Invalid Container Port",
+      "title_zh": "Dependency Invalid Container Port",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.app_relation_service.AppServiceRelationService",
+      "code_paths": [
+        "console/services/app_config/app_relation_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_relation_service_test.py",
+          "selector": "AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.gateway.component-env-upsert-schema",
+      "title": "Gateway Component Env Upsert Schema",
+      "title_zh": "Gateway Component Env Upsert Schema",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.gateway.component-env-upsert-schema]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_manage_component_envs_schema_exposes_single_item_upsert_guidance"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.gateway.create-app-k8s-name-schema",
+      "title": "Gateway Create App K8s Name Schema",
+      "title_zh": "Gateway Create App K8s Name Schema",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.gateway.create-app-k8s-name-schema]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_create_app_tool_schema_exposes_k8s_app_constraints"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.gateway.dependency-container-port-schema",
+      "title": "Gateway Dependency Container Port Schema",
+      "title_zh": "Gateway Dependency Container Port Schema",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.gateway.dependency-container-port-schema]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_manage_component_dependency_schema_exposes_container_port_guidance"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.gateway.port-constraints-schema",
+      "title": "Gateway Port Constraints Schema",
+      "title_zh": "Gateway Port Constraints Schema",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.gateway.port-constraints-schema]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_manage_component_ports_tool_schema_exposes_port_constraints"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.gateway.source-code-from-schema",
+      "title": "Gateway Source Code From Schema",
+      "title_zh": "Gateway Source Code From Schema",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.gateway.source-code-from-schema]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_create_component_from_source_schema_exposes_code_from_guidance"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.gray-release.update-route-query-params",
+      "title": "Gray Release Update Route Query Params",
+      "title_zh": "Gray Release Update Route Query Params",
+      "interface_type": "service_method",
+      "interface": "console.services.gray_release_service.GrayReleaseService.update_route",
+      "code_paths": [
+        "console/services/gray_release_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/gray_release_service_test.py",
+          "selector": "GrayReleaseRouteUpdateTests.test_update_apisix_route_weights_keeps_service_alias_and_port_in_query"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.gray-release.update-route-query-uses-original-port",
+      "title": "Gray Release Update Route Query Uses Original Port",
+      "title_zh": "Gray Release Update Route Query Uses Original Port",
+      "interface_type": "service_method",
+      "interface": "console.services.gray_release_service.GrayReleaseService.update_route",
+      "code_paths": [
+        "console/services/gray_release_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/gray_release_service_light_test.py",
+          "selector": "GrayReleaseRouteUpdateLightTests.test_update_route_query_uses_original_service_port_when_ports_differ"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.upgrade-share-image-fallback",
+      "title": "Market App Upgrade Share Image Fallback",
+      "title_zh": "Market App Upgrade Share Image Fallback",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app.update_components",
+      "code_paths": [
+        "console/services/market_app/update_components.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_update_components_test.py",
+          "selector": "MarketAppUpdateComponentsCompatibilityTests.test_create_update_components_falls_back_to_image_when_share_image_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market.app-model-versions-local",
+      "title": "Market App Model Versions Local",
+      "title_zh": "Market App Model Versions Local",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.market.app-model-versions-local]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_query_app_model_versions_for_local_returns_versions"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market.cloud-app-models",
+      "title": "Market Cloud App Models",
+      "title_zh": "Market Cloud App Models",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.market.cloud-app-models]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_query_cloud_app_models_returns_market_templates"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market.cloud-markets",
+      "title": "Market Cloud Markets",
+      "title_zh": "Market Cloud Markets",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.market.cloud-markets]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_query_cloud_markets_returns_market_list"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market.install-app-model-cloud",
+      "title": "Market Install App Model Cloud",
+      "title_zh": "Market Install App Model Cloud",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.market.install-app-model-cloud]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_install_app_model_for_cloud_calls_market_app_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market.local-app-models",
+      "title": "Market Local App Models",
+      "title_zh": "Market Local App Models",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.market.local-app-models]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_query_local_app_models_returns_paginated_templates"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.http-tools-list-with-auth",
+      "title": "Mcp Http Tools List With Auth",
+      "title_zh": "Mcp Http Tools List With Auth",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.mcp_query.MCPQueryHTTPView",
+      "code_paths": [
+        "console/views/mcp_query.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_view_test.py",
+          "selector": "MCPQuerySSEViewTests.test_http_post_tools_list_allows_authenticated_request_without_session_header"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.structured-tool-error",
+      "title": "Mcp Structured Tool Error",
+      "title_zh": "Mcp Structured Tool Error",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.mcp_query.MCPQueryHTTPView",
+      "code_paths": [
+        "console/views/mcp_query.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_view_test.py",
+          "selector": "MCPQuerySSEViewTests.test_http_tool_error_includes_structured_validation_details"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.ns-resource.batch-create",
+      "title": "Ns Resource Batch Create",
+      "title_zh": "Ns Resource Batch Create",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.team_resources",
+      "code_paths": [
+        "console/views/team_resources.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/team_resources_test.py",
+          "selector": "NsResourceDetailViewTestCase.test_post_preserves_partial_success_status_and_payload"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.archive-reuse",
+      "title": "Package Upload Archive Reuse",
+      "title_zh": "Package Upload Archive Reuse",
+      "interface_type": "workflow",
+      "interface": "console.services.package_upload_tool_service",
+      "code_paths": [
+        "console/services/package_upload_tool_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_tool_service_test.py",
+          "selector": "PackageUploadToolServiceTests.test_prepare_upload_archive_reuses_supported_package_file"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.archive-zip-dir",
+      "title": "Package Upload Archive Zip Dir",
+      "title_zh": "Package Upload Archive Zip Dir",
+      "interface_type": "workflow",
+      "interface": "console.services.package_upload_tool_service",
+      "code_paths": [
+        "console/services/package_upload_tool_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_tool_service_test.py",
+          "selector": "PackageUploadToolServiceTests.test_prepare_upload_archive_zips_directory"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.delete",
+      "title": "Package Upload Delete",
+      "title_zh": "Package Upload Delete",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.package-upload.delete]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_delete_package_upload_delegates_to_upload_tool_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.delete-flow",
+      "title": "Package Upload Delete Flow",
+      "title_zh": "Package Upload Delete Flow",
+      "interface_type": "workflow",
+      "interface": "console.services.package_upload_tool_service",
+      "code_paths": [
+        "console/services/package_upload_tool_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_tool_service_test.py",
+          "selector": "PackageUploadToolServiceTests.test_delete_upload_cleans_remote_dir_and_marks_record"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.file",
+      "title": "Package Upload File",
+      "title_zh": "Package Upload File",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.package-upload.file]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_upload_package_file_delegates_to_upload_tool_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.init",
+      "title": "Package Upload Init",
+      "title_zh": "Package Upload Init",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.package-upload.init]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_init_package_upload_delegates_to_upload_tool_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.init-flow",
+      "title": "Package Upload Init Flow",
+      "title_zh": "Package Upload Init Flow",
+      "interface_type": "workflow",
+      "interface": "console.services.package_upload_tool_service",
+      "code_paths": [
+        "console/services/package_upload_tool_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_tool_service_test.py",
+          "selector": "PackageUploadToolServiceTests.test_init_upload_creates_remote_dir_and_record"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.local-package",
+      "title": "Package Upload Local Package",
+      "title_zh": "Package Upload Local Package",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.package-upload.local-package]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_component_from_local_package_calls_upload_tool_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.local-package-flow",
+      "title": "Package Upload Local Package Flow",
+      "title_zh": "Package Upload Local Package Flow",
+      "interface_type": "workflow",
+      "interface": "console.services.package_upload_tool_service",
+      "code_paths": [
+        "console/services/package_upload_tool_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_tool_service_test.py",
+          "selector": "PackageUploadToolServiceTests.test_auto_create_component_from_local_path_runs_full_flow"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.local-path-schema",
+      "title": "Package Upload Local Path Schema",
+      "title_zh": "Package Upload Local Path Schema",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.package-upload.local-path-schema]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_upload_package_file_tool_schema_exposes_local_path_guidance"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.status",
+      "title": "Package Upload Status",
+      "title_zh": "Package Upload Status",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.package-upload.status]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_package_upload_status_delegates_to_upload_tool_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.status-flow",
+      "title": "Package Upload Status Flow",
+      "title_zh": "Package Upload Status Flow",
+      "interface_type": "workflow",
+      "interface": "console.services.package_upload_tool_service",
+      "code_paths": [
+        "console/services/package_upload_tool_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_tool_service_test.py",
+          "selector": "PackageUploadToolServiceTests.test_get_upload_status_reads_packages_and_updates_record"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.upload-flow",
+      "title": "Package Upload Upload Flow",
+      "title_zh": "Package Upload Upload Flow",
+      "interface_type": "workflow",
+      "interface": "console.services.package_upload_tool_service",
+      "code_paths": [
+        "console/services/package_upload_tool_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_tool_service_test.py",
+          "selector": "PackageUploadToolServiceTests.test_upload_package_uploads_archive_and_returns_status"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.pod.detail",
+      "title": "Pod Detail",
+      "title_zh": "Pod Detail",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.pod.detail]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_pod_detail_returns_runtime_diagnostics"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.pod.detail-kubeblocks",
+      "title": "Pod Detail Kubeblocks",
+      "title_zh": "Pod Detail Kubeblocks",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.pod.detail-kubeblocks]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_get_pod_detail_uses_kubeblocks_endpoint_for_kubeblocks_component"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.region-api.batch-create-error-bean",
+      "title": "Region Api Batch Create Error Bean",
+      "title_zh": "Region Api Batch Create Error Bean",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status",
+      "code_paths": [
+        "www/apiclient/regionapibaseclient.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_check_status_preserves_batch_create_result_bean_for_coded_errors"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.source-component.check-timeout-pending",
+      "title": "Source Component Check Timeout Pending",
+      "title_zh": "Source Component Check Timeout Pending",
+      "interface_type": "service_method",
+      "interface": "console.services.source_component_service",
+      "code_paths": [
+        "console/services/source_component_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/source_component_service_test.py",
+          "selector": "SourceComponentServiceTests.test_auto_create_component_returns_pending_result_when_check_times_out"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.source-component.prefer-dockerfile",
+      "title": "Source Component Prefer Dockerfile",
+      "title_zh": "Source Component Prefer Dockerfile",
+      "interface_type": "service_method",
+      "interface": "console.services.source_component_service",
+      "code_paths": [
+        "console/services/source_component_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/source_component_service_test.py",
+          "selector": "SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_requested"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.source-component.prefer-dockerfile-from-dockerfiles-flag",
+      "title": "Source Component Prefer Dockerfile From Dockerfiles Flag",
+      "title_zh": "Source Component Prefer Dockerfile From Dockerfiles Flag",
+      "interface_type": "service_method",
+      "interface": "console.services.source_component_service",
+      "code_paths": [
+        "console/services/source_component_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/source_component_service_test.py",
+          "selector": "SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist"
         }
       ],
       "test_type": "regression",

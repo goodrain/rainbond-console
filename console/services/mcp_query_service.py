@@ -3473,6 +3473,9 @@ class MCPQueryService(object):
             self._raise_permission_denied("当前用户不是企业管理员")
 
     def _ensure_enterprise_access(self, user, enterprise_id):
+        if getattr(user, "enterprise_id", None) == enterprise_id:
+            return
+
         user_enterprises = self._get_user_enterprises(user)
         available_ids = set([ent.enterprise_id for ent in user_enterprises])
         if user.enterprise_id:
