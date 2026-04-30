@@ -8,6 +8,8 @@ jobs:
   unit-test:
     runs-on: ubuntu-latest
     container: python:3.6-buster
+    env:
+      PIP_SRC: /tmp/pip-src
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,6 +23,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
+          mkdir -p "$PIP_SRC"
           python -m pip install --upgrade 'pip<22'
           pip install -r requirements.txt
 
