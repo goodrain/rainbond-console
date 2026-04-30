@@ -4629,6 +4629,28 @@
       "status": "active"
     },
     {
+      "id": "console.mcp.serialize-nested-sdk-models",
+      "title": "Serialize nested SDK models in MCP responses",
+      "title_zh": "MCP 响应中递归序列化嵌套 SDK 模型",
+      "interface_type": "internal",
+      "interface": "console.services.mcp_query_service.MCPQueryService._serialize_model_item",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceSerializeModelItemTests.test_serialize_model_item_recurses_into_dict_values"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceSerializeModelItemTests.test_serialize_model_item_handles_object_with_nested_sdk_attribute"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.mcp.http-delete-session",
       "title": "Close MCP session over HTTP",
       "title_zh": "\u901a\u8fc7 HTTP \u5173\u95ed MCP \u4f1a\u8bdd",
