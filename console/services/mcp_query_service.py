@@ -3303,7 +3303,12 @@ class MCPQueryService(object):
         for service in services:
             service_cname = getattr(service, "service_cname", "") or ""
             service_alias = getattr(service, "service_alias", "") or ""
-            if query and query not in service_cname.lower() and query not in service_alias.lower():
+            service_id = getattr(service, "service_id", "") or ""
+            if query and (
+                query not in service_cname.lower()
+                and query not in service_alias.lower()
+                and query != service_id.lower()
+            ):
                 continue
             items.append(self._serialize_component(service, app, tenant))
 
