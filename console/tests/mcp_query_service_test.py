@@ -2217,6 +2217,76 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(result["items"][0]["service_id"], "svc-1")
         mock_get_services.assert_called_once_with(["svc-1"])
 
+    @patch("console.services.mcp_query_service.service_repo.get_services_by_service_ids")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.team_repo.get_user_tenant_by_name")
+    @patch("console.services.mcp_query_service.enterprise_user_perm_repo.is_admin")
+    @patch("console.services.mcp_query_service.enterprise_repo.get_enterprises_by_user_id")
+    @patch("console.services.mcp_query_service.team_repo.get_team_by_team_id")
+    @patch("console.services.mcp_query_service.group_repo.get_group_by_id")
+    # capability_id: console.component.list
+    def test_query_components_query_matches_service_id_exactly(
+            self,
+            mock_get_app,
+            mock_get_team_by_team_id,
+            mock_get_enterprises,
+            mock_is_admin,
+            mock_get_user_tenant,
+            mock_get_relations,
+            mock_get_services,
+    ):
+        """When the LLM passes a 32-char hex service_id as `query`, the filter
+        should still match that component instead of falling back to fuzzy
+        cname/alias matching (which never matches a hex id)."""
+        app = Obj(ID=12, tenant_id="team-1", group_name="demo-app")
+        tenant = self.team
+        nginx = Obj(
+            service_id="eab572213bd297e5597fa3e231119aed",
+            service_alias="alias-1",
+            service_cname="Nginx",
+        )
+        nginx.to_dict = lambda: {
+            "service_id": nginx.service_id,
+            "service_alias": nginx.service_alias,
+            "service_cname": nginx.service_cname,
+        }
+        mysql = Obj(
+            service_id="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            service_alias="alias-2",
+            service_cname="MySQL",
+        )
+        mysql.to_dict = lambda: {
+            "service_id": mysql.service_id,
+            "service_alias": mysql.service_alias,
+            "service_cname": mysql.service_cname,
+        }
+
+        mock_get_app.return_value = app
+        mock_get_team_by_team_id.return_value = tenant
+        mock_get_enterprises.return_value = [Obj(enterprise_id="eid-1")]
+        mock_is_admin.return_value = True
+        mock_get_user_tenant.return_value = tenant
+        mock_get_relations.return_value = [
+            Obj(service_id=nginx.service_id),
+            Obj(service_id=mysql.service_id),
+        ]
+        mock_get_services.return_value = [nginx, mysql]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_query_components",
+            {
+                "enterprise_id": "eid-1",
+                "app_id": 12,
+                "query": nginx.service_id,
+                "page": 1,
+                "page_size": 20,
+            },
+        )
+
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["items"][0]["service_id"], nginx.service_id)
+
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")

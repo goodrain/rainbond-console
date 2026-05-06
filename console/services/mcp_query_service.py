@@ -3303,7 +3303,12 @@ class MCPQueryService(object):
         for service in services:
             service_cname = getattr(service, "service_cname", "") or ""
             service_alias = getattr(service, "service_alias", "") or ""
-            if query and query not in service_cname.lower() and query not in service_alias.lower():
+            service_id = getattr(service, "service_id", "") or ""
+            if query and (
+                query not in service_cname.lower()
+                and query not in service_alias.lower()
+                and query != service_id.lower()
+            ):
                 continue
             items.append(self._serialize_component(service, app, tenant))
 
@@ -4654,7 +4659,12 @@ class MCPQueryService(object):
     def _tool_get_pod_detail(self):
         return {
             "name": "rainbond_get_pod_detail",
-            "description": "Get runtime diagnostic detail of a specified pod under the component.",
+            "description": (
+                "Get runtime diagnostic detail of a specified pod under the component. "
+                "pod_name MUST come from a prior rainbond_get_component_pods response — "
+                "do not guess, construct, or recall pod names. Pods outside the given "
+                "service_id (including platform-internal pods such as rbd-*) are not accessible."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -4662,7 +4672,10 @@ class MCPQueryService(object):
                     "region_name": {"type": "string"},
                     "app_id": {"type": "integer", "minimum": 1},
                     "service_id": {"type": "string"},
-                    "pod_name": {"type": "string"}
+                    "pod_name": {
+                        "type": "string",
+                        "description": "Pod 名称。必须来自最近一次 rainbond_get_component_pods 的返回结果，禁止凭空构造。"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "pod_name"]
             }
