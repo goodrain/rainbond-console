@@ -298,7 +298,7 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
                 self.tenant, self.service, self.user, version=group_version, oauth_instance=self.oauth_instance)
             bean = {}
             if code != 200:
-                enterprise_first_deploy_service.mark_failure(tracker)
+                enterprise_first_deploy_service.mark_failure(tracker, reason=msg)
                 return Response(general_message(code, "deploy app error", msg, bean=bean), status=code)
             enterprise_first_deploy_service.bind_events(tracker, [event_id])
             result = general_message(code, "success", "操作成功", bean=bean)
@@ -318,14 +318,14 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
             self.service.update_time = datetime.now()
             self.service.save()
         except ErrServiceSourceNotFound as e:
-            enterprise_first_deploy_service.mark_failure(tracker)
+            enterprise_first_deploy_service.mark_failure(tracker, reason=getattr(e, "message", str(e)))
             logger.exception(e)
             return Response(general_message(412, e.message, "无法找到云市应用的构建源"), status=412)
         except ResourceNotEnoughException as re:
-            enterprise_first_deploy_service.mark_failure(tracker)
+            enterprise_first_deploy_service.mark_failure(tracker, reason=getattr(re, "message", str(re)))
             raise re
         except AccountOverdueException as re:
-            enterprise_first_deploy_service.mark_failure(tracker)
+            enterprise_first_deploy_service.mark_failure(tracker, reason=getattr(re, "message", str(re)))
             logger.exception(re)
             return Response(general_message(10410, "resource is not enough", re.message), status=412)
         return Response(result, status=result["code"])
