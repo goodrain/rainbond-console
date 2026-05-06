@@ -4268,7 +4268,7 @@ class MCPQueryService(object):
             return MCPQueryService._serialize_model_item(obj.to_dict())
         data = {}
         for key, value in getattr(obj, "__dict__", {}).items():
-            if not key.startswith("_"):
+            if not key.startswith("_") and not callable(value):
                 data[key] = MCPQueryService._serialize_model_item(value)
         return data
 

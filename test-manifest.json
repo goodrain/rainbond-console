@@ -4640,7 +4640,7 @@
       "id": "console.mcp.serialize-nested-sdk-models",
       "title": "Serialize nested SDK models in MCP responses",
       "title_zh": "MCP 响应中递归序列化嵌套 SDK 模型",
-      "interface_type": "internal",
+      "interface_type": "other",
       "interface": "console.services.mcp_query_service.MCPQueryService._serialize_model_item",
       "code_paths": [
         "console/services/mcp_query_service.py"

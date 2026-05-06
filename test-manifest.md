@@ -311,6 +311,7 @@
 | console.mcp.http-tools-sse | 通过 HTTP 端点以 SSE 返回工具列表 | active | regression | console.views.mcp_query.MCPQueryHTTPView.post | console/tests/mcp_query_view_test.py::MCPQuerySSEViewTests.test_http_post_can_return_sse_message_response |
 | console.mcp.legacy-sse-endpoint | 打开兼容模式的 SSE MCP 端点 | active | regression | console.views.mcp_query.MCPQuerySSEView.get | console/tests/mcp_query_view_test.py::MCPQuerySSEViewTests.test_get_returns_endpoint_event_for_legacy_sse_clients |
 | console.mcp.post-message | 向 SSE 会话投递 MCP 消息 | active | regression | console.views.mcp_query.MCPQueryMessageView.post | console/tests/mcp_query_view_test.py::MCPQuerySSEViewTests.test_post_message_enqueues_initialize_response_on_sse_stream |
+| console.mcp.serialize-nested-sdk-models | MCP 响应中递归序列化嵌套 SDK 模型 | active | regression | console.services.mcp_query_service.MCPQueryService._serialize_model_item | console/tests/mcp_query_service_test.py::MCPQueryServiceSerializeModelItemTests.test_serialize_model_item_recurses_into_dict_values<br>console/tests/mcp_query_service_test.py::MCPQueryServiceSerializeModelItemTests.test_serialize_model_item_handles_object_with_nested_sdk_attribute |
 | console.mcp.structured-tool-error | Mcp Structured Tool Error | active | regression | console.views.mcp_query.MCPQueryHTTPView | console/tests/mcp_query_view_test.py::MCPQuerySSEViewTests.test_http_tool_error_includes_structured_validation_details |
 | console.ns-resource.batch-create | Ns Resource Batch Create | active | regression | console.views.team_resources | console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_post_preserves_partial_success_status_and_payload |
 | console.ns-resource.update | 通过 YAML 更新命名空间资源 | active | regression | console.views.team_resources.NsResourceDetailView.put | console/tests/team_resources_test.py::NsResourceDetailViewTestCase.test_put_accepts_yaml_media_type_and_forwards_raw_body<br>console/tests/team_resources_test.py::RegionInvokeApiNsResourceTestCase.test_put_tenant_ns_resource_preserves_custom_content_type |
@@ -3489,6 +3490,16 @@
 - 业务入口: `console.views.mcp_query.MCPQueryMessageView.post`
 - 代码路径: `console/views/mcp_query.py`
 - 测试路径: `console/tests/mcp_query_view_test.py::MCPQuerySSEViewTests.test_post_message_enqueues_initialize_response_on_sse_stream`
+
+### MCP 响应中递归序列化嵌套 SDK 模型
+
+- Capability ID: `console.mcp.serialize-nested-sdk-models`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `other`
+- 业务入口: `console.services.mcp_query_service.MCPQueryService._serialize_model_item`
+- 代码路径: `console/services/mcp_query_service.py`
+- 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceSerializeModelItemTests.test_serialize_model_item_recurses_into_dict_values`, `console/tests/mcp_query_service_test.py::MCPQueryServiceSerializeModelItemTests.test_serialize_model_item_handles_object_with_nested_sdk_attribute`
 
 ### Mcp Structured Tool Error
 

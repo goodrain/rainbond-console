@@ -57,11 +57,16 @@ def collect_test_files(paths):
 def run_worker(test_file, pytest_args):
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     openapi_client_path = os.path.join(repo_root, "src", "openapi-client")
+    pip_src_openapi_client_path = None
+    if os.environ.get("PIP_SRC"):
+        pip_src_openapi_client_path = os.path.join(os.environ["PIP_SRC"], "openapi-client")
     test_dir = os.path.abspath(os.path.dirname(test_file))
     if repo_root not in sys.path:
         sys.path.insert(0, repo_root)
     if test_dir not in sys.path:
         sys.path.insert(0, test_dir)
+    if pip_src_openapi_client_path and pip_src_openapi_client_path not in sys.path:
+        sys.path.insert(0, pip_src_openapi_client_path)
     if openapi_client_path not in sys.path:
         sys.path.insert(0, openapi_client_path)
 
