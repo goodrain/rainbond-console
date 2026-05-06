@@ -60,6 +60,8 @@ def run_worker(test_file, pytest_args):
     pip_src_openapi_client_path = None
     if os.environ.get("PIP_SRC"):
         pip_src_openapi_client_path = os.path.join(os.environ["PIP_SRC"], "openapi-client")
+    home_dir = os.environ.get("HOME_DIR", repo_root)
+    data_dir = os.environ.get("DATA_DIR", os.path.join(home_dir, "data"))
     test_dir = os.path.abspath(os.path.dirname(test_file))
     if repo_root not in sys.path:
         sys.path.insert(0, repo_root)
@@ -69,6 +71,9 @@ def run_worker(test_file, pytest_args):
         sys.path.insert(0, pip_src_openapi_client_path)
     if openapi_client_path not in sys.path:
         sys.path.insert(0, openapi_client_path)
+
+    if not os.path.isdir(data_dir):
+        os.makedirs(data_dir)
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.test_settings")
 
