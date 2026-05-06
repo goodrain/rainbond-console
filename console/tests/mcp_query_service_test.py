@@ -1767,14 +1767,14 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
             mock_get_region,
             mock_get_team,
     ):
-        env = Obj(attr_name="DB_PASSWORD", attr_value="postgres", scope="inner")
+        env = Obj(attr_name="DB_PASSWORD", attr_value="postgres", name="DB_PASSWORD", is_change=True, scope="inner")
         env.to_dict = lambda: {"attr_name": "DB_PASSWORD", "attr_value": "postgres", "scope": "inner"}
         mock_get_team.return_value = self.team
         mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
         mock_get_app.return_value = self.app
         mock_get_service.return_value = self.service
         mock_relations.return_value = [Obj(service_id="svc-1")]
-        mock_get_inner_envs.return_value = []
+        mock_get_inner_envs.side_effect = [[], [env]]
         mock_add_env.return_value = (200, "success", env)
 
         result = mcp_query_service.call_tool(

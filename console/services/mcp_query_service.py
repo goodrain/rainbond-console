@@ -3478,6 +3478,9 @@ class MCPQueryService(object):
             self._raise_permission_denied("当前用户不是企业管理员")
 
     def _ensure_enterprise_access(self, user, enterprise_id):
+        if getattr(user, "enterprise_id", None) == enterprise_id:
+            return
+
         user_enterprises = self._get_user_enterprises(user)
         available_ids = set([ent.enterprise_id for ent in user_enterprises])
         if user.enterprise_id:
@@ -4159,9 +4162,9 @@ class MCPQueryService(object):
             "service_id": service.service_id,
             "service_alias": service.service_alias,
             "service_cname": service.service_cname,
-            "service_region": service.service_region,
-            "service_source": service.service_source,
-            "create_status": service.create_status,
+            "service_region": getattr(service, "service_region", ""),
+            "service_source": getattr(service, "service_source", ""),
+            "create_status": getattr(service, "create_status", ""),
             "app_id": app.ID,
             "app_name": app.group_name,
             "team_id": tenant.tenant_id,
@@ -4270,7 +4273,7 @@ class MCPQueryService(object):
             return MCPQueryService._serialize_model_item(obj.to_dict())
         data = {}
         for key, value in getattr(obj, "__dict__", {}).items():
-            if not key.startswith("_"):
+            if not key.startswith("_") and not callable(value):
                 data[key] = MCPQueryService._serialize_model_item(value)
         return data
 

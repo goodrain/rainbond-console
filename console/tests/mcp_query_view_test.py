@@ -197,7 +197,7 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         self.assertEqual(response.data["result"]["structuredContent"]["details"]["reason"], "pattern_mismatch")
         self.assertFalse(response.data["result"]["structuredContent"]["details"]["retryable"])
 
-    # capability_id: console.mcp.http-delete-valid-token
+    # capability_id: console.mcp.http-delete-session
     def test_http_delete_accepts_valid_session_token(self):
         init_request = self.factory.post(
             "/console/mcp/query",
