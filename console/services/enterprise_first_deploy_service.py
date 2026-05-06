@@ -18,6 +18,7 @@ region_api = RegionInvokeApi()
 
 class EnterpriseFirstDeployService(object):
     REPORT_URL = os.getenv("FIRST_DEPLOY_REPORT_URL", "https://log.rainbond.com/api/enterprise/first-deploy")
+    PAYLOAD_VERSION = 2
     STATUS_PENDING = "pending"
     STATUS_SUCCESS = "success"
     STATUS_FAILURE = "failure"
@@ -27,6 +28,15 @@ class EnterpriseFirstDeployService(object):
     DEPLOY_TYPE_SOURCE_CODE = "source_code"
     DEPLOY_TYPE_APP_MARKET = "app_market"
     DEPLOY_TYPE_IMAGE = "image"
+    FAILURE_STAGE_BUILD = "build"
+    FAILURE_STAGE_RUNTIME = "runtime"
+    FAILURE_STAGE_UNKNOWN = "unknown"
+    MAX_FAILURE_EVENTS = 3
+    MAX_FAILURE_LOG_LINES = 8
+    MAX_FAILURE_LOG_LINE_LENGTH = 200
+    MAX_FAILURE_REASON_LENGTH = 200
+    BUILD_OPT_KEYWORDS = ("build", "slug", "package")
+    RUNTIME_OPT_KEYWORDS = ("start", "deploy", "upgrade", "rollback", "restart", "run")
 
     def __init__(self):
         self._running_keys = set()
@@ -105,7 +115,7 @@ class EnterpriseFirstDeployService(object):
             return
         self._finalize_record(record, payload, self.STATUS_SUCCESS)
 
-    def mark_failure(self, tracker):
+    def mark_failure(self, tracker, reason="", failure_stage=""):
         if not tracker:
             return
         record = enterprise_first_deploy_repo.get_by_enterprise_id(tracker["enterprise_id"])
@@ -115,6 +125,12 @@ class EnterpriseFirstDeployService(object):
         if payload.get("status") in self.FINAL_STATUSES:
             self._report_if_needed(record, payload)
             return
+        self._set_failure_details(
+            payload,
+            tenant_name=payload.get("tenant_name"),
+            region_name=payload.get("region_name"),
+            reason=reason,
+            failure_stage=failure_stage)
         self._finalize_record(record, payload, self.STATUS_FAILURE)
 
     def sync_once(self, enterprise_id, tenant_name, region_name):
@@ -131,6 +147,7 @@ class EnterpriseFirstDeployService(object):
             "enterprise_name": self._get_enterprise_name(enterprise),
             "deploy_type": deploy_type,
             "source_language": source_language if deploy_type == self.DEPLOY_TYPE_SOURCE_CODE else "",
+            "payload_version": self.PAYLOAD_VERSION,
             "status": self.STATUS_PENDING,
             "reported": False,
             "reported_at": "",
@@ -140,6 +157,10 @@ class EnterpriseFirstDeployService(object):
             "region_name": region_name,
             "operator": operator or "",
             "event_ids": [],
+            "failure_stage": "",
+            "failure_reason": "",
+            "failure_events": [],
+            "failure_logs": [],
         }
         return payload
 
@@ -170,7 +191,12 @@ class EnterpriseFirstDeployService(object):
         if not status_map:
             return None
 
-        if any(status == self.STATUS_FAILURE for status in status_map.values()):
+        failed_events = [
+            event for event in [self._normalize_event_data(event) for event in events]
+            if event.get("status") in (self.STATUS_FAILURE, "timeout")
+        ]
+        if failed_events:
+            self._set_failure_details(payload, tenant_name, region_name, failed_events=failed_events)
             self._finalize_record(record, payload, self.STATUS_FAILURE)
             return self.STATUS_FAILURE
 
@@ -183,10 +209,7 @@ class EnterpriseFirstDeployService(object):
             return self.STATUS_SUCCESS
 
         if "timeout" in normalized:
-            self._finalize_record(record, payload, self.STATUS_FAILURE)
-            return self.STATUS_FAILURE
-
-        if self.STATUS_FAILURE in normalized:
+            self._set_failure_details(payload, tenant_name, region_name)
             self._finalize_record(record, payload, self.STATUS_FAILURE)
             return self.STATUS_FAILURE
 
@@ -209,6 +232,14 @@ class EnterpriseFirstDeployService(object):
             "source_language": payload.get("source_language", ""),
             "is_success": payload.get("status") == self.STATUS_SUCCESS,
         }
+        if payload.get("status") == self.STATUS_FAILURE:
+            report_payload.update({
+                "payload_version": payload.get("payload_version", self.PAYLOAD_VERSION),
+                "failure_stage": payload.get("failure_stage", self.FAILURE_STAGE_UNKNOWN),
+                "failure_reason": payload.get("failure_reason", ""),
+                "failure_events": payload.get("failure_events") or [],
+                "failure_logs": payload.get("failure_logs") or [],
+            })
 
         for _ in range(3):
             try:
@@ -279,6 +310,148 @@ class EnterpriseFirstDeployService(object):
         if not enterprise:
             return ""
         return enterprise.enterprise_alias or enterprise.enterprise_name or ""
+
+    def _set_failure_details(self, payload, tenant_name="", region_name="", failed_events=None, reason="", failure_stage=""):
+        failed_events = failed_events or []
+        payload["payload_version"] = self.PAYLOAD_VERSION
+        payload["failure_events"] = self._shrink_failure_events(failed_events)
+        payload["failure_stage"] = failure_stage or self._detect_failure_stage(payload.get("deploy_type"), failed_events)
+        payload["failure_reason"] = self._shrink_text(
+            reason or self._detect_failure_reason(failed_events),
+            self.MAX_FAILURE_REASON_LENGTH)
+        if payload["failure_stage"] == self.FAILURE_STAGE_BUILD:
+            payload["failure_logs"] = self._collect_build_failure_logs(
+                tenant_name or payload.get("tenant_name"),
+                region_name or payload.get("region_name"),
+                failed_events)
+        else:
+            payload["failure_logs"] = []
+
+    def _detect_failure_stage(self, deploy_type, failed_events):
+        for event in failed_events:
+            opt_type = (event.get("opt_type") or "").lower()
+            if any(keyword in opt_type for keyword in self.BUILD_OPT_KEYWORDS):
+                return self.FAILURE_STAGE_BUILD
+            if any(keyword in opt_type for keyword in self.RUNTIME_OPT_KEYWORDS):
+                return self.FAILURE_STAGE_RUNTIME
+        if deploy_type == self.DEPLOY_TYPE_SOURCE_CODE and failed_events:
+            return self.FAILURE_STAGE_BUILD
+        if failed_events:
+            return self.FAILURE_STAGE_RUNTIME
+        return self.FAILURE_STAGE_UNKNOWN
+
+    @staticmethod
+    def _detect_failure_reason(failed_events):
+        for event in failed_events:
+            if event.get("message"):
+                return event["message"]
+            if event.get("reason"):
+                return event["reason"]
+        return ""
+
+    def _shrink_failure_events(self, failed_events):
+        compact_events = []
+        for event in (failed_events or [])[:self.MAX_FAILURE_EVENTS]:
+            compact_events.append({
+                "event_id": event.get("event_id", ""),
+                "service_id": event.get("service_id", ""),
+                "opt_type": event.get("opt_type", ""),
+                "status": event.get("status", ""),
+                "final_status": event.get("final_status", ""),
+                "message": self._shrink_text(event.get("message", ""), self.MAX_FAILURE_REASON_LENGTH),
+                "reason": self._shrink_text(event.get("reason", ""), self.MAX_FAILURE_REASON_LENGTH),
+                "start_time": event.get("start_time", ""),
+                "end_time": event.get("end_time", ""),
+            })
+        return compact_events
+
+    def _collect_build_failure_logs(self, tenant_name, region_name, failed_events):
+        build_event = self._find_build_failure_event(failed_events)
+        if not build_event or not tenant_name or not region_name:
+            return []
+        event_id = build_event.get("event_id")
+        if not event_id:
+            return []
+        try:
+            res, body = region_api.get_events_log(tenant_name, region_name, event_id)
+        except Exception as e:
+            logger.warning("get build failure logs failed: %s", e)
+            return []
+        if not self._is_success_response(res):
+            return []
+        lines, truncated = self._normalize_log_lines((body or {}).get("list") or [])
+        if not lines:
+            return []
+        return [{
+            "stage": self.FAILURE_STAGE_BUILD,
+            "event_id": event_id,
+            "source": "event_log",
+            "truncated": truncated,
+            "lines": lines,
+        }]
+
+    def _find_build_failure_event(self, failed_events):
+        for event in failed_events:
+            opt_type = (event.get("opt_type") or "").lower()
+            if any(keyword in opt_type for keyword in self.BUILD_OPT_KEYWORDS):
+                return event
+        return failed_events[0] if failed_events else None
+
+    def _normalize_log_lines(self, log_items):
+        truncated = len(log_items) > self.MAX_FAILURE_LOG_LINES
+        selected = log_items[-self.MAX_FAILURE_LOG_LINES:]
+        lines = []
+        for item in selected:
+            if isinstance(item, dict):
+                message = item.get("message") or item.get("Message") or ""
+                line_time = item.get("time") or item.get("Time") or item.get("utime") or ""
+            else:
+                message = str(item)
+                line_time = ""
+            message, line_truncated = self._truncate_text(message, self.MAX_FAILURE_LOG_LINE_LENGTH)
+            truncated = truncated or line_truncated
+            if not message:
+                continue
+            lines.append({
+                "time": line_time,
+                "message": message,
+            })
+        return lines, truncated
+
+    @staticmethod
+    def _truncate_text(value, limit):
+        value = value or ""
+        if len(value) <= limit:
+            return value, False
+        return value[:limit], True
+
+    def _shrink_text(self, value, limit):
+        trimmed, _ = self._truncate_text(value, limit)
+        return trimmed
+
+    @staticmethod
+    def _is_success_response(response):
+        status = getattr(response, "status_code", None)
+        if status is None:
+            status = getattr(response, "status", None)
+        try:
+            return 200 <= int(status) < 300
+        except (TypeError, ValueError):
+            return False
+
+    @staticmethod
+    def _normalize_event_data(event):
+        return {
+            "event_id": str(event.get("EventID") or event.get("event_id") or ""),
+            "service_id": event.get("ServiceID") or event.get("service_id") or "",
+            "opt_type": event.get("OptType") or event.get("opt_type") or "",
+            "status": event.get("Status") or event.get("status") or "",
+            "final_status": event.get("FinalStatus") or event.get("final_status") or "",
+            "message": event.get("Message") or event.get("message") or "",
+            "reason": event.get("Reason") or event.get("reason") or "",
+            "start_time": event.get("StartTime") or event.get("start_time") or "",
+            "end_time": event.get("EndTime") or event.get("end_time") or "",
+        }
 
     def get_deploy_type(self, service_source):
         if service_source in ("source_code", "package_build"):

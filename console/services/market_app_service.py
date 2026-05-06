@@ -127,8 +127,8 @@ class MarketAppService(object):
                 events = []
             else:
                 events = app_upgrade.install()
-        except Exception:
-            enterprise_first_deploy_service.mark_failure(tracker)
+        except Exception as e:
+            enterprise_first_deploy_service.mark_failure(tracker, reason=str(e))
             raise
         enterprise_first_deploy_service.bind_events(tracker, self._extract_event_ids(events))
         # If the app template contains platform_plugin info, create RBDPlugin CR

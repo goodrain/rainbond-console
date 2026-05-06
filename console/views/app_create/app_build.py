@@ -75,19 +75,19 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                     code, msg, event_id = app_manage_service.deploy(
                         self.tenant, self.service, self.user, oauth_instance=self.oauth_instance)
                     if code != 200:
-                        enterprise_first_deploy_service.mark_failure(tracker)
+                        enterprise_first_deploy_service.mark_failure(tracker, reason=msg)
                         result = general_message(code, "deploy app error", msg)
                         return Response(result, status=code)
                     enterprise_first_deploy_service.bind_events(tracker, [event_id])
                 except ErrInsufficientResource as e:
-                    enterprise_first_deploy_service.mark_failure(tracker)
+                    enterprise_first_deploy_service.mark_failure(tracker, reason=getattr(e, "msg", str(e)))
                     result = general_message(e.error_code, e.msg, e.msg_show)
                     return Response(result, status=e.status_code)
                 except ServiceHandleException as e:
-                    enterprise_first_deploy_service.mark_failure(tracker)
+                    enterprise_first_deploy_service.mark_failure(tracker, reason=getattr(e, "message", str(e)))
                     raise e
                 except Exception as e:
-                    enterprise_first_deploy_service.mark_failure(tracker)
+                    enterprise_first_deploy_service.mark_failure(tracker, reason=str(e))
                     logger.exception(e)
                     err = ErrComponentBuildFailed()
                     result = general_message(err.error_code, e, err.msg_show)
