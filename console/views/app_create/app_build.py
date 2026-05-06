@@ -69,7 +69,8 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                     region_name=self.service.service_region,
                     deploy_type=enterprise_first_deploy_service.get_deploy_type(self.service.service_source),
                     operator=self.user.nick_name,
-                    source_language=self.service.language or "")
+                    source_language=self.service.language or "",
+                    service_id=self.service.service_id)
                 try:
                     arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)
                     code, msg, event_id = app_manage_service.deploy(
