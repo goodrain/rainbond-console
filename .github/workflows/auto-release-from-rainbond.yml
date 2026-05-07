@@ -1,0 +1,86 @@
+name: Auto release from rainbond
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, for example v6.7.2-release
+        required: true
+        type: string
+      rainbond_release_url:
+        description: Rainbond release URL
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-release-from-rainbond-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release $TAG already exists, skip."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Find previous release tag
+        id: previous
+        if: steps.release.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          PREV_TAG=$(gh release list \
+            --exclude-drafts \
+            --exclude-pre-releases \
+            --limit 20 \
+            --json tagName \
+            --jq '[.[].tagName | select(. != env.TAG)][0] // ""')
+
+          echo "tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
+          echo "Previous tag: $PREV_TAG"
+
+      - name: Create release
+        if: steps.release.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          PREV_TAG: ${{ steps.previous.outputs.tag }}
+          RAINBOND_RELEASE_URL: ${{ inputs.rainbond_release_url }}
+        run: |
+          set -euo pipefail
+
+          printf -v NOTES 'Update reference: %s\n\n' "$RAINBOND_RELEASE_URL"
+
+          if [ -n "$PREV_TAG" ]; then
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --generate-notes \
+              --notes-start-tag "$PREV_TAG" \
+              --notes "$NOTES" \
+              --target "$GITHUB_REF_NAME"
+          else
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --generate-notes \
+              --notes "$NOTES" \
+              --target "$GITHUB_REF_NAME"
+          fi
