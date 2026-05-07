@@ -18,7 +18,7 @@ region_api = RegionInvokeApi()
 
 class EnterpriseFirstDeployService(object):
     REPORT_URL = os.getenv("FIRST_DEPLOY_REPORT_URL", "https://log.rainbond.com/api/enterprise/first-deploy")
-    PAYLOAD_VERSION = 3
+    PAYLOAD_VERSION = 2
     STATUS_PENDING = "pending"
     STATUS_SUCCESS = "success"
     STATUS_FAILURE = "failure"
@@ -41,8 +41,22 @@ class EnterpriseFirstDeployService(object):
     MAX_FAILURE_REASON_LENGTH = 200
     RUNTIME_OBSERVE_WINDOW = 60
     RUNTIME_EVENT_QUERY_SIZE = 20
+    RESUME_INTERVAL = 15
     BUILD_OPT_KEYWORDS = ("build", "slug", "package")
     RUNTIME_OPT_KEYWORDS = ("start", "deploy", "upgrade", "rollback", "restart", "run")
+    POD_RUNTIME_FAILURE_REASONS = {
+        "imagepullbackoff",
+        "errimagepull",
+        "crashloopbackoff",
+        "createcontainerconfigerror",
+        "oomkilled",
+        "containerexiterror",
+        "abnormalexited",
+        "readinessprobefailed",
+        "livenessprobefailed",
+        "startupprobefailure",
+        "failedscheduling",
+    }
     RUNTIME_FAILURE_OPT_TYPES = {
         "containerexiterror",
         "crashloopbackoff",
@@ -62,6 +76,10 @@ class EnterpriseFirstDeployService(object):
     def __init__(self):
         self._running_keys = set()
         self._lock = threading.Lock()
+        if os.getenv("DISABLE_FIRST_DEPLOY_SWEEPER") != "1":
+            sweeper = threading.Thread(target=self._resume_pending_trackers_loop)
+            sweeper.daemon = True
+            sweeper.start()
 
     def begin_tracking(self,
                        enterprise_id,
@@ -70,15 +88,15 @@ class EnterpriseFirstDeployService(object):
                        deploy_type,
                        operator="",
                        source_language="",
-                       service_id=""):
+                       service_id="",
+                       service_alias=""):
         record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
         if record:
             payload = enterprise_first_deploy_repo.load_payload(record)
             if payload.get("status") == self.STATUS_PENDING and not payload.get("event_ids") and self._is_expired(payload):
                 self._set_stage_failure(payload, self.FAILURE_STAGE_BUILD)
                 self._complete_tracking(record, payload, self.STATUS_FAILURE)
-            self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_BUILD)
-            self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_RUNTIME)
+            self._report_if_needed(record, payload)
             if payload.get("status") == self.STATUS_PENDING and payload.get("event_ids"):
                 transaction.on_commit(lambda: self._start_sync_thread(record.key, tenant_name, region_name))
             return None
@@ -91,6 +109,7 @@ class EnterpriseFirstDeployService(object):
             operator=operator,
             source_language=source_language,
             service_id=service_id,
+            service_alias=service_alias,
         )
         record, created = enterprise_first_deploy_repo.create_if_absent(enterprise_id, payload)
         if not created:
@@ -98,8 +117,7 @@ class EnterpriseFirstDeployService(object):
             if existing.get("status") == self.STATUS_PENDING and not existing.get("event_ids") and self._is_expired(existing):
                 self._set_stage_failure(existing, self.FAILURE_STAGE_BUILD)
                 self._complete_tracking(record, existing, self.STATUS_FAILURE)
-            self._report_stage_if_needed(record, existing, self.FAILURE_STAGE_BUILD)
-            self._report_stage_if_needed(record, existing, self.FAILURE_STAGE_RUNTIME)
+            self._report_if_needed(record, existing)
             if existing.get("status") == self.STATUS_PENDING and existing.get("event_ids"):
                 transaction.on_commit(lambda: self._start_sync_thread(record.key, tenant_name, region_name))
             return None
@@ -109,6 +127,7 @@ class EnterpriseFirstDeployService(object):
             "tenant_name": tenant_name,
             "region_name": region_name,
             "service_id": service_id or "",
+            "service_alias": service_alias or "",
         }
 
     def bind_events(self, tracker, event_ids):
@@ -119,8 +138,7 @@ class EnterpriseFirstDeployService(object):
             return
         payload = enterprise_first_deploy_repo.load_payload(record)
         if payload.get("status") in self.FINAL_STATUSES:
-            self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_BUILD)
-            self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_RUNTIME)
+            self._report_if_needed(record, payload)
             return
 
         event_ids = [str(event_id) for event_id in (event_ids or []) if event_id]
@@ -147,8 +165,7 @@ class EnterpriseFirstDeployService(object):
             return
         payload = enterprise_first_deploy_repo.load_payload(record)
         if payload.get("status") in self.FINAL_STATUSES:
-            self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_BUILD)
-            self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_RUNTIME)
+            self._report_if_needed(record, payload)
             return
         self._mark_stage_success(payload, self.FAILURE_STAGE_BUILD)
         self._mark_stage_success(payload, self.FAILURE_STAGE_RUNTIME)
@@ -162,8 +179,7 @@ class EnterpriseFirstDeployService(object):
             return
         payload = enterprise_first_deploy_repo.load_payload(record)
         if payload.get("status") in self.FINAL_STATUSES:
-            self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_BUILD)
-            self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_RUNTIME)
+            self._report_if_needed(record, payload)
             return
         stage = self._normalize_stage(failure_stage)
         self._set_stage_failure(
@@ -181,7 +197,7 @@ class EnterpriseFirstDeployService(object):
         payload = enterprise_first_deploy_repo.load_payload(record)
         return self._sync_record(record, payload, tenant_name, region_name)
 
-    def _build_payload(self, enterprise_id, tenant_name, region_name, deploy_type, operator="", source_language="", service_id=""):
+    def _build_payload(self, enterprise_id, tenant_name, region_name, deploy_type, operator="", source_language="", service_id="", service_alias=""):
         enterprise = TenantEnterprise.objects.filter(enterprise_id=enterprise_id).first()
         payload = {
             "enterprise_id": enterprise_id,
@@ -190,6 +206,8 @@ class EnterpriseFirstDeployService(object):
             "source_language": source_language if deploy_type == self.DEPLOY_TYPE_SOURCE_CODE else "",
             "payload_version": self.PAYLOAD_VERSION,
             "status": self.STATUS_PENDING,
+            "reported": False,
+            "reported_at": "",
             "started_at": self._now(),
             "finished_at": "",
             "tenant_name": tenant_name,
@@ -197,9 +215,8 @@ class EnterpriseFirstDeployService(object):
             "operator": operator or "",
             "event_ids": [],
             "service_ids": [service_id] if service_id else [],
+            "service_alias": service_alias or "",
             "build_status": self.STAGE_STATUS_PENDING,
-            "build_reported": False,
-            "build_reported_at": "",
             "build_started_at": self._now(),
             "build_finished_at": "",
             "build_event_id": "",
@@ -207,8 +224,6 @@ class EnterpriseFirstDeployService(object):
             "build_failure_events": [],
             "build_failure_logs": [],
             "runtime_status": self.STAGE_STATUS_PENDING,
-            "runtime_reported": False,
-            "runtime_reported_at": "",
             "runtime_started_at": "",
             "runtime_finished_at": "",
             "runtime_event_id": "",
@@ -216,13 +231,16 @@ class EnterpriseFirstDeployService(object):
             "runtime_failure_events": [],
             "runtime_failure_logs": [],
             "runtime_watch_started_at": "",
+            "failure_stage": "",
+            "failure_reason": "",
+            "failure_events": [],
+            "failure_logs": [],
         }
         return payload
 
     def _sync_record(self, record, payload, tenant_name, region_name):
         if payload.get("status") in self.FINAL_STATUSES:
-            self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_BUILD)
-            self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_RUNTIME)
+            self._report_if_needed(record, payload)
             return payload.get("status")
 
         event_ids = payload.get("event_ids") or []
@@ -244,6 +262,14 @@ class EnterpriseFirstDeployService(object):
                 status_map[str(event_id)] = status
 
         if not status_map:
+            if payload.get("build_status") == self.STATUS_SUCCESS:
+                runtime_status = self._inspect_runtime_status(record, payload, tenant_name, region_name)
+                if runtime_status == self.STATUS_FAILURE:
+                    self._complete_tracking(record, payload, self.STATUS_FAILURE)
+                    return self.STATUS_FAILURE
+                if runtime_status == self.STATUS_SUCCESS:
+                    self._complete_tracking(record, payload, self.STATUS_SUCCESS)
+                    return self.STATUS_SUCCESS
             return None
 
         failed_events = [
@@ -270,7 +296,6 @@ class EnterpriseFirstDeployService(object):
                 payload["runtime_started_at"] = self._now()
                 payload["runtime_watch_started_at"] = payload["runtime_started_at"]
                 enterprise_first_deploy_repo.update_payload(record, payload)
-                self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_BUILD)
                 return None
 
             runtime_status = self._inspect_runtime_status(record, payload, tenant_name, region_name)
@@ -293,8 +318,7 @@ class EnterpriseFirstDeployService(object):
         payload["status"] = status
         payload["finished_at"] = self._now()
         enterprise_first_deploy_repo.update_payload(record, payload)
-        self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_BUILD)
-        self._report_stage_if_needed(record, payload, self.FAILURE_STAGE_RUNTIME)
+        self._report_if_needed(record, payload)
 
     def _start_sync_thread(self, key, tenant_name, region_name):
         with self._lock:
@@ -306,6 +330,27 @@ class EnterpriseFirstDeployService(object):
         worker.daemon = True
         worker.start()
 
+    def _resume_pending_trackers_loop(self):
+        while True:
+            try:
+                self._resume_pending_trackers_once()
+            except Exception as e:
+                logger.exception("resume first deploy trackers failed: %s", e)
+            time.sleep(self.RESUME_INTERVAL)
+
+    def _resume_pending_trackers_once(self):
+        for record in enterprise_first_deploy_repo.list_tracking_records():
+            payload = enterprise_first_deploy_repo.load_payload(record)
+            if payload.get("status") != self.STATUS_PENDING:
+                continue
+            tenant_name = payload.get("tenant_name")
+            region_name = payload.get("region_name")
+            if not tenant_name or not region_name:
+                continue
+            if not payload.get("event_ids") and not payload.get("runtime_watch_started_at"):
+                continue
+            self._start_sync_thread(record.key, tenant_name, region_name)
+
     def _poll_until_finished(self, key, tenant_name, region_name):
         try:
             deadline = time.time() + self.POLL_TIMEOUT
@@ -315,7 +360,12 @@ class EnterpriseFirstDeployService(object):
                     time.sleep(self.POLL_INTERVAL)
                     continue
                 payload = enterprise_first_deploy_repo.load_payload(record)
-                status = self._sync_record(record, payload, tenant_name, region_name)
+                try:
+                    status = self._sync_record(record, payload, tenant_name, region_name)
+                except Exception as e:
+                    logger.exception("poll first deploy status failed: %s", e)
+                    time.sleep(self.POLL_INTERVAL)
+                    continue
                 if status in self.FINAL_STATUSES:
                     return
                 time.sleep(self.POLL_INTERVAL)
@@ -380,7 +430,7 @@ class EnterpriseFirstDeployService(object):
         payload["{}_failure_events".format(stage)] = []
         payload["{}_failure_logs".format(stage)] = []
 
-    def _set_stage_failure(self, payload, stage, tenant_name="", region_name="", failed_events=None, reason="", stage_status=""):
+    def _set_stage_failure(self, payload, stage, tenant_name="", region_name="", failed_events=None, reason="", stage_status="", failure_logs=None):
         failed_events = failed_events or []
         now = self._now()
         payload["payload_version"] = self.PAYLOAD_VERSION
@@ -398,15 +448,42 @@ class EnterpriseFirstDeployService(object):
             service_id = compact_events[0].get("service_id", "")
             if service_id and service_id not in payload.get("service_ids", []):
                 payload.setdefault("service_ids", []).append(service_id)
-        payload["{}_failure_logs".format(stage)] = self._collect_failure_logs(
-            tenant_name or payload.get("tenant_name"),
-            region_name or payload.get("region_name"),
-            failed_events,
-            stage)
+        if failure_logs is not None:
+            payload["{}_failure_logs".format(stage)] = failure_logs
+        else:
+            payload["{}_failure_logs".format(stage)] = self._collect_failure_logs(
+                tenant_name or payload.get("tenant_name"),
+                region_name or payload.get("region_name"),
+                failed_events,
+                stage)
+        payload["failure_stage"] = stage
+        payload["failure_reason"] = payload["{}_failure_reason".format(stage)]
+        payload["failure_events"] = payload["{}_failure_events".format(stage)]
+        payload["failure_logs"] = payload["{}_failure_logs".format(stage)]
 
     def _inspect_runtime_status(self, record, payload, tenant_name, region_name):
         runtime_watch_started_at = payload.get("runtime_watch_started_at")
         if not runtime_watch_started_at:
+            return None
+
+        runtime_pod_status = self._inspect_runtime_pods(payload, tenant_name, region_name, runtime_watch_started_at)
+        if runtime_pod_status == self.STATUS_FAILURE:
+            return self.STATUS_FAILURE
+        if runtime_pod_status == self.STATUS_SUCCESS:
+            self._mark_stage_success(
+                payload,
+                self.FAILURE_STAGE_RUNTIME,
+                service_id=(payload.get("service_ids") or [""])[0])
+            return self.STATUS_SUCCESS
+        if payload.get("service_alias"):
+            if self._runtime_window_elapsed(runtime_watch_started_at):
+                self._set_stage_failure(
+                    payload,
+                    self.FAILURE_STAGE_RUNTIME,
+                    reason=payload.get("runtime_failure_reason") or "runtime verification timeout",
+                    stage_status=self.STAGE_STATUS_TIMEOUT,
+                    failure_logs=payload.get("runtime_failure_logs") or [])
+                return self.STATUS_FAILURE
             return None
 
         runtime_failed_events = self._list_runtime_failure_events(
@@ -424,12 +501,12 @@ class EnterpriseFirstDeployService(object):
             return self.STATUS_FAILURE
 
         if self._runtime_window_elapsed(runtime_watch_started_at):
-            self._mark_stage_success(
+            self._set_stage_failure(
                 payload,
                 self.FAILURE_STAGE_RUNTIME,
-                event_id="",
-                service_id=(payload.get("service_ids") or [""])[0])
-            return self.STATUS_SUCCESS
+                reason=payload.get("runtime_failure_reason") or "runtime verification timeout",
+                stage_status=self.STAGE_STATUS_TIMEOUT)
+            return self.STATUS_FAILURE
         return None
 
     def _detect_failure_stage(self, deploy_type, failed_events):
@@ -459,43 +536,36 @@ class EnterpriseFirstDeployService(object):
                 return event["reason"]
         return ""
 
-    def _report_stage_if_needed(self, record, payload, stage):
-        stage_status = payload.get("{}_status".format(stage))
-        if stage_status not in self.STAGE_FINAL_STATUSES or payload.get("{}_reported".format(stage)):
+    def _report_if_needed(self, record, payload):
+        if payload.get("status") not in self.FINAL_STATUSES or payload.get("reported"):
             return
 
-        service_ids = payload.get("service_ids") or []
         report_payload = {
             "eid": payload.get("enterprise_id"),
             "enterprise_name": payload.get("enterprise_name"),
             "deploy_type": payload.get("deploy_type"),
             "source_language": payload.get("source_language", ""),
-            "payload_version": payload.get("payload_version", self.PAYLOAD_VERSION),
-            "stage": stage,
-            "status": stage_status,
-            "is_success": stage_status == self.STATUS_SUCCESS,
-            "event_id": payload.get("{}_event_id".format(stage), ""),
-            "service_id": service_ids[0] if service_ids else "",
-            "started_at": payload.get("{}_started_at".format(stage), ""),
-            "finished_at": payload.get("{}_finished_at".format(stage), ""),
+            "is_success": payload.get("status") == self.STATUS_SUCCESS,
         }
-        if stage_status != self.STATUS_SUCCESS:
+        if payload.get("status") == self.STATUS_FAILURE:
             report_payload.update({
-                "failure_reason": payload.get("{}_failure_reason".format(stage), ""),
-                "failure_events": payload.get("{}_failure_events".format(stage)) or [],
-                "failure_logs": payload.get("{}_failure_logs".format(stage)) or [],
+                "payload_version": payload.get("payload_version", self.PAYLOAD_VERSION),
+                "failure_stage": payload.get("failure_stage", self.FAILURE_STAGE_UNKNOWN),
+                "failure_reason": payload.get("failure_reason", ""),
+                "failure_events": payload.get("failure_events") or [],
+                "failure_logs": payload.get("failure_logs") or [],
             })
 
         for _ in range(3):
             try:
                 response = requests.post(self.REPORT_URL, json=report_payload, timeout=5)
                 if 200 <= response.status_code < 300:
-                    payload["{}_reported".format(stage)] = True
-                    payload["{}_reported_at".format(stage)] = self._now()
+                    payload["reported"] = True
+                    payload["reported_at"] = self._now()
                     enterprise_first_deploy_repo.update_payload(record, payload)
                     return
             except Exception as e:
-                logger.warning("report first deploy %s stage failed: %s", stage, e)
+                logger.warning("report first deploy log failed: %s", e)
             time.sleep(1)
 
     def _shrink_failure_events(self, failed_events):
@@ -606,6 +676,185 @@ class EnterpriseFirstDeployService(object):
             "start_time": event.get("StartTime") or event.get("start_time") or "",
             "end_time": event.get("EndTime") or event.get("end_time") or "",
         }
+
+    def _inspect_runtime_pods(self, payload, tenant_name, region_name, runtime_watch_started_at):
+        service_alias = payload.get("service_alias")
+        if not service_alias:
+            return None
+        pods = self._get_service_pods_for_runtime(payload, tenant_name, region_name, service_alias)
+        if not pods:
+            if self._runtime_window_elapsed(runtime_watch_started_at):
+                payload["runtime_failure_reason"] = "runtime verification timeout"
+                payload["runtime_failure_logs"] = []
+            return None
+
+        candidate_pods = [pod for pod in pods if pod.get("_group") == "new_pods"] or pods
+        all_running = True
+        for pod in candidate_pods:
+            pod_name = pod.get("pod_name")
+            pod_detail = self._get_runtime_pod_detail(region_name, tenant_name, service_alias, pod_name)
+            failure = self._extract_runtime_failure_from_pod(payload, pod, pod_detail)
+            if failure:
+                self._set_stage_failure(
+                    payload,
+                    self.FAILURE_STAGE_RUNTIME,
+                    failed_events=[failure["event"]],
+                    reason=failure["reason"],
+                    failure_logs=failure["logs"])
+                return self.STATUS_FAILURE
+
+            pod_status = (pod.get("pod_status") or "").upper()
+            detail_status = ((pod_detail or {}).get("status") or {}).get("type_str", "")
+            if pod_status != "RUNNING" or (detail_status and detail_status.upper() != "RUNNING"):
+                all_running = False
+                status_message = (((pod_detail or {}).get("status") or {}).get("message") or
+                                  ((pod_detail or {}).get("status") or {}).get("reason") or
+                                  pod_status or detail_status or "runtime verification timeout")
+                payload["runtime_failure_reason"] = self._shrink_text(status_message, self.MAX_FAILURE_REASON_LENGTH)
+        if all_running:
+            return self.STATUS_SUCCESS
+        return None
+
+    def _get_service_pods_for_runtime(self, payload, tenant_name, region_name, service_alias):
+        try:
+            data = region_api.get_service_pods(region_name, tenant_name, service_alias, payload.get("enterprise_id"))
+        except Exception as e:
+            logger.warning("get service pods failed for %s: %s", service_alias, e)
+            return []
+        return self._extract_component_pods(data)
+
+    @staticmethod
+    def _extract_component_pods(pods_data):
+        if not isinstance(pods_data, dict):
+            return []
+        pod_groups = {}
+        if isinstance(pods_data.get("bean"), dict):
+            pod_groups = pods_data.get("bean") or {}
+        elif isinstance(pods_data.get("list"), dict):
+            pod_groups = pods_data.get("list") or {}
+        pods = []
+        for group_name in ("new_pods", "old_pods"):
+            group_items = pod_groups.get(group_name) or []
+            if not isinstance(group_items, list):
+                continue
+            for pod in group_items:
+                if not isinstance(pod, dict):
+                    continue
+                pod_copy = dict(pod)
+                pod_copy["_group"] = group_name
+                pods.append(pod_copy)
+        return pods
+
+    def _get_runtime_pod_detail(self, region_name, tenant_name, service_alias, pod_name):
+        if not pod_name:
+            return {}
+        try:
+            data = region_api.pod_detail(region_name, tenant_name, service_alias, pod_name)
+        except Exception as e:
+            logger.warning("get pod detail failed for %s: %s", pod_name, e)
+            return {}
+        return self._extract_region_pod_detail(data)
+
+    @staticmethod
+    def _extract_region_pod_detail(payload):
+        if not isinstance(payload, dict):
+            return payload or {}
+        bean = payload.get("bean")
+        if isinstance(bean, dict):
+            return bean
+        data = payload.get("data")
+        if isinstance(data, dict) and isinstance(data.get("bean"), dict):
+            return data.get("bean")
+        return payload
+
+    def _extract_runtime_failure_from_pod(self, payload, pod, pod_detail):
+        pod_name = pod.get("pod_name") or (pod_detail or {}).get("name") or ""
+        service_id = (payload.get("service_ids") or [""])[0]
+        status = (pod_detail or {}).get("status") or {}
+        events = (pod_detail or {}).get("events") or []
+        container_reason = self._find_runtime_container_reason(pod_detail)
+        event_message = self._find_runtime_event_message(events)
+        if container_reason:
+            reason_text = event_message or status.get("message") or container_reason
+            return {
+                "reason": self._shrink_text(reason_text, self.MAX_FAILURE_REASON_LENGTH),
+                "event": {
+                    "event_id": pod_name,
+                    "service_id": service_id,
+                    "opt_type": container_reason,
+                    "status": self.STATUS_FAILURE,
+                    "final_status": "complete",
+                    "message": self._shrink_text(reason_text, self.MAX_FAILURE_REASON_LENGTH),
+                    "reason": container_reason,
+                    "start_time": "",
+                    "end_time": "",
+                },
+                "logs": self._build_runtime_pod_logs(pod_name, events, status),
+            }
+        status_type = (status.get("type_str") or "").upper()
+        if status_type in ("ABNORMAL", "UNHEALTHY") and (status.get("message") or status.get("reason")):
+            reason_text = status.get("message") or status.get("reason")
+            return {
+                "reason": self._shrink_text(reason_text, self.MAX_FAILURE_REASON_LENGTH),
+                "event": {
+                    "event_id": pod_name,
+                    "service_id": service_id,
+                    "opt_type": status.get("reason") or status_type,
+                    "status": self.STATUS_FAILURE,
+                    "final_status": "complete",
+                    "message": self._shrink_text(reason_text, self.MAX_FAILURE_REASON_LENGTH),
+                    "reason": status.get("reason") or status_type,
+                    "start_time": "",
+                    "end_time": "",
+                },
+                "logs": self._build_runtime_pod_logs(pod_name, events, status),
+            }
+        return None
+
+    def _find_runtime_container_reason(self, pod_detail):
+        for container_group in ((pod_detail or {}).get("init_containers") or [], (pod_detail or {}).get("containers") or []):
+            for container in container_group:
+                reason = (container.get("reason") or "").lower()
+                if reason in self.POD_RUNTIME_FAILURE_REASONS:
+                    return container.get("reason")
+        return ""
+
+    def _find_runtime_event_message(self, events):
+        for event in events or []:
+            message = event.get("message") or ""
+            reason = (event.get("reason") or "").lower()
+            if "imagepullbackoff" in message.lower() or "errimagepull" in message.lower():
+                return message
+            if reason in ("failed", "backoff") and message:
+                return message
+        return ""
+
+    def _build_runtime_pod_logs(self, pod_name, events, status):
+        lines = []
+        for event in events or []:
+            message = event.get("message") or ""
+            if not message:
+                continue
+            lines.append({
+                "time": event.get("age") or "",
+                "message": self._shrink_text(message, self.MAX_FAILURE_LOG_LINE_LENGTH),
+            })
+        if not lines and status:
+            message = status.get("message") or status.get("reason") or ""
+            if message:
+                lines.append({
+                    "time": "",
+                    "message": self._shrink_text(message, self.MAX_FAILURE_LOG_LINE_LENGTH),
+                })
+        if not lines:
+            return []
+        return [{
+            "stage": self.FAILURE_STAGE_RUNTIME,
+            "event_id": pod_name,
+            "source": "pod_event",
+            "truncated": False,
+            "lines": lines[:self.MAX_FAILURE_LOG_LINES],
+        }]
 
     def _list_runtime_failure_events(self, tenant_name, region_name, service_ids, runtime_watch_started_at):
         failed_events = []

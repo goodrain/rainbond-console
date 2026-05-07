@@ -24,6 +24,12 @@ class EnterpriseFirstDeployRepository(object):
     def get_by_key(key):
         return ConsoleSysConfig.objects.filter(key=key).first()
 
+    def list_tracking_records(self):
+        return ConsoleSysConfig.objects.filter(
+            desc=self.DESC,
+            enable=True,
+            key__startswith=self.KEY_PREFIX).all()
+
     def create_if_absent(self, enterprise_id, payload):
         key = self.build_key(enterprise_id)
         value = json.dumps(payload, ensure_ascii=False)

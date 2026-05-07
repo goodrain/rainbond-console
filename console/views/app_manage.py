@@ -294,7 +294,8 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
                 deploy_type=enterprise_first_deploy_service.get_deploy_type(self.service.service_source),
                 operator=self.user.nick_name,
                 source_language=self.service.language or "",
-                service_id=self.service.service_id)
+                service_id=self.service.service_id,
+                service_alias=self.service.service_alias)
             code, msg, event_id = app_deploy_service.deploy(
                 self.tenant, self.service, self.user, version=group_version, oauth_instance=self.oauth_instance)
             bean = {}
