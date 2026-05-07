@@ -57,6 +57,13 @@ class EnterpriseFirstDeployService(object):
         "startupprobefailure",
         "failedscheduling",
     }
+    # Probe/readiness failures during startup are transient — wait for the observe window before reporting
+    SOFT_FAILURE_OPT_TYPES = {
+        "readinessprobefailed",
+        "livenessprobefailed",
+        "startupprobefailure",
+        "containersnotready",
+    }
     RUNTIME_FAILURE_OPT_TYPES = {
         "containerexiterror",
         "crashloopbackoff",
@@ -721,6 +728,16 @@ class EnterpriseFirstDeployService(object):
             pod_detail = self._get_runtime_pod_detail(region_name, tenant_name, service_alias, pod_name)
             failure = self._extract_runtime_failure_from_pod(payload, pod, pod_detail)
             if failure:
+                opt_type = (failure["event"].get("opt_type") or "").lower()
+                is_soft = opt_type in self.SOFT_FAILURE_OPT_TYPES
+                if is_soft and not self._runtime_window_elapsed(runtime_watch_started_at):
+                    # Probe/readiness failure during the observe window — container may still be initializing.
+                    # Store as a candidate and keep polling; only finalize after the window elapses.
+                    all_running = False
+                    payload["runtime_failure_reason"] = self._shrink_text(failure["reason"], self.MAX_FAILURE_REASON_LENGTH)
+                    if not payload.get("runtime_failure_logs"):
+                        payload["runtime_failure_logs"] = failure["logs"]
+                    continue
                 self._set_stage_failure(
                     payload,
                     self.FAILURE_STAGE_RUNTIME,
