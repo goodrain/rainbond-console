@@ -32,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          if gh release view "$TAG" >/dev/null 2>&1; then
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "Release $TAG already exists, skip."
           else
@@ -49,6 +49,7 @@ jobs:
           set -euo pipefail
 
           PREV_TAG=$(gh release list \
+            --repo "$GITHUB_REPOSITORY" \
             --exclude-drafts \
             --exclude-pre-releases \
             --limit 20 \
@@ -72,6 +73,7 @@ jobs:
 
           if [ -n "$PREV_TAG" ]; then
             gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
               --title "$TAG" \
               --generate-notes \
               --notes-start-tag "$PREV_TAG" \
@@ -79,6 +81,7 @@ jobs:
               --target "$GITHUB_REF_NAME"
           else
             gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
               --title "$TAG" \
               --generate-notes \
               --notes "$NOTES" \
