@@ -37,8 +37,8 @@ class EnterpriseFirstDeployService(object):
     FAILURE_STAGE_UNKNOWN = "unknown"
     MAX_FAILURE_EVENTS = 3
     MAX_FAILURE_LOG_LINES = 8
-    MAX_FAILURE_LOG_LINE_LENGTH = 200
-    MAX_FAILURE_REASON_LENGTH = 200
+    MAX_FAILURE_LOG_LINE_LENGTH = 1024
+    MAX_FAILURE_REASON_LENGTH = 1024
     RUNTIME_OBSERVE_WINDOW = 60
     RUNTIME_EVENT_QUERY_SIZE = 20
     RESUME_INTERVAL = 15
@@ -130,7 +130,7 @@ class EnterpriseFirstDeployService(object):
             "service_alias": service_alias or "",
         }
 
-    def bind_events(self, tracker, event_ids):
+    def bind_events(self, tracker, event_ids, service_ids=None, service_alias=None, service_aliases=None):
         if not tracker:
             return
         record = enterprise_first_deploy_repo.get_by_enterprise_id(tracker["enterprise_id"])
@@ -148,6 +148,14 @@ class EnterpriseFirstDeployService(object):
         tracker_service_id = tracker.get("service_id")
         if tracker_service_id and tracker_service_id not in payload.get("service_ids", []):
             payload.setdefault("service_ids", []).append(tracker_service_id)
+        for sid in (service_ids or []):
+            sid = str(sid)
+            if sid and sid not in payload.get("service_ids", []):
+                payload.setdefault("service_ids", []).append(sid)
+        if service_alias and not payload.get("service_alias"):
+            payload["service_alias"] = service_alias
+        if service_aliases and not payload.get("service_aliases"):
+            payload["service_aliases"] = [str(a) for a in service_aliases if a]
         if not payload["event_ids"]:
             self._mark_stage_success(payload, self.FAILURE_STAGE_BUILD, service_id=tracker_service_id)
             self._mark_stage_success(payload, self.FAILURE_STAGE_RUNTIME, service_id=tracker_service_id)
@@ -216,6 +224,7 @@ class EnterpriseFirstDeployService(object):
             "event_ids": [],
             "service_ids": [service_id] if service_id else [],
             "service_alias": service_alias or "",
+            "service_aliases": [],
             "build_status": self.STAGE_STATUS_PENDING,
             "build_started_at": self._now(),
             "build_finished_at": "",
@@ -475,7 +484,7 @@ class EnterpriseFirstDeployService(object):
                 self.FAILURE_STAGE_RUNTIME,
                 service_id=(payload.get("service_ids") or [""])[0])
             return self.STATUS_SUCCESS
-        if payload.get("service_alias"):
+        if payload.get("service_alias") or payload.get("service_aliases"):
             if self._runtime_window_elapsed(runtime_watch_started_at):
                 self._set_stage_failure(
                     payload,
@@ -678,9 +687,26 @@ class EnterpriseFirstDeployService(object):
         }
 
     def _inspect_runtime_pods(self, payload, tenant_name, region_name, runtime_watch_started_at):
-        service_alias = payload.get("service_alias")
-        if not service_alias:
+        aliases = []
+        primary = payload.get("service_alias")
+        if primary:
+            aliases.append(primary)
+        for alias in payload.get("service_aliases") or []:
+            if alias and alias not in aliases:
+                aliases.append(alias)
+        if not aliases:
             return None
+
+        all_running = True
+        for service_alias in aliases:
+            result = self._inspect_service_pods(payload, tenant_name, region_name, runtime_watch_started_at, service_alias)
+            if result == self.STATUS_FAILURE:
+                return self.STATUS_FAILURE
+            if result is None:
+                all_running = False
+        return self.STATUS_SUCCESS if all_running else None
+
+    def _inspect_service_pods(self, payload, tenant_name, region_name, runtime_watch_started_at, service_alias):
         pods = self._get_service_pods_for_runtime(payload, tenant_name, region_name, service_alias)
         if not pods:
             if self._runtime_window_elapsed(runtime_watch_started_at):
@@ -716,9 +742,7 @@ class EnterpriseFirstDeployService(object):
                     candidate_logs = self._build_runtime_pod_logs(pod_name, pod_events, pod_status_info)
                     if candidate_logs:
                         payload["runtime_failure_logs"] = candidate_logs
-        if all_running:
-            return self.STATUS_SUCCESS
-        return None
+        return self.STATUS_SUCCESS if all_running else None
 
     def _get_service_pods_for_runtime(self, payload, tenant_name, region_name, service_alias):
         try:
