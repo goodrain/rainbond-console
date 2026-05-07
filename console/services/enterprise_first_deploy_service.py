@@ -461,7 +461,7 @@ class EnterpriseFirstDeployService(object):
         payload["failure_events"] = payload["{}_failure_events".format(stage)]
         payload["failure_logs"] = payload["{}_failure_logs".format(stage)]
 
-    def _inspect_runtime_status(self, record, payload, tenant_name, region_name):
+    def _inspect_runtime_status(self, _record, payload, tenant_name, region_name):
         runtime_watch_started_at = payload.get("runtime_watch_started_at")
         if not runtime_watch_started_at:
             return None
@@ -707,10 +707,15 @@ class EnterpriseFirstDeployService(object):
             detail_status = ((pod_detail or {}).get("status") or {}).get("type_str", "")
             if pod_status != "RUNNING" or (detail_status and detail_status.upper() != "RUNNING"):
                 all_running = False
-                status_message = (((pod_detail or {}).get("status") or {}).get("message") or
-                                  ((pod_detail or {}).get("status") or {}).get("reason") or
+                pod_status_info = (pod_detail or {}).get("status") or {}
+                status_message = (pod_status_info.get("message") or pod_status_info.get("reason") or
                                   pod_status or detail_status or "runtime verification timeout")
                 payload["runtime_failure_reason"] = self._shrink_text(status_message, self.MAX_FAILURE_REASON_LENGTH)
+                if not payload.get("runtime_failure_logs"):
+                    pod_events = (pod_detail or {}).get("events") or []
+                    candidate_logs = self._build_runtime_pod_logs(pod_name, pod_events, pod_status_info)
+                    if candidate_logs:
+                        payload["runtime_failure_logs"] = candidate_logs
         if all_running:
             return self.STATUS_SUCCESS
         return None

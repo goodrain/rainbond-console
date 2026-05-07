@@ -469,6 +469,75 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_stage"], self.service.FAILURE_STAGE_RUNTIME)
         self.assertEqual(report_payload["failure_reason"], "pod still initializing")
 
+    def test_sync_record_includes_pod_events_in_runtime_timeout_failure(self):
+        """Pod not RUNNING with events but no known container reason → pod events included in timeout failure logs."""
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "source_language": "Java-maven",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STATUS_SUCCESS,
+            "build_started_at": "2026-05-06 10:00:00",
+            "build_finished_at": "2026-05-06 10:03:00",
+            "build_event_id": "deploy-event-1",
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["deploy-event-1"],
+            "service_ids": ["service-1"],
+            "service_alias": "demo-service",
+            "runtime_started_at": "2026-05-06 10:03:00",
+            "runtime_watch_started_at": "2026-05-06 10:03:00",
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{
+                               "event_id": "deploy-event-1",
+                               "service_id": "service-1",
+                               "opt_type": "start-service",
+                               "status": "success",
+                               "final_status": "complete",
+                               "message": "deploy success",
+                               "reason": "",
+                               "start_time": "2026-05-06 10:00:00",
+                               "end_time": "2026-05-06 10:03:00",
+                           }]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                           return_value={"bean": {"new_pods": [{
+                               "pod_name": "pod-1",
+                               "pod_status": "INITIATING",
+                           }], "old_pods": []}}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
+                           return_value={"bean": {
+                               "name": "pod-1",
+                               "status": {
+                                   "type_str": "INITIATING",
+                                   "reason": "ContainersNotReady",
+                                   "message": "containers with unready status",
+                               },
+                               "events": [{
+                                   "type": "Warning",
+                                   "reason": "BackOff",
+                                   "message": "Back-off restarting failed container app",
+                                   "age": "5s",
+                               }],
+                           }}), \
+                mock.patch.object(self.service, "_now", return_value="2026-05-06 10:03:40"), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["failure_stage"], self.service.FAILURE_STAGE_RUNTIME)
+        self.assertNotEqual(report_payload["failure_logs"], [])
+        self.assertIn("Back-off", report_payload["failure_logs"][0]["lines"][0]["message"])
+
     def test_sync_record_checks_runtime_even_when_build_event_query_returns_empty(self):
         payload = {
             "enterprise_id": "eid-1",
