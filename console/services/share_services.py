@@ -43,6 +43,7 @@ region_api = RegionInvokeApi()
 
 class ShareService(object):
     SNAPSHOT_TEMPLATE_TYPE = "application_version"
+    PLATFORM_PLUGIN_NO_INJECT = "NoInject"
 
     @classmethod
     def is_snapshot_publish_version(cls, version_obj):
@@ -506,6 +507,18 @@ class ShareService(object):
         return event
 
     @staticmethod
+    def normalize_platform_plugin_positions(positions):
+        normalized_positions = []
+        for position in positions or []:
+            if not position:
+                continue
+            if position == ShareService.PLATFORM_PLUGIN_NO_INJECT:
+                return []
+            if position not in normalized_positions:
+                normalized_positions.append(position)
+        return normalized_positions
+
+    @staticmethod
     def _build_platform_plugin_config(share_version_info):
         if not share_version_info.get("is_platform_plugin", False):
             return None
@@ -516,7 +529,9 @@ class ShareService(object):
             "plugin_type": share_version_info.get("plugin_type", ""),
             "frontend_component": share_version_info.get("frontend_component", ""),
             "entry_path": share_version_info.get("entry_path", ""),
-            "inject_position": share_version_info.get("inject_position", []),
+            "inject_position": ShareService.normalize_platform_plugin_positions(
+                share_version_info.get("inject_position", [])
+            ),
             "menu_title": share_version_info.get("menu_title", ""),
             "route_path": share_version_info.get("route_path", ""),
         }

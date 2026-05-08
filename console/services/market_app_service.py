@@ -213,7 +213,9 @@ class MarketAppService(object):
                 "plugin_type": platform_plugin.get("plugin_type", ""),
                 "frontend_component": frontend_component_name,
                 "entry_path": platform_plugin.get("entry_path", ""),
-                "plugin_views": platform_plugin.get("inject_position", []),
+                "plugin_views": share_service.normalize_platform_plugin_positions(
+                    platform_plugin.get("inject_position", [])
+                ),
                 "menu_title": platform_plugin.get("menu_title", ""),
                 "route_path": platform_plugin.get("route_path", ""),
                 "namespace": namespace,

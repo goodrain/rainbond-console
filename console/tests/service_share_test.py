@@ -284,6 +284,7 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
                 mock.patch.object(share_services_module.RainbondCenterApp.objects, "filter", return_value=snapshot_filter), \
                 mock.patch("console.services.group_service.group_service.get_app_by_id",
                            return_value=self.runtime_app), \
+                mock.patch.object(share_services_module.ServiceSourceInfo.objects, "filter") as service_source_filter, \
                 mock.patch.object(share_services_module.ServiceShareRecordEvent.objects, "filter") as service_events_filter, \
                 mock.patch.object(share_services_module, "ServiceShareRecordEvent") as service_event_cls, \
                 mock.patch.object(share_services_module, "PluginShareRecordEvent") as plugin_event_cls, \
@@ -291,6 +292,7 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
                                   return_value=app_version_instance) as app_version_cls, \
                 mock.patch.object(share_services_module.app_store, "get_app_hub_info", return_value={"hub": "demo"}), \
                 mock.patch.object(share_services_module.app_store, "is_no_multiple_region_hub", return_value=False):
+            service_source_filter.return_value.values_list.return_value = []
             service_events_filter.return_value.delete.return_value = None
             service_event_cls.return_value.save = mock.Mock()
             plugin_event_cls.return_value.save = mock.Mock()
@@ -391,6 +393,73 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
         self.assertEqual(saved_component["service_image"], {"hub": "demo-image-target"})
         self.assertNotIn("share_slug_path", saved_component)
         self.assertNotIn("service_slug", saved_component)
+
+    def test_create_share_info_normalizes_no_inject_platform_plugin_positions_to_empty_list(self):
+        self.share_info["app_version_info"].update({
+            "is_platform_plugin": True,
+            "plugin_id": "rainbond-demo-plugin",
+            "plugin_name": "rainbond-demo-plugin",
+            "plugin_type": "JSInject",
+            "frontend_component": "svc-snapshot",
+            "entry_path": "/static/main.js",
+            "inject_position": ["NoInject"],
+            "menu_title": "Demo Plugin",
+            "route_path": "/plugins/demo-plugin",
+        })
+        app_version_instance = mock.Mock(save=mock.Mock(), arch="amd64")
+        snapshot_filter = mock.Mock()
+        snapshot_filter.first.return_value = self.target_template
+
+        with mock.patch.object(share_services_module.rainbond_app_repo, "get_app_version", return_value=self.snapshot_version), \
+                mock.patch.object(share_services_module.RainbondCenterApp.objects, "filter", return_value=snapshot_filter), \
+                mock.patch("console.services.group_service.group_service.get_app_by_id",
+                           return_value=self.runtime_app), \
+                mock.patch.object(share_services_module.ServiceSourceInfo.objects, "filter") as service_source_filter, \
+                mock.patch.object(share_services_module.ServiceShareRecordEvent.objects, "filter") as service_events_filter, \
+                mock.patch.object(share_services_module, "ServiceShareRecordEvent") as service_event_cls, \
+                mock.patch.object(share_services_module, "PluginShareRecordEvent") as plugin_event_cls, \
+                mock.patch.object(share_services_module, "RainbondCenterAppVersion",
+                                  return_value=app_version_instance) as app_version_cls, \
+                mock.patch.object(share_services_module.app_store, "get_app_hub_info", return_value={"hub": "demo"}), \
+                mock.patch.object(share_services_module.app_store, "is_no_multiple_region_hub", return_value=False):
+            service_source_filter.return_value.values_list.return_value = []
+            service_events_filter.return_value.delete.return_value = None
+            service_event_cls.return_value.save = mock.Mock()
+            plugin_event_cls.return_value.save = mock.Mock()
+
+            code, msg, bean = share_service_instance.create_share_info(
+                tenant=self.tenant,
+                region_name=self.region_name,
+                share_record=self.share_record,
+                share_team=self.team,
+                share_user=self.user,
+                share_info=self.share_info,
+                use_force=True,
+                user_id=None,
+            )
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "分享信息处理成功")
+        self.assertIsNotNone(bean)
+
+        saved_template = json.loads(app_version_cls.call_args[1]["app_template"])
+        self.assertEqual(saved_template["platform_plugin"]["inject_position"], [])
+
+
+class ShareServicePlatformPluginConfigTestCase(TestCase):
+    def test_normalize_platform_plugin_positions_drops_no_inject_marker(self):
+        positions = share_service_instance.normalize_platform_plugin_positions(
+            ["Platform", "NoInject", "Team"]
+        )
+
+        self.assertEqual(positions, [])
+
+    def test_normalize_platform_plugin_positions_preserves_regular_views(self):
+        positions = share_service_instance.normalize_platform_plugin_positions(
+            ["Platform", "Application", "Platform"]
+        )
+
+        self.assertEqual(positions, ["Platform", "Application"])
 
 
 class ShareServicePreferredAppTestCase(TestCase):
