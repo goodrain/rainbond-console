@@ -127,10 +127,30 @@ class MarketAppService(object):
                 events = []
             else:
                 events = app_upgrade.install()
-        except Exception:
-            enterprise_first_deploy_service.mark_failure(tracker)
+        except Exception as e:
+            enterprise_first_deploy_service.mark_failure(tracker, reason=str(e))
             raise
-        enterprise_first_deploy_service.bind_events(tracker, self._extract_event_ids(events))
+        new_components = app_upgrade.new_app.components() or []
+        component_service_ids = [
+            cpt.component.component_id for cpt in new_components
+            if getattr(cpt.component, "component_id", None)
+        ]
+        # For single-component installs use service_alias (pod-based monitoring).
+        # For multi-component installs use service_aliases so each component's pods are checked.
+        component_service_alias = ""
+        component_service_aliases = []
+        if len(new_components) == 1:
+            component_service_alias = getattr(new_components[0].component, "service_alias", "") or ""
+        elif len(new_components) > 1:
+            component_service_aliases = [
+                a for a in (getattr(cpt.component, "service_alias", "") or "" for cpt in new_components) if a
+            ]
+        enterprise_first_deploy_service.bind_events(
+            tracker,
+            self._extract_event_ids(events),
+            service_ids=component_service_ids,
+            service_alias=component_service_alias,
+            service_aliases=component_service_aliases)
         # If the app template contains platform_plugin info, create RBDPlugin CR
         self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
         return market_app.app_name

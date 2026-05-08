@@ -204,19 +204,35 @@ class AppEnvVarService(object):
             env_var_repo.change_service_env_scope(env, scope)
             return env
 
-    def update_env_by_env_id(self, tenant, service, env_id, name, attr_value, user_name=''):
+    def update_env_by_env_id(self, tenant, service, env_id, name, attr_value, user_name='', attr_name=None):
         env_id = env_id.strip()
         attr_value = attr_value.strip()
         env = env_var_repo.get_env_by_ids_and_env_id(tenant.tenant_id, service.service_id, env_id)
         if not env:
             return 404, "环境变量不存在", None
-        update_params = {"name": name, "attr_value": attr_value}
+        old_attr_name = env.attr_name
+        new_attr_name = attr_name.strip() if attr_name is not None else old_attr_name
+        is_pass, msg = self.check_env_attr_name(new_attr_name)
+        if not is_pass:
+            return 400, msg, None
+        if new_attr_name != old_attr_name:
+            exists_env = env_var_repo.get_service_env_by_attr_name(tenant.tenant_id, service.service_id, new_attr_name)
+            if exists_env:
+                return 412, "环境变量{0}已存在".format(new_attr_name), exists_env
+        update_params = {"name": name, "attr_value": attr_value, "attr_name": new_attr_name}
         if service.create_status == "complete":
-            body = {"env_name": env.attr_name, "env_value": attr_value, "scope": env.scope, "operator": user_name}
+            body = {
+                "old_env_name": old_attr_name,
+                "env_name": new_attr_name,
+                "env_value": attr_value,
+                "scope": env.scope,
+                "operator": user_name
+            }
             region_api.update_service_env(service.service_region, tenant.tenant_name, service.service_alias, body)
-        env_var_repo.update_env_var(tenant.tenant_id, service.service_id, env.attr_name, **update_params)
+        env_var_repo.update_env_var(tenant.tenant_id, service.service_id, old_attr_name, **update_params)
         env.name = name
         env.attr_value = attr_value
+        env.attr_name = new_attr_name
         return 200, "success", env
 
     def delete_service_env(self, tenant, service):

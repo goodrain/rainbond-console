@@ -503,6 +503,60 @@ class ShareServicePreferredAppTestCase(TestCase):
         self.assertEqual([item["app_id"] for item in app_list], ["hidden-app", "team-app"])
         self.assertEqual(app_list[0]["versions"], [])
 
+    # capability_id: console.service-share.local-app-versions
+    def test_get_team_local_apps_versions_filters_by_template_scope(self):
+        preferred_app = mock.Mock(
+            app_name="hidden-snapshot",
+            app_id="hidden-app",
+            pic="hidden-pic",
+            describe="hidden describe",
+            dev_status="",
+            scope="team",
+        )
+        enterprise_app = mock.Mock(
+            app_name="enterprise-template",
+            app_id="enterprise-app",
+            pic="enterprise-pic",
+            describe="enterprise describe",
+            dev_status="release",
+            scope="enterprise",
+        )
+
+        with mock.patch.object(
+                service_share.rainbond_app_repo,
+                "get_rainbond_app_by_app_id",
+                return_value=preferred_app), \
+                mock.patch.object(
+                    share_services_module.team_repo,
+                    "get_teams_by_enterprise_id",
+                    return_value=[
+                        mock.Mock(tenant_name="demo-team"),
+                        mock.Mock(tenant_name="test-team"),
+                    ],
+                ), \
+                mock.patch.object(
+                    service_share.rainbond_app_repo,
+                    "get_enterprise_team_apps",
+                    return_value=[enterprise_app]) as list_apps_mock, \
+                mock.patch.object(
+                    service_share.share_repo,
+                    "get_last_app_versions_by_app_id",
+                    side_effect=lambda app_id: [{"version": "2.0.0"}] if app_id == "enterprise-app" else []):
+            app_list = share_service_instance.get_team_local_apps_versions(
+                enterprise_id="eid",
+                team_name="demo-team",
+                preferred_app_id="hidden-app",
+                template_scope="enterprise",
+            )
+
+        list_apps_mock.assert_called_once_with(
+            "eid",
+            "demo-team",
+            scope="enterprise",
+            visible_team_names=["demo-team", "test-team"],
+        )
+        self.assertEqual([item["app_id"] for item in app_list], ["enterprise-app"])
+
     # capability_id: console.service-share.resolve-last-shared-app
     def test_get_last_shared_app_ignores_missing_versions_for_preferred_local_app(self):
         tenant = mock.Mock(tenant_name="demo-team")
@@ -535,3 +589,59 @@ class ShareServicePreferredAppTestCase(TestCase):
 
         self.assertEqual(data["last_shared_app"]["app_id"], "app-1")
         self.assertIsNone(data["last_shared_app"]["version"])
+
+    # capability_id: console.service-share.resolve-last-shared-app
+    def test_snapshot_publish_lists_only_enterprise_templates_and_ignores_team_default(self):
+        tenant = mock.Mock(tenant_name="demo-team")
+        last_shared = mock.Mock(app_id="team-app", share_version="1.0.0")
+        team_app = mock.Mock(
+            app_name="team-template",
+            app_id="team-app",
+            pic="team-pic",
+            describe="team describe",
+            dev_status="release",
+            scope="team",
+        )
+        snapshot_version = mock.Mock(template_type=share_service_instance.SNAPSHOT_TEMPLATE_TYPE)
+        enterprise_app_list = [{
+            "app_name": "enterprise-template",
+            "app_id": "enterprise-app",
+            "versions": [{"version": "2.0.0"}],
+            "pic": "enterprise-pic",
+            "app_describe": "enterprise describe",
+            "dev_status": "release",
+            "scope": "enterprise",
+            "tags": [],
+        }]
+
+        with mock.patch.object(
+                service_share.share_repo, "get_last_shared_app_version_by_group_id", return_value=last_shared), \
+                mock.patch.object(
+                    service_share.rainbond_app_repo, "get_app_version", return_value=snapshot_version), \
+                mock.patch.object(
+                    service_share.rainbond_app_repo, "get_rainbond_app_by_app_id", return_value=team_app), \
+                mock.patch.object(
+                    share_service_instance,
+                    "get_team_local_apps_versions",
+                    return_value=enterprise_app_list) as list_apps_mock, \
+                mock.patch.object(share_service_instance, "_patch_rainbond_app_tag", return_value=None), \
+                mock.patch.object(share_service_instance, "_patch_rainbond_apps_tag", return_value=None):
+            data = share_service_instance.get_last_shared_app_and_app_list(
+                enterprise_id="eid",
+                tenant=tenant,
+                group_id=27,
+                scope="local",
+                market_name=None,
+                user_id=None,
+                preferred_app_id="hidden-snapshot-app",
+                preferred_version="1.0.0",
+            )
+
+        list_apps_mock.assert_called_once_with(
+            "eid",
+            "demo-team",
+            None,
+            template_scope="enterprise",
+        )
+        self.assertEqual([item["app_id"] for item in data["app_model_list"]], ["enterprise-app"])
+        self.assertEqual(data["last_shared_app"], {})

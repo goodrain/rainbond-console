@@ -52,6 +52,7 @@ class DummyService(object):
         self.tenant_id = "team-1"
         self.service_id = "service-1"
         self.service_alias = "demo"
+        self.k8s_component_name = ""
         self.create_status = "complete"
 
     def save(self):
@@ -193,7 +194,7 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         self.assertIn('"build_strategy": ""', source_body)
 
     @patch.object(app_check_service_module, "env_var_service")
-    @patch.object(app_check_service_module, "domain_service")
+    @patch.object(app_check_service_module, "domain_service", create=True)
     @patch.object(app_check_service_module, "region_services")
     @patch.object(app_check_service_module, "port_service")
     @patch.object(app_check_service_module, "group_repo")
@@ -216,7 +217,7 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         )
 
     @patch.object(app_check_service_module, "env_var_service")
-    @patch.object(app_check_service_module, "domain_service")
+    @patch.object(app_check_service_module, "domain_service", create=True)
     @patch.object(app_check_service_module, "region_services")
     @patch.object(app_check_service_module, "port_service")
     @patch.object(app_check_service_module, "group_repo")
@@ -234,6 +235,32 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         self.assertEqual(code, 200)
         self.assertEqual(msg, "success")
         env_var_service.add_service_env_var.assert_not_called()
+
+    @patch.object(app_check_service_module, "env_var_service")
+    @patch.object(app_check_service_module, "domain_service", create=True)
+    @patch.object(app_check_service_module, "region_services")
+    @patch.object(app_check_service_module, "port_service")
+    @patch.object(app_check_service_module, "group_repo")
+    def test_save_port_delegates_default_gateway_creation_to_default_open_outer(
+        self, group_repo, port_service, region_services, domain_service, env_var_service
+    ):
+        service = DummyService()
+        app = Mock(app_id=1)
+        region = Mock()
+        port = Mock(container_port=80, protocol="http")
+        group_repo.get_by_service_id.return_value = app
+        region_services.get_enterprise_region_by_region_name.return_value = region
+        port_service.add_service_port.return_value = (200, "success", port)
+
+        code, msg = self.service_helper._AppCheckService__save_port(self.tenant, service, [{
+            "container_port": 80,
+            "protocol": "http",
+        }])
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "success")
+        domain_service.create_default_gateway_rule.assert_not_called()
+        port_service.defalut_open_outer.assert_called_once_with(self.tenant, service, region, port, app)
 
     @patch.object(app_check_service_module, "env_var_service")
     def test_sync_cnb_build_envs_cleans_build_rows_without_runtime_env_delete_calls(self, env_var_service):

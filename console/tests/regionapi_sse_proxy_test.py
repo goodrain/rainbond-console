@@ -80,3 +80,29 @@ class RegionApiSSEProxyTests(SimpleTestCase):
         self.assertEqual(kwargs["headers"]["Authorization"], "region-token")
         self.assertIsInstance(kwargs["timeout"], urllib3.Timeout)
         self.assertEqual(kwargs["timeout"].read_timeout, 3)
+
+    @patch.object(RegionInvokeApi, "get_client")
+    @patch.object(RegionInvokeApi, "get_region_info")
+    @patch.object(RegionInvokeApi, "_RegionInvokeApi__get_tenant_region_info")
+    @patch.object(RegionInvokeApi, "_RegionInvokeApi__get_region_access_info")
+    # capability_id: console.resource-center.pod-logs
+    def test_get_component_pod_log_supports_follow_query(
+            self, mock_access_info, mock_get_tenant_region, mock_get_region_info, mock_get_client):
+        api = RegionInvokeApi()
+        region = Mock(url="http://region.example.com", token="region-token")
+        tenant_region = Mock(region_tenant_name="region-default")
+        mock_access_info.return_value = ("http://region.example.com", "region-token")
+        mock_get_region_info.return_value = region
+        mock_get_tenant_region.return_value = tenant_region
+        client = Mock()
+        response = Mock()
+        client.request.return_value = response
+        mock_get_client.return_value = client
+
+        api.get_component_pod_log("default", "rainbond", "svc", "pod-1", lines=100, container_name="main", follow=False)
+
+        _, kwargs = client.request.call_args
+        self.assertEqual(
+            kwargs["url"],
+            "http://region.example.com/v2/tenants/region-default/services/svc/pods/pod-1/logs?lines=100&container=main&follow=false",
+        )

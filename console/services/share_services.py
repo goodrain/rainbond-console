@@ -22,6 +22,7 @@ from console.repositories.component_graph import component_graph_repo
 from console.repositories.market_app_repo import (app_export_record_repo, rainbond_app_repo)
 from console.repositories.plugin import (app_plugin_relation_repo, plugin_repo, service_plugin_config_repo)
 from console.repositories.share_repo import share_repo
+from console.repositories.team_repo import team_repo
 from console.repositories.app_config import domain_repo, configuration_repo, port_repo
 from console.repositories.label_repo import service_label_repo
 from console.repositories.label_repo import label_repo
@@ -1410,11 +1411,24 @@ class ShareService(object):
         }
         return data
 
-    def get_team_local_apps_versions(self, enterprise_id, team_name, preferred_app_id=None):
+    def get_team_local_apps_versions(self, enterprise_id, team_name, preferred_app_id=None, template_scope=None):
         app_list = []
-        apps = list(rainbond_app_repo.get_enterprise_team_apps(enterprise_id, team_name))
+        visible_team_names = None
+        if template_scope == "enterprise":
+            tenants = team_repo.get_teams_by_enterprise_id(enterprise_id)
+            visible_team_names = [tenant.tenant_name for tenant in tenants]
+        apps = list(
+            rainbond_app_repo.get_enterprise_team_apps(
+                enterprise_id,
+                team_name,
+                scope=template_scope,
+                visible_team_names=visible_team_names,
+            )
+        )
         if preferred_app_id:
             preferred_app = rainbond_app_repo.get_rainbond_app_by_app_id(preferred_app_id)
+            if preferred_app and template_scope and preferred_app.scope != template_scope:
+                preferred_app = None
             if preferred_app and all(app.app_id != preferred_app.app_id for app in apps if app):
                 apps.insert(0, preferred_app)
         if apps:
@@ -1446,6 +1460,12 @@ class ShareService(object):
     def get_last_shared_app_and_app_list(self, enterprise_id, tenant, group_id, scope, market_name, user_id,
                                          preferred_app_id=None, preferred_version=None):
         last_shared = share_repo.get_last_shared_app_version_by_group_id(group_id, tenant.tenant_name, scope)
+        snapshot_publish = False
+        if preferred_app_id and preferred_version:
+            preferred_app_version = rainbond_app_repo.get_app_version(preferred_app_id, preferred_version)
+            snapshot_publish = self.is_snapshot_publish_version(preferred_app_version)
+        local_preferred_app_id = None if snapshot_publish else preferred_app_id
+        local_template_scope = "enterprise" if snapshot_publish else None
         dt = {}
         dt["app_model_list"] = []
         dt["last_shared_app"] = {}
@@ -1497,21 +1517,27 @@ class ShareService(object):
                 last_shared_app_info = rainbond_app_repo.get_rainbond_app_by_app_id(last_shared.app_id)
                 if last_shared_app_info:
                     self._patch_rainbond_app_tag(last_shared_app_info)
-                    dt["last_shared_app"] = {
-                        "app_name": last_shared_app_info.app_name,
-                        "app_id": last_shared.app_id,
-                        "version": last_shared.share_version,
-                        "pic": last_shared_app_info.pic,
-                        "app_describe": last_shared_app_info.describe,
-                        "dev_status": last_shared_app_info.dev_status,
-                        "scope": last_shared_app_info.scope,
-                        "tags": last_shared_app_info.tags
-                    }
-            app_list = self.get_team_local_apps_versions(enterprise_id, tenant.tenant_name, preferred_app_id)
+                    if not snapshot_publish or last_shared_app_info.scope == "enterprise":
+                        dt["last_shared_app"] = {
+                            "app_name": last_shared_app_info.app_name,
+                            "app_id": last_shared.app_id,
+                            "version": last_shared.share_version,
+                            "pic": last_shared_app_info.pic,
+                            "app_describe": last_shared_app_info.describe,
+                            "dev_status": last_shared_app_info.dev_status,
+                            "scope": last_shared_app_info.scope,
+                            "tags": last_shared_app_info.tags
+                        }
+            app_list = self.get_team_local_apps_versions(
+                enterprise_id,
+                tenant.tenant_name,
+                local_preferred_app_id,
+                template_scope=local_template_scope,
+            )
             self._patch_rainbond_apps_tag(enterprise_id, app_list)
             dt["app_model_list"] = app_list
-            if preferred_app_id:
-                preferred_app = next((item for item in app_list if item.get("app_id") == preferred_app_id), None)
+            if local_preferred_app_id:
+                preferred_app = next((item for item in app_list if item.get("app_id") == local_preferred_app_id), None)
                 if preferred_app:
                     preferred_versions = preferred_app.get("versions") or []
                     default_version = ((preferred_versions[0] if preferred_versions else {}) or {}).get("version")

@@ -39,6 +39,13 @@ env_var_service = AppEnvVarService()
 
 
 class AppEnvView(AppBaseView):
+    @staticmethod
+    def _get_page_limit(total, page, page_size):
+        page = max(page, 1)
+        page_size = max(page_size, 1)
+        start = (page - 1) * page_size
+        return start, min(page_size, max(total - start, 0))
+
     @never_cache
     def get(self, request, *args, **kwargs):
         """
@@ -81,19 +88,16 @@ class AppEnvView(AppBaseView):
                 env_count = cursor.fetchall()
 
                 total = env_count[0][0]
-                start = (page - 1) * page_size
-                remaining_num = total - (page - 1) * page_size
-                end = page_size
-                if remaining_num < page_size:
-                    end = remaining_num
-
-                cursor = connection.cursor()
-                cursor.execute("select ID, tenant_id, service_id, container_port, name, attr_name, \
-                        attr_value, is_change, scope, create_time from tenant_service_env_var \
-                            where tenant_id='{0}' and service_id='{1}' and scope='inner' and \
-                                attr_name like '%{2}%' order by attr_name LIMIT {3},{4};".format(
-                    self.service.tenant_id, self.service.service_id, env_name, start, end))
-                env_tuples = cursor.fetchall()
+                start, end = self._get_page_limit(total, page, page_size)
+                env_tuples = []
+                if end > 0:
+                    cursor = connection.cursor()
+                    cursor.execute("select ID, tenant_id, service_id, container_port, name, attr_name, \
+                            attr_value, is_change, scope, create_time from tenant_service_env_var \
+                                where tenant_id='{0}' and service_id='{1}' and scope='inner' and \
+                                    attr_name like '%{2}%' order by attr_name LIMIT {3},{4};".format(
+                        self.service.tenant_id, self.service.service_id, env_name, start, end))
+                    env_tuples = cursor.fetchall()
             else:
 
                 cursor = connection.cursor()
@@ -102,18 +106,15 @@ class AppEnvView(AppBaseView):
                 env_count = cursor.fetchall()
 
                 total = env_count[0][0]
-                start = (page - 1) * page_size
-                remaining_num = total - (page - 1) * page_size
-                end = page_size
-                if remaining_num < page_size:
-                    end = remaining_num
-
-                cursor = connection.cursor()
-                cursor.execute("select ID, tenant_id, service_id, container_port, name, attr_name, attr_value,\
-                         is_change, scope, create_time from tenant_service_env_var where tenant_id='{0}' \
-                             and service_id='{1}' and scope='inner' order by attr_name LIMIT {2},{3};".format(
-                    self.service.tenant_id, self.service.service_id, start, end))
-                env_tuples = cursor.fetchall()
+                start, end = self._get_page_limit(total, page, page_size)
+                env_tuples = []
+                if end > 0:
+                    cursor = connection.cursor()
+                    cursor.execute("select ID, tenant_id, service_id, container_port, name, attr_name, attr_value,\
+                             is_change, scope, create_time from tenant_service_env_var where tenant_id='{0}' \
+                                 and service_id='{1}' and scope='inner' order by attr_name LIMIT {2},{3};".format(
+                        self.service.tenant_id, self.service.service_id, start, end))
+                    env_tuples = cursor.fetchall()
             if len(env_tuples) > 0:
                 for env_tuple in env_tuples:
                     env_dict = dict()
@@ -140,18 +141,15 @@ class AppEnvView(AppBaseView):
                 env_count = cursor.fetchall()
 
                 total = env_count[0][0]
-                start = (page - 1) * page_size
-                remaining_num = total - (page - 1) * page_size
-                end = page_size
-                if remaining_num < page_size:
-                    end = remaining_num
-
-                cursor = connection.cursor()
-                cursor.execute("select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, \
-                        scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
-                             and scope='outer' and attr_name like '%{2}%' order by attr_name LIMIT {3},{4};".format(
-                    self.service.tenant_id, self.service.service_id, env_name, start, end))
-                env_tuples = cursor.fetchall()
+                start, end = self._get_page_limit(total, page, page_size)
+                env_tuples = []
+                if end > 0:
+                    cursor = connection.cursor()
+                    cursor.execute("select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change, \
+                            scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
+                                 and scope='outer' and attr_name like '%{2}%' order by attr_name LIMIT {3},{4};".format(
+                        self.service.tenant_id, self.service.service_id, env_name, start, end))
+                    env_tuples = cursor.fetchall()
             else:
 
                 cursor = connection.cursor()
@@ -160,18 +158,15 @@ class AppEnvView(AppBaseView):
                 env_count = cursor.fetchall()
 
                 total = env_count[0][0]
-                start = (page - 1) * page_size
-                remaining_num = total - (page - 1) * page_size
-                end = page_size
-                if remaining_num < page_size:
-                    end = remaining_num
-
-                cursor = connection.cursor()
-                cursor.execute("select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change,\
-                         scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
-                              and scope='outer' order by attr_name LIMIT {2},{3};".format(
-                    self.service.tenant_id, self.service.service_id, start, end))
-                env_tuples = cursor.fetchall()
+                start, end = self._get_page_limit(total, page, page_size)
+                env_tuples = []
+                if end > 0:
+                    cursor = connection.cursor()
+                    cursor.execute("select ID, tenant_id, service_id, container_port, name, attr_name, attr_value, is_change,\
+                             scope, create_time from tenant_service_env_var where tenant_id='{0}' and service_id='{1}'\
+                                  and scope='outer' order by attr_name LIMIT {2},{3};".format(
+                        self.service.tenant_id, self.service.service_id, start, end))
+                    env_tuples = cursor.fetchall()
             if len(env_tuples) > 0:
                 for env_tuple in env_tuples:
                     env_dict = dict()
@@ -386,14 +381,15 @@ class AppEnvManageView(AppBaseView):
         if not env_id:
             return Response(general_message(400, "env_id not specify", "环境变量ID未指定"))
         name = request.data.get("name", "")
+        attr_name = request.data.get("attr_name", None)
         attr_value = request.data.get("attr_value", "")
         env = env_var_repo.get_env_by_ids_and_env_id(self.tenant.tenant_id, self.service.service_id, env_id)
         old_information = env_var_service.json_service_env_var(
             attr_name=env.attr_name, attr_value=env.attr_value, name=env.name)
-        new_information = env_var_service.json_service_env_var(attr_name=env.attr_name, attr_value=attr_value,
+        new_information = env_var_service.json_service_env_var(attr_name=attr_name or env.attr_name, attr_value=attr_value,
                                                                name=name)
-        code, msg, env = env_var_service.update_env_by_env_id(self.tenant, self.service, env_id, name, attr_value,
-                                                              self.user.nick_name)
+        code, msg, env = env_var_service.update_env_by_env_id(
+            self.tenant, self.service, env_id, name, attr_value, self.user.nick_name, attr_name=attr_name)
         if code != 200:
             raise AbortRequest(msg="update value error", msg_show=msg, status_code=code)
         result = general_message(200, "success", "更新成功", bean=model_to_dict(env))

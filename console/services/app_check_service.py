@@ -14,13 +14,16 @@ from console.repositories.app_config import service_endpoints_repo
 from console.repositories.group import group_repo
 from console.repositories.k8s_attribute import k8s_attribute_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
-from console.repositories.region_repo import region_repo
-from console.services.app_config import (compile_env_service, domain_service, env_var_service, label_service, port_service,
-                                         volume_service)
+from console.services.app_config import compile_env_service, env_var_service, label_service, port_service, volume_service
 from console.services.source_build_state_service import source_build_state_service
 from console.services.region_services import region_services
 from console.utils import cnb_build as cnb_build_utils
-from console.utils.source_build_state import build_compile_env_payload, normalize_detected_languages, pick_preferred_language, read_compile_env_state
+from console.utils.source_build_state import (
+    build_compile_env_payload,
+    normalize_detected_languages,
+    pick_preferred_language,
+    read_compile_env_state,
+)
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -247,7 +250,8 @@ class AppCheckService(object):
             logger.exception(e)
             if sid:
                 transaction.savepoint_rollback(sid)
-            raise ServiceHandleException(status_code=400, msg="handle check service code info failure", msg_show="处理检测结果失败")
+            raise ServiceHandleException(
+                status_code=400, msg="handle check service code info failure", msg_show="处理检测结果失败")
 
     def save_service_check_info(self, tenant, app_id, service, data):
         # save the detection properties but does not throw any exception.
@@ -437,11 +441,6 @@ class AppCheckService(object):
                     k8s_service_name=service.k8s_component_name if service.k8s_component_name else None)
                 if code != 200:
                     logger.error("save service check info port error {0}".format(msg))
-                if region_info:
-                    try:
-                        domain_service.create_default_gateway_rule(tenant, region_info, service, port_data, app.app_id)
-                    except Exception as e:
-                        logger.error("create default gateway rule failed: {0}".format(e))
                 try:
                     port_service.defalut_open_outer(tenant, service, region_info, port_data, app)
                 except Exception as e:
@@ -457,12 +456,7 @@ class AppCheckService(object):
                     if code not in (200, 412):
                         logger.error("save php default PORT env error {0}".format(msg))
                 region_info = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, service.service_region)
-                if region_info:
-                    try:
-                        domain_service.create_default_gateway_rule(tenant, region_info, service, t_port, app.app_id)
-                    except Exception as e:
-                        logger.error("create default gateway rule failed: {0}".format(e))
-                else:
+                if not region_info:
                     logger.error("get region {0} from enterprise {1} failure".format(tenant.enterprise_id,
                                                                                      service.service_region))
                 try:

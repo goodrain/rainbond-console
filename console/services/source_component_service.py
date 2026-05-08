@@ -87,13 +87,38 @@ class SourceComponentService(object):
             raise ServiceHandleException(msg="check service error", msg_show=msg, status_code=code)
 
         check_uuid = check_info.get("check_uuid") or component.check_uuid
-        bean = self._wait_for_check_result(
-            app.region_name,
-            team,
-            check_uuid,
-            max_retries=max_check_retries or self.MAX_CHECK_RETRIES,
-            poll_interval=check_poll_interval or self.CHECK_POLL_INTERVAL,
-        )
+        effective_poll_interval = check_poll_interval or self.CHECK_POLL_INTERVAL
+        try:
+            bean = self._wait_for_check_result(
+                app.region_name,
+                team,
+                check_uuid,
+                max_retries=max_check_retries or self.MAX_CHECK_RETRIES,
+                poll_interval=effective_poll_interval,
+            )
+        except ServiceHandleException as exc:
+            if getattr(exc, "msg", "") == "check timeout":
+                return {
+                    "service_id": component.service_id,
+                    "service_alias": getattr(component, "service_alias", ""),
+                    "service_cname": getattr(component, "service_cname", service_cname),
+                    "app_id": app.ID,
+                    "app_name": getattr(app, "group_name", ""),
+                    "git_url": git_url,
+                    "code_version": code_version,
+                    "server_type": server_type,
+                    "check_uuid": check_uuid,
+                    "check_status": "checking",
+                    "create_status": getattr(component, "create_status", "checking"),
+                    "event_id": None,
+                    "is_deploy": False,
+                    "built": False,
+                    "workflow_stage": "checking",
+                    "next_action": "rainbond_get_component_check_result",
+                    "next_poll_after_seconds": effective_poll_interval,
+                    "message": exc.msg_show,
+                }
+            raise
 
         service_info_list = bean.get("service_info") or []
         if len(service_info_list) > 1:
