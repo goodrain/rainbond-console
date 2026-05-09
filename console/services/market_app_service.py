@@ -46,6 +46,7 @@ from console.services.plugin import (app_plugin_service, plugin_config_service, 
 from console.services.region_services import region_services
 from console.services.share_services import share_service
 from console.services.upgrade_services import upgrade_service
+from console.utils.offline import is_cloud_market_disabled
 from console.utils.version import compare_version, sorted_versions
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -1427,6 +1428,8 @@ class MarketAppService(object):
         return rainbond_app_repo.get_all_rainbond_apps().filter(scope="goodrain", source="market")
 
     def list_upgradeable_versions(self, tenant, service):
+        if is_cloud_market_disabled():
+            return []
         component_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
         if component_source:
             market_name = component_source.get_market_name()
@@ -1490,6 +1493,8 @@ class MarketAppService(object):
         return len(apps)
 
     def get_market_apps_in_app(self, region_name, tenant, application):
+        if is_cloud_market_disabled():
+            return []
         component_groups = tenant_service_group_repo.get_group_by_app_id(application.ID)
         group_ids = component_groups.values_list('ID', flat=True)
         components, service_sources = group_service.get_component_and_resource_by_group_ids(application.ID, group_ids)
@@ -1585,6 +1590,8 @@ class MarketAppService(object):
                                    install_from_cloud=False,
                                    market: AppMarket = None):
         # Simply determine if there is a version that can be upgraded, not attribute changes.
+        if is_cloud_market_disabled():
+            return []
         versions = []
         if install_from_cloud and market:
             app_version_list = app_market_service.get_market_app_model_versions(market, app_model_key)
@@ -1634,12 +1641,16 @@ class MarketAppService(object):
         return current_version, component_source.get_template_update_time(), install_from_cloud, market
 
     def get_models_upgradeable_version(self, enterprise_id, app_model_key, app_id, upgrade_group_id):
+        if is_cloud_market_disabled():
+            return []
         current_version, current_version_update_time, install_from_cloud, market = self.get_current_version(
             enterprise_id, app_model_key, app_id, upgrade_group_id)
         return self.__get_upgradeable_versions(enterprise_id, app_model_key, current_version, current_version_update_time,
                                                install_from_cloud, market)
 
     def list_app_upgradeable_versions(self, enterprise_id, record: AppUpgradeRecord):
+        if is_cloud_market_disabled():
+            return []
         component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
         component_group = ComponentGroup(enterprise_id, component_group, record.old_version)
         app_template_source = component_group.app_template_source()

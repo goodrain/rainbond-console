@@ -16,6 +16,7 @@ from console.services.market_app.app_upgrade import AppUpgrade
 from console.services.market_app_service import market_app_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.utils.offline import is_cloud_market_disabled
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 
@@ -123,6 +124,9 @@ class PlatformPluginService(object):
 
     def _get_market_platform_plugins(self, enterprise_id):
         market = self._build_platform_market(enterprise_id)
+        if is_cloud_market_disabled():
+            logger.info("platform plugin market fetch skipped because cloud market is disabled enterprise_id=%s", enterprise_id)
+            return market, []
         logger.info(
             "platform plugin market fetch enterprise_id=%s market_url=%s market_domain=%s has_access_key=%s",
             enterprise_id,
@@ -218,6 +222,13 @@ class PlatformPluginService(object):
         - 未授权前：展示应用市场中的全部平台插件
         - 已授权后：只展示免费插件 + 已授权企业插件
         """
+        if is_cloud_market_disabled():
+            logger.info(
+                "platform plugin list skipped because cloud market is disabled enterprise_id=%s region_name=%s",
+                enterprise_id,
+                region_name,
+            )
+            return []
         bean = self._get_license_bean(enterprise_id, region_name)
         plugin_mapping = bean.get("plugin_mapping", {}) or {}
         has_valid_license = bool(bean.get("valid"))
