@@ -1707,7 +1707,15 @@ class MarketAppService(object):
 
     @transaction.atomic
     def create_rainbond_app(self, enterprise_id, app_info, app_id):
-        if RainbondCenterApp.objects.filter(app_name=app_info.get("app_name")).first():
+        scope = app_info.get("scope")
+        duplicate_apps = RainbondCenterApp.objects.filter(
+            app_name=app_info.get("app_name"),
+            enterprise_id=enterprise_id,
+            scope=scope,
+        )
+        if scope == "team":
+            duplicate_apps = duplicate_apps.filter(create_team=app_info.get("create_team"))
+        if duplicate_apps.first():
             return None
         app = RainbondCenterApp(
             app_id=app_id,
