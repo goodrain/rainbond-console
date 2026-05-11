@@ -217,6 +217,141 @@ class VMCreateFlowRegressionTests(TestCase):
 
 class VMCreateFlowRegressionUnitTests(unittest.TestCase):
 
+    def test_build_initial_vm_disk_layout_for_iso_keeps_installer_first(self):
+        layout = vms.build_initial_vm_disk_layout(boot_source_format="iso")
+
+        self.assertEqual(2, len(layout))
+        self.assertEqual("installer_media", layout[0]["source_kind"])
+        self.assertEqual("vmimage", layout[0]["disk_key"])
+        self.assertTrue(layout[0]["boot"])
+        self.assertEqual("root", layout[1]["disk_role"])
+        self.assertEqual("disk", layout[1]["disk_key"])
+
+    def test_build_initial_vm_disk_layout_for_qcow2_keeps_root_only(self):
+        layout = vms.build_initial_vm_disk_layout(boot_source_format="qcow2")
+
+        self.assertEqual(1, len(layout))
+        self.assertEqual("disk", layout[0]["disk_key"])
+        self.assertEqual("root", layout[0]["disk_role"])
+        self.assertTrue(layout[0]["boot"])
+
+    def test_list_vm_disks_auto_exposes_installer_for_legacy_iso_vm_without_layout(self):
+        service = SimpleNamespace(service_id="service-a", extend_method="vm", tenant_id="tenant-a", image="demo/image")
+        volumes = [{
+            "ID": 1,
+            "volume_name": "disk",
+            "volume_path": "/disk",
+            "volume_type": "vm-file",
+            "volume_capacity": 40,
+            "status": "mounted"
+        }]
+
+        with mock.patch.object(vms, "get_vm_runtime_config", return_value={
+            "asset_id": None,
+            "asset_clone_source": "",
+            "boot_mode": "",
+            "disk_layout": [],
+            "network_mode": "random",
+            "network_name": "",
+            "fixed_ip": "",
+            "gateway": "",
+            "dns_servers": "",
+            "os_family": "linux",
+            "os_name": "Ubuntu 22.04.5 LTS",
+            "gpu_enabled": False,
+            "gpu_resources": [],
+            "gpu_count": 0,
+            "usb_enabled": False,
+            "usb_resources": [],
+            "boot_source_format": "iso"
+        }), mock.patch.object(vms, "get_vm_asset_for_service", return_value=None):
+            disks = vms.list_vm_disks(service, volumes)
+
+        self.assertEqual(2, len(disks))
+        self.assertEqual("installer_media", disks[0]["source_kind"])
+        self.assertEqual("disk", disks[1]["disk_key"])
+
+    def test_list_vm_disks_keeps_installer_removed_when_layout_persisted_without_it(self):
+        service = SimpleNamespace(service_id="service-a", extend_method="vm", tenant_id="tenant-a", image="demo/image")
+        volumes = [{
+            "ID": 1,
+            "volume_name": "disk",
+            "volume_path": "/disk",
+            "volume_type": "vm-file",
+            "volume_capacity": 40,
+            "status": "mounted"
+        }]
+
+        with mock.patch.object(vms, "get_vm_runtime_config", return_value={
+            "asset_id": None,
+            "asset_clone_source": "",
+            "boot_mode": "",
+            "disk_layout": [{
+                "disk_key": "disk",
+                "disk_role": "root",
+                "device_type": "disk",
+                "source_kind": "volume",
+                "order_index": 0,
+                "boot": True
+            }],
+            "network_mode": "random",
+            "network_name": "",
+            "fixed_ip": "",
+            "gateway": "",
+            "dns_servers": "",
+            "os_family": "linux",
+            "os_name": "Ubuntu 22.04.5 LTS",
+            "gpu_enabled": False,
+            "gpu_resources": [],
+            "gpu_count": 0,
+            "usb_enabled": False,
+            "usb_resources": [],
+            "boot_source_format": "iso"
+        }), mock.patch.object(vms, "get_vm_asset_for_service", return_value=None):
+            disks = vms.list_vm_disks(service, volumes)
+
+        self.assertEqual(1, len(disks))
+        self.assertEqual("disk", disks[0]["disk_key"])
+
+    def test_validate_vm_disk_layout_rejects_removing_volume_backed_disk(self):
+        service = SimpleNamespace(service_id="service-a", extend_method="vm", tenant_id="tenant-a", image="demo/image")
+        volumes = [{
+            "ID": 1,
+            "volume_name": "disk",
+            "volume_path": "/disk",
+            "volume_type": "vm-file",
+            "volume_capacity": 40,
+            "status": "mounted"
+        }]
+
+        with mock.patch.object(vms, "get_vm_runtime_config", return_value={
+            "asset_id": None,
+            "asset_clone_source": "",
+            "boot_mode": "",
+            "disk_layout": [],
+            "network_mode": "random",
+            "network_name": "",
+            "fixed_ip": "",
+            "gateway": "",
+            "dns_servers": "",
+            "os_family": "linux",
+            "os_name": "Ubuntu 22.04.5 LTS",
+            "gpu_enabled": False,
+            "gpu_resources": [],
+            "gpu_count": 0,
+            "usb_enabled": False,
+            "usb_resources": [],
+            "boot_source_format": "iso"
+        }), mock.patch.object(vms, "get_vm_asset_for_service", return_value=None):
+            with self.assertRaises(ValueError):
+                vms.validate_vm_disk_layout(service, volumes, [{
+                    "disk_key": "vmimage",
+                    "disk_role": "installer",
+                    "device_type": "cdrom",
+                    "source_kind": "installer_media",
+                    "order_index": 0
+                }])
+
     def test_save_vm_runtime_config_persists_empty_network_name_for_pod_fixed_ip(self):
         with mock.patch("console.services.virtual_machine.k8s_attribute_repo.get_by_component_id", return_value=[]), \
                 mock.patch.object(vms, "_persist_managed_k8s_attribute") as persist_attr:

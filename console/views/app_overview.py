@@ -21,7 +21,7 @@ from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.repositories.virtual_machine import vm_repo
 from console.services.app import app_service, package_upload_service
 from console.services.app_actions import ws_service
-from console.services.app_config import port_service
+from console.services.app_config import port_service, volume_service
 from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
@@ -259,6 +259,37 @@ class AppVMExportView(AppBaseView):
             if vm_asset:
                 asset = vms.sync_vm_export_status(vm_asset, self.response_region, self.tenant.tenant_name)
         result = general_message(200, "success", "查询成功", bean=asset or {})
+        return Response(result, status=result["code"])
+
+
+class AppVMDiskView(AppBaseView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        volumes = volume_service.get_service_volumes(self.tenant, self.service)
+        result = general_message(
+            200,
+            "success",
+            "查询成功",
+            list=vms.list_vm_disks(self.service, volumes)
+        )
+        return Response(result, status=result["code"])
+
+    @never_cache
+    def put(self, request, *args, **kwargs):
+        disks = request.data.get("disks", [])
+        if not isinstance(disks, list):
+            return Response(general_message(400, "param error", "磁盘列表格式错误"), status=400)
+        volumes = volume_service.get_service_volumes(self.tenant, self.service)
+        try:
+            normalized = vms.validate_vm_disk_layout(self.service, volumes, disks)
+            saved = vms.save_vm_disk_layout(
+                self.tenant.tenant_id,
+                self.service.service_id,
+                normalized
+            )
+        except ValueError as err:
+            return Response(general_message(400, "param error", str(err)), status=400)
+        result = general_message(200, "success", "保存成功", list=saved)
         return Response(result, status=result["code"])
 
 

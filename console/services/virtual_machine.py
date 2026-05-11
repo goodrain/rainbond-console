@@ -47,6 +47,21 @@ VM_DISK_IMPORT_ATTR_NAME = "vm_disk_imports"
 VM_MACHINE_ASSET_KIND = "machine"
 VM_DISK_ASSET_KIND = "disk"
 VM_EXPORT_ALLOWED_STATUSES = ("closed",)
+VM_DISK_ROLE_ROOT = "root"
+VM_DISK_ROLE_DATA = "data"
+VM_DISK_ROLE_INSTALLER = "installer"
+VM_DISK_SOURCE_KIND_VOLUME = "volume"
+VM_DISK_SOURCE_KIND_INSTALLER = "installer_media"
+VM_DISK_DEVICE_DISK = "disk"
+VM_DISK_DEVICE_CDROM = "cdrom"
+VM_DISK_DEVICE_LUN = "lun"
+VM_DISK_INSTALLER_KEY = "vmimage"
+VM_DISK_ROOT_KEY = "disk"
+VM_DISK_PATH_TO_DEVICE_TYPE = {
+    "/disk": VM_DISK_DEVICE_DISK,
+    "/cdrom": VM_DISK_DEVICE_CDROM,
+    "/lun": VM_DISK_DEVICE_LUN,
+}
 
 
 class VirtualMachineService(object):
@@ -204,6 +219,97 @@ class VirtualMachineService(object):
                 "console_url": ""
             }
         }
+
+    def list_vm_disks(self, service, volumes=None):
+        if not service or getattr(service, "extend_method", "") != "vm":
+            return []
+        runtime = self.get_vm_runtime_config(service.service_id)
+        asset = self.get_vm_asset_for_service(service, runtime.get("asset_id"))
+        volume_items = self._build_vm_volume_disk_items(volumes or [])
+        layout = self._resolve_vm_disk_layout_for_service(runtime, asset, volume_items)
+        return self._merge_vm_disk_layout_items(layout, volume_items, runtime, asset)
+
+    def validate_vm_disk_layout(self, service, volumes, disk_layout):
+        if not service or getattr(service, "extend_method", "") != "vm":
+            raise ValueError("only vm service supports disk layout")
+        runtime = self.get_vm_runtime_config(service.service_id)
+        asset = self.get_vm_asset_for_service(service, runtime.get("asset_id"))
+        current_items = self.list_vm_disks(service, volumes)
+        normalized = self._normalize_vm_disk_layout_items(disk_layout)
+        if not normalized:
+            raise ValueError("vm disk layout cannot be empty")
+
+        current_volume_keys = {
+            self._compound_vm_disk_key(item)
+            for item in current_items
+            if item.get("source_kind") == VM_DISK_SOURCE_KIND_VOLUME
+        }
+        normalized_keys = {
+            self._compound_vm_disk_key(item)
+            for item in normalized
+        }
+        missing_volume_keys = current_volume_keys - normalized_keys
+        if missing_volume_keys:
+            raise ValueError("volume-backed disks cannot be removed from vm disk layout")
+
+        first = normalized[0]
+        if not self._is_vm_root_disk_item(first) and not self._is_vm_installer_disk_item(first):
+            raise ValueError("first vm disk must be root disk or installer media")
+
+        root_items = [item for item in normalized if self._is_vm_root_disk_item(item)]
+        if not root_items:
+            raise ValueError("vm disk layout requires root disk")
+
+        normalized_has_installer = any(self._is_vm_installer_disk_item(item) for item in normalized)
+        current_has_installer = any(self._is_vm_installer_disk_item(item) for item in current_items)
+        if normalized_has_installer and not current_has_installer:
+            raise ValueError("installer media is not available for this vm")
+
+        if not normalized_has_installer and current_has_installer and str(runtime.get("boot_source_format") or "").lower() != "iso":
+            raise ValueError("installer media can only be removed from iso-based vm")
+
+        return normalized
+
+    def save_vm_disk_layout(self, tenant_id, service_id, disk_layout, sync_context=None):
+        normalized = self._normalize_vm_disk_layout_items(disk_layout)
+        self._persist_managed_k8s_attribute(
+            tenant_id,
+            service_id,
+            "vm_disk_layout",
+            "json",
+            json.dumps(normalized),
+            sync_context=sync_context or self._get_vm_attr_sync_context(service_id)
+        )
+        return normalized
+
+    def build_initial_vm_disk_layout(self, boot_source_format="", asset=None, restore_plan=None):
+        source_format = str(boot_source_format or "").strip().lower()
+        if restore_plan and restore_plan.get("disk_layout"):
+            return self._normalize_vm_disk_layout_items(restore_plan.get("disk_layout"))
+        if asset and getattr(asset, "source_type", "") == "vm_export":
+            return self._normalize_vm_disk_layout_items(self.build_vm_export_disk_layout(asset))
+
+        base_layout = [
+            {
+                "disk_key": VM_DISK_ROOT_KEY,
+                "disk_name": "system-disk",
+                "disk_role": VM_DISK_ROLE_ROOT,
+                "device_type": VM_DISK_DEVICE_DISK,
+                "source_kind": VM_DISK_SOURCE_KIND_VOLUME,
+                "order_index": 0,
+            }
+        ]
+        if source_format == "iso":
+            base_layout.insert(0, {
+                "disk_key": VM_DISK_INSTALLER_KEY,
+                "disk_name": "installer-media",
+                "disk_role": VM_DISK_ROLE_INSTALLER,
+                "device_type": VM_DISK_DEVICE_CDROM,
+                "source_kind": VM_DISK_SOURCE_KIND_INSTALLER,
+                "order_index": 0,
+            })
+            base_layout[1]["order_index"] = 1
+        return self._normalize_vm_disk_layout_items(base_layout)
 
     def get_live_vm_export_name(self, service):
         return str(getattr(service, "service_id", "") or "").strip()
@@ -820,9 +926,11 @@ class VirtualMachineService(object):
             disk_role = str(disk.get("disk_role", "") or "data").lower()
             boot_order = self._to_int(disk.get("boot_order"), index + 1)
             layout.append({
-                "disk_key": disk.get("disk_key") or "disk-{}".format(index + 1),
+                "disk_key": VM_DISK_ROOT_KEY if disk_role == VM_DISK_ROLE_ROOT else (disk.get("disk_key") or "disk-{}".format(index + 1)),
                 "disk_name": disk.get("disk_name") or disk.get("disk_key") or "disk-{}".format(index + 1),
                 "disk_role": disk_role,
+                "device_type": VM_DISK_DEVICE_DISK,
+                "source_kind": VM_DISK_SOURCE_KIND_VOLUME,
                 "boot_order": boot_order,
                 "order_index": index,
                 "boot": disk_role == "root",
@@ -1015,6 +1123,228 @@ class VirtualMachineService(object):
                 "checksum": disk.get("checksum") or "",
             }
         return normalized
+
+    def _build_vm_volume_disk_items(self, volumes):
+        items = []
+        for index, volume in enumerate(volumes or []):
+            volume_data = volume.to_dict() if hasattr(volume, "to_dict") else dict(volume)
+            volume_name = str(volume_data.get("volume_name") or "").strip()
+            if not volume_name:
+                continue
+            volume_path = str(volume_data.get("volume_path") or "").strip()
+            device_type = self._resolve_vm_device_type(volume_path)
+            items.append({
+                "disk_key": volume_name,
+                "disk_name": volume_name,
+                "disk_role": VM_DISK_ROLE_ROOT if volume_name == VM_DISK_ROOT_KEY else VM_DISK_ROLE_DATA,
+                "device_type": device_type,
+                "source_kind": VM_DISK_SOURCE_KIND_VOLUME,
+                "order_index": index,
+                "boot": False,
+                "deletable": volume_name != VM_DISK_ROOT_KEY,
+                "ID": volume_data.get("ID") or volume_data.get("id"),
+                "volume_id": volume_data.get("ID") or volume_data.get("id"),
+                "volume_name": volume_name,
+                "volume_path": volume_path,
+                "volume_type": volume_data.get("volume_type", ""),
+                "volume_capacity": volume_data.get("volume_capacity", 0),
+                "status": volume_data.get("status", ""),
+            })
+        return items
+
+    def _resolve_vm_disk_layout_for_service(self, runtime, asset, volume_items):
+        current_layout = runtime.get("disk_layout") or []
+        if current_layout:
+            return self._normalize_vm_disk_layout_items(current_layout)
+        if str(runtime.get("boot_source_format") or "").lower() == "iso":
+            return self.build_initial_vm_disk_layout(
+                boot_source_format="iso",
+                asset=asset,
+            )
+        root_present = any(item.get("disk_key") == VM_DISK_ROOT_KEY for item in volume_items)
+        if root_present:
+            return self.build_initial_vm_disk_layout(
+                boot_source_format=runtime.get("boot_source_format") or "",
+                asset=asset,
+            )
+        return self._normalize_vm_disk_layout_items(current_layout)
+
+    def _merge_vm_disk_layout_items(self, layout, volume_items, runtime, asset):
+        normalized_layout = self._normalize_vm_disk_layout_items(layout)
+        volume_map = {
+            self._compound_vm_disk_key(item): dict(item)
+            for item in volume_items
+        }
+        resolved = []
+        seen = set()
+        installer_item = self._build_vm_installer_disk_item(runtime, asset)
+        for item in normalized_layout:
+            compound_key = self._compound_vm_disk_key(item)
+            if self._is_vm_installer_disk_item(item):
+                if installer_item:
+                    merged = dict(installer_item)
+                    merged.update({
+                        "order_index": item.get("order_index", 0),
+                        "boot": False,
+                    })
+                    resolved.append(merged)
+                    seen.add(compound_key)
+                continue
+            volume_item = volume_map.get(compound_key)
+            if not volume_item:
+                continue
+            merged = dict(volume_item)
+            merged.update({
+                "disk_role": item.get("disk_role") or volume_item.get("disk_role") or VM_DISK_ROLE_DATA,
+                "device_type": item.get("device_type") or volume_item.get("device_type") or VM_DISK_DEVICE_DISK,
+                "source_kind": VM_DISK_SOURCE_KIND_VOLUME,
+                "order_index": item.get("order_index", len(resolved)),
+                "boot": False,
+            })
+            resolved.append(merged)
+            seen.add(compound_key)
+
+        next_index = len(resolved)
+        for item in volume_items:
+            compound_key = self._compound_vm_disk_key(item)
+            if compound_key in seen:
+                continue
+            merged = dict(item)
+            merged["order_index"] = next_index
+            merged["boot"] = False
+            resolved.append(merged)
+            seen.add(compound_key)
+            next_index += 1
+
+        if not normalized_layout and installer_item:
+            installer = dict(installer_item)
+            installer["order_index"] = 0
+            installer["boot"] = False
+            resolved.insert(0, installer)
+            for index, item in enumerate(resolved):
+                item["order_index"] = index
+
+        for index, item in enumerate(resolved):
+            item["order_index"] = index
+            item["boot"] = index == 0
+            item["deletable"] = not self._is_vm_root_disk_item(item)
+        return resolved
+
+    def _build_vm_installer_disk_item(self, runtime, asset=None):
+        source_format = str(runtime.get("boot_source_format") or "").strip().lower()
+        layout = runtime.get("disk_layout") or []
+        if source_format != "iso":
+            return None
+        if layout and not any(self._is_vm_installer_disk_item(item) for item in layout):
+            return None
+        asset_os_name = getattr(asset, "os_name", "") if asset else ""
+        disk_name = runtime.get("os_name") or asset_os_name or "installer-media"
+        return {
+            "disk_key": VM_DISK_INSTALLER_KEY,
+            "disk_name": disk_name or "installer-media",
+            "disk_role": VM_DISK_ROLE_INSTALLER,
+            "device_type": VM_DISK_DEVICE_CDROM,
+            "source_kind": VM_DISK_SOURCE_KIND_INSTALLER,
+            "order_index": 0,
+            "boot": False,
+            "deletable": True,
+            "status": "ready",
+        }
+
+    def _normalize_vm_disk_layout_items(self, disk_layout):
+        normalized = []
+        seen = set()
+        items = [item for item in (disk_layout or []) if isinstance(item, dict)]
+        items = sorted(
+            items,
+            key=lambda value: (
+                self._to_int(value.get("order_index"), 0),
+                str(value.get("disk_key") or ""),
+            )
+        )
+        for item in items:
+            source_kind = self._normalize_vm_disk_source_kind(item)
+            disk_role = self._normalize_vm_disk_role(item, source_kind)
+            disk_key = self._normalize_vm_layout_disk_key(item, disk_role, source_kind)
+            if not disk_key:
+                continue
+            compound_key = "{}:{}".format(source_kind, disk_key)
+            if compound_key in seen:
+                continue
+            normalized.append({
+                "disk_key": disk_key,
+                "disk_name": str(item.get("disk_name") or disk_key),
+                "disk_role": disk_role,
+                "device_type": self._normalize_vm_disk_device_type(item, source_kind),
+                "source_kind": source_kind,
+                "order_index": len(normalized),
+                "boot": False,
+            })
+            seen.add(compound_key)
+        for index, item in enumerate(normalized):
+            item["boot"] = index == 0
+        return normalized
+
+    def _normalize_vm_disk_source_kind(self, item):
+        source_kind = str(item.get("source_kind") or "").strip().lower()
+        if source_kind in (VM_DISK_SOURCE_KIND_VOLUME, VM_DISK_SOURCE_KIND_INSTALLER):
+            return source_kind
+        if self._is_vm_installer_disk_item(item):
+            return VM_DISK_SOURCE_KIND_INSTALLER
+        return VM_DISK_SOURCE_KIND_VOLUME
+
+    def _normalize_vm_disk_role(self, item, source_kind):
+        role = str(item.get("disk_role") or "").strip().lower()
+        if role in (VM_DISK_ROLE_ROOT, VM_DISK_ROLE_DATA, VM_DISK_ROLE_INSTALLER):
+            return role
+        if source_kind == VM_DISK_SOURCE_KIND_INSTALLER:
+            return VM_DISK_ROLE_INSTALLER
+        disk_key = str(item.get("disk_key") or "").strip().lower()
+        if disk_key in (VM_DISK_ROOT_KEY, "rootdisk") or item.get("boot"):
+            return VM_DISK_ROLE_ROOT
+        return VM_DISK_ROLE_DATA
+
+    def _normalize_vm_layout_disk_key(self, item, disk_role, source_kind):
+        if source_kind == VM_DISK_SOURCE_KIND_INSTALLER:
+            return VM_DISK_INSTALLER_KEY
+        disk_key = str(item.get("disk_key") or "").strip()
+        if disk_role == VM_DISK_ROLE_ROOT:
+            return VM_DISK_ROOT_KEY
+        return disk_key
+
+    def _normalize_vm_disk_device_type(self, item, source_kind):
+        if source_kind == VM_DISK_SOURCE_KIND_INSTALLER:
+            return VM_DISK_DEVICE_CDROM
+        device_type = str(item.get("device_type") or "").strip().lower()
+        if device_type in (VM_DISK_DEVICE_DISK, VM_DISK_DEVICE_CDROM, VM_DISK_DEVICE_LUN):
+            return device_type
+        return VM_DISK_DEVICE_DISK
+
+    def _resolve_vm_device_type(self, volume_path):
+        return VM_DISK_PATH_TO_DEVICE_TYPE.get(str(volume_path or "").strip(), VM_DISK_DEVICE_DISK)
+
+    def _compound_vm_disk_key(self, item):
+        return "{}:{}".format(
+            item.get("source_kind") or VM_DISK_SOURCE_KIND_VOLUME,
+            item.get("disk_key") or ""
+        )
+
+    def _is_vm_root_disk_item(self, item):
+        if not isinstance(item, dict):
+            return False
+        if item.get("source_kind") == VM_DISK_SOURCE_KIND_INSTALLER:
+            return False
+        return str(item.get("disk_role") or "").strip().lower() == VM_DISK_ROLE_ROOT or str(
+            item.get("disk_key") or "").strip() == VM_DISK_ROOT_KEY
+
+    def _is_vm_installer_disk_item(self, item):
+        if not isinstance(item, dict):
+            return False
+        if str(item.get("source_kind") or "").strip().lower() == VM_DISK_SOURCE_KIND_INSTALLER:
+            return True
+        if str(item.get("disk_role") or "").strip().lower() == VM_DISK_ROLE_INSTALLER:
+            return True
+        return str(item.get("disk_key") or "").strip() == VM_DISK_INSTALLER_KEY
 
     def _persist_managed_k8s_attribute(self, tenant_id, service_id, name, save_type, value, sync_context=None):
         current_attr = k8s_attribute_repo.get_by_component_id_name(service_id, name).first()

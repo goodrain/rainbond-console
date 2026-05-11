@@ -231,6 +231,17 @@ class VMRunCreateView(RegionTenantHeaderView):
                 self.response_region, self.tenant, self.user, service_cname, k8s_component_name, image, arch, event_id, vm_url)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
+            runtime_disk_layout = (
+                vms.build_vm_export_disk_layout(asset)
+                if asset and getattr(asset, "source_type", "") == "vm_export" and not restore_plan
+                else (restore_plan.get("disk_layout") if restore_plan else None)
+            )
+            if not runtime_disk_layout:
+                runtime_disk_layout = vms.build_initial_vm_disk_layout(
+                    boot_source_format=boot_source_format,
+                    asset=asset,
+                    restore_plan=restore_plan
+                )
             # The VM component is only persisted in console at this point.
             # Region-side service registration happens later and will sync these attrs.
             vms.save_vm_runtime_config(
@@ -239,7 +250,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                 {
                     **runtime_config,
                     "asset_id": asset_id,
-                    "disk_layout": vms.build_vm_export_disk_layout(asset) if asset and getattr(asset, "source_type", "") == "vm_export" and not restore_plan else (restore_plan.get("disk_layout") if restore_plan else []),
+                    "disk_layout": runtime_disk_layout or [],
                     "boot_mode": boot_mode,
                     "boot_source_format": boot_source_format,
                     "os_name": guest_os_name
