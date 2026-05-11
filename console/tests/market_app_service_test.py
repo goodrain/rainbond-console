@@ -2,6 +2,7 @@
 import os
 import sys
 from types import ModuleType
+from unittest import mock
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
@@ -18,6 +19,169 @@ django.setup()
 class Obj(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+
+
+class MarketAppServiceCreateRainbondAppTests(SimpleTestCase):
+    # capability_id: console.market-app.create-template-scope-name
+    def test_create_rainbond_app_allows_enterprise_template_named_like_team_snapshot(self):
+        from console.services.market_app_service import market_app_service
+
+        existing_team_snapshot = Obj(app_name="demo-app", enterprise_id="eid-1", scope="team", create_team="demo-team")
+
+        class QuerySet(object):
+            def __init__(self, first_result):
+                self.first_result = first_result
+
+            def first(self):
+                return self.first_result
+
+        class Manager(object):
+            def __init__(self):
+                self.calls = []
+
+            def filter(self, **kwargs):
+                self.calls.append(kwargs)
+                if kwargs.get("enterprise_id") == "eid-1" and kwargs.get("scope") == "enterprise":
+                    return QuerySet(None)
+                return QuerySet(existing_team_snapshot)
+
+        manager = Manager()
+
+        def build_app(**kwargs):
+            return Obj(save=mock.Mock(), **kwargs)
+
+        app_info = {
+            "app_name": "demo-app",
+            "create_user": 7,
+            "create_team": "demo-team",
+            "pic": "",
+            "source": "local",
+            "dev_status": "",
+            "scope": "enterprise",
+            "describe": "publish snapshot to internal library",
+            "details": "",
+            "tag_ids": [],
+        }
+
+        with mock.patch("console.services.market_app_service.RainbondCenterApp") as app_model, \
+                mock.patch("console.services.market_app_service.app_tag_repo.create_app_tags_relation"):
+            app_model.objects = manager
+            app_model.side_effect = build_app
+
+            created = market_app_service.create_rainbond_app("eid-1", app_info, "enterprise-app-id")
+
+        self.assertIsNotNone(created)
+        self.assertEqual(created.scope, "enterprise")
+        self.assertEqual(created.app_name, "demo-app")
+        self.assertEqual(manager.calls[0], {
+            "app_name": "demo-app",
+            "enterprise_id": "eid-1",
+            "scope": "enterprise",
+        })
+
+    # capability_id: console.market-app.create-template-scope-name
+    def test_create_rainbond_app_rejects_duplicate_enterprise_template_name_in_same_enterprise(self):
+        from console.services.market_app_service import market_app_service
+
+        existing_enterprise_template = Obj(
+            app_name="demo-app", enterprise_id="eid-1", scope="enterprise", create_team="demo-team")
+        duplicate_query = mock.Mock()
+        duplicate_query.first.return_value = existing_enterprise_template
+
+        app_info = {
+            "app_name": "demo-app",
+            "create_user": 7,
+            "create_team": "demo-team",
+            "pic": "",
+            "source": "local",
+            "dev_status": "",
+            "scope": "enterprise",
+            "describe": "duplicate enterprise template",
+            "details": "",
+            "tag_ids": [],
+        }
+
+        with mock.patch("console.services.market_app_service.RainbondCenterApp") as app_model:
+            app_model.objects.filter.return_value = duplicate_query
+
+            created = market_app_service.create_rainbond_app("eid-1", app_info, "enterprise-app-id")
+
+        self.assertIsNone(created)
+        app_model.assert_not_called()
+
+    # capability_id: console.market-app.create-template-scope-name
+    def test_create_rainbond_app_rejects_duplicate_team_template_name_in_same_team(self):
+        from console.services.market_app_service import market_app_service
+
+        existing_team_template = Obj(app_name="demo-app", enterprise_id="eid-1", scope="team", create_team="demo-team")
+        duplicate_query = mock.Mock()
+        duplicate_query.filter.return_value = duplicate_query
+        duplicate_query.first.return_value = existing_team_template
+
+        app_info = {
+            "app_name": "demo-app",
+            "create_user": 7,
+            "create_team": "demo-team",
+            "pic": "",
+            "source": "local",
+            "dev_status": "",
+            "scope": "team",
+            "describe": "duplicate team template",
+            "details": "",
+            "tag_ids": [],
+        }
+
+        with mock.patch("console.services.market_app_service.RainbondCenterApp") as app_model:
+            app_model.objects.filter.return_value = duplicate_query
+
+            created = market_app_service.create_rainbond_app("eid-1", app_info, "team-app-id")
+
+        self.assertIsNone(created)
+        app_model.objects.filter.assert_called_once_with(app_name="demo-app", enterprise_id="eid-1", scope="team")
+        duplicate_query.filter.assert_called_once_with(create_team="demo-team")
+        app_model.assert_not_called()
+
+    # capability_id: console.market-app.create-template-scope-name
+    def test_create_rainbond_app_allows_team_template_named_like_another_team_snapshot(self):
+        from console.services.market_app_service import market_app_service
+
+        existing_other_team_template = Obj(
+            app_name="demo-app", enterprise_id="eid-1", scope="team", create_team="other-team")
+        duplicate_query = mock.Mock()
+        duplicate_query.first.return_value = existing_other_team_template
+        target_team_query = mock.Mock()
+        target_team_query.first.return_value = None
+        duplicate_query.filter.return_value = target_team_query
+
+        def build_app(**kwargs):
+            return Obj(save=mock.Mock(), **kwargs)
+
+        app_info = {
+            "app_name": "demo-app",
+            "create_user": 7,
+            "create_team": "target-team",
+            "pic": "",
+            "source": "local",
+            "dev_status": "",
+            "scope": "team",
+            "describe": "publish snapshot to another team",
+            "details": "",
+            "tag_ids": [],
+        }
+
+        with mock.patch("console.services.market_app_service.RainbondCenterApp") as app_model, \
+                mock.patch("console.services.market_app_service.app_tag_repo.create_app_tags_relation"):
+            app_model.objects.filter.return_value = duplicate_query
+            app_model.side_effect = build_app
+
+            created = market_app_service.create_rainbond_app("eid-1", app_info, "team-app-id")
+
+        self.assertIsNotNone(created)
+        self.assertEqual(created.scope, "team")
+        self.assertEqual(created.create_team, "target-team")
+        app_model.objects.filter.assert_called_once_with(app_name="demo-app", enterprise_id="eid-1", scope="team")
+        duplicate_query.filter.assert_called_once_with(create_team="target-team")
+        target_team_query.first.assert_called_once_with()
 
 
 class MarketAppServicePortPersistenceTests(SimpleTestCase):

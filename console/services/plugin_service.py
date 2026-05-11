@@ -6,6 +6,7 @@ from console.services.platform_plugin_service import platform_plugin_service
 from console.repositories.region_app import region_app_repo
 from console.repositories.app_config import domain_repo
 from console.repositories.service_group_relation_repo import service_group_relation_repo
+from console.utils.offline import is_cloud_market_disabled
 
 from www.apiclient.regionapi import RegionInvokeApi
 
@@ -36,7 +37,7 @@ class RainbondPluginService(object):
 
         market_plugins = []
         market_plugin_map = {}
-        if official:
+        if official and not is_cloud_market_disabled():
             try:
                 _, market_plugins = platform_plugin_service._get_market_platform_plugins(enterprise_id)
                 for plugin in plugins:
@@ -46,6 +47,8 @@ class RainbondPluginService(object):
                         market_plugin_map[plugin_id] = market_plugin
             except Exception as e:
                 logger.warning("failed to fetch platform plugin market metadata: %s", e)
+        elif official:
+            logger.info("official plugin market metadata skipped because cloud market is disabled")
 
         for plugin in plugins:
             region_app_ids.append(plugin["region_app_id"])

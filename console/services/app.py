@@ -39,6 +39,7 @@ from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.utils.oauth.oauth_types import support_oauth_type
+from console.utils.offline import is_cloud_market_disabled
 from console.utils.validation import validate_endpoints_info
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
@@ -1177,21 +1178,28 @@ class AppMarketService(object):
             }
             if extend == "true":
                 version = "1.0"
-                try:
-                    extend_info = app_store.get_market(market)
-                    market.description = extend_info.description
-                    market.alias = extend_info.name
-                    market.status = extend_info.status
-                    market.create_time = extend_info.create_time
-                    market.access_actions = extend_info.access_actions
-                    version = extend_info.version if hasattr(extend_info, "version") else version
-                except Exception as e:
-                    logger.exception(e)
+                if is_cloud_market_disabled():
                     market.description = None
                     market.alias = market.name
                     market.status = 0
                     market.create_time = None
                     market.access_actions = []
+                else:
+                    try:
+                        extend_info = app_store.get_market(market)
+                        market.description = extend_info.description
+                        market.alias = extend_info.name
+                        market.status = extend_info.status
+                        market.create_time = extend_info.create_time
+                        market.access_actions = extend_info.access_actions
+                        version = extend_info.version if hasattr(extend_info, "version") else version
+                    except Exception as e:
+                        logger.exception(e)
+                        market.description = None
+                        market.alias = market.name
+                        market.status = 0
+                        market.create_time = None
+                        market.access_actions = []
                 dt.update({
                     "description": market.description,
                     "alias": market.alias,
@@ -1216,20 +1224,26 @@ class AppMarketService(object):
         }
         if extend == "true":
             version = "1.0"
-            try:
-                extend_info = app_store.get_market(market)
-                market.description = extend_info.description
-                market.alias = extend_info.name
-                market.status = extend_info.status
-                market.access_actions = extend_info.access_actions
-                version = extend_info.version if extend_info.version else version
-            except Exception as e:
-                logger.debug(e)
+            if is_cloud_market_disabled():
                 market.description = None
-                market.alias = None
+                market.alias = market.name
                 market.status = 0
                 market.access_actions = []
-            if raise_exception:
+            else:
+                try:
+                    extend_info = app_store.get_market(market)
+                    market.description = extend_info.description
+                    market.alias = extend_info.name
+                    market.status = extend_info.status
+                    market.access_actions = extend_info.access_actions
+                    version = extend_info.version if extend_info.version else version
+                except Exception as e:
+                    logger.debug(e)
+                    market.description = None
+                    market.alias = None
+                    market.status = 0
+                    market.access_actions = []
+            if raise_exception and not is_cloud_market_disabled():
                 if market.status == 0:
                     raise ServiceHandleException(msg="call market error", msg_show="应用商店状态异常")
             dt.update({
@@ -1422,27 +1436,37 @@ class AppMarketService(object):
         return Dict(version)
 
     def get_market_app_list(self, market, page=1, page_size=10, query=None, query_all=False, extend=False, arch=""):
+        if is_cloud_market_disabled():
+            return [], page, page_size, 0
         results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all, arch=arch)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
     def get_market_plugins_apps(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
+        if is_cloud_market_disabled():
+            return [], page, page_size, 0
         results = app_store.get_plugins_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
     def get_market_app_models(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
+        if is_cloud_market_disabled():
+            return [], page, page_size, 0
         results = app_store.get_apps_templates(market, page=page, page_size=page_size, query=query, query_all=query_all)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
     def get_market_app_model(self, market, app_id, extend=False):
+        if is_cloud_market_disabled():
+            return Dict({})
         results = app_store.get_app(market, app_id)
         return self.app_model_serializers(market, results, extend=extend)
 
     def get_market_app_model_versions(self, market: AppMarket, app_id, query_all=False, extend=False):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
+        if is_cloud_market_disabled():
+            return []
         results = app_store.get_app_versions(market, app_id, query_all=query_all)
         data = self.app_model_versions_serializers(market, results.versions, extend=extend)
         return data
@@ -1450,6 +1474,8 @@ class AppMarketService(object):
     def get_market_app_model_version(self, market, app_id, version, for_install=False, extend=False, get_template=False):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
+        if is_cloud_market_disabled():
+            return Dict({})
         results = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=get_template)
         data = self.app_model_version_serializers(market, results, extend=extend)
         return data
@@ -1511,6 +1537,8 @@ class AppMarketService(object):
         return [bm.to_dict() for bm in bindable_markets]
 
     def get_market_orgs(self, market):
+        if is_cloud_market_disabled():
+            return []
         results = app_store.get_orgs(market)
         return self.org_serializers(results)
 

@@ -10,6 +10,7 @@ from console.cloud.services import check_account_quota
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.upgrade_services import upgrade_service
+from console.utils.offline import is_cloud_market_disabled
 from console.utils.reqparse import parse_argument, parse_item
 from console.utils.response import MessageResponse
 from console.views.base import ApplicationView, RegionTenantHeaderView, AppUpgradeRecordView
@@ -88,6 +89,8 @@ class AppUpgradeInfoView(ApplicationView):
         upgrade_group_id = parse_argument(
             request, 'upgrade_group_id', default=None, value_type=int, error='upgrade_group_id is a required parameter')
         version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
+        if is_cloud_market_disabled():
+            return MessageResponse(msg="success", bean={"upgrade_info": {}}, list=[])
         app_changes, changes = upgrade_service.get_property_changes(self.tenant, self.region, self.user, self.app,
                                                                     upgrade_group_id, version)
         return MessageResponse(msg="success", bean=app_changes, list=changes)
