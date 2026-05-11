@@ -22,6 +22,10 @@ class Obj(object):
 
 
 class MarketAppServiceCreateRainbondAppTests(SimpleTestCase):
+    def create_rainbond_app(self, market_app_service, enterprise_id, app_info, app_id):
+        return market_app_service.create_rainbond_app.__wrapped__(
+            market_app_service, enterprise_id, app_info, app_id)
+
     # capability_id: console.market-app.create-template-scope-name
     def test_create_rainbond_app_allows_enterprise_template_named_like_team_snapshot(self):
         from console.services.market_app_service import market_app_service
@@ -68,7 +72,7 @@ class MarketAppServiceCreateRainbondAppTests(SimpleTestCase):
             app_model.objects = manager
             app_model.side_effect = build_app
 
-            created = market_app_service.create_rainbond_app("eid-1", app_info, "enterprise-app-id")
+            created = self.create_rainbond_app(market_app_service, "eid-1", app_info, "enterprise-app-id")
 
         self.assertIsNotNone(created)
         self.assertEqual(created.scope, "enterprise")
@@ -104,7 +108,7 @@ class MarketAppServiceCreateRainbondAppTests(SimpleTestCase):
         with mock.patch("console.services.market_app_service.RainbondCenterApp") as app_model:
             app_model.objects.filter.return_value = duplicate_query
 
-            created = market_app_service.create_rainbond_app("eid-1", app_info, "enterprise-app-id")
+            created = self.create_rainbond_app(market_app_service, "eid-1", app_info, "enterprise-app-id")
 
         self.assertIsNone(created)
         app_model.assert_not_called()
@@ -134,7 +138,7 @@ class MarketAppServiceCreateRainbondAppTests(SimpleTestCase):
         with mock.patch("console.services.market_app_service.RainbondCenterApp") as app_model:
             app_model.objects.filter.return_value = duplicate_query
 
-            created = market_app_service.create_rainbond_app("eid-1", app_info, "team-app-id")
+            created = self.create_rainbond_app(market_app_service, "eid-1", app_info, "team-app-id")
 
         self.assertIsNone(created)
         app_model.objects.filter.assert_called_once_with(app_name="demo-app", enterprise_id="eid-1", scope="team")
@@ -174,7 +178,7 @@ class MarketAppServiceCreateRainbondAppTests(SimpleTestCase):
             app_model.objects.filter.return_value = duplicate_query
             app_model.side_effect = build_app
 
-            created = market_app_service.create_rainbond_app("eid-1", app_info, "team-app-id")
+            created = self.create_rainbond_app(market_app_service, "eid-1", app_info, "team-app-id")
 
         self.assertIsNotNone(created)
         self.assertEqual(created.scope, "team")
