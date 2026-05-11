@@ -74,7 +74,7 @@ class AppServiceTests(SimpleTestCase):
                 attr_name="LANG",
                 attr_value="C.UTF-8",
                 is_change=True,
-                scope="outer",
+                scope="inner",
             ),
             call(
                 tenant_id="tenant-1",
@@ -84,7 +84,7 @@ class AppServiceTests(SimpleTestCase):
                 attr_name="LC_ALL",
                 attr_value="C.UTF-8",
                 is_change=True,
-                scope="outer",
+                scope="inner",
             ),
             call(
                 tenant_id="tenant-1",
@@ -94,7 +94,7 @@ class AppServiceTests(SimpleTestCase):
                 attr_name="TZ",
                 attr_value="Asia/Shanghai",
                 is_change=True,
-                scope="outer",
+                scope="inner",
             ),
         ])
 
@@ -118,7 +118,7 @@ class AppServiceTests(SimpleTestCase):
                 attr_name="LC_ALL",
                 attr_value="C.UTF-8",
                 is_change=True,
-                scope="outer",
+                scope="inner",
             ),
             call(
                 tenant_id="tenant-1",
@@ -128,7 +128,7 @@ class AppServiceTests(SimpleTestCase):
                 attr_name="TZ",
                 attr_value="Asia/Shanghai",
                 is_change=True,
-                scope="outer",
+                scope="inner",
             ),
         ])
 

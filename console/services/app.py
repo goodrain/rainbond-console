@@ -173,7 +173,7 @@ class AppService(object):
                 attr_name=name,
                 attr_value=value,
                 is_change=True,
-                scope="outer",
+                scope="inner",
             )
 
     def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id, service_code_version,
