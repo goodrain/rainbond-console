@@ -7790,24 +7790,6 @@
       "status": "active"
     },
     {
-      "id": "rainbond-console.vm-export.asset-ready-storage-status",
-      "title": "Require ready root download URL for vm export assets",
-      "title_zh": "vm \u5bfc\u51fa\u8d44\u4ea7\u9700\u8981\u6839\u76d8\u4e0b\u8f7d\u5730\u5740\u5c31\u7eea\u624d\u7b97\u53ef\u7528",
-      "interface_type": "service_method",
-      "interface": "console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready",
-      "code_paths": [
-        "console/services/virtual_machine.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/vm_create_flow_regression_test.py",
-          "selector": "VMCreateFlowRegressionUnitTests::test_is_vm_asset_ready_requires_storage_ready_for_vm_export_machine_assets"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
       "id": "rainbond-console.vm-run.disk-asset-create",
       "title": "Reuse ready runtime image when creating vm from existing disk asset",
       "title_zh": "\u4ece\u73b0\u6709\u78c1\u76d8\u8d44\u4ea7\u521b\u5efa\u865a\u62df\u673a\u65f6\u590d\u7528\u5df2\u5c31\u7eea\u8fd0\u884c\u65f6\u955c\u50cf",
@@ -7821,42 +7803,6 @@
         {
           "path": "console/tests/vm_asset_instantiation_test.py",
           "selector": "VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "rainbond-console.vm-run.vm-export-ignore-stale-boot-mode",
-      "title": "Ignore stale boot mode metadata when creating vm from exported disks",
-      "title_zh": "\u57fa\u4e8e vm \u5bfc\u51fa\u78c1\u76d8\u521b\u5efa\u865a\u62df\u673a\u65f6\u5ffd\u7565\u8fc7\u671f\u7684\u542f\u52a8\u6a21\u5f0f\u5143\u6570\u636e",
-      "interface_type": "service_method",
-      "interface": "console.services.virtual_machine.VirtualMachineService.resolve_vm_boot_mode",
-      "code_paths": [
-        "console/services/virtual_machine.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/vm_create_flow_regression_test.py",
-          "selector": "VMCreateFlowRegressionUnitTests::test_resolve_vm_boot_mode_ignores_stale_vm_export_boot_mode_metadata"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "rainbond-console.vm-run.vm-export-multi-disk-create",
-      "title": "Create vm from exported manifest with data disk restore",
-      "title_zh": "\u4ece vm \u5bfc\u51fa\u6e05\u5355\u521b\u5efa\u865a\u62df\u673a\u5e76\u6062\u590d\u6570\u636e\u76d8",
-      "interface_type": "view_endpoint",
-      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
-      "code_paths": [
-        "console/views/app_create/vm_run.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/vm_asset_instantiation_test.py",
-          "selector": "VMAssetInstantiationTests::test_vm_run_create_uses_exported_root_and_restores_data_disks"
         }
       ],
       "test_type": "regression",

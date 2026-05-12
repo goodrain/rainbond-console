@@ -323,6 +323,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
+    def get_vm_live_update_capability(self, region, tenant_name, service_alias):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/{}/services/{}/vm-live-update-capability".format(
+            tenant_region.region_tenant_name, service_alias)
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
     def change_memory(self, region, tenant_name, service_alias, body):
         """根据组件语言设置内存"""
 
@@ -2685,59 +2695,11 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def start_vm_export(self, region, tenant_name, service_alias, body):
-        url, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/{}/services/{}/vm-exports".format(tenant_region.region_tenant_name, service_alias)
-
-        self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
-        return res, body
-
     def create_vm_snapshot(self, region, tenant_name, service_alias, body):
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/{}/services/{}/vm-snapshots".format(
             tenant_region.region_tenant_name, service_alias)
-
-        self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
-        return res, body
-
-    def get_vm_export_status(self, region, tenant_name, service_alias, export_id):
-        url, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/{}/services/{}/vm-exports/{}".format(
-            tenant_region.region_tenant_name, service_alias, export_id)
-
-        self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
-        return res, body
-
-    def delete_vm_export(self, region, tenant_name, service_alias, export_id):
-        url, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/{}/services/{}/vm-exports/{}".format(
-            tenant_region.region_tenant_name, service_alias, export_id)
-
-        self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
-        return res, body
-
-    def persist_vm_export(self, region, tenant_name, service_alias, export_id, body):
-        url, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/{}/services/{}/vm-exports/{}/persist".format(
-            tenant_region.region_tenant_name, service_alias, export_id)
-
-        self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
-        return res, body
-
-    def get_vm_asset_restore_plan(self, region, tenant_name, body):
-        url, token = self.__get_region_access_info(tenant_name, region)
-        tenant_region = self.__get_tenant_region_info(tenant_name, region)
-        url = url + "/v2/tenants/{}/vm-assets/restore-plan".format(tenant_region.region_tenant_name)
 
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))

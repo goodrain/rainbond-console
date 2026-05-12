@@ -18,7 +18,6 @@ from console.repositories.app_config import service_endpoints_repo, volume_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
-from console.repositories.virtual_machine import vm_repo
 from console.services.app import app_service, package_upload_service
 from console.services.app_actions import ws_service
 from console.services.app_config import port_service, volume_service
@@ -206,59 +205,6 @@ class AppVMProfileView(AppBaseView):
                 "console_url": ""
             })
         result = general_message(200, "success", "查询成功", bean=profile)
-        return Response(result, status=result["code"])
-
-
-class AppVMExportView(AppBaseView):
-    @never_cache
-    def post(self, request, *args, **kwargs):
-        description = request.data.get("description", "")
-        force_replace = str(request.data.get("force_replace", "")).lower() in ("1", "true", "yes")
-        existing_exports = vms.list_vm_export_assets_for_service(self.tenant.tenant_id, self.service.service_id)
-        if existing_exports and not force_replace:
-            existing_asset = vms.build_vm_export_confirmation_payload(existing_exports[0])
-            result = general_message(
-                200,
-                "success",
-                "检测到旧导出",
-                bean={
-                    "requires_confirmation": True,
-                    "existing_asset": existing_asset,
-                })
-            result["msg_show"] = "当前组件已有旧导出，确认后将删除旧导出记录和底层导出资源，并重新导出。"
-            return Response(result, status=result["code"])
-        status_map = app_service.get_service_status(self.tenant, self.service)
-        vm_status = status_map.get("status", "")
-        try:
-            if existing_exports and force_replace:
-                if str(vm_status or "").lower() != "closed":
-                    raise ValueError("vm export requires closed status")
-                vms.replace_vm_export_assets_for_service(self.service, self.response_region, self.tenant.tenant_name)
-            asset = vms.start_vm_export(
-                self.service,
-                self.response_region,
-                self.tenant.tenant_name,
-                vm_status=vm_status,
-                description=description
-            )
-        except ValueError as err:
-            return Response(general_message(409, "vm export forbidden", str(err)), status=409)
-        result = general_message(200, "success", "导出任务已启动", bean=asset)
-        return Response(result, status=result["code"])
-
-    @never_cache
-    def get(self, request, *args, **kwargs):
-        asset_id = request.GET.get("asset_id", "")
-        asset = None
-        if asset_id:
-            vm_asset = vm_repo.get_vm_image_instance_by_id(self.tenant.tenant_id, asset_id)
-            if vm_asset:
-                asset = vms.sync_vm_export_status(vm_asset, self.response_region, self.tenant.tenant_name)
-        else:
-            vm_asset = vms.get_latest_vm_export_asset(self.tenant.tenant_id, self.service.service_id)
-            if vm_asset:
-                asset = vms.sync_vm_export_status(vm_asset, self.response_region, self.tenant.tenant_name)
-        result = general_message(200, "success", "查询成功", bean=asset or {})
         return Response(result, status=result["code"])
 
 

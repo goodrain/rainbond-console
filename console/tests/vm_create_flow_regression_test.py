@@ -416,40 +416,6 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
 
         self.assertEqual("", mode)
 
-    def test_resolve_vm_boot_mode_does_not_force_uefi_for_windows_vm_export_without_metadata(self):
-        mode = vms.resolve_vm_boot_mode(
-            requested_boot_mode="",
-            asset=SimpleNamespace(
-                source_type="vm_export",
-                boot_mode="",
-                os_name="Windows 10",
-                name="win-export",
-                extra_json='{"runtime_snapshot": {"boot_mode": ""}}'
-            ),
-            runtime_config={"os_family": "windows"},
-            image_name="win-export",
-            boot_source_format="disk"
-        )
-
-        self.assertEqual("", mode)
-
-    def test_resolve_vm_boot_mode_ignores_stale_vm_export_boot_mode_metadata(self):
-        mode = vms.resolve_vm_boot_mode(
-            requested_boot_mode="",
-            asset=SimpleNamespace(
-                source_type="vm_export",
-                boot_mode="uefi",
-                os_name="Windows 10",
-                name="win-export",
-                extra_json='{"runtime_snapshot": {"boot_mode": "uefi"}}'
-            ),
-            runtime_config={"os_family": "windows"},
-            image_name="win-export",
-            boot_source_format="disk"
-        )
-
-        self.assertEqual("", mode)
-
     def test_infer_vm_boot_source_format_keeps_legacy_upload_asset_unspecified_when_unknown(self):
         fmt = vms.infer_vm_boot_source_format(
             asset=SimpleNamespace(
@@ -463,44 +429,3 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
         )
 
         self.assertEqual("", fmt)
-
-    def test_infer_vm_boot_source_format_keeps_vm_export_asset_as_disk_without_suffix(self):
-        fmt = vms.infer_vm_boot_source_format(
-            asset=SimpleNamespace(
-                source_type="vm_export",
-                format="",
-                source_uri="service://service-a",
-                image_url="tenant-ns:exported-root",
-                name="exported-root"
-            ),
-            image_name="exported-root"
-        )
-
-        self.assertEqual("disk", fmt)
-
-    def test_is_vm_asset_ready_requires_ready_live_export_urls_for_vm_export_assets(self):
-        ready_asset = SimpleNamespace(
-            source_type="vm_export",
-            status="ready",
-            image_url="https://download/rootdisk.qcow2",
-            extra_json=json.dumps({
-                "disks": [
-                    {"disk_key": "rootdisk", "disk_role": "root", "download_url": "https://download/rootdisk.qcow2"},
-                    {"disk_key": "data-1", "disk_role": "data", "download_url": "https://download/data-1.qcow2"}
-                ]
-            })
-        )
-        exporting_asset = SimpleNamespace(
-            source_type="vm_export",
-            status="ready",
-            image_url="https://download/rootdisk.qcow2",
-            extra_json=json.dumps({
-                "disks": [
-                    {"disk_key": "rootdisk", "disk_role": "root", "download_url": "https://download/rootdisk.qcow2"},
-                    {"disk_key": "data-1", "disk_role": "data"}
-                ]
-            })
-        )
-
-        self.assertTrue(vms.is_vm_asset_ready(ready_asset))
-        self.assertFalse(vms.is_vm_asset_ready(exporting_asset))

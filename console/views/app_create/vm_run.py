@@ -166,7 +166,6 @@ class VMRunCreateView(RegionTenantHeaderView):
                     asset = vm_repo.get_vm_image_instance_by_id(self.tenant.tenant_id, asset_id)
                 if not asset and image_name:
                     asset = vm_repo.get_vm_image_instance_by_tenant_id_and_name(self.tenant.tenant_id, image_name)
-                asset = vms.sync_vm_export_asset_record(asset, self.response_region, self.tenant.tenant_name)
                 if asset and not vms.is_vm_asset_ready(asset):
                     return Response(general_message(409, "vm image not ready", "虚拟机镜像导出尚未完成，请稍后再试"), status=409)
                 image = asset.image_url if asset else ""
@@ -183,26 +182,6 @@ class VMRunCreateView(RegionTenantHeaderView):
                             image_url=image,
                             source_uri=getattr(asset, "source_uri", ""),
                         )
-                    live_disk_imports = self.resolve_disk_imports(
-                        asset=asset,
-                        restore_plan=None,
-                        image_name=image_name,
-                        image_url=image,
-                        source_uri=getattr(asset, "source_uri", ""),
-                    )
-                    root_import = self.find_root_disk_import({"disk_imports": live_disk_imports})
-                    if root_import and root_import.get("image_url"):
-                        image = root_import.get("image_url")
-                    if getattr(asset, "source_type", "") == "vm_export" and not live_disk_imports and vms.has_vm_export_machine_manifest(asset):
-                        restore_plan = vms.resolve_vm_export_restore_plan(
-                            asset,
-                            self.response_region,
-                            self.tenant.tenant_name,
-                        )
-                        root_import = self.find_root_disk_import(restore_plan)
-                        if root_import and root_import.get("image_url"):
-                            image = root_import.get("image_url")
-                        boot_source_format = restore_plan.get("boot_source_format") or boot_source_format or "disk"
                 if not image:
                     return Response(general_message(404, "vm image not found", "虚拟机镜像不存在"), status=404)
                 if not (event_id or vm_url):
@@ -231,11 +210,7 @@ class VMRunCreateView(RegionTenantHeaderView):
                 self.response_region, self.tenant, self.user, service_cname, k8s_component_name, image, arch, event_id, vm_url)
             if code != 200:
                 return Response(general_message(code, "service create fail", msg_show), status=code)
-            runtime_disk_layout = (
-                vms.build_vm_export_disk_layout(asset)
-                if asset and getattr(asset, "source_type", "") == "vm_export" and not restore_plan
-                else (restore_plan.get("disk_layout") if restore_plan else None)
-            )
+            runtime_disk_layout = restore_plan.get("disk_layout") if restore_plan else None
             if not runtime_disk_layout:
                 runtime_disk_layout = vms.build_initial_vm_disk_layout(
                     boot_source_format=boot_source_format,
@@ -273,20 +248,6 @@ class VMRunCreateView(RegionTenantHeaderView):
                 vm_url,
                 len(disk_imports),
             )
-            for disk in self.resolve_exported_data_disks(asset, restore_plan):
-                volume_service.add_service_volume(
-                    self.tenant,
-                    new_service,
-                    "/disk",
-                    "vm-file",
-                    disk.get("disk_key") or "disk",
-                    "",
-                    {
-                        "volume_capacity": self.bytes_to_gib(disk.get("size_bytes"))
-                    },
-                    self.user.nick_name,
-                    mode=None
-                )
             if disk_imports:
                 vms.save_vm_disk_imports(
                     self.tenant.tenant_id,
@@ -321,40 +282,3 @@ class VMRunCreateView(RegionTenantHeaderView):
             image_url=image_url,
             source_uri=source_uri,
         )
-
-    @staticmethod
-    def resolve_exported_data_disks(asset=None, restore_plan=None):
-        if asset and getattr(asset, "source_type", "") == "vm_export" and not restore_plan:
-            return vms.resolve_vm_export_data_disks(asset)
-        if not asset or not restore_plan:
-            return []
-        extra = vms._load_json(getattr(asset, "extra_json", ""), {})
-        manifest = extra.get("machine_manifest") or {}
-        manifest_by_key = {
-            disk.get("disk_key"): disk
-            for disk in (manifest.get("disks") or [])
-            if disk.get("disk_key")
-        }
-        resolved = []
-        for disk in (restore_plan.get("disk_layout") or []):
-            if str(disk.get("disk_role", "")).lower() == "root":
-                continue
-            manifest_disk = manifest_by_key.get(disk.get("disk_key"), {})
-            resolved.append({
-                "disk_key": disk.get("disk_key"),
-                "size_bytes": manifest_disk.get("size_bytes", 0),
-            })
-        return resolved
-
-    @staticmethod
-    def bytes_to_gib(value):
-        try:
-            size_bytes = int(value or 0)
-        except (TypeError, ValueError):
-            size_bytes = 0
-        if size_bytes <= 0:
-            return 10
-        gib = size_bytes // (1024 * 1024 * 1024)
-        if size_bytes % (1024 * 1024 * 1024) != 0:
-            gib += 1
-        return gib or 10

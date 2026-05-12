@@ -877,7 +877,9 @@ class AppManageService(AppManageBase):
                 service.save()
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, "组件异常"
+                body = getattr(e, "body", {}) or {}
+                message = body.get("msg_show") or body.get("msg") or body.get("message") or "组件异常"
+                return e.status or 507, message
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, "操作过于频繁，请稍后再试"

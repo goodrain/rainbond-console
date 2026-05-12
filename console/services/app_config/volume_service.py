@@ -440,6 +440,12 @@ class AppVolumeService(object):
                 "volume_name": volume.volume_name
             }
             volume_repo.add_service_config_file(**file_data)
+        if service.extend_method == ComponentType.vm.value and volume_type == "vm-file":
+            from console.services.virtual_machine import vms
+
+            volumes = volume_repo.get_service_volumes(service.service_id)
+            disk_layout = vms.list_vm_disks(service, volumes)
+            vms.save_vm_disk_layout(tenant.tenant_id, service.service_id, disk_layout)
         return volume
 
     def delete_service_volume_by_id(self, tenant, service, volume_id, user_name='', force=None):

@@ -105,3 +105,38 @@ class AppManageStartErrorTests(TestCase):
 
         self.assertEqual(500, code)
         self.assertEqual("vm start blocked: no schedulable node", msg)
+
+    def test_vertical_upgrade_returns_region_reason_instead_of_generic_component_error(self):
+        tenant = mock.Mock(creater="creator", enterprise_id="eid", tenant_name="demo-team")
+        user = mock.Mock(nick_name="tester")
+        service = mock.Mock(
+            min_memory=4096,
+            service_region="demo-region",
+            service_alias="demo-vm",
+            create_status="complete",
+            extend_method="vm",
+        )
+        region_error = RegionApiBaseHttpClient.CallApiError(
+            "region api",
+            "http://region/v2/tenants/demo/services/demo-vm/vertical",
+            "PUT",
+            mock.Mock(status=409),
+            {
+                "msg_show": "当前虚拟机不满足热更新条件，请停机后再修改规格。"
+            },
+        )
+
+        with mock.patch.object(app_manage_module, "check_account_quota", return_value=True), \
+                mock.patch.object(app_manage_module.region_api, "vertical_upgrade", side_effect=region_error):
+            service_manage = app_manage_module.AppManageService()
+            code, msg = service_manage.vertical_upgrade(
+                tenant,
+                service,
+                user,
+                8192,
+                oauth_instance=None,
+                new_cpu=6000,
+            )
+
+        self.assertEqual(409, code)
+        self.assertEqual("当前虚拟机不满足热更新条件，请停机后再修改规格。", msg)
