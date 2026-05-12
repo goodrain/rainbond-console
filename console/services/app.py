@@ -902,7 +902,17 @@ class AppService(object):
         if not attrs:
             return []
         payload = []
+        removed_vm_runtime_attrs = {
+            "vm_network_mode",
+            "vm_network_name",
+            "vm_fixed_ip",
+            "vm_gateway",
+            "vm_dns_servers",
+            "vm_os_family",
+        }
         for attr in attrs:
+            if getattr(service, "extend_method", "") == "vm" and attr.name in removed_vm_runtime_attrs:
+                continue
             payload.append({
                 "name": attr.name,
                 "save_type": attr.save_type,

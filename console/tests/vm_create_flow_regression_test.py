@@ -34,7 +34,6 @@ class VMCreateFlowRegressionTests(TestCase):
     def test_get_vm_capabilities_returns_region_payload(self):
         expected = {
             "chunk_upload_supported": True,
-            "network_modes": ["random", "fixed"],
             "gpu_supported": True,
         }
 
@@ -78,9 +77,6 @@ class VMCreateFlowRegressionTests(TestCase):
                 "gpu_resources": ["gpu.example.com/A10"],
                 "usb_enabled": True,
                 "usb_resources": ["kubevirt.io/usb-a"],
-                "network_mode": "fixed",
-                "network_name": "default/bridge-net",
-                "fixed_ip": "10.250.250.10/24",
                 "asset_id": 18,
                 "clone_source_id": 7,
                 "boot_mode": "uefi"
@@ -93,9 +89,9 @@ class VMCreateFlowRegressionTests(TestCase):
         }
 
         self.assertEqual(json.dumps({"app": "demo"}), attrs["labels"])
-        self.assertEqual("fixed", attrs["vm_network_mode"])
-        self.assertEqual("default/bridge-net", attrs["vm_network_name"])
-        self.assertEqual("10.250.250.10/24", attrs["vm_fixed_ip"])
+        self.assertNotIn("vm_network_mode", attrs)
+        self.assertNotIn("vm_network_name", attrs)
+        self.assertNotIn("vm_fixed_ip", attrs)
         self.assertEqual("true", attrs["vm_gpu_enabled"])
         self.assertEqual("[\"gpu.example.com/A10\"]", attrs["vm_gpu_resources"])
         self.assertEqual("true", attrs["vm_usb_enabled"])
@@ -104,7 +100,7 @@ class VMCreateFlowRegressionTests(TestCase):
         self.assertEqual("7", attrs["vm_asset_clone_source"])
         self.assertEqual("uefi", attrs["vm_boot_mode"])
 
-    def test_save_vm_runtime_config_allows_fixed_ip_without_network_name(self):
+    def test_save_vm_runtime_config_ignores_removed_network_fields(self):
         vms.save_vm_runtime_config(
             "tenant-a",
             "service-a",
@@ -120,9 +116,9 @@ class VMCreateFlowRegressionTests(TestCase):
             for item in ComponentK8sAttributes.objects.filter(component_id="service-a")
         }
 
-        self.assertEqual("fixed", attrs["vm_network_mode"])
-        self.assertEqual("", attrs["vm_network_name"])
-        self.assertEqual("10.42.124.90/24", attrs["vm_fixed_ip"])
+        self.assertNotIn("vm_network_mode", attrs)
+        self.assertNotIn("vm_network_name", attrs)
+        self.assertNotIn("vm_fixed_ip", attrs)
 
     def test_save_vm_runtime_config_removes_disabled_vm_extension_keys(self):
         ComponentK8sAttributes.objects.create(
@@ -160,9 +156,6 @@ class VMCreateFlowRegressionTests(TestCase):
                 "gpu_resources": [],
                 "usb_enabled": False,
                 "usb_resources": [],
-                "network_mode": "random",
-                "network_name": "",
-                "fixed_ip": "",
                 "asset_id": "",
                 "clone_source_id": "",
                 "boot_mode": ""
@@ -174,24 +167,15 @@ class VMCreateFlowRegressionTests(TestCase):
             for item in ComponentK8sAttributes.objects.filter(component_id="service-a")
         }
 
-        self.assertEqual({"labels", "vm_network_mode"}, set(attrs.keys()))
+        self.assertEqual({"labels"}, set(attrs.keys()))
         self.assertEqual(json.dumps({"app": "demo"}), attrs["labels"])
-        self.assertEqual("random", attrs["vm_network_mode"])
 
-    def test_validate_vm_runtime_config_allows_fixed_ip_without_network_name(self):
+    def test_validate_vm_runtime_config_ignores_removed_network_fields(self):
         vms.validate_vm_runtime_config({
             "network_mode": "fixed",
             "network_name": "",
             "fixed_ip": "10.250.250.10/24"
         })
-
-    def test_validate_vm_runtime_config_requires_fixed_ip(self):
-        with self.assertRaises(ValueError):
-            vms.validate_vm_runtime_config({
-                "network_mode": "fixed",
-                "network_name": "default/bridge-net",
-                "fixed_ip": ""
-            })
 
     def test_validate_vm_runtime_config_requires_gpu_resources_when_enabled(self):
         with self.assertRaises(ValueError):
@@ -352,7 +336,7 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
                     "order_index": 0
                 }])
 
-    def test_save_vm_runtime_config_persists_empty_network_name_for_pod_fixed_ip(self):
+    def test_save_vm_runtime_config_does_not_persist_removed_network_fields(self):
         with mock.patch("console.services.virtual_machine.k8s_attribute_repo.get_by_component_id", return_value=[]), \
                 mock.patch.object(vms, "_persist_managed_k8s_attribute") as persist_attr:
             vms.save_vm_runtime_config(
@@ -371,9 +355,9 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
             for call in persist_attr.call_args_list
         }
 
-        self.assertEqual("fixed", persisted["vm_network_mode"])
-        self.assertEqual("", persisted["vm_network_name"])
-        self.assertEqual("10.42.124.90/24", persisted["vm_fixed_ip"])
+        self.assertNotIn("vm_network_mode", persisted)
+        self.assertNotIn("vm_network_name", persisted)
+        self.assertNotIn("vm_fixed_ip", persisted)
 
     def test_resolve_vm_boot_mode_prefers_asset_metadata_when_request_omits_it(self):
         mode = vms.resolve_vm_boot_mode(

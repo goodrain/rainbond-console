@@ -86,7 +86,6 @@ class VirtualMachineServiceTests(TestCase):
     def test_get_vm_capabilities_returns_region_payload(self):
         expected = {
             "chunk_upload_supported": True,
-            "network_modes": ["random", "fixed"],
             "gpu_supported": True,
         }
 
@@ -257,30 +256,9 @@ class VirtualMachineServiceTests(TestCase):
         ComponentK8sAttributes.objects.create(
             tenant_id="tenant-a",
             component_id=service.service_id,
-            name="vm_network_mode",
+            name="vm_os_name",
             save_type="string",
-            attribute_value="fixed"
-        )
-        ComponentK8sAttributes.objects.create(
-            tenant_id="tenant-a",
-            component_id=service.service_id,
-            name="vm_network_name",
-            save_type="string",
-            attribute_value="rbd-plugins/bridge-test"
-        )
-        ComponentK8sAttributes.objects.create(
-            tenant_id="tenant-a",
-            component_id=service.service_id,
-            name="vm_fixed_ip",
-            save_type="string",
-            attribute_value="172.16.20.230/24"
-        )
-        ComponentK8sAttributes.objects.create(
-            tenant_id="tenant-a",
-            component_id=service.service_id,
-            name="vm_os_family",
-            save_type="string",
-            attribute_value="windows"
+            attribute_value="Windows Server 2022"
         )
 
         tenant = SimpleNamespace(
@@ -300,10 +278,7 @@ class VirtualMachineServiceTests(TestCase):
         self.assertIn("component_k8s_attributes", create_payload)
         self.assertEqual(
             {
-                ("vm_network_mode", "fixed"),
-                ("vm_network_name", "rbd-plugins/bridge-test"),
-                ("vm_fixed_ip", "172.16.20.230/24"),
-                ("vm_os_family", "windows"),
+                ("vm_os_name", "Windows Server 2022"),
             },
             {
                 (item["name"], item["attribute_value"])
@@ -330,9 +305,9 @@ class VirtualMachineServiceTests(TestCase):
         ComponentK8sAttributes.objects.create(
             tenant_id="tenant-a",
             component_id="service-a",
-            name="vm_fixed_ip",
+            name="vm_network_name",
             save_type="string",
-            attribute_value="10.0.0.1/24"
+            attribute_value="stale-network"
         )
 
         vms.save_vm_runtime_config(
@@ -343,9 +318,6 @@ class VirtualMachineServiceTests(TestCase):
                 "gpu_resources": ["gpu.example.com/A10"],
                 "usb_enabled": True,
                 "usb_resources": ["kubevirt.io/usb-a"],
-                "network_mode": "fixed",
-                "network_name": "default/bridge-net",
-                "fixed_ip": "10.250.250.10/24",
                 "asset_id": 18,
                 "boot_mode": "uefi"
             }
@@ -357,9 +329,7 @@ class VirtualMachineServiceTests(TestCase):
         }
 
         self.assertEqual(json.dumps({"app": "demo"}), attrs["labels"])
-        self.assertEqual("fixed", attrs["vm_network_mode"])
-        self.assertEqual("default/bridge-net", attrs["vm_network_name"])
-        self.assertEqual("10.250.250.10/24", attrs["vm_fixed_ip"])
+        self.assertNotIn("vm_network_name", attrs)
         self.assertEqual("true", attrs["vm_gpu_enabled"])
         self.assertEqual(json.dumps(["gpu.example.com/A10"]), attrs["vm_gpu_resources"])
         self.assertEqual("true", attrs["vm_usb_enabled"])
@@ -407,9 +377,6 @@ class VirtualMachineServiceTests(TestCase):
                 "gpu_resources": [],
                 "usb_enabled": False,
                 "usb_resources": [],
-                "network_mode": "random",
-                "network_name": "",
-                "fixed_ip": ""
             }
         )
 
@@ -418,9 +385,8 @@ class VirtualMachineServiceTests(TestCase):
             for item in ComponentK8sAttributes.objects.filter(component_id="service-a")
         }
 
-        self.assertEqual({"labels", "vm_network_mode"}, set(attrs.keys()))
+        self.assertEqual({"labels"}, set(attrs.keys()))
         self.assertEqual(json.dumps({"app": "demo"}), attrs["labels"])
-        self.assertEqual("random", attrs["vm_network_mode"])
 
     def test_save_vm_runtime_config_syncs_region_when_service_is_complete(self):
         TenantServiceInfo.objects.create(
@@ -451,9 +417,7 @@ class VirtualMachineServiceTests(TestCase):
                 "tenant-a",
                 "service-a",
                 {
-                    "network_mode": "random",
-                    "network_name": "",
-                    "fixed_ip": "",
+                    "os_name": "Windows Server 2022",
                     "gpu_enabled": False,
                     "gpu_resources": [],
                     "usb_enabled": False,
@@ -465,15 +429,10 @@ class VirtualMachineServiceTests(TestCase):
             "tenant-a",
             "demo-region",
             "service-a",
-            {"name": "vm_network_mode", "save_type": "string", "attribute_value": "random"},
+            {"name": "vm_os_name", "save_type": "string", "attribute_value": "Windows Server 2022"},
         )
         update_attr.assert_not_called()
-        delete_attr.assert_called_once_with(
-            "tenant-a",
-            "demo-region",
-            "service-a",
-            {"name": "vm_network_name"},
-        )
+        delete_attr.assert_not_called()
 
     def test_save_vm_runtime_config_uses_explicit_sync_context_during_create(self):
         TenantServiceInfo.objects.create(
@@ -497,13 +456,10 @@ class VirtualMachineServiceTests(TestCase):
                 "tenant-a",
                 "service-b",
                 {
-                    "network_mode": "fixed",
-                    "network_name": "rbd-plugins/bridge-test",
-                    "fixed_ip": "172.16.20.230/24",
-                    "os_family": "windows",
-                    "os_name": "Windows Server 2022",
-                    "gpu_enabled": False,
-                    "gpu_resources": [],
+                "network_mode": "fixed",
+                "os_name": "Windows Server 2022",
+                "gpu_enabled": False,
+                "gpu_resources": [],
                     "usb_enabled": False,
                     "usb_resources": [],
                 },
@@ -515,26 +471,6 @@ class VirtualMachineServiceTests(TestCase):
             )
 
         create_attr.assert_has_calls([
-            mock.call("tenant-a", "demo-region", "service-b", {
-                "name": "vm_network_mode",
-                "save_type": "string",
-                "attribute_value": "fixed",
-            }),
-            mock.call("tenant-a", "demo-region", "service-b", {
-                "name": "vm_network_name",
-                "save_type": "string",
-                "attribute_value": "rbd-plugins/bridge-test",
-            }),
-            mock.call("tenant-a", "demo-region", "service-b", {
-                "name": "vm_fixed_ip",
-                "save_type": "string",
-                "attribute_value": "172.16.20.230/24",
-            }),
-            mock.call("tenant-a", "demo-region", "service-b", {
-                "name": "vm_os_family",
-                "save_type": "string",
-                "attribute_value": "windows",
-            }),
             mock.call("tenant-a", "demo-region", "service-b", {
                 "name": "vm_os_name",
                 "save_type": "string",
@@ -598,9 +534,6 @@ class VirtualMachineServiceTests(TestCase):
         )
         for name, value in (
             ("vm_asset_id", str(asset.ID)),
-            ("vm_network_mode", "fixed"),
-            ("vm_network_name", "default/bridge-net"),
-            ("vm_fixed_ip", "10.250.250.10/24"),
             ("vm_gpu_enabled", "true"),
             ("vm_gpu_resources", json.dumps(["gpu.example.com/A10"])),
             ("vm_usb_enabled", "true"),
@@ -630,9 +563,9 @@ class VirtualMachineServiceTests(TestCase):
 
         self.assertEqual(asset.ID, profile["asset"]["id"])
         self.assertEqual(asset.name, profile["asset"]["name"])
-        self.assertEqual("fixed", profile["runtime"]["network_mode"])
-        self.assertEqual("default/bridge-net", profile["runtime"]["network_name"])
-        self.assertEqual("10.250.250.10/24", profile["runtime"]["fixed_ip"])
+        self.assertNotIn("network_mode", profile["runtime"])
+        self.assertNotIn("network_name", profile["runtime"])
+        self.assertNotIn("fixed_ip", profile["runtime"])
         self.assertTrue(profile["runtime"]["gpu_enabled"])
         self.assertEqual(["gpu.example.com/A10"], profile["runtime"]["gpu_resources"])
         self.assertTrue(profile["runtime"]["usb_enabled"])
@@ -679,20 +612,12 @@ class VirtualMachineServiceTests(TestCase):
         ):
             self.assertEqual("10.42.0.16", vms.get_vm_current_pod_ip(tenant, service))
 
-    def test_validate_vm_runtime_config_allows_fixed_ip_without_network_name(self):
+    def test_validate_vm_runtime_config_ignores_removed_network_fields(self):
         vms.validate_vm_runtime_config({
             "network_mode": "fixed",
             "network_name": "",
             "fixed_ip": "10.250.250.10/24"
         })
-
-    def test_validate_vm_runtime_config_requires_fixed_ip(self):
-        with self.assertRaises(ValueError):
-            vms.validate_vm_runtime_config({
-                "network_mode": "fixed",
-                "network_name": "default/bridge-net",
-                "fixed_ip": ""
-            })
 
     def test_validate_vm_runtime_config_requires_gpu_resources_when_enabled(self):
         with self.assertRaises(ValueError):

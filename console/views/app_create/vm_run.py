@@ -84,24 +84,12 @@ class VMRunCreateView(RegionTenantHeaderView):
         gpu_count = request.data.get("gpu_count", 1 if gpu_enabled else 0)
         usb_enabled = request.data.get("usb_enabled", False)
         usb_resources = request.data.get("usb_resources", [])
-        network_mode = request.data.get("network_mode", "random")
-        network_name = request.data.get("network_name", "")
-        fixed_ip = request.data.get("fixed_ip", "")
-        gateway = request.data.get("gateway", "")
-        dns_servers = request.data.get("dns_servers", "")
-        os_family = request.data.get("os_family", "")
         runtime_config = {
             "gpu_enabled": gpu_enabled,
             "gpu_resources": gpu_resources,
             "gpu_count": gpu_count,
             "usb_enabled": usb_enabled,
             "usb_resources": usb_resources,
-            "network_mode": network_mode,
-            "network_name": network_name,
-            "fixed_ip": fixed_ip,
-            "gateway": gateway,
-            "dns_servers": dns_servers,
-            "os_family": os_family
         }
         asset_created = False
         restore_plan = None
