@@ -154,14 +154,18 @@ class VirtualMachineService(object):
             return {}
         runtime = self.get_vm_runtime_config(service.service_id)
         asset = self.get_vm_asset_for_service(service, runtime.get("asset_id"))
+        vm_connections = dict(connections or {
+            "vnc_url": "",
+            "console_url": ""
+        })
+        if not current_pod_ip:
+            vm_connections["vnc_url"] = ""
+            vm_connections["console_url"] = ""
         return {
             "asset": self.serialize_vm_image(asset) if asset else {},
             "runtime": runtime,
             "current_pod_ip": current_pod_ip or "",
-            "connections": connections or {
-                "vnc_url": "",
-                "console_url": ""
-            }
+            "connections": vm_connections
         }
 
     def list_vm_disks(self, service, volumes=None):

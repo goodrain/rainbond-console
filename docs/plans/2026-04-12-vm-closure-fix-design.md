@@ -12,7 +12,7 @@ rainbond-ui
       -> KubeVirt / CDI / Multus
 ```
 
-现有实现已经具备虚拟机创建、暂停恢复、VNC、导出到镜像组、保存模板、模板实例化、固定 IP、GPU/USB 等能力入口，但三层之间仍存在语义错配、错误处理缺失、运行时属性未真正落地的问题。
+现有实现已经具备虚拟机创建、暂停恢复、VNC、保存模板、模板实例化、固定 IP、GPU/USB 等能力入口，但三层之间仍存在语义错配、错误处理缺失、运行时属性未真正落地的问题。
 
 ### 1.2 现有基础
 
@@ -25,9 +25,9 @@ rainbond-ui
 - `rainbond-console`
   - `VirtualMachineImage` / `VMTemplate` / `VMTemplateVersion` / `VMTemplateDisk`
   - 虚拟机运行时属性持久化到 `ComponentK8sAttributes`
-  - VM 导出、模板、模板实例化服务逻辑
+  - 模板、模板实例化服务逻辑
 - `rainbond`
-  - VM export / snapshot / capability controller & handler
+  - VM snapshot / capability controller & handler
   - worker 侧 KubeVirt workload conversion
   - VM 固定 IP / GPU / USB / 数据盘导入处理
 
@@ -40,7 +40,6 @@ rainbond-ui
 - 虚拟机创建可正常使用
 - 暂停 / 恢复结果真实，不允许假成功
 - VNC 入口保持正常
-- “导出到镜像组”和“保存模板”语义明确、入口一致
 - 模板实例化可继承并真正应用运行时配置
 - fixed IP、boot mode、probe 等关键能力落到 region 生成物
 
@@ -55,13 +54,11 @@ rainbond-ui
 2. 在组件详情页或侧边栏执行：
    - 暂停 / 恢复
    - 打开 VNC
-   - 导出到镜像组
    - 保存为模板
 3. 在模板中心查看模板详情，并基于模板版本再次创建虚拟机
 
 本次修复后，用户应该得到的结果：
 
-- 点击“导出到镜像组”时，一定创建导出资产，而不是误保存模板
 - 点击“保存为模板”时，一定创建模板版本，而不是创建导出资产
 - pause / unpause 失败时，界面收到真实失败，不再显示“操作成功”
 - 从模板创建出的 VM，网络、boot mode、GPU/USB、probe 等配置能够真正生效
@@ -85,7 +82,6 @@ rainbond-ui
 - 组件详情页 / 侧边栏：
   - VM 暂停 / 恢复
   - VNC 跳转
-  - 导出资产
   - 保存模板
 - 模板中心：
   - 查看模板版本与磁盘布局
@@ -125,22 +121,17 @@ UI Action
 
 本次重点修复四条链路：
 
-1. VM 导出资产
-   - UI 导出按钮
-   - console `AppVMExportView`
-   - rainbond `vm-exports`
-
-2. VM 保存模板
+1. VM 保存模板
    - UI 模板保存入口
    - console `AppVMTemplateView`
    - snapshot + export 组合逻辑
 
-3. VM pause / unpause
+2. VM pause / unpause
    - UI 操作入口
    - console `PauseAppView` / `UNPauseAppView`
    - rainbond pause / unpause handler
 
-4. VM 创建 / 模板实例化
+3. VM 创建 / 模板实例化
    - UI 提交 runtime config
    - console 持久化 k8s attrs
    - rainbond hydrate attrs
@@ -190,8 +181,6 @@ UI Action
 
 #### console API
 
-- `POST /console/teams/{team}/apps/{serviceAlias}/vm-export`
-- `GET /console/teams/{team}/apps/{serviceAlias}/vm-export`
 - `POST /console/teams/{team}/apps/{serviceAlias}/vm-templates`
 - `POST /console/teams/{team}/apps/{serviceAlias}/pause`
 - `POST /console/teams/{team}/apps/{serviceAlias}/unpause`
@@ -201,8 +190,6 @@ UI Action
 
 #### region API
 
-- `POST /v2/tenants/{tenant}/services/{serviceAlias}/vm-exports`
-- `GET /v2/tenants/{tenant}/services/{serviceAlias}/vm-exports/{export_id}`
 - `POST /v2/tenants/{tenant}/services/{serviceAlias}/vm-snapshots`
 - `POST /v2/tenants/{tenant}/services/{serviceAlias}/pause`
 - `POST /v2/tenants/{tenant}/services/{serviceAlias}/un_pause`
@@ -211,7 +198,6 @@ UI Action
 
 本次不做大范围协议改动，重点修正：
 
-- UI 不再把“导出资产”和“保存模板”混成一个操作
 - console 对 region 失败结果做真实映射，不再无条件返回成功
 - runtime attr 中已有的 `vm_boot_mode` 被真正透传到 region conversion
 
@@ -222,10 +208,9 @@ UI Action
 
 #### 1. UI 操作语义统一
 
-- 组件详情页的“导出到镜像组”入口改为调用 `startVMExport`
 - 模板保存入口只调用 `saveVMTemplate`
 - 详情页与侧边栏行为保持一致
-- 为导出 / 模板保存补失败分支，避免 Promise 卡住或 UI 无反馈
+- 为模板保存补失败分支，避免 Promise 卡住或 UI 无反馈
 
 #### 2. console 真实透传 VM 状态操作结果
 
@@ -275,18 +260,17 @@ UI Action
 
 ### Sprint 1: VM 主链路闭环修复
 
-#### Task 1.1: 修复 UI 详情页 VM 导出入口错配
+#### Task 1.1: 修复 UI 详情页模板保存入口行为
 - 仓库：`rainbond-ui`
 - 文件：
   - `src/pages/Component/index.js`
   - `src/models/appControl.js`
 - 实现内容：
-  - 将详情页“导出到镜像组”改为调用 `startVMExport`
   - 保留模板保存逻辑给正确入口使用
-  - 为导出 / 模板保存补失败分支
+  - 为模板保存补失败分支
 - 验收标准：
   - 详情页与侧边栏行为一致
-  - 导出入口不再误创建模板
+  - 模板保存入口行为正确
 
 #### Task 1.2: 修复 console pause / unpause 假成功
 - 仓库：`rainbond-console`
@@ -350,6 +334,4 @@ UI Action
 | VM 服务逻辑 | `rainbond-console/console/services/virtual_machine.py` | asset/template/runtime attr 聚合逻辑 |
 | VM 暂停恢复 | `rainbond-console/console/views/app_manage.py` | pause / unpause view |
 | VM pause service | `rainbond-console/console/services/app_actions/app_manage.py` | region 状态操作封装 |
-| VM export controller | `rainbond/api/controller/vm_export.go` | region VM export controller |
 | VM worker conversion | `rainbond/worker/appm/conversion/version.go` | VM workload 组装、probe、runtime hydration |
-

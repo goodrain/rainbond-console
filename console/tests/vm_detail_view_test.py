@@ -111,3 +111,32 @@ class AppVMDetailViewTests(TestCase):
                 "console_url": ""
             }
         )
+
+    def test_get_hides_vm_url_until_current_vm_pod_ip_is_ready(self):
+        request = self.view.initialize_request(
+            self.factory.get("/console/teams/demo-team/apps/demo-vm/detail")
+        )
+        self.view.request = request
+
+        with mock.patch("console.views.app_overview.group_service.get_services_group_name",
+                        return_value={"service-a": {"group_name": "demo-app", "group_id": 1, "k8s_app": "app-k8s"}}), \
+                mock.patch("console.views.app_overview.volume_repo.get_service_volumes_with_config_file", return_value=[]), \
+                mock.patch("console.views.app_overview.ws_service.get_event_log_ws", return_value="ws://events"), \
+                mock.patch("console.views.app_overview.vms.get_vm_current_pod_ip", return_value=""), \
+                mock.patch("console.views.app_overview.vms.get_vm_profile", return_value={"runtime": {}}) as profile_mock, \
+                mock.patch.object(app_overview, "rbd_plugin_service",
+                                  SimpleNamespace(get_vm_plugin_url=mock.Mock(
+                                      return_value="https://console.example.com:30001"
+                                  )),
+                                  create=True):
+            response = self.view.get(request)
+
+        self.assertEqual("", response.data["data"]["bean"]["vm_url"])
+        profile_mock.assert_called_once_with(
+            self.view.service,
+            current_pod_ip="",
+            connections={
+                "vnc_url": "",
+                "console_url": ""
+            }
+        )
