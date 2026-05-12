@@ -135,6 +135,19 @@ class AppManageBase(object):
 
 
 class AppManageService(AppManageBase):
+    def _cleanup_incomplete_vm_asset(self, tenant, service):
+        if getattr(service, "extend_method", "") != ComponentType.vm.value:
+            return
+        image_url = getattr(service, "image", "")
+        if not image_url:
+            return
+        asset = vm_repo.get_vm_image_instance_by_tenant_id_and_image_url(tenant.tenant_id, image_url)
+        if not asset:
+            return
+        if getattr(asset, "status", "") == "ready" and getattr(asset, "image_url", ""):
+            return
+        vm_repo.delete_vm_image_by_image_url(tenant.tenant_id, image_url)
+
     def start(self, tenant, service, user, oauth_instance):
         if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region,
                                                                                self.ResourceOperationStart):
@@ -1001,7 +1014,7 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             pass
         if service.create_status != "complete":
-            vm_repo.delete_vm_image_by_image_url(tenant.tenant_id, service.image)
+            self._cleanup_incomplete_vm_asset(tenant, service)
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)

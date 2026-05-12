@@ -13,6 +13,29 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "openapi_client" not in sys.modules:
+    openapi_client_module = ModuleType("openapi_client")
+    configuration_module = ModuleType("openapi_client.configuration")
+    rest_module = ModuleType("openapi_client.rest")
+
+    class _DummyConfiguration(object):
+        def __init__(self):
+            self.client_side_validation = False
+            self.host = ""
+            self.api_key = {}
+
+    class _DummyApiException(Exception):
+        status = 500
+        body = ""
+
+    openapi_client_module.ApiClient = object
+    openapi_client_module.MarketOpenapiApi = object
+    configuration_module.Configuration = _DummyConfiguration
+    rest_module.ApiException = _DummyApiException
+
+    sys.modules["openapi_client"] = openapi_client_module
+    sys.modules["openapi_client.configuration"] = configuration_module
+    sys.modules["openapi_client.rest"] = rest_module
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
@@ -20,8 +43,10 @@ import django  # noqa: E402
 
 django.setup()
 
+from django.test import TestCase as DjangoTestCase  # noqa: E402
 from console.services.app_actions import app_manage as app_manage_module  # noqa: E402
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E402
+from www.models.main import TenantServiceInfo, VirtualMachineImage  # noqa: E402
 
 
 class AppManageMarketBuildPreferenceTests(TestCase):
@@ -140,3 +165,41 @@ class AppManageStartErrorTests(TestCase):
 
         self.assertEqual(409, code)
         self.assertEqual("当前虚拟机不满足热更新条件，请停机后再修改规格。", msg)
+
+
+class AppManageIncompleteVMCleanupTests(DjangoTestCase):
+
+    # capability_id: console.vm-asset.incomplete-service-cleanup-preserves-ready-assets
+    def test_truncate_service_keeps_ready_uploaded_vm_asset(self):
+        tenant = mock.Mock(tenant_id="tenant-a")
+        asset = VirtualMachineImage.objects.create(
+            tenant_id="tenant-a",
+            name="win",
+            image_url="default:win",
+            source_type="upload",
+            source_uri="/grdata/package_build/temp/events/demo-event",
+            status="ready"
+        )
+        service = TenantServiceInfo.objects.create(
+            service_id="service-vm-a",
+            tenant_id="tenant-a",
+            service_key="service-vm-a",
+            service_alias="service-vm-a",
+            service_cname="service-vm-a",
+            service_region="demo-region",
+            category="application",
+            version="v1",
+            image=asset.image_url,
+            extend_method="vm",
+            service_source="vm_run",
+            create_status="creating",
+            k8s_component_name="service-vm-a-k8s"
+        )
+
+        service_manage = app_manage_module.AppManageService()
+        with mock.patch.object(app_manage_module.delete_service_repo, "create_delete_service"):
+            service_manage._truncate_service(tenant, service)
+
+        self.assertTrue(
+            VirtualMachineImage.objects.filter(tenant_id="tenant-a", ID=asset.ID).exists()
+        )

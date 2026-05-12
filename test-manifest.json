@@ -7772,6 +7772,24 @@
       "status": "active"
     },
     {
+      "id": "console.vm-asset.incomplete-service-cleanup-preserves-ready-assets",
+      "title": "Preserve ready VM assets when truncating incomplete VM services",
+      "title_zh": "\u5220\u9664\u672a\u5b8c\u6210\u865a\u62df\u673a\u7ec4\u4ef6\u65f6\u4fdd\u7559\u5df2\u5c31\u7eea\u955c\u50cf\u8d44\u4ea7",
+      "interface_type": "workflow",
+      "interface": "console.services.app_actions.app_manage.AppManageService._truncate_service",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageIncompleteVMCleanupTests.test_truncate_service_keeps_ready_uploaded_vm_asset"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-overview.vnc-url-plugin-fallback",
       "title": "Build VM overview VNC URL from plugin fallback",
       "title_zh": "\u5728\u7f3a\u5c11\u67e5\u8be2\u53c2\u6570\u65f6\u4ece\u63d2\u4ef6\u56de\u586b\u865a\u62df\u673a\u6982\u89c8 VNC \u5730\u5740",
@@ -7784,25 +7802,6 @@
         {
           "path": "console/tests/vm_detail_view_test.py",
           "selector": "AppVMDetailViewTests.test_get_builds_vm_vnc_url_from_plugin_fallback_when_query_param_missing"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "rainbond-console.vm-run.disk-asset-create",
-      "title": "Reuse ready runtime image when creating vm from existing disk asset",
-      "title_zh": "\u4ece\u73b0\u6709\u78c1\u76d8\u8d44\u4ea7\u521b\u5efa\u865a\u62df\u673a\u65f6\u590d\u7528\u5df2\u5c31\u7eea\u8fd0\u884c\u65f6\u955c\u50cf",
-      "interface_type": "view_endpoint",
-      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
-      "code_paths": [
-        "console/views/app_create/vm_run.py",
-        "console/services/vm_boot_source.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/vm_asset_instantiation_test.py",
-          "selector": "VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image"
         }
       ],
       "test_type": "regression",
@@ -7825,6 +7824,25 @@
         {
           "path": "console/tests/vm_disk_installer_compat_test.py",
           "selector": "VMInstallerMediaCompatUnitTests.test_list_vm_disks_falls_back_to_asset_format_for_legacy_iso_vm_without_runtime_hint"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "rainbond-console.vm-run.disk-asset-create",
+      "title": "Reuse ready runtime image when creating vm from existing disk asset",
+      "title_zh": "\u4ece\u73b0\u6709\u78c1\u76d8\u8d44\u4ea7\u521b\u5efa\u865a\u62df\u673a\u65f6\u590d\u7528\u5df2\u5c31\u7eea\u8fd0\u884c\u65f6\u955c\u50cf",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
+      "code_paths": [
+        "console/views/app_create/vm_run.py",
+        "console/services/vm_boot_source.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image"
         }
       ],
       "test_type": "regression",
