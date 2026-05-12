@@ -379,6 +379,16 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
 
         self.assertEqual("uefi", mode)
 
+    def test_resolve_vm_boot_mode_does_not_infer_windows_from_image_name_alone(self):
+        mode = vms.resolve_vm_boot_mode(
+            requested_boot_mode="",
+            runtime_config={},
+            image_name="win1021h1",
+            boot_source_format="disk"
+        )
+
+        self.assertEqual("", mode)
+
     def test_resolve_vm_boot_mode_does_not_force_uefi_for_windows_iso(self):
         mode = vms.resolve_vm_boot_mode(
             requested_boot_mode="",

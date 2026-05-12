@@ -659,9 +659,8 @@ class VirtualMachineService(object):
             return explicit
 
         hints = [
+            runtime_config.get("os_name", ""),
             getattr(asset, "os_name", "") if asset else "",
-            getattr(asset, "name", "") if asset else "",
-            image_name,
         ]
         merged_hint = " ".join([str(item or "") for item in hints]).strip().lower()
         if "windows" in merged_hint:
