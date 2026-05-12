@@ -1051,13 +1051,26 @@ class AppService(object):
         if service.extend_method == "vm":
             volumes = volume_repo.get_service_volumes_with_config_file(service.service_id)
             disk_cap = data.get("disk_cap")
+            disk_volume_type = data.get("disk_volume_type")
             if len(volumes) == 0:
-                settings = {}
-                settings['volume_capacity'] = disk_cap
+                settings = {
+                    'volume_capacity': disk_cap
+                }
+                settings, _ = volume_service.build_vm_live_migration_volume_settings(
+                    tenant, service, disk_volume_type, settings)
                 volume_service.add_service_volume(
-                    tenant, service, "/disk", "vm-file", "disk", "", settings, user.nick_name, mode=None)
+                    tenant, service, "/disk", disk_volume_type, "disk", "", settings, user.nick_name, mode=None)
             else:
-                volume = volumes.first()
+                volume = volumes.filter(volume_name="disk").first() or volumes.first()
+                settings = {
+                    'volume_capacity': disk_cap
+                }
+                if disk_volume_type:
+                    settings, option = volume_service.build_vm_live_migration_volume_settings(
+                        tenant, service, disk_volume_type, settings)
+                    volume.volume_type = disk_volume_type
+                    volume.access_mode = settings.get("access_mode", volume.access_mode)
+                    volume.volume_provider_name = option.get("provisioner", "")
                 volume.volume_capacity = disk_cap
                 volume.save()
 

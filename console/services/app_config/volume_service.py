@@ -111,6 +111,40 @@ class AppVolumeService(object):
 
         return base_opts
 
+    def normalize_volume_option_access_modes(self, option):
+        access_modes = option.get("access_mode", []) if isinstance(option, dict) else []
+        if isinstance(access_modes, (list, tuple)):
+            return [str(mode or "").upper() for mode in access_modes if str(mode or "").strip()]
+        if access_modes:
+            return [str(access_modes).upper()]
+        return []
+
+    def get_service_volume_option(self, tenant, service, volume_type):
+        options = self.get_service_support_volume_options(tenant, service)
+        for option in options:
+            if option.get("volume_type") == volume_type:
+                return option
+        return None
+
+    def build_vm_live_migration_volume_settings(self, tenant, service, volume_type, settings=None):
+        option = self.get_service_volume_option(tenant, service, volume_type)
+        if not option:
+            raise ServiceHandleException(
+                msg="vm live migration volume type not found",
+                msg_show="所选存储类型不存在或不可用",
+                status_code=409)
+
+        access_modes = self.normalize_volume_option_access_modes(option)
+        if "RWX" not in access_modes:
+            raise ServiceHandleException(
+                msg="vm live migration volume type must support rwx",
+                msg_show="所选存储类型不支持虚拟机 live migration，请选择共享存储类型",
+                status_code=409)
+
+        next_settings = dict(settings or {})
+        next_settings["access_mode"] = "RWX"
+        return next_settings, option
+
     def get_market_default_volume_type(self, tenant, service, fallback_volume_type):
         region_name = getattr(service, "service_region", "")
         enterprise_id = getattr(tenant, "enterprise_id", "")
@@ -440,7 +474,7 @@ class AppVolumeService(object):
                 "volume_name": volume.volume_name
             }
             volume_repo.add_service_config_file(**file_data)
-        if service.extend_method == ComponentType.vm.value and volume_type == "vm-file":
+        if service.extend_method == ComponentType.vm.value and volume_type != "config-file":
             from console.services.virtual_machine import vms
 
             volumes = volume_repo.get_service_volumes(service.service_id)
