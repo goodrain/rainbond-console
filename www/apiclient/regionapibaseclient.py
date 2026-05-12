@@ -446,6 +446,21 @@ class RegionApiBaseHttpClient(object):
         region = region_repo.get_region_by_region_name(region_name)
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
+
+        if settings.MODULES["RegionToken"]:
+            original_authorization = None
+            for key in list(headers.keys()):
+                if key.lower() == "authorization":
+                    original_authorization = headers.pop(key)
+                    break
+
+            if original_authorization and "X-Original-Authorization" not in headers:
+                headers["X-Original-Authorization"] = original_authorization
+
+            headers["Authorization"] = getattr(region, "token", "") or os.environ.get("REGION_TOKEN", "")
+
+        requests_args['headers'] = headers
+
         client = self.get_client(region_config=region)
         response = client.request(
             method=request.method,

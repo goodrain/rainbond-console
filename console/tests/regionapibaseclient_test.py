@@ -276,3 +276,36 @@ class RegionApiBaseHttpClientTestCase(TestCase):
             b'data: {"choices":[{"delta":{"content":"he"}}]}\n\n'
             b'data: {"choices":[{"delta":{"content":"llo"}}]}\n\n',
         )
+
+    def test_plugin_proxy_replaces_frontend_authorization_with_region_token(self):
+        client = RegionApiBaseHttpClient()
+        request = mock.Mock()
+        request.method = "GET"
+        request.body = b""
+        request.META = {
+            "HTTP_AUTHORIZATION": "GRJWT user-token",
+        }
+
+        region = mock.Mock()
+        region.url = "http://region-api"
+        region.token = "region-token"
+
+        proxy_client = mock.Mock()
+        proxy_client.request.return_value = mock.Mock(
+            data=b"ok",
+            status=200,
+            headers={},
+            url="http://region-api/v2/platform/backend/plugins/rainbond-enterprise-logs/api/ds/query",
+        )
+
+        with mock.patch("www.apiclient.regionapibaseclient.region_repo.get_region_by_region_name", return_value=region), \
+                mock.patch.object(client, "get_client", return_value=proxy_client):
+            client.proxy(
+                request,
+                "/v2/platform/backend/plugins/rainbond-enterprise-logs/api/ds/query",
+                "rainbond",
+            )
+
+        _, kwargs = proxy_client.request.call_args
+        self.assertEqual(kwargs["headers"]["Authorization"], "region-token")
+        self.assertEqual(kwargs["headers"]["X-Original-Authorization"], "GRJWT user-token")
