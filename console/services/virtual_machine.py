@@ -23,6 +23,12 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 VM_RUNTIME_ATTR_SPECS = {
+    "vm_network_mode": "string",
+    "vm_network_name": "string",
+    "vm_fixed_ip": "string",
+    "vm_gateway": "string",
+    "vm_dns_servers": "string",
+    "vm_os_family": "string",
     "vm_os_name": "string",
     "vm_gpu_enabled": "string",
     "vm_gpu_resources": "json",
@@ -275,6 +281,12 @@ class VirtualMachineService(object):
             "boot_mode": attrs.get("vm_boot_mode", ""),
             "boot_source_format": attrs.get("vm_boot_source_format", ""),
             "disk_layout": self._as_list_of_dicts(attrs.get("vm_disk_layout")),
+            "network_mode": attrs.get("vm_network_mode") or "random",
+            "network_name": attrs.get("vm_network_name", ""),
+            "fixed_ip": attrs.get("vm_fixed_ip", ""),
+            "gateway": attrs.get("vm_gateway", ""),
+            "dns_servers": attrs.get("vm_dns_servers", ""),
+            "os_family": attrs.get("vm_os_family", ""),
             "os_name": attrs.get("vm_os_name", ""),
             "gpu_enabled": self._as_bool(attrs.get("vm_gpu_enabled")),
             "gpu_resources": self._as_list(attrs.get("vm_gpu_resources")),
@@ -337,6 +349,10 @@ class VirtualMachineService(object):
         return normalized
 
     def validate_vm_runtime_config(self, runtime_config):
+        network_mode = runtime_config.get("network_mode") or "random"
+        if network_mode == "fixed" and not runtime_config.get("fixed_ip"):
+            raise ValueError("fixed vm network mode requires fixed_ip")
+
         gpu_enabled = self._as_bool(runtime_config.get("gpu_enabled"))
         gpu_resources = self._as_list(runtime_config.get("gpu_resources"))
         if gpu_enabled and not gpu_resources:
@@ -420,7 +436,18 @@ class VirtualMachineService(object):
         return active_vm_services.exclude(service_id__in=bound_service_ids).filter(image=vm_image.image_url).count()
 
     def _build_vm_runtime_attrs(self, runtime_config):
-        attrs = {}
+        attrs = {
+            "vm_network_mode": runtime_config.get("network_mode") or "random"
+        }
+        if attrs["vm_network_mode"] == "fixed":
+            attrs["vm_network_name"] = runtime_config.get("network_name") or ""
+            attrs["vm_fixed_ip"] = runtime_config.get("fixed_ip") or ""
+            attrs["vm_gateway"] = runtime_config.get("gateway") or ""
+            attrs["vm_dns_servers"] = runtime_config.get("dns_servers") or ""
+
+        os_family = runtime_config.get("os_family")
+        if os_family not in (None, ""):
+            attrs["vm_os_family"] = str(os_family)
 
         os_name = runtime_config.get("os_name")
         if os_name not in (None, ""):
