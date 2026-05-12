@@ -23,12 +23,6 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 VM_RUNTIME_ATTR_SPECS = {
-    "vm_network_mode": "string",
-    "vm_network_name": "string",
-    "vm_fixed_ip": "string",
-    "vm_gateway": "string",
-    "vm_dns_servers": "string",
-    "vm_os_family": "string",
     "vm_os_name": "string",
     "vm_gpu_enabled": "string",
     "vm_gpu_resources": "json",
@@ -175,6 +169,7 @@ class VirtualMachineService(object):
             return []
         runtime = self.get_vm_runtime_config(service.service_id)
         asset = self.get_vm_asset_for_service(service, runtime.get("asset_id"))
+        runtime["boot_source_format"] = self._resolve_vm_boot_source_format_for_runtime(runtime, asset)
         volume_items = self._build_vm_volume_disk_items(volumes or [])
         layout = self._resolve_vm_disk_layout_for_service(runtime, asset, volume_items)
         return self._merge_vm_disk_layout_items(layout, volume_items, runtime, asset)
@@ -278,13 +273,8 @@ class VirtualMachineService(object):
             "asset_id": self._to_int(attrs.get("vm_asset_id")),
             "asset_clone_source": attrs.get("vm_asset_clone_source", ""),
             "boot_mode": attrs.get("vm_boot_mode", ""),
+            "boot_source_format": attrs.get("vm_boot_source_format", ""),
             "disk_layout": self._as_list_of_dicts(attrs.get("vm_disk_layout")),
-            "network_mode": attrs.get("vm_network_mode") or "random",
-            "network_name": attrs.get("vm_network_name", ""),
-            "fixed_ip": attrs.get("vm_fixed_ip", ""),
-            "gateway": attrs.get("vm_gateway", ""),
-            "dns_servers": attrs.get("vm_dns_servers", ""),
-            "os_family": attrs.get("vm_os_family", ""),
             "os_name": attrs.get("vm_os_name", ""),
             "gpu_enabled": self._as_bool(attrs.get("vm_gpu_enabled")),
             "gpu_resources": self._as_list(attrs.get("vm_gpu_resources")),
@@ -347,10 +337,6 @@ class VirtualMachineService(object):
         return normalized
 
     def validate_vm_runtime_config(self, runtime_config):
-        network_mode = runtime_config.get("network_mode") or "random"
-        if network_mode == "fixed" and not runtime_config.get("fixed_ip"):
-            raise ValueError("fixed vm network mode requires fixed_ip")
-
         gpu_enabled = self._as_bool(runtime_config.get("gpu_enabled"))
         gpu_resources = self._as_list(runtime_config.get("gpu_resources"))
         if gpu_enabled and not gpu_resources:
@@ -434,19 +420,7 @@ class VirtualMachineService(object):
         return active_vm_services.exclude(service_id__in=bound_service_ids).filter(image=vm_image.image_url).count()
 
     def _build_vm_runtime_attrs(self, runtime_config):
-        attrs = {
-            "vm_network_mode": runtime_config.get("network_mode") or "random"
-        }
-
-        if attrs["vm_network_mode"] == "fixed":
-            attrs["vm_network_name"] = runtime_config.get("network_name") or ""
-            attrs["vm_fixed_ip"] = runtime_config.get("fixed_ip") or ""
-            attrs["vm_gateway"] = runtime_config.get("gateway") or ""
-            attrs["vm_dns_servers"] = runtime_config.get("dns_servers") or ""
-
-        os_family = runtime_config.get("os_family")
-        if os_family not in (None, ""):
-            attrs["vm_os_family"] = str(os_family)
+        attrs = {}
 
         os_name = runtime_config.get("os_name")
         if os_name not in (None, ""):
@@ -513,6 +487,14 @@ class VirtualMachineService(object):
         if inferred:
             return inferred
         return ""
+
+    def _resolve_vm_boot_source_format_for_runtime(self, runtime=None, asset=None):
+        runtime = runtime or {}
+        source_format = str(runtime.get("boot_source_format") or "").strip().lower()
+        if source_format:
+            return source_format
+        inferred = self.infer_vm_boot_source_format(asset=asset)
+        return str(inferred or "").strip().lower()
 
     def build_vm_create_disk_imports(self, asset=None, template_payload=None, image_name="", image_url="", source_uri=""):
         imports = []
