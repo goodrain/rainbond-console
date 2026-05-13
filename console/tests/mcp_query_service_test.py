@@ -965,7 +965,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.get_service_ports")
     @patch("console.services.mcp_query_service.env_var_service.get_self_define_env")
     @patch("console.services.mcp_query_service.env_var_service.get_service_build_envs")
-    @patch("console.services.mcp_query_service.volume_service.get_service_volumes")
+    @patch("console.services.mcp_query_service.volume_service.get_all_service_volumes_with_status")
     @patch("console.services.mcp_query_service.mnt_service.get_service_mnt_details")
     @patch("console.services.mcp_query_service.autoscaler_service.list_autoscaler_rules")
     @patch("console.services.mcp_query_service.probe_service.get_service_probe")
@@ -1477,7 +1477,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     @patch("console.services.mcp_query_service.volume_service.get_service_support_volume_options")
-    @patch("console.services.mcp_query_service.volume_service.get_service_volumes")
+    @patch("console.services.mcp_query_service.volume_service.get_all_service_volumes_with_status")
     @patch("console.services.mcp_query_service.mnt_service.get_service_mnt_details")
     # capability_id: console.component.storage-summary
     def test_manage_component_storage_summary_returns_storage_snapshot(
