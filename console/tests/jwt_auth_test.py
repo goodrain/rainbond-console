@@ -14,7 +14,7 @@ from django.test import SimpleTestCase
 django.setup()
 
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from console.views.base import JSONWebTokenAuthentication
+from console.views.base import JSONWebTokenAuthentication, custom_exception_handler
 
 
 class FakeQuerySet(object):
@@ -61,3 +61,9 @@ class JSONWebTokenAuthenticationTests(SimpleTestCase):
 
         self.assertEqual(auth_user, user)
         get_user.assert_called_once_with(nick_name="user-83847590")
+
+    def test_authentication_expired_returns_401(self):
+        response = custom_exception_handler(AuthenticationInfoHasExpiredError("签名不合法."), {})
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data["code"], 10405)
