@@ -738,7 +738,7 @@ def custom_exception_handler(exc, context):
         return Response(data, status=exc.status_code, headers=headers)
     elif isinstance(exc, AuthenticationInfoHasExpiredError):
         data = {"code": 10405, "msg": "Signature has expired.", "msg_show": "身份认证信息失败，请登录"}
-        return Response(data, status=403)
+        return Response(data, status=401)
     elif isinstance(exc, Http404):
         msg = trans('Not found.')
         data = {'detail': six.text_type(msg)}
