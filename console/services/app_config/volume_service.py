@@ -187,6 +187,42 @@ class AppVolumeService(object):
         settings["changed"] = True
         return settings
 
+    def get_all_service_volumes_with_status(self, tenant, service):
+        # Used by MCP tools that need full visibility into a component's
+        # storage. The legacy `get_service_volumes(is_config_file=...)`
+        # exposes only one half of the volume set per call because the
+        # console web view drives a tabbed UI off that contract; do not
+        # change that contract here.
+        volumes = volume_repo.get_service_volumes_with_config_file(service.service_id)
+        return self._attach_volume_runtime_status(tenant, service, volumes)
+
+    def _attach_volume_runtime_status(self, tenant, service, volumes):
+        vos = []
+        if service.create_status != "complete":
+            for volume in volumes:
+                vo = volume.to_dict()
+                vo["status"] = volume_not_bound
+                vos.append(vo)
+            return vos
+        res, body = region_api.get_service_volumes(
+            service.service_region, tenant.tenant_name, service.service_alias,
+            tenant.enterprise_id)
+        if body and body.list:
+            status = {v["volume_name"]: v["status"] for v in body.list}
+            for volume in volumes:
+                vo = volume.to_dict()
+                vo_status = status.get(vo["volume_name"], None)
+                vo["status"] = volume_not_bound
+                if vo_status and vo_status == volume_ready:
+                    vo["status"] = volume_bound
+                vos.append(vo)
+        else:
+            for volume in volumes:
+                vo = volume.to_dict()
+                vo["status"] = volume_not_bound
+                vos.append(vo)
+        return vos
+
     def get_service_volumes(self, tenant, service, is_config_file=False):
         volumes = []
         if is_config_file:

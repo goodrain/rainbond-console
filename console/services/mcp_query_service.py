@@ -646,7 +646,7 @@ class MCPQueryService(object):
         ports = port_service.get_service_ports(service)
         envs = env_var_service.get_self_define_env(service)
         build_envs = env_var_service.get_service_build_envs(service)
-        volumes = volume_service.get_service_volumes(team, service)
+        volumes = volume_service.get_all_service_volumes_with_status(team, service)
         mnts, mnt_total = mnt_service.get_service_mnt_details(team, service, None, page=1, page_size=1000)
         autoscaler_rules = autoscaler_service.list_autoscaler_rules(service.service_id)
         probe_code, _, probe = probe_service.get_service_probe(service)
@@ -1333,6 +1333,25 @@ class MCPQueryService(object):
         result["service_id"] = service.service_id
         return result
 
+    def _mcp_assert_volume_path_available(self, service, new_volume_path):
+        existing_rows = volume_repo.get_service_volumes_with_config_file(
+            service.service_id
+        ).values("volume_path")
+        for row in existing_rows:
+            existing = row["volume_path"]
+            if existing == new_volume_path:
+                raise ServiceHandleException(
+                    msg="path already exists",
+                    msg_show="持久化路径[{0}]已存在".format(existing),
+                    status_code=412,
+                )
+            if existing.startswith(new_volume_path + "/") or new_volume_path.startswith(existing + "/"):
+                raise ServiceHandleException(
+                    msg="path conflict",
+                    msg_show="已存在以{0}开头的路径".format(existing),
+                    status_code=412,
+                )
+
     def manage_component_storage(self, user, arguments):
         team, app, service = self._get_team_app_service_context(
             user,
@@ -1348,9 +1367,13 @@ class MCPQueryService(object):
             "存储",
         )
         if operation == "summary":
-            is_config = bool(arguments.get("is_config", False))
+            # MCP summary intentionally returns every volume type (including
+            # config-file). The `is_config` argument is kept in the schema
+            # only because `list_unmounted` still uses it; ignoring it here
+            # avoids the historical default-False filter that hid config-file
+            # volumes from AI assistants.
             volume_options = volume_service.get_service_support_volume_options(team, service)
-            volumes = volume_service.get_service_volumes(team, service, is_config)
+            volumes = volume_service.get_all_service_volumes_with_status(team, service)
             mnts, total = mnt_service.get_service_mnt_details(team, service, arguments.get("volume_types"), page=1, page_size=1000)
             return {
                 "service_id": service.service_id,
@@ -1372,10 +1395,17 @@ class MCPQueryService(object):
             )
             return {"items": items, "total": total, "page": page, "page_size": page_size}
         if operation == "create_volume":
+            volume_path = self._require_string(arguments, "volume_path")
+            # The shared `volume_service.check_volume_path` filters out
+            # config-file volumes by design (console contract). MCP creators
+            # need full path-conflict coverage so the AI cannot create a
+            # persistent volume whose path collides with an existing
+            # config-file mount, and vice versa.
+            self._mcp_assert_volume_path_available(service, volume_path)
             volume = volume_service.add_service_volume(
                 team,
                 service,
-                self._require_string(arguments, "volume_path"),
+                volume_path,
                 self._require_string(arguments, "volume_type"),
                 self._require_string(arguments, "volume_name"),
                 arguments.get("file_content"),
