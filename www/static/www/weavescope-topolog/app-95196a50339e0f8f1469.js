@@ -15616,6 +15616,9 @@ function getTopologies(options, dispatch, initialPoll) {
 // 转换好雨云的数据到weaveScope的数据
 function goodrainData2scopeData() {
   var data = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var normalizedData = data && typeof data === 'object' ? data : {};
+  var jsonData = normalizedData.json_data && typeof normalizedData.json_data === 'object' ? normalizedData.json_data : {};
+  var jsonSvg = normalizedData.json_svg && typeof normalizedData.json_svg === 'object' ? normalizedData.json_svg : {};
 
   var scopeData = {
     add: [],
@@ -15623,7 +15626,7 @@ function goodrainData2scopeData() {
     remove: null
   };
   var add = [];
-  var keys = Object.keys(data.json_data);
+  var keys = Object.keys(jsonData);
   var node = {};
   var item = {};
   var cloud = {
@@ -15653,9 +15656,9 @@ function goodrainData2scopeData() {
   }
 
   keys.forEach(function (k) {
-    if (Object.prototype.hasOwnProperty.call(data.json_data, k)) {
+    if (Object.prototype.hasOwnProperty.call(jsonData, k)) {
       node = {};
-      item = data.json_data[k];
+      item = jsonData[k] || {};
       node.cur_status = item.cur_status;
       node.service_cname = item.service_cname;
       node.service_id = item.service_id;
@@ -15671,7 +15674,7 @@ function goodrainData2scopeData() {
       node.stack = true;
       node.stackNum = 1;
       node.linkable = item.cur_status === 'running' ? 1 : 0;
-      node.adjacency = data.json_svg[k] || [];
+      node.adjacency = jsonSvg[k] || [];
       add.push(node);
       if (item.is_internet) {
         cloud.adjacency.push(k);
@@ -15725,12 +15728,15 @@ function goodrainData2scopeData() {
 }
 //处理 operator 类型数据
 function handleOperatorInfo(data) {
-  var keys = Object.keys(data.json_data);
+  var normalizedData = data && typeof data === 'object' ? data : {};
+  var jsonData = normalizedData.json_data && typeof normalizedData.json_data === 'object' ? normalizedData.json_data : {};
+  var jsonSvg = normalizedData.json_svg && typeof normalizedData.json_svg === 'object' ? normalizedData.json_svg : {};
+  var keys = Object.keys(jsonData);
   var arr = [];
   keys.forEach(function (k) {
-    if (Object.prototype.hasOwnProperty.call(data.json_data, k)) {
+    if (Object.prototype.hasOwnProperty.call(jsonData, k)) {
       var node = {};
-      var item = data.json_data[k];
+      var item = jsonData[k] || {};
       node.cur_status = item.cur_status;
       node.service_cname = item.service_cname;
       node.service_id = item.service_id;
@@ -15751,7 +15757,7 @@ function handleOperatorInfo(data) {
       node.runtime = item.runtime;
       node.readyReplicas = item.readyReplicas;
       node.linkable = item.cur_status === 'running' ? 1 : 0;
-      node.adjacency = data.json_svg[k] || [];
+      node.adjacency = jsonSvg[k] || [];
       arr.push(node);
     }
   });
@@ -15834,7 +15840,7 @@ function getNodeDetails(topologyUrlsById, currentTopologyId, options, nodeMap, d
   // get details for all opened nodes
 
   var windowParent = window.parent;
-  var obj = nodeMap.last();
+  var obj = nodeMap && nodeMap.last ? nodeMap.last() : null;
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   dispatch({
     type: "TEAM_NAME",
@@ -15843,7 +15849,7 @@ function getNodeDetails(topologyUrlsById, currentTopologyId, options, nodeMap, d
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   if (obj && serviceAlias && tenantName && groupId) {
-    var topologyUrl = topologyUrlsById.get(obj.topologyId);
+    var topologyUrl = obj.topologyId ? topologyUrlsById.get(obj.topologyId) : '';
     var url = '';
     if (obj.id === 'The Internet') {
       url = '/console/teams/' + tenantName + '/' + groupId + '/outer-service?region=' + region + '&_=' + new Date().getTime();
@@ -15883,13 +15889,13 @@ function getNodeDetails(topologyUrlsById, currentTopologyId, options, nodeMap, d
 //获取组件磁盘信息
 function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   var windowParent = window.parent;
-  var obj = nodeMap.last();
+  var obj = nodeMap && nodeMap.last ? nodeMap.last() : null;
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   var url = '';
-  if (serviceAlias && tenantName) {
-    var topologyUrl = topologyUrlsById.get(obj.topologyId);
+  if (obj && serviceAlias && tenantName) {
+    var topologyUrl = obj.topologyId ? topologyUrlsById.get(obj.topologyId) : '';
     url = '/console/teams/' + tenantName + '/apps/' + serviceAlias + '/resource?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
@@ -15917,13 +15923,13 @@ function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, dispatc
 // 获取运行实例
 function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   var windowParent = window.parent;
-  var obj = nodeMap.last();
+  var obj = nodeMap && nodeMap.last ? nodeMap.last() : null;
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   var url = '';
-  if (serviceAlias && tenantName) {
-    var topologyUrl = topologyUrlsById.get(obj.topologyId);
+  if (obj && serviceAlias && tenantName) {
+    var topologyUrl = obj.topologyId ? topologyUrlsById.get(obj.topologyId) : '';
     url = '/console/teams/' + tenantName + '/apps/' + serviceAlias + '/pods?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
@@ -15936,7 +15942,8 @@ function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch
           res.cur_status = 'running';
         }
         res = res || {};
-        var data = res.data.list.new_pods || [];
+        var list = res.data && res.data.list || {};
+        var data = Array.isArray(list.new_pods) ? list.new_pods : [];
         dispatch({
           type: "GET_PODS",
           data: data
@@ -15951,13 +15958,13 @@ function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch
 //获取组件访问信息
 function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   var windowParent = window.parent;
-  var obj = nodeMap.last();
+  var obj = nodeMap && nodeMap.last ? nodeMap.last() : null;
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   var url = '';
-  if (serviceAlias && tenantName) {
-    var topologyUrl = topologyUrlsById.get(obj.topologyId);
+  if (obj && serviceAlias && tenantName) {
+    var topologyUrl = obj.topologyId ? topologyUrlsById.get(obj.topologyId) : '';
     url = '/console/teams/' + tenantName + '/apps/' + serviceAlias + '/visit?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
@@ -15970,7 +15977,9 @@ function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispat
           res.cur_status = 'running';
         }
         res = res || {};
-        var data = res.data.bean.access_info[0] || {};
+        var bean = res.data && res.data.bean || {};
+        var accessInfo = Array.isArray(bean.access_info) ? bean.access_info : [];
+        var data = accessInfo[0] || {};
         dispatch({
           type: "VISIT_INFO",
           data: data
@@ -16008,13 +16017,13 @@ function UserPermission(dispatch) {
 //获取应用访问信息
 function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   var windowParent = window.parent;
-  var obj = nodeMap.last();
+  var obj = nodeMap && nodeMap.last ? nodeMap.last() : null;
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   var url = '';
-  if (serviceAlias && tenantName) {
-    var topologyUrl = topologyUrlsById.get(obj.topologyId);
+  if (obj && serviceAlias && tenantName) {
+    var topologyUrl = obj.topologyId ? topologyUrlsById.get(obj.topologyId) : '';
     url = '/console/teams/' + tenantName + '/group/service/visitservice_alias=' + serviceAlias + '?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
@@ -16042,13 +16051,13 @@ function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dis
 //应用下面的组件数量
 function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   var windowParent = window.parent;
-  var obj = nodeMap.last();
+  var obj = nodeMap && nodeMap.last ? nodeMap.last() : null;
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   var url = '';
-  if (serviceAlias && tenantName) {
-    var topologyUrl = topologyUrlsById.get(obj.topologyId);
+  if (obj && serviceAlias && tenantName) {
+    var topologyUrl = obj.topologyId ? topologyUrlsById.get(obj.topologyId) : '';
     url = '/console/teams/' + tenantName + '/groups/' + groupId + '?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
@@ -16076,13 +16085,13 @@ function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, di
 //应用下的基本信息
 function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   var windowParent = window.parent;
-  var obj = nodeMap.last();
+  var obj = nodeMap && nodeMap.last ? nodeMap.last() : null;
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   var url = '';
-  if (serviceAlias && tenantName) {
-    var topologyUrl = topologyUrlsById.get(obj.topologyId);
+  if (obj && serviceAlias && tenantName) {
+    var topologyUrl = obj.topologyId ? topologyUrlsById.get(obj.topologyId) : '';
     url = '/console/teams/' + tenantName + '/groups/' + groupId + '/status?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
@@ -16124,27 +16133,32 @@ function Podname(serviceAlias) {
 
           res.rank = res.cur_status;
           res = res || {};
-          var data = res.data.list.new_pods[0].pod_name || [];
+          var list = res.data && res.data.list || {};
+          var newPods = Array.isArray(list.new_pods) ? list.new_pods : [];
+          var data = newPods[0] ? newPods[0].pod_name : '';
           resolve(data);
         },
         error: function error(err) {
           log('Error in node details request: ' + err.responseText);
           // dont treat missing node as error
+          resolve('');
         }
       });
+      return;
     }
+    resolve('');
   });
 }
 // 获取实例中的容器信息
 async function Dateils(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias) {
   var padname = await Podname(serviceAlias);
   var windowParent = window.parent;
-  var obj = nodeMap.last();
+  var obj = nodeMap && nodeMap.last ? nodeMap.last() : null;
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   if (obj && serviceAlias && tenantName && groupId && padname) {
-    var topologyUrl = topologyUrlsById.get(obj.topologyId);
+    var topologyUrl = obj.topologyId ? topologyUrlsById.get(obj.topologyId) : '';
     var url = '';
     if (obj.id === 'The Internet') {
       url = '/console/teams/' + tenantName + '/' + groupId + '/outer-service?region=' + region + '&_=' + new Date().getTime();
@@ -35948,8 +35962,12 @@ var initialState = exports.initialState = (0, _immutable.Map)({
   contrastMode: false,
   controlPipes: (0, _immutable.OrderedMap)(), // pipeId -> controlPipe
   controlStatus: (0, _immutable.Map)(),
-  currentTopology: null,
-  currentTopologyId: null,
+  currentTopology: (0, _immutable.Map)({
+    id: 'services',
+    parentId: null,
+    stats: (0, _immutable.Map)()
+  }),
+  currentTopologyId: 'services',
   errorUrl: null,
   exportingGraph: false,
   forceRelayout: false,
