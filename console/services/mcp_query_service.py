@@ -991,8 +991,19 @@ class MCPQueryService(object):
             self._require_int(arguments, "app_id"),
         )
         action = self._require_string(arguments, "action")
+        supported_actions = ("start", "stop", "restart", "upgrade", "deploy")
+        if action not in supported_actions:
+            raise ServiceHandleException(
+                msg="unsupported action", msg_show="不支持的应用操作: {}".format(action), status_code=400)
         service_ids = arguments.get("service_ids") or self._get_app_service_ids(app)
-        result = app_manage_service.batch_operations(team, app.region_name, user, action, service_ids, None)
+        if action == "restart":
+            code, msg, result = app_manage_service.batch_action(
+                app.region_name, team, user, action, service_ids, None, None)
+            if code != 200:
+                raise ServiceHandleException(msg="batch restart error", msg_show=msg, status_code=code)
+            result = [self._serialize_model_item(service) for service in result]
+        else:
+            result = app_manage_service.batch_operations(team, app.region_name, user, action, service_ids, None)
         return {
             "app_id": app.ID,
             "action": action,
@@ -4847,14 +4858,17 @@ class MCPQueryService(object):
     def _tool_operate_app(self):
         return {
             "name": "rainbond_operate_app",
-            "description": "Batch operate application components. Supported actions: start, stop, upgrade, deploy.",
+            "description": "Batch operate application components. Supported actions: start, stop, restart, upgrade, deploy.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "team_name": {"type": "string"},
                     "region_name": {"type": "string"},
                     "app_id": {"type": "integer", "minimum": 1},
-                    "action": {"type": "string"},
+                    "action": {
+                        "type": "string",
+                        "enum": ["start", "stop", "restart", "upgrade", "deploy"]
+                    },
                     "service_ids": {
                         "type": "array",
                         "items": {"type": "string"}

@@ -2498,6 +2498,55 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.app_manage_service.batch_action")
+    @patch("console.services.mcp_query_service.app_manage_service.batch_operations")
+    # capability_id: console.app.restart-component-operation
+    def test_operate_app_restart_calls_batch_action(
+            self,
+            mock_batch_operations,
+            mock_batch_action,
+            mock_relations,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_batch_action.return_value = (200, "success", [self.service])
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_operate_app",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "action": "restart",
+            },
+        )
+
+        self.assertEqual(result["action"], "restart")
+        self.assertEqual(result["service_ids"], ["svc-1"])
+        self.assertEqual(result["result"][0]["service_id"], "svc-1")
+        mock_batch_action.assert_called_once_with(
+            "rainbond", self.team, self.user, "restart", ["svc-1"], None, None)
+        mock_batch_operations.assert_not_called()
+
+    def test_operate_app_schema_limits_supported_actions(self):
+        tools = mcp_query_service.list_tools(self.user)
+        operate_app_tool = [tool for tool in tools if tool["name"] == "rainbond_operate_app"][0]
+
+        self.assertEqual(
+            operate_app_tool["inputSchema"]["properties"]["action"]["enum"],
+            ["start", "stop", "restart", "upgrade", "deploy"],
+        )
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     # capability_id: console.component.change-image
