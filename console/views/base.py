@@ -149,12 +149,29 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         # Fallback: try 'username' field for external JWT (e.g., from Rainbill portal)
         if not username:
             username = payload.get('username')
-        
-        if not username:
+
+        user_id = payload.get('user_id')
+        if not username and not user_id:
             msg = _('认证信息不合法.')
             # raise exceptions.AuthenticationFailed(msg)
             logger.debug('==========================>{}'.format(msg))
             raise AuthenticationInfoHasExpiredError(msg)
+
+        if user_id:
+            try:
+                user = Users.objects.filter(user_id=int(user_id)).first()
+            except (TypeError, ValueError):
+                user = None
+            if user:
+                if username and user.nick_name != username:
+                    msg = _('认证信息不合法.')
+                    logger.warning("jwt payload user mismatch: user_id=%s username=%s db_username=%s", user_id, username,
+                                   user.nick_name)
+                    raise AuthenticationInfoHasExpiredError(msg)
+                if not user.is_active:
+                    msg = _('用户身份未激活.')
+                    raise AuthenticationInfoHasExpiredError(msg)
+                return user
 
         try:
             user = Users.objects.get(nick_name=username)
