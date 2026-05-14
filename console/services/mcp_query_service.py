@@ -69,6 +69,18 @@ class MCPQueryService(object):
     CONFIRM_SALT = "console.mcp.delete_app"
     CONFIRM_MAX_AGE_SECONDS = 300
     MAX_PAGE_SIZE = 200
+    DISPLAY_APP_NAME_PATTERN = r"^[a-zA-Z0-9_\.\-\u4e00-\u9fa5]+$"
+    DISPLAY_APP_NAME_MAX_LENGTH = 128
+    DISPLAY_APP_NAME_DESCRIPTION = (
+        "应用展示名称。支持中文、英文、数字、下划线、中划线和点；"
+        "长度不超过128个字符；"
+        "不支持空格、斜杠、括号、emoji 等其他特殊字符。"
+    )
+    SERVER_LOCAL_PATH_DESCRIPTION = (
+        "本地文件或目录路径。该路径必须能被 rainbond-console 进程所在机器或容器直接访问；"
+        "若传目录，会先压缩为 zip 后再上传；"
+        "这里的 local_path 不是 MCP 客户端本机路径。"
+    )
     PORT_ALIAS_PATTERN = r"^[A-Z][A-Z0-9_]*$"
     PORT_ALIAS_DESCRIPTION = (
         "端口别名。新增端口时通常不必传，留空由系统自动生成；"
@@ -86,6 +98,19 @@ class MCPQueryService(object):
         "应用英文名 / K8s app name。默认建议不传，由系统生成或在后端回填；"
         "若手动填写，必须以小写字母开头，只能包含小写字母、数字和连字符，"
         "并且在同团队同集群下唯一，例如 demo-app。"
+    )
+    IMAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION = (
+        "默认资源规范：镜像创建组件在生成时默认使用 512MB 内存和 0m CPU；"
+        "若后续未做手动调整，构建和部署阶段继续沿用该默认资源。"
+    )
+    SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION = (
+        "默认资源规范：源码/软件包组件在生成时默认使用 128MB 内存，"
+        "CPU 按 memory/128*20 计算；检测成功后，默认资源会规范化为"
+        "“检测内存值向下对齐到 32MB 整数倍 + 500m CPU”。"
+    )
+    BUILD_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION = (
+        "默认资源说明：本步骤不会重新计算默认资源，"
+        "而是沿用组件当前的 min_memory/min_cpu。"
     )
     PORT_ACTION_ENUM = (
         "open_outer", "only_open_outer", "close_outer", "open_inner",
@@ -537,24 +562,14 @@ class MCPQueryService(object):
         app_name = self._require_string(arguments, "app_name")
         app_note = arguments.get("app_note", "") or ""
         k8s_app = arguments.get("k8s_app", "") or ""
-        try:
-            app = group_service.create_app(
-                team,
-                region_name,
-                app_name,
-                app_note,
-                self._get_username(user),
-                k8s_app=k8s_app if k8s_app else "",
-            )
-        except ServiceHandleException as exc:
-            raise ServiceHandleException(
-                msg=exc.msg,
-                msg_show=exc.msg_show,
-                status_code=exc.status_code,
-                error_code=exc.error_code,
-                details=self._build_create_app_error_details(exc, app_name, k8s_app),
-            )
-        return app
+        return self._create_app_with_mcp_error_details(
+            team=team,
+            region_name=region_name,
+            app_name=app_name,
+            app_note=app_note,
+            username=self._get_username(user),
+            k8s_app=k8s_app,
+        )
 
     def get_component_detail(self, user, arguments):
         team, app, service = self._get_team_app_service_context(
@@ -1883,13 +1898,13 @@ class MCPQueryService(object):
         if not snapshot_version:
             raise ServiceHandleException(msg="snapshot version invalid", msg_show="快照版本无效", status_code=400)
 
-        created_app = group_service.create_app(
-            team,
-            region_name,
-            target_app_name,
-            target_app_note,
-            self._get_username(user),
-            k8s_app=k8s_app if k8s_app else "",
+        created_app = self._create_app_with_mcp_error_details(
+            team=team,
+            region_name=region_name,
+            app_name=target_app_name,
+            app_note=target_app_note,
+            username=self._get_username(user),
+            k8s_app=k8s_app,
         )
         target_app_id = (
             self._value(created_app, "ID") or
@@ -3666,6 +3681,26 @@ class MCPQueryService(object):
         msg = getattr(exc, "msg", "") or ""
         msg_show = getattr(exc, "msg_show", "") or ""
         error_code = getattr(exc, "error_code", None)
+        if msg == "app_name illegal":
+            if "最多支持128个字符" in msg_show:
+                return {
+                    "field": "app_name",
+                    "reason": "too_long",
+                    "provided_value": app_name,
+                    "max_length": self.DISPLAY_APP_NAME_MAX_LENGTH,
+                    "suggestion": "请将应用名称缩短到128个字符以内。",
+                    "retryable": False,
+                }
+            return {
+                "field": "app_name",
+                "reason": "pattern_mismatch",
+                "provided_value": app_name,
+                "expected_pattern": self.DISPLAY_APP_NAME_PATTERN,
+                "max_length": self.DISPLAY_APP_NAME_MAX_LENGTH,
+                "examples": ["demo-app", "演示应用", "demo_app.v1"],
+                "suggestion": "请使用中文、英文、数字、下划线、中划线或点，不要包含空格或其他特殊字符。",
+                "retryable": False,
+            }
         if error_code in (11011, 21003) or "k8s app" in msg.lower() or "应用英文名已存在" in msg_show:
             return {
                 "field": "k8s_app",
@@ -3696,6 +3731,25 @@ class MCPQueryService(object):
                 "retryable": False,
             }
         return None
+
+    def _create_app_with_mcp_error_details(self, team, region_name, app_name, app_note, username, k8s_app=""):
+        try:
+            return group_service.create_app(
+                team,
+                region_name,
+                app_name,
+                app_note,
+                username,
+                k8s_app=k8s_app if k8s_app else "",
+            )
+        except ServiceHandleException as exc:
+            raise ServiceHandleException(
+                msg=exc.msg,
+                msg_show=exc.msg_show,
+                status_code=exc.status_code,
+                error_code=exc.error_code,
+                details=self._build_create_app_error_details(exc, app_name, k8s_app),
+            )
 
     @staticmethod
     def _parse_int_with_default(value, default):
@@ -4541,7 +4595,12 @@ class MCPQueryService(object):
                 "properties": {
                     "team_name": {"type": "string"},
                     "region_name": {"type": "string"},
-                    "app_name": {"type": "string", "description": "应用展示名称。支持中文、英文、数字、下划线、中划线和点。"},
+                    "app_name": {
+                        "type": "string",
+                        "description": self.DISPLAY_APP_NAME_DESCRIPTION,
+                        "pattern": self.DISPLAY_APP_NAME_PATTERN,
+                        "maxLength": self.DISPLAY_APP_NAME_MAX_LENGTH,
+                    },
                     "app_note": {"type": "string"},
                     "k8s_app": {
                         "type": "string",
@@ -4817,7 +4876,10 @@ class MCPQueryService(object):
     def _tool_create_component(self):
         return {
             "name": "rainbond_create_component",
-            "description": "Create a component from image in the specified application.",
+            "description": (
+                "Create a component from image in the specified application. "
+                + self.IMAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -5097,7 +5159,12 @@ class MCPQueryService(object):
                     "region_name": {"type": "string"},
                     "source_app_id": {"type": "integer", "minimum": 1},
                     "version_id": {"type": "integer", "minimum": 1},
-                    "target_app_name": {"type": "string"},
+                    "target_app_name": {
+                        "type": "string",
+                        "description": self.DISPLAY_APP_NAME_DESCRIPTION,
+                        "pattern": self.DISPLAY_APP_NAME_PATTERN,
+                        "maxLength": self.DISPLAY_APP_NAME_MAX_LENGTH,
+                    },
                     "target_app_note": {"type": "string"},
                     "k8s_app": {
                         "type": "string",
@@ -5316,7 +5383,10 @@ class MCPQueryService(object):
     def _tool_build_component(self):
         return {
             "name": "rainbond_build_component",
-            "description": "Step 4 of component creation: confirm creation and build or deploy the component.",
+            "description": (
+                "Step 4 of component creation: confirm creation and build or deploy the component. "
+                + self.BUILD_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -5672,6 +5742,7 @@ class MCPQueryService(object):
                     "source": {"type": "string", "enum": ["local", "cloud"]},
                     "market_name": {"type": "string", "description": "Required when source=cloud."},
                     "app_model_id": {"type": "string"},
+                    "app_model_name": {"type": "string", "description": "Optional display-only template name."},
                     "app_model_version": {"type": "string"},
                     "is_deploy": {"type": "boolean"}
                 },
@@ -5707,7 +5778,10 @@ class MCPQueryService(object):
     def _tool_create_component_from_source(self):
         return {
             "name": "rainbond_create_component_from_source",
-            "description": "Create a source-code component with automatic detection and default configuration, then build it in one flow.",
+            "description": (
+                "Create a source-code component with automatic detection and default configuration, then build it in one flow. "
+                + self.SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -5763,7 +5837,10 @@ class MCPQueryService(object):
     def _tool_create_component_from_package(self):
         return {
             "name": "rainbond_create_component_from_package",
-            "description": "Create a component from an uploaded software package event in one flow after upload is complete.",
+            "description": (
+                "Create a component from an uploaded software package event in one flow after upload is complete. "
+                + self.SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -5807,7 +5884,7 @@ class MCPQueryService(object):
                     "event_id": {"type": "string"},
                     "local_path": {
                         "type": "string",
-                        "description": "本地文件或目录路径。若传目录，会先压缩为 zip 后再上传。"
+                        "description": self.SERVER_LOCAL_PATH_DESCRIPTION
                     },
                     "archive_name": {
                         "type": "string",
@@ -5851,7 +5928,10 @@ class MCPQueryService(object):
     def _tool_create_component_from_local_package(self):
         return {
             "name": "rainbond_create_component_from_local_package",
-            "description": "Create a component from a local package file or directory in one flow: zip if needed, upload, detect, build, and optionally deploy.",
+            "description": (
+                "Create a component from a local package file or directory in one flow: zip if needed, upload, detect, build, and optionally deploy. "
+                + self.SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -5860,7 +5940,7 @@ class MCPQueryService(object):
                     "app_id": {"type": "integer", "minimum": 1},
                     "local_path": {
                         "type": "string",
-                        "description": "本地文件或目录路径。目录会先压缩为 zip，再走软件包上传构建流程。"
+                        "description": self.SERVER_LOCAL_PATH_DESCRIPTION
                     },
                     "archive_name": {
                         "type": "string",
@@ -5913,7 +5993,10 @@ class MCPQueryService(object):
     def _tool_create_component_from_image(self):
         return {
             "name": "rainbond_create_component_from_image",
-            "description": "Create a component from image in the specified application.",
+            "description": (
+                "Create a component from image in the specified application. "
+                + self.IMAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {

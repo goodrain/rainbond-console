@@ -112,6 +112,18 @@ class AppCheckServiceBuildStrategyTests(TestCase):
         self.assertEqual(service.language, "Java-maven")
         self.assertEqual(service.build_strategy, "cnb")
 
+    def test_normalize_detected_default_resources_rounds_memory_to_32mb_and_sets_cpu(self):
+        resources = self.service_helper.normalize_detected_default_resources({"memory": 257})
+
+        self.assertEqual(resources["min_memory"], 256)
+        self.assertEqual(resources["min_cpu"], 500)
+
+    def test_normalize_detected_default_resources_defaults_missing_memory_to_128(self):
+        resources = self.service_helper.normalize_detected_default_resources({})
+
+        self.assertEqual(resources["min_memory"], 128)
+        self.assertEqual(resources["min_cpu"], 500)
+
     def test_save_service_info_keeps_explicit_slug_strategy(self):
         service = DummyService(build_strategy="slug")
 

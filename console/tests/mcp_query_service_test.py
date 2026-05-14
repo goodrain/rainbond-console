@@ -342,8 +342,21 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         k8s_app_schema = tool["inputSchema"]["properties"]["k8s_app"]
 
         self.assertIn("展示名称", app_name_schema["description"])
+        self.assertEqual(app_name_schema["maxLength"], 128)
+        self.assertEqual(app_name_schema["pattern"], r"^[a-zA-Z0-9_\.\-\u4e00-\u9fa5]+$")
+        self.assertIn("不支持空格", app_name_schema["description"])
         self.assertEqual(k8s_app_schema["pattern"], r"^[a-z]([-a-z0-9]*[a-z0-9])?$")
         self.assertIn("默认建议不传", k8s_app_schema["description"])
+
+    # capability_id: console.app-version.target-app-name-schema
+    def test_create_app_from_snapshot_version_tool_exposes_target_app_name_constraints(self):
+        tool = mcp_query_service._tool_create_app_from_snapshot_version()
+
+        target_app_name_schema = tool["inputSchema"]["properties"]["target_app_name"]
+
+        self.assertEqual(target_app_name_schema["maxLength"], 128)
+        self.assertEqual(target_app_name_schema["pattern"], r"^[a-zA-Z0-9_\.\-\u4e00-\u9fa5]+$")
+        self.assertIn("不支持空格", target_app_name_schema["description"])
 
     # capability_id: console.gateway.source-code-from-schema
     def test_create_component_from_source_schema_exposes_code_from_guidance(self):
@@ -367,7 +380,19 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
 
         self.assertEqual(tool["name"], "rainbond_upload_package_file")
         self.assertIn("本地文件或目录路径", local_path_schema["description"])
+        self.assertIn("rainbond-console", local_path_schema["description"])
+        self.assertIn("不是 MCP 客户端本机路径", local_path_schema["description"])
         self.assertIn("zip", archive_name_schema["description"])
+
+    # capability_id: console.package-upload.local-path-create-schema
+    def test_create_component_from_local_package_tool_schema_exposes_server_side_local_path_guidance(self):
+        tool = mcp_query_service._tool_create_component_from_local_package()
+
+        local_path_schema = tool["inputSchema"]["properties"]["local_path"]
+
+        self.assertIn("本地文件或目录路径", local_path_schema["description"])
+        self.assertIn("rainbond-console", local_path_schema["description"])
+        self.assertIn("不是 MCP 客户端本机路径", local_path_schema["description"])
 
     # capability_id: console.gateway.dependency-container-port-schema
     def test_manage_component_dependency_schema_exposes_container_port_guidance(self):
@@ -408,6 +433,23 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("replace_build_envs", build_info_schema["description"])
         self.assertEqual(build_info_schema["properties"]["repo_url"]["type"], "string")
         self.assertEqual(build_info_schema["properties"]["password"]["type"], "string")
+
+    # capability_id: console.component.default-resource-spec
+    def test_component_creation_tools_expose_default_resource_guidance(self):
+        image_tool = mcp_query_service._tool_create_component_from_image()
+        source_tool = mcp_query_service._tool_create_component_from_source()
+        package_tool = mcp_query_service._tool_create_component_from_package()
+        build_tool = mcp_query_service._tool_build_component()
+
+        self.assertIn("512MB", image_tool["description"])
+        self.assertIn("0m CPU", image_tool["description"])
+        self.assertIn("128MB", source_tool["description"])
+        self.assertIn("500m CPU", source_tool["description"])
+        self.assertIn("32MB", source_tool["description"])
+        self.assertIn("128MB", package_tool["description"])
+        self.assertIn("500m CPU", package_tool["description"])
+        self.assertIn("默认资源", build_tool["description"])
+        self.assertIn("沿用组件当前", build_tool["description"])
 
     # capability_id: console.component.operation-aliases
     def test_normalize_component_operation_aliases(self):
@@ -3076,6 +3118,73 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.create_app")
+    # capability_id: console.gateway.create-app-invalid-display-name
+    def test_create_app_returns_structured_details_for_illegal_app_name(
+            self, mock_create_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_create_app.side_effect = ServiceHandleException(
+            msg="app_name illegal",
+            msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点",
+        )
+
+        with self.assertRaises(ServiceHandleException) as context:
+            mcp_query_service.call_tool(
+                self.user,
+                "rainbond_create_app",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "app_name": "demo app",
+                },
+            )
+
+        self.assertEqual(context.exception.details["field"], "app_name")
+        self.assertEqual(context.exception.details["reason"], "pattern_mismatch")
+        self.assertEqual(context.exception.details["provided_value"], "demo app")
+        self.assertIn("expected_pattern", context.exception.details)
+        self.assertEqual(context.exception.details["max_length"], 128)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.app_version_service.get_overview")
+    @patch("console.services.mcp_query_service.app_version_service.get_snapshot_detail")
+    @patch("console.services.mcp_query_service.group_service.create_app")
+    # capability_id: console.app-version.create-app-from-snapshot-invalid-name
+    def test_create_app_from_snapshot_version_returns_structured_details_for_illegal_target_app_name(
+            self, mock_create_app, mock_get_snapshot_detail, mock_get_overview, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_overview.return_value = {"template_id": "hidden-template-id"}
+        mock_get_snapshot_detail.return_value = {"version_id": 5, "version": "1.2.3"}
+        mock_create_app.side_effect = ServiceHandleException(
+            msg="app_name illegal",
+            msg_show="应用名称最多支持128个字符",
+        )
+
+        with self.assertRaises(ServiceHandleException) as context:
+            mcp_query_service.call_tool(
+                self.user,
+                "rainbond_create_app_from_snapshot_version",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "source_app_id": 12,
+                    "version_id": 5,
+                    "target_app_name": "x" * 129,
+                },
+            )
+
+        self.assertEqual(context.exception.details["field"], "app_name")
+        self.assertEqual(context.exception.details["reason"], "too_long")
+        self.assertEqual(context.exception.details["provided_value"], "x" * 129)
+        self.assertEqual(context.exception.details["max_length"], 128)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.share_service.get_last_shared_app_and_app_list")
     # capability_id: console.app-publish.candidates
@@ -3957,6 +4066,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "source": "cloud",
                 "market_name": "RainbondMarket",
                 "app_model_id": "model-1",
+                "app_model_name": "Redis",
                 "app_model_version": "1.0.0",
                 "is_deploy": True,
             },

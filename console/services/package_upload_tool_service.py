@@ -20,6 +20,16 @@ region_api = RegionInvokeApi()
 class PackageUploadToolService(object):
     SUPPORTED_FILE_SUFFIXES = (".zip", ".jar", ".war", ".tar", ".tar.gz")
 
+    @staticmethod
+    def _build_local_path_error_details(local_path, normalized_path=None):
+        return {
+            "field": "local_path",
+            "provided_value": local_path,
+            "normalized_path": normalized_path,
+            "path_scope": "server_side",
+            "suggestion": "请确认该路径位于 rainbond-console 进程所在机器或容器可见的挂载目录中，而不是 MCP 客户端本机路径。",
+        }
+
     def init_upload(self, team_name, region_name, component_id=""):
         event_id = make_uuid()
         try:
@@ -172,12 +182,27 @@ class PackageUploadToolService(object):
     @staticmethod
     def _normalize_local_path(local_path):
         if not local_path or not isinstance(local_path, str):
-            raise ServiceHandleException(msg="local path required", msg_show="本地路径不能为空", status_code=400)
+            raise ServiceHandleException(
+                msg="local path required",
+                msg_show="本地路径不能为空",
+                status_code=400,
+                details=PackageUploadToolService._build_local_path_error_details(local_path, None),
+            )
         normalized_path = os.path.abspath(local_path)
         if not os.path.exists(normalized_path):
-            raise ServiceHandleException(msg="local path not found", msg_show="本地路径不存在", status_code=404)
+            raise ServiceHandleException(
+                msg="local path not found",
+                msg_show="本地路径不存在",
+                status_code=404,
+                details=PackageUploadToolService._build_local_path_error_details(local_path, normalized_path),
+            )
         if not os.path.isfile(normalized_path) and not os.path.isdir(normalized_path):
-            raise ServiceHandleException(msg="invalid local path", msg_show="本地路径必须是文件或目录", status_code=400)
+            raise ServiceHandleException(
+                msg="invalid local path",
+                msg_show="本地路径必须是文件或目录",
+                status_code=400,
+                details=PackageUploadToolService._build_local_path_error_details(local_path, normalized_path),
+            )
         return normalized_path
 
     def _zip_directory(self, directory_path, archive_name=""):
