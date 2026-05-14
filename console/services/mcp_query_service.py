@@ -5,6 +5,7 @@ import logging
 import os
 
 from django.core import signing
+from django.core.exceptions import ObjectDoesNotExist
 
 from console.constants import PluginCategoryConstants
 from console.models.main import PluginShareRecordEvent, ServiceShareRecordEvent
@@ -3844,8 +3845,18 @@ class MCPQueryService(object):
             })
         return normalized_items
 
+    def _lookup_env_or_raise(self, team, service, env_id):
+        try:
+            return env_var_repo.get_env_by_ids_and_env_id(team.tenant_id, service.service_id, env_id)
+        except ObjectDoesNotExist:
+            raise ServiceHandleException(
+                msg="env not found",
+                msg_show="环境变量不存在（env_id={}），请先用 operation=summary 重新获取最新 env_id".format(env_id),
+                status_code=404,
+            )
+
     def _ensure_inner_env(self, team, service, env_id):
-        env = env_var_repo.get_env_by_ids_and_env_id(team.tenant_id, service.service_id, env_id)
+        env = self._lookup_env_or_raise(team, service, env_id)
         if getattr(env, "scope", "") != "inner":
             raise ServiceHandleException(
                 msg="invalid env scope",
@@ -3855,7 +3866,7 @@ class MCPQueryService(object):
         return env
 
     def _ensure_outer_env(self, team, service, env_id):
-        env = env_var_repo.get_env_by_ids_and_env_id(team.tenant_id, service.service_id, env_id)
+        env = self._lookup_env_or_raise(team, service, env_id)
         if getattr(env, "scope", "") not in ("outer", "both"):
             raise ServiceHandleException(
                 msg="invalid env scope",
