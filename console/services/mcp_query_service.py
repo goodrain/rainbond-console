@@ -1303,22 +1303,28 @@ class MCPQueryService(object):
                 }
             }
         if operation == "add":
+            ports_list = arguments.get("ports")
+            if ports_list:
+                return self._batch_add_ports(user, arguments, ports_list)
             payload = dict(arguments)
             payload["operation"] = "add"
             if "is_inner_service" not in payload and "enable_inner" in payload:
                 payload["is_inner_service"] = bool(payload.get("enable_inner"))
             return self.handle_component_ports(user, payload)
 
-        if operation in ("enable_inner", "disable_inner", "enable_outer", "disable_outer", "enable_outer_only", "update_protocol", "update_alias"):
-            action_map = {
-                "enable_inner": "open_inner",
-                "disable_inner": "close_inner",
-                "enable_outer": "open_outer",
-                "disable_outer": "close_outer",
-                "enable_outer_only": "only_open_outer",
-                "update_protocol": "change_protocol",
-                "update_alias": "change_port_alias",
-            }
+        action_map = {
+            "enable_inner": "open_inner",
+            "disable_inner": "close_inner",
+            "enable_outer": "open_outer",
+            "disable_outer": "close_outer",
+            "enable_outer_only": "only_open_outer",
+            "update_protocol": "change_protocol",
+            "update_alias": "change_port_alias",
+        }
+        if operation in action_map:
+            ports_list = arguments.get("ports")
+            if ports_list:
+                return self._batch_update_ports(user, arguments, action_map[operation], ports_list)
             payload = dict(arguments)
             payload["operation"] = "update"
             payload["action"] = action_map[operation]
@@ -1327,6 +1333,37 @@ class MCPQueryService(object):
         payload = dict(arguments)
         payload["operation"] = operation
         return self.handle_component_ports(user, payload)
+
+    def _batch_add_ports(self, user, arguments, ports_list):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        created = port_service.batch_add_service_ports(team, service, ports_list, user.nick_name, app=app)
+        return {"ports": [self._serialize_model_item(p) for p in created]}
+
+    def _batch_update_ports(self, user, arguments, action, ports_list):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        results = []
+        for item in ports_list:
+            port_num = item if isinstance(item, int) else int(item.get("port", item))
+            code, msg, port_info = port_service.manage_port(
+                team, service, app.region_name, port_num, action,
+                None, None, "", user.nick_name, app=app,
+            )
+            if code != 200:
+                self._raise_port_tool_error("port operation failed", msg, code)
+            results.append(self._serialize_model_item(port_info))
+        return {"ports": results}
 
     def bind_component_volume(self, user, arguments):
         team, app, service = self._get_team_app_service_context(
@@ -6209,7 +6246,12 @@ class MCPQueryService(object):
     def _tool_manage_component_ports(self):
         return {
             "name": "rainbond_manage_component_ports",
-            "description": "高层端口管理工具。明确区分对内服务和对外服务：对内服务用于组件间访问，对外服务用于外部访问。推荐优先使用 enable_inner / enable_outer / disable_inner / disable_outer / enable_outer_only 这些显式动作。",
+            "description": (
+                "高层端口管理工具。明确区分对内服务和对外服务：对内服务用于组件间访问，对外服务用于外部访问。"
+                "推荐优先使用 enable_inner / enable_outer / disable_inner / disable_outer / enable_outer_only 这些显式动作。"
+                "批量操作：operation=add 时可传 ports 数组一次创建多个端口；"
+                "enable_inner/disable_inner/enable_outer/disable_outer 时可传 ports 数组批量开关服务。"
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -6228,15 +6270,41 @@ class MCPQueryService(object):
                             "update"
                         ],
                         "description": (
-                            "推荐动作：summary=查看端口；add=新增端口；"
-                            "enable_inner=开启对内服务；disable_inner=关闭对内服务；"
-                            "enable_outer=开启对外服务（要求已开启对内服务）；"
-                            "disable_outer=关闭对外服务；"
+                            "推荐动作：summary=查看端口；add=新增端口（支持 ports 数组批量）；"
+                            "enable_inner=开启对内服务（支持 ports 数组批量）；"
+                            "disable_inner=关闭对内服务（支持 ports 数组批量）；"
+                            "enable_outer=开启对外服务，要求已开启对内服务（支持 ports 数组批量）；"
+                            "disable_outer=关闭对外服务（支持 ports 数组批量）；"
                             "enable_outer_only=仅开启对外服务；"
                             "update_protocol=修改协议；update_alias=修改端口别名。"
                         )
                     },
                     "port": {"type": "integer", "minimum": 1},
+                    "ports": {
+                        "type": "array",
+                        "description": (
+                            "批量端口列表，与 operation 配合使用。"
+                            "operation=add 时每项需含 port(int) 和 protocol(str)，可选 is_inner_service/enable_inner(bool)、port_alias(str)；"
+                            "enable_inner/disable_inner/enable_outer/disable_outer 时每项为 {\"port\": <int>} 或直接为整数。"
+                            "传入 ports 时忽略顶层 port 字段。"
+                        ),
+                        "items": {
+                            "oneOf": [
+                                {"type": "integer", "minimum": 1},
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "port": {"type": "integer", "minimum": 1},
+                                        "protocol": {"type": "string"},
+                                        "is_inner_service": {"type": "boolean"},
+                                        "enable_inner": {"type": "boolean"},
+                                        "port_alias": self._port_alias_schema(),
+                                    },
+                                    "required": ["port"],
+                                },
+                            ]
+                        },
+                    },
                     "protocol": {"type": "string"},
                     "port_alias": self._port_alias_schema(),
                     "is_inner_service": {"type": "boolean", "description": "新增端口时是否默认开启对内服务"},

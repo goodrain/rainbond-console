@@ -2215,6 +2215,159 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
         self.assertEqual(mock_handle_ports.call_args[0][1]["action"], "only_open_outer")
 
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.port_service.batch_add_service_ports")
+    # capability_id: console.component.port-batch-add
+    def test_manage_component_ports_batch_add_delegates_to_batch_service(
+            self,
+            mock_batch_add,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        port80 = Obj(tenant_id="team-1", service_id="svc-1", container_port=80, protocol="http",
+                     is_inner_service=True, is_outer_service=False, port_alias="ALIAS180",
+                     k8s_service_name="alias-1", mapping_port=80)
+        port80.to_dict = lambda: {"container_port": 80, "protocol": "http",
+                                  "is_inner_service": True, "is_outer_service": False}
+        port8080 = Obj(tenant_id="team-1", service_id="svc-1", container_port=8080, protocol="tcp",
+                       is_inner_service=False, is_outer_service=False, port_alias="ALIAS18080",
+                       k8s_service_name="alias-1", mapping_port=8080)
+        port8080.to_dict = lambda: {"container_port": 8080, "protocol": "tcp",
+                                    "is_inner_service": False, "is_outer_service": False}
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_batch_add.return_value = [port80, port8080]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_manage_component_ports",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "operation": "add",
+                "ports": [
+                    {"port": 80, "protocol": "http", "enable_inner": True},
+                    {"port": 8080, "protocol": "tcp"},
+                ],
+            },
+        )
+
+        self.assertEqual(len(result["ports"]), 2)
+        call_args = mock_batch_add.call_args
+        self.assertEqual(call_args[0][0], self.team)
+        self.assertEqual(call_args[0][1], self.service)
+        passed_ports = call_args[0][2]
+        self.assertEqual(len(passed_ports), 2)
+        self.assertEqual(passed_ports[0]["port"], 80)
+        self.assertEqual(passed_ports[1]["port"], 8080)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.port_service.manage_port")
+    # capability_id: console.component.port-batch-enable-inner
+    def test_manage_component_ports_batch_enable_inner_loads_context_once(
+            self,
+            mock_manage_port,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        def make_port(n):
+            p = Obj(container_port=n, protocol="http", is_inner_service=True, is_outer_service=False)
+            p.to_dict = lambda: {"container_port": n}
+            return p
+
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_manage_port.side_effect = [(200, "success", make_port(80)), (200, "success", make_port(8080))]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_manage_component_ports",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "operation": "enable_inner",
+                "ports": [{"port": 80}, {"port": 8080}],
+            },
+        )
+
+        self.assertEqual(len(result["ports"]), 2)
+        # context loaded exactly once (get_team called once)
+        self.assertEqual(mock_get_team.call_count, 1)
+        # manage_port called for each port with open_inner action
+        self.assertEqual(mock_manage_port.call_count, 2)
+        self.assertEqual(mock_manage_port.call_args_list[0][0][4], "open_inner")
+        self.assertEqual(mock_manage_port.call_args_list[1][0][4], "open_inner")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.port_service.manage_port")
+    # capability_id: console.component.port-batch-enable-outer
+    def test_manage_component_ports_batch_enable_outer_accepts_integer_items(
+            self,
+            mock_manage_port,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        def make_port(n):
+            p = Obj(container_port=n, protocol="http", is_inner_service=True, is_outer_service=True)
+            p.to_dict = lambda: {"container_port": n}
+            return p
+
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_manage_port.side_effect = [(200, "success", make_port(80)), (200, "success", make_port(443))]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_manage_component_ports",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "operation": "enable_outer",
+                "ports": [80, 443],
+            },
+        )
+
+        self.assertEqual(len(result["ports"]), 2)
+        self.assertEqual(mock_manage_port.call_args_list[0][0][3], 80)
+        self.assertEqual(mock_manage_port.call_args_list[1][0][3], 443)
+        self.assertEqual(mock_manage_port.call_args_list[0][0][4], "open_outer")
+
     @patch("console.services.mcp_query_service.service_repo.get_services_by_service_ids")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     @patch("console.services.mcp_query_service.team_repo.get_user_tenant_by_name")
