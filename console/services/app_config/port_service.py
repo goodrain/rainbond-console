@@ -301,6 +301,103 @@ class AppPortService(object):
                         logger.debug('------111----->{0}'.format(msg))
         return 200, "success", new_port
 
+    @transaction.atomic
+    def batch_add_service_ports(self, tenant, service, ports_data, user_name='', app=None):
+        """Batch-add ports with a single region API call and bulk DB write.
+
+        ports_data: list of dicts, each with:
+          - port (int, required)
+          - protocol (str, required)
+          - is_inner_service / enable_inner (bool, optional, default False)
+          - port_alias (str, optional, auto-generated when omitted)
+
+        Returns list of TenantServicesPort instances.
+        Does not handle third_party probe creation (use add_service_port for that case).
+        """
+        if not ports_data:
+            return []
+
+        if not app:
+            app = group_repo.get_by_service_id(tenant.tenant_id, service.service_id)
+
+        existing_ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
+        if existing_ports:
+            base_k8s_name = existing_ports[0].k8s_service_name
+        else:
+            base_k8s_name = service.service_alias
+        try:
+            self.check_k8s_service_name(tenant.tenant_id, base_k8s_name, service.service_id)
+        except ErrK8sServiceNameExists:
+            base_k8s_name = base_k8s_name + "-" + make_uuid()[:4]
+        except AbortRequest:
+            base_k8s_name = service.service_alias
+
+        service_port_dicts = []
+        inner_env_specs = []
+
+        for spec in ports_data:
+            container_port = int(spec["port"])
+            protocol = spec["protocol"]
+            is_inner = bool(spec.get("is_inner_service", spec.get("enable_inner", False)))
+            port_alias = spec.get("port_alias", "") or ""
+
+            self.check_port(service, container_port)
+
+            if not port_alias:
+                port_alias = service.service_alias.upper() + str(container_port)
+            code, msg = self.check_port_alias(port_alias)
+            if code != 200:
+                raise ServiceHandleException(msg=msg, msg_show=msg, status_code=400)
+
+            env_prefix = port_alias.upper()
+            if is_inner:
+                if app.governance_mode != GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name:
+                    host_value = base_k8s_name
+                else:
+                    host_value = "127.0.0.1"
+                inner_env_specs.append((container_port, env_prefix, host_value))
+
+            service_port_dicts.append({
+                "tenant_id": tenant.tenant_id,
+                "service_id": service.service_id,
+                "container_port": container_port,
+                "mapping_port": container_port,
+                "protocol": protocol,
+                "port_alias": port_alias,
+                "is_inner_service": is_inner,
+                "is_outer_service": False,
+                "k8s_service_name": base_k8s_name,
+            })
+
+        for container_port, env_prefix, host_value in inner_env_specs:
+            code, msg, env = env_var_service.add_service_env_var(
+                tenant, service, container_port, "连接地址", env_prefix + "_HOST", host_value, False, scope="outer")
+            if code != 200:
+                if code == 412 and env:
+                    env.container_port = container_port
+                    env.save()
+                else:
+                    raise ServiceHandleException(msg=msg, msg_show=msg, status_code=code)
+            code, msg, env = env_var_service.add_service_env_var(
+                tenant, service, container_port, "端口", env_prefix + "_PORT", container_port, False, scope="outer")
+            if code != 200:
+                if code == 412 and env:
+                    env.container_port = container_port
+                    env.save()
+                else:
+                    raise ServiceHandleException(msg=msg, msg_show=msg, status_code=code)
+
+        if service.create_status == "complete":
+            region_api.add_service_port(service.service_region, tenant.tenant_name, service.service_alias, {
+                "port": service_port_dicts,
+                "enterprise_id": tenant.enterprise_id,
+                "operator": user_name,
+            })
+
+        port_objects = [TenantServicesPort(**sp) for sp in service_port_dicts]
+        port_repo.bulk_create(port_objects)
+        return port_objects
+
     def get_service_ports(self, service):
         if service:
             return port_repo.get_service_ports(service.tenant_id, service.service_id)
