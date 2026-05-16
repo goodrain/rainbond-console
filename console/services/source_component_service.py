@@ -298,7 +298,10 @@ class SourceComponentService(object):
 
     def normalize_code_from(self, code_from, git_url):
         code_from = (code_from or "").strip()
+        git_url = (git_url or "").strip().lower()
         if not code_from:
+            return SourceCodeType.GITLAB_MANUAL
+        if self.is_github_proxy_url(git_url):
             return SourceCodeType.GITLAB_MANUAL
         if code_from in (
                 SourceCodeType.GITLAB_MANUAL,
@@ -312,7 +315,6 @@ class SourceComponentService(object):
             return code_from
 
         lowered = code_from.lower()
-        git_url = (git_url or "").strip().lower()
         if lowered in ("git", "svn", "oss", "gitee", "gitea", "gitlab"):
             if "github.com/" in git_url:
                 return SourceCodeType.GITHUB
@@ -320,6 +322,14 @@ class SourceComponentService(object):
         if lowered == "github":
             return SourceCodeType.GITHUB
         return SourceCodeType.GITLAB_MANUAL
+
+    @staticmethod
+    def is_github_proxy_url(git_url):
+        git_url = (git_url or "").strip().lower()
+        return git_url.startswith((
+            "https://ghfast.top/https://github.com/",
+            "https://gh.rainbond.cc/https://github.com/",
+        ))
 
     @staticmethod
     def _get_username(user):
