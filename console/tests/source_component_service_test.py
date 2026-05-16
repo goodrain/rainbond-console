@@ -167,6 +167,13 @@ class SourceComponentServiceTests(SimpleTestCase):
             "github",
         )
         self.assertEqual(
+            source_component_service.normalize_code_from(
+                "git",
+                "https://ghfast.top/https://github.com/openai/openai-python.git",
+            ),
+            "gitlab_manual",
+        )
+        self.assertEqual(
             source_component_service.normalize_code_from("gitlab_manual", "https://gitee.com/rainbond/demo-2048.git"),
             "gitlab_manual",
         )

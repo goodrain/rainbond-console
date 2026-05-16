@@ -175,3 +175,31 @@ class BuildSourceInfoServiceTests(TestCase):
         })
         self.assertEqual(build_infos["svc-1"]["build_env_dict"]["BP_JVM_VERSION"], "17")
         self.assertNotIn("BUILD_RUNTIMES", build_infos["svc-1"]["build_env_dict"])
+
+    def test_build_infos_preserve_github_proxy_url_for_oauth_source(self):
+        service = DummyService()
+        service.code_from = "github"
+        service.git_url = "https://ghfast.top/https://github.com/duxianwei520/react.git"
+        service_module = self.import_service_module_with_service(service)
+        service_module.support_oauth_type = {"github": object}
+
+        build_infos = service_module.base_service.get_build_infos(DummyTenant(), ["svc-1"])
+
+        self.assertEqual(
+            build_infos["svc-1"]["git_url"],
+            "https://ghfast.top/https://github.com/duxianwei520/react.git",
+        )
+
+    def test_build_infos_strip_userinfo_only_for_oauth_source(self):
+        service = DummyService()
+        service.code_from = "github"
+        service.git_url = "https://git-user:secret-token@github.com/duxianwei520/react.git"
+        service_module = self.import_service_module_with_service(service)
+        service_module.support_oauth_type = {"github": object}
+
+        build_infos = service_module.base_service.get_build_infos(DummyTenant(), ["svc-1"])
+
+        self.assertEqual(
+            build_infos["svc-1"]["git_url"],
+            "https://github.com/duxianwei520/react.git",
+        )

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-from re import split as re_split
+from urllib.parse import urlsplit, urlunsplit
 
 from console.exception.main import RbdAppNotFound, ServiceHandleException
 from console.repositories.app import service_source_repo, service_repo
@@ -19,6 +19,23 @@ from www.db.base import BaseConnection
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
+
+
+def strip_url_userinfo(url):
+    url = (url or "").strip()
+    if "@" not in url:
+        return url
+    try:
+        parsed = urlsplit(url)
+    except Exception:
+        return url
+    if not parsed.scheme or not parsed.netloc or "@" not in parsed.netloc:
+        return url
+
+    sanitized_netloc = parsed.netloc.rsplit("@", 1)[-1]
+    if not sanitized_netloc:
+        return url
+    return urlunsplit((parsed.scheme, sanitized_netloc, parsed.path, parsed.query, parsed.fragment))
 
 
 class BaseService(object):
@@ -262,8 +279,7 @@ class BaseService(object):
             code_from = service.code_from
             oauth_type = list(support_oauth_type.keys())
             if code_from in oauth_type:
-                result_url = re_split("[:,@]", service.git_url)
-                service.git_url = result_url[0] + '//' + result_url[-1]
+                service.git_url = strip_url_userinfo(service.git_url)
             build_env_dict = sanitize_build_env_dict_for_language(
                 env_var_repo.get_build_envs(tenant.tenant_id, service.service_id),
                 service.language
