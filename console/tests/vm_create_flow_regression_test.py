@@ -219,6 +219,19 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
         self.assertEqual("root", layout[0]["disk_role"])
         self.assertTrue(layout[0]["boot"])
 
+    def test_build_vm_volume_disk_items_recognizes_indexed_disk_paths_as_disk_device(self):
+        items = vms._build_vm_volume_disk_items([{
+            "ID": 2,
+            "volume_name": "data-1",
+            "volume_path": "/disk-1",
+            "volume_type": "nfs-storage",
+            "volume_capacity": 20,
+            "status": "mounted"
+        }])
+
+        self.assertEqual(1, len(items))
+        self.assertEqual("disk", items[0]["device_type"])
+
     def test_list_vm_disks_auto_exposes_installer_for_legacy_iso_vm_without_layout(self):
         service = SimpleNamespace(service_id="service-a", extend_method="vm", tenant_id="tenant-a", image="demo/image")
         volumes = [{

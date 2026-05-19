@@ -718,11 +718,13 @@ class VirtualMachineService(object):
                 continue
             volume_path = str(volume_data.get("volume_path") or "").strip()
             device_type = self._resolve_vm_device_type(volume_path)
+            device_path = "/{}".format(device_type)
             items.append({
                 "disk_key": volume_name,
                 "disk_name": volume_name,
                 "disk_role": VM_DISK_ROLE_ROOT if volume_name == VM_DISK_ROOT_KEY else VM_DISK_ROLE_DATA,
                 "device_type": device_type,
+                "device_path": device_path,
                 "source_kind": VM_DISK_SOURCE_KIND_VOLUME,
                 "order_index": index,
                 "boot": False,
@@ -906,7 +908,11 @@ class VirtualMachineService(object):
         return VM_DISK_DEVICE_DISK
 
     def _resolve_vm_device_type(self, volume_path):
-        return VM_DISK_PATH_TO_DEVICE_TYPE.get(str(volume_path or "").strip(), VM_DISK_DEVICE_DISK)
+        path = str(volume_path or "").strip()
+        for base_path, device_type in VM_DISK_PATH_TO_DEVICE_TYPE.items():
+            if path == base_path or path.startswith(base_path + "-"):
+                return device_type
+        return VM_DISK_DEVICE_DISK
 
     def _compound_vm_disk_key(self, item):
         return "{}:{}".format(

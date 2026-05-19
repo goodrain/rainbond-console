@@ -30,6 +30,7 @@ volume_ready = "READY"
 
 
 class AppVolumeService(object):
+    VM_DEVICE_PATHS = ("/disk", "/lun", "/cdrom")
     SYSDIRS = [
         "/",
         "/bin",
@@ -295,6 +296,45 @@ class AppVolumeService(object):
             # volume_path不能重复
             if path["volume_path"].startswith(volume_path + "/") or volume_path.startswith(path["volume_path"] + "/"):
                 raise ErrVolumePath(msg="path error", msg_show="已存在以{0}开头的路径".format(path["volume_path"]), status_code=412)
+
+    def normalize_vm_volume_device_path(self, volume_path):
+        path = str(volume_path or "").strip()
+        for base_path in self.VM_DEVICE_PATHS:
+            if path == base_path or path.startswith(base_path + "-"):
+                return base_path
+        return path
+
+    def resolve_vm_volume_path(self, service, volume_path, current_volume=None):
+        path = str(volume_path or "").strip()
+        if getattr(service, "extend_method", "") != ComponentType.vm.value:
+            return path
+
+        base_path = self.normalize_vm_volume_device_path(path)
+        if base_path not in self.VM_DEVICE_PATHS:
+            return path
+
+        current_path = str(getattr(current_volume, "volume_path", "") or "").strip()
+        if current_path and self.normalize_vm_volume_device_path(current_path) == base_path:
+            return current_path
+
+        existing_paths = set()
+        current_id = getattr(current_volume, "ID", None)
+        for volume in volume_repo.get_service_volumes(service.service_id):
+            if current_id and getattr(volume, "ID", None) == current_id:
+                continue
+            existing_path = str(getattr(volume, "volume_path", "") or "").strip()
+            if existing_path:
+                existing_paths.add(existing_path)
+
+        if base_path not in existing_paths:
+            return base_path
+
+        index = 1
+        while True:
+            candidate = "{}-{}".format(base_path, index)
+            if candidate not in existing_paths:
+                return candidate
+            index += 1
 
     def __setting_volume_access_mode(self, service, volume_type, settings):
         access_mode = settings.get("access_mode", "")
