@@ -779,7 +779,32 @@ class MCPQueryService(object):
             self._require_string(arguments, "service_id"),
         )
         event_id = self._require_string(arguments, "event_id")
-        items = event_service.get_event_log(team, app.region_name, event_id) or []
+        raw_items = event_service.get_event_log(team, app.region_name, event_id) or []
+        total_unfiltered = len(raw_items)
+
+        # Optional filters / slicing. Build logs from large projects (Maven monorepo,
+        # multi-stage Node.js) can hit thousands of lines; without these, the upstream
+        # LLM wrapper truncates the middle and the real error (always near the tail)
+        # disappears.
+        grep = arguments.get("grep")
+        if isinstance(grep, str) and grep.strip():
+            keyword = grep.strip()
+            items = [it for it in raw_items if self._build_log_item_contains(it, keyword)]
+        else:
+            items = list(raw_items)
+
+        offset = self._parse_optional_positive_int(arguments.get("offset"), "offset", allow_zero=True) or 0
+        limit = self._parse_optional_positive_int(arguments.get("limit"), "limit")
+        tail = self._parse_optional_positive_int(arguments.get("tail"), "tail")
+
+        if tail is not None:
+            # tail wins over offset/limit when both are provided; AI clients should pick one.
+            items = items[-tail:]
+        elif offset or limit is not None:
+            end = offset + limit if limit is not None else None
+            items = items[offset:end]
+
+        truncated = len(items) != total_unfiltered
         return {
             "team_name": team.tenant_name,
             "region_name": app.region_name,
@@ -788,7 +813,21 @@ class MCPQueryService(object):
             "event_id": event_id,
             "items": items,
             "total": len(items),
+            "total_unfiltered": total_unfiltered,
+            "truncated": truncated,
         }
+
+    @staticmethod
+    def _build_log_item_contains(item, keyword):
+        if isinstance(item, dict):
+            haystack = item.get("message")
+            if not isinstance(haystack, str):
+                haystack = str(item)
+        elif isinstance(item, str):
+            haystack = item
+        else:
+            haystack = str(item)
+        return keyword in haystack
 
     def _get_component_build_source_snapshot(self, team, app, service):
         build_infos = base_service.get_build_infos(team, [service.service_id])
@@ -3639,14 +3678,15 @@ class MCPQueryService(object):
         return ivalue
 
     @staticmethod
-    def _parse_optional_positive_int(value, field):
+    def _parse_optional_positive_int(value, field, allow_zero=False):
         if value in (None, ""):
             return None
         try:
             ivalue = int(value)
         except (TypeError, ValueError):
             raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
-        if ivalue <= 0:
+        floor = 0 if allow_zero else 1
+        if ivalue < floor:
             raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
         return ivalue
 
@@ -4888,7 +4928,12 @@ class MCPQueryService(object):
     def _tool_get_component_build_logs(self):
         return {
             "name": "rainbond_get_component_build_logs",
-            "description": "Get build event logs for a component by event_id. The event_id usually comes from build/create/deploy responses.",
+            "description": (
+                "Get build event logs for a component by event_id. The event_id usually comes from build/create/deploy "
+                "responses. For large projects (Maven monorepo, multi-stage Node.js builds, etc.) prefer narrowing the "
+                "response with tail/grep/offset/limit — without them the upstream LLM client may middle-truncate the "
+                "response and drop the real error which is usually near the tail."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -4896,7 +4941,11 @@ class MCPQueryService(object):
                     "region_name": {"type": "string"},
                     "app_id": {"type": "integer", "minimum": 1},
                     "service_id": {"type": "string"},
-                    "event_id": {"type": "string", "description": "构建事件 ID，一般来自构建、创建或部署操作的返回值"}
+                    "event_id": {"type": "string", "description": "构建事件 ID，一般来自构建、创建或部署操作的返回值。**必须**通过 rainbond_get_component_events 等只读工具拿到真实 UUID；不要从其它工具返回的 DB 行号（如 summary.recent_events[*].ID）当成 event_id 传入。"},
+                    "tail": {"type": "integer", "minimum": 1, "description": "只返回末尾 N 条日志。构建失败时错误几乎总在尾部，优先用 tail（例如 tail=500）而不是拉全量再截断。与 offset/limit 同传时 tail 优先。"},
+                    "offset": {"type": "integer", "minimum": 0, "description": "起始偏移（从 0 开始）。与 limit 搭配做翻页。"},
+                    "limit": {"type": "integer", "minimum": 1, "description": "返回最多 N 条。与 offset 搭配做翻页。"},
+                    "grep": {"type": "string", "description": "按 substring 匹配每条日志的 message 字段，常用于过滤 ERROR / BUILD FAILURE / Caused by 等关键行。grep 在 tail/offset/limit 之前生效。"}
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "event_id"]
             }
