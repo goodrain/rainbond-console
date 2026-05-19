@@ -1,9 +1,16 @@
 from unittest import TestCase, mock
 
+from console.services.platform_plugin_service import platform_plugin_service
 from console.services.plugin_service import rbd_plugin_service
 
 
 class RainbondPluginServiceTests(TestCase):
+
+    def setUp(self):
+        platform_plugin_service.clear_market_plugin_cache()
+
+    def tearDown(self):
+        platform_plugin_service.clear_market_plugin_cache()
 
     def test_official_plugin_without_market_metadata_does_not_require_auth(self):
         region_plugins = {

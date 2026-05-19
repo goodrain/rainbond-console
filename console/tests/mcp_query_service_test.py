@@ -1604,6 +1604,50 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.autoscaler_service.create_autoscaler_rule")
+    # capability_id: console.component.autoscaler-invalid-metrics
+    def test_manage_component_autoscaler_create_rejects_incomplete_metric_before_service_call(
+            self,
+            mock_create_rule,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+
+        with self.assertRaises(ServiceHandleException) as ctx:
+            mcp_query_service.call_tool(
+                self.user,
+                "rainbond_manage_component_autoscaler",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "app_id": 12,
+                    "service_id": "svc-1",
+                    "operation": "create_rule",
+                    "xpa_type": "hpa",
+                    "enable": True,
+                    "min_replicas": 1,
+                    "max_replicas": 2,
+                    "metrics": [{"metric_type": "resource_metrics"}],
+                },
+            )
+
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertEqual(ctx.exception.msg, "invalid metrics")
+        mock_create_rule.assert_not_called()
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     @patch("console.services.mcp_query_service.probe_service.get_service_probe")
     @patch("console.services.mcp_query_service.probe_service.get_service_probe_by_mode")
     # capability_id: console.component.probe-summary
