@@ -2634,7 +2634,193 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(result["event_id"], "evt-build-1")
         self.assertEqual(result["items"], ["step-1", "step-2"])
         self.assertEqual(result["total"], 2)
+        self.assertEqual(result["total_unfiltered"], 2)
+        self.assertFalse(result["truncated"])
         mock_get_event_log.assert_called_once_with(self.team, "rainbond", "evt-build-1")
+
+    @patch("console.services.mcp_query_service.event_service.get_event_log")
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    # capability_id: console.component.build-logs
+    def test_get_component_build_logs_tail_returns_last_n_items(
+            self,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+            mock_get_event_log,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        full_log = [{"message": "step-%d" % i, "time": "t-%d" % i} for i in range(10)]
+        mock_get_event_log.return_value = full_log
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_component_build_logs",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "event_id": "evt-build-1",
+                "tail": 3,
+            },
+        )
+
+        self.assertEqual([item["message"] for item in result["items"]], ["step-7", "step-8", "step-9"])
+        self.assertEqual(result["total"], 3)
+        self.assertEqual(result["total_unfiltered"], 10)
+        self.assertTrue(result["truncated"])
+
+    @patch("console.services.mcp_query_service.event_service.get_event_log")
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    # capability_id: console.component.build-logs
+    def test_get_component_build_logs_grep_filters_message_field(
+            self,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+            mock_get_event_log,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_event_log.return_value = [
+            {"message": "Downloading dependency...", "time": "t1"},
+            {"message": "[ERROR] Compilation failed", "time": "t2"},
+            {"message": "BUILD FAILURE", "time": "t3"},
+            {"message": "tail spam", "time": "t4"},
+        ]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_component_build_logs",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "event_id": "evt-build-1",
+                "grep": "ERROR",
+            },
+        )
+
+        self.assertEqual([item["message"] for item in result["items"]], ["[ERROR] Compilation failed"])
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["total_unfiltered"], 4)
+        self.assertTrue(result["truncated"])
+
+    @patch("console.services.mcp_query_service.event_service.get_event_log")
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    # capability_id: console.component.build-logs
+    def test_get_component_build_logs_offset_limit_paginates(
+            self,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+            mock_get_event_log,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_event_log.return_value = [
+            {"message": "step-%d" % i} for i in range(10)
+        ]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_component_build_logs",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "event_id": "evt-build-1",
+                "offset": 5,
+                "limit": 3,
+            },
+        )
+
+        self.assertEqual([item["message"] for item in result["items"]], ["step-5", "step-6", "step-7"])
+        self.assertEqual(result["total"], 3)
+        self.assertEqual(result["total_unfiltered"], 10)
+        self.assertTrue(result["truncated"])
+
+    @patch("console.services.mcp_query_service.event_service.get_event_log")
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    # capability_id: console.component.build-logs
+    def test_get_component_build_logs_grep_then_tail_applies_in_order(
+            self,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+            mock_get_event_log,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_event_log.return_value = [
+            {"message": "[ERROR] first"},
+            {"message": "ok"},
+            {"message": "[ERROR] second"},
+            {"message": "[ERROR] third"},
+            {"message": "ok again"},
+        ]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_component_build_logs",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "event_id": "evt-build-1",
+                "grep": "ERROR",
+                "tail": 2,
+            },
+        )
+
+        # grep first (3 matches), then tail of those 3 = last 2
+        self.assertEqual(
+            [item["message"] for item in result["items"]],
+            ["[ERROR] second", "[ERROR] third"],
+        )
+        self.assertEqual(result["total"], 2)
+        self.assertEqual(result["total_unfiltered"], 5)
+        self.assertTrue(result["truncated"])
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
