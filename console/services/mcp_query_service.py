@@ -4026,13 +4026,48 @@ class MCPQueryService(object):
         metrics = arguments.get("metrics")
         if not isinstance(metrics, list) or not metrics:
             raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+        xpa_type = arguments.get("xpa_type", "hpa")
+        if xpa_type not in ("hpa",):
+            raise ServiceHandleException(msg="invalid xpa_type", msg_show="参数xpa_type无效", status_code=400)
+        min_replicas = self._require_int(arguments, "min_replicas")
+        max_replicas = self._require_int(arguments, "max_replicas")
+        if min_replicas > 65535:
+            raise ServiceHandleException(msg="invalid min_replicas", msg_show="参数min_replicas无效", status_code=400)
+        if max_replicas > 65535 or max_replicas < min_replicas:
+            raise ServiceHandleException(msg="invalid max_replicas", msg_show="参数max_replicas无效", status_code=400)
+
+        normalized_metrics = []
+        for metric in metrics:
+            if not isinstance(metric, dict):
+                raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+            metric_type = metric.get("metric_type")
+            metric_name = metric.get("metric_name")
+            metric_target_type = metric.get("metric_target_type")
+            try:
+                metric_target_value = int(metric.get("metric_target_value"))
+            except (TypeError, ValueError):
+                raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+            if metric_type not in ("resource_metrics",):
+                raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+            if metric_name not in ("cpu", "memory"):
+                raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+            if metric_target_type not in ("utilization", "average_value"):
+                raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+            if metric_target_value < 0 or metric_target_value > 65535:
+                raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+            normalized_metrics.append({
+                "metric_type": metric_type,
+                "metric_name": metric_name,
+                "metric_target_type": metric_target_type,
+                "metric_target_value": metric_target_value,
+            })
         return {
             "service_id": service.service_id,
-            "xpa_type": arguments.get("xpa_type", "hpa"),
-            "enable": bool(arguments.get("enable", True)),
-            "min_replicas": self._require_int(arguments, "min_replicas"),
-            "max_replicas": self._require_int(arguments, "max_replicas"),
-            "metrics": metrics,
+            "xpa_type": xpa_type,
+            "enable": self._parse_bool_with_default(arguments.get("enable"), True),
+            "min_replicas": min_replicas,
+            "max_replicas": max_replicas,
+            "metrics": normalized_metrics,
         }
 
     def _build_probe_payload(self, arguments):
@@ -6418,11 +6453,23 @@ class MCPQueryService(object):
                     "service_id": {"type": "string"},
                     "operation": {"type": "string", "enum": ["summary", "get_rule", "create_rule", "update_rule", "records"]},
                     "rule_id": {"type": "string"},
-                    "xpa_type": {"type": "string"},
+                    "xpa_type": {"type": "string", "enum": ["hpa"]},
                     "enable": {"type": "boolean"},
                     "min_replicas": {"type": "integer", "minimum": 1},
                     "max_replicas": {"type": "integer", "minimum": 1},
-                    "metrics": {"type": "array", "items": {"type": "object"}},
+                    "metrics": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "metric_type": {"type": "string", "enum": ["resource_metrics"]},
+                                "metric_name": {"type": "string", "enum": ["cpu", "memory"]},
+                                "metric_target_type": {"type": "string", "enum": ["utilization", "average_value"]},
+                                "metric_target_value": {"type": "integer", "minimum": 0, "maximum": 65535}
+                            },
+                            "required": ["metric_type", "metric_name", "metric_target_type", "metric_target_value"]
+                        }
+                    },
                     "page": {"type": "integer", "minimum": 1},
                     "page_size": {"type": "integer", "minimum": 1}
                 },

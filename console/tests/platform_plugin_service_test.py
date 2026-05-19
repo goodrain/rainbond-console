@@ -6,6 +6,12 @@ from console.services.platform_plugin_service import platform_plugin_service
 
 class PlatformPluginServiceTests(TestCase):
 
+    def setUp(self):
+        platform_plugin_service.clear_market_plugin_cache()
+
+    def tearDown(self):
+        platform_plugin_service.clear_market_plugin_cache()
+
     def test_plugin_debug_summary_includes_arch_hint_and_keys(self):
         plugin_info = {
             "plugin_id": "rainbond-vm",
@@ -61,6 +67,27 @@ class PlatformPluginServiceTests(TestCase):
         self.assertEqual("enterprise", market.domain)
         self.assertEqual("default-ak", market.access_key)
         get_platform_plugins.assert_called_once()
+
+    def test_get_market_platform_plugins_cached_reuses_entry_until_ttl_expires(self):
+        default_market = mock.Mock()
+        default_market.url = "https://hub.grapps.cn"
+        default_market.access_key = "default-ak"
+
+        platform_plugin_service.clear_market_plugin_cache()
+        try:
+            with mock.patch.object(platform_plugin_service, "_get_default_market", return_value=default_market), \
+                    mock.patch("console.services.platform_plugin_service.app_store.get_platform_plugins",
+                               return_value={"plugins": [{"plugin_id": "rainbond-vm"}]}) as get_platform_plugins:
+                _, first_plugins = platform_plugin_service._get_market_platform_plugins_cached("eid", now=100.0)
+                _, second_plugins = platform_plugin_service._get_market_platform_plugins_cached("eid", now=120.0)
+                _, third_plugins = platform_plugin_service._get_market_platform_plugins_cached("eid", now=161.0)
+
+            self.assertEqual([{"plugin_id": "rainbond-vm"}], first_plugins)
+            self.assertEqual([{"plugin_id": "rainbond-vm"}], second_plugins)
+            self.assertEqual([{"plugin_id": "rainbond-vm"}], third_plugins)
+            self.assertEqual(2, get_platform_plugins.call_count)
+        finally:
+            platform_plugin_service.clear_market_plugin_cache()
 
     def test_list_platform_plugins_without_valid_license_returns_all_market_plugins(self):
         market_plugins = [
