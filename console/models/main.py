@@ -499,11 +499,15 @@ class EnterpriseUserPerm(BaseModel):
 
     class Meta:
         db_table = 'enterprise_user_perm'
+        indexes = [
+            models.Index(fields=['enterprise_id', 'is_initial_enterprise_admin']),
+        ]
 
     user_id = models.IntegerField(help_text="用户id")
     enterprise_id = models.CharField(max_length=32, help_text="企业id")
     identity = models.CharField(max_length=15, choices=user_identity, help_text="用户在企业的身份")
     token = models.CharField(max_length=64, help_text="API通信密钥", unique=True)
+    is_initial_enterprise_admin = models.BooleanField(default=False, help_text="是否为首个企业管理员")
 
 
 class UserAccessKey(BaseModel):
