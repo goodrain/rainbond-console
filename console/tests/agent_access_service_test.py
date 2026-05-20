@@ -54,27 +54,44 @@ class AgentAccessServiceTests(TestCase):
         self.assertFalse(access["can_open_agent"])
         self.assertEqual("not_enterprise_admin", access["deny_reason"])
 
-    def test_enterprise_allows_without_initial_marker(self):
-        user = self._user(user_id=2)
+    def test_enterprise_allows_and_reports_initial_marker(self):
+        user = self._user(user_id=1)
+        marker = mock.Mock()
+        marker.user_id = 1
 
         with mock.patch.object(agent_access_service, "get_platform_edition", return_value="enterprise"), \
-                mock.patch.object(agent_access_service, "ensure_initial_enterprise_admin_marker") as ensure_marker:
+                mock.patch.object(agent_access_service, "ensure_initial_enterprise_admin_marker", return_value=marker):
             access = agent_access_service.get_agent_access(user)
 
         self.assertTrue(access["can_open_agent"])
         self.assertEqual("enterprise", access["edition"])
-        ensure_marker.assert_not_called()
+        self.assertTrue(access["is_initial_enterprise_admin"])
 
-    def test_saas_allows_without_initial_marker(self):
+    def test_enterprise_allows_non_initial_user(self):
         user = self._user(user_id=2)
+        marker = mock.Mock()
+        marker.user_id = 1
+
+        with mock.patch.object(agent_access_service, "get_platform_edition", return_value="enterprise"), \
+                mock.patch.object(agent_access_service, "ensure_initial_enterprise_admin_marker", return_value=marker):
+            access = agent_access_service.get_agent_access(user)
+
+        self.assertTrue(access["can_open_agent"])
+        self.assertFalse(access["is_initial_enterprise_admin"])
+        self.assertEqual("", access["deny_reason"])
+
+    def test_saas_allows_and_reports_initial_marker(self):
+        user = self._user(user_id=2)
+        marker = mock.Mock()
+        marker.user_id = 1
 
         with mock.patch.object(agent_access_service, "get_platform_edition", return_value="saas"), \
-                mock.patch.object(agent_access_service, "ensure_initial_enterprise_admin_marker") as ensure_marker:
+                mock.patch.object(agent_access_service, "ensure_initial_enterprise_admin_marker", return_value=marker):
             access = agent_access_service.get_agent_access(user)
 
         self.assertTrue(access["can_open_agent"])
         self.assertEqual("saas", access["edition"])
-        ensure_marker.assert_not_called()
+        self.assertFalse(access["is_initial_enterprise_admin"])
 
     def test_platform_edition_uses_existing_conditions(self):
         with mock.patch.dict("os.environ", {}, clear=True), \

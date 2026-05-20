@@ -9,6 +9,7 @@ from console.views import app_version
 from console.views.adaptor import Appstore, Appstores, AppstoreCharts, AppstoreChart, HelmRegionInstall
 from console.views.api_gateway import AppApiGatewayView, AppApiGatewayConvertView
 from console.views.agent_access import AgentAccessView
+from console.views.agent_llm_config import AgentLLMConfigView, AgentLLMRuntimeConfigView
 from console.views.app_autoscaler import (AppAutoscalerView, AppScalingRecords, ListAppAutoscalerView)
 from console.views.app_config.app_dependency import (AppDependencyManageView, AppDependencyView, AppNotDependencyView,
                                                      AppDependencyReverseView, AppDependencyViewList)
@@ -200,6 +201,8 @@ urlpatterns = [
     url(r'^mcp/query/message$', MCPQueryMessageView.as_view()),
     url(r'^mcp/query/message/$', MCPQueryMessageView.as_view()),
     url(r'^agent/access$', AgentAccessView.as_view()),
+    url(r'^enterprise/(?P<eid>[^/]+)/agent-llm-config$', AgentLLMConfigView.as_view()),
+    url(r'^internal/agent-llm-config/runtime$', AgentLLMRuntimeConfigView.as_view()),
 
     # record error logs
     url(r'^errlog$', ErrLogView.as_view()),

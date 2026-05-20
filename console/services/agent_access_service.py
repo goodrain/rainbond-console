@@ -32,13 +32,13 @@ class AgentAccessService(object):
         edition = self.get_platform_edition(enterprise_id)
         is_saas = edition in (EDITION_SAAS, EDITION_ENTERPRISE_SAAS)
         has_enterprise_base = edition in (EDITION_ENTERPRISE, EDITION_ENTERPRISE_SAAS)
+        marker = self.ensure_initial_enterprise_admin_marker(enterprise_id)
+        is_initial_admin = bool(marker and marker.user_id == user.user_id)
 
         if edition != EDITION_OPEN_SOURCE:
-            return self._build_access(True, edition, is_saas, has_enterprise_base, False, "")
+            return self._build_access(True, edition, is_saas, has_enterprise_base, is_initial_admin, "")
 
-        marker = self.ensure_initial_enterprise_admin_marker(enterprise_id)
         is_enterprise_admin = enterprise_user_perm_repo.is_admin(enterprise_id, user.user_id)
-        is_initial_admin = bool(marker and marker.user_id == user.user_id)
 
         if is_enterprise_admin and is_initial_admin:
             return self._build_access(True, edition, is_saas, has_enterprise_base, True, "")
