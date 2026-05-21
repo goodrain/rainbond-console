@@ -523,6 +523,13 @@ class RegionApiBaseHttpClient(object):
                 proxy_response[key] = self.make_absolute_location(response.url, value)
             else:
                 proxy_response[key] = value
+        # Keep the streamed body unbuffered. Django's GZipMiddleware would
+        # otherwise wrap this StreamingHttpResponse in a gzip compressor whose
+        # buffer swallows the small SSE chunks until it fills, killing the
+        # live typewriter effect. Declaring an explicit Content-Encoding makes
+        # GZipMiddleware skip the response (same trick as the component log
+        # stream view).
+        proxy_response['Content-Encoding'] = 'identity'
         return proxy_response
 
     def get_headers(self, environ):
