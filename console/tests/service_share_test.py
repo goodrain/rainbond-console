@@ -24,6 +24,7 @@ from console.services.share_services import share_service as share_service_insta
 from console.services import share_services as share_services_module  # noqa: E402
 from console.views import service_share  # noqa: E402
 from console.views.service_share import ServiceShareInfoView, ServiceShareRecordView  # noqa: E402
+from console.repositories import share_repo as share_repo_module  # noqa: E402
 
 
 # capability_id: console.service-share.create-record
@@ -192,6 +193,29 @@ class ServiceShareRecordListViewTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["data"]["bean"]["total"], 0)
         self.assertEqual(response.data["data"]["list"], [])
+
+
+class ShareRepoVMServiceSourceTestCase(TestCase):
+    # capability_id: console.service-share.vm-qcow2-publish
+    def test_get_service_list_keeps_vm_run_components_for_publish(self):
+        query = mock.Mock()
+        query.exclude.return_value = query
+        team = mock.Mock(tenant_id=1)
+
+        with mock.patch.object(
+                share_repo_module.ServiceGroupRelation.objects,
+                "filter",
+                return_value=[mock.Mock(service_id="svc-vm")],
+        ), mock.patch.object(
+                share_repo_module.TenantServiceInfo.objects,
+                "filter",
+                return_value=query,
+        ) as service_filter:
+            result = share_repo_module.share_repo.get_service_list_by_group_id(team, 30)
+
+        service_filter.assert_called_once_with(service_id__in=["svc-vm"])
+        query.exclude.assert_called_once_with(service_source="third_party")
+        self.assertIs(result, query)
 
 
 class ShareServiceCreateSnapshotPublishTestCase(TestCase):
@@ -394,9 +418,15 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
         self.assertNotIn("share_slug_path", saved_component)
         self.assertNotIn("service_slug", saved_component)
 
-    def test_create_share_info_passes_vm_image_source_for_vm_publish(self):
-        self.share_record.service_key = "svc-snapshot"
-        self.snapshot_version.app_template = json.dumps(
+    def test_sync_event_passes_vm_image_source_for_vm_publish(self):
+        app_version = mock.Mock(
+            template_type=share_service_instance.SNAPSHOT_TEMPLATE_TYPE,
+            scope="team",
+            version="1.2.3",
+            update_time=None,
+            save=mock.Mock(),
+        )
+        app_version.app_template = json.dumps(
             {
                 "template_version": "v3",
                 "group_key": "hidden-app-id",
@@ -433,39 +463,31 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
                 "ingress_http_routes": [],
             }
         )
-        app_version_instance = mock.Mock(save=mock.Mock(), arch="amd64")
-        snapshot_filter = mock.Mock()
-        snapshot_filter.first.return_value = self.target_template
+        record_event = mock.Mock(
+            record_id=self.share_record.ID,
+            service_key="svc-snapshot",
+            service_id="svc-snapshot",
+            service_alias="svc-snapshot",
+            save=mock.Mock(),
+        )
+        self.user.nick_name = "demo-user"
 
-        with mock.patch.object(share_services_module.rainbond_app_repo, "get_app_version", return_value=self.snapshot_version), \
-                mock.patch.object(share_services_module.RainbondCenterApp.objects, "filter", return_value=snapshot_filter), \
-                mock.patch("console.services.group_service.group_service.get_app_by_id", return_value=self.runtime_app), \
-                mock.patch.object(share_services_module.ServiceSourceInfo.objects, "filter") as service_source_filter, \
-                mock.patch.object(share_services_module.ServiceShareRecordEvent.objects, "filter") as service_events_filter, \
-                mock.patch.object(share_services_module, "ServiceShareRecordEvent") as service_event_cls, \
-                mock.patch.object(share_services_module, "PluginShareRecordEvent") as plugin_event_cls, \
-                mock.patch.object(share_services_module, "RainbondCenterAppVersion", return_value=app_version_instance), \
-                mock.patch.object(share_services_module.app_store, "get_app_hub_info", return_value={"hub": "demo-image-target"}), \
-                mock.patch.object(share_services_module.app_store, "is_no_multiple_region_hub", return_value=False), \
+        with mock.patch.object(
+                share_services_module.rainbond_app_repo,
+                "get_rainbond_app_version_by_record_id",
+                return_value=app_version), \
+                mock.patch.object(
+                    share_service_instance,
+                    "create_publish_event",
+                    return_value=mock.Mock(event_id="event-id")), \
                 mock.patch.object(share_services_module.region_api, "share_service", return_value=(None, {"bean": {"share_id": "sid", "event_id": "eid", "image_name": "registry.example.com/team/windows-root:v1"}})) as share_service_mock:
-            service_source_filter.return_value.values_list.return_value = []
-            service_events_filter.return_value.delete.return_value = None
-            service_event_cls.return_value.save = mock.Mock()
-            plugin_event_cls.return_value.save = mock.Mock()
-
-            code, msg, bean = share_service_instance.create_share_info(
-                tenant=self.tenant,
-                region_name=self.region_name,
-                share_record=self.share_record,
-                share_team=self.team,
-                share_user=self.user,
-                share_info=self.share_info,
-                use_force=True,
-                user_id=None,
+            share_service_instance.sync_event(
+                self.user,
+                self.region_name,
+                self.team.tenant_name,
+                record_event,
             )
 
-        self.assertEqual(code, 200)
-        self.assertEqual(msg, "分享信息处理成功")
         _, call_args, _ = share_service_mock.mock_calls[0]
         share_body = call_args[3]
         self.assertEqual("amd64", share_body["arch"])

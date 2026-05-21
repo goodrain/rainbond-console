@@ -388,7 +388,7 @@
 | console.service-share.resolve-last-shared-app | 解析最近一次分享的应用版本 | active | regression | console.services.share_services.ShareService.get_last_shared_app_and_app_list | console/tests/service_share_test.py::ShareServicePreferredAppTestCase.test_get_last_shared_app_ignores_missing_versions_for_preferred_local_app |
 | console.service-share.view-info | 查看组件共享详情 | active | regression | console.views.service_share.ServiceShareInfoView.get | console/tests/service_share_test.py::ServiceShareInfoViewTestCase |
 | console.service-share.view-snapshot-info | 查看分享快照详情 | active | regression | console.views.service_share.ServiceShareInfoView.get | console/tests/service_share_test.py::ServiceShareInfoViewTestCase.test_get_returns_snapshot_template_payload |
-| console.service-share.vm-qcow2-publish | 将虚拟机系统盘发布为 qcow2 镜像源 | active | regression | console.services.share_services.ShareService.sync_event | console/tests/service_share_test.py::ShareServiceVMPublishMetadataTestCase |
+| console.service-share.vm-qcow2-publish | 将虚拟机系统盘发布为 qcow2 镜像源 | active | regression | console.services.share_services.ShareService.sync_event | console/tests/service_share_test.py::ShareRepoVMServiceSourceTestCase.test_get_service_list_keeps_vm_run_components_for_publish<br>console/tests/service_share_test.py::ShareServiceCreateSnapshotPublishTestCase.test_sync_event_passes_vm_image_source_for_vm_publish<br>console/tests/service_share_test.py::ShareServiceVMPublishMetadataTestCase |
 | console.source-component.auto-create-flow | 执行源码组件自动创建全流程 | active | regression | console.services.source_component_service.auto_create_component | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_runs_full_source_flow |
 | console.source-component.build-config-error | 应用默认源码构建配置失败时抛错 | active | regression | console.services.source_component_service.apply_default_build_config | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_apply_default_build_config_raises_when_save_fails |
 | console.source-component.check-failure | 源码组件检测失败时中止创建 | active | regression | console.services.source_component_service.auto_create_component | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure |
@@ -4278,8 +4278,8 @@
 - 测试类型: `regression`
 - 接口类型: `workflow`
 - 业务入口: `console.services.share_services.ShareService.sync_event`
-- 代码路径: `console/services/share_services.py`
-- 测试路径: `console/tests/service_share_test.py::ShareServiceVMPublishMetadataTestCase`
+- 代码路径: `console/repositories/share_repo.py`, `console/services/share_services.py`
+- 测试路径: `console/tests/service_share_test.py::ShareRepoVMServiceSourceTestCase.test_get_service_list_keeps_vm_run_components_for_publish`, `console/tests/service_share_test.py::ShareServiceCreateSnapshotPublishTestCase.test_sync_event_passes_vm_image_source_for_vm_publish`, `console/tests/service_share_test.py::ShareServiceVMPublishMetadataTestCase`
 
 ### 执行源码组件自动创建全流程
 

@@ -7158,9 +7158,18 @@
       "interface_type": "workflow",
       "interface": "console.services.share_services.ShareService.sync_event",
       "code_paths": [
+        "console/repositories/share_repo.py",
         "console/services/share_services.py"
       ],
       "tests": [
+        {
+          "path": "console/tests/service_share_test.py",
+          "selector": "ShareRepoVMServiceSourceTestCase.test_get_service_list_keeps_vm_run_components_for_publish"
+        },
+        {
+          "path": "console/tests/service_share_test.py",
+          "selector": "ShareServiceCreateSnapshotPublishTestCase.test_sync_event_passes_vm_image_source_for_vm_publish"
+        },
         {
           "path": "console/tests/service_share_test.py",
           "selector": "ShareServiceVMPublishMetadataTestCase"
