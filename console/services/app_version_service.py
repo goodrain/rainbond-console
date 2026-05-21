@@ -150,6 +150,7 @@ class AppVersionService(object):
     HIDDEN_TEMPLATE_SOURCE = "local"
     HIDDEN_TEMPLATE_SCOPE = "team"
     SNAPSHOT_TEMPLATE_TYPE = "application_version"
+    VM_SNAPSHOT_ROLLBACK_UNSUPPORTED_REASON = "携带虚拟机类型的模板快照不支持回滚升级"
     TRACKED_COMPONENT_FIELDS = (
         ("service_env_map_list", "环境变量"),
         ("service_connect_info_map_list", "连接信息"),
@@ -203,6 +204,32 @@ class AppVersionService(object):
         template["apps"] = [cls._normalize_template_image(component) for component in template.get("apps", [])]
         template["plugins"] = [cls._normalize_template_image(plugin) for plugin in template.get("plugins", [])]
         return template
+
+    @classmethod
+    def _is_vm_template_component(cls, component):
+        if not isinstance(component, dict):
+            return False
+        return bool(
+            component.get("vm")
+            or component.get("extend_method") == "vm"
+            or component.get("service_type") == "vm"
+            or component.get("service_source") == "vm_run"
+        )
+
+    @classmethod
+    def _template_has_vm_component(cls, app_template):
+        return any(cls._is_vm_template_component(component) for component in (app_template or {}).get("apps", []))
+
+    def _rollback_support_info(self, app_template):
+        if self._template_has_vm_component(app_template):
+            return {
+                "can_rollback": False,
+                "rollback_disabled_reason": self.VM_SNAPSHOT_ROLLBACK_UNSUPPORTED_REASON,
+            }
+        return {
+            "can_rollback": True,
+            "rollback_disabled_reason": "",
+        }
 
     @staticmethod
     def _split_version(version):
@@ -595,7 +622,7 @@ class AppVersionService(object):
         if previous_version:
             previous_template = json.loads(previous_version.app_template)
             diff_summary = self._summarize_diff(app_template, previous_template)
-        return {
+        result = {
             "version_id": version_obj.ID,
             "version": version_obj.version,
             "version_alias": version_obj.version_alias,
@@ -608,6 +635,8 @@ class AppVersionService(object):
             "arch": version_obj.arch,
             "diff_summary": diff_summary or self._empty_diff_summary(),
         }
+        result.update(self._rollback_support_info(app_template))
+        return result
 
     def _list_snapshot_version_objects(self, app_model_id):
         return list(
@@ -914,7 +943,7 @@ class AppVersionService(object):
             previous_template = json.loads(previous_version.app_template)
             diff_summary = self._summarize_diff(app_template, previous_template)
             component_diff_details = self._build_component_diff_details(app_template, previous_template)
-        return {
+        detail = {
             "version_id": version.ID,
             "version": version.version,
             "version_alias": version.version_alias,
@@ -928,6 +957,8 @@ class AppVersionService(object):
             "content_hash": self._content_hash(app_template),
             "snapshot_id": app_template.get("snapshot_id"),
         }
+        detail.update(self._rollback_support_info(app_template))
+        return detail
 
     def delete_snapshot(self, app_id, version_id):
         relation, _ = self.get_hidden_template(app_id)
@@ -960,6 +991,12 @@ class AppVersionService(object):
         if not target_version:
             return None
         target_template = json.loads(target_version.app_template)
+        if self._template_has_vm_component(target_template):
+            raise ServiceHandleException(
+                msg="vm snapshot rollback not supported",
+                msg_show=self.VM_SNAPSHOT_ROLLBACK_UNSUPPORTED_REASON,
+                status_code=400,
+            )
         snapshot_id = target_template.get("snapshot_id")
         if not snapshot_id:
             return None

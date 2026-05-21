@@ -2167,6 +2167,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-version.rollback-vm-snapshot-guard",
+      "title": "Reject VM app version snapshot rollback",
+      "title_zh": "\u7981\u6b62\u56de\u6eda\u865a\u62df\u673a\u5e94\u7528\u7248\u672c\u5feb\u7167",
+      "interface_type": "service_method",
+      "interface": "console.services.app_version_service.AppVersionService.rollback_snapshot",
+      "code_paths": [
+        "console/services/app_version_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_version_test.py",
+          "selector": "AppVersionServiceRollbackVMSnapshotGuardTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-version.snapshot-delete-guard",
       "title": "Prevent deleting latest application version snapshot",
       "title_zh": "\u963b\u6b62\u5220\u9664\u6700\u65b0\u5e94\u7528\u7248\u672c\u5feb\u7167",

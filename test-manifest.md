@@ -121,6 +121,7 @@
 | console.app-version.rollback-record-update-ignore-missing | 回滚记录缺失时忽略状态更新 | active | regression | console.services.market_app.app_restore.AppRestore._update_rollback_record | console/tests/app_version_test.py::AppRestoreRollbackRecordTestCase.test_update_rollback_record_ignores_missing_record |
 | console.app-version.rollback-restore-components | 应用版本回滚时恢复缺失组件 | active | regression | console.services.app_version_service.AppVersionRollbackRestore._create_new_app | console/tests/app_version_test.py::AppVersionRollbackRestoreSnapshotCoverageTestCase |
 | console.app-version.rollback-snapshot | App Version Rollback Snapshot | active | regression | console.services.mcp_query_service.call_tool[console.app-version.rollback-snapshot] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_rollback_app_version_snapshot_returns_rollback_record |
+| console.app-version.rollback-vm-snapshot-guard | 禁止回滚虚拟机应用版本快照 | active | regression | console.services.app_version_service.AppVersionService.rollback_snapshot | console/tests/app_version_test.py::AppVersionServiceRollbackVMSnapshotGuardTestCase |
 | console.app-version.snapshot-delete-guard | 阻止删除最新应用版本快照 | active | regression | console.services.app_version_service.delete_snapshot | console/tests/app_version_test.py::AppVersionServiceDeleteSnapshotTestCase.test_delete_snapshot_rejects_latest_version |
 | console.app-version.snapshot-delete-history | 删除历史应用版本快照 | active | regression | console.services.app_version_service.delete_snapshot | console/tests/app_version_test.py::AppVersionServiceDeleteSnapshotTestCase.test_delete_snapshot_removes_historical_version |
 | console.app-version.snapshot-detail | 查看应用版本快照详情 | active | regression | console.services.app_version_service.get_snapshot_detail | console/tests/app_version_test.py::AppVersionServiceSnapshotDetailTestCase.test_get_snapshot_detail_includes_previous_version_and_field_diff |
@@ -1600,6 +1601,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[console.app-version.rollback-snapshot]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_rollback_app_version_snapshot_returns_rollback_record`
+
+### 禁止回滚虚拟机应用版本快照
+
+- Capability ID: `console.app-version.rollback-vm-snapshot-guard`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_version_service.AppVersionService.rollback_snapshot`
+- 代码路径: `console/services/app_version_service.py`
+- 测试路径: `console/tests/app_version_test.py::AppVersionServiceRollbackVMSnapshotGuardTestCase`
 
 ### 阻止删除最新应用版本快照
 
