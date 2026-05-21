@@ -23,14 +23,15 @@ class RainbondPluginStaticView(AlowAnyApiView):
         return HttpResponse(resp, content_type="application/javascript")
 
 class RainbondPluginBackendView(JWTAuthApiView):
+    # 流式代理插件后端 API：支持 SSE / 长响应，转发 body 与请求头（含 Cookie/JWT），
+    # 不缓冲、不走 proxy() 的固定 20s 超时。
     def get(self, request, region_name, plugin_name, file_path, *args, **kwargs):
         path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
         # 传递查询参数
         query_string = request.META.get('QUERY_STRING', '')
         if query_string:
             path = path + "?" + query_string
-        # 使用完整代理以支持文件下载，保留 Content-Type 等响应头
-        return region_api.proxy(request, path, region_name)
+        return region_api.stream_proxy(request, path, region_name)
 
     def post(self, request, region_name, plugin_name, file_path, *args, **kwargs):
         path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
@@ -38,8 +39,7 @@ class RainbondPluginBackendView(JWTAuthApiView):
         query_string = request.META.get('QUERY_STRING', '')
         if query_string:
             path = path + "?" + query_string
-        # 使用完整代理以支持文件上传，保留 Content-Type 等响应头
-        return region_api.proxy(request, path, region_name)
+        return region_api.stream_proxy(request, path, region_name)
 
     def put(self, request, region_name, plugin_name, file_path, *args, **kwargs):
         path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
@@ -47,8 +47,7 @@ class RainbondPluginBackendView(JWTAuthApiView):
         query_string = request.META.get('QUERY_STRING', '')
         if query_string:
             path = path + "?" + query_string
-        # 使用完整代理以支持文件上传，保留 Content-Type 等响应头
-        return region_api.proxy(request, path, region_name)
+        return region_api.stream_proxy(request, path, region_name)
 
     def delete(self, request, region_name, plugin_name, file_path, *args, **kwargs):
         path = "/v2/platform/backend/plugins/" + plugin_name + "/" + file_path
@@ -56,8 +55,7 @@ class RainbondPluginBackendView(JWTAuthApiView):
         query_string = request.META.get('QUERY_STRING', '')
         if query_string:
             path = path + "?" + query_string
-        # 使用完整代理，保留 Content-Type 等响应头
-        return region_api.proxy(request, path, region_name)
+        return region_api.stream_proxy(request, path, region_name)
 
 class RainbondPluginStatusView(EnterpriseAdminView):
     def post(self, request, region_name, plugin_name, *args, **kwargs):
