@@ -12,6 +12,29 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "openapi_client" not in sys.modules:
+    openapi_client_module = ModuleType("openapi_client")
+    configuration_module = ModuleType("openapi_client.configuration")
+    rest_module = ModuleType("openapi_client.rest")
+
+    class _DummyConfiguration(object):
+        def __init__(self):
+            self.client_side_validation = False
+            self.host = ""
+            self.api_key = {}
+
+    class _DummyApiException(Exception):
+        status = 500
+        body = ""
+
+    openapi_client_module.ApiClient = object
+    openapi_client_module.MarketOpenapiApi = object
+    configuration_module.Configuration = _DummyConfiguration
+    rest_module.ApiException = _DummyApiException
+
+    sys.modules["openapi_client"] = openapi_client_module
+    sys.modules["openapi_client.configuration"] = configuration_module
+    sys.modules["openapi_client.rest"] = rest_module
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
@@ -216,6 +239,73 @@ class ShareRepoVMServiceSourceTestCase(TestCase):
         service_filter.assert_called_once_with(service_id__in=["svc-vm"])
         query.exclude.assert_called_once_with(service_source="third_party")
         self.assertIs(result, query)
+
+
+# capability_id: console.service-share.stopped-component-publish
+# capability_id: console.service-share.vm-shutdown-guard
+class ShareServiceCheckServiceSourceTestCase(TestCase):
+    def test_check_service_source_allows_stopped_non_vm_component_publish(self):
+        team = mock.Mock(tenant_id=1, enterprise_id="eid")
+        service = mock.Mock(service_id="svc-web", extend_method="docker", service_source="source_code")
+
+        with mock.patch.object(share_services_module.share_repo, "get_service_list_by_group_id",
+                               return_value=[service]), \
+                mock.patch.object(share_services_module.k8s_resources_repo, "list_by_app_id", return_value=[]), \
+                mock.patch.object(
+                    share_services_module.base_service,
+                    "status_multi_service",
+                    return_value=[{"service_id": "svc-web", "status": "closed"}]):
+            result = share_service_instance.check_service_source(
+                team=team,
+                team_name="demo-team",
+                group_id=30,
+                region_name="demo-region",
+            )
+
+        self.assertEqual(200, result["code"])
+        self.assertTrue(result["success"])
+
+    def test_check_service_source_rejects_running_vm_publish(self):
+        team = mock.Mock(tenant_id=1, enterprise_id="eid")
+        service = mock.Mock(service_id="svc-vm", extend_method="vm")
+
+        with mock.patch.object(share_services_module.share_repo, "get_service_list_by_group_id",
+                               return_value=[service]), \
+                mock.patch.object(share_services_module.k8s_resources_repo, "list_by_app_id", return_value=[]), \
+                mock.patch.object(
+                    share_services_module.base_service,
+                    "status_multi_service",
+                    return_value=[{"service_id": "svc-vm", "status": "running"}]):
+            result = share_service_instance.check_service_source(
+                team=team,
+                team_name="demo-team",
+                group_id=30,
+                region_name="demo-region",
+            )
+
+        self.assertEqual(400, result["code"])
+        self.assertEqual("虚拟机发布前必须关机，请先关闭虚拟机组件后再发布。", result["msg_show"])
+
+    def test_check_service_source_allows_closed_vm_publish(self):
+        team = mock.Mock(tenant_id=1, enterprise_id="eid")
+        service = mock.Mock(service_id="svc-vm", extend_method="vm")
+
+        with mock.patch.object(share_services_module.share_repo, "get_service_list_by_group_id",
+                               return_value=[service]), \
+                mock.patch.object(share_services_module.k8s_resources_repo, "list_by_app_id", return_value=[]), \
+                mock.patch.object(
+                    share_services_module.base_service,
+                    "status_multi_service",
+                    return_value=[{"service_id": "svc-vm", "status": "closed"}]):
+            result = share_service_instance.check_service_source(
+                team=team,
+                team_name="demo-team",
+                group_id=30,
+                region_name="demo-region",
+            )
+
+        self.assertEqual(200, result["code"])
+        self.assertTrue(result["success"])
 
 
 class ShareServiceCreateSnapshotPublishTestCase(TestCase):

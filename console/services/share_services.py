@@ -46,6 +46,7 @@ region_api = RegionInvokeApi()
 class ShareService(object):
     SNAPSHOT_TEMPLATE_TYPE = "application_version"
     PLATFORM_PLUGIN_NO_INJECT = "NoInject"
+    VM_PUBLISH_CLOSED_STATUSES = ("closed", "stopped", "undeploy")
 
     @classmethod
     def is_snapshot_publish_version(cls, version_obj):
@@ -62,6 +63,10 @@ class ShareService(object):
     def is_snapshot_publish_record(self, share_record):
         return bool(self.get_snapshot_publish_version(share_record))
 
+    @staticmethod
+    def _is_vm_runtime_service(service):
+        return getattr(service, "extend_method", "") == "vm" or getattr(service, "service_source", "") == "vm_run"
+
     def check_service_source(self, team, team_name, group_id, region_name):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         # 过滤掉 kubeblocks 类型的组件
@@ -71,15 +76,24 @@ class ShareService(object):
         if k8s_resources_list:
             data = {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}
         if service_list:
-            # 批量查询组件状态
+            vm_services = [service for service in service_list if self._is_vm_runtime_service(service)]
+            if not vm_services:
+                return {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}
+            # VM publish still requires an explicit shutdown state before exporting the root disk.
             service_ids = [service.service_id for service in service_list]
             status_list = base_service.status_multi_service(
                 region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
-            for status in status_list:
-                if status["status"] == "running":
-                    data = {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}
-                    return data
-            data = {"code": 400, "success": False, "msg_show": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
+            status_map = {status.get("service_id"): status.get("status") for status in status_list}
+            for vm_service in vm_services:
+                if status_map.get(vm_service.service_id, "") not in self.VM_PUBLISH_CLOSED_STATUSES:
+                    return {
+                        "code": 400,
+                        "success": False,
+                        "msg_show": "虚拟机发布前必须关机，请先关闭虚拟机组件后再发布。",
+                        "list": list(),
+                        "bean": dict()
+                    }
+            data = {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}
         return data
 
     def get_service_ports_by_ids(self, service_ids):

@@ -7132,6 +7132,24 @@
       "status": "active"
     },
     {
+      "id": "console.service-share.stopped-component-publish",
+      "title": "Allow stopped component publish",
+      "title_zh": "\u5141\u8bb8\u5df2\u505c\u6b62\u7ec4\u4ef6\u53d1\u5e03",
+      "interface_type": "service_method",
+      "interface": "console.services.share_services.ShareService.check_service_source",
+      "code_paths": [
+        "console/services/share_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_share_test.py",
+          "selector": "ShareServiceCheckServiceSourceTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.service-share.view-info",
       "title": "View service share details",
       "title_zh": "\u67e5\u770b\u7ec4\u4ef6\u5171\u4eab\u8be6\u60c5",
@@ -7191,6 +7209,24 @@
         {
           "path": "console/tests/service_share_test.py",
           "selector": "ShareServiceVMPublishMetadataTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.service-share.vm-shutdown-guard",
+      "title": "VM publish shutdown guard",
+      "title_zh": "\u865a\u62df\u673a\u53d1\u5e03\u5173\u673a\u9650\u5236",
+      "interface_type": "service_method",
+      "interface": "console.services.share_services.ShareService.check_service_source",
+      "code_paths": [
+        "console/services/share_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_share_test.py",
+          "selector": "ShareServiceCheckServiceSourceTestCase"
         }
       ],
       "test_type": "regression",
