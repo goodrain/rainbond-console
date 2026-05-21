@@ -7152,6 +7152,24 @@
       "status": "active"
     },
     {
+      "id": "console.service-share.vm-qcow2-publish",
+      "title": "Publish VM root disk as qcow2 image source",
+      "title_zh": "\u5c06\u865a\u62df\u673a\u7cfb\u7edf\u76d8\u53d1\u5e03\u4e3a qcow2 \u955c\u50cf\u6e90",
+      "interface_type": "workflow",
+      "interface": "console.services.share_services.ShareService.sync_event",
+      "code_paths": [
+        "console/services/share_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_share_test.py",
+          "selector": "ShareServiceVMPublishMetadataTestCase"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.source-component.auto-create-flow",
       "title": "Run full source component auto-create flow",
       "title_zh": "\u6267\u884c\u6e90\u7801\u7ec4\u4ef6\u81ea\u52a8\u521b\u5efa\u5168\u6d41\u7a0b",
@@ -7740,6 +7758,24 @@
         {
           "path": "console/tests/utils/version_test.py",
           "selector": "VersionUtilsTests.test_sorted_versions"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.virtual-machine.registry-root-disk",
+      "title": "Create VM with registry imported root disk",
+      "title_zh": "\u4f7f\u7528 registry \u5bfc\u5165\u7684\u7cfb\u7edf\u76d8\u521b\u5efa\u865a\u62df\u673a",
+      "interface_type": "service_method",
+      "interface": "console.services.virtual_machine.VirtualMachineService.create_vm",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests"
         }
       ],
       "test_type": "regression",

@@ -85,6 +85,41 @@ class AppExportServiceMetadataTestCase(TestCase):
 
         self.assertEqual(result["apps"][0]["share_image"], component["share_image"])
 
+    def test_get_app_metadata_backfills_vm_root_disk_image_from_share_image(self):
+        app = mock.Mock(pic=None, describe="demo app")
+        component = {
+            "service_alias": "vm-root",
+            "extend_method": "vm",
+            "service_type": "vm",
+            "share_image": "registry.example.com/share/windows-root:2.0.0",
+            "vm": {
+                "boot_source_format": "qcow2",
+                "disk_layout": [{
+                    "disk_key": "disk",
+                    "disk_role": "root",
+                    "format": "qcow2",
+                    "source_type": "registry",
+                    "image": "",
+                }]
+            }
+        }
+        app_version = mock.Mock(
+            app_template=json.dumps({
+                "group_key": "demo-app",
+                "group_version": "1.0.0",
+                "template_version": "v2",
+                "apps": [component]
+            }),
+            app_version_info="bugfix",
+            version_alias="stable",
+        )
+
+        metadata = export_service._AppExportService__get_app_metata(app, app_version, {"image_handle": ""})
+        result = json.loads(metadata)
+
+        self.assertEqual("registry.example.com/share/windows-root:2.0.0", result["apps"][0]["vm"]["disk_layout"][0]["image"])
+        self.assertEqual("v3", result["template_version"])
+
     def test_get_app_metadata_falls_back_to_plugin_image(self):
         app = mock.Mock(pic=None, describe="demo app")
         plugin = {

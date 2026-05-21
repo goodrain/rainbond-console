@@ -1003,6 +1003,25 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
 
+    def create_vm_export(self, region, tenant_name, service_alias, body):
+        """创建 VM live export"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = "{0}/v2/tenants/{1}/services/{2}/vm-exports".format(url, tenant_region.region_tenant_name, service_alias)
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
+        return res, body
+
+    def get_vm_export(self, region, tenant_name, service_alias, export_name):
+        """查询 VM live export"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = "{0}/v2/tenants/{1}/services/{2}/vm-exports/{3}".format(
+            url, tenant_region.region_tenant_name, service_alias, export_name)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
     def share_service_result(self, region, tenant_name, service_alias, region_share_id):
         """查询分享应用状态"""
         url, token = self.__get_region_access_info(tenant_name, region)

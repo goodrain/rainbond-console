@@ -436,3 +436,97 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
         )
 
         self.assertEqual("", fmt)
+
+    def test_build_vm_root_disk_import_accepts_registry_root_disk_from_template_payload(self):
+        root_import = vms._build_vm_root_disk_import(
+            template_payload={
+                "disk_layout": [{
+                    "disk_key": "disk",
+                    "disk_name": "system-disk",
+                    "disk_role": "root",
+                    "image_url": "docker://registry.example.com/team/windows-root:v1",
+                    "source_uri": "registry.example.com/team/windows-root:v1",
+                    "source_type": "registry",
+                    "format": "qcow2",
+                    "checksum": "sha256:test",
+                }]
+            },
+            image_url="registry.example.com/team/windows-root:v1",
+            source_uri="registry.example.com/team/windows-root:v1",
+        )
+
+        self.assertEqual(
+            {
+                "volume_name": "disk",
+                "disk_key": "disk",
+                "disk_name": "system-disk",
+                "image_url": "docker://registry.example.com/team/windows-root:v1",
+                "source_uri": "registry.example.com/team/windows-root:v1",
+                "format": "qcow2",
+                "checksum": "sha256:test",
+                "source_type": "registry",
+            },
+            root_import,
+        )
+
+    def test_build_vm_root_disk_import_accepts_registry_root_disk_from_asset_metadata(self):
+        asset = SimpleNamespace(
+            image_url="docker://registry.example.com/team/windows-root:v1",
+            source_uri="registry.example.com/team/windows-root:v1",
+            extra_json=json.dumps({
+                "disks": [{
+                    "disk_key": "disk",
+                    "disk_name": "system-disk",
+                    "disk_role": "root",
+                    "download_url": "docker://registry.example.com/team/windows-root:v1",
+                    "source_uri": "registry.example.com/team/windows-root:v1",
+                    "source_type": "registry",
+                    "format": "qcow2",
+                    "checksum": "sha256:test",
+                }]
+            }),
+        )
+
+        root_import = vms._build_vm_root_disk_import(asset=asset)
+
+        self.assertEqual("registry", root_import["source_type"])
+        self.assertEqual("docker://registry.example.com/team/windows-root:v1", root_import["image_url"])
+        self.assertEqual("qcow2", root_import["format"])
+
+    def test_build_vm_root_disk_import_accepts_registry_root_disk_without_docker_scheme(self):
+        root_import = vms._build_vm_root_disk_import(
+            template_payload={
+                "disk_layout": [{
+                    "disk_key": "disk",
+                    "disk_name": "system-disk",
+                    "disk_role": "root",
+                    "image_url": "registry.example.com/team/windows-root:v1",
+                    "source_uri": "vm-publish/windows-root",
+                    "source_type": "registry",
+                    "format": "qcow2",
+                }]
+            }
+        )
+
+        self.assertEqual("registry", root_import["source_type"])
+        self.assertEqual("registry.example.com/team/windows-root:v1", root_import["image_url"])
+
+    def test_build_vm_root_disk_import_reads_vm_block_disk_layout(self):
+        root_import = vms._build_vm_root_disk_import(
+            template_payload={
+                "vm": {
+                    "disk_layout": [{
+                        "disk_key": "disk",
+                        "disk_name": "system-disk",
+                        "disk_role": "root",
+                        "image": "registry.example.com/team/windows-root:v2",
+                        "source_uri": "vm-publish/windows-root",
+                        "source_type": "registry",
+                        "format": "qcow2",
+                    }]
+                }
+            }
+        )
+
+        self.assertEqual("registry", root_import["source_type"])
+        self.assertEqual("registry.example.com/team/windows-root:v2", root_import["image_url"])

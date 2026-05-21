@@ -388,6 +388,7 @@
 | console.service-share.resolve-last-shared-app | 解析最近一次分享的应用版本 | active | regression | console.services.share_services.ShareService.get_last_shared_app_and_app_list | console/tests/service_share_test.py::ShareServicePreferredAppTestCase.test_get_last_shared_app_ignores_missing_versions_for_preferred_local_app |
 | console.service-share.view-info | 查看组件共享详情 | active | regression | console.views.service_share.ServiceShareInfoView.get | console/tests/service_share_test.py::ServiceShareInfoViewTestCase |
 | console.service-share.view-snapshot-info | 查看分享快照详情 | active | regression | console.views.service_share.ServiceShareInfoView.get | console/tests/service_share_test.py::ServiceShareInfoViewTestCase.test_get_returns_snapshot_template_payload |
+| console.service-share.vm-qcow2-publish | 将虚拟机系统盘发布为 qcow2 镜像源 | active | regression | console.services.share_services.ShareService.sync_event | console/tests/service_share_test.py::ShareServiceVMPublishMetadataTestCase |
 | console.source-component.auto-create-flow | 执行源码组件自动创建全流程 | active | regression | console.services.source_component_service.auto_create_component | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_runs_full_source_flow |
 | console.source-component.build-config-error | 应用默认源码构建配置失败时抛错 | active | regression | console.services.source_component_service.apply_default_build_config | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_apply_default_build_config_raises_when_save_fails |
 | console.source-component.check-failure | 源码组件检测失败时中止创建 | active | regression | console.services.source_component_service.auto_create_component | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_raises_on_check_failure |
@@ -421,6 +422,7 @@
 | console.version.compare | 比较语义化风格的版本字符串 | active | regression | console.utils.version.compare_version | console/tests/utils/version_test.py::VersionUtilsTests.test_compare_version |
 | console.version.newer-filter | 筛选出高于当前版本的新版本 | active | regression | console.utils.version.get_new_versions | console/tests/utils/version_test.py::VersionUtilsTests.test_get_new_versions |
 | console.version.sort-desc | 按降序排列版本字符串 | active | regression | console.utils.version.sorted_versions | console/tests/utils/version_test.py::VersionUtilsTests.test_sorted_versions |
+| console.virtual-machine.registry-root-disk | 使用 registry 导入的系统盘创建虚拟机 | active | regression | console.services.virtual_machine.VirtualMachineService.create_vm | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests |
 | console.vm-asset.delete-active-reference-guard | 仅当活跃虚拟机仍引用时阻止删除镜像资产 | active | regression | console.services.virtual_machine.VirtualMachineService.delete_vm_image | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_ignores_orphan_vm_asset_attrs<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_blocks_active_vm_asset_reference<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_ignores_incomplete_vm_service_reference |
 | console.vm-asset.incomplete-service-cleanup-preserves-ready-assets | 删除未完成虚拟机组件时保留已就绪镜像资产 | active | regression | console.services.app_actions.app_manage.AppManageService._truncate_service | console/tests/app_manage_test.py::AppManageIncompleteVMCleanupTests.test_truncate_service_keeps_ready_uploaded_vm_asset |
 | console.vm-overview.vnc-url-plugin-fallback | 在缺少查询参数时从插件回填虚拟机概览 VNC 地址 | active | regression | console.views.app_overview.AppDetailView.get | console/tests/vm_detail_view_test.py::AppVMDetailViewTests.test_get_builds_vm_vnc_url_from_plugin_fallback_when_query_param_missing |
@@ -4269,6 +4271,16 @@
 - 代码路径: `console/views/service_share.py`, `console/services/share_services.py`
 - 测试路径: `console/tests/service_share_test.py::ServiceShareInfoViewTestCase.test_get_returns_snapshot_template_payload`
 
+### 将虚拟机系统盘发布为 qcow2 镜像源
+
+- Capability ID: `console.service-share.vm-qcow2-publish`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.services.share_services.ShareService.sync_event`
+- 代码路径: `console/services/share_services.py`
+- 测试路径: `console/tests/service_share_test.py::ShareServiceVMPublishMetadataTestCase`
+
 ### 执行源码组件自动创建全流程
 
 - Capability ID: `console.source-component.auto-create-flow`
@@ -4598,6 +4610,16 @@
 - 业务入口: `console.utils.version.sorted_versions`
 - 代码路径: `console/utils/version.py`
 - 测试路径: `console/tests/utils/version_test.py::VersionUtilsTests.test_sorted_versions`
+
+### 使用 registry 导入的系统盘创建虚拟机
+
+- Capability ID: `console.virtual-machine.registry-root-disk`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.virtual_machine.VirtualMachineService.create_vm`
+- 代码路径: `console/services/virtual_machine.py`
+- 测试路径: `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests`
 
 ### 仅当活跃虚拟机仍引用时阻止删除镜像资产
 

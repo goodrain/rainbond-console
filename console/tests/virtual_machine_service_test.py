@@ -51,6 +51,7 @@ from www.models.main import TenantServiceInfo, VirtualMachineImage  # noqa: E402
 
 
 class VirtualMachineServiceTests(TestCase):
+    # capability_id: console.virtual-machine.registry-root-disk
 
     def _create_vm_service(self, tenant_id, service_id, image, extend_method="vm", create_status="complete"):
         return TenantServiceInfo.objects.create(
@@ -94,6 +95,40 @@ class VirtualMachineServiceTests(TestCase):
             result = vms.get_vm_capabilities("demo-region", "demo-team")
 
         self.assertEqual(expected, result)
+
+    def test_create_vm_export_calls_region_api(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+        service = SimpleNamespace(service_id="svc-vm", service_alias="demo-vm", service_region="demo-region")
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.create_vm_export",
+            return_value=(None, {"bean": {"export_name": "svc-vm"}}),
+        ) as create_export:
+            bean = vms.create_vm_export(tenant, service, description="publish root disk")
+
+        self.assertEqual({"export_name": "svc-vm"}, bean)
+        create_export.assert_called_once_with(
+            "demo-region",
+            "demo-team",
+            "demo-vm",
+            {
+                "name": "svc-vm",
+                "description": "publish root disk",
+            },
+        )
+
+    def test_get_vm_export_calls_region_api(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+        service = SimpleNamespace(service_alias="demo-vm", service_region="demo-region")
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.get_vm_export",
+            return_value=(None, {"bean": {"export_name": "osdisk-export", "phase": "Ready"}}),
+        ) as get_export:
+            bean = vms.get_vm_export(tenant, service, "osdisk-export")
+
+        self.assertEqual({"export_name": "osdisk-export", "phase": "Ready"}, bean)
+        get_export.assert_called_once_with("demo-region", "demo-team", "demo-vm", "osdisk-export")
 
     def test_get_vm_capabilities_defaults_to_empty_payload(self):
         with mock.patch("console.services.virtual_machine.region_api.get_vm_capabilities",
@@ -513,6 +548,39 @@ class VirtualMachineServiceTests(TestCase):
                     "source_uri": "evt-1-data-1",
                     "format": "qcow2",
                     "checksum": "sha256:data-1",
+                    "source_type": "http",
+                }
+            },
+            imports,
+        )
+
+    def test_save_vm_disk_imports_marks_registry_sources(self):
+        imports = vms.save_vm_disk_imports(
+            "tenant-a",
+            "service-a",
+            [
+                {
+                    "disk_key": "disk",
+                    "disk_name": "system-disk",
+                    "image_url": "docker://registry.example.com/team/windows-root:v1",
+                    "source_uri": "registry.example.com/team/windows-root:v1",
+                    "format": "qcow2",
+                    "checksum": "sha256:root",
+                }
+            ]
+        )
+
+        self.assertEqual(
+            {
+                "disk": {
+                    "volume_name": "disk",
+                    "disk_key": "disk",
+                    "disk_name": "system-disk",
+                    "image_url": "docker://registry.example.com/team/windows-root:v1",
+                    "source_uri": "registry.example.com/team/windows-root:v1",
+                    "format": "qcow2",
+                    "checksum": "sha256:root",
+                    "source_type": "registry",
                 }
             },
             imports,

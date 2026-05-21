@@ -1079,7 +1079,7 @@ class MarketAppService(object):
         tenant_service.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         tenant_service.deploy_version = app.get("deploy_version")
         tenant_service.git_project_id = 0
-        tenant_service.service_type = "application"
+        tenant_service.service_type = "vm" if app.get("service_type") == "vm" or app.get("vm") else "application"
         tenant_service.total_memory = tenant_service.min_node * tenant_service.min_memory
         tenant_service.volume_mount_path = ""
         tenant_service.host_path = ""

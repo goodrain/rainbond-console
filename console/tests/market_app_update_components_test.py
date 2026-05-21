@@ -20,6 +20,7 @@ import django  # noqa: E402
 django.setup()
 
 from console.services.market_app.update_components import UpdateComponents  # noqa: E402
+from console.services.market_app.new_components import NewComponents  # noqa: E402
 
 
 class FakeService(object):
@@ -93,3 +94,54 @@ class MarketAppUpdateComponentsCompatibilityTests(TestCase):
         self.assertEqual(updated_component.component.image, app_template["apps"][0]["image"])
         self.assertEqual(updated_component.component.version, "2.0.0")
         self.assertEqual(len(updated_component.changes), 1)
+
+
+class MarketAppNewComponentsVMK8sAttrsTests(TestCase):
+    def test_template_to_k8s_attributes_backfills_vm_runtime_attrs_from_vm_block(self):
+        creator = NewComponents.__new__(NewComponents)
+        component = type("FakeComponent", (), {"tenant_id": "tenant-a", "service_id": "service-a", "service_key": "service-1"})()
+        component_tmpl = {
+            "vm": {
+                "boot_mode": "bios",
+                "boot_source_format": "qcow2",
+                "disk_layout": [{
+                    "disk_key": "disk",
+                    "disk_role": "root",
+                    "image": "registry.example.com/team/windows-root:v1",
+                    "source_type": "registry",
+                    "format": "qcow2",
+                }]
+            }
+        }
+
+        attrs = creator._template_to_k8s_attributes(component, [], component_tmpl)
+        attr_map = {attr.name: attr.attribute_value for attr in attrs}
+
+        self.assertEqual("bios", attr_map["vm_boot_mode"])
+        self.assertEqual("qcow2", attr_map["vm_boot_source_format"])
+        self.assertIn('"disk_key": "disk"', attr_map["vm_disk_layout"])
+
+    def test_template_to_component_marks_vm_service_type(self):
+        creator = NewComponents.__new__(NewComponents)
+        creator.user = type("FakeUser", (), {"pk": 1})()
+        creator.region_name = "demo-region"
+        creator.original_app = type("FakeApp", (), {"upgrade_group_id": 1})()
+        template = {
+            "service_cname": "vm-root",
+            "service_key": "service-1",
+            "version": "1.0.0",
+            "deploy_version": "20260521",
+            "arch": "amd64",
+            "share_image": "registry.example.com/team/windows-root:v1",
+            "extend_method": "vm",
+            "service_type": "vm",
+            "vm": {
+                "boot_mode": "bios",
+                "boot_source_format": "qcow2",
+                "disk_layout": [{"disk_key": "disk", "disk_role": "root"}],
+            },
+        }
+
+        component = creator._template_to_component("tenant-a", template)
+
+        self.assertEqual("vm", component.service_type)

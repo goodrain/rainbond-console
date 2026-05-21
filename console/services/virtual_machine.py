@@ -60,6 +60,33 @@ class VirtualMachineService(object):
     def resolve_vm_boot_source(self, tenant, image_name, image_url, source_uri=""):
         return resolve_vm_boot_source_binding(tenant, image_name, image_url, source_uri=source_uri)
 
+    def create_vm_export(self, tenant, service, name="", description=""):
+        export_name = str(name or getattr(service, "service_id", "") or "").strip()
+        if not export_name:
+            raise ValueError("vm export name is required")
+        _, body = region_api.create_vm_export(
+            service.service_region,
+            tenant.tenant_name,
+            service.service_alias,
+            {
+                "name": export_name,
+                "description": description or "",
+            }
+        )
+        return body.get("bean", {}) if isinstance(body, dict) else {}
+
+    def get_vm_export(self, tenant, service, name):
+        export_name = str(name or "").strip()
+        if not export_name:
+            raise ValueError("vm export name is required")
+        _, body = region_api.get_vm_export(
+            service.service_region,
+            tenant.tenant_name,
+            service.service_alias,
+            export_name,
+        )
+        return body.get("bean", {}) if isinstance(body, dict) else {}
+
     def list_vm_image(self, tenant_id, region_name=None, tenant_name=None):
         vm_images = list(vm_repo.get_vm_images_by_tenant_id(tenant_id))
         source_ids = [vm_image.source_asset_id for vm_image in vm_images if vm_image.source_asset_id]
@@ -589,7 +616,12 @@ class VirtualMachineService(object):
         root_disk = self._extract_root_disk_payload(asset=asset, template_payload=template_payload)
         if root_disk:
             restore_url = root_disk.get("image_url") or ""
-            if not self._is_http_source(restore_url):
+            source_type = self._resolve_vm_disk_source_type(
+                root_disk.get("source_type"),
+                restore_url,
+                root_disk.get("source_uri"),
+            )
+            if not self._is_supported_vm_restore_source(source_type, restore_url):
                 return None
             return {
                 "volume_name": "disk",
@@ -599,6 +631,7 @@ class VirtualMachineService(object):
                 "source_uri": root_disk.get("source_uri") or "",
                 "format": root_disk.get("format") or "",
                 "checksum": root_disk.get("checksum") or "",
+                "source_type": source_type,
             }
 
         restore_url = self._resolve_root_restore_url(asset=asset, image_url=image_url, source_uri=source_uri)
@@ -612,17 +645,21 @@ class VirtualMachineService(object):
             "source_uri": "",
             "format": boot_source_format or "",
             "checksum": "",
+            "source_type": "http",
         }
 
     def _extract_root_disk_payload(self, asset=None, template_payload=None):
         if template_payload:
-            for disk in template_payload.get("disk_layout") or []:
+            vm_payload = template_payload.get("vm") or {}
+            disk_layout = vm_payload.get("disk_layout") or template_payload.get("disk_layout") or []
+            for disk in disk_layout:
                 if str(disk.get("disk_role", "")).lower() == "root":
                     return {
                         "disk_key": disk.get("disk_key") or "rootdisk",
                         "disk_name": disk.get("disk_name") or disk.get("disk_key") or "rootdisk",
-                        "image_url": disk.get("image_url") or "",
+                        "image_url": disk.get("image") or disk.get("image_url") or "",
                         "source_uri": disk.get("source_uri") or "",
+                        "source_type": disk.get("source_type") or "",
                         "format": disk.get("format") or "",
                         "checksum": disk.get("checksum") or "",
                     }
@@ -635,6 +672,7 @@ class VirtualMachineService(object):
                         "disk_name": disk.get("disk_name") or disk.get("disk_key") or "rootdisk",
                         "image_url": disk.get("download_url") or disk.get("image_url") or "",
                         "source_uri": disk.get("source_uri") or disk.get("export_name") or "",
+                        "source_type": disk.get("source_type") or "",
                         "format": disk.get("format") or "",
                         "checksum": disk.get("checksum") or "",
                     }
@@ -675,6 +713,26 @@ class VirtualMachineService(object):
         value = str(value or "").strip().lower()
         return value.startswith("http://") or value.startswith("https://")
 
+    def _is_registry_source(self, value):
+        value = str(value or "").strip().lower()
+        return value.startswith("docker://")
+
+    def _resolve_vm_disk_source_type(self, source_type, image_url="", source_uri=""):
+        normalized = str(source_type or "").strip().lower()
+        if normalized:
+            return normalized
+        if self._is_http_source(image_url) or self._is_http_source(source_uri):
+            return "http"
+        if self._is_registry_source(image_url) or self._is_registry_source(source_uri):
+            return "registry"
+        return ""
+
+    def _is_supported_vm_restore_source(self, source_type, image_url):
+        source_type = str(source_type or "").strip().lower()
+        if source_type == "registry":
+            return bool(str(image_url or "").strip())
+        return self._is_http_source(image_url)
+
     def _is_region_resource_missing_error(self, err):
         if isinstance(err, RegionApiBaseHttpClient.CallApiError):
             if getattr(err, "status", None) == 404:
@@ -706,6 +764,8 @@ class VirtualMachineService(object):
                 "source_uri": disk.get("source_uri") or "",
                 "format": disk.get("format") or "",
                 "checksum": disk.get("checksum") or "",
+                "source_type": disk.get("source_type") or self._resolve_vm_disk_source_type(
+                    disk.get("source_type"), image_url, disk.get("source_uri")),
             }
         return normalized
 

@@ -117,7 +117,11 @@ class NewComponents(object):
             # graphs
             graphs = self._template_to_component_graphs(cpt, component_tmpl.get("component_graphs"), cpt.arch)
             # component k8s attributes
-            k8s_attrs = self._template_to_k8s_attributes(cpt, component_tmpl.get("component_k8s_attributes"))
+            k8s_attrs = self._template_to_k8s_attributes(
+                cpt,
+                component_tmpl.get("component_k8s_attributes"),
+                component_tmpl,
+            )
             service_group_rel = ServiceGroupRelation(
                 service_id=cpt.component_id,
                 group_id=self.original_app.app_id,
@@ -183,7 +187,7 @@ class NewComponents(object):
         component.deploy_version = template.get("deploy_version")
         arch = template.get("arch", "amd64")
         component.arch = arch if arch else "amd64"
-        component.service_type = "application"
+        component.service_type = "vm" if template.get("service_type") == "vm" or template.get("vm") else "application"
         component.service_source = AppConstants.MARKET
         component.create_status = "complete"
         component.tenant_service_group_id = self.original_app.upgrade_group_id
@@ -626,16 +630,52 @@ class NewComponents(object):
                     create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         return new_labels
 
-    def _template_to_k8s_attributes(self, component, attributes):
-        if not attributes:
+    def _template_to_k8s_attributes(self, component, attributes, component_tmpl):
+        new_attributes = []
+        seen = set()
+        for attribute in attributes or []:
+            attr = ComponentK8sAttributes(
+                tenant_id=component.tenant_id,
+                component_id=component.service_id,
+                name=attribute["name"],
+                save_type=attribute["save_type"],
+                attribute_value=attribute["attribute_value"])
+            new_attributes.append(attr)
+            seen.add(attr.name)
+        vm_payload = self._template_to_vm_k8s_attributes(component, component_tmpl)
+        for attribute in vm_payload:
+            if attribute.name in seen:
+                continue
+            new_attributes.append(attribute)
+            seen.add(attribute.name)
+        return new_attributes
+
+    def _template_to_vm_k8s_attributes(self, component, component_tmpl):
+        vm_payload = (component_tmpl or {}).get("vm", {})
+        if not vm_payload:
             return []
         new_attributes = []
-        for attribute in attributes:
+        mapping = [
+            ("vm_boot_mode", "string", vm_payload.get("boot_mode", "")),
+            ("vm_boot_source_format", "string", vm_payload.get("boot_source_format", "")),
+        ]
+        for name, save_type, value in mapping:
+            if value in (None, ""):
+                continue
             new_attributes.append(
                 ComponentK8sAttributes(
                     tenant_id=component.tenant_id,
                     component_id=component.service_id,
-                    name=attribute["name"],
-                    save_type=attribute["save_type"],
-                    attribute_value=attribute["attribute_value"]))
+                    name=name,
+                    save_type=save_type,
+                    attribute_value=value))
+        disk_layout = vm_payload.get("disk_layout", [])
+        if disk_layout not in (None, []):
+            new_attributes.append(
+                ComponentK8sAttributes(
+                    tenant_id=component.tenant_id,
+                    component_id=component.service_id,
+                    name="vm_disk_layout",
+                    save_type="json",
+                    attribute_value=json.dumps(disk_layout)))
         return new_attributes

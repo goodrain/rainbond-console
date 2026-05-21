@@ -394,6 +394,86 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
         self.assertNotIn("share_slug_path", saved_component)
         self.assertNotIn("service_slug", saved_component)
 
+    def test_create_share_info_passes_vm_image_source_for_vm_publish(self):
+        self.share_record.service_key = "svc-snapshot"
+        self.snapshot_version.app_template = json.dumps(
+            {
+                "template_version": "v3",
+                "group_key": "hidden-app-id",
+                "group_name": "demo-app",
+                "group_version": "0.0.2",
+                "governance_mode": "BUILD_IN_SERVICE_MESH",
+                "apps": [{
+                    "service_id": "svc-snapshot",
+                    "service_key": "svc-snapshot",
+                    "service_share_uuid": "svc-snapshot+svc-snapshot",
+                    "service_alias": "svc-snapshot",
+                    "service_cname": "svc-snapshot",
+                    "need_share": True,
+                    "arch": "amd64",
+                    "service_type": "vm",
+                    "service_related_plugin_config": [],
+                    "service_image": {"hub": "demo-image-target"},
+                    "share_image": "registry.example.com/team/windows-root:v1",
+                    "vm": {
+                        "boot_mode": "bios",
+                        "boot_source_format": "qcow2",
+                        "disk_layout": [{
+                            "disk_key": "disk",
+                            "disk_role": "root",
+                            "source_type": "registry",
+                            "image": "registry.example.com/team/windows-root:v1",
+                            "source_uri": "https://virt-export.example.com/volumes/manual22/disk.img.gz",
+                        }]
+                    },
+                }],
+                "plugins": [],
+                "k8s_resources": [],
+                "app_config_groups": [],
+                "ingress_http_routes": [],
+            }
+        )
+        app_version_instance = mock.Mock(save=mock.Mock(), arch="amd64")
+        snapshot_filter = mock.Mock()
+        snapshot_filter.first.return_value = self.target_template
+
+        with mock.patch.object(share_services_module.rainbond_app_repo, "get_app_version", return_value=self.snapshot_version), \
+                mock.patch.object(share_services_module.RainbondCenterApp.objects, "filter", return_value=snapshot_filter), \
+                mock.patch("console.services.group_service.group_service.get_app_by_id", return_value=self.runtime_app), \
+                mock.patch.object(share_services_module.ServiceSourceInfo.objects, "filter") as service_source_filter, \
+                mock.patch.object(share_services_module.ServiceShareRecordEvent.objects, "filter") as service_events_filter, \
+                mock.patch.object(share_services_module, "ServiceShareRecordEvent") as service_event_cls, \
+                mock.patch.object(share_services_module, "PluginShareRecordEvent") as plugin_event_cls, \
+                mock.patch.object(share_services_module, "RainbondCenterAppVersion", return_value=app_version_instance), \
+                mock.patch.object(share_services_module.app_store, "get_app_hub_info", return_value={"hub": "demo-image-target"}), \
+                mock.patch.object(share_services_module.app_store, "is_no_multiple_region_hub", return_value=False), \
+                mock.patch.object(share_services_module.region_api, "share_service", return_value=(None, {"bean": {"share_id": "sid", "event_id": "eid", "image_name": "registry.example.com/team/windows-root:v1"}})) as share_service_mock:
+            service_source_filter.return_value.values_list.return_value = []
+            service_events_filter.return_value.delete.return_value = None
+            service_event_cls.return_value.save = mock.Mock()
+            plugin_event_cls.return_value.save = mock.Mock()
+
+            code, msg, bean = share_service_instance.create_share_info(
+                tenant=self.tenant,
+                region_name=self.region_name,
+                share_record=self.share_record,
+                share_team=self.team,
+                share_user=self.user,
+                share_info=self.share_info,
+                use_force=True,
+                user_id=None,
+            )
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "分享信息处理成功")
+        _, call_args, _ = share_service_mock.mock_calls[0]
+        share_body = call_args[3]
+        self.assertEqual("amd64", share_body["arch"])
+        self.assertEqual(
+            "https://virt-export.example.com/volumes/manual22/disk.img.gz",
+            share_body["image_info"]["vm_image_source"],
+        )
+
     def test_create_share_info_normalizes_no_inject_platform_plugin_positions_to_empty_list(self):
         self.share_info["app_version_info"].update({
             "is_platform_plugin": True,
@@ -460,6 +540,172 @@ class ShareServicePlatformPluginConfigTestCase(TestCase):
         )
 
         self.assertEqual(positions, ["Platform", "Application"])
+
+
+class ShareServiceVMPublishMetadataTestCase(TestCase):
+    # capability_id: console.service-share.vm-qcow2-publish
+
+    def test_build_vm_publish_metadata_from_runtime_attrs(self):
+        service = {
+            "extend_method": "vm",
+            "image": "registry.example.com/team/windows-root:staging",
+            "git_url": "https://virt-export.example.com/volumes/manual22/disk.img.gz",
+            "service_volume_map_list": [{
+                "volume_name": "disk",
+                "volume_capacity": 80,
+            }],
+            "component_k8s_attributes": [
+                {"name": "vm_boot_mode", "save_type": "string", "attribute_value": "bios"},
+                {"name": "vm_boot_source_format", "save_type": "string", "attribute_value": "qcow2"},
+                {
+                    "name": "vm_disk_layout",
+                    "save_type": "json",
+                    "attribute_value": json.dumps([{
+                        "disk_key": "disk",
+                        "disk_name": "system-disk",
+                        "disk_role": "root",
+                        "device_type": "disk",
+                        "order_index": 0,
+                        "volume_name": "disk",
+                    }]),
+                },
+            ],
+        }
+
+        payload = share_service_instance._build_vm_publish_metadata(service)
+
+        self.assertEqual("bios", payload["boot_mode"])
+        self.assertEqual("qcow2", payload["boot_source_format"])
+        self.assertEqual("registry", payload["disk_layout"][0]["source_type"])
+        self.assertEqual("registry.example.com/team/windows-root:staging", payload["disk_layout"][0]["image"])
+        self.assertEqual("80Gi", payload["disk_layout"][0]["request_size"])
+        self.assertEqual("https://virt-export.example.com/volumes/manual22/disk.img.gz", payload["disk_layout"][0]["source_uri"])
+
+    def test_sync_vm_root_disk_image_updates_root_disk_only(self):
+        service = {
+            "vm": {
+                "disk_layout": [
+                    {"disk_role": "root", "image": "registry.example.com/old/root:v1"},
+                    {"disk_role": "data", "image": "registry.example.com/old/data:v1"},
+                ]
+            }
+        }
+
+        share_service_instance._sync_vm_root_disk_image(
+            service, "registry.example.com/new/root:v2")
+
+        self.assertEqual("registry.example.com/new/root:v2", service["vm"]["disk_layout"][0]["image"])
+        self.assertEqual("registry.example.com/old/data:v1", service["vm"]["disk_layout"][1]["image"])
+
+    def test_resolve_publish_template_version_uses_v3_for_vm_components(self):
+        version = share_service_instance._resolve_publish_template_version([
+            {
+                "service_type": "vm",
+                "extend_method": "vm",
+                "vm": {"boot_source_format": "qcow2"},
+            }
+        ])
+
+        self.assertEqual("v3", version)
+
+    def test_extract_vm_root_source_uri_falls_back_to_git_url(self):
+        service = {
+            "git_url": "https://virt-export.example.com/disk.img.gz",
+            "vm": {
+                "disk_layout": [{
+                    "disk_role": "root",
+                    "source_uri": "",
+                }]
+            }
+        }
+
+        source_uri = share_service_instance._extract_vm_root_source_uri(service)
+
+        self.assertEqual("https://virt-export.example.com/disk.img.gz", source_uri)
+
+    def test_prepare_vm_publish_image_source_creates_live_export_when_source_missing(self):
+        service = {
+            "service_id": "svc-vm",
+            "service_alias": "vm-demo",
+            "service_type": "vm",
+            "vm": {
+                "disk_layout": [{
+                    "disk_role": "root",
+                    "source_type": "registry",
+                    "image": "registry.example.com/team/windows-root:v1",
+                }]
+            },
+        }
+        record_event = mock.Mock(service_id="svc-vm", service_alias="vm-demo")
+
+        with mock.patch.object(
+                share_services_module.region_api,
+                "create_vm_export",
+                return_value=(None, {"bean": {
+                    "phase": "Ready",
+                    "download_url": "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
+                }}),
+        ) as create_export:
+            source = share_service_instance._prepare_vm_publish_image_source(
+                "demo-region", "demo-team", service, record_event, wait_seconds=0)
+
+        self.assertEqual("https://virt-export.default.svc/volumes/manual22/disk.img.gz", source)
+        create_export.assert_called_once()
+        self.assertEqual(
+            "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
+            service["vm"]["disk_layout"][0]["source_uri"],
+        )
+
+    def test_prepare_vm_publish_image_source_reuses_existing_export_url(self):
+        service = {
+            "service_type": "vm",
+            "vm": {
+                "disk_layout": [{
+                    "disk_role": "root",
+                    "source_uri": "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
+                }]
+            },
+        }
+        record_event = mock.Mock(service_id="svc-vm", service_alias="vm-demo")
+
+        with mock.patch.object(share_services_module.region_api, "create_vm_export") as create_export:
+            source = share_service_instance._prepare_vm_publish_image_source(
+                "demo-region", "demo-team", service, record_event, wait_seconds=0)
+
+        self.assertEqual("https://virt-export.default.svc/volumes/manual22/disk.img.gz", source)
+        create_export.assert_not_called()
+
+    def test_prepare_vm_publish_image_source_refreshes_existing_export_url_when_forced(self):
+        service = {
+            "service_id": "svc-vm",
+            "service_alias": "vm-demo",
+            "service_type": "vm",
+            "vm": {
+                "disk_layout": [{
+                    "disk_role": "root",
+                    "source_uri": "https://virt-export.default.svc/volumes/manual22/old-disk.img.gz",
+                }]
+            },
+        }
+        record_event = mock.Mock(service_id="svc-vm", service_alias="vm-demo")
+
+        with mock.patch.object(
+                share_services_module.region_api,
+                "create_vm_export",
+                return_value=(None, {"bean": {
+                    "phase": "Ready",
+                    "download_url": "https://virt-export.default.svc/volumes/manual22/new-disk.img.gz",
+                }}),
+        ) as create_export:
+            source = share_service_instance._prepare_vm_publish_image_source(
+                "demo-region", "demo-team", service, record_event, wait_seconds=0, force_export=True)
+
+        self.assertEqual("https://virt-export.default.svc/volumes/manual22/new-disk.img.gz", source)
+        create_export.assert_called_once()
+        self.assertEqual(
+            "https://virt-export.default.svc/volumes/manual22/new-disk.img.gz",
+            service["vm"]["disk_layout"][0]["source_uri"],
+        )
 
 
 class ShareServicePreferredAppTestCase(TestCase):
