@@ -64,7 +64,7 @@ class AgentLLMConfigViewTests(SimpleTestCase):
         self.assertEqual(response.status_code, 403)
 
     @override_settings(INTERNAL_API_TOKEN="token-1")
-    def test_runtime_config_requires_internal_token_and_returns_runtime_values(self):
+    def test_runtime_config_accepts_legacy_internal_token(self):
         request = self.factory.get(
             "/console/internal/agent-llm-config/runtime",
             HTTP_X_INTERNAL_TOKEN="token-1",
@@ -79,7 +79,61 @@ class AgentLLMConfigViewTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual("sk-runtime", response.data["data"]["bean"]["OPENAI_API_KEY"])
 
-    @override_settings(INTERNAL_API_TOKEN="token-1")
+    def test_runtime_config_accepts_enterprise_id_as_token(self):
+        request = self.factory.get(
+            "/console/internal/agent-llm-config/runtime",
+            HTTP_X_INTERNAL_TOKEN="5ae43b0db81042d0ba8005386022d1c5",
+        )
+
+        with mock.patch("console.services.auth.authentication.Users.objects.filter") as users_filter, \
+                mock.patch("console.services.auth.authentication.TenantEnterprise.objects.filter") as ent_filter, \
+                mock.patch("console.views.agent_llm_config.agent_llm_config_service.get_runtime_config",
+                           return_value={"OPENAI_API_KEY": "sk-runtime", "OPENAI_MODEL": "gpt-4o-mini"}):
+            users_filter.return_value.first.return_value = self._admin_user()
+            ent_filter.return_value.exists.return_value = True
+            response = self.runtime_view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual("sk-runtime", response.data["data"]["bean"]["OPENAI_API_KEY"])
+
+    def test_runtime_config_rejects_request_through_public_gateway(self):
+        request = self.factory.get(
+            "/console/internal/agent-llm-config/runtime",
+            HTTP_X_INTERNAL_TOKEN="5ae43b0db81042d0ba8005386022d1c5",
+            HTTP_X_FORWARDED_FOR="203.0.113.7",
+        )
+
+        with mock.patch("console.services.auth.authentication.TenantEnterprise.objects.filter") as ent_filter:
+            ent_filter.return_value.exists.return_value = True
+            response = self.runtime_view(request)
+
+        self.assertIn(response.status_code, (401, 403))
+
+    def test_runtime_config_rejects_public_source_ip(self):
+        request = self.factory.get(
+            "/console/internal/agent-llm-config/runtime",
+            HTTP_X_INTERNAL_TOKEN="5ae43b0db81042d0ba8005386022d1c5",
+            REMOTE_ADDR="203.0.113.7",
+        )
+
+        with mock.patch("console.services.auth.authentication.TenantEnterprise.objects.filter") as ent_filter:
+            ent_filter.return_value.exists.return_value = True
+            response = self.runtime_view(request)
+
+        self.assertIn(response.status_code, (401, 403))
+
+    def test_runtime_config_rejects_unknown_token(self):
+        request = self.factory.get(
+            "/console/internal/agent-llm-config/runtime",
+            HTTP_X_INTERNAL_TOKEN="not-an-enterprise-id",
+        )
+
+        with mock.patch("console.services.auth.authentication.TenantEnterprise.objects.filter") as ent_filter:
+            ent_filter.return_value.exists.return_value = False
+            response = self.runtime_view(request)
+
+        self.assertIn(response.status_code, (401, 403))
+
     def test_runtime_config_rejects_missing_internal_token(self):
         request = self.factory.get("/console/internal/agent-llm-config/runtime")
 
