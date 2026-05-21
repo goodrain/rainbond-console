@@ -80,7 +80,7 @@ class ShareService(object):
             if not vm_services:
                 return {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}
             # VM publish still requires an explicit shutdown state before exporting the root disk.
-            service_ids = [service.service_id for service in service_list]
+            service_ids = [service.service_id for service in vm_services]
             status_list = base_service.status_multi_service(
                 region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
             status_map = {status.get("service_id"): status.get("status") for status in status_list}

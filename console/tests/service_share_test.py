@@ -307,6 +307,29 @@ class ShareServiceCheckServiceSourceTestCase(TestCase):
         self.assertEqual(200, result["code"])
         self.assertTrue(result["success"])
 
+    def test_check_service_source_only_checks_vm_status_in_mixed_app(self):
+        team = mock.Mock(tenant_id=1, enterprise_id="eid")
+        vm_service = mock.Mock(service_id="svc-vm", extend_method="vm", service_source="")
+        web_service = mock.Mock(service_id="svc-web", extend_method="docker", service_source="source_code")
+
+        with mock.patch.object(share_services_module.share_repo, "get_service_list_by_group_id",
+                               return_value=[vm_service, web_service]), \
+                mock.patch.object(share_services_module.k8s_resources_repo, "list_by_app_id", return_value=[]), \
+                mock.patch.object(
+                    share_services_module.base_service,
+                    "status_multi_service",
+                    return_value=[{"service_id": "svc-vm", "status": "closed"}]) as status_multi_service_mock:
+            result = share_service_instance.check_service_source(
+                team=team,
+                team_name="demo-team",
+                group_id=30,
+                region_name="demo-region",
+            )
+
+        self.assertEqual(200, result["code"])
+        status_multi_service_mock.assert_called_once_with(
+            region="demo-region", tenant_name="demo-team", service_ids=["svc-vm"], enterprise_id="eid")
+
 
 class ShareServiceCreateSnapshotPublishTestCase(TestCase):
     def setUp(self):
