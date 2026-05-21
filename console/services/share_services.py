@@ -734,7 +734,22 @@ class ShareService(object):
         source_uri = self._extract_vm_root_source_uri(service)
         if not self._is_vm_publish_component(service):
             return source_uri
+        logger.info(
+            "[vm-publish] prepare vm image source: record_id=%s service_id=%s service_key=%s service_alias=%s "
+            "source_uri_present=%s force_export=%s",
+            getattr(record_event, "record_id", None),
+            getattr(record_event, "service_id", None) or service.get("service_id"),
+            getattr(record_event, "service_key", None) or service.get("service_key"),
+            getattr(record_event, "service_alias", None) or service.get("service_alias"),
+            bool(source_uri),
+            force_export,
+        )
         if self._is_existing_vm_export_source(source_uri) and not force_export:
+            logger.info(
+                "[vm-publish] reuse existing vm export source: record_id=%s service_alias=%s",
+                getattr(record_event, "record_id", None),
+                getattr(record_event, "service_alias", None) or service.get("service_alias"),
+            )
             return source_uri
 
         service_alias = getattr(record_event, "service_alias", None) or service.get("service_alias")
@@ -743,26 +758,74 @@ class ShareService(object):
         export_seed = getattr(record_event, "service_id", None) or service.get("service_id") or service_alias
         export_name = self._normalize_vm_export_name("vm-root-{}".format(export_seed))
 
+        logger.info(
+            "[vm-publish] create vm export request: record_id=%s region=%s tenant=%s service_alias=%s export_name=%s",
+            getattr(record_event, "record_id", None),
+            region_name,
+            tenant_name,
+            service_alias,
+            export_name,
+        )
         _, body = region_api.create_vm_export(region_name, tenant_name, service_alias, {
             "name": export_name,
             "description": "publish vm root disk",
         })
         bean = body.get("bean", {}) if isinstance(body, dict) else {}
         download_url = bean.get("download_url") or bean.get("downloadUrl") or ""
+        logger.info(
+            "[vm-publish] create vm export response: record_id=%s service_alias=%s export_name=%s phase=%s "
+            "has_download_url=%s",
+            getattr(record_event, "record_id", None),
+            service_alias,
+            export_name,
+            bean.get("phase", ""),
+            bool(download_url),
+        )
         if download_url:
             self._sync_vm_root_disk_source_uri(service, download_url)
             return download_url
 
+        logger.info(
+            "[vm-publish] wait vm export ready: record_id=%s service_alias=%s export_name=%s wait_seconds=%s "
+            "interval_seconds=%s",
+            getattr(record_event, "record_id", None),
+            service_alias,
+            export_name,
+            wait_seconds,
+            interval_seconds,
+        )
         deadline = time.time() + wait_seconds
         while time.time() < deadline:
             time.sleep(interval_seconds)
             _, body = region_api.get_vm_export(region_name, tenant_name, service_alias, export_name)
             bean = body.get("bean", {}) if isinstance(body, dict) else {}
             download_url = bean.get("download_url") or bean.get("downloadUrl") or ""
+            logger.info(
+                "[vm-publish] poll vm export: record_id=%s service_alias=%s export_name=%s phase=%s "
+                "has_download_url=%s",
+                getattr(record_event, "record_id", None),
+                service_alias,
+                export_name,
+                bean.get("phase", ""),
+                bool(download_url),
+            )
             if download_url:
+                logger.info(
+                    "[vm-publish] vm export ready: record_id=%s service_alias=%s export_name=%s",
+                    getattr(record_event, "record_id", None),
+                    service_alias,
+                    export_name,
+                )
                 self._sync_vm_root_disk_source_uri(service, download_url)
                 return download_url
 
+        logger.warning(
+            "[vm-publish] vm export wait timeout: record_id=%s service_alias=%s export_name=%s wait_seconds=%s",
+            getattr(record_event, "record_id", None),
+            service_alias,
+            export_name,
+            wait_seconds,
+        )
         raise ServiceHandleException(msg="vm export not ready", msg_show="虚拟机系统盘导出未就绪，请稍后重试", status_code=500)
 
     @staticmethod
@@ -796,6 +859,18 @@ class ShareService(object):
         apps = app_templetes.get("apps", None)
         if not apps:
             raise ServiceHandleException(msg="get share app info failed", msg_show="分享的应用信息获取失败", status_code=500)
+        logger.info(
+            "[vm-publish] sync share event start: record_id=%s local_event_id=%s service_id=%s service_key=%s "
+            "service_alias=%s app_version=%s scope=%s force_vm_export=%s",
+            record_event.record_id,
+            record_event.ID,
+            record_event.service_id,
+            record_event.service_key,
+            record_event.service_alias,
+            app_version.version,
+            app_version.scope,
+            force_vm_export,
+        )
         new_apps = list()
         sid = transaction.savepoint()
         try:
@@ -804,6 +879,14 @@ class ShareService(object):
                 if app["service_key"] == record_event.service_key:
                     image_info = copy.deepcopy(app.get("service_image", None))
                     if isinstance(image_info, dict) and self._is_vm_publish_component(app):
+                        logger.info(
+                            "[vm-publish] detected vm publish component: record_id=%s service_id=%s "
+                            "service_key=%s service_alias=%s",
+                            record_event.record_id,
+                            app.get("service_id"),
+                            app.get("service_key"),
+                            app.get("service_alias"),
+                        )
                         vm_image_source = self._prepare_vm_publish_image_source(
                             region_name, tenant_name, app, record_event, force_export=force_vm_export)
                         if vm_image_source:
@@ -821,6 +904,16 @@ class ShareService(object):
                     }
                     re_body = None
                     try:
+                        logger.info(
+                            "[vm-publish] call region share_service: record_id=%s service_alias=%s "
+                            "is_vm=%s has_image_info=%s has_vm_image_source=%s has_slug_info=%s",
+                            record_event.record_id,
+                            record_event.service_alias,
+                            self._is_vm_publish_component(app),
+                            bool(image_info),
+                            isinstance(image_info, dict) and bool(image_info.get("vm_image_source")),
+                            bool(body.get("slug_info")),
+                        )
                         res, re_body = region_api.share_service(region_name, tenant_name, record_event.service_alias, body)
                         bean = re_body.get("bean")
                         if bean:
@@ -830,6 +923,17 @@ class ShareService(object):
                             record_event.update_time = datetime.datetime.now()
                             record_event.save()
                             image_name = bean.get("image_name", None)
+                            logger.info(
+                                "[vm-publish] region share_service accepted: record_id=%s service_alias=%s "
+                                "region_share_id=%s region_event_id=%s status=%s has_image_name=%s has_slug_path=%s",
+                                record_event.record_id,
+                                record_event.service_alias,
+                                record_event.region_share_id,
+                                record_event.event_id,
+                                record_event.event_status,
+                                bool(image_name),
+                                bool(bean.get("slug_path", None)),
+                            )
                             if image_name:
                                 app["share_image"] = image_name
                                 self._sync_vm_root_disk_image(app, image_name)
@@ -936,6 +1040,15 @@ class ShareService(object):
         res, re_body = region_api.share_service_result(region_name, tenant_name, record_event.service_alias,
                                                        record_event.region_share_id)
         bean = re_body.get("bean")
+        logger.info(
+            "[vm-publish] poll region share result: record_id=%s service_alias=%s region_share_id=%s "
+            "current_status=%s remote_status=%s",
+            record_event.record_id,
+            record_event.service_alias,
+            record_event.region_share_id,
+            record_event.event_status,
+            bean.get("status", None) if isinstance(bean, dict) else None,
+        )
         if bean and bean.get("status", None):
             record_event.event_status = bean.get("status", None)
             record_event.save()
