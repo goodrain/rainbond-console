@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 
 from console.exception.main import ServiceHandleException
 from console.services.agent_llm_config_service import agent_llm_config_service
-from console.services.auth.authentication import InternalTokenAuthentication
+from console.services.auth.authentication import AgentRuntimeAuthentication
 from console.views.base import EnterpriseAdminView
 from www.utils.return_message import general_message
 
@@ -39,7 +39,7 @@ class AgentLLMConfigView(EnterpriseAdminView):
 
 
 class AgentLLMRuntimeConfigView(APIView):
-    authentication_classes = (InternalTokenAuthentication, )
+    authentication_classes = (AgentRuntimeAuthentication, )
     permission_classes = (IsAuthenticated, )
 
     def get(self, request, *args, **kwargs):

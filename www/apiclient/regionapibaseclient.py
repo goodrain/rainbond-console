@@ -18,7 +18,7 @@ from console.exception.main import ServiceHandleException, ErrClusterLackOfMemor
     ErrClusterAuthLackOfLicenseExpire, ErrTenantLackOfCPU, ErrTenantQuotaCPULack, ErrTenantQuotaMemoryLack
 from console.repositories.region_repo import region_repo
 from django.conf import settings
-from django.http import HttpResponse, QueryDict
+from django.http import HttpResponse, QueryDict, StreamingHttpResponse
 from urllib3.exceptions import MaxRetryError
 
 logger = logging.getLogger('default')
@@ -460,6 +460,76 @@ class RegionApiBaseHttpClient(object):
             else:
                 proxy_response[key] = value
 
+        return proxy_response
+
+    def stream_proxy(self, request, url, region_name):
+        """
+        Streaming variant of proxy(). Forwards the request method, body and headers,
+        and streams the upstream response back without buffering it into memory.
+
+        Use this instead of proxy() for plugin backend APIs that may return
+        Server-Sent Events or other long-running streaming responses: proxy()
+        buffers the whole body and uses a fixed 20s timeout, which breaks streaming.
+        """
+        headers = self.get_headers(request.META)
+        # Django usually upper-cases content-length; drop it and let the length be
+        # recomputed by the upstream / streaming response.
+        for key in list(headers.keys()):
+            if key.lower() == 'content-length':
+                del headers[key]
+
+        region = region_repo.get_region_by_region_name(region_name)
+        if not region:
+            raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
+        client = self.get_client(region_config=region)
+        response = client.request(
+            method=request.method,
+            url="{}{}".format(region.url, url),
+            body=request.body,
+            headers=headers,
+            preload_content=False,
+            timeout=urllib3.Timeout(connect=30, read=60 * 60),
+        )
+
+        def stream_content():
+            try:
+                for chunk in response.stream(8192, decode_content=True):
+                    yield chunk
+            finally:
+                response.release_conn()
+
+        # Hop-by-hop headers must not be tunneled through. content-type is set from
+        # the upstream response; content-length/encoding are handled by streaming.
+        excluded_headers = set([
+            'connection',
+            'keep-alive',
+            'proxy-authenticate',
+            'proxy-authorization',
+            'te',
+            'trailers',
+            'transfer-encoding',
+            'upgrade',
+            'content-encoding',
+            'content-length',
+            'content-type',
+        ])
+        content_type = response.headers.get('Content-Type', 'application/octet-stream')
+        proxy_response = StreamingHttpResponse(
+            stream_content(), status=response.status, content_type=content_type)
+        for key, value in list(response.headers.items()):
+            if key.lower() in excluded_headers:
+                continue
+            elif key.lower() == 'location':
+                proxy_response[key] = self.make_absolute_location(response.url, value)
+            else:
+                proxy_response[key] = value
+        # Keep the streamed body unbuffered. Django's GZipMiddleware would
+        # otherwise wrap this StreamingHttpResponse in a gzip compressor whose
+        # buffer swallows the small SSE chunks until it fills, killing the
+        # live typewriter effect. Declaring an explicit Content-Encoding makes
+        # GZipMiddleware skip the response (same trick as the component log
+        # stream view).
+        proxy_response['Content-Encoding'] = 'identity'
         return proxy_response
 
     def get_headers(self, environ):
