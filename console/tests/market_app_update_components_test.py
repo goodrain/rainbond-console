@@ -97,6 +97,7 @@ class MarketAppUpdateComponentsCompatibilityTests(TestCase):
 
 
 class MarketAppNewComponentsVMK8sAttrsTests(TestCase):
+    # capability_id: console.market-app.vm-disk-imports-from-template
     def test_template_to_k8s_attributes_backfills_vm_runtime_attrs_from_vm_block(self):
         creator = NewComponents.__new__(NewComponents)
         component = type("FakeComponent", (), {"tenant_id": "tenant-a", "service_id": "service-a", "service_key": "service-1"})()
@@ -120,6 +121,9 @@ class MarketAppNewComponentsVMK8sAttrsTests(TestCase):
         self.assertEqual("bios", attr_map["vm_boot_mode"])
         self.assertEqual("qcow2", attr_map["vm_boot_source_format"])
         self.assertIn('"disk_key": "disk"', attr_map["vm_disk_layout"])
+        imports = json.loads(attr_map["vm_disk_imports"])
+        self.assertEqual("registry.example.com/team/windows-root:v1", imports["disk"]["image_url"])
+        self.assertEqual("registry", imports["disk"]["source_type"])
 
     def test_template_to_component_marks_vm_service_type(self):
         creator = NewComponents.__new__(NewComponents)

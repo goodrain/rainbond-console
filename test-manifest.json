@@ -5452,6 +5452,24 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.vm-disk-imports-from-template",
+      "title": "Market App VM Disk Imports From Template",
+      "title_zh": "\u5e02\u573a\u5e94\u7528\u5b89\u88c5\u4ece VM \u6a21\u677f\u751f\u6210\u78c1\u76d8\u5bfc\u5165\u914d\u7f6e",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app.new_components.NewComponents._template_to_k8s_attributes",
+      "code_paths": [
+        "console/services/market_app/new_components.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_update_components_test.py",
+          "selector": "MarketAppNewComponentsVMK8sAttrsTests.test_template_to_k8s_attributes_backfills_vm_runtime_attrs_from_vm_block"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-client.auth-missing",
       "title": "Translate 401 market API errors into missing-token service errors",
       "title_zh": "\u5c06 401 \u5e94\u7528\u5e02\u573a\u9519\u8bef\u8f6c\u6362\u4e3a\u7f3a\u5c11 token \u7684\u670d\u52a1\u5f02\u5e38",

@@ -678,4 +678,47 @@ class NewComponents(object):
                     name="vm_disk_layout",
                     save_type="json",
                     attribute_value=json.dumps(disk_layout)))
+        disk_imports = self._template_to_vm_disk_imports(vm_payload)
+        if disk_imports:
+            new_attributes.append(
+                ComponentK8sAttributes(
+                    tenant_id=component.tenant_id,
+                    component_id=component.service_id,
+                    name="vm_disk_imports",
+                    save_type="json",
+                    attribute_value=json.dumps(disk_imports)))
         return new_attributes
+
+    @staticmethod
+    def _template_to_vm_disk_imports(vm_payload):
+        disk_imports = {}
+        for disk in (vm_payload or {}).get("disk_layout", []) or []:
+            if not isinstance(disk, dict):
+                continue
+            image_url = disk.get("image_url") or disk.get("image") or disk.get("download_url") or ""
+            source_uri = disk.get("source_uri") or ""
+            source_type = str(disk.get("source_type") or "").strip().lower()
+            if not image_url and source_uri.startswith(("http://", "https://")):
+                image_url = source_uri
+                source_type = source_type or "http"
+            if not image_url:
+                continue
+            volume_name = str(disk.get("volume_name") or disk.get("disk_key") or disk.get("disk_name") or "")
+            if not volume_name:
+                continue
+            if not source_type:
+                if image_url.startswith(("http://", "https://")):
+                    source_type = "http"
+                else:
+                    source_type = "registry"
+            disk_imports[volume_name] = {
+                "volume_name": volume_name,
+                "disk_key": disk.get("disk_key") or volume_name,
+                "disk_name": disk.get("disk_name") or disk.get("disk_key") or volume_name,
+                "image_url": image_url,
+                "source_uri": source_uri,
+                "format": disk.get("format") or "",
+                "checksum": disk.get("checksum") or "",
+                "source_type": source_type,
+            }
+        return disk_imports
