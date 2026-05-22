@@ -83,6 +83,7 @@
 | console.app-status.list-closed-with-undeploy-components | 当组件为关闭或未部署时将列表应用状态聚合为关闭 | active | regression | console.services.group_service.GroupService._add_component_status_to_apps | console/tests/group_service_test.py::GroupServiceAppStatusAggregationTests.test_add_component_status_to_apps_marks_closed_when_components_are_closed_or_undeploy |
 | console.app-status.partial-abnormal-mixed-components | 将运行中与异常混合组件识别为部分异常 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_mixed_abnormal_components_make_app_partially_abnormal |
 | console.app-status.partial-abnormal-some-abnormal | 将 some_abnormal 组件识别为部分异常 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_some_abnormal_component_makes_app_partially_abnormal |
+| console.app-status.vm-import-building-is-starting | VM import building components keep app starting | active | unit | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_building_components_make_app_starting |
 | console.app-status.waiting-is-starting | 将 waiting 组件识别为应用启动中 | active | regression | console.services.topological_services.TopologicalService.get_app_status | console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_waiting_components_make_app_starting |
 | console.app-upgrade.changes | App Upgrade Changes | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.changes] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_upgrade_changes_returns_diff_payload |
 | console.app-upgrade.create-record | App Upgrade Create Record | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.create-record] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_app_upgrade_record_calls_upgrade_service |
@@ -1224,6 +1225,16 @@
 - 业务入口: `console.services.topological_services.TopologicalService.get_app_status`
 - 代码路径: `console/services/topological_services.py`
 - 测试路径: `console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_some_abnormal_component_makes_app_partially_abnormal`
+
+### VM import building components keep app starting
+
+- Capability ID: `console.app-status.vm-import-building-is-starting`
+- 状态: `active`
+- 测试类型: `unit`
+- 接口类型: `service_method`
+- 业务入口: `console.services.topological_services.TopologicalService.get_app_status`
+- 代码路径: `console/services/topological_services.py`
+- 测试路径: `console/tests/topological_service_test.py::TopologicalServiceAppStatusTests.test_building_components_make_app_starting`
 
 ### 将 waiting 组件识别为应用启动中
 

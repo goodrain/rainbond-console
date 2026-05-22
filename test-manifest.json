@@ -1451,6 +1451,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-status.vm-import-building-is-starting",
+      "title": "VM import building components keep app starting",
+      "title_zh": "VM import building components keep app starting",
+      "interface_type": "service_method",
+      "interface": "console.services.topological_services.TopologicalService.get_app_status",
+      "code_paths": [
+        "console/services/topological_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/topological_service_test.py",
+          "selector": "TopologicalServiceAppStatusTests.test_building_components_make_app_starting"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
       "id": "console.app-status.waiting-is-starting",
       "title": "Treat waiting components as an app starting state",
       "title_zh": "\u5c06 waiting \u7ec4\u4ef6\u8bc6\u522b\u4e3a\u5e94\u7528\u542f\u52a8\u4e2d",
