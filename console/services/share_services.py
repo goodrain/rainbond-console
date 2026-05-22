@@ -636,7 +636,7 @@ class ShareService(object):
             if item.get("disk_role") == "root":
                 item["image"] = item.get("image") or root_image
                 item["source_uri"] = item.get("source_uri") or fallback_root_source
-                item["source_type"] = item.get("source_type") or "registry"
+                item["source_type"] = "http-artifact"
                 item["format"] = item.get("format") or boot_source_format
             volume_name = str(item.get("volume_name") or item.get("disk_key") or "")
             if not item.get("request_size") and volume_capacity_map.get(volume_name):
@@ -654,7 +654,7 @@ class ShareService(object):
                 "volume_name": "disk",
                 "request_size": "{}Gi".format(root_capacity) if root_capacity else "",
                 "format": boot_source_format,
-                "source_type": "registry",
+                "source_type": "http-artifact",
                 "image": root_image,
                 "source_uri": fallback_root_source,
                 "checksum": "",
@@ -677,7 +677,7 @@ class ShareService(object):
                 continue
             if str(disk.get("disk_role", "")).lower() == "root":
                 disk["image"] = image_name
-                disk["source_type"] = disk.get("source_type") or "registry"
+                disk["source_type"] = "http-artifact"
                 return
 
     @staticmethod

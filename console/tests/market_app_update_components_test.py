@@ -125,6 +125,31 @@ class MarketAppNewComponentsVMK8sAttrsTests(TestCase):
         self.assertEqual("registry.example.com/team/windows-root:v1", imports["disk"]["image_url"])
         self.assertEqual("registry", imports["disk"]["source_type"])
 
+    def test_template_to_k8s_attributes_uses_http_artifact_for_published_vm_root(self):
+        creator = NewComponents.__new__(NewComponents)
+        component = type("FakeComponent", (), {"tenant_id": "tenant-a", "service_id": "service-a", "service_key": "service-1"})()
+        component_tmpl = {
+            "vm": {
+                "boot_mode": "bios",
+                "boot_source_format": "raw.gz",
+                "disk_layout": [{
+                    "disk_key": "disk",
+                    "disk_role": "root",
+                    "image": "goodrain.me/team/windows-root:v1",
+                    "source_type": "registry",
+                    "source_uri": "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
+                    "format": "raw.gz",
+                }]
+            }
+        }
+
+        attrs = creator._template_to_k8s_attributes(component, [], component_tmpl)
+        attr_map = {attr.name: attr.attribute_value for attr in attrs}
+        imports = json.loads(attr_map["vm_disk_imports"])
+
+        self.assertEqual("goodrain.me/team/windows-root:v1", imports["disk"]["image_url"])
+        self.assertEqual("http-artifact", imports["disk"]["source_type"])
+
     def test_template_to_component_marks_vm_service_type(self):
         creator = NewComponents.__new__(NewComponents)
         creator.user = type("FakeUser", (), {"pk": 1})()

@@ -711,6 +711,8 @@ class NewComponents(object):
                     source_type = "http"
                 else:
                     source_type = "registry"
+            if source_type == "registry" and NewComponents._is_published_vm_root_artifact(disk, source_uri):
+                source_type = "http-artifact"
             disk_imports[volume_name] = {
                 "volume_name": volume_name,
                 "disk_key": disk.get("disk_key") or volume_name,
@@ -722,3 +724,10 @@ class NewComponents(object):
                 "source_type": source_type,
             }
         return disk_imports
+
+    @staticmethod
+    def _is_published_vm_root_artifact(disk, source_uri):
+        if str((disk or {}).get("disk_role", "")).lower() != "root":
+            return False
+        source_uri = str(source_uri or "").strip().lower()
+        return source_uri.startswith(("http://", "https://")) and "/volumes/" in source_uri and "disk.img" in source_uri

@@ -801,7 +801,7 @@ class ShareServiceVMPublishMetadataTestCase(TestCase):
 
         self.assertEqual("bios", payload["boot_mode"])
         self.assertEqual("qcow2", payload["boot_source_format"])
-        self.assertEqual("registry", payload["disk_layout"][0]["source_type"])
+        self.assertEqual("http-artifact", payload["disk_layout"][0]["source_type"])
         self.assertEqual("registry.example.com/team/windows-root:staging", payload["disk_layout"][0]["image"])
         self.assertEqual("80Gi", payload["disk_layout"][0]["request_size"])
         self.assertEqual("https://virt-export.example.com/volumes/manual22/disk.img.gz", payload["disk_layout"][0]["source_uri"])
@@ -820,6 +820,7 @@ class ShareServiceVMPublishMetadataTestCase(TestCase):
             service, "registry.example.com/new/root:v2")
 
         self.assertEqual("registry.example.com/new/root:v2", service["vm"]["disk_layout"][0]["image"])
+        self.assertEqual("http-artifact", service["vm"]["disk_layout"][0]["source_type"])
         self.assertEqual("registry.example.com/old/data:v1", service["vm"]["disk_layout"][1]["image"])
 
     def test_resolve_publish_template_version_uses_v3_for_vm_components(self):
