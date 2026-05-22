@@ -7208,6 +7208,10 @@
         },
         {
           "path": "console/tests/service_share_test.py",
+          "selector": "ShareServiceCreateSnapshotPublishTestCase.test_sync_event_passes_vm_export_token_for_live_vm_publish"
+        },
+        {
+          "path": "console/tests/service_share_test.py",
           "selector": "ShareServiceVMPublishMetadataTestCase"
         }
       ],

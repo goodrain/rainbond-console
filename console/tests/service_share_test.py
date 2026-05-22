@@ -608,6 +608,96 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
             "https://virt-export.example.com/volumes/manual22/disk.img.gz",
             share_body["image_info"]["vm_image_source"],
         )
+        self.assertNotIn("vm_image_token", share_body["image_info"])
+
+    def test_sync_event_passes_vm_export_token_for_live_vm_publish(self):
+        app_version = mock.Mock(
+            template_type="",
+            scope="team",
+            version="1.2.3",
+            update_time=None,
+            save=mock.Mock(),
+        )
+        app_version.app_template = json.dumps(
+            {
+                "template_version": "v3",
+                "group_key": "hidden-app-id",
+                "group_name": "demo-app",
+                "group_version": "0.0.2",
+                "governance_mode": "BUILD_IN_SERVICE_MESH",
+                "apps": [{
+                    "service_id": "svc-vm",
+                    "service_key": "svc-vm",
+                    "service_share_uuid": "svc-vm+svc-vm",
+                    "service_alias": "svc-vm",
+                    "service_cname": "svc-vm",
+                    "need_share": True,
+                    "arch": "amd64",
+                    "service_type": "vm",
+                    "service_related_plugin_config": [],
+                    "service_image": {"hub": "demo-image-target"},
+                    "vm": {
+                        "disk_layout": [{
+                            "disk_key": "disk",
+                            "disk_role": "root",
+                            "source_type": "registry",
+                            "image": "registry.example.com/team/windows-root:v1",
+                        }]
+                    },
+                }],
+                "plugins": [],
+                "k8s_resources": [],
+                "app_config_groups": [],
+                "ingress_http_routes": [],
+            }
+        )
+        record_event = mock.Mock(
+            record_id=self.share_record.ID,
+            service_key="svc-vm",
+            service_id="svc-vm",
+            service_alias="svc-vm",
+            save=mock.Mock(),
+        )
+        self.user.nick_name = "demo-user"
+
+        with mock.patch.object(
+                share_services_module.rainbond_app_repo,
+                "get_rainbond_app_version_by_record_id",
+                return_value=app_version), \
+                mock.patch.object(
+                    share_service_instance,
+                    "create_publish_event",
+                    return_value=mock.Mock(event_id="event-id")), \
+                mock.patch.object(
+                    share_services_module.region_api,
+                    "create_vm_export",
+                    return_value=(None, {"bean": {
+                        "phase": "Ready",
+                        "download_url": "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
+                        "download_token": "download-token",
+                    }})), \
+                mock.patch.object(
+                    share_services_module.region_api,
+                    "share_service",
+                    return_value=(None, {"bean": {
+                        "share_id": "sid",
+                        "event_id": "eid",
+                        "image_name": "registry.example.com/team/windows-root:v1",
+                    }})) as share_service_mock:
+            share_service_instance.sync_event(
+                self.user,
+                self.region_name,
+                self.team.tenant_name,
+                record_event,
+            )
+
+        _, call_args, _ = share_service_mock.mock_calls[0]
+        share_body = call_args[3]
+        self.assertEqual(
+            "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
+            share_body["image_info"]["vm_image_source"],
+        )
+        self.assertEqual("download-token", share_body["image_info"]["vm_image_token"])
 
     def test_create_share_info_normalizes_no_inject_platform_plugin_positions_to_empty_list(self):
         self.share_info["app_version_info"].update({
@@ -779,12 +869,14 @@ class ShareServiceVMPublishMetadataTestCase(TestCase):
                 return_value=(None, {"bean": {
                     "phase": "Ready",
                     "download_url": "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
+                    "download_token": "download-token",
                 }}),
         ) as create_export:
-            source = share_service_instance._prepare_vm_publish_image_source(
+            source, token = share_service_instance._prepare_vm_publish_image_source(
                 "demo-region", "demo-team", service, record_event, wait_seconds=0)
 
         self.assertEqual("https://virt-export.default.svc/volumes/manual22/disk.img.gz", source)
+        self.assertEqual("download-token", token)
         create_export.assert_called_once()
         self.assertEqual(
             "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
@@ -804,10 +896,11 @@ class ShareServiceVMPublishMetadataTestCase(TestCase):
         record_event = mock.Mock(service_id="svc-vm", service_alias="vm-demo")
 
         with mock.patch.object(share_services_module.region_api, "create_vm_export") as create_export:
-            source = share_service_instance._prepare_vm_publish_image_source(
+            source, token = share_service_instance._prepare_vm_publish_image_source(
                 "demo-region", "demo-team", service, record_event, wait_seconds=0)
 
         self.assertEqual("https://virt-export.default.svc/volumes/manual22/disk.img.gz", source)
+        self.assertEqual("", token)
         create_export.assert_not_called()
 
     def test_prepare_vm_publish_image_source_refreshes_existing_export_url_when_forced(self):
@@ -830,12 +923,14 @@ class ShareServiceVMPublishMetadataTestCase(TestCase):
                 return_value=(None, {"bean": {
                     "phase": "Ready",
                     "download_url": "https://virt-export.default.svc/volumes/manual22/new-disk.img.gz",
+                    "download_token": "new-download-token",
                 }}),
         ) as create_export:
-            source = share_service_instance._prepare_vm_publish_image_source(
+            source, token = share_service_instance._prepare_vm_publish_image_source(
                 "demo-region", "demo-team", service, record_event, wait_seconds=0, force_export=True)
 
         self.assertEqual("https://virt-export.default.svc/volumes/manual22/new-disk.img.gz", source)
+        self.assertEqual("new-download-token", token)
         create_export.assert_called_once()
         self.assertEqual(
             "https://virt-export.default.svc/volumes/manual22/new-disk.img.gz",

@@ -733,7 +733,7 @@ class ShareService(object):
                                          interval_seconds=2, force_export=False):
         source_uri = self._extract_vm_root_source_uri(service)
         if not self._is_vm_publish_component(service):
-            return source_uri
+            return source_uri, ""
         logger.info(
             "[vm-publish] prepare vm image source: record_id=%s service_id=%s service_key=%s service_alias=%s "
             "source_uri_present=%s force_export=%s",
@@ -750,7 +750,7 @@ class ShareService(object):
                 getattr(record_event, "record_id", None),
                 getattr(record_event, "service_alias", None) or service.get("service_alias"),
             )
-            return source_uri
+            return source_uri, ""
 
         service_alias = getattr(record_event, "service_alias", None) or service.get("service_alias")
         if not service_alias:
@@ -772,6 +772,7 @@ class ShareService(object):
         })
         bean = body.get("bean", {}) if isinstance(body, dict) else {}
         download_url = bean.get("download_url") or bean.get("downloadUrl") or ""
+        download_token = bean.get("download_token") or bean.get("downloadToken") or ""
         logger.info(
             "[vm-publish] create vm export response: record_id=%s service_alias=%s export_name=%s phase=%s "
             "has_download_url=%s",
@@ -783,7 +784,7 @@ class ShareService(object):
         )
         if download_url:
             self._sync_vm_root_disk_source_uri(service, download_url)
-            return download_url
+            return download_url, download_token
 
         logger.info(
             "[vm-publish] wait vm export ready: record_id=%s service_alias=%s export_name=%s wait_seconds=%s "
@@ -800,6 +801,7 @@ class ShareService(object):
             _, body = region_api.get_vm_export(region_name, tenant_name, service_alias, export_name)
             bean = body.get("bean", {}) if isinstance(body, dict) else {}
             download_url = bean.get("download_url") or bean.get("downloadUrl") or ""
+            download_token = bean.get("download_token") or bean.get("downloadToken") or ""
             logger.info(
                 "[vm-publish] poll vm export: record_id=%s service_alias=%s export_name=%s phase=%s "
                 "has_download_url=%s",
@@ -817,7 +819,7 @@ class ShareService(object):
                     export_name,
                 )
                 self._sync_vm_root_disk_source_uri(service, download_url)
-                return download_url
+                return download_url, download_token
 
         logger.warning(
             "[vm-publish] vm export wait timeout: record_id=%s service_alias=%s export_name=%s wait_seconds=%s",
@@ -887,10 +889,12 @@ class ShareService(object):
                             app.get("service_key"),
                             app.get("service_alias"),
                         )
-                        vm_image_source = self._prepare_vm_publish_image_source(
+                        vm_image_source, vm_image_token = self._prepare_vm_publish_image_source(
                             region_name, tenant_name, app, record_event, force_export=force_vm_export)
                         if vm_image_source:
                             image_info["vm_image_source"] = vm_image_source
+                        if vm_image_token:
+                            image_info["vm_image_token"] = vm_image_token
                     body = {
                         "service_key": app["service_key"],
                         "app_version": app_version.version,
