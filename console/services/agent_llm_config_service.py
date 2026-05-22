@@ -58,6 +58,10 @@ class AgentLLMConfigService(object):
             "updated_at": config.get("updated_at") or "",
         }
 
+    def clear_config(self):
+        ConsoleSysConfig.objects.filter(key=AI_AGENT_LLM_CONFIG_KEY).delete()
+        return self._to_masked_config({}, "")
+
     def _load_config(self):
         try:
             obj = ConsoleSysConfig.objects.get(key=AI_AGENT_LLM_CONFIG_KEY)

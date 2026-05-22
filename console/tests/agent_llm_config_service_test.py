@@ -73,3 +73,12 @@ class AgentLLMConfigServiceTests(TestCase):
             })
 
         self.assertIn("OPENAI_BASE_URL", getattr(cm.exception, "msg_show", ""))
+
+    def test_clear_config_deletes_stored_config_and_returns_empty_mask(self):
+        with mock.patch("console.services.agent_llm_config_service.ConsoleSysConfig.objects.filter") as filter_mock:
+            masked = agent_llm_config_service.clear_config()
+
+        filter_mock.assert_called_once()
+        filter_mock.return_value.delete.assert_called_once()
+        self.assertFalse(masked["openai_api_key_set"])
+        self.assertEqual("", masked["openai_api_key_masked"])
