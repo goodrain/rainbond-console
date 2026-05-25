@@ -6,11 +6,11 @@ from rest_framework.views import APIView
 from console.exception.main import ServiceHandleException
 from console.services.agent_llm_config_service import agent_llm_config_service
 from console.services.auth.authentication import AgentRuntimeAuthentication
-from console.views.base import EnterpriseAdminView
+from console.views.base import EnterpriseAdminView, JWTAuthApiView
 from www.utils.return_message import general_message
 
 
-class AgentLLMConfigView(EnterpriseAdminView):
+class AgentLLMConfigView(JWTAuthApiView):
 
     def _ensure_enterprise_admin(self):
         if not self.is_enterprise_admin:
@@ -18,9 +18,6 @@ class AgentLLMConfigView(EnterpriseAdminView):
         return None
 
     def get(self, request, eid, *args, **kwargs):
-        denied = self._ensure_enterprise_admin()
-        if denied:
-            return denied
         data = agent_llm_config_service.get_masked_config()
         return Response(general_message(200, "success", "获取成功", bean=data), status=200)
 
