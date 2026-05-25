@@ -2,7 +2,7 @@
 import os
 import sys
 from types import ModuleType
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
@@ -76,6 +76,88 @@ class AppServiceTests(SimpleTestCase):
         self.assertEqual(resources["min_memory"], 512)
         self.assertEqual(resources["min_cpu"], 0)
         self.assertEqual(resources["total_memory"], 512)
+
+    @patch("console.services.app.env_var_repo")
+    def test_ensure_source_build_default_locale_envs_adds_missing_values(self, mock_env_repo):
+        from console.services.app import app_service
+
+        tenant = Obj(tenant_id="tenant-1")
+        service = Obj(service_id="service-1")
+        mock_env_repo.get_service_env_by_attr_name.return_value = None
+
+        app_service.ensure_source_build_default_locale_envs(tenant, service)
+
+        self.assertEqual(mock_env_repo.get_service_env_by_attr_name.call_args_list, [
+            call("tenant-1", "service-1", "LANG"),
+            call("tenant-1", "service-1", "LC_ALL"),
+            call("tenant-1", "service-1", "TZ"),
+        ])
+        self.assertEqual(mock_env_repo.add_service_env.call_args_list, [
+            call(
+                tenant_id="tenant-1",
+                service_id="service-1",
+                container_port=0,
+                name="LANG",
+                attr_name="LANG",
+                attr_value="C.UTF-8",
+                is_change=True,
+                scope="inner",
+            ),
+            call(
+                tenant_id="tenant-1",
+                service_id="service-1",
+                container_port=0,
+                name="LC_ALL",
+                attr_name="LC_ALL",
+                attr_value="C.UTF-8",
+                is_change=True,
+                scope="inner",
+            ),
+            call(
+                tenant_id="tenant-1",
+                service_id="service-1",
+                container_port=0,
+                name="TZ",
+                attr_name="TZ",
+                attr_value="Asia/Shanghai",
+                is_change=True,
+                scope="inner",
+            ),
+        ])
+
+    @patch("console.services.app.env_var_repo")
+    def test_ensure_source_build_default_locale_envs_preserves_existing_values(self, mock_env_repo):
+        from console.services.app import app_service
+
+        tenant = Obj(tenant_id="tenant-1")
+        service = Obj(service_id="service-1")
+        mock_env_repo.get_service_env_by_attr_name.side_effect = lambda tenant_id, service_id, name: Obj(
+            attr_name=name) if name == "LANG" else None
+
+        app_service.ensure_source_build_default_locale_envs(tenant, service)
+
+        self.assertEqual(mock_env_repo.add_service_env.call_args_list, [
+            call(
+                tenant_id="tenant-1",
+                service_id="service-1",
+                container_port=0,
+                name="LC_ALL",
+                attr_name="LC_ALL",
+                attr_value="C.UTF-8",
+                is_change=True,
+                scope="inner",
+            ),
+            call(
+                tenant_id="tenant-1",
+                service_id="service-1",
+                container_port=0,
+                name="TZ",
+                attr_name="TZ",
+                attr_value="Asia/Shanghai",
+                is_change=True,
+                scope="inner",
+            ),
+        ])
 
     @patch("console.services.app.gitHubClient.createReposHook")
     def test_init_repositories_defaults_missing_github_project_id_to_zero(self, mock_create_hook):

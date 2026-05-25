@@ -1,7 +1,10 @@
-import requests, os
+import os
+
+import requests
 from django.http import JsonResponse
 from django.views.decorators.cache import never_cache
 
+from console.utils.offline import is_cloud_market_disabled
 from console.views.base import JWTAuthApiView
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_repo import region_repo
@@ -9,6 +12,7 @@ from www.utils.return_message import general_message
 from rest_framework.response import Response
 
 region_api = RegionInvokeApi()
+VERSION_INFO_TIMEOUT = 2
 
 
 class UpgradeView(JWTAuthApiView):
@@ -28,9 +32,12 @@ class UpgradeView(JWTAuthApiView):
         return Response(result, status=200)
 
 def fetch_json_data():
+    if is_cloud_market_disabled():
+        return None
+
     JSON_URL = os.getenv("VERSION_INFO_URL", "https://get.rainbond.com/upgrade-versions.json")
     try:
-        response = requests.get(JSON_URL)
+        response = requests.get(JSON_URL, timeout=VERSION_INFO_TIMEOUT)
         response.raise_for_status()
         return response.json()
     except Exception:

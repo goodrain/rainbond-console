@@ -4501,6 +4501,24 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.create-template-scope-name",
+      "title": "Scope market app template name duplicate checks",
+      "title_zh": "\u6309\u53d1\u5e03\u8303\u56f4\u548c\u56e2\u961f\u68c0\u67e5\u5e94\u7528\u5e02\u573a\u6a21\u677f\u91cd\u540d",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app_service.MarketAppService.create_rainbond_app",
+      "code_paths": [
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceCreateRainbondAppTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-client.auth-missing",
       "title": "Translate 401 market API errors into missing-token service errors",
       "title_zh": "\u5c06 401 \u5e94\u7528\u5e02\u573a\u9519\u8bef\u8f6c\u6362\u4e3a\u7f3a\u5c11 token \u7684\u670d\u52a1\u5f02\u5e38",
