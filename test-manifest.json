@@ -3537,6 +3537,32 @@
       "status": "active"
     },
     {
+      "id": "console.component.extend-method-upsert",
+      "title": "Upsert component extend method by service version",
+      "title_zh": "\u6309\u7ec4\u4ef6\u7248\u672c\u8986\u76d6\u4fdd\u5b58\u4f38\u7f29\u89c4\u5219\u914d\u7f6e",
+      "interface_type": "workflow",
+      "interface": "console.repositories.app_config.ServiceExtendRepository",
+      "code_paths": [
+        "console/repositories/app_config.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_config_test.py",
+          "selector": "ServiceExtendRepositoryTests.test_create_extend_method_replaces_existing_version_record"
+        },
+        {
+          "path": "console/tests/app_config_test.py",
+          "selector": "ServiceExtendRepositoryTests.test_get_extend_method_by_service_uses_latest_record"
+        },
+        {
+          "path": "console/tests/app_config_test.py",
+          "selector": "ServiceExtendRepositoryTests.test_bulk_create_or_update_replaces_existing_version_records_by_business_key"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.storage-delete-mount",
       "title": "Delete component shared storage mount",
       "title_zh": "\u5220\u9664\u7ec4\u4ef6\u5171\u4eab\u5b58\u50a8\u6302\u8f7d",
