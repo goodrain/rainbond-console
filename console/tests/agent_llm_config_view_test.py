@@ -29,12 +29,32 @@ class AgentLLMConfigViewTests(SimpleTestCase):
     def _admin_user(self):
         return SimpleNamespace(user_id=1, nick_name="admin", enterprise_id="eid", is_authenticated=True)
 
+    def _normal_user(self):
+        return SimpleNamespace(user_id=2, nick_name="user", enterprise_id="eid", is_authenticated=True)
+
     def test_get_returns_masked_config_for_enterprise_admin(self):
         request = self.factory.get("/console/enterprise/eid/agent-llm-config")
         force_authenticate(request, user=self._admin_user())
 
         with mock.patch("console.views.base.TenantEnterprise.objects.filter") as enterprise_filter, \
                 mock.patch("console.views.base.enterprise_user_perm_repo.is_admin", return_value=True), \
+                mock.patch("console.views.base.user_services.list_roles", return_value=[]), \
+                mock.patch("console.views.base.perms.list_enterprise_perm_codes_by_roles", return_value=[]), \
+                mock.patch("console.views.agent_llm_config.agent_llm_config_service.get_masked_config",
+                           return_value={"openai_api_key_set": True, "openai_api_key_masked": "sk-****abcd"}):
+            enterprise_filter.return_value.first.return_value = SimpleNamespace(enterprise_id="eid")
+            response = self.manage_view(request, eid="eid")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["data"]["bean"]["openai_api_key_set"])
+        self.assertNotIn("OPENAI_API_KEY", json.dumps(response.data))
+
+    def test_get_returns_masked_config_for_non_admin_user(self):
+        request = self.factory.get("/console/enterprise/eid/agent-llm-config")
+        force_authenticate(request, user=self._normal_user())
+
+        with mock.patch("console.views.base.TenantEnterprise.objects.filter") as enterprise_filter, \
+                mock.patch("console.views.base.enterprise_user_perm_repo.is_admin", return_value=False), \
                 mock.patch("console.views.base.user_services.list_roles", return_value=[]), \
                 mock.patch("console.views.base.perms.list_enterprise_perm_codes_by_roles", return_value=[]), \
                 mock.patch("console.views.agent_llm_config.agent_llm_config_service.get_masked_config",
