@@ -1,5 +1,6 @@
 # capability_id: rainbond-console.vm-export.asset-ready-storage-status
 # capability_id: rainbond-console.vm-run.vm-export-ignore-stale-boot-mode
+# capability_id: rainbond-console.vm-disks.container-disk-cdrom
 import collections
 import json
 import os
@@ -347,6 +348,90 @@ class VMCreateFlowRegressionUnitTests(unittest.TestCase):
                     "device_type": "cdrom",
                     "source_kind": "installer_media",
                     "order_index": 0
+                }])
+
+    def test_validate_vm_disk_layout_accepts_container_disk_cdrom(self):
+        service = SimpleNamespace(service_id="service-a", extend_method="vm", tenant_id="tenant-a", image="demo/image")
+        volumes = [{
+            "ID": 1,
+            "volume_name": "disk",
+            "volume_path": "/disk",
+            "volume_type": "vm-file",
+            "volume_capacity": 40,
+            "status": "mounted"
+        }]
+
+        with mock.patch.object(vms, "get_vm_runtime_config", return_value={
+            "asset_id": None,
+            "asset_clone_source": "",
+            "boot_mode": "",
+            "disk_layout": [],
+            "os_name": "Windows Server 2022",
+            "gpu_enabled": False,
+            "gpu_resources": [],
+            "gpu_count": 0,
+            "usb_enabled": False,
+            "usb_resources": [],
+            "boot_source_format": "qcow2"
+        }), mock.patch.object(vms, "get_vm_asset_for_service", return_value=None):
+            normalized = vms.validate_vm_disk_layout(service, volumes, [{
+                "disk_key": "disk",
+                "disk_role": "root",
+                "device_type": "disk",
+                "source_kind": "volume",
+                "order_index": 0
+            }, {
+                "disk_key": "driver-media",
+                "disk_name": "driver-media",
+                "disk_role": "data",
+                "device_type": "cdrom",
+                "source_kind": "container_disk",
+                "image": "registry.example.com/team/windows-driver:virtio",
+                "order_index": 1
+            }])
+
+        self.assertEqual("container_disk", normalized[1]["source_kind"])
+        self.assertEqual("cdrom", normalized[1]["device_type"])
+        self.assertEqual("registry.example.com/team/windows-driver:virtio", normalized[1]["image"])
+
+    def test_validate_vm_disk_layout_rejects_container_disk_without_image(self):
+        service = SimpleNamespace(service_id="service-a", extend_method="vm", tenant_id="tenant-a", image="demo/image")
+        volumes = [{
+            "ID": 1,
+            "volume_name": "disk",
+            "volume_path": "/disk",
+            "volume_type": "vm-file",
+            "volume_capacity": 40,
+            "status": "mounted"
+        }]
+
+        with mock.patch.object(vms, "get_vm_runtime_config", return_value={
+            "asset_id": None,
+            "asset_clone_source": "",
+            "boot_mode": "",
+            "disk_layout": [],
+            "os_name": "Windows Server 2022",
+            "gpu_enabled": False,
+            "gpu_resources": [],
+            "gpu_count": 0,
+            "usb_enabled": False,
+            "usb_resources": [],
+            "boot_source_format": "qcow2"
+        }), mock.patch.object(vms, "get_vm_asset_for_service", return_value=None):
+            with self.assertRaises(ValueError):
+                vms.validate_vm_disk_layout(service, volumes, [{
+                    "disk_key": "disk",
+                    "disk_role": "root",
+                    "device_type": "disk",
+                    "source_kind": "volume",
+                    "order_index": 0
+                }, {
+                    "disk_key": "driver-media",
+                    "disk_role": "data",
+                    "device_type": "cdrom",
+                    "source_kind": "container_disk",
+                    "image": "",
+                    "order_index": 1
                 }])
 
     def test_save_vm_runtime_config_does_not_persist_removed_network_fields(self):

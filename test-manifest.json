@@ -8000,11 +8000,11 @@
       "tests": [
         {
           "path": "console/tests/vm_create_flow_regression_test.py",
-          "selector": "VMCreateFlowRegressionTests.test_validate_vm_disk_layout_accepts_container_disk_cdrom"
+          "selector": "VMCreateFlowRegressionUnitTests.test_validate_vm_disk_layout_accepts_container_disk_cdrom"
         },
         {
           "path": "console/tests/vm_create_flow_regression_test.py",
-          "selector": "VMCreateFlowRegressionTests.test_validate_vm_disk_layout_rejects_container_disk_without_image"
+          "selector": "VMCreateFlowRegressionUnitTests.test_validate_vm_disk_layout_rejects_container_disk_without_image"
         }
       ],
       "test_type": "regression",

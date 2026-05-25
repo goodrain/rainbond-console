@@ -44,6 +44,7 @@ VM_DISK_ROLE_DATA = "data"
 VM_DISK_ROLE_INSTALLER = "installer"
 VM_DISK_SOURCE_KIND_VOLUME = "volume"
 VM_DISK_SOURCE_KIND_INSTALLER = "installer_media"
+VM_DISK_SOURCE_KIND_CONTAINER_DISK = "container_disk"
 VM_DISK_DEVICE_DISK = "disk"
 VM_DISK_DEVICE_CDROM = "cdrom"
 VM_DISK_DEVICE_LUN = "lun"
@@ -244,6 +245,14 @@ class VirtualMachineService(object):
 
         if not normalized_has_installer and current_has_installer and str(runtime.get("boot_source_format") or "").lower() != "iso":
             raise ValueError("installer media can only be removed from iso-based vm")
+
+        for item in normalized:
+            if item.get("source_kind") != VM_DISK_SOURCE_KIND_CONTAINER_DISK:
+                continue
+            if item.get("device_type") != VM_DISK_DEVICE_CDROM:
+                raise ValueError("container disk media must use cdrom device type")
+            if not str(item.get("image") or "").strip():
+                raise ValueError("container disk media requires image")
 
         return normalized
 
@@ -838,6 +847,22 @@ class VirtualMachineService(object):
                     resolved.append(merged)
                     seen.add(compound_key)
                 continue
+            if item.get("source_kind") == VM_DISK_SOURCE_KIND_CONTAINER_DISK:
+                resolved.append({
+                    "disk_key": item.get("disk_key", ""),
+                    "disk_name": item.get("disk_name") or item.get("disk_key", ""),
+                    "disk_role": VM_DISK_ROLE_DATA,
+                    "device_type": VM_DISK_DEVICE_CDROM,
+                    "device_path": "/{}".format(VM_DISK_DEVICE_CDROM),
+                    "source_kind": VM_DISK_SOURCE_KIND_CONTAINER_DISK,
+                    "image": item.get("image", ""),
+                    "order_index": item.get("order_index", len(resolved)),
+                    "boot": False,
+                    "deletable": True,
+                    "status": "ready",
+                })
+                seen.add(compound_key)
+                continue
             volume_item = volume_map.get(compound_key)
             if not volume_item:
                 continue
@@ -928,6 +953,8 @@ class VirtualMachineService(object):
                 "order_index": len(normalized),
                 "boot": False,
             })
+            if source_kind == VM_DISK_SOURCE_KIND_CONTAINER_DISK:
+                normalized[-1]["image"] = str(item.get("image") or "").strip()
             seen.add(compound_key)
         for index, item in enumerate(normalized):
             item["boot"] = index == 0
@@ -935,18 +962,20 @@ class VirtualMachineService(object):
 
     def _normalize_vm_disk_source_kind(self, item):
         source_kind = str(item.get("source_kind") or "").strip().lower()
-        if source_kind in (VM_DISK_SOURCE_KIND_VOLUME, VM_DISK_SOURCE_KIND_INSTALLER):
+        if source_kind in (VM_DISK_SOURCE_KIND_VOLUME, VM_DISK_SOURCE_KIND_INSTALLER, VM_DISK_SOURCE_KIND_CONTAINER_DISK):
             return source_kind
         if self._is_vm_installer_disk_item(item):
             return VM_DISK_SOURCE_KIND_INSTALLER
         return VM_DISK_SOURCE_KIND_VOLUME
 
     def _normalize_vm_disk_role(self, item, source_kind):
+        if source_kind == VM_DISK_SOURCE_KIND_INSTALLER:
+            return VM_DISK_ROLE_INSTALLER
+        if source_kind == VM_DISK_SOURCE_KIND_CONTAINER_DISK:
+            return VM_DISK_ROLE_DATA
         role = str(item.get("disk_role") or "").strip().lower()
         if role in (VM_DISK_ROLE_ROOT, VM_DISK_ROLE_DATA, VM_DISK_ROLE_INSTALLER):
             return role
-        if source_kind == VM_DISK_SOURCE_KIND_INSTALLER:
-            return VM_DISK_ROLE_INSTALLER
         disk_key = str(item.get("disk_key") or "").strip().lower()
         if disk_key in (VM_DISK_ROOT_KEY, "rootdisk") or item.get("boot"):
             return VM_DISK_ROLE_ROOT
@@ -956,12 +985,14 @@ class VirtualMachineService(object):
         if source_kind == VM_DISK_SOURCE_KIND_INSTALLER:
             return VM_DISK_INSTALLER_KEY
         disk_key = str(item.get("disk_key") or "").strip()
+        if source_kind == VM_DISK_SOURCE_KIND_CONTAINER_DISK:
+            return disk_key
         if disk_role == VM_DISK_ROLE_ROOT:
             return VM_DISK_ROOT_KEY
         return disk_key
 
     def _normalize_vm_disk_device_type(self, item, source_kind):
-        if source_kind == VM_DISK_SOURCE_KIND_INSTALLER:
+        if source_kind in (VM_DISK_SOURCE_KIND_INSTALLER, VM_DISK_SOURCE_KIND_CONTAINER_DISK):
             return VM_DISK_DEVICE_CDROM
         device_type = str(item.get("device_type") or "").strip().lower()
         if device_type in (VM_DISK_DEVICE_DISK, VM_DISK_DEVICE_CDROM, VM_DISK_DEVICE_LUN):
