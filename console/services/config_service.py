@@ -90,7 +90,7 @@ class ConfigService(object):
         # 添加自定义字段，直接将每个字段展开到顶级
         custom_fields = self.get_custom_fields()
         for field in custom_fields:
-            rst_datas[field['key']] = {"enable": True, "value": field['value']}
+            rst_datas[field['key']] = {"enable": field.get("enable", True), "value": field['value']}
 
         return rst_datas
 
@@ -239,12 +239,10 @@ class ConfigService(object):
             configs = ConsoleSysConfig.objects.filter(
                 desc__startswith='自定义字段:',
                 enterprise_id=self.enterprise_id,
-                enable=True
             )
         else:
             configs = ConsoleSysConfig.objects.filter(
-                desc__startswith='自定义字段:',
-                enable=True
+                desc__startswith='自定义字段:'
             )
 
         logger.debug(f"get_custom_fields - enterprise_id: {self.enterprise_id}, configs count: {configs.count()}")
@@ -257,7 +255,8 @@ class ConfigService(object):
             result.append({
                 'key': original_key,
                 'value': config.value,
-                'type': config.type
+                'type': config.type,
+                'enable': config.enable
             })
 
         logger.debug(f"get_custom_fields - result: {result}")
