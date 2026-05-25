@@ -98,8 +98,10 @@ class AppDetailView(AppBaseView):
             current_pod_ip = vms.get_vm_current_pod_ip(self.tenant, self.service)
             vm_connection_url = vm_url if current_pod_ip else ""
             bean["vm_url"] = vm_connection_url
+            vm_runtime_status = app_service.get_service_status(self.tenant, self.service)
             bean["vm_profile"] = vms.get_vm_profile(
                 self.service,
+                runtime_status=vm_runtime_status,
                 current_pod_ip=current_pod_ip,
                 connections={
                     "vnc_url": vm_connection_url,
@@ -199,8 +201,10 @@ class AppVMProfileView(AppBaseView):
         vnc_url = build_vm_vnc_url(self.tenant, self.service, app_k8s_name, vm_url)
         current_pod_ip = vms.get_vm_current_pod_ip(self.tenant, self.service)
         vnc_url = vnc_url if current_pod_ip else ""
+        vm_runtime_status = app_service.get_service_status(self.tenant, self.service)
         profile = vms.get_vm_profile(
             self.service,
+            runtime_status=vm_runtime_status,
             current_pod_ip=current_pod_ip,
             connections={
                 "vnc_url": vnc_url,

@@ -1185,7 +1185,9 @@ class AppManageService(AppManageBase):
             status_info = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
                                                           tenant.enterprise_id)
             status = status_info["bean"]["cur_status"]
-            if status in ("running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal", "some_abnormal"):
+            if status in (
+                    "running", "starting", "restoring", "stopping", "failure", "unKnow", "unusual", "abnormal",
+                    "some_abnormal"):
                 return True
         except region_api.CallApiError as e:
             if int(e.status) == 404:

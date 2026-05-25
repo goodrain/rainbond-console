@@ -57,7 +57,7 @@ class TopologicalService(object):
 
     def app_starting(self, statuses: list):
         for status in statuses:
-            if status in ("starting", "waiting", "building"):
+            if status in ("starting", "waiting", "building", "restoring"):
                 return True
         return False
 

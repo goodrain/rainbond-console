@@ -602,7 +602,7 @@ class GroupService(object):
                 app["allocate_mem"] = 0
             for svc in app["service_list"]:
                 app["allocate_mem"] += svc.min_memory
-                if svc.status in ["running", "upgrade", "starting", "some_abnormal"]:
+                if svc.status in ["running", "upgrade", "starting", "restoring", "some_abnormal"]:
                     # if is running used_mem ++
                     app["run_service_num"] += 1
             if app["used_mem"] > app["allocate_mem"]:

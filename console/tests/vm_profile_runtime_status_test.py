@@ -51,6 +51,24 @@ from console.services.virtual_machine import vms  # noqa: E402
 
 
 class VMProfileRuntimeStatusTests(TestCase):
+    def test_get_vm_profile_exposes_runtime_status(self):
+        with mock.patch.object(vms, "get_vm_runtime_config", return_value={}), \
+                mock.patch.object(vms, "get_vm_asset_for_service", return_value=None):
+            profile = vms.get_vm_profile(
+                SimpleNamespace(
+                    tenant_id="tenant-a",
+                    service_id="service-a",
+                    image="demo/win10",
+                    extend_method="vm"
+                ),
+                runtime_status={
+                    "status": "restoring",
+                    "status_cn": "恢复中",
+                }
+            )
+
+        self.assertEqual({"status": "restoring", "status_cn": "恢复中"}, profile["runtime_status"])
+
     def test_get_vm_profile_hides_vnc_until_current_vm_pod_ip_is_ready(self):
         with mock.patch.object(vms, "get_vm_runtime_config", return_value={}), \
                 mock.patch.object(vms, "get_vm_asset_for_service", return_value=None):

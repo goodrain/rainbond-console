@@ -35,6 +35,12 @@ class TopologicalServiceAppStatusTests(TestCase):
 
         self.assertEqual(status, "STARTING")
 
+    # capability_id: console.app-status.vm-import-restoring-is-starting
+    def test_restoring_components_make_app_starting(self):
+        status = topological_service.get_app_status(["restoring"])
+
+        self.assertEqual(status, "STARTING")
+
     # capability_id: console.app-status.partial-abnormal-mixed-components
     def test_mixed_abnormal_components_make_app_partially_abnormal(self):
         status = topological_service.get_app_status(["running", "abnormal"])

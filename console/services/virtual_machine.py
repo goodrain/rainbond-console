@@ -176,7 +176,7 @@ class VirtualMachineService(object):
                     return pod_ip
         return ""
 
-    def get_vm_profile(self, service, connections=None, current_pod_ip=""):
+    def get_vm_profile(self, service, connections=None, current_pod_ip="", runtime_status=None):
         if getattr(service, "extend_method", "") != "vm":
             return {}
         runtime = self.get_vm_runtime_config(service.service_id)
@@ -191,6 +191,7 @@ class VirtualMachineService(object):
         return {
             "asset": self.serialize_vm_image(asset) if asset else {},
             "runtime": runtime,
+            "runtime_status": runtime_status or {},
             "current_pod_ip": current_pod_ip or "",
             "connections": vm_connections
         }
