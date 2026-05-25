@@ -56,6 +56,7 @@ class EnterpriseFirstDeployServiceTests(TestCase):
     def setUp(self):
         self.service = EnterpriseFirstDeployService()
         self.service.RUNTIME_OBSERVE_WINDOW = 30
+        self.service.report_async = False
 
     def test_build_payload_seeds_service_ids_for_runtime_watch(self):
         enterprise = Obj(enterprise_alias="demo-enterprise", enterprise_name="demo-enterprise")
@@ -71,6 +72,38 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                 service_id="service-1")
 
         self.assertEqual(payload["service_ids"], ["service-1"])
+
+    def test_begin_tracking_does_not_block_on_pending_report(self):
+        self.service.report_async = True
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "source_language": "Java",
+            "status": self.service.STATUS_FAILURE,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-build-1"],
+            "service_ids": ["service-1"],
+        }
+        repo = FirstDeployRepoStub(payload)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch.object(self.service, "_start_report_thread", create=True) as mock_start_report, \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post") as mock_post:
+            tracker = self.service.begin_tracking(
+                enterprise_id="eid-1",
+                tenant_name="demo-team",
+                region_name="demo-region",
+                deploy_type=self.service.DEPLOY_TYPE_SOURCE_CODE,
+                operator="admin",
+                source_language="Java",
+                service_id="service-1")
+
+        self.assertIsNone(tracker)
+        mock_start_report.assert_called_once_with("record-key")
+        self.assertFalse(mock_post.called)
 
     def test_sync_record_reports_build_failure_with_raw_logs(self):
         payload = {

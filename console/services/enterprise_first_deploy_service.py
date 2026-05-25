@@ -82,7 +82,9 @@ class EnterpriseFirstDeployService(object):
 
     def __init__(self):
         self._running_keys = set()
+        self._reporting_keys = set()
         self._lock = threading.Lock()
+        self.report_async = True
         if os.getenv("DISABLE_FIRST_DEPLOY_SWEEPER") != "1":
             sweeper = threading.Thread(target=self._resume_pending_trackers_loop)
             sweeper.daemon = True
@@ -103,7 +105,7 @@ class EnterpriseFirstDeployService(object):
             if payload.get("status") == self.STATUS_PENDING and not payload.get("event_ids") and self._is_expired(payload):
                 self._set_stage_failure(payload, self.FAILURE_STAGE_BUILD)
                 self._complete_tracking(record, payload, self.STATUS_FAILURE)
-            self._report_if_needed(record, payload)
+            self._report_if_needed(record, payload, async_report=True)
             if payload.get("status") == self.STATUS_PENDING and payload.get("event_ids"):
                 transaction.on_commit(lambda: self._start_sync_thread(record.key, tenant_name, region_name))
             return None
@@ -124,7 +126,7 @@ class EnterpriseFirstDeployService(object):
             if existing.get("status") == self.STATUS_PENDING and not existing.get("event_ids") and self._is_expired(existing):
                 self._set_stage_failure(existing, self.FAILURE_STAGE_BUILD)
                 self._complete_tracking(record, existing, self.STATUS_FAILURE)
-            self._report_if_needed(record, existing)
+            self._report_if_needed(record, existing, async_report=True)
             if existing.get("status") == self.STATUS_PENDING and existing.get("event_ids"):
                 transaction.on_commit(lambda: self._start_sync_thread(record.key, tenant_name, region_name))
             return None
@@ -334,7 +336,7 @@ class EnterpriseFirstDeployService(object):
         payload["status"] = status
         payload["finished_at"] = self._now()
         enterprise_first_deploy_repo.update_payload(record, payload)
-        self._report_if_needed(record, payload)
+        self._report_if_needed(record, payload, async_report=True)
 
     def _start_sync_thread(self, key, tenant_name, region_name):
         with self._lock:
@@ -552,8 +554,32 @@ class EnterpriseFirstDeployService(object):
                 return event["reason"]
         return ""
 
-    def _report_if_needed(self, record, payload):
+    def _start_report_thread(self, key):
+        with self._lock:
+            if key in self._reporting_keys:
+                return
+            self._reporting_keys.add(key)
+
+        worker = threading.Thread(target=self._report_by_key, args=(key,))
+        worker.daemon = True
+        worker.start()
+
+    def _report_by_key(self, key):
+        try:
+            record = enterprise_first_deploy_repo.get_by_key(key)
+            if not record:
+                return
+            payload = enterprise_first_deploy_repo.load_payload(record)
+            self._report_if_needed(record, payload, async_report=False)
+        finally:
+            with self._lock:
+                self._reporting_keys.discard(key)
+
+    def _report_if_needed(self, record, payload, async_report=False):
         if payload.get("status") not in self.FINAL_STATUSES or payload.get("reported"):
+            return
+        if async_report and self.report_async:
+            self._start_report_thread(record.key)
             return
 
         report_payload = {
