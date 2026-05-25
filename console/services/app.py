@@ -758,11 +758,14 @@ class AppService(object):
             bean = body["bean"]
             status = bean["cur_status"]
             start_time = bean["start_time"]
+            vm_restore = bean.get("vm_restore", {})
         except Exception as e:
             logger.exception(e)
             status = "unKnow"
+            vm_restore = {}
         status_info_map = get_status_info_map(status)
         status_info_map["start_time"] = start_time
+        status_info_map["vm_restore"] = vm_restore
         return status_info_map
 
     def create_region_service(self, tenant, service, user_name, do_deploy=True, dep_sids=None):

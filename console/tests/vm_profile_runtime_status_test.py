@@ -48,6 +48,7 @@ import django  # noqa: E402
 django.setup()
 
 from console.services.virtual_machine import vms  # noqa: E402
+from console.services.app_actions.app_log import AppEventService  # noqa: E402
 
 
 class VMProfileRuntimeStatusTests(TestCase):
@@ -89,3 +90,59 @@ class VMProfileRuntimeStatusTests(TestCase):
         self.assertEqual("", profile["current_pod_ip"])
         self.assertEqual("", profile["connections"]["vnc_url"])
         self.assertEqual("", profile["connections"]["console_url"])
+
+
+class VMRestoreEventTests(TestCase):
+    # capability_id: console.vm-template-import.restore-operation-record
+    def test_build_vm_restore_event_exposes_progress_and_importer_logs(self):
+        service = SimpleNamespace(service_id="service-a", deploy_version="20260522172810")
+
+        event = AppEventService().build_vm_restore_event(service, {
+            "status": "restoring",
+            "status_cn": "恢复中",
+            "progress": "11.34%",
+            "message": "manual133: TransferRunning",
+            "data_volumes": [
+                {
+                    "name": "manual133",
+                    "phase": "ImportInProgress",
+                    "progress": "11.34%",
+                    "message": "TransferRunning",
+                }
+            ],
+            "importer_pods": [
+                {
+                    "name": "importer-manual133",
+                    "namespace": "default",
+                    "volume": "manual133",
+                }
+            ],
+        })
+
+        self.assertEqual("vm-disk-restore-service-a", event["event_id"])
+        self.assertEqual("vm-disk-restore", event["opt_type"])
+        self.assertEqual("restoring", event["status"])
+        self.assertEqual("", event["final_status"])
+        self.assertEqual("11.34%", event["vm_restore"]["progress"])
+        self.assertEqual(0, event["syn_type"])
+
+    # capability_id: console.vm-template-import.restore-operation-record
+    def test_build_vm_restore_event_marks_success_after_import_finishes(self):
+        service = SimpleNamespace(service_id="service-a", deploy_version="20260522172810")
+
+        event = AppEventService().build_vm_restore_event(service, {
+            "status": "success",
+            "status_cn": "恢复完成",
+            "progress": "100.0%",
+            "data_volumes": [
+                {
+                    "name": "manual133",
+                    "phase": "Succeeded",
+                    "progress": "100.0%",
+                }
+            ],
+        })
+
+        self.assertEqual("success", event["status"])
+        self.assertEqual("complete", event["final_status"])
+        self.assertEqual("100.0%", event["vm_restore"]["progress"])

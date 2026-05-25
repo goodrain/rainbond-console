@@ -7965,6 +7965,52 @@
       "status": "active"
     },
     {
+      "id": "console.vm-template-import.restore-operation-record",
+      "title": "VM template import restore operation record exposes progress",
+      "title_zh": "VM template import restore operation record exposes progress",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_log.AppEventService.build_vm_restore_event",
+      "code_paths": [
+        "console/services/app_actions/app_log.py",
+        "console/services/app.py",
+        "console/views/app_event.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_profile_runtime_status_test.py",
+          "selector": "VMRestoreEventTests.test_build_vm_restore_event_exposes_progress_and_importer_logs"
+        },
+        {
+          "path": "console/tests/vm_profile_runtime_status_test.py",
+          "selector": "VMRestoreEventTests.test_build_vm_restore_event_marks_success_after_import_finishes"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "rainbond-console.vm-disks.container-disk-cdrom",
+      "title": "VM disk layout accepts container disk CD-ROM media",
+      "title_zh": "VM disk layout accepts container disk CD-ROM media",
+      "interface_type": "service_method",
+      "interface": "console.services.virtual_machine.VirtualMachineService.validate_vm_disk_layout",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_create_flow_regression_test.py",
+          "selector": "VMCreateFlowRegressionTests.test_validate_vm_disk_layout_accepts_container_disk_cdrom"
+        },
+        {
+          "path": "console/tests/vm_create_flow_regression_test.py",
+          "selector": "VMCreateFlowRegressionTests.test_validate_vm_disk_layout_rejects_container_disk_without_image"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "rainbond-console.vm-disks.iso-installer-compat",
       "title": "Expose installer media for ISO VM disks when runtime hints are incomplete",
       "title_zh": "\u5f53 VM \u8fd0\u884c\u65f6\u63d0\u793a\u4e0d\u5b8c\u6574\u65f6\u4ecd\u4e3a ISO \u865a\u62df\u673a\u78c1\u76d8\u5217\u8868\u8865\u51fa\u5b89\u88c5\u5149\u76d8",
