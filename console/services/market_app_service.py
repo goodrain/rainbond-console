@@ -210,7 +210,7 @@ class MarketAppService(object):
                         if entry_path:
                             frontend_service = frontend_service.rstrip("/") + "/" + entry_path.lstrip("/")
 
-                    # Find backend: get frontend's dependencies
+                    # Find backend: prefer the frontend component's declared dependency.
                     deps = dep_relation_repo.get_service_dependencies(tenant.tenant_id, frontend_cpt.service_id)
                     if deps:
                         backend_cpt_id = deps[0].dep_service_id
@@ -219,6 +219,13 @@ class MarketAppService(object):
                             bp = backend_ports[0]
                             backend_service = "{}.{}.svc.cluster.local:{}".format(
                                 bp.k8s_service_name, namespace, bp.container_port)
+                    # Fallback for single-component plugins (frontend and backend are the
+                    # same component, so there is no dependency edge): use the frontend
+                    # component's own service address as the backend service.
+                    if not backend_service and frontend_ports:
+                        fp = frontend_ports[0]
+                        backend_service = "{}.{}.svc.cluster.local:{}".format(
+                            fp.k8s_service_name, namespace, fp.container_port)
 
             # Resolve region_app_id from app_id
             region_app_id = ""

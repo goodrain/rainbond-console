@@ -50,6 +50,33 @@ class Obj(object):
 
 class AppServiceTests(SimpleTestCase):
 
+    def test_get_component_source_default_resources_for_source_code(self):
+        from console.services.app import app_service
+
+        resources = app_service.get_component_source_default_resources("region-a", "source_code")
+
+        self.assertEqual(resources["min_memory"], 128)
+        self.assertEqual(resources["min_cpu"], 20)
+        self.assertEqual(resources["total_memory"], 128)
+
+    def test_get_component_source_default_resources_for_package_build(self):
+        from console.services.app import app_service
+
+        resources = app_service.get_component_source_default_resources("region-a", "package_build")
+
+        self.assertEqual(resources["min_memory"], 128)
+        self.assertEqual(resources["min_cpu"], 20)
+        self.assertEqual(resources["total_memory"], 128)
+
+    def test_get_component_source_default_resources_for_docker_image(self):
+        from console.services.app import app_service
+
+        resources = app_service.get_component_source_default_resources("region-a", "docker_image")
+
+        self.assertEqual(resources["min_memory"], 512)
+        self.assertEqual(resources["min_cpu"], 0)
+        self.assertEqual(resources["total_memory"], 512)
+
     @patch("console.services.app.env_var_repo")
     def test_ensure_source_build_default_locale_envs_adds_missing_values(self, mock_env_repo):
         from console.services.app import app_service

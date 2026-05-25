@@ -1,6 +1,9 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+import os
+import threading
+import time
 
 from console.appstore.appstore import app_store
 from console.exception.main import ServiceHandleException
@@ -27,10 +30,30 @@ MARKET_HOST = "https://hub.grapps.cn"
 MARKET_DOMAIN = "enterprise"
 PLUGIN_TEAM_NAME = "rbd-plugins"
 PLUGIN_TEAM_ALIAS = "平台插件"
+MARKET_PLUGIN_CACHE_TTL_SECONDS = 60
 
 
 class PlatformPluginService(object):
     ARCH_PLUGIN_SUFFIXES = ("-ARM64", "-AMD64")
+
+    def __init__(self):
+        self._market_plugin_cache = {}
+        self._market_plugin_cache_lock = threading.Lock()
+
+    def clear_market_plugin_cache(self):
+        with self._market_plugin_cache_lock:
+            self._market_plugin_cache.clear()
+
+    @staticmethod
+    def _get_market_plugin_cache_ttl_seconds():
+        try:
+            return int(os.environ.get("MARKET_PLUGIN_CACHE_TTL_SECONDS", MARKET_PLUGIN_CACHE_TTL_SECONDS))
+        except (TypeError, ValueError):
+            return MARKET_PLUGIN_CACHE_TTL_SECONDS
+
+    @staticmethod
+    def _copy_market_plugins(plugins):
+        return [dict(item) if isinstance(item, dict) else item for item in (plugins or [])]
 
     def _strip_plugin_arch_suffix(self, plugin_id):
         plugin_id = str(plugin_id or "").strip()
@@ -143,6 +166,35 @@ class PlatformPluginService(object):
         )
         return market, plugins
 
+    def _get_market_platform_plugins_cached(self, enterprise_id, now=None):
+        ttl = self._get_market_plugin_cache_ttl_seconds()
+        if ttl <= 0:
+            return self._get_market_platform_plugins(enterprise_id)
+
+        now = time.time() if now is None else now
+        cache_key = enterprise_id
+        with self._market_plugin_cache_lock:
+            entry = self._market_plugin_cache.get(cache_key)
+            if entry and entry["expires_at"] > now:
+                logger.info(
+                    "platform plugin market cache hit enterprise_id=%s plugin_count=%s ttl_remaining_ms=%.1f",
+                    enterprise_id,
+                    len(entry["plugins"]),
+                    (entry["expires_at"] - now) * 1000,
+                )
+                return entry["market"], self._copy_market_plugins(entry["plugins"])
+
+        logger.info("platform plugin market cache miss enterprise_id=%s", enterprise_id)
+        market, plugins = self._get_market_platform_plugins(enterprise_id)
+        cached_plugins = self._copy_market_plugins(plugins)
+        with self._market_plugin_cache_lock:
+            self._market_plugin_cache[cache_key] = {
+                "expires_at": now + ttl,
+                "market": market,
+                "plugins": cached_plugins,
+            }
+        return market, self._copy_market_plugins(cached_plugins)
+
     def _get_installed_plugins(self, enterprise_id, region_name):
         installed_plugins = {}
         try:
@@ -235,7 +287,7 @@ class PlatformPluginService(object):
         installed_plugins = self._get_installed_plugins(enterprise_id, region_name)
         region_app_id_map = self._get_region_app_id_map(region_name, installed_plugins)
         try:
-            _, market_plugins = self._get_market_platform_plugins(enterprise_id)
+            _, market_plugins = self._get_market_platform_plugins_cached(enterprise_id)
         except Exception as e:
             logger.warning("Failed to get market platform plugins: %s", e)
             market_plugins = []

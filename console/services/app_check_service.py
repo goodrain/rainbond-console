@@ -68,9 +68,21 @@ def resolve_lang_update_build_strategy(language, service_build_strategy=""):
 
 
 class AppCheckService(object):
+    DETECTED_DEFAULT_MEMORY_FALLBACK = 128
+    DETECTED_DEFAULT_MEMORY_ALIGN_STEP = 32
+    DETECTED_DEFAULT_CPU_MILLI = 500
+
     @staticmethod
     def _effective_language(language):
         return pick_preferred_language(language) or language
+
+    def normalize_detected_default_resources(self, service_info):
+        memory = service_info.get("memory", self.DETECTED_DEFAULT_MEMORY_FALLBACK)
+        normalized_memory = memory - memory % self.DETECTED_DEFAULT_MEMORY_ALIGN_STEP
+        return {
+            "min_memory": normalized_memory,
+            "min_cpu": self.DETECTED_DEFAULT_CPU_MILLI,
+        }
 
     def __get_service_region_type(self, service_source):
         if service_source == AppConstants.SOURCE_CODE:
@@ -337,9 +349,9 @@ class AppCheckService(object):
         service.language = self._effective_language(raw_language)
         service.build_strategy = resolve_lang_update_build_strategy(
             service.language, getattr(service, "build_strategy", ""))
-        memory = service_info.get("memory", 128)
-        service.min_memory = memory - memory % 32
-        service.min_cpu = 500
+        normalized_resources = self.normalize_detected_default_resources(service_info)
+        service.min_memory = normalized_resources["min_memory"]
+        service.min_cpu = normalized_resources["min_cpu"]
         # Set the deployment type based on the test results
         logger.debug("save svc extend_method {0}".format(
             service_info.get("service_type", ComponentType.stateless_multiple.value)))

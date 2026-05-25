@@ -14,6 +14,7 @@ sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 django.setup()
 
+from console.exception.main import ServiceHandleException
 from console.services.mcp_query_service import mcp_query_service
 
 
@@ -54,9 +55,18 @@ class ManageComponentStorageTests(SimpleTestCase):
             "volume_name": "data-vol",
             "volume_capacity": 20,
         }
+        empty_query = mock.Mock()
+        empty_query.values.return_value = []
         with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
-            with patch("console.services.mcp_query_service.volume_service.add_service_volume", return_value=volume) as mock_add:
-                result = mcp_query_service.manage_component_storage(user, arguments)
+            with patch(
+                "console.services.mcp_query_service.volume_repo.get_service_volumes_with_config_file",
+                return_value=empty_query,
+            ):
+                with patch(
+                    "console.services.mcp_query_service.volume_service.add_service_volume",
+                    return_value=volume,
+                ) as mock_add:
+                    result = mcp_query_service.manage_component_storage(user, arguments)
 
         self.assertTrue(result["created"])
         self.assertEqual(result["volume"]["volume_id"], 11)
@@ -182,6 +192,72 @@ class ManageComponentStorageTests(SimpleTestCase):
         self.assertTrue(result["created"])
         self.assertEqual(result["items"], [{"dep_vol_id": 101}, {"dep_vol_id": 102}])
         self.assertEqual(result["total"], len(mounts))
+
+    # capability_id: console.component.storage-summary
+    def test_summary_includes_config_file_volumes(self):
+        team, app, service = self._make_context()
+        service.create_status = "complete"
+        user = self._make_user()
+        arguments = {
+            "team_name": "team-1",
+            "region_name": "region-1",
+            "app_id": 100,
+            "service_id": "service-1",
+            "operation": "summary",
+        }
+        all_volumes = [
+            {"volume_id": 21, "volume_name": "cfg", "volume_type": "config-file", "volume_path": "/etc/app/conf.json"},
+            {"volume_id": 22, "volume_name": "data", "volume_type": "nas", "volume_path": "/data"},
+        ]
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
+            with patch(
+                "console.services.mcp_query_service.volume_service.get_service_support_volume_options",
+                return_value=[],
+            ):
+                with patch(
+                    "console.services.mcp_query_service.volume_service.get_all_service_volumes_with_status",
+                    return_value=all_volumes,
+                ) as mock_all:
+                    with patch(
+                        "console.services.mcp_query_service.mnt_service.get_service_mnt_details",
+                        return_value=([], 0),
+                    ):
+                        result = mcp_query_service.manage_component_storage(user, arguments)
+
+        mock_all.assert_called_once_with(team, service)
+        volume_types = {v["volume_type"] for v in result["volumes"]["items"]}
+        self.assertEqual(volume_types, {"config-file", "nas"})
+        self.assertEqual(result["volumes"]["total"], 2)
+
+    # capability_id: console.component.storage-create-volume
+    def test_create_volume_rejects_collision_with_existing_config_file_path(self):
+        team, app, service = self._make_context()
+        user = self._make_user()
+        arguments = {
+            "team_name": "team-1",
+            "region_name": "region-1",
+            "app_id": 100,
+            "service_id": "service-1",
+            "operation": "create_volume",
+            "volume_path": "/etc/app/config.json",
+            "volume_type": "nas",
+            "volume_name": "data-vol",
+        }
+        existing_query = mock.Mock()
+        existing_query.values.return_value = [{"volume_path": "/etc/app/config.json"}]
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
+            with patch(
+                "console.services.mcp_query_service.volume_repo.get_service_volumes_with_config_file",
+                return_value=existing_query,
+            ):
+                with patch(
+                    "console.services.mcp_query_service.volume_service.add_service_volume"
+                ) as mock_add:
+                    with self.assertRaises(ServiceHandleException) as ctx:
+                        mcp_query_service.manage_component_storage(user, arguments)
+
+        mock_add.assert_not_called()
+        self.assertEqual(ctx.exception.status_code, 412)
 
     # capability_id: console.component.storage-delete-mount
     def test_delete_mnt_removes_relation(self):

@@ -5,6 +5,7 @@ import logging
 import os
 
 from django.core import signing
+from django.core.exceptions import ObjectDoesNotExist
 
 from console.constants import PluginCategoryConstants
 from console.models.main import PluginShareRecordEvent, ServiceShareRecordEvent
@@ -69,6 +70,18 @@ class MCPQueryService(object):
     CONFIRM_SALT = "console.mcp.delete_app"
     CONFIRM_MAX_AGE_SECONDS = 300
     MAX_PAGE_SIZE = 200
+    DISPLAY_APP_NAME_PATTERN = r"^[a-zA-Z0-9_\.\-\u4e00-\u9fa5]+$"
+    DISPLAY_APP_NAME_MAX_LENGTH = 128
+    DISPLAY_APP_NAME_DESCRIPTION = (
+        "应用展示名称。支持中文、英文、数字、下划线、中划线和点；"
+        "长度不超过128个字符；"
+        "不支持空格、斜杠、括号、emoji 等其他特殊字符。"
+    )
+    SERVER_LOCAL_PATH_DESCRIPTION = (
+        "本地文件或目录路径。该路径必须能被 rainbond-console 进程所在机器或容器直接访问；"
+        "若传目录，会先压缩为 zip 后再上传；"
+        "这里的 local_path 不是 MCP 客户端本机路径。"
+    )
     PORT_ALIAS_PATTERN = r"^[A-Z][A-Z0-9_]*$"
     PORT_ALIAS_DESCRIPTION = (
         "端口别名。新增端口时通常不必传，留空由系统自动生成；"
@@ -86,6 +99,19 @@ class MCPQueryService(object):
         "应用英文名 / K8s app name。默认建议不传，由系统生成或在后端回填；"
         "若手动填写，必须以小写字母开头，只能包含小写字母、数字和连字符，"
         "并且在同团队同集群下唯一，例如 demo-app。"
+    )
+    IMAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION = (
+        "默认资源规范：镜像创建组件在生成时默认使用 512MB 内存和 0m CPU；"
+        "若后续未做手动调整，构建和部署阶段继续沿用该默认资源。"
+    )
+    SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION = (
+        "默认资源规范：源码/软件包组件在生成时默认使用 128MB 内存，"
+        "CPU 按 memory/128*20 计算；检测成功后，默认资源会规范化为"
+        "“检测内存值向下对齐到 32MB 整数倍 + 500m CPU”。"
+    )
+    BUILD_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION = (
+        "默认资源说明：本步骤不会重新计算默认资源，"
+        "而是沿用组件当前的 min_memory/min_cpu。"
     )
     PORT_ACTION_ENUM = (
         "open_outer", "only_open_outer", "close_outer", "open_inner",
@@ -537,24 +563,14 @@ class MCPQueryService(object):
         app_name = self._require_string(arguments, "app_name")
         app_note = arguments.get("app_note", "") or ""
         k8s_app = arguments.get("k8s_app", "") or ""
-        try:
-            app = group_service.create_app(
-                team,
-                region_name,
-                app_name,
-                app_note,
-                self._get_username(user),
-                k8s_app=k8s_app if k8s_app else "",
-            )
-        except ServiceHandleException as exc:
-            raise ServiceHandleException(
-                msg=exc.msg,
-                msg_show=exc.msg_show,
-                status_code=exc.status_code,
-                error_code=exc.error_code,
-                details=self._build_create_app_error_details(exc, app_name, k8s_app),
-            )
-        return app
+        return self._create_app_with_mcp_error_details(
+            team=team,
+            region_name=region_name,
+            app_name=app_name,
+            app_note=app_note,
+            username=self._get_username(user),
+            k8s_app=k8s_app,
+        )
 
     def get_component_detail(self, user, arguments):
         team, app, service = self._get_team_app_service_context(
@@ -646,7 +662,7 @@ class MCPQueryService(object):
         ports = port_service.get_service_ports(service)
         envs = env_var_service.get_self_define_env(service)
         build_envs = env_var_service.get_service_build_envs(service)
-        volumes = volume_service.get_service_volumes(team, service)
+        volumes = volume_service.get_all_service_volumes_with_status(team, service)
         mnts, mnt_total = mnt_service.get_service_mnt_details(team, service, None, page=1, page_size=1000)
         autoscaler_rules = autoscaler_service.list_autoscaler_rules(service.service_id)
         probe_code, _, probe = probe_service.get_service_probe(service)
@@ -763,7 +779,32 @@ class MCPQueryService(object):
             self._require_string(arguments, "service_id"),
         )
         event_id = self._require_string(arguments, "event_id")
-        items = event_service.get_event_log(team, app.region_name, event_id) or []
+        raw_items = event_service.get_event_log(team, app.region_name, event_id) or []
+        total_unfiltered = len(raw_items)
+
+        # Optional filters / slicing. Build logs from large projects (Maven monorepo,
+        # multi-stage Node.js) can hit thousands of lines; without these, the upstream
+        # LLM wrapper truncates the middle and the real error (always near the tail)
+        # disappears.
+        grep = arguments.get("grep")
+        if isinstance(grep, str) and grep.strip():
+            keyword = grep.strip()
+            items = [it for it in raw_items if self._build_log_item_contains(it, keyword)]
+        else:
+            items = list(raw_items)
+
+        offset = self._parse_optional_positive_int(arguments.get("offset"), "offset", allow_zero=True) or 0
+        limit = self._parse_optional_positive_int(arguments.get("limit"), "limit")
+        tail = self._parse_optional_positive_int(arguments.get("tail"), "tail")
+
+        if tail is not None:
+            # tail wins over offset/limit when both are provided; AI clients should pick one.
+            items = items[-tail:]
+        elif offset or limit is not None:
+            end = offset + limit if limit is not None else None
+            items = items[offset:end]
+
+        truncated = len(items) != total_unfiltered
         return {
             "team_name": team.tenant_name,
             "region_name": app.region_name,
@@ -772,7 +813,21 @@ class MCPQueryService(object):
             "event_id": event_id,
             "items": items,
             "total": len(items),
+            "total_unfiltered": total_unfiltered,
+            "truncated": truncated,
         }
+
+    @staticmethod
+    def _build_log_item_contains(item, keyword):
+        if isinstance(item, dict):
+            haystack = item.get("message")
+            if not isinstance(haystack, str):
+                haystack = str(item)
+        elif isinstance(item, str):
+            haystack = item
+        else:
+            haystack = str(item)
+        return keyword in haystack
 
     def _get_component_build_source_snapshot(self, team, app, service):
         build_infos = base_service.get_build_infos(team, [service.service_id])
@@ -991,8 +1046,19 @@ class MCPQueryService(object):
             self._require_int(arguments, "app_id"),
         )
         action = self._require_string(arguments, "action")
+        supported_actions = ("start", "stop", "restart", "upgrade", "deploy")
+        if action not in supported_actions:
+            raise ServiceHandleException(
+                msg="unsupported action", msg_show="不支持的应用操作: {}".format(action), status_code=400)
         service_ids = arguments.get("service_ids") or self._get_app_service_ids(app)
-        result = app_manage_service.batch_operations(team, app.region_name, user, action, service_ids, None)
+        if action == "restart":
+            code, msg, result = app_manage_service.batch_action(
+                app.region_name, team, user, action, service_ids, None, None)
+            if code != 200:
+                raise ServiceHandleException(msg="batch restart error", msg_show=msg, status_code=code)
+            result = [self._serialize_model_item(service) for service in result]
+        else:
+            result = app_manage_service.batch_operations(team, app.region_name, user, action, service_ids, None)
         return {
             "app_id": app.ID,
             "action": action,
@@ -1276,22 +1342,28 @@ class MCPQueryService(object):
                 }
             }
         if operation == "add":
+            ports_list = arguments.get("ports")
+            if ports_list:
+                return self._batch_add_ports(user, arguments, ports_list)
             payload = dict(arguments)
             payload["operation"] = "add"
             if "is_inner_service" not in payload and "enable_inner" in payload:
                 payload["is_inner_service"] = bool(payload.get("enable_inner"))
             return self.handle_component_ports(user, payload)
 
-        if operation in ("enable_inner", "disable_inner", "enable_outer", "disable_outer", "enable_outer_only", "update_protocol", "update_alias"):
-            action_map = {
-                "enable_inner": "open_inner",
-                "disable_inner": "close_inner",
-                "enable_outer": "open_outer",
-                "disable_outer": "close_outer",
-                "enable_outer_only": "only_open_outer",
-                "update_protocol": "change_protocol",
-                "update_alias": "change_port_alias",
-            }
+        action_map = {
+            "enable_inner": "open_inner",
+            "disable_inner": "close_inner",
+            "enable_outer": "open_outer",
+            "disable_outer": "close_outer",
+            "enable_outer_only": "only_open_outer",
+            "update_protocol": "change_protocol",
+            "update_alias": "change_port_alias",
+        }
+        if operation in action_map:
+            ports_list = arguments.get("ports")
+            if ports_list:
+                return self._batch_update_ports(user, arguments, action_map[operation], ports_list)
             payload = dict(arguments)
             payload["operation"] = "update"
             payload["action"] = action_map[operation]
@@ -1300,6 +1372,37 @@ class MCPQueryService(object):
         payload = dict(arguments)
         payload["operation"] = operation
         return self.handle_component_ports(user, payload)
+
+    def _batch_add_ports(self, user, arguments, ports_list):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        created = port_service.batch_add_service_ports(team, service, ports_list, user.nick_name, app=app)
+        return {"ports": [self._serialize_model_item(p) for p in created]}
+
+    def _batch_update_ports(self, user, arguments, action, ports_list):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        results = []
+        for item in ports_list:
+            port_num = item if isinstance(item, int) else int(item.get("port", item))
+            code, msg, port_info = port_service.manage_port(
+                team, service, app.region_name, port_num, action,
+                None, None, "", user.nick_name, app=app,
+            )
+            if code != 200:
+                self._raise_port_tool_error("port operation failed", msg, code)
+            results.append(self._serialize_model_item(port_info))
+        return {"ports": results}
 
     def bind_component_volume(self, user, arguments):
         team, app, service = self._get_team_app_service_context(
@@ -1333,6 +1436,25 @@ class MCPQueryService(object):
         result["service_id"] = service.service_id
         return result
 
+    def _mcp_assert_volume_path_available(self, service, new_volume_path):
+        existing_rows = volume_repo.get_service_volumes_with_config_file(
+            service.service_id
+        ).values("volume_path")
+        for row in existing_rows:
+            existing = row["volume_path"]
+            if existing == new_volume_path:
+                raise ServiceHandleException(
+                    msg="path already exists",
+                    msg_show="持久化路径[{0}]已存在".format(existing),
+                    status_code=412,
+                )
+            if existing.startswith(new_volume_path + "/") or new_volume_path.startswith(existing + "/"):
+                raise ServiceHandleException(
+                    msg="path conflict",
+                    msg_show="已存在以{0}开头的路径".format(existing),
+                    status_code=412,
+                )
+
     def manage_component_storage(self, user, arguments):
         team, app, service = self._get_team_app_service_context(
             user,
@@ -1348,9 +1470,13 @@ class MCPQueryService(object):
             "存储",
         )
         if operation == "summary":
-            is_config = bool(arguments.get("is_config", False))
+            # MCP summary intentionally returns every volume type (including
+            # config-file). The `is_config` argument is kept in the schema
+            # only because `list_unmounted` still uses it; ignoring it here
+            # avoids the historical default-False filter that hid config-file
+            # volumes from AI assistants.
             volume_options = volume_service.get_service_support_volume_options(team, service)
-            volumes = volume_service.get_service_volumes(team, service, is_config)
+            volumes = volume_service.get_all_service_volumes_with_status(team, service)
             mnts, total = mnt_service.get_service_mnt_details(team, service, arguments.get("volume_types"), page=1, page_size=1000)
             return {
                 "service_id": service.service_id,
@@ -1372,10 +1498,17 @@ class MCPQueryService(object):
             )
             return {"items": items, "total": total, "page": page, "page_size": page_size}
         if operation == "create_volume":
+            volume_path = self._require_string(arguments, "volume_path")
+            # The shared `volume_service.check_volume_path` filters out
+            # config-file volumes by design (console contract). MCP creators
+            # need full path-conflict coverage so the AI cannot create a
+            # persistent volume whose path collides with an existing
+            # config-file mount, and vice versa.
+            self._mcp_assert_volume_path_available(service, volume_path)
             volume = volume_service.add_service_volume(
                 team,
                 service,
-                self._require_string(arguments, "volume_path"),
+                volume_path,
                 self._require_string(arguments, "volume_type"),
                 self._require_string(arguments, "volume_name"),
                 arguments.get("file_content"),
@@ -1842,13 +1975,13 @@ class MCPQueryService(object):
         if not snapshot_version:
             raise ServiceHandleException(msg="snapshot version invalid", msg_show="快照版本无效", status_code=400)
 
-        created_app = group_service.create_app(
-            team,
-            region_name,
-            target_app_name,
-            target_app_note,
-            self._get_username(user),
-            k8s_app=k8s_app if k8s_app else "",
+        created_app = self._create_app_with_mcp_error_details(
+            team=team,
+            region_name=region_name,
+            app_name=target_app_name,
+            app_note=target_app_note,
+            username=self._get_username(user),
+            k8s_app=k8s_app,
         )
         target_app_id = (
             self._value(created_app, "ID") or
@@ -3545,14 +3678,15 @@ class MCPQueryService(object):
         return ivalue
 
     @staticmethod
-    def _parse_optional_positive_int(value, field):
+    def _parse_optional_positive_int(value, field, allow_zero=False):
         if value in (None, ""):
             return None
         try:
             ivalue = int(value)
         except (TypeError, ValueError):
             raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
-        if ivalue <= 0:
+        floor = 0 if allow_zero else 1
+        if ivalue < floor:
             raise ServiceHandleException(msg="invalid {}".format(field), msg_show="参数{}无效".format(field), status_code=400)
         return ivalue
 
@@ -3625,6 +3759,26 @@ class MCPQueryService(object):
         msg = getattr(exc, "msg", "") or ""
         msg_show = getattr(exc, "msg_show", "") or ""
         error_code = getattr(exc, "error_code", None)
+        if msg == "app_name illegal":
+            if "最多支持128个字符" in msg_show:
+                return {
+                    "field": "app_name",
+                    "reason": "too_long",
+                    "provided_value": app_name,
+                    "max_length": self.DISPLAY_APP_NAME_MAX_LENGTH,
+                    "suggestion": "请将应用名称缩短到128个字符以内。",
+                    "retryable": False,
+                }
+            return {
+                "field": "app_name",
+                "reason": "pattern_mismatch",
+                "provided_value": app_name,
+                "expected_pattern": self.DISPLAY_APP_NAME_PATTERN,
+                "max_length": self.DISPLAY_APP_NAME_MAX_LENGTH,
+                "examples": ["demo-app", "演示应用", "demo_app.v1"],
+                "suggestion": "请使用中文、英文、数字、下划线、中划线或点，不要包含空格或其他特殊字符。",
+                "retryable": False,
+            }
         if error_code in (11011, 21003) or "k8s app" in msg.lower() or "应用英文名已存在" in msg_show:
             return {
                 "field": "k8s_app",
@@ -3655,6 +3809,25 @@ class MCPQueryService(object):
                 "retryable": False,
             }
         return None
+
+    def _create_app_with_mcp_error_details(self, team, region_name, app_name, app_note, username, k8s_app=""):
+        try:
+            return group_service.create_app(
+                team,
+                region_name,
+                app_name,
+                app_note,
+                username,
+                k8s_app=k8s_app if k8s_app else "",
+            )
+        except ServiceHandleException as exc:
+            raise ServiceHandleException(
+                msg=exc.msg,
+                msg_show=exc.msg_show,
+                status_code=exc.status_code,
+                error_code=exc.error_code,
+                details=self._build_create_app_error_details(exc, app_name, k8s_app),
+            )
 
     @staticmethod
     def _parse_int_with_default(value, default):
@@ -3803,8 +3976,18 @@ class MCPQueryService(object):
             })
         return normalized_items
 
+    def _lookup_env_or_raise(self, team, service, env_id):
+        try:
+            return env_var_repo.get_env_by_ids_and_env_id(team.tenant_id, service.service_id, env_id)
+        except ObjectDoesNotExist:
+            raise ServiceHandleException(
+                msg="env not found",
+                msg_show="环境变量不存在（env_id={}），请先用 operation=summary 重新获取最新 env_id".format(env_id),
+                status_code=404,
+            )
+
     def _ensure_inner_env(self, team, service, env_id):
-        env = env_var_repo.get_env_by_ids_and_env_id(team.tenant_id, service.service_id, env_id)
+        env = self._lookup_env_or_raise(team, service, env_id)
         if getattr(env, "scope", "") != "inner":
             raise ServiceHandleException(
                 msg="invalid env scope",
@@ -3814,7 +3997,7 @@ class MCPQueryService(object):
         return env
 
     def _ensure_outer_env(self, team, service, env_id):
-        env = env_var_repo.get_env_by_ids_and_env_id(team.tenant_id, service.service_id, env_id)
+        env = self._lookup_env_or_raise(team, service, env_id)
         if getattr(env, "scope", "") not in ("outer", "both"):
             raise ServiceHandleException(
                 msg="invalid env scope",
@@ -3883,13 +4066,48 @@ class MCPQueryService(object):
         metrics = arguments.get("metrics")
         if not isinstance(metrics, list) or not metrics:
             raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+        xpa_type = arguments.get("xpa_type", "hpa")
+        if xpa_type not in ("hpa",):
+            raise ServiceHandleException(msg="invalid xpa_type", msg_show="参数xpa_type无效", status_code=400)
+        min_replicas = self._require_int(arguments, "min_replicas")
+        max_replicas = self._require_int(arguments, "max_replicas")
+        if min_replicas > 65535:
+            raise ServiceHandleException(msg="invalid min_replicas", msg_show="参数min_replicas无效", status_code=400)
+        if max_replicas > 65535 or max_replicas < min_replicas:
+            raise ServiceHandleException(msg="invalid max_replicas", msg_show="参数max_replicas无效", status_code=400)
+
+        normalized_metrics = []
+        for metric in metrics:
+            if not isinstance(metric, dict):
+                raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+            metric_type = metric.get("metric_type")
+            metric_name = metric.get("metric_name")
+            metric_target_type = metric.get("metric_target_type")
+            try:
+                metric_target_value = int(metric.get("metric_target_value"))
+            except (TypeError, ValueError):
+                raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+            if metric_type not in ("resource_metrics",):
+                raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+            if metric_name not in ("cpu", "memory"):
+                raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+            if metric_target_type not in ("utilization", "average_value"):
+                raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+            if metric_target_value < 0 or metric_target_value > 65535:
+                raise ServiceHandleException(msg="invalid metrics", msg_show="参数metrics无效", status_code=400)
+            normalized_metrics.append({
+                "metric_type": metric_type,
+                "metric_name": metric_name,
+                "metric_target_type": metric_target_type,
+                "metric_target_value": metric_target_value,
+            })
         return {
             "service_id": service.service_id,
-            "xpa_type": arguments.get("xpa_type", "hpa"),
-            "enable": bool(arguments.get("enable", True)),
-            "min_replicas": self._require_int(arguments, "min_replicas"),
-            "max_replicas": self._require_int(arguments, "max_replicas"),
-            "metrics": metrics,
+            "xpa_type": xpa_type,
+            "enable": self._parse_bool_with_default(arguments.get("enable"), True),
+            "min_replicas": min_replicas,
+            "max_replicas": max_replicas,
+            "metrics": normalized_metrics,
         }
 
     def _build_probe_payload(self, arguments):
@@ -4500,7 +4718,12 @@ class MCPQueryService(object):
                 "properties": {
                     "team_name": {"type": "string"},
                     "region_name": {"type": "string"},
-                    "app_name": {"type": "string", "description": "应用展示名称。支持中文、英文、数字、下划线、中划线和点。"},
+                    "app_name": {
+                        "type": "string",
+                        "description": self.DISPLAY_APP_NAME_DESCRIPTION,
+                        "pattern": self.DISPLAY_APP_NAME_PATTERN,
+                        "maxLength": self.DISPLAY_APP_NAME_MAX_LENGTH,
+                    },
                     "app_note": {"type": "string"},
                     "k8s_app": {
                         "type": "string",
@@ -4705,7 +4928,12 @@ class MCPQueryService(object):
     def _tool_get_component_build_logs(self):
         return {
             "name": "rainbond_get_component_build_logs",
-            "description": "Get build event logs for a component by event_id. The event_id usually comes from build/create/deploy responses.",
+            "description": (
+                "Get build event logs for a component by event_id. The event_id usually comes from build/create/deploy "
+                "responses. For large projects (Maven monorepo, multi-stage Node.js builds, etc.) prefer narrowing the "
+                "response with tail/grep/offset/limit — without them the upstream LLM client may middle-truncate the "
+                "response and drop the real error which is usually near the tail."
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -4713,7 +4941,11 @@ class MCPQueryService(object):
                     "region_name": {"type": "string"},
                     "app_id": {"type": "integer", "minimum": 1},
                     "service_id": {"type": "string"},
-                    "event_id": {"type": "string", "description": "构建事件 ID，一般来自构建、创建或部署操作的返回值"}
+                    "event_id": {"type": "string", "description": "构建事件 ID，一般来自构建、创建或部署操作的返回值。**必须**通过 rainbond_get_component_events 等只读工具拿到真实 UUID；不要从其它工具返回的 DB 行号（如 summary.recent_events[*].ID）当成 event_id 传入。"},
+                    "tail": {"type": "integer", "minimum": 1, "description": "只返回末尾 N 条日志。构建失败时错误几乎总在尾部，优先用 tail（例如 tail=500）而不是拉全量再截断。与 offset/limit 同传时 tail 优先。"},
+                    "offset": {"type": "integer", "minimum": 0, "description": "起始偏移（从 0 开始）。与 limit 搭配做翻页。"},
+                    "limit": {"type": "integer", "minimum": 1, "description": "返回最多 N 条。与 offset 搭配做翻页。"},
+                    "grep": {"type": "string", "description": "按 substring 匹配每条日志的 message 字段，常用于过滤 ERROR / BUILD FAILURE / Caused by 等关键行。grep 在 tail/offset/limit 之前生效。"}
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id", "event_id"]
             }
@@ -4776,7 +5008,10 @@ class MCPQueryService(object):
     def _tool_create_component(self):
         return {
             "name": "rainbond_create_component",
-            "description": "Create a component from image in the specified application.",
+            "description": (
+                "Create a component from image in the specified application. "
+                + self.IMAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -4817,14 +5052,17 @@ class MCPQueryService(object):
     def _tool_operate_app(self):
         return {
             "name": "rainbond_operate_app",
-            "description": "Batch operate application components. Supported actions: start, stop, upgrade, deploy.",
+            "description": "Batch operate application components. Supported actions: start, stop, restart, upgrade, deploy.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "team_name": {"type": "string"},
                     "region_name": {"type": "string"},
                     "app_id": {"type": "integer", "minimum": 1},
-                    "action": {"type": "string"},
+                    "action": {
+                        "type": "string",
+                        "enum": ["start", "stop", "restart", "upgrade", "deploy"]
+                    },
                     "service_ids": {
                         "type": "array",
                         "items": {"type": "string"}
@@ -5053,7 +5291,12 @@ class MCPQueryService(object):
                     "region_name": {"type": "string"},
                     "source_app_id": {"type": "integer", "minimum": 1},
                     "version_id": {"type": "integer", "minimum": 1},
-                    "target_app_name": {"type": "string"},
+                    "target_app_name": {
+                        "type": "string",
+                        "description": self.DISPLAY_APP_NAME_DESCRIPTION,
+                        "pattern": self.DISPLAY_APP_NAME_PATTERN,
+                        "maxLength": self.DISPLAY_APP_NAME_MAX_LENGTH,
+                    },
                     "target_app_note": {"type": "string"},
                     "k8s_app": {
                         "type": "string",
@@ -5272,7 +5515,10 @@ class MCPQueryService(object):
     def _tool_build_component(self):
         return {
             "name": "rainbond_build_component",
-            "description": "Step 4 of component creation: confirm creation and build or deploy the component.",
+            "description": (
+                "Step 4 of component creation: confirm creation and build or deploy the component. "
+                + self.BUILD_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -5628,6 +5874,7 @@ class MCPQueryService(object):
                     "source": {"type": "string", "enum": ["local", "cloud"]},
                     "market_name": {"type": "string", "description": "Required when source=cloud."},
                     "app_model_id": {"type": "string"},
+                    "app_model_name": {"type": "string", "description": "Optional display-only template name."},
                     "app_model_version": {"type": "string"},
                     "is_deploy": {"type": "boolean"}
                 },
@@ -5663,7 +5910,10 @@ class MCPQueryService(object):
     def _tool_create_component_from_source(self):
         return {
             "name": "rainbond_create_component_from_source",
-            "description": "Create a source-code component with automatic detection and default configuration, then build it in one flow.",
+            "description": (
+                "Create a source-code component with automatic detection and default configuration, then build it in one flow. "
+                + self.SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -5719,7 +5969,10 @@ class MCPQueryService(object):
     def _tool_create_component_from_package(self):
         return {
             "name": "rainbond_create_component_from_package",
-            "description": "Create a component from an uploaded software package event in one flow after upload is complete.",
+            "description": (
+                "Create a component from an uploaded software package event in one flow after upload is complete. "
+                + self.SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -5763,7 +6016,7 @@ class MCPQueryService(object):
                     "event_id": {"type": "string"},
                     "local_path": {
                         "type": "string",
-                        "description": "本地文件或目录路径。若传目录，会先压缩为 zip 后再上传。"
+                        "description": self.SERVER_LOCAL_PATH_DESCRIPTION
                     },
                     "archive_name": {
                         "type": "string",
@@ -5807,7 +6060,10 @@ class MCPQueryService(object):
     def _tool_create_component_from_local_package(self):
         return {
             "name": "rainbond_create_component_from_local_package",
-            "description": "Create a component from a local package file or directory in one flow: zip if needed, upload, detect, build, and optionally deploy.",
+            "description": (
+                "Create a component from a local package file or directory in one flow: zip if needed, upload, detect, build, and optionally deploy. "
+                + self.SOURCE_PACKAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -5816,7 +6072,7 @@ class MCPQueryService(object):
                     "app_id": {"type": "integer", "minimum": 1},
                     "local_path": {
                         "type": "string",
-                        "description": "本地文件或目录路径。目录会先压缩为 zip，再走软件包上传构建流程。"
+                        "description": self.SERVER_LOCAL_PATH_DESCRIPTION
                     },
                     "archive_name": {
                         "type": "string",
@@ -5869,7 +6125,10 @@ class MCPQueryService(object):
     def _tool_create_component_from_image(self):
         return {
             "name": "rainbond_create_component_from_image",
-            "description": "Create a component from image in the specified application.",
+            "description": (
+                "Create a component from image in the specified application. "
+                + self.IMAGE_COMPONENT_DEFAULT_RESOURCE_DESCRIPTION
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -6071,7 +6330,12 @@ class MCPQueryService(object):
     def _tool_manage_component_ports(self):
         return {
             "name": "rainbond_manage_component_ports",
-            "description": "高层端口管理工具。明确区分对内服务和对外服务：对内服务用于组件间访问，对外服务用于外部访问。推荐优先使用 enable_inner / enable_outer / disable_inner / disable_outer / enable_outer_only 这些显式动作。",
+            "description": (
+                "高层端口管理工具。明确区分对内服务和对外服务：对内服务用于组件间访问，对外服务用于外部访问。"
+                "推荐优先使用 enable_inner / enable_outer / disable_inner / disable_outer / enable_outer_only 这些显式动作。"
+                "批量操作：operation=add 时可传 ports 数组一次创建多个端口；"
+                "enable_inner/disable_inner/enable_outer/disable_outer 时可传 ports 数组批量开关服务。"
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -6090,15 +6354,41 @@ class MCPQueryService(object):
                             "update"
                         ],
                         "description": (
-                            "推荐动作：summary=查看端口；add=新增端口；"
-                            "enable_inner=开启对内服务；disable_inner=关闭对内服务；"
-                            "enable_outer=开启对外服务（要求已开启对内服务）；"
-                            "disable_outer=关闭对外服务；"
+                            "推荐动作：summary=查看端口；add=新增端口（支持 ports 数组批量）；"
+                            "enable_inner=开启对内服务（支持 ports 数组批量）；"
+                            "disable_inner=关闭对内服务（支持 ports 数组批量）；"
+                            "enable_outer=开启对外服务，要求已开启对内服务（支持 ports 数组批量）；"
+                            "disable_outer=关闭对外服务（支持 ports 数组批量）；"
                             "enable_outer_only=仅开启对外服务；"
                             "update_protocol=修改协议；update_alias=修改端口别名。"
                         )
                     },
                     "port": {"type": "integer", "minimum": 1},
+                    "ports": {
+                        "type": "array",
+                        "description": (
+                            "批量端口列表，与 operation 配合使用。"
+                            "operation=add 时每项需含 port(int) 和 protocol(str)，可选 is_inner_service/enable_inner(bool)、port_alias(str)；"
+                            "enable_inner/disable_inner/enable_outer/disable_outer 时每项为 {\"port\": <int>} 或直接为整数。"
+                            "传入 ports 时忽略顶层 port 字段。"
+                        ),
+                        "items": {
+                            "oneOf": [
+                                {"type": "integer", "minimum": 1},
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "port": {"type": "integer", "minimum": 1},
+                                        "protocol": {"type": "string"},
+                                        "is_inner_service": {"type": "boolean"},
+                                        "enable_inner": {"type": "boolean"},
+                                        "port_alias": self._port_alias_schema(),
+                                    },
+                                    "required": ["port"],
+                                },
+                            ]
+                        },
+                    },
                     "protocol": {"type": "string"},
                     "port_alias": self._port_alias_schema(),
                     "is_inner_service": {"type": "boolean", "description": "新增端口时是否默认开启对内服务"},
@@ -6212,11 +6502,23 @@ class MCPQueryService(object):
                     "service_id": {"type": "string"},
                     "operation": {"type": "string", "enum": ["summary", "get_rule", "create_rule", "update_rule", "records"]},
                     "rule_id": {"type": "string"},
-                    "xpa_type": {"type": "string"},
+                    "xpa_type": {"type": "string", "enum": ["hpa"]},
                     "enable": {"type": "boolean"},
                     "min_replicas": {"type": "integer", "minimum": 1},
                     "max_replicas": {"type": "integer", "minimum": 1},
-                    "metrics": {"type": "array", "items": {"type": "object"}},
+                    "metrics": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "metric_type": {"type": "string", "enum": ["resource_metrics"]},
+                                "metric_name": {"type": "string", "enum": ["cpu", "memory"]},
+                                "metric_target_type": {"type": "string", "enum": ["utilization", "average_value"]},
+                                "metric_target_value": {"type": "integer", "minimum": 0, "maximum": 65535}
+                            },
+                            "required": ["metric_type", "metric_name", "metric_target_type", "metric_target_value"]
+                        }
+                    },
                     "page": {"type": "integer", "minimum": 1},
                     "page_size": {"type": "integer", "minimum": 1}
                 },

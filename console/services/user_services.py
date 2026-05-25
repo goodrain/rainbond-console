@@ -301,7 +301,11 @@ class UserService(object):
     def get_user_by_eid(self, eid, name, page, page_size):
         users = user_repo.get_enterprise_users(eid)
         if name:
-            users = users.filter(Q(nick_name__contains=name) | Q(real_name__contains=name))
+            users = users.filter(
+                Q(nick_name__contains=name)
+                | Q(real_name__contains=name)
+                | Q(phone__contains=name)
+                | Q(email__contains=name))
         total = users.count()
         return users[(page - 1) * page_size:page * page_size], total
 

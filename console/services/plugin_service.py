@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import logging
+import time
 
 from console.services.team_services import team_services
 from console.services.platform_plugin_service import platform_plugin_service
@@ -20,10 +21,17 @@ class RainbondPluginService(object):
         team_names, team_ids, region_app_ids, app_ids, component_ids = [], [], [], [], []
         region_apps_map = {}
 
+        total_start = time.time()
+        region_elapsed_ms = 0
+        market_elapsed_ms = 0
+        console_db_elapsed_ms = 0
+        enrich_elapsed_ms = 0
         need_authz = False
         logger.info("Calling region_api.list_plugins: enterprise_id={}, region_name={}, official={}".format(
             enterprise_id, region_name, official))
+        region_start = time.time()
         _, body = region_api.list_plugins(enterprise_id, region_name, official)
+        region_elapsed_ms = (time.time() - region_start) * 1000
         plugins = body["list"] if body.get("list") else []
         logger.info("region_api.list_plugins returned {} plugins from region".format(len(plugins)))
 
@@ -38,8 +46,9 @@ class RainbondPluginService(object):
         market_plugins = []
         market_plugin_map = {}
         if official and not is_cloud_market_disabled():
+            market_start = time.time()
             try:
-                _, market_plugins = platform_plugin_service._get_market_platform_plugins(enterprise_id)
+                _, market_plugins = platform_plugin_service._get_market_platform_plugins_cached(enterprise_id)
                 for plugin in plugins:
                     plugin_id = plugin.get("name", "")
                     market_plugin = platform_plugin_service._select_market_plugin(market_plugins, plugin_id, {})
@@ -47,6 +56,8 @@ class RainbondPluginService(object):
                         market_plugin_map[plugin_id] = market_plugin
             except Exception as e:
                 logger.warning("failed to fetch platform plugin market metadata: %s", e)
+            finally:
+                market_elapsed_ms = (time.time() - market_start) * 1000
         elif official:
             logger.info("official plugin market metadata skipped because cloud market is disabled")
 
@@ -61,6 +72,7 @@ class RainbondPluginService(object):
             if app_level == "enterprise":
                 need_authz = True
 
+        console_db_start = time.time()
         teams = team_services.list_by_team_names(team_names)
         team_ids = [team.tenant_id for team in teams]
 
@@ -86,7 +98,9 @@ class RainbondPluginService(object):
                     component_url_rels[domain.service_id].append(url)
                     continue
                 component_url_rels[domain.service_id] = [url]
+        console_db_elapsed_ms = (time.time() - console_db_start) * 1000
 
+        enrich_start = time.time()
         for plugin in plugins:
             app_id = region_apps_map.get(plugin["region_app_id"], -1)
             plugin["team_name"] = plugin["team_name"]
@@ -100,6 +114,21 @@ class RainbondPluginService(object):
                 for component_id in app_component_rels[app_id]:
                     if component_url_rels.get(component_id):
                         plugin["urls"].extend(component_url_rels[component_id])
+        enrich_elapsed_ms = (time.time() - enrich_start) * 1000
+        logger.info(
+            "official plugin list timing enterprise_id=%s region_name=%s official=%s plugin_count=%s "
+            "market_plugin_count=%s region_ms=%.1f market_ms=%.1f console_db_ms=%.1f enrich_ms=%.1f total_ms=%.1f",
+            enterprise_id,
+            region_name,
+            official,
+            len(plugins),
+            len(market_plugins),
+            region_elapsed_ms,
+            market_elapsed_ms,
+            console_db_elapsed_ms,
+            enrich_elapsed_ms,
+            (time.time() - total_start) * 1000,
+        )
         return plugins, need_authz
 
 

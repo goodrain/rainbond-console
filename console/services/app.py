@@ -64,6 +64,13 @@ probe_service = ProbeService()
 
 
 class AppService(object):
+    DEFAULT_COMPONENT_SOURCE_RESOURCES = {
+        AppConstants.SOURCE_CODE: {"min_memory": 128, "cpu_mode": "calculated"},
+        AppConstants.PACKAGE_BUILD: {"min_memory": 128, "cpu_mode": "calculated"},
+        AppConstants.DOCKER_IMAGE: {"min_memory": 512, "cpu_mode": "fixed", "min_cpu": 0},
+        AppConstants.DOCKER_RUN: {"min_memory": 512, "cpu_mode": "fixed", "min_cpu": 0},
+    }
+
     def is_k8s_component_name_duplicate(self, app_id, k8s_component_name, component_id=""):
         components = []
         component_ids = service_group_relation_repo.get_components_by_app_id(app_id).values_list("service_id")
@@ -81,10 +88,26 @@ class AppService(object):
             return False, "组件名称最多支持100个字符"
         return True, "success"
 
+    def get_component_source_default_resources(self, region, service_source):
+        resource_spec = self.DEFAULT_COMPONENT_SOURCE_RESOURCES.get(service_source)
+        if not resource_spec:
+            raise ServiceHandleException(msg="unsupported service source", msg_show="不支持的组件来源", status_code=400)
+        min_memory = resource_spec["min_memory"]
+        if resource_spec["cpu_mode"] == "calculated":
+            min_cpu = baseService.calculate_service_cpu(region, min_memory)
+        else:
+            min_cpu = resource_spec["min_cpu"]
+        return {
+            "min_memory": min_memory,
+            "min_cpu": min_cpu,
+            "total_memory": min_memory,
+        }
+
     def __init_source_code_app(self, region):
         """
         初始化源码创建的组件默认数据,未存入数据库
         """
+        default_resources = self.get_component_source_default_resources(region, AppConstants.SOURCE_CODE)
         tenant_service = TenantServiceInfo()
         tenant_service.service_region = region
         tenant_service.service_key = "application"
@@ -96,8 +119,8 @@ class AppService(object):
         tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ""
         tenant_service.min_node = 1
-        tenant_service.min_memory = 128
-        tenant_service.min_cpu = baseService.calculate_service_cpu(region, 128)
+        tenant_service.min_memory = default_resources["min_memory"]
+        tenant_service.min_cpu = default_resources["min_cpu"]
         tenant_service.inner_port = 5000
         tenant_service.version = "81701"
         tenant_service.namespace = "goodrain"
@@ -107,7 +130,7 @@ class AppService(object):
         tenant_service.deploy_version = ""
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"
-        tenant_service.total_memory = 128
+        tenant_service.total_memory = default_resources["total_memory"]
         tenant_service.volume_mount_path = ""
         tenant_service.host_path = ""
         tenant_service.service_source = AppConstants.SOURCE_CODE
@@ -233,6 +256,7 @@ class AppService(object):
         """
         初始化本地文件创建的组件默认数据,未存入数据库
         """
+        default_resources = self.get_component_source_default_resources(region, AppConstants.PACKAGE_BUILD)
         tenant_service = TenantServiceInfo()
         tenant_service.service_region = region
         tenant_service.service_key = "application"
@@ -244,8 +268,8 @@ class AppService(object):
         tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ""
         tenant_service.min_node = 1
-        tenant_service.min_memory = 128
-        tenant_service.min_cpu = baseService.calculate_service_cpu(region, 128)
+        tenant_service.min_memory = default_resources["min_memory"]
+        tenant_service.min_cpu = default_resources["min_cpu"]
         tenant_service.inner_port = 5000
         tenant_service.version = "81701"
         tenant_service.namespace = "goodrain"
@@ -255,7 +279,7 @@ class AppService(object):
         tenant_service.deploy_version = ""
         tenant_service.git_project_id = 0
         tenant_service.service_type = "pkg"
-        tenant_service.total_memory = 128
+        tenant_service.total_memory = default_resources["total_memory"]
         tenant_service.volume_mount_path = ""
         tenant_service.host_path = ""
         tenant_service.service_source = AppConstants.PACKAGE_BUILD
@@ -297,6 +321,7 @@ class AppService(object):
         """
         初始化docker image创建的组件默认数据,未存入数据库
         """
+        default_resources = self.get_component_source_default_resources(region, AppConstants.DOCKER_IMAGE)
         tenant_service = TenantServiceInfo()
         tenant_service.service_region = region
         tenant_service.service_key = "0000"
@@ -306,8 +331,8 @@ class AppService(object):
         tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ","
         tenant_service.min_node = 1
-        tenant_service.min_memory = 512
-        tenant_service.min_cpu = 0
+        tenant_service.min_memory = default_resources["min_memory"]
+        tenant_service.min_cpu = default_resources["min_cpu"]
         tenant_service.inner_port = 0
         tenant_service.version = "latest"
         tenant_service.namespace = "goodrain"
@@ -317,7 +342,7 @@ class AppService(object):
         tenant_service.deploy_version = ""
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"
-        tenant_service.total_memory = 128
+        tenant_service.total_memory = default_resources["total_memory"]
         tenant_service.volume_mount_path = ""
         tenant_service.host_path = ""
         tenant_service.code_from = "image_manual"

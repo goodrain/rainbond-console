@@ -3513,6 +3513,10 @@
         {
           "path": "console/tests/mcp_query_storage_ops_test.py",
           "selector": "ManageComponentStorageTests.test_create_volume_returns_created_and_volume"
+        },
+        {
+          "path": "console/tests/mcp_query_storage_ops_test.py",
+          "selector": "ManageComponentStorageTests.test_create_volume_rejects_collision_with_existing_config_file_path"
         }
       ],
       "test_type": "regression",
@@ -3593,6 +3597,10 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_storage_summary_returns_storage_snapshot"
+        },
+        {
+          "path": "console/tests/mcp_query_storage_ops_test.py",
+          "selector": "ManageComponentStorageTests.test_summary_includes_config_file_volumes"
         }
       ],
       "test_type": "regression",

@@ -17,6 +17,7 @@ from console.repositories.region_repo import region_repo
 from console.repositories.team_repo import team_invitation_repo, team_repo
 from console.repositories.user_repo import user_repo
 from console.services.config_service import platform_config_service
+from console.services.agent_access_service import agent_access_service
 from console.services.enterprise_services import enterprise_services
 from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.perm_services import (user_kind_perm_service, user_kind_role_service)
@@ -396,7 +397,11 @@ class UserDetailsView(JWTAuthApiView):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(user.enterprise_id)
         # Fix: Handle case where enterprise doesn't exist (e.g., after cross-cluster restore)
         user_detail["is_enterprise_active"] = enterprise.is_active if enterprise else False
+        initial_marker = agent_access_service.ensure_initial_enterprise_admin_marker(user.enterprise_id)
+        if initial_marker and initial_marker.user_id == user.user_id:
+            self.is_enterprise_admin = True
         user_detail["is_enterprise_admin"] = self.is_enterprise_admin
+        user_detail["is_initial_enterprise_admin"] = bool(initial_marker and initial_marker.user_id == user.user_id)
         # enterprise roles
         user_detail["roles"] = user_services.list_roles(user.enterprise_id, user.user_id)
         # enterprise permissions
