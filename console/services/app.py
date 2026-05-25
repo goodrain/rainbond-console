@@ -174,9 +174,30 @@ class AppService(object):
                                            service_code_version, check_uuid, event_id, oauth_service_id, git_full_name)
         if code != 200:
             return code, msg, new_service
+        self.ensure_source_build_default_locale_envs(tenant, new_service)
         logger.debug("service.create, user:{0} create service from source code".format(user.nick_name))
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, "创建成功", ts
+
+    def ensure_source_build_default_locale_envs(self, tenant, service):
+        default_envs = (
+            ("LANG", "C.UTF-8"),
+            ("LC_ALL", "C.UTF-8"),
+            ("TZ", "Asia/Shanghai"),
+        )
+        for name, value in default_envs:
+            if env_var_repo.get_service_env_by_attr_name(tenant.tenant_id, service.service_id, name):
+                continue
+            env_var_repo.add_service_env(
+                tenant_id=tenant.tenant_id,
+                service_id=service.service_id,
+                container_port=0,
+                name=name,
+                attr_name=name,
+                attr_value=value,
+                is_change=True,
+                scope="inner",
+            )
 
     def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id, service_code_version,
                           check_uuid, event_id, oauth_service_id, git_full_name):
