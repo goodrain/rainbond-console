@@ -37,6 +37,13 @@ class AgentLLMConfigView(EnterpriseAdminView):
             return Response(general_message(exc.error_code, exc.msg, exc.msg_show, bean=exc.bean), status=exc.status_code)
         return Response(general_message(200, "success", "更新成功", bean=data), status=200)
 
+    def delete(self, request, eid, *args, **kwargs):
+        denied = self._ensure_enterprise_admin()
+        if denied:
+            return denied
+        data = agent_llm_config_service.clear_config()
+        return Response(general_message(200, "success", "清空成功", bean=data), status=200)
+
 
 class AgentLLMRuntimeConfigView(APIView):
     authentication_classes = (AgentRuntimeAuthentication, )

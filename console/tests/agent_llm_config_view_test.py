@@ -63,6 +63,36 @@ class AgentLLMConfigViewTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 403)
 
+    def test_delete_clears_config_for_enterprise_admin(self):
+        request = self.factory.delete("/console/enterprise/eid/agent-llm-config")
+        force_authenticate(request, user=self._admin_user())
+
+        with mock.patch("console.views.base.TenantEnterprise.objects.filter") as enterprise_filter, \
+                mock.patch("console.views.base.enterprise_user_perm_repo.is_admin", return_value=True), \
+                mock.patch("console.views.base.user_services.list_roles", return_value=[]), \
+                mock.patch("console.views.base.perms.list_enterprise_perm_codes_by_roles", return_value=[]), \
+                mock.patch("console.views.agent_llm_config.agent_llm_config_service.clear_config",
+                           return_value={"openai_api_key_set": False, "openai_api_key_masked": ""}) as clear_config:
+            enterprise_filter.return_value.first.return_value = SimpleNamespace(enterprise_id="eid")
+            response = self.manage_view(request, eid="eid")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["data"]["bean"]["openai_api_key_set"])
+        clear_config.assert_called_once()
+
+    def test_delete_requires_enterprise_admin(self):
+        request = self.factory.delete("/console/enterprise/eid/agent-llm-config")
+        force_authenticate(request, user=self._admin_user())
+
+        with mock.patch("console.views.base.TenantEnterprise.objects.filter") as enterprise_filter, \
+                mock.patch("console.views.base.enterprise_user_perm_repo.is_admin", return_value=False), \
+                mock.patch("console.views.base.user_services.list_roles", return_value=[]), \
+                mock.patch("console.views.base.perms.list_enterprise_perm_codes_by_roles", return_value=[]):
+            enterprise_filter.return_value.first.return_value = SimpleNamespace(enterprise_id="eid")
+            response = self.manage_view(request, eid="eid")
+
+        self.assertEqual(response.status_code, 403)
+
     @override_settings(INTERNAL_API_TOKEN="token-1")
     def test_runtime_config_accepts_legacy_internal_token(self):
         request = self.factory.get(
