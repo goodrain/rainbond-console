@@ -403,7 +403,15 @@ class PlatformPluginService(object):
                 cgroups = tenant_service_group_repo.get_group_by_app_id(console_app_id)
                 if cgroups:
                     plugin_info["installed_version"] = cgroups.last().group_version or ""
-            if plugin_info["latest_version"] and plugin_info["installed_version"]:
+            # installed_sku 为 None = 当前安装的 app 跟列表里选中的 market SKU 不是同一份
+            # (例如本地 import 的 app model 跟市场上同名 plugin_id 的 SKU), 跨源比对版本会
+            # 假阳性报"可升级", 而升级页按 service_source.group_key 拉本地版本会"暂无新版本"
+            # 形成 UI 矛盾. 这里显式锁住: 跨源时强制不报可升级, latest 等同于 installed.
+            if not installed_sku:
+                plugin_info["latest_version"] = plugin_info["installed_version"]
+                plugin_info["upgradeable"] = False
+                plugin_info["can_upgrade"] = False
+            elif plugin_info["latest_version"] and plugin_info["installed_version"]:
                 plugin_info["upgradeable"] = plugin_info["latest_version"] != plugin_info["installed_version"]
                 plugin_info["can_upgrade"] = plugin_info["upgradeable"]
         return plugin_info

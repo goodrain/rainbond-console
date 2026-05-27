@@ -386,6 +386,52 @@ class PlatformPluginServiceTests(TestCase):
 
     # ---------- installed SKU anchoring latest_version ----------
 
+    def test_list_platform_plugins_installed_local_import_does_not_report_upgrade(self):
+        # 已装的 plugin 来自本地 import (service_source.group_key 不在市场 candidates 中),
+        # 跟市场上同 plugin_id 的 SKU 是两份资产; 跨源时不应该假阳性报"可升级",
+        # 升级页 (按 group_key 拉本地版本) 才是真实的可升级来源
+        market_plugins = [
+            {"plugin_id": "rainbond-agent", "plugin_name": "AI助手", "app_level": "free",
+             "appKeyID": "market-amd-ak", "latest_version": "1.0.0", "arch": "amd64"},
+        ]
+        installed_plugins = {
+            "rainbond-agent": {
+                "name": "rainbond-agent",
+                "status": "RUNNING",
+                "team_name": "rbd-plugins",
+                "region_app_id": "region-app-local",
+                "plugin_type": "JSInject",
+            }
+        }
+
+        component_group = mock.Mock(group_version="0.1", group_key="5da180e862344ae7945245cb66ca856d")
+        component_groups_qs = mock.Mock()
+        component_groups_qs.last.return_value = component_group
+        component_groups_qs.__iter__ = lambda self: iter([component_group])
+
+        with mock.patch.object(platform_plugin_service, "_get_license_bean", return_value={}), \
+                mock.patch.object(platform_plugin_service, "_get_installed_plugins",
+                                  return_value=installed_plugins), \
+                mock.patch.object(platform_plugin_service, "_get_region_app_id_map",
+                                  return_value={"region-app-local": 99}), \
+                mock.patch.object(platform_plugin_service, "_get_market_platform_plugins_cached",
+                                  return_value=(mock.Mock(), market_plugins)), \
+                mock.patch.object(platform_plugin_service, "_get_region_arches",
+                                  return_value={"amd64"}), \
+                mock.patch("console.services.platform_plugin_service.tenant_service_group_repo.get_group_by_app_id",
+                           return_value=component_groups_qs):
+            plugins = platform_plugin_service.list_platform_plugins("eid", "rainbond")
+
+        self.assertEqual(1, len(plugins))
+        info = plugins[0]
+        self.assertTrue(info["installed"])
+        self.assertEqual("0.1", info["installed_version"])
+        # latest_version 锁到 installed_version, 避免跟市场 SKU 的 1.0.0 跨源比对
+        self.assertEqual("0.1", info["latest_version"])
+        self.assertFalse(info["upgradeable"])
+        self.assertFalse(info["can_upgrade"])
+        self.assertIsNone(info["installed_arch"])  # 反查不到 SKU, installed_arch 也是 None
+
     def test_list_platform_plugins_installed_arm_anchors_latest_version_against_arm_sku(self):
         # ARM SKU 已装 v1.0.0；AMD SKU 在市场上 v2.0.0；ARM 集群应该锁 ARM v1.0.0
         market_plugins = [
