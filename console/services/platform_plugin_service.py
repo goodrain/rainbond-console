@@ -8,7 +8,12 @@ import time
 from console.appstore.appstore import app_store
 from console.exception.main import ServiceHandleException
 from console.models.main import AppMarket
-from console.repositories.app import app_market_repo
+from console.repositories.app import (
+    PLATFORM_PLUGIN_DEFAULT_URL,
+    PLATFORM_PLUGIN_MARKET_DOMAIN,
+    PLATFORM_PLUGIN_MARKET_NAME,
+    app_market_repo,
+)
 from console.repositories.group import group_repo, tenant_service_group_repo
 from console.repositories.region_app import region_app_repo
 from console.repositories.region_repo import region_repo
@@ -26,8 +31,10 @@ from www.models.main import Tenants
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
-MARKET_HOST = "https://hub.grapps.cn"
-MARKET_DOMAIN = "enterprise"
+# 合成市场名 / domain / 兜底 URL 都从 repository 层导入, 跟通用升级链路的解析逻辑保持一致.
+# 这里给两个别名 (MARKET_HOST / MARKET_DOMAIN) 仅为兼容现有引用; 新代码请直接用 PLATFORM_PLUGIN_* 常量.
+MARKET_HOST = PLATFORM_PLUGIN_DEFAULT_URL
+MARKET_DOMAIN = PLATFORM_PLUGIN_MARKET_DOMAIN
 PLUGIN_TEAM_NAME = "rbd-plugins"
 PLUGIN_TEAM_ALIAS = "平台插件"
 MARKET_PLUGIN_CACHE_TTL_SECONDS = 60
@@ -202,7 +209,7 @@ class PlatformPluginService(object):
     def _build_platform_market(self, enterprise_id):
         default_market = self._get_default_market(enterprise_id)
         return AppMarket(
-            name="__platform_plugin__",
+            name=PLATFORM_PLUGIN_MARKET_NAME,
             url=default_market.url or MARKET_HOST,
             domain=MARKET_DOMAIN,
             access_key=default_market.access_key,
@@ -606,7 +613,7 @@ class PlatformPluginService(object):
                 raise ServiceHandleException(msg="no access_key in license", msg_show="授权信息中缺少 access_key")
             app_key = authorized_app_key
             market = AppMarket(
-                name="__platform_plugin__",
+                name=PLATFORM_PLUGIN_MARKET_NAME,
                 url=MARKET_HOST,
                 domain=MARKET_DOMAIN,
                 access_key=license_access_key,
@@ -652,7 +659,7 @@ class PlatformPluginService(object):
         app_upgrade = AppUpgrade(
             enterprise_id, tenant, region, user, app,
             latest_version, component_group, app_template,
-            True, "__platform_plugin__", is_deploy=True)
+            True, PLATFORM_PLUGIN_MARKET_NAME, is_deploy=True)
         app_upgrade.install()
 
         # 8. Create RBDPlugin CR if template has platform_plugin info

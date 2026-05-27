@@ -17,6 +17,15 @@ from www.models.main import (ServiceGroup, ServiceGroupRelation, ServiceWebhooks
 
 logger = logging.getLogger('default')
 
+# platform_plugin_service 安装平台插件时, 会把 service_source.extend_info.market_name
+# 标成下面这个合成名 (它代表"默认市场的 url/access_key + domain=enterprise" 组合,
+# 而不是 app_market 表里的一行真实记录). 所有按 market_name 查市场的上游 (升级管理
+# 应用模型列表, get_property_changes, _app_template 等) 必须能解析该合成名, 否则
+# 平台插件装好后, 走通用升级链路时一律会拿到 404 / 暂无数据.
+PLATFORM_PLUGIN_MARKET_NAME = "__platform_plugin__"
+PLATFORM_PLUGIN_MARKET_DOMAIN = "enterprise"
+PLATFORM_PLUGIN_DEFAULT_URL = "https://hub.grapps.cn"
+
 
 class TenantServiceInfoRepository(object):
     def list_by_svc_share_uuids(self, group_id, dep_uuids):
@@ -580,6 +589,9 @@ class AppMarketRepository(object):
 
     def get_app_market_by_name(self, enterprise_id, name, user_id=None, raise_exception=False):
         """根据名称获取应用市场，支持用户过滤"""
+        if name == PLATFORM_PLUGIN_MARKET_NAME:
+            return self._build_platform_plugin_market(enterprise_id, raise_exception=raise_exception)
+
         queryset = AppMarket.objects.filter(enterprise_id=enterprise_id, name=name)
 
         if os.getenv("USE_SAAS") and user_id:
@@ -590,6 +602,26 @@ class AppMarketRepository(object):
         if raise_exception and not market:
             raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
         return market
+
+    def _build_platform_plugin_market(self, enterprise_id, raise_exception=False):
+        """构造平台插件用的合成 AppMarket. 这是个内存中的实例, 不会保存到数据库.
+
+        平台插件在 hub.grapps.cn 上挂在 domain=enterprise 命名空间下, 默认市场 (RainbondMarket,
+        domain=rainbond) 通过 access_key + url 复用即可. 这里返回的 AppMarket 仅供消费方读取
+        url / domain / access_key, 不应该被 save() 或 delete().
+        """
+        default = AppMarket.objects.filter(enterprise_id=enterprise_id, is_personal=False).first()
+        if not default:
+            if raise_exception:
+                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="默认应用市场不存在")
+            return None
+        return AppMarket(
+            name=PLATFORM_PLUGIN_MARKET_NAME,
+            url=default.url or PLATFORM_PLUGIN_DEFAULT_URL,
+            domain=PLATFORM_PLUGIN_MARKET_DOMAIN,
+            access_key=default.access_key,
+            enterprise_id=enterprise_id,
+        )
 
     def get_app_market_by_domain_url(self, enterprise_id, domain, url, raise_exception=False):
         market = AppMarket.objects.filter(enterprise_id=enterprise_id, domain=domain, url=url).first()
