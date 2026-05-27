@@ -7965,6 +7965,24 @@
       "status": "active"
     },
     {
+      "id": "console.vm-storage-any-access-mode",
+      "title": "Allow VM storage with any access mode",
+      "title_zh": "\u5141\u8bb8\u865a\u62df\u673a\u4f7f\u7528\u4efb\u610f\u8bbf\u95ee\u6a21\u5f0f\u7684\u5b58\u50a8",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.volume_service.AppVolumeService.build_vm_live_migration_volume_settings",
+      "code_paths": [
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_live_migration_storage_test.py",
+          "selector": "VMLiveMigrationStorageTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-template-import.restore-operation-record",
       "title": "VM template import restore operation record exposes progress",
       "title_zh": "VM template import restore operation record exposes progress",

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import collections
+import importlib
 import os
 import sys
 from types import ModuleType, SimpleNamespace
@@ -19,9 +20,10 @@ import django  # noqa: E402
 
 django.setup()
 
-from console.exception.main import ServiceHandleException  # noqa: E402
 from console.services.app import app_service  # noqa: E402
 from console.services.app_config.volume_service import AppVolumeService  # noqa: E402
+
+volume_service_module = importlib.import_module("console.services.app_config.volume_service")
 
 
 class VMLiveMigrationStorageTests(TestCase):
@@ -42,8 +44,8 @@ class VMLiveMigrationStorageTests(TestCase):
             job_strategy="",
         )
 
-    # capability_id: console.vm-live-migration-storage-rwx-filter
-    def test_build_vm_live_migration_volume_settings_requires_rwx(self):
+    # capability_id: console.vm-storage-any-access-mode
+    def test_build_vm_volume_settings_uses_rwx_when_available(self):
         with mock.patch.object(
             self.volume_service,
             "get_service_support_volume_options",
@@ -56,17 +58,19 @@ class VMLiveMigrationStorageTests(TestCase):
         self.assertEqual(settings["access_mode"], "RWX")
         self.assertEqual(option["provisioner"], "cluster.local/nfs")
 
-    # capability_id: console.vm-live-migration-storage-rwx-filter
-    def test_build_vm_live_migration_volume_settings_rejects_non_rwx(self):
+    # capability_id: console.vm-storage-any-access-mode
+    def test_build_vm_volume_settings_accepts_non_rwx_storage(self):
         with mock.patch.object(
             self.volume_service,
             "get_service_support_volume_options",
             return_value=[{"volume_type": "local-path", "access_mode": ["RWO"], "provisioner": "cluster.local/local"}],
         ):
-            with self.assertRaises(ServiceHandleException):
-                self.volume_service.build_vm_live_migration_volume_settings(
-                    self.tenant, self.service, "local-path", {"volume_capacity": 20}
-                )
+            settings, option = self.volume_service.build_vm_live_migration_volume_settings(
+                self.tenant, self.service, "local-path", {"volume_capacity": 20}
+            )
+
+        self.assertEqual(settings["access_mode"], "RWO")
+        self.assertEqual(option["provisioner"], "cluster.local/local")
 
     # capability_id: rainbond-console.vm-live-migration-unique-disk-path
     def test_resolve_vm_volume_path_allocates_unique_disk_suffix_for_duplicate_vm_device_path(self):
@@ -77,7 +81,7 @@ class VMLiveMigrationStorageTests(TestCase):
             SimpleNamespace(volume_path="/lun"),
         ]
 
-        with mock.patch("console.services.app_config.volume_service.volume_repo.get_service_volumes", return_value=existing):
+        with mock.patch.object(volume_service_module.volume_repo, "get_service_volumes", return_value=existing):
             resolved = self.volume_service.resolve_vm_volume_path(service, "/disk")
 
         self.assertEqual("/disk-2", resolved)
@@ -91,7 +95,7 @@ class VMLiveMigrationStorageTests(TestCase):
             current_volume,
         ]
 
-        with mock.patch("console.services.app_config.volume_service.volume_repo.get_service_volumes", return_value=existing):
+        with mock.patch.object(volume_service_module.volume_repo, "get_service_volumes", return_value=existing):
             resolved = self.volume_service.resolve_vm_volume_path(service, "/disk", current_volume=current_volume)
 
         self.assertEqual("/disk-1", resolved)

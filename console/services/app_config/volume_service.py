@@ -136,14 +136,8 @@ class AppVolumeService(object):
                 status_code=409)
 
         access_modes = self.normalize_volume_option_access_modes(option)
-        if "RWX" not in access_modes:
-            raise ServiceHandleException(
-                msg="vm live migration volume type must support rwx",
-                msg_show="所选存储类型不支持虚拟机 live migration，请选择共享存储类型",
-                status_code=409)
-
         next_settings = dict(settings or {})
-        next_settings["access_mode"] = "RWX"
+        next_settings["access_mode"] = "RWX" if "RWX" in access_modes else (access_modes[0] if access_modes else "")
         return next_settings, option
 
     def get_market_default_volume_type(self, tenant, service, fallback_volume_type):
