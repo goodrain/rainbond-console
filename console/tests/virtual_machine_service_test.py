@@ -69,6 +69,13 @@ class VirtualMachineServiceTests(TestCase):
             k8s_component_name="{}-k8s".format(service_id)
         )
 
+    def test_init_vm_image_app_uses_4cpu_8gb_defaults(self):
+        service = app_service._AppService__init_vm_image_app("demo-region")
+
+        self.assertEqual(1024 * 8, service.min_memory)
+        self.assertEqual(4000, service.min_cpu)
+        self.assertEqual(1024 * 8, service.total_memory)
+
     def test_create_vm_image_asset_accepts_extra_metadata(self):
         asset = vms.create_vm_image_asset(
             tenant_id="tenant-a",

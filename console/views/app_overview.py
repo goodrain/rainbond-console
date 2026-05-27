@@ -87,7 +87,7 @@ class AppDetailView(AppBaseView):
         service_model["group_id"] = group_id
         service_model["namespace"] = namespace
         volumes = volume_repo.get_service_volumes_with_config_file(self.service.service_id)
-        service_model["disk_cap"] = 10
+        service_model["disk_cap"] = 30 if self.service.extend_method == "vm" else 10
         if self.service.extend_method == "vm":
             vm_url = rbd_plugin_service.get_vm_plugin_url(
                 self.tenant.enterprise_id,

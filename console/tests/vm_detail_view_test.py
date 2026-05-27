@@ -102,6 +102,7 @@ class AppVMDetailViewTests(TestCase):
             "k8s/apis/subresources.kubevirt.io/v1alpha3/namespaces/demo-ns/"
             "virtualmachineinstances/app-k8s-demo-vm/vnc"
         )
+        self.assertEqual(30, response.data["data"]["bean"]["service"]["disk_cap"])
         self.assertEqual(expected, response.data["data"]["bean"]["vm_url"])
         profile_mock.assert_called_once_with(
             self.view.service,
