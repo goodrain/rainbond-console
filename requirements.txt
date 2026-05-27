@@ -53,4 +53,3 @@ alibabacloud-tea==0.3.10
 alibabacloud-tea-util==0.3.13
 alibabacloud-tea-xml==0.0.2
 volcengine
--e git+https://gitee.com/zhangsetsail/appstore-sdk-python.git@python3#egg=openapi_client

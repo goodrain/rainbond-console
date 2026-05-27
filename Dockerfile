@@ -26,6 +26,7 @@ ENV PATH="/app/ui/py_venv/bin:$PATH"
 RUN python -m venv --copies /app/ui/py_venv && \
     python -m pip install --upgrade pip && pip install numpy==1.19.3 && \
     pip install -r requirements.txt $PYTHONPROXY && \
+    pip install git+https://gitee.com/zhangsetsail/appstore-sdk-python.git@python3 $PYTHONPROXY && \
     python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework
 
 RUN git clone --depth=1 -b main https://github.com/goodrain/rainbond-chart /app/ui/rainbond-chart && \
