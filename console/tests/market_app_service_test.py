@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import importlib
 from types import ModuleType
 from unittest.mock import patch
 
@@ -110,6 +111,16 @@ class MarketAppServicePortPersistenceTests(SimpleTestCase):
 
 
 class MarketAppServiceVMGuardTests(SimpleTestCase):
+    def test_market_app_service_imports_with_app_version_service(self):
+        sys.modules.pop("console.services.market_app_service", None)
+        sys.modules.pop("console.services.app_version_service", None)
+
+        market_app_service_module = importlib.import_module("console.services.market_app_service")
+        app_version_service_module = importlib.import_module("console.services.app_version_service")
+
+        self.assertTrue(hasattr(market_app_service_module, "market_app_service"))
+        self.assertTrue(hasattr(app_version_service_module, "app_version_service"))
+
     # capability_id: console.market-app.vm-runtime-status-guard
     def test_install_app_rejects_vm_template_when_vm_plugin_not_running(self):
         from console.exception.main import ServiceHandleException
@@ -133,7 +144,7 @@ class MarketAppServiceVMGuardTests(SimpleTestCase):
                 patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
                 patch("console.services.market_app_service.region_api.get_cluster_nodes_arch",
                       return_value=(None, {"list": ["amd64"]})), \
-                patch("console.services.market_app_service.market_app_service.ensure_vm_platform_running",
+                patch("console.services.market_app_service.vms.ensure_vm_platform_running",
                       side_effect=ServiceHandleException(
                           msg="vm plugin not running",
                           msg_show="虚拟机功能未正常运行，不允许执行虚拟机相关操作",

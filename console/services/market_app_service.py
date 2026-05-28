@@ -42,7 +42,6 @@ from console.services.group_service import group_service
 from console.services.market_app.app_upgrade import AppUpgrade
 # market app
 from console.services.market_app.component_group import ComponentGroup
-from console.services.app_version_service import AppVersionService
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.services.region_services import region_services
 from console.services.share_services import share_service
@@ -71,6 +70,7 @@ mnt_service = AppMntService()
 class MarketAppService(object):
     @staticmethod
     def _ensure_vm_template_allowed(tenant, region_name, app_template):
+        from console.services.app_version_service import AppVersionService
         if AppVersionService._template_has_vm_component(app_template):
             vms.ensure_vm_platform_running(tenant.enterprise_id, region_name)
 
