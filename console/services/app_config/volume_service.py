@@ -216,6 +216,29 @@ class AppVolumeService(object):
         settings["changed"] = True
         return settings
 
+    def resolve_market_restore_volume_settings(self, tenant, service, volume):
+        selected_volume_type = self.get_market_default_volume_type(tenant, service, volume["volume_type"])
+        settings = self.get_best_suitable_volume_settings(
+            tenant,
+            service,
+            selected_volume_type,
+            volume.get("access_mode"),
+            volume.get("share_policy"),
+            volume.get("backup_policy"),
+            None,
+            volume.get("volume_provider_name"),
+        )
+        if settings["changed"]:
+            volume_type = settings["volume_type"]
+            if volume.get("volume_capacity") not in (None, 0):
+                settings["volume_capacity"] = volume.get("volume_capacity")
+        else:
+            volume_type = selected_volume_type
+            settings["volume_capacity"] = volume.get("volume_capacity", 10)
+            if settings["volume_capacity"] == 0:
+                settings["volume_capacity"] = 10
+        return volume_type, settings
+
     def get_service_volumes(self, tenant, service, is_config_file=False):
         volumes = []
         if is_config_file:

@@ -373,24 +373,12 @@ class NewComponents(object):
                         file_content=volume["file_content"])
                     config_files.append(config_file)
                 else:
-                    selected_volume_type = volume_service.get_market_default_volume_type(
-                        self.tenant, component, volume["volume_type"])
-                    settings = volume_service.get_best_suitable_volume_settings(self.tenant, component, selected_volume_type,
-                                                                                volume.get("access_mode"),
-                                                                                volume.get("share_policy"),
-                                                                                volume.get("backup_policy"), None,
-                                                                                volume.get("volume_provider_name"))
+                    original_volume_type = volume["volume_type"]
+                    volume["volume_type"], settings = volume_service.resolve_market_restore_volume_settings(
+                        self.tenant, component, volume)
                     if settings["changed"]:
-                        logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"],
-                                                                                  settings["volume_type"]))
-                        volume["volume_type"] = settings["volume_type"]
-                        if volume["volume_type"] == "share-file":
-                            volume["volume_capacity"] = 0
-                    else:
-                        volume["volume_type"] = selected_volume_type
-                        settings["volume_capacity"] = volume.get("volume_capacity", 10)
-                        if settings["volume_capacity"] == 0:
-                            settings["volume_capacity"] = 10
+                        logger.debug('volume type changed from {0} to {1}'.format(original_volume_type,
+                                                                                  volume["volume_type"]))
                     if os.getenv("USE_SAAS"):
                         cloud_provider = os.getenv("CLOUD_PROVIDER", "")
                         if cloud_provider in ["baidu", "hsy"]:
