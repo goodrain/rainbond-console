@@ -135,6 +135,12 @@ class AppManageBase(object):
 
 
 class AppManageService(AppManageBase):
+    @staticmethod
+    def _is_vm_restore_runtime_status(service, status):
+        if getattr(service, "extend_method", "") != ComponentType.vm.value:
+            return False
+        return status == "restoring"
+
     def _cleanup_incomplete_vm_asset(self, tenant, service):
         if getattr(service, "extend_method", "") != ComponentType.vm.value:
             return
@@ -1185,6 +1191,8 @@ class AppManageService(AppManageBase):
             status_info = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
                                                           tenant.enterprise_id)
             status = status_info["bean"]["cur_status"]
+            if self._is_vm_restore_runtime_status(service, status):
+                return False
             if status in (
                     "running", "starting", "restoring", "stopping", "failure", "unKnow", "unusual", "abnormal",
                     "some_abnormal"):
