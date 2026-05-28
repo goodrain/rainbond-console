@@ -435,6 +435,7 @@
 | console.vm-asset.delete-active-reference-guard | 仅当活跃虚拟机仍引用时阻止删除镜像资产 | active | regression | console.services.virtual_machine.VirtualMachineService.delete_vm_image | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_ignores_orphan_vm_asset_attrs<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_blocks_active_vm_asset_reference<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_delete_vm_image_ignores_incomplete_vm_service_reference |
 | console.vm-asset.incomplete-service-cleanup-preserves-ready-assets | 删除未完成虚拟机组件时保留已就绪镜像资产 | active | regression | console.services.app_actions.app_manage.AppManageService._truncate_service | console/tests/app_manage_test.py::AppManageIncompleteVMCleanupTests.test_truncate_service_keeps_ready_uploaded_vm_asset |
 | console.vm-overview.vnc-url-plugin-fallback | 在缺少查询参数时从插件回填虚拟机概览 VNC 地址 | active | regression | console.views.app_overview.AppDetailView.get | console/tests/vm_detail_view_test.py::AppVMDetailViewTests.test_get_builds_vm_vnc_url_from_plugin_fallback_when_query_param_missing |
+| console.vm-profile.template-root-disk-fallback | VM profile falls back to template root disk metadata | active | regression | console.services.virtual_machine.VirtualMachineService.get_vm_profile | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_get_vm_profile_falls_back_to_template_root_disk_metadata_when_asset_missing |
 | console.vm-run.platform-runtime-guard | 虚拟机平台异常时禁止创建虚拟机组件 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vm_run_create_rejects_when_vm_plugin_not_running |
 | console.vm-storage-any-access-mode | 允许虚拟机使用任意访问模式的存储 | active | regression | console.services.app_config.volume_service.AppVolumeService.build_vm_live_migration_volume_settings | console/tests/vm_live_migration_storage_test.py::VMLiveMigrationStorageTests |
 | console.vm-template-import.delete-restoring-vm | Allow deleting restoring VM components | active | regression | console.services.app_actions.app_manage.AppManageService.delete | console/tests/app_manage_test.py::AppManageVMRestoreDeleteTests |
@@ -4754,6 +4755,16 @@
 - 业务入口: `console.views.app_overview.AppDetailView.get`
 - 代码路径: `console/views/app_overview.py`
 - 测试路径: `console/tests/vm_detail_view_test.py::AppVMDetailViewTests.test_get_builds_vm_vnc_url_from_plugin_fallback_when_query_param_missing`
+
+### VM profile falls back to template root disk metadata
+
+- Capability ID: `console.vm-profile.template-root-disk-fallback`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.virtual_machine.VirtualMachineService.get_vm_profile`
+- 代码路径: `console/services/virtual_machine.py`
+- 测试路径: `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_get_vm_profile_falls_back_to_template_root_disk_metadata_when_asset_missing`
 
 ### 虚拟机平台异常时禁止创建虚拟机组件
 

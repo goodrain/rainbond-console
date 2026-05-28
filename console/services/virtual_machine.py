@@ -200,7 +200,7 @@ class VirtualMachineService(object):
             vm_connections["vnc_url"] = ""
             vm_connections["console_url"] = ""
         return {
-            "asset": self.serialize_vm_image(asset) if asset else {},
+            "asset": self.serialize_vm_image(asset) if asset else self._build_vm_profile_asset_fallback(service, runtime),
             "runtime": runtime,
             "runtime_status": runtime_status or {},
             "current_pod_ip": current_pod_ip or "",
@@ -452,6 +452,77 @@ class VirtualMachineService(object):
             "create_time": self._format_datetime(getattr(vm_image, "create_time", None)),
             "update_time": self._format_datetime(getattr(vm_image, "update_time", None)),
         }
+
+    def _build_vm_profile_asset_fallback(self, service, runtime):
+        runtime = runtime or {}
+        root_disk = self._extract_root_disk_payload(template_payload={"vm": {"disk_layout": runtime.get("disk_layout") or []}})
+        if not root_disk:
+            return {}
+        source_type = self._normalize_vm_profile_source_type(root_disk.get("source_type"))
+        source_uri = root_disk.get("source_uri") or root_disk.get("image_url") or ""
+        image_url = root_disk.get("image_url") or getattr(service, "image", "") or ""
+        image_name = self._extract_vm_profile_asset_name(root_disk.get("image_url") or image_url)
+        display_name = (
+            image_name or
+            getattr(service, "service_cname", "") or
+            root_disk.get("disk_name") or
+            root_disk.get("disk_key") or
+            ""
+        )
+        return {
+            "id": None,
+            "name": image_name,
+            "display_name": display_name,
+            "image_url": image_url,
+            "source_type": source_type,
+            "source_uri": source_uri,
+            "arch": getattr(service, "arch", "") or "amd64",
+            "os_name": runtime.get("os_name", "") or "",
+            "format": (
+                root_disk.get("format") or
+                runtime.get("boot_source_format") or
+                self._infer_asset_format(source_uri, image_url, image_name)
+            ),
+            "size_bytes": 0,
+            "checksum": root_disk.get("checksum") or "",
+            "status": "ready",
+            "build_event_id": "",
+            "source_asset_id": None,
+            "clone_mode": "",
+            "is_public_template": False,
+            "boot_mode": runtime.get("boot_mode", "") or "",
+            "storage_backend": "",
+            "labels": {},
+            "extra": {},
+            "asset_kind": VM_DISK_ASSET_KIND,
+            "disk_count": 1,
+            "source_service_id": "",
+            "disks": [],
+            "reference_count": 0,
+            "source_asset": None,
+            "create_time": "",
+            "update_time": "",
+        }
+
+    def _normalize_vm_profile_source_type(self, source_type):
+        normalized = str(source_type or "").strip().lower()
+        if normalized in ("public", "upload", "clone", "existing"):
+            return normalized
+        if normalized in ("http", "http-artifact", "url"):
+            return "url"
+        if normalized == "registry":
+            return "existing"
+        return "existing"
+
+    def _extract_vm_profile_asset_name(self, image_url):
+        value = str(image_url or "").strip()
+        if not value:
+            return ""
+        if "/" in value:
+            return value.rsplit("/", 1)[-1]
+        if ":" in value:
+            return value.rsplit(":", 1)[-1]
+        return value
 
     def get_vm_asset_reference_count(self, tenant_id, vm_image):
         # Incomplete VM rows are transient and should not block asset deletion or inflate catalog references.

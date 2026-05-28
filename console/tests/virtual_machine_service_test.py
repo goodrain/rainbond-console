@@ -452,9 +452,15 @@ class VirtualMachineServiceTests(TestCase):
             attribute_value="stale-network"
         )
 
-        with mock.patch("console.services.virtual_machine.region_api.create_component_k8s_attribute", create=True) as create_attr, \
-                mock.patch("console.services.virtual_machine.region_api.update_component_k8s_attribute", create=True) as update_attr, \
-                mock.patch("console.services.virtual_machine.region_api.delete_component_k8s_attribute", create=True) as delete_attr:
+        with mock.patch(
+                "console.services.virtual_machine.region_api.create_component_k8s_attribute",
+                create=True) as create_attr, \
+                mock.patch(
+                    "console.services.virtual_machine.region_api.update_component_k8s_attribute",
+                    create=True) as update_attr, \
+                mock.patch(
+                    "console.services.virtual_machine.region_api.delete_component_k8s_attribute",
+                    create=True) as delete_attr:
             vms.save_vm_runtime_config(
                 "tenant-a",
                 "service-a",
@@ -471,7 +477,11 @@ class VirtualMachineServiceTests(TestCase):
             "tenant-a",
             "demo-region",
             "service-a",
-            {"name": "vm_os_name", "save_type": "string", "attribute_value": "Windows Server 2022"},
+            {
+                "name": "vm_os_name",
+                "save_type": "string",
+                "attribute_value": "Windows Server 2022"
+            },
         )
         update_attr.assert_not_called()
         delete_attr.assert_not_called()
@@ -491,17 +501,23 @@ class VirtualMachineServiceTests(TestCase):
             k8s_component_name="service-b-k8s"
         )
 
-        with mock.patch("console.services.virtual_machine.region_api.create_component_k8s_attribute", create=True) as create_attr, \
-                mock.patch("console.services.virtual_machine.region_api.update_component_k8s_attribute", create=True) as update_attr, \
-                mock.patch("console.services.virtual_machine.region_api.delete_component_k8s_attribute", create=True) as delete_attr:
+        with mock.patch(
+                "console.services.virtual_machine.region_api.create_component_k8s_attribute",
+                create=True) as create_attr, \
+                mock.patch(
+                    "console.services.virtual_machine.region_api.update_component_k8s_attribute",
+                    create=True) as update_attr, \
+                mock.patch(
+                    "console.services.virtual_machine.region_api.delete_component_k8s_attribute",
+                    create=True) as delete_attr:
             vms.save_vm_runtime_config(
                 "tenant-a",
                 "service-b",
                 {
-                "network_mode": "fixed",
-                "os_name": "Windows Server 2022",
-                "gpu_enabled": False,
-                "gpu_resources": [],
+                    "network_mode": "fixed",
+                    "os_name": "Windows Server 2022",
+                    "gpu_enabled": False,
+                    "gpu_resources": [],
                     "usb_enabled": False,
                     "usb_resources": [],
                 },
@@ -647,6 +663,57 @@ class VirtualMachineServiceTests(TestCase):
         self.assertEqual(["kubevirt.io/usb-a"], profile["runtime"]["usb_resources"])
         self.assertEqual("10.42.0.15", profile["current_pod_ip"])
         self.assertEqual("http://example.com/vnc", profile["connections"]["vnc_url"])
+
+    # capability_id: console.vm-profile.template-root-disk-fallback
+    def test_get_vm_profile_falls_back_to_template_root_disk_metadata_when_asset_missing(self):
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id="service-template-vm",
+            name="vm_boot_source_format",
+            save_type="string",
+            attribute_value="qcow2"
+        )
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id="service-template-vm",
+            name="vm_disk_layout",
+            save_type="json",
+            attribute_value=json.dumps([{
+                "disk_key": "disk",
+                "disk_name": "system-disk",
+                "disk_role": "root",
+                "image": "registry.example.com/team/windows-root:v1",
+                "source_type": "registry",
+                "source_uri": "https://virt-export.example.com/volumes/manual22/disk.img.gz",
+                "format": "qcow2",
+            }])
+        )
+
+        profile = vms.get_vm_profile(
+            SimpleNamespace(
+                tenant_id="tenant-a",
+                service_id="service-template-vm",
+                service_cname="windows-template-vm",
+                image="registry.example.com/team/windows-root:v1",
+                arch="amd64",
+                extend_method="vm"
+            ),
+            current_pod_ip="10.42.0.16",
+            connections={
+                "vnc_url": "http://example.com/vnc-template",
+                "console_url": ""
+            }
+        )
+
+        self.assertEqual("windows-root:v1", profile["asset"]["name"])
+        self.assertEqual("existing", profile["asset"]["source_type"])
+        self.assertEqual("amd64", profile["asset"]["arch"])
+        self.assertEqual("qcow2", profile["asset"]["format"])
+        self.assertEqual(
+            "https://virt-export.example.com/volumes/manual22/disk.img.gz",
+            profile["asset"]["source_uri"]
+        )
+        self.assertEqual("http://example.com/vnc-template", profile["connections"]["vnc_url"])
 
     def test_get_vm_current_pod_ip_prefers_running_new_pod(self):
         tenant = SimpleNamespace(
