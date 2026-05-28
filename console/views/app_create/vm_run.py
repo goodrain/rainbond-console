@@ -7,9 +7,8 @@ import logging
 from django.views.decorators.cache import never_cache
 from rest_framework.response import Response
 from console.exception.bcode import ErrK8sComponentNameExists, ErrVMImageNameExists
-from console.exception.main import ResourceNotEnoughException
+from console.exception.main import ResourceNotEnoughException, ServiceHandleException
 from console.repositories.virtual_machine import vm_repo
-from console.services.app_config import volume_service
 from console.services.app import app_service
 from console.services.virtual_machine import vms
 from console.views.base import RegionTenantHeaderView
@@ -19,15 +18,24 @@ from console.services.group_service import group_service
 logger = logging.getLogger("default")
 PUBLIC_VM_IMAGES = {
     "ubuntu-22.04.5-lts": {
-        "url": "https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/22.04/ubuntu-22.04.5-live-server-amd64.iso",
+        "url": (
+            "https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/22.04/"
+            "ubuntu-22.04.5-live-server-amd64.iso"
+        ),
         "os_name": "Ubuntu 22.04.5 LTS"
     },
     "debian-13.4.0-standard": {
-        "url": "https://mirrors.tuna.tsinghua.edu.cn/debian-cd/current-live/amd64/iso-hybrid/debian-live-13.4.0-amd64-standard.iso",
+        "url": (
+            "https://mirrors.tuna.tsinghua.edu.cn/debian-cd/current-live/amd64/iso-hybrid/"
+            "debian-live-13.4.0-amd64-standard.iso"
+        ),
         "os_name": "Debian 13.4.0 Standard"
     },
     "centos-stream-9-dvd1": {
-        "url": "https://mirrors.tuna.tsinghua.edu.cn/centos-stream/9-stream/BaseOS/x86_64/iso/CentOS-Stream-9-latest-x86_64-dvd1.iso",
+        "url": (
+            "https://mirrors.tuna.tsinghua.edu.cn/centos-stream/9-stream/BaseOS/x86_64/iso/"
+            "CentOS-Stream-9-latest-x86_64-dvd1.iso"
+        ),
         "os_name": "CentOS Stream 9 DVD1"
     }
 }
@@ -97,6 +105,7 @@ class VMRunCreateView(RegionTenantHeaderView):
         if k8s_component_name and app_service.is_k8s_component_name_duplicate(group_id, k8s_component_name):
             raise ErrK8sComponentNameExists
         try:
+            vms.ensure_vm_platform_running(self.tenant.enterprise_id, self.response_region)
             vms.validate_vm_runtime_config(runtime_config)
             asset = None
             guest_os_name = ""
@@ -226,7 +235,8 @@ class VMRunCreateView(RegionTenantHeaderView):
                 source_uri=vm_url or getattr(asset, "source_uri", ""),
             )
             logger.info(
-                "vm create resolved source: tenant=%s service=%s source_type=%s asset_id=%s boot_source_format=%s image=%s vm_url=%s disk_import_count=%s",
+                "vm create resolved source: tenant=%s service=%s source_type=%s "
+                "asset_id=%s boot_source_format=%s image=%s vm_url=%s disk_import_count=%s",
                 getattr(self.tenant, "tenant_name", ""),
                 service_cname,
                 source_type or getattr(asset, "source_type", ""),
@@ -249,6 +259,8 @@ class VMRunCreateView(RegionTenantHeaderView):
             result = general_message(200, "success", "创建成功", bean=new_service.to_dict())
         except ResourceNotEnoughException as re:
             raise re
+        except ServiceHandleException as err:
+            return Response(general_message(err.status_code, err.msg, err.msg_show), status=err.status_code)
         except ValueError as err:
             return Response(general_message(400, "invalid vm runtime config", str(err)), status=400)
         return Response(result, status=result["code"])

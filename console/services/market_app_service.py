@@ -42,10 +42,12 @@ from console.services.group_service import group_service
 from console.services.market_app.app_upgrade import AppUpgrade
 # market app
 from console.services.market_app.component_group import ComponentGroup
+from console.services.app_version_service import AppVersionService
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.services.region_services import region_services
 from console.services.share_services import share_service
 from console.services.upgrade_services import upgrade_service
+from console.services.virtual_machine import vms
 from console.utils.version import compare_version, sorted_versions
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -67,6 +69,11 @@ mnt_service = AppMntService()
 
 
 class MarketAppService(object):
+    @staticmethod
+    def _ensure_vm_template_allowed(tenant, region_name, app_template):
+        if AppVersionService._template_has_vm_component(app_template):
+            vms.ensure_vm_platform_running(tenant.enterprise_id, region_name)
+
     def install_app(self,
                     tenant,
                     region,
@@ -89,6 +96,7 @@ class MarketAppService(object):
 
         app_template, market_app = self.get_app_template(app_model_key, install_from_cloud, market_name, region, tenant, user,
                                                          version)
+        self._ensure_vm_template_allowed(tenant, region.region_name, app_template)
         res, body = region_api.get_cluster_nodes_arch(region.region_name)
         chaos_arch = list(set(body.get("list")))
         template_arch = app_template.get("arch", "amd64")
@@ -337,6 +345,7 @@ class MarketAppService(object):
         try:
             region = region_services.get_enterprise_region_by_region_name(tenant.enterprise_id, region_name)
             app_templates = json.loads(market_app_version.app_template)
+            self._ensure_vm_template_allowed(tenant, region_name, app_templates)
             apps = app_templates["apps"]
             tenant_service_group = self._create_tenant_service_group(region_name, tenant.tenant_id, group_id, market_app.app_id,
                                                                      market_app_version.version, market_app.app_name)
@@ -984,22 +993,12 @@ class MarketAppService(object):
                     volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
                                                       volume["volume_name"], volume["file_content"])
                 else:
-                    selected_volume_type = volume_service.get_market_default_volume_type(
-                        tenant, service, volume["volume_type"])
-                    settings = volume_service.get_best_suitable_volume_settings(tenant, service, selected_volume_type,
-                                                                                volume.get("access_mode"),
-                                                                                volume.get("share_policy"),
-                                                                                volume.get("backup_policy"), None,
-                                                                                volume.get("volume_provider_name"))
+                    original_volume_type = volume["volume_type"]
+                    volume["volume_type"], settings = volume_service.resolve_market_restore_volume_settings(
+                        tenant, service, volume)
                     if settings["changed"]:
-                        logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"],
-                                                                                  settings["volume_type"]))
-                        volume["volume_type"] = settings["volume_type"]
-                        if volume["volume_type"] == "share-file":
-                            volume["volume_capacity"] = 0
-                    else:
-                        volume["volume_type"] = selected_volume_type
-                        settings["volume_capacity"] = volume.get("volume_capacity", 0)
+                        logger.debug('volume type changed from {0} to {1}'.format(original_volume_type,
+                                                                                  volume["volume_type"]))
                     volume_service.add_service_volume(tenant, service, volume["volume_path"], volume["volume_type"],
                                                       volume["volume_name"], None, settings)
             except ErrVolumePath:

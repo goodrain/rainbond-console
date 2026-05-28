@@ -44,6 +44,15 @@ class VMCreateFlowRegressionTests(TestCase):
 
         self.assertEqual(expected, result)
 
+    # capability_id: console.virtual-machine.platform-runtime-guard
+    def test_ensure_vm_platform_running_delegates_to_platform_plugin_guard(self):
+        with mock.patch(
+                "console.services.platform_plugin_service.platform_plugin_service.ensure_vm_plugin_running"
+        ) as ensure_guard:
+            vms.ensure_vm_platform_running("eid", "demo-region")
+
+        ensure_guard.assert_called_once_with("eid", "demo-region")
+
     def test_delete_vm_image_by_image_url_preserves_shared_image_records(self):
         VirtualMachineImage.objects.create(
             tenant_id="tenant-a",

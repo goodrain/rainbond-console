@@ -26,6 +26,8 @@ MARKET_HOST = "https://hub.grapps.cn"
 MARKET_DOMAIN = "enterprise"
 PLUGIN_TEAM_NAME = "rbd-plugins"
 PLUGIN_TEAM_ALIAS = "平台插件"
+VM_PLATFORM_PLUGIN_ID = "rainbond-vm"
+VM_PLATFORM_RUNTIME_GUARD_MSG = "虚拟机功能未正常运行，不允许执行虚拟机相关操作"
 
 
 class PlatformPluginService(object):
@@ -149,6 +151,23 @@ class PlatformPluginService(object):
         except Exception as e:
             logger.warning("Failed to list region plugins: %s", e)
         return installed_plugins
+
+    def get_vm_plugin_status(self, enterprise_id, region_name):
+        installed_plugins = self._get_installed_plugins(enterprise_id, region_name)
+        vm_plugin = installed_plugins.get(VM_PLATFORM_PLUGIN_ID) or {}
+        return str(vm_plugin.get("status", "") or "").upper()
+
+    def is_vm_plugin_running(self, enterprise_id, region_name):
+        return self.get_vm_plugin_status(enterprise_id, region_name) == "RUNNING"
+
+    def ensure_vm_plugin_running(self, enterprise_id, region_name):
+        if self.is_vm_plugin_running(enterprise_id, region_name):
+            return
+        raise ServiceHandleException(
+            msg="vm plugin not running",
+            msg_show=VM_PLATFORM_RUNTIME_GUARD_MSG,
+            status_code=412,
+        )
 
     def _get_region_app_id_map(self, region_name, installed_plugins):
         region_app_id_map = {}

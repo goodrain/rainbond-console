@@ -5506,6 +5506,24 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.vm-runtime-status-guard",
+      "title": "Reject VM template install when VM platform is unhealthy",
+      "title_zh": "\u865a\u62df\u673a\u5e73\u53f0\u5f02\u5e38\u65f6\u7981\u6b62\u5b89\u88c5\u865a\u62df\u673a\u6a21\u677f",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app_service.MarketAppService.install_app",
+      "code_paths": [
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceVMGuardTests.test_install_app_rejects_vm_template_when_vm_plugin_not_running"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-client.auth-missing",
       "title": "Translate 401 market API errors into missing-token service errors",
       "title_zh": "\u5c06 401 \u5e94\u7528\u5e02\u573a\u9519\u8bef\u8f6c\u6362\u4e3a\u7f3a\u5c11 token \u7684\u670d\u52a1\u5f02\u5e38",
@@ -6427,6 +6445,24 @@
         {
           "path": "console/tests/rbd_plugin_service_test.py",
           "selector": "RainbondPluginServiceTests.test_official_vm_plugin_uses_frontend_component_access_url_when_region_urls_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.platform-plugin.vm-runtime-status-guard",
+      "title": "Guard VM plugin runtime status",
+      "title_zh": "\u6821\u9a8c\u865a\u62df\u673a\u5e73\u53f0\u63d2\u4ef6\u8fd0\u884c\u72b6\u6001",
+      "interface_type": "service_method",
+      "interface": "console.services.platform_plugin_service.PlatformPluginService.ensure_vm_plugin_running",
+      "code_paths": [
+        "console/services/platform_plugin_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/platform_plugin_service_test.py",
+          "selector": "PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status"
         }
       ],
       "test_type": "regression",
@@ -7885,6 +7921,24 @@
       "status": "active"
     },
     {
+      "id": "console.virtual-machine.platform-runtime-guard",
+      "title": "Delegate VM platform runtime guard to platform plugin guard",
+      "title_zh": "\u865a\u62df\u673a\u5e73\u53f0\u8fd0\u884c\u72b6\u6001\u6821\u9a8c\u59d4\u6258\u5230\u5e73\u53f0\u63d2\u4ef6\u5b88\u536b",
+      "interface_type": "service_method",
+      "interface": "console.services.virtual_machine.VirtualMachineService.ensure_vm_platform_running",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_create_flow_regression_test.py",
+          "selector": "VMCreateFlowRegressionTests.test_ensure_vm_platform_running_delegates_to_platform_plugin_guard"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.virtual-machine.registry-root-disk",
       "title": "Create VM with registry imported root disk",
       "title_zh": "\u4f7f\u7528 registry \u5bfc\u5165\u7684\u7cfb\u7edf\u76d8\u521b\u5efa\u865a\u62df\u673a",
@@ -7959,6 +8013,24 @@
         {
           "path": "console/tests/vm_detail_view_test.py",
           "selector": "AppVMDetailViewTests.test_get_builds_vm_vnc_url_from_plugin_fallback_when_query_param_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-run.platform-runtime-guard",
+      "title": "Reject VM create when VM platform is unhealthy",
+      "title_zh": "\u865a\u62df\u673a\u5e73\u53f0\u5f02\u5e38\u65f6\u7981\u6b62\u521b\u5efa\u865a\u62df\u673a\u7ec4\u4ef6",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
+      "code_paths": [
+        "console/views/app_create/vm_run.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vm_run_create_rejects_when_vm_plugin_not_running"
         }
       ],
       "test_type": "regression",

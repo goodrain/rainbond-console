@@ -1,6 +1,5 @@
 import logging
 import json
-import re
 
 from console.exception.main import ServiceHandleException
 from console.models.main import ComponentK8sAttributes
@@ -58,6 +57,17 @@ VM_DISK_PATH_TO_DEVICE_TYPE = {
 
 
 class VirtualMachineService(object):
+    def ensure_vm_platform_running(self, enterprise_id, region_name):
+        from console.services.platform_plugin_service import platform_plugin_service
+
+        if not enterprise_id or not region_name:
+            raise ServiceHandleException(
+                msg="missing vm platform guard context",
+                msg_show="虚拟机功能状态校验失败，请联系管理员",
+                status_code=500,
+            )
+        platform_plugin_service.ensure_vm_plugin_running(enterprise_id, region_name)
+
     def resolve_vm_boot_source(self, tenant, image_name, image_url, source_uri=""):
         return resolve_vm_boot_source_binding(tenant, image_name, image_url, source_uri=source_uri)
 
@@ -211,7 +221,6 @@ class VirtualMachineService(object):
         if not service or getattr(service, "extend_method", "") != "vm":
             raise ValueError("only vm service supports disk layout")
         runtime = self.get_vm_runtime_config(service.service_id)
-        asset = self.get_vm_asset_for_service(service, runtime.get("asset_id"))
         current_items = self.list_vm_disks(service, volumes)
         normalized = self._normalize_vm_disk_layout_items(disk_layout)
         if not normalized:
@@ -243,7 +252,11 @@ class VirtualMachineService(object):
         if normalized_has_installer and not current_has_installer:
             raise ValueError("installer media is not available for this vm")
 
-        if not normalized_has_installer and current_has_installer and str(runtime.get("boot_source_format") or "").lower() != "iso":
+        if (
+                not normalized_has_installer and
+                current_has_installer and
+                str(runtime.get("boot_source_format") or "").lower() != "iso"
+        ):
             raise ValueError("installer media can only be removed from iso-based vm")
 
         for item in normalized:

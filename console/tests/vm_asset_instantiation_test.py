@@ -1,7 +1,7 @@
 # capability_id: rainbond-console.vm-run.disk-asset-create
 # capability_id: rainbond-console.vm-run.vm-export-multi-disk-create
+# capability_id: console.vm-run.platform-runtime-guard
 import collections
-import json
 import os
 from types import ModuleType, SimpleNamespace
 from unittest import mock
@@ -46,12 +46,54 @@ django.setup()
 from django.test import TestCase  # noqa: E402
 from rest_framework.test import APIRequestFactory  # noqa: E402
 
+from console.exception.main import ServiceHandleException  # noqa: E402
 from console.models.main import ComponentK8sAttributes  # noqa: E402
 from console.views.app_create.vm_run import VMRunCreateView  # noqa: E402
 from www.models.main import VirtualMachineImage  # noqa: E402
 
 
 class VMAssetInstantiationTests(TestCase):
+    def test_vm_run_create_rejects_when_vm_plugin_not_running(self):
+        factory = APIRequestFactory()
+        view = VMRunCreateView()
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-a",
+            tenant_name="demo-team",
+            namespace="tenant-ns",
+            enterprise_id="eid",
+        )
+        view.response_region = "demo-region"
+        view.user = SimpleNamespace(pk=1, nick_name="tester")
+
+        request = view.initialize_request(factory.post(
+            "/console/teams/demo-team/apps/create/vm",
+            {
+                "group_id": 7,
+                "service_cname": "blocked-vm",
+                "k8s_component_name": "blocked-vm",
+                "image_name": "blocked-vm",
+                "vm_url": "https://example.com/blocked-vm.iso",
+            },
+            format="json"
+        ))
+
+        with mock.patch(
+                "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
+                return_value=False,
+                create=True), \
+                mock.patch(
+                "console.views.app_create.vm_run.vms.ensure_vm_platform_running",
+                side_effect=ServiceHandleException(
+                    msg="vm plugin not running",
+                    msg_show="虚拟机功能未正常运行，不允许执行虚拟机相关操作",
+                    status_code=412,
+                ),
+                create=True):
+            response = view.post(request)
+
+        self.assertEqual(412, response.status_code)
+        self.assertEqual("虚拟机功能未正常运行，不允许执行虚拟机相关操作", response.data["msg_show"])
+
     def test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image(self):
         asset = VirtualMachineImage.objects.create(
             tenant_id="tenant-a",

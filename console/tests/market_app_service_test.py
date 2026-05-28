@@ -107,3 +107,52 @@ class MarketAppServicePortPersistenceTests(SimpleTestCase):
         created_ports = mock_bulk_create.call_args[0][0]
         self.assertEqual(["java-maven-demo-gray", "java-maven-demo-gray-admin"],
                          [port.k8s_service_name for port in created_ports])
+
+
+class MarketAppServiceVMGuardTests(SimpleTestCase):
+    # capability_id: console.market-app.vm-runtime-status-guard
+    def test_install_app_rejects_vm_template_when_vm_plugin_not_running(self):
+        from console.exception.main import ServiceHandleException
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1", tenant_name="demo-team", enterprise_id="eid")
+        region = Obj(region_name="demo-region")
+        user = Obj(enterprise_id="eid", nick_name="tester")
+        app = Obj(ID=7, governance_mode="KUBERNETES_NATIVE_SERVICE", app_id="app-7")
+        market_app = Obj(app_id="model-1", app_name="vm-template")
+        app_template = {
+            "apps": [
+                {
+                    "service_cname": "vm-service",
+                    "service_type": "vm",
+                }
+            ]
+        }
+
+        with patch("console.services.market_app_service.group_repo.get_group_by_id", return_value=app), \
+                patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
+                patch("console.services.market_app_service.region_api.get_cluster_nodes_arch",
+                      return_value=(None, {"list": ["amd64"]})), \
+                patch("console.services.market_app_service.market_app_service.ensure_vm_platform_running",
+                      side_effect=ServiceHandleException(
+                          msg="vm plugin not running",
+                          msg_show="虚拟机功能未正常运行，不允许执行虚拟机相关操作",
+                          status_code=412,
+                      )) as ensure_guard:
+            with self.assertRaises(ServiceHandleException) as context:
+                market_app_service.install_app(
+                    tenant,
+                    region,
+                    user,
+                    7,
+                    "model-1",
+                    "1.0.0",
+                    None,
+                    False,
+                    False,
+                    False,
+                )
+
+        ensure_guard.assert_called_once_with("eid", "demo-region")
+        self.assertEqual(412, context.exception.status_code)
+        self.assertEqual("虚拟机功能未正常运行，不允许执行虚拟机相关操作", context.exception.msg_show)
