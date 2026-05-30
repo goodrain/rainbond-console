@@ -1193,6 +1193,8 @@ class AppManageService(AppManageBase):
             status = status_info["bean"]["cur_status"]
             if self._is_vm_restore_runtime_status(service, status):
                 return False
+            if service.service_source == "vm_run" and status == "abnormal":
+                return False
             if status in (
                     "running", "starting", "restoring", "stopping", "failure", "unKnow", "unusual", "abnormal",
                     "some_abnormal"):

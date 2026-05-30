@@ -202,6 +202,39 @@ class AppManageVMRestoreDeleteTests(DjangoTestCase):
         self.assertEqual("success", msg)
         truncate_service.assert_called_once_with(tenant, service, user, None)
 
+    # capability_id: console.vm-template-import.delete-abnormal-vm
+    def test_delete_allows_abnormal_vm_to_skip_running_guard(self):
+        tenant = mock.Mock(tenant_name="demo-team", enterprise_id="eid")
+        user = mock.Mock()
+        service = mock.Mock(
+            service_id="service-vm",
+            service_alias="service-vm",
+            service_source="vm_run",
+            service_region="demo-region",
+            create_status="complete",
+            extend_method="vm",
+        )
+
+        with mock.patch.object(
+                app_manage_module.region_api,
+                "check_service_status",
+                return_value={"bean": {"cur_status": "abnormal"}}), \
+                mock.patch.object(
+                    app_manage_module.AppManageService,
+                    "_AppManageService__is_service_related",
+                    return_value=(False, "")), \
+                mock.patch.object(
+                    app_manage_module.AppManageService,
+                    "_AppManageService__is_service_mnt_related",
+                    return_value=(False, "")), \
+                mock.patch.object(app_manage_module.AppManageService, "get_app_by_service", return_value=None), \
+                mock.patch.object(app_manage_module.AppManageService, "truncate_service", return_value=(200, "success")) as truncate_service:
+            code, msg = app_manage_module.AppManageService().delete(user, tenant, service, True)
+
+        self.assertEqual(200, code)
+        self.assertEqual("success", msg)
+        truncate_service.assert_called_once_with(tenant, service, user, None)
+
     # capability_id: console.vm-template-import.delete-restoring-vm
     def test_batch_delete_allows_restoring_vm_to_skip_running_guard(self):
         tenant = mock.Mock(tenant_name="demo-team", enterprise_id="eid")
