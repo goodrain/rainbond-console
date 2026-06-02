@@ -152,3 +152,63 @@ class EnvServiceRegionIdempotencyTests(TestCase):
             is_change=False,
             scope="outer",
         )
+
+    def test_add_service_env_var_retries_add_when_region_update_reports_record_not_found(self):
+        module = self.import_env_service_module()
+        tenant = types.SimpleNamespace(tenant_id="tenant-id", tenant_name="tenant-name", enterprise_id="enterprise-id")
+        service = types.SimpleNamespace(
+            tenant_id="tenant-id",
+            service_id="service-id",
+            service_region="region-name",
+            service_alias="service-alias",
+            create_status="complete",
+        )
+        repo = module.env_var_repo
+        repo.get_service_env_by_attr_name.return_value = None
+        created_env = object()
+        repo.add_service_env.return_value = created_env
+        add_conflict = DummyCallApiError(
+            "region api",
+            "http://region/v2/tenants/tenant-name/services/service-alias/env",
+            "POST",
+            types.SimpleNamespace(status=400),
+            {"msg": "record already exist"},
+        )
+        update_missing = DummyCallApiError(
+            "region api",
+            "http://region/v2/tenants/tenant-name/services/service-alias/env",
+            "PUT",
+            types.SimpleNamespace(status=500),
+            {"msg": "record not found"},
+        )
+        module.region_api.add_service_env.side_effect = [add_conflict, None]
+        module.region_api.update_service_env.side_effect = update_missing
+
+        code, msg, env = module.AppEnvVarService().add_service_env_var(
+            tenant,
+            service,
+            3389,
+            "端口",
+            "GRBD3CDA3389_PORT",
+            "3389",
+            False,
+            scope="outer",
+            user_name="tester",
+        )
+
+        self.assertEqual(200, code)
+        self.assertEqual("success", msg)
+        self.assertIs(env, created_env)
+        self.assertEqual(module.region_api.add_service_env.call_count, 2)
+        module.region_api.update_service_env.assert_called_once_with(
+            "region-name",
+            "tenant-name",
+            "service-alias",
+            {
+                "old_env_name": "GRBD3CDA3389_PORT",
+                "env_name": "GRBD3CDA3389_PORT",
+                "env_value": "3389",
+                "scope": "outer",
+                "operator": "tester",
+            },
+        )
