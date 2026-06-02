@@ -179,7 +179,7 @@ class EnvServiceRegionIdempotencyTests(TestCase):
             "http://region/v2/tenants/tenant-name/services/service-alias/env",
             "PUT",
             types.SimpleNamespace(status=500),
-            {"msg": "record not found"},
+            {"msg": "update env error, record not found"},
         )
         module.region_api.add_service_env.side_effect = [add_conflict, None]
         module.region_api.update_service_env.side_effect = update_missing

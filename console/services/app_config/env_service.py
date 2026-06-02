@@ -83,7 +83,8 @@ class AppEnvVarService(object):
             return False
         body = getattr(err, "body", None)
         if isinstance(body, dict):
-            return body.get("msg") == "record not found"
+            msg = body.get("msg", "")
+            return "record not found" in msg
         return False
 
     def add_service_env_var(self,
