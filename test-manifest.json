@@ -6517,6 +6517,14 @@
         {
           "path": "console/tests/env_service_region_idempotency_test.py",
           "selector": "EnvServiceRegionIdempotencyTests.test_add_service_env_var_updates_region_when_env_already_exists"
+        },
+        {
+          "path": "console/tests/env_service_region_idempotency_test.py",
+          "selector": "EnvServiceRegionIdempotencyTests.test_add_service_env_var_retries_add_when_region_update_reports_record_not_found"
+        },
+        {
+          "path": "console/tests/env_service_region_idempotency_test.py",
+          "selector": "EnvServiceRegionIdempotencyTests.test_add_service_env_var_treats_second_add_conflict_as_success"
         }
       ],
       "test_type": "regression",

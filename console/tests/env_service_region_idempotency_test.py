@@ -212,3 +212,58 @@ class EnvServiceRegionIdempotencyTests(TestCase):
                 "operator": "tester",
             },
         )
+
+    def test_add_service_env_var_treats_second_add_conflict_as_success(self):
+        module = self.import_env_service_module()
+        tenant = types.SimpleNamespace(tenant_id="tenant-id", tenant_name="tenant-name", enterprise_id="enterprise-id")
+        service = types.SimpleNamespace(
+            tenant_id="tenant-id",
+            service_id="service-id",
+            service_region="region-name",
+            service_alias="service-alias",
+            create_status="complete",
+        )
+        repo = module.env_var_repo
+        repo.get_service_env_by_attr_name.return_value = None
+        created_env = object()
+        repo.add_service_env.return_value = created_env
+        add_conflict = DummyCallApiError(
+            "region api",
+            "http://region/v2/tenants/tenant-name/services/service-alias/env",
+            "POST",
+            types.SimpleNamespace(status=400),
+            {"msg": "record already exist"},
+        )
+        update_missing = DummyCallApiError(
+            "region api",
+            "http://region/v2/tenants/tenant-name/services/service-alias/env",
+            "PUT",
+            types.SimpleNamespace(status=500),
+            {"msg": "update env error, record not found"},
+        )
+        second_add_conflict = DummyCallApiError(
+            "region api",
+            "http://region/v2/tenants/tenant-name/services/service-alias/env",
+            "POST",
+            types.SimpleNamespace(status=400),
+            {"msg": "add env error, record already exist"},
+        )
+        module.region_api.add_service_env.side_effect = [add_conflict, second_add_conflict]
+        module.region_api.update_service_env.side_effect = update_missing
+
+        code, msg, env = module.AppEnvVarService().add_service_env_var(
+            tenant,
+            service,
+            3389,
+            "连接地址",
+            "GRBD3CDA3389_HOST",
+            "grbd3cda-3389",
+            False,
+            scope="outer",
+            user_name="tester",
+        )
+
+        self.assertEqual(200, code)
+        self.assertEqual("success", msg)
+        self.assertIs(env, created_env)
+        self.assertEqual(module.region_api.add_service_env.call_count, 2)
