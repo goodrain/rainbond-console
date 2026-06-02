@@ -353,6 +353,7 @@
 | console.platform-plugin.vm-runtime-status-guard | 校验虚拟机平台插件运行状态 | active | regression | console.services.platform_plugin_service.PlatformPluginService.ensure_vm_plugin_running | console/tests/platform_plugin_service_test.py::PlatformPluginServiceTests.test_ensure_vm_plugin_running_rejects_non_running_status |
 | console.pod.detail | Pod Detail | active | regression | console.services.mcp_query_service.call_tool[console.pod.detail] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_pod_detail_returns_runtime_diagnostics |
 | console.pod.detail-kubeblocks | Pod Detail Kubeblocks | active | regression | console.services.mcp_query_service.call_tool[console.pod.detail-kubeblocks] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_pod_detail_uses_kubeblocks_endpoint_for_kubeblocks_component |
+| console.port-inner.env-sync-idempotent | Treat duplicate region env create as idempotent during inner port enable | active | regression | console.services.app_config.env_service.AppEnvVarService.add_service_env_var | console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_updates_region_when_env_already_exists |
 | console.random.default-version | 生成默认随机版本标识 | active | regression | console.utils.randomutil.make_default_version | console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version |
 | console.region-api.batch-create-error-bean | Region Api Batch Create Error Bean | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_preserves_batch_create_result_bean_for_coded_errors |
 | console.region-api.domain-conflict-msg | 将上游域名冲突保留为可操作的 409 错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_domain_conflict_as_conflict_error |
@@ -3935,6 +3936,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[console.pod.detail-kubeblocks]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_pod_detail_uses_kubeblocks_endpoint_for_kubeblocks_component`
+
+### Treat duplicate region env create as idempotent during inner port enable
+
+- Capability ID: `console.port-inner.env-sync-idempotent`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_config.env_service.AppEnvVarService.add_service_env_var`
+- 代码路径: `console/services/app_config/env_service.py`
+- 测试路径: `console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_updates_region_when_env_already_exists`
 
 ### 生成默认随机版本标识
 

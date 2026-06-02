@@ -6505,6 +6505,24 @@
       "status": "active"
     },
     {
+      "id": "console.port-inner.env-sync-idempotent",
+      "title": "Treat duplicate region env create as idempotent during inner port enable",
+      "title_zh": "Treat duplicate region env create as idempotent during inner port enable",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.env_service.AppEnvVarService.add_service_env_var",
+      "code_paths": [
+        "console/services/app_config/env_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/env_service_region_idempotency_test.py",
+          "selector": "EnvServiceRegionIdempotencyTests.test_add_service_env_var_updates_region_when_env_already_exists"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.random.default-version",
       "title": "Generate default random version identifiers",
       "title_zh": "\u751f\u6210\u9ed8\u8ba4\u968f\u673a\u7248\u672c\u6807\u8bc6",
