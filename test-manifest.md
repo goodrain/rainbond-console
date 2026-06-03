@@ -234,6 +234,7 @@
 | console.component.storage-create-mount | 创建组件共享存储挂载 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#create_mnt] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_create_mnt_batches_mounts |
 | console.component.storage-create-volume | 创建组件存储卷 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#create_volume] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_create_volume_returns_created_and_volume |
 | console.component.storage-custom-volume-filter | 过滤组件自定义卷列表中的内置卷类型 | active | regression | console.repositories.app_config.TenantServiceVolumnRepository.list_custom_volumes | console/tests/app_config_test.py::TenantServiceVolumnRepositoryTests.test_list_custom_volumes_treats_local_path_as_builtin_volume_type |
+| console.component.extend-method-upsert | 按组件版本覆盖保存伸缩规则配置 | active | regression | console.repositories.app_config.ServiceExtendRepository | console/tests/app_config_test.py::ServiceExtendRepositoryTests.test_create_extend_method_replaces_existing_version_record<br>console/tests/app_config_test.py::ServiceExtendRepositoryTests.test_get_extend_method_by_service_uses_latest_record<br>console/tests/app_config_test.py::ServiceExtendRepositoryTests.test_bulk_create_or_update_replaces_existing_version_records_by_business_key |
 | console.component.storage-delete-mount | 删除组件共享存储挂载 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#delete_mnt] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_mnt_removes_relation |
 | console.component.storage-delete-volume | 删除组件存储卷 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage#delete_volume] | console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_volume_requires_force_branch<br>console/tests/mcp_query_storage_ops_test.py::ManageComponentStorageTests.test_delete_volume_success_branch |
 | console.component.storage-summary | 查看组件存储概览 | active | regression | console.services.mcp_query_service.call_tool[rainbond_manage_component_storage] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_manage_component_storage_summary_returns_storage_snapshot |
@@ -2746,6 +2747,16 @@
 - 业务入口: `console.repositories.app_config.TenantServiceVolumnRepository.list_custom_volumes`
 - 代码路径: `console/repositories/app_config.py`
 - 测试路径: `console/tests/app_config_test.py::TenantServiceVolumnRepositoryTests.test_list_custom_volumes_treats_local_path_as_builtin_volume_type`
+
+### 按组件版本覆盖保存伸缩规则配置
+
+- Capability ID: `console.component.extend-method-upsert`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `console.repositories.app_config.ServiceExtendRepository`
+- 代码路径: `console/repositories/app_config.py`
+- 测试路径: `console/tests/app_config_test.py::ServiceExtendRepositoryTests.test_create_extend_method_replaces_existing_version_record`, `console/tests/app_config_test.py::ServiceExtendRepositoryTests.test_get_extend_method_by_service_uses_latest_record`, `console/tests/app_config_test.py::ServiceExtendRepositoryTests.test_bulk_create_or_update_replaces_existing_version_records_by_business_key`
 
 ### 删除组件共享存储挂载
 

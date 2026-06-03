@@ -45,12 +45,18 @@ import django  # noqa: E402
 
 django.setup()
 
-from console.services import plugin_service  # noqa: E402
+from console.services.platform_plugin_service import platform_plugin_service
 from console.services.plugin_service import rbd_plugin_service
 
 
 class RainbondPluginServiceTests(TestCase):
     # capability_id: console.platform-plugin.vm-access-url-fallback
+
+    def setUp(self):
+        platform_plugin_service.clear_market_plugin_cache()
+
+    def tearDown(self):
+        platform_plugin_service.clear_market_plugin_cache()
 
     def test_official_plugin_without_market_metadata_does_not_require_auth(self):
         region_plugins = {

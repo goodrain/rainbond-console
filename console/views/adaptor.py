@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 import re
 
 from console.repositories.helm import helm_repo, region_event
+from console.utils.offline import is_cloud_market_disabled
 from console.views.base import JWTAuthApiView
 from rest_framework.response import Response
 from console.utils.cache import cache
@@ -150,6 +151,9 @@ def _oci_pull_chart_to_tempfile(oci_url, username=None, password=None):
 
 class Appstores(JWTAuthApiView):
     def get(self, request, enterprise_id, *args, **kwargs):
+        if is_cloud_market_disabled():
+            result = {"code": 200, "msg": "success", "msg_show": "查询成功", "data": []}
+            return Response(result, status=result["code"])
         appstores = helm_repo.get_all_repo()
         data = list()
         for appstore in appstores:
@@ -176,6 +180,27 @@ class Appstore(JWTAuthApiView):
 class AppstoreCharts(JWTAuthApiView):
     def get(self, request, enterprise_id, name, *args, **kwargs):
         logger = logging.getLogger('default')
+        if is_cloud_market_disabled():
+            try:
+                page = int(request.query_params.get('page', 1))
+            except Exception:
+                page = 1
+            try:
+                page_size = int(request.query_params.get('pageSize', 50))
+            except Exception:
+                page_size = 50
+            query_kw = (request.query_params.get('query', '') or '').strip()
+            result = {
+                "code": 200,
+                "msg": "success",
+                "msg_show": "查询成功",
+                "data": [],
+                "page": page,
+                "page_size": page_size,
+                "total": 0,
+                "query": query_kw
+            }
+            return Response(result, status=result["code"])
         app_store = helm_repo.get_helm_repo_by_name(name)
         if app_store:
             helm_repo_url = app_store.get("repo_url")
@@ -323,6 +348,9 @@ class AppstoreCharts(JWTAuthApiView):
 
 class AppstoreChart(JWTAuthApiView):
     def get(self, request, enterprise_id, name, chart_name, version, *args, **kwargs):
+        if is_cloud_market_disabled():
+            data = {"readme": "", "questions": "", "values": {}}
+            return Response({"code": 200, "msg": "success", "msg_show": "操作成功", "data": data})
         app_store = helm_repo.get_helm_repo_by_name(name)
         if not app_store:
             return Response({"code": 400, "msg": "bad request", "msg_show": "无此应用商店"}, status=400)

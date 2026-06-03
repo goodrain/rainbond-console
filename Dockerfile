@@ -26,6 +26,11 @@ ENV PATH="/app/ui/py_venv/bin:$PATH"
 RUN python -m venv --copies /app/ui/py_venv && \
     python -m pip install --upgrade pip && pip install numpy==1.19.3 && \
     pip install -r requirements.txt $PYTHONPROXY && \
+    curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz && \
+    mkdir -p /tmp/openapi-client && \
+    tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1 && \
+    pip install /tmp/openapi-client $PYTHONPROXY && \
+    rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz && \
     python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework
 
 RUN git clone --depth=1 -b main https://github.com/goodrain/rainbond-chart /app/ui/rainbond-chart && \

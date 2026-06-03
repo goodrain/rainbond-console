@@ -342,8 +342,21 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         k8s_app_schema = tool["inputSchema"]["properties"]["k8s_app"]
 
         self.assertIn("展示名称", app_name_schema["description"])
+        self.assertEqual(app_name_schema["maxLength"], 128)
+        self.assertEqual(app_name_schema["pattern"], r"^[a-zA-Z0-9_\.\-\u4e00-\u9fa5]+$")
+        self.assertIn("不支持空格", app_name_schema["description"])
         self.assertEqual(k8s_app_schema["pattern"], r"^[a-z]([-a-z0-9]*[a-z0-9])?$")
         self.assertIn("默认建议不传", k8s_app_schema["description"])
+
+    # capability_id: console.app-version.target-app-name-schema
+    def test_create_app_from_snapshot_version_tool_exposes_target_app_name_constraints(self):
+        tool = mcp_query_service._tool_create_app_from_snapshot_version()
+
+        target_app_name_schema = tool["inputSchema"]["properties"]["target_app_name"]
+
+        self.assertEqual(target_app_name_schema["maxLength"], 128)
+        self.assertEqual(target_app_name_schema["pattern"], r"^[a-zA-Z0-9_\.\-\u4e00-\u9fa5]+$")
+        self.assertIn("不支持空格", target_app_name_schema["description"])
 
     # capability_id: console.gateway.source-code-from-schema
     def test_create_component_from_source_schema_exposes_code_from_guidance(self):
@@ -367,7 +380,19 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
 
         self.assertEqual(tool["name"], "rainbond_upload_package_file")
         self.assertIn("本地文件或目录路径", local_path_schema["description"])
+        self.assertIn("rainbond-console", local_path_schema["description"])
+        self.assertIn("不是 MCP 客户端本机路径", local_path_schema["description"])
         self.assertIn("zip", archive_name_schema["description"])
+
+    # capability_id: console.package-upload.local-path-create-schema
+    def test_create_component_from_local_package_tool_schema_exposes_server_side_local_path_guidance(self):
+        tool = mcp_query_service._tool_create_component_from_local_package()
+
+        local_path_schema = tool["inputSchema"]["properties"]["local_path"]
+
+        self.assertIn("本地文件或目录路径", local_path_schema["description"])
+        self.assertIn("rainbond-console", local_path_schema["description"])
+        self.assertIn("不是 MCP 客户端本机路径", local_path_schema["description"])
 
     # capability_id: console.gateway.dependency-container-port-schema
     def test_manage_component_dependency_schema_exposes_container_port_guidance(self):
@@ -408,6 +433,23 @@ class MCPQueryServiceToolVisibilityTests(SimpleTestCase):
         self.assertIn("replace_build_envs", build_info_schema["description"])
         self.assertEqual(build_info_schema["properties"]["repo_url"]["type"], "string")
         self.assertEqual(build_info_schema["properties"]["password"]["type"], "string")
+
+    # capability_id: console.component.default-resource-spec
+    def test_component_creation_tools_expose_default_resource_guidance(self):
+        image_tool = mcp_query_service._tool_create_component_from_image()
+        source_tool = mcp_query_service._tool_create_component_from_source()
+        package_tool = mcp_query_service._tool_create_component_from_package()
+        build_tool = mcp_query_service._tool_build_component()
+
+        self.assertIn("512MB", image_tool["description"])
+        self.assertIn("0m CPU", image_tool["description"])
+        self.assertIn("128MB", source_tool["description"])
+        self.assertIn("500m CPU", source_tool["description"])
+        self.assertIn("32MB", source_tool["description"])
+        self.assertIn("128MB", package_tool["description"])
+        self.assertIn("500m CPU", package_tool["description"])
+        self.assertIn("默认资源", build_tool["description"])
+        self.assertIn("沿用组件当前", build_tool["description"])
 
     # capability_id: console.component.operation-aliases
     def test_normalize_component_operation_aliases(self):
@@ -965,7 +1007,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.port_service.get_service_ports")
     @patch("console.services.mcp_query_service.env_var_service.get_self_define_env")
     @patch("console.services.mcp_query_service.env_var_service.get_service_build_envs")
-    @patch("console.services.mcp_query_service.volume_service.get_service_volumes")
+    @patch("console.services.mcp_query_service.volume_service.get_all_service_volumes_with_status")
     @patch("console.services.mcp_query_service.mnt_service.get_service_mnt_details")
     @patch("console.services.mcp_query_service.autoscaler_service.list_autoscaler_rules")
     @patch("console.services.mcp_query_service.probe_service.get_service_probe")
@@ -1477,7 +1519,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     @patch("console.services.mcp_query_service.volume_service.get_service_support_volume_options")
-    @patch("console.services.mcp_query_service.volume_service.get_service_volumes")
+    @patch("console.services.mcp_query_service.volume_service.get_all_service_volumes_with_status")
     @patch("console.services.mcp_query_service.mnt_service.get_service_mnt_details")
     # capability_id: console.component.storage-summary
     def test_manage_component_storage_summary_returns_storage_snapshot(
@@ -1556,6 +1598,50 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
         self.assertEqual(result["rules"]["total"], 1)
         self.assertEqual(result["records"]["total"], 1)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.autoscaler_service.create_autoscaler_rule")
+    # capability_id: console.component.autoscaler-invalid-metrics
+    def test_manage_component_autoscaler_create_rejects_incomplete_metric_before_service_call(
+            self,
+            mock_create_rule,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+
+        with self.assertRaises(ServiceHandleException) as ctx:
+            mcp_query_service.call_tool(
+                self.user,
+                "rainbond_manage_component_autoscaler",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "app_id": 12,
+                    "service_id": "svc-1",
+                    "operation": "create_rule",
+                    "xpa_type": "hpa",
+                    "enable": True,
+                    "min_replicas": 1,
+                    "max_replicas": 2,
+                    "metrics": [{"metric_type": "resource_metrics"}],
+                },
+            )
+
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertEqual(ctx.exception.msg, "invalid metrics")
+        mock_create_rule.assert_not_called()
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
@@ -2173,6 +2259,159 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
 
         self.assertEqual(mock_handle_ports.call_args[0][1]["action"], "only_open_outer")
 
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.port_service.batch_add_service_ports")
+    # capability_id: console.component.port-batch-add
+    def test_manage_component_ports_batch_add_delegates_to_batch_service(
+            self,
+            mock_batch_add,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        port80 = Obj(tenant_id="team-1", service_id="svc-1", container_port=80, protocol="http",
+                     is_inner_service=True, is_outer_service=False, port_alias="ALIAS180",
+                     k8s_service_name="alias-1", mapping_port=80)
+        port80.to_dict = lambda: {"container_port": 80, "protocol": "http",
+                                  "is_inner_service": True, "is_outer_service": False}
+        port8080 = Obj(tenant_id="team-1", service_id="svc-1", container_port=8080, protocol="tcp",
+                       is_inner_service=False, is_outer_service=False, port_alias="ALIAS18080",
+                       k8s_service_name="alias-1", mapping_port=8080)
+        port8080.to_dict = lambda: {"container_port": 8080, "protocol": "tcp",
+                                    "is_inner_service": False, "is_outer_service": False}
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_batch_add.return_value = [port80, port8080]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_manage_component_ports",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "operation": "add",
+                "ports": [
+                    {"port": 80, "protocol": "http", "enable_inner": True},
+                    {"port": 8080, "protocol": "tcp"},
+                ],
+            },
+        )
+
+        self.assertEqual(len(result["ports"]), 2)
+        call_args = mock_batch_add.call_args
+        self.assertEqual(call_args[0][0], self.team)
+        self.assertEqual(call_args[0][1], self.service)
+        passed_ports = call_args[0][2]
+        self.assertEqual(len(passed_ports), 2)
+        self.assertEqual(passed_ports[0]["port"], 80)
+        self.assertEqual(passed_ports[1]["port"], 8080)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.port_service.manage_port")
+    # capability_id: console.component.port-batch-enable-inner
+    def test_manage_component_ports_batch_enable_inner_loads_context_once(
+            self,
+            mock_manage_port,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        def make_port(n):
+            p = Obj(container_port=n, protocol="http", is_inner_service=True, is_outer_service=False)
+            p.to_dict = lambda: {"container_port": n}
+            return p
+
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_manage_port.side_effect = [(200, "success", make_port(80)), (200, "success", make_port(8080))]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_manage_component_ports",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "operation": "enable_inner",
+                "ports": [{"port": 80}, {"port": 8080}],
+            },
+        )
+
+        self.assertEqual(len(result["ports"]), 2)
+        # context loaded exactly once (get_team called once)
+        self.assertEqual(mock_get_team.call_count, 1)
+        # manage_port called for each port with open_inner action
+        self.assertEqual(mock_manage_port.call_count, 2)
+        self.assertEqual(mock_manage_port.call_args_list[0][0][4], "open_inner")
+        self.assertEqual(mock_manage_port.call_args_list[1][0][4], "open_inner")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.port_service.manage_port")
+    # capability_id: console.component.port-batch-enable-outer
+    def test_manage_component_ports_batch_enable_outer_accepts_integer_items(
+            self,
+            mock_manage_port,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        def make_port(n):
+            p = Obj(container_port=n, protocol="http", is_inner_service=True, is_outer_service=True)
+            p.to_dict = lambda: {"container_port": n}
+            return p
+
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_manage_port.side_effect = [(200, "success", make_port(80)), (200, "success", make_port(443))]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_manage_component_ports",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "operation": "enable_outer",
+                "ports": [80, 443],
+            },
+        )
+
+        self.assertEqual(len(result["ports"]), 2)
+        self.assertEqual(mock_manage_port.call_args_list[0][0][3], 80)
+        self.assertEqual(mock_manage_port.call_args_list[1][0][3], 443)
+        self.assertEqual(mock_manage_port.call_args_list[0][0][4], "open_outer")
+
     @patch("console.services.mcp_query_service.service_repo.get_services_by_service_ids")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     @patch("console.services.mcp_query_service.team_repo.get_user_tenant_by_name")
@@ -2395,7 +2634,193 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(result["event_id"], "evt-build-1")
         self.assertEqual(result["items"], ["step-1", "step-2"])
         self.assertEqual(result["total"], 2)
+        self.assertEqual(result["total_unfiltered"], 2)
+        self.assertFalse(result["truncated"])
         mock_get_event_log.assert_called_once_with(self.team, "rainbond", "evt-build-1")
+
+    @patch("console.services.mcp_query_service.event_service.get_event_log")
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    # capability_id: console.component.build-logs
+    def test_get_component_build_logs_tail_returns_last_n_items(
+            self,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+            mock_get_event_log,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        full_log = [{"message": "step-%d" % i, "time": "t-%d" % i} for i in range(10)]
+        mock_get_event_log.return_value = full_log
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_component_build_logs",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "event_id": "evt-build-1",
+                "tail": 3,
+            },
+        )
+
+        self.assertEqual([item["message"] for item in result["items"]], ["step-7", "step-8", "step-9"])
+        self.assertEqual(result["total"], 3)
+        self.assertEqual(result["total_unfiltered"], 10)
+        self.assertTrue(result["truncated"])
+
+    @patch("console.services.mcp_query_service.event_service.get_event_log")
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    # capability_id: console.component.build-logs
+    def test_get_component_build_logs_grep_filters_message_field(
+            self,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+            mock_get_event_log,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_event_log.return_value = [
+            {"message": "Downloading dependency...", "time": "t1"},
+            {"message": "[ERROR] Compilation failed", "time": "t2"},
+            {"message": "BUILD FAILURE", "time": "t3"},
+            {"message": "tail spam", "time": "t4"},
+        ]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_component_build_logs",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "event_id": "evt-build-1",
+                "grep": "ERROR",
+            },
+        )
+
+        self.assertEqual([item["message"] for item in result["items"]], ["[ERROR] Compilation failed"])
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["total_unfiltered"], 4)
+        self.assertTrue(result["truncated"])
+
+    @patch("console.services.mcp_query_service.event_service.get_event_log")
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    # capability_id: console.component.build-logs
+    def test_get_component_build_logs_offset_limit_paginates(
+            self,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+            mock_get_event_log,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_event_log.return_value = [
+            {"message": "step-%d" % i} for i in range(10)
+        ]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_component_build_logs",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "event_id": "evt-build-1",
+                "offset": 5,
+                "limit": 3,
+            },
+        )
+
+        self.assertEqual([item["message"] for item in result["items"]], ["step-5", "step-6", "step-7"])
+        self.assertEqual(result["total"], 3)
+        self.assertEqual(result["total_unfiltered"], 10)
+        self.assertTrue(result["truncated"])
+
+    @patch("console.services.mcp_query_service.event_service.get_event_log")
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    # capability_id: console.component.build-logs
+    def test_get_component_build_logs_grep_then_tail_applies_in_order(
+            self,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+            mock_get_event_log,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_event_log.return_value = [
+            {"message": "[ERROR] first"},
+            {"message": "ok"},
+            {"message": "[ERROR] second"},
+            {"message": "[ERROR] third"},
+            {"message": "ok again"},
+        ]
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_component_build_logs",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "event_id": "evt-build-1",
+                "grep": "ERROR",
+                "tail": 2,
+            },
+        )
+
+        # grep first (3 matches), then tail of those 3 = last 2
+        self.assertEqual(
+            [item["message"] for item in result["items"]],
+            ["[ERROR] second", "[ERROR] third"],
+        )
+        self.assertEqual(result["total"], 2)
+        self.assertEqual(result["total_unfiltered"], 5)
+        self.assertTrue(result["truncated"])
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
@@ -2494,6 +2919,55 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(result["action"], "stop")
         self.assertEqual(result["service_ids"], ["svc-1"])
         self.assertEqual(result["result"][0]["event_id"], "evt-1")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.app_manage_service.batch_action")
+    @patch("console.services.mcp_query_service.app_manage_service.batch_operations")
+    # capability_id: console.app.restart-component-operation
+    def test_operate_app_restart_calls_batch_action(
+            self,
+            mock_batch_operations,
+            mock_batch_action,
+            mock_relations,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_batch_action.return_value = (200, "success", [self.service])
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_operate_app",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "action": "restart",
+            },
+        )
+
+        self.assertEqual(result["action"], "restart")
+        self.assertEqual(result["service_ids"], ["svc-1"])
+        self.assertEqual(result["result"][0]["service_id"], "svc-1")
+        mock_batch_action.assert_called_once_with(
+            "rainbond", self.team, self.user, "restart", ["svc-1"], None, None)
+        mock_batch_operations.assert_not_called()
+
+    def test_operate_app_schema_limits_supported_actions(self):
+        tools = mcp_query_service.list_tools(self.user)
+        operate_app_tool = [tool for tool in tools if tool["name"] == "rainbond_operate_app"][0]
+
+        self.assertEqual(
+            operate_app_tool["inputSchema"]["properties"]["action"]["enum"],
+            ["start", "stop", "restart", "upgrade", "deploy"],
+        )
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
@@ -3024,6 +3498,73 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "is_deploy": True,
             },
         )
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.create_app")
+    # capability_id: console.gateway.create-app-invalid-display-name
+    def test_create_app_returns_structured_details_for_illegal_app_name(
+            self, mock_create_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_create_app.side_effect = ServiceHandleException(
+            msg="app_name illegal",
+            msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点",
+        )
+
+        with self.assertRaises(ServiceHandleException) as context:
+            mcp_query_service.call_tool(
+                self.user,
+                "rainbond_create_app",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "app_name": "demo app",
+                },
+            )
+
+        self.assertEqual(context.exception.details["field"], "app_name")
+        self.assertEqual(context.exception.details["reason"], "pattern_mismatch")
+        self.assertEqual(context.exception.details["provided_value"], "demo app")
+        self.assertIn("expected_pattern", context.exception.details)
+        self.assertEqual(context.exception.details["max_length"], 128)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.app_version_service.get_overview")
+    @patch("console.services.mcp_query_service.app_version_service.get_snapshot_detail")
+    @patch("console.services.mcp_query_service.group_service.create_app")
+    # capability_id: console.app-version.create-app-from-snapshot-invalid-name
+    def test_create_app_from_snapshot_version_returns_structured_details_for_illegal_target_app_name(
+            self, mock_create_app, mock_get_snapshot_detail, mock_get_overview, mock_get_app, mock_get_region, mock_get_team):
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_overview.return_value = {"template_id": "hidden-template-id"}
+        mock_get_snapshot_detail.return_value = {"version_id": 5, "version": "1.2.3"}
+        mock_create_app.side_effect = ServiceHandleException(
+            msg="app_name illegal",
+            msg_show="应用名称最多支持128个字符",
+        )
+
+        with self.assertRaises(ServiceHandleException) as context:
+            mcp_query_service.call_tool(
+                self.user,
+                "rainbond_create_app_from_snapshot_version",
+                {
+                    "team_name": "demo-team",
+                    "region_name": "rainbond",
+                    "source_app_id": 12,
+                    "version_id": 5,
+                    "target_app_name": "x" * 129,
+                },
+            )
+
+        self.assertEqual(context.exception.details["field"], "app_name")
+        self.assertEqual(context.exception.details["reason"], "too_long")
+        self.assertEqual(context.exception.details["provided_value"], "x" * 129)
+        self.assertEqual(context.exception.details["max_length"], 128)
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
@@ -3908,6 +4449,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "source": "cloud",
                 "market_name": "RainbondMarket",
                 "app_model_id": "model-1",
+                "app_model_name": "Redis",
                 "app_model_version": "1.0.0",
                 "is_deploy": True,
             },

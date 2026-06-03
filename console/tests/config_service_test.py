@@ -25,6 +25,31 @@ class DummyModel(object):
     objects = DummyQuerySet()
 
 
+class CustomFieldQuerySet(object):
+    def __init__(self, configs):
+        self.configs = configs
+
+    def count(self):
+        return len(self.configs)
+
+    def __iter__(self):
+        return iter(self.configs)
+
+
+class CustomFieldManager(object):
+    def __init__(self, configs):
+        self.configs = configs
+
+    def filter(self, **kwargs):
+        configs = self.configs
+        for key, value in kwargs.items():
+            if key == "desc__startswith":
+                configs = [config for config in configs if config.desc.startswith(value)]
+            else:
+                configs = [config for config in configs if getattr(config, key) == value]
+        return CustomFieldQuerySet(configs)
+
+
 class ConfigKey(object):
     def __init__(self, name):
         self.name = name
@@ -104,3 +129,28 @@ class EnterpriseConfigServiceTests(TestCase):
         service = config_service.EnterpriseConfigService("enterprise-id", "user-id")
 
         self.assertEqual(service.user_id, "user-id")
+
+    # capability_id: console.enterprise-config.custom-fields-disabled-bool
+    def test_get_custom_fields_includes_disabled_bool_fields(self):
+        config_service = self.import_config_service_module()
+        disabled_field = types.SimpleNamespace(
+            key="SHOW_AI_ASSISTANT",
+            type="bool",
+            value="false",
+            enable=False,
+            enterprise_id="enterprise-id",
+            desc="自定义字段: show_ai_assistant",
+        )
+        config_service.ConsoleSysConfig = types.SimpleNamespace(objects=CustomFieldManager([disabled_field]))
+
+        service = config_service.EnterpriseConfigService("enterprise-id", "user-id")
+
+        self.assertEqual(
+            service.get_custom_fields(),
+            [{
+                "key": "show_ai_assistant",
+                "value": "false",
+                "type": "bool",
+                "enable": False,
+            }],
+        )

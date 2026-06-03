@@ -17,6 +17,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 django.setup()
 
+from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import ServiceHandleException
 from console.views.mcp_query import (
     MCPQueryHTTPView,
@@ -97,6 +98,33 @@ class MCPQuerySSEViewTests(SimpleTestCase):
         self.assertEqual(response["MCP-Protocol-Version"], "2025-03-26")
         self.assertEqual(response["Mcp-Session-Id"] != "", True)
         self.assertTrue(response.data["result"]["tools"])
+
+    # capability_id: console.mcp.http-expired-jwt
+    def test_http_post_returns_401_for_expired_jwt(self):
+        request = self.factory.post(
+            "/console/mcp/query",
+            data=json.dumps({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/list",
+                "params": {}
+            }),
+            content_type="application/json",
+            HTTP_ACCEPT="application/json",
+            HTTP_AUTHORIZATION="GRJWT expired-token",
+            HTTP_MCP_PROTOCOL_VERSION="2025-03-26",
+        )
+
+        with patch(
+                "console.views.mcp_query.MCPJSONWebTokenAuthentication.authenticate",
+                side_effect=AuthenticationInfoHasExpiredError("认证信息已过期"),
+        ):
+            response = self.http_view(request)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data["code"], "AUTH_TOKEN_EXPIRED")
+        self.assertEqual(response.data["msg_show"], "登录已过期，请重新登录")
+        self.assertNotIn("error_trace", response.data)
 
     # capability_id: console.mcp.http-tools-sse
     def test_http_post_can_return_sse_message_response(self):

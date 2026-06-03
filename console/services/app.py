@@ -39,6 +39,7 @@ from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.utils.oauth.oauth_types import support_oauth_type
+from console.utils.offline import is_cloud_market_disabled
 from console.utils.validation import validate_endpoints_info
 from www.apiclient.regionapi import RegionInvokeApi
 from www.github_http import GitHubApi
@@ -63,6 +64,13 @@ probe_service = ProbeService()
 
 
 class AppService(object):
+    DEFAULT_COMPONENT_SOURCE_RESOURCES = {
+        AppConstants.SOURCE_CODE: {"min_memory": 128, "cpu_mode": "calculated"},
+        AppConstants.PACKAGE_BUILD: {"min_memory": 128, "cpu_mode": "calculated"},
+        AppConstants.DOCKER_IMAGE: {"min_memory": 512, "cpu_mode": "fixed", "min_cpu": 0},
+        AppConstants.DOCKER_RUN: {"min_memory": 512, "cpu_mode": "fixed", "min_cpu": 0},
+    }
+
     def is_k8s_component_name_duplicate(self, app_id, k8s_component_name, component_id=""):
         components = []
         component_ids = service_group_relation_repo.get_components_by_app_id(app_id).values_list("service_id")
@@ -80,10 +88,26 @@ class AppService(object):
             return False, "组件名称最多支持100个字符"
         return True, "success"
 
+    def get_component_source_default_resources(self, region, service_source):
+        resource_spec = self.DEFAULT_COMPONENT_SOURCE_RESOURCES.get(service_source)
+        if not resource_spec:
+            raise ServiceHandleException(msg="unsupported service source", msg_show="不支持的组件来源", status_code=400)
+        min_memory = resource_spec["min_memory"]
+        if resource_spec["cpu_mode"] == "calculated":
+            min_cpu = baseService.calculate_service_cpu(region, min_memory)
+        else:
+            min_cpu = resource_spec["min_cpu"]
+        return {
+            "min_memory": min_memory,
+            "min_cpu": min_cpu,
+            "total_memory": min_memory,
+        }
+
     def __init_source_code_app(self, region):
         """
         初始化源码创建的组件默认数据,未存入数据库
         """
+        default_resources = self.get_component_source_default_resources(region, AppConstants.SOURCE_CODE)
         tenant_service = TenantServiceInfo()
         tenant_service.service_region = region
         tenant_service.service_key = "application"
@@ -95,8 +119,8 @@ class AppService(object):
         tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ""
         tenant_service.min_node = 1
-        tenant_service.min_memory = 128
-        tenant_service.min_cpu = baseService.calculate_service_cpu(region, 128)
+        tenant_service.min_memory = default_resources["min_memory"]
+        tenant_service.min_cpu = default_resources["min_cpu"]
         tenant_service.inner_port = 5000
         tenant_service.version = "81701"
         tenant_service.namespace = "goodrain"
@@ -106,7 +130,7 @@ class AppService(object):
         tenant_service.deploy_version = ""
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"
-        tenant_service.total_memory = 128
+        tenant_service.total_memory = default_resources["total_memory"]
         tenant_service.volume_mount_path = ""
         tenant_service.host_path = ""
         tenant_service.service_source = AppConstants.SOURCE_CODE
@@ -150,9 +174,30 @@ class AppService(object):
                                            service_code_version, check_uuid, event_id, oauth_service_id, git_full_name)
         if code != 200:
             return code, msg, new_service
+        self.ensure_source_build_default_locale_envs(tenant, new_service)
         logger.debug("service.create, user:{0} create service from source code".format(user.nick_name))
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, "创建成功", ts
+
+    def ensure_source_build_default_locale_envs(self, tenant, service):
+        default_envs = (
+            ("LANG", "C.UTF-8"),
+            ("LC_ALL", "C.UTF-8"),
+            ("TZ", "Asia/Shanghai"),
+        )
+        for name, value in default_envs:
+            if env_var_repo.get_service_env_by_attr_name(tenant.tenant_id, service.service_id, name):
+                continue
+            env_var_repo.add_service_env(
+                tenant_id=tenant.tenant_id,
+                service_id=service.service_id,
+                container_port=0,
+                name=name,
+                attr_name=name,
+                attr_value=value,
+                is_change=True,
+                scope="inner",
+            )
 
     def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id, service_code_version,
                           check_uuid, event_id, oauth_service_id, git_full_name):
@@ -211,6 +256,7 @@ class AppService(object):
         """
         初始化本地文件创建的组件默认数据,未存入数据库
         """
+        default_resources = self.get_component_source_default_resources(region, AppConstants.PACKAGE_BUILD)
         tenant_service = TenantServiceInfo()
         tenant_service.service_region = region
         tenant_service.service_key = "application"
@@ -222,8 +268,8 @@ class AppService(object):
         tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ""
         tenant_service.min_node = 1
-        tenant_service.min_memory = 128
-        tenant_service.min_cpu = baseService.calculate_service_cpu(region, 128)
+        tenant_service.min_memory = default_resources["min_memory"]
+        tenant_service.min_cpu = default_resources["min_cpu"]
         tenant_service.inner_port = 5000
         tenant_service.version = "81701"
         tenant_service.namespace = "goodrain"
@@ -233,7 +279,7 @@ class AppService(object):
         tenant_service.deploy_version = ""
         tenant_service.git_project_id = 0
         tenant_service.service_type = "pkg"
-        tenant_service.total_memory = 128
+        tenant_service.total_memory = default_resources["total_memory"]
         tenant_service.volume_mount_path = ""
         tenant_service.host_path = ""
         tenant_service.service_source = AppConstants.PACKAGE_BUILD
@@ -275,6 +321,7 @@ class AppService(object):
         """
         初始化docker image创建的组件默认数据,未存入数据库
         """
+        default_resources = self.get_component_source_default_resources(region, AppConstants.DOCKER_IMAGE)
         tenant_service = TenantServiceInfo()
         tenant_service.service_region = region
         tenant_service.service_key = "0000"
@@ -284,8 +331,8 @@ class AppService(object):
         tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ","
         tenant_service.min_node = 1
-        tenant_service.min_memory = 512
-        tenant_service.min_cpu = 0
+        tenant_service.min_memory = default_resources["min_memory"]
+        tenant_service.min_cpu = default_resources["min_cpu"]
         tenant_service.inner_port = 0
         tenant_service.version = "latest"
         tenant_service.namespace = "goodrain"
@@ -295,7 +342,7 @@ class AppService(object):
         tenant_service.deploy_version = ""
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"
-        tenant_service.total_memory = 128
+        tenant_service.total_memory = default_resources["total_memory"]
         tenant_service.volume_mount_path = ""
         tenant_service.host_path = ""
         tenant_service.code_from = "image_manual"
@@ -1228,21 +1275,28 @@ class AppMarketService(object):
             }
             if extend == "true":
                 version = "1.0"
-                try:
-                    extend_info = app_store.get_market(market)
-                    market.description = extend_info.description
-                    market.alias = extend_info.name
-                    market.status = extend_info.status
-                    market.create_time = extend_info.create_time
-                    market.access_actions = extend_info.access_actions
-                    version = extend_info.version if hasattr(extend_info, "version") else version
-                except Exception as e:
-                    logger.exception(e)
+                if is_cloud_market_disabled():
                     market.description = None
                     market.alias = market.name
                     market.status = 0
                     market.create_time = None
                     market.access_actions = []
+                else:
+                    try:
+                        extend_info = app_store.get_market(market)
+                        market.description = extend_info.description
+                        market.alias = extend_info.name
+                        market.status = extend_info.status
+                        market.create_time = extend_info.create_time
+                        market.access_actions = extend_info.access_actions
+                        version = extend_info.version if hasattr(extend_info, "version") else version
+                    except Exception as e:
+                        logger.exception(e)
+                        market.description = None
+                        market.alias = market.name
+                        market.status = 0
+                        market.create_time = None
+                        market.access_actions = []
                 dt.update({
                     "description": market.description,
                     "alias": market.alias,
@@ -1267,20 +1321,26 @@ class AppMarketService(object):
         }
         if extend == "true":
             version = "1.0"
-            try:
-                extend_info = app_store.get_market(market)
-                market.description = extend_info.description
-                market.alias = extend_info.name
-                market.status = extend_info.status
-                market.access_actions = extend_info.access_actions
-                version = extend_info.version if extend_info.version else version
-            except Exception as e:
-                logger.debug(e)
+            if is_cloud_market_disabled():
                 market.description = None
-                market.alias = None
+                market.alias = market.name
                 market.status = 0
                 market.access_actions = []
-            if raise_exception:
+            else:
+                try:
+                    extend_info = app_store.get_market(market)
+                    market.description = extend_info.description
+                    market.alias = extend_info.name
+                    market.status = extend_info.status
+                    market.access_actions = extend_info.access_actions
+                    version = extend_info.version if extend_info.version else version
+                except Exception as e:
+                    logger.debug(e)
+                    market.description = None
+                    market.alias = None
+                    market.status = 0
+                    market.access_actions = []
+            if raise_exception and not is_cloud_market_disabled():
                 if market.status == 0:
                     raise ServiceHandleException(msg="call market error", msg_show="应用商店状态异常")
             dt.update({
@@ -1473,27 +1533,37 @@ class AppMarketService(object):
         return Dict(version)
 
     def get_market_app_list(self, market, page=1, page_size=10, query=None, query_all=False, extend=False, arch=""):
+        if is_cloud_market_disabled():
+            return [], page, page_size, 0
         results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all, arch=arch)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
     def get_market_plugins_apps(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
+        if is_cloud_market_disabled():
+            return [], page, page_size, 0
         results = app_store.get_plugins_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
     def get_market_app_models(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
+        if is_cloud_market_disabled():
+            return [], page, page_size, 0
         results = app_store.get_apps_templates(market, page=page, page_size=page_size, query=query, query_all=query_all)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
     def get_market_app_model(self, market, app_id, extend=False):
+        if is_cloud_market_disabled():
+            return Dict({})
         results = app_store.get_app(market, app_id)
         return self.app_model_serializers(market, results, extend=extend)
 
     def get_market_app_model_versions(self, market: AppMarket, app_id, query_all=False, extend=False):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
+        if is_cloud_market_disabled():
+            return []
         results = app_store.get_app_versions(market, app_id, query_all=query_all)
         data = self.app_model_versions_serializers(market, results.versions, extend=extend)
         return data
@@ -1501,6 +1571,8 @@ class AppMarketService(object):
     def get_market_app_model_version(self, market, app_id, version, for_install=False, extend=False, get_template=False):
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
+        if is_cloud_market_disabled():
+            return Dict({})
         results = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=get_template)
         data = self.app_model_version_serializers(market, results, extend=extend)
         return data
@@ -1562,6 +1634,8 @@ class AppMarketService(object):
         return [bm.to_dict() for bm in bindable_markets]
 
     def get_market_orgs(self, market):
+        if is_cloud_market_disabled():
+            return []
         results = app_store.get_orgs(market)
         return self.org_serializers(results)
 

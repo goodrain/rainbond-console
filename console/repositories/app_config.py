@@ -790,20 +790,42 @@ class ServiceExtendRepository(object):
     # only market service return extend_method
     def get_extend_method_by_service(self, service):
         if service.service_source == "market":
-            sem = ServiceExtendMethod.objects.filter(service_key=service.service_key, app_version=service.version)
-            if sem:
-                return sem[0]
+            return ServiceExtendMethod.objects.filter(
+                service_key=service.service_key,
+                app_version=service.version,
+            ).order_by("-ID").first()
         return None
 
     def create_extend_method(self, **params):
+        service_key = params.get("service_key")
+        app_version = params.get("app_version")
+        if service_key is not None and app_version is not None:
+            ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).delete()
         return ServiceExtendMethod.objects.create(**params)
 
     @staticmethod
     def bulk_create(extend_infos):
         ServiceExtendMethod.objects.bulk_create(extend_infos)
 
+    @staticmethod
+    def _build_extend_method_delete_query(extend_infos):
+        delete_query = None
+        ids = [ei.ID for ei in extend_infos if getattr(ei, "ID", None)]
+        if ids:
+            delete_query = Q(pk__in=ids)
+        for extend_info in extend_infos:
+            service_key = getattr(extend_info, "service_key", None)
+            app_version = getattr(extend_info, "app_version", None)
+            if service_key is None or app_version is None:
+                continue
+            business_query = Q(service_key=service_key, app_version=app_version)
+            delete_query = business_query if delete_query is None else delete_query | business_query
+        return delete_query
+
     def bulk_create_or_update(self, extend_infos):
-        ServiceExtendMethod.objects.filter(pk__in=[ei.ID for ei in extend_infos]).delete()
+        delete_query = self._build_extend_method_delete_query(extend_infos)
+        if delete_query is not None:
+            ServiceExtendMethod.objects.filter(delete_query).delete()
         self.bulk_create(extend_infos)
 
 

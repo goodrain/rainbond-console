@@ -4272,6 +4272,10 @@
         {
           "path": "console/tests/mcp_query_storage_ops_test.py",
           "selector": "ManageComponentStorageTests.test_create_volume_returns_created_and_volume"
+        },
+        {
+          "path": "console/tests/mcp_query_storage_ops_test.py",
+          "selector": "ManageComponentStorageTests.test_create_volume_rejects_collision_with_existing_config_file_path"
         }
       ],
       "test_type": "regression",
@@ -4290,6 +4294,32 @@
         {
           "path": "console/tests/app_config_test.py",
           "selector": "TenantServiceVolumnRepositoryTests.test_list_custom_volumes_treats_local_path_as_builtin_volume_type"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.extend-method-upsert",
+      "title": "Upsert component extend method by service version",
+      "title_zh": "\u6309\u7ec4\u4ef6\u7248\u672c\u8986\u76d6\u4fdd\u5b58\u4f38\u7f29\u89c4\u5219\u914d\u7f6e",
+      "interface_type": "workflow",
+      "interface": "console.repositories.app_config.ServiceExtendRepository",
+      "code_paths": [
+        "console/repositories/app_config.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_config_test.py",
+          "selector": "ServiceExtendRepositoryTests.test_create_extend_method_replaces_existing_version_record"
+        },
+        {
+          "path": "console/tests/app_config_test.py",
+          "selector": "ServiceExtendRepositoryTests.test_get_extend_method_by_service_uses_latest_record"
+        },
+        {
+          "path": "console/tests/app_config_test.py",
+          "selector": "ServiceExtendRepositoryTests.test_bulk_create_or_update_replaces_existing_version_records_by_business_key"
         }
       ],
       "test_type": "regression",
@@ -4352,6 +4382,10 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_storage_summary_returns_storage_snapshot"
+        },
+        {
+          "path": "console/tests/mcp_query_storage_ops_test.py",
+          "selector": "ManageComponentStorageTests.test_summary_includes_config_file_volumes"
         }
       ],
       "test_type": "regression",
@@ -5518,6 +5552,24 @@
         {
           "path": "console/tests/market_app_service_test.py",
           "selector": "MarketAppServiceVMGuardTests.test_install_app_rejects_vm_template_when_vm_plugin_not_running"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.create-template-scope-name",
+      "title": "Scope market app template name duplicate checks",
+      "title_zh": "\u6309\u53d1\u5e03\u8303\u56f4\u548c\u56e2\u961f\u68c0\u67e5\u5e94\u7528\u5e02\u573a\u6a21\u677f\u91cd\u540d",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app_service.MarketAppService.create_rainbond_app",
+      "code_paths": [
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceCreateRainbondAppTests"
         }
       ],
       "test_type": "regression",

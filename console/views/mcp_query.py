@@ -34,6 +34,29 @@ _MCP_HTTP_SESSION_SALT = "console.mcp.http.session"
 _MCP_HTTP_SESSION_MAX_AGE_SECONDS = 1800
 
 
+def _request_has_mcp_auth_input(request):
+    if get_authorization_header(request):
+        return True
+    if api_settings.JWT_AUTH_COOKIE and request.COOKIES.get(api_settings.JWT_AUTH_COOKIE):
+        return True
+    for key in ("token", "access_token", "jwt"):
+        if request.GET.get(key):
+            return True
+        if isinstance(getattr(request, "data", None), dict) and request.data.get(key):
+            return True
+    return False
+
+
+def _build_mcp_auth_expired_response():
+    return Response({
+        "code": "AUTH_TOKEN_EXPIRED",
+        "status_code": 401,
+        "error_code": 401,
+        "msg": "token expired",
+        "msg_show": "登录已过期，请重新登录",
+    }, status=401)
+
+
 class MCPSSEEventStreamRenderer(BaseRenderer):
     media_type = "text/event-stream"
     format = "event-stream"
@@ -163,7 +186,13 @@ class MCPJSONWebTokenAuthenticationSafe(MCPJSONWebTokenAuthentication):
     def authenticate(self, request):
         try:
             return super(MCPJSONWebTokenAuthenticationSafe, self).authenticate(request=request)
-        except (AuthenticationInfoHasExpiredError, exceptions.AuthenticationFailed):
+        except AuthenticationInfoHasExpiredError as exc:
+            if _request_has_mcp_auth_input(request):
+                setattr(request, "_mcp_auth_error", exc)
+            return None
+        except exceptions.AuthenticationFailed as exc:
+            if _request_has_mcp_auth_input(request):
+                setattr(request, "_mcp_auth_error", exc)
             return None
         except Exception:
             return None
@@ -307,6 +336,8 @@ class MCPQuerySSEView(MCPQueryRPCMixin, APIView):
 
     @never_cache
     def get(self, request, *args, **kwargs):
+        if getattr(request, "_mcp_auth_error", None) is not None:
+            return _build_mcp_auth_expired_response()
         session = _register_mcp_sse_session(request.user if self._is_authenticated_user(request.user) else None)
         return self._build_sse_response(request, session)
 
@@ -359,6 +390,8 @@ class MCPQueryMessageView(MCPQueryRPCMixin, APIView):
 
     @never_cache
     def post(self, request, *args, **kwargs):
+        if getattr(request, "_mcp_auth_error", None) is not None:
+            return _build_mcp_auth_expired_response()
         session_id = request.GET.get("session_id")
         session = _get_mcp_sse_session(session_id)
         if session is None:
@@ -416,6 +449,8 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
 
     @never_cache
     def post(self, request, *args, **kwargs):
+        if getattr(request, "_mcp_auth_error", None) is not None:
+            return _build_mcp_auth_expired_response()
         payload = self._parse_request_payload(request)
         if not isinstance(payload, dict):
             return Response({"detail": "Invalid JSON-RPC payload."}, status=400)
@@ -459,6 +494,8 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
 
     @never_cache
     def get(self, request, *args, **kwargs):
+        if getattr(request, "_mcp_auth_error", None) is not None:
+            return _build_mcp_auth_expired_response()
         session_id = request.META.get("HTTP_MCP_SESSION_ID", "")
         session_payload = _load_mcp_http_session(session_id)
         if not session_id:
@@ -482,6 +519,8 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
 
     @never_cache
     def delete(self, request, *args, **kwargs):
+        if getattr(request, "_mcp_auth_error", None) is not None:
+            return _build_mcp_auth_expired_response()
         session_id = request.META.get("HTTP_MCP_SESSION_ID", "")
         if not session_id:
             return Response({"detail": "Mcp-Session-Id header is required."}, status=400)

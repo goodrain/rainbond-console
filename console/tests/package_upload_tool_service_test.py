@@ -17,6 +17,8 @@ from django.test import SimpleTestCase
 
 django.setup()
 
+from console.exception.main import ServiceHandleException
+
 
 class Obj(object):
     def __init__(self, **kwargs):
@@ -24,6 +26,33 @@ class Obj(object):
 
 
 class PackageUploadToolServiceTests(SimpleTestCase):
+
+    # capability_id: console.package-upload.local-path-missing-details
+    def test_normalize_local_path_raises_structured_details_when_path_missing(self):
+        from console.services.package_upload_tool_service import package_upload_tool_service
+
+        missing_path = "/tmp/rainbond-console-test-missing-path"
+
+        with self.assertRaises(ServiceHandleException) as context:
+            package_upload_tool_service._normalize_local_path(missing_path)
+
+        self.assertEqual(context.exception.msg, "local path not found")
+        self.assertEqual(context.exception.details["field"], "local_path")
+        self.assertEqual(context.exception.details["provided_value"], missing_path)
+        self.assertEqual(context.exception.details["normalized_path"], os.path.abspath(missing_path))
+        self.assertEqual(context.exception.details["path_scope"], "server_side")
+
+    # capability_id: console.package-upload.local-path-required-details
+    def test_normalize_local_path_raises_structured_details_when_path_empty(self):
+        from console.services.package_upload_tool_service import package_upload_tool_service
+
+        with self.assertRaises(ServiceHandleException) as context:
+            package_upload_tool_service._normalize_local_path("")
+
+        self.assertEqual(context.exception.msg, "local path required")
+        self.assertEqual(context.exception.details["field"], "local_path")
+        self.assertEqual(context.exception.details["provided_value"], "")
+        self.assertEqual(context.exception.details["path_scope"], "server_side")
 
     # capability_id: console.package-upload.archive-reuse
     def test_prepare_upload_archive_reuses_supported_package_file(self):

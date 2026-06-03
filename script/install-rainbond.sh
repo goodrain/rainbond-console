@@ -3,7 +3,7 @@
 # This script is used to install Rainbond standalone on Linux and MacOS
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v6.5.1-release'}
+RAINBOND_VERSION=${VERSION:-'v6.7.3-release'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 
 # Define colorful stdout
@@ -197,6 +197,54 @@ function check_ports_only_macos() {
   fi
 }
 
+function check_iptables_command_linux() {
+  if ! command -v iptables >/dev/null 2>&1; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      send_error "未找到 iptables 命令，请执行 yum -y install iptables 或 apt-get update && apt-get -y install iptables 后重试"
+    else
+      send_error "iptables command not found. Please run yum -y install iptables or apt-get update && apt-get -y install iptables, then try again."
+    fi
+    return 1
+  fi
+
+  return 0
+}
+
+MIN_MEMORY_KB=$((4 * 1024 * 1024))
+
+function check_memory_requirement_linux() {
+  local memory_kb
+  local memory_gb
+
+  memory_kb=$(awk '/MemTotal/ {print $2; exit}' /proc/meminfo 2>/dev/null)
+  if ! echo "${memory_kb}" | grep -Eq '^[0-9]+$'; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      send_error "无法检测系统内存，请检查系统环境后重试"
+    else
+      send_error "Failed to detect system memory, please check the system environment and try again"
+    fi
+    return 1
+  fi
+
+  memory_gb=$((memory_kb / 1024 / 1024))
+  if [ "${memory_kb}" -lt "${MIN_MEMORY_KB}" ]; then
+    if [ "$LANG" == "zh_CN.UTF-8" ]; then
+      send_error "内存不足，当前: ${memory_gb}GB，最低要求: 4GB"
+    else
+      send_error "Memory is insufficient, current: ${memory_gb}GB, minimum required: 4GB"
+    fi
+    return 1
+  fi
+
+  if [ "$LANG" == "zh_CN.UTF-8" ]; then
+    send_info "内存检测通过，当前: ${memory_gb}GB"
+  else
+    send_info "Memory check passed, current: ${memory_gb}GB"
+  fi
+
+  return 0
+}
+
 function check_base_env() {
   if [ "$LANG" == "zh_CN.UTF-8" ]; then
     send_info "######## 开始检测基础环境... ########"
@@ -240,6 +288,14 @@ function check_base_env() {
     fi
   fi
   
+  if ! check_iptables_command_linux; then
+    exit 1
+  fi
+
+  if ! check_memory_requirement_linux; then
+    exit 1
+  fi
+
   # Check and disable swap
   if [ "$LANG" == "zh_CN.UTF-8" ]; then
     send_info "检查并关闭交换分区..."
@@ -1572,7 +1628,7 @@ pod_list=(
 
 pod_ready_reported=""
 services_ready=false
-MAX_SERVICE_WAIT=240
+MAX_SERVICE_WAIT=600
 check_interval=5
 elapsed_time=0
 
