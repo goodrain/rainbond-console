@@ -2,8 +2,6 @@
 
 set -e
 
-GPU_BOOTSTRAP_MANIFEST="/opt/rainbond/k3s/server/manifests/rainbond-gpu-bootstrap.yaml"
-
 ########################################
 # Initialize configuration
 ########################################
@@ -24,7 +22,6 @@ init_configuration() {
   fi
 
   rainbond_cluster_yaml
-  rainbond_gpu_bootstrap_yaml
 }
 
 rainbond_cluster_yaml() {
@@ -59,29 +56,6 @@ spec:
 EOF
 }
 
-rainbond_gpu_bootstrap_yaml() {
-  if [ "${ENABLE_GPU:-false}" = "true" ]; then
-cat > "${GPU_BOOTSTRAP_MANIFEST}" << EOF
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: rbd-system
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: rainbond-gpu-bootstrap
-  namespace: rbd-system
-data:
-  enabled: "true"
-  provider: "${GPU_PROVIDER:-nvidia}"
-  runtimeClassName: "${GPU_RUNTIME_CLASS_NAME:-nvidia}"
-EOF
-  else
-    rm -f "${GPU_BOOTSTRAP_MANIFEST}"
-  fi
-}
-
 validate_gpu_runtime() {
   if [ "${ENABLE_GPU:-false}" != "true" ]; then
     return
@@ -104,7 +78,6 @@ if [ ! -f "/opt/rainbond/k3s/server/static/rainbond-cluster.tgz" ] || \
     init_configuration
 else
   rainbond_cluster_yaml
-  rainbond_gpu_bootstrap_yaml
 fi
 
 validate_gpu_runtime
