@@ -5,7 +5,7 @@
 # Basic environment variables
 RAINBOND_VERSION=${VERSION:-'v6.7.3-release'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
-RAINBOND_GPU_IMAGE=${RAINBOND_GPU_IMAGE:-'registry.cn-hangzhou.aliyuncs.com/zhangqihang/rainbond:v6.8.1-release-k3s-gpu'}
+RAINBOND_GPU_IMAGE=${RAINBOND_GPU_IMAGE:-''}
 ENABLE_GPU=${ENABLE_GPU:-false}
 GPU_PROVIDER=${GPU_PROVIDER:-nvidia}
 GPU_RUNTIME_CLASS_NAME=${GPU_RUNTIME_CLASS_NAME:-nvidia}
