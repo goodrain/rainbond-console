@@ -6,10 +6,11 @@
 RAINBOND_VERSION=${VERSION:-'v6.7.3-release'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 RAINBOND_GPU_IMAGE=${RAINBOND_GPU_IMAGE:-'registry.cn-hangzhou.aliyuncs.com/zhangqihang/rainbond:v6.8.1-release-k3s-gpu'}
-ENABLE_GPU=${ENABLE_GPU:-false}
+ENABLE_GPU=true
 GPU_PROVIDER=${GPU_PROVIDER:-nvidia}
 GPU_RUNTIME_CLASS_NAME=${GPU_RUNTIME_CLASS_NAME:-nvidia}
-GPU_SMOKE_IMAGE=${GPU_SMOKE_IMAGE:-'nvidia/cuda:12.5.1-base-ubuntu22.04'}
+NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
 
 # Define colorful stdout
 RED='\033[0;31m'
@@ -60,81 +61,6 @@ function send_error() {
 
 # Trap SIGINT signal when detect Ctrl + C
 trap send_msg SIGINT
-
-function is_truthy() {
-    case "$(echo "${1:-}" | tr '[:upper:]' '[:lower:]')" in
-        1|true|yes|on)
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-if is_truthy "$ENABLE_GPU"; then
-    ENABLE_GPU=true
-else
-    ENABLE_GPU=false
-fi
-
-CLI_COMMAND=""
-CLI_COMMAND_ARG1=""
-CLI_COMMAND_ARG2=""
-
-function parse_cli_args() {
-    while [ $# -gt 0 ]; do
-        case "$1" in
-            --enable-gpu)
-                ENABLE_GPU=true
-                shift 1
-                ;;
-            --disable-gpu)
-                ENABLE_GPU=false
-                shift 1
-                ;;
-            --gpu-provider)
-                if [ $# -lt 2 ]; then
-                    send_error "Missing value for --gpu-provider"
-                    exit 1
-                fi
-                GPU_PROVIDER="$2"
-                shift 2
-                ;;
-            --gpu-runtime-class)
-                if [ $# -lt 2 ]; then
-                    send_error "Missing value for --gpu-runtime-class"
-                    exit 1
-                fi
-                GPU_RUNTIME_CLASS_NAME="$2"
-                shift 2
-                ;;
-            show-command)
-                CLI_COMMAND="show-command"
-                shift 1
-                ;;
-            port-forward)
-                CLI_COMMAND="port-forward"
-                CLI_COMMAND_ARG1="${2:-}"
-                CLI_COMMAND_ARG2="${3:-}"
-                shift 3
-                ;;
-            "")
-                shift 1
-                ;;
-            *)
-                if [ "$LANG" = "zh_CN.UTF-8" ]; then
-                    send_error "未知参数: $1"
-                else
-                    send_error "Unknown argument: $1"
-                fi
-                exit 1
-                ;;
-        esac
-    done
-}
-
-parse_cli_args "$@"
 
 ########################################
 # Required Commands Check
@@ -580,19 +506,6 @@ function require_container_running() {
 function check_rainbond_container() {
   if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     if container_exists; then
-      if [ "$ENABLE_GPU" = "true" ]; then
-        local existing_enable_gpu
-        existing_enable_gpu=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^ENABLE_GPU=' | cut -d'=' -f2)
-        if ! is_truthy "$existing_enable_gpu"; then
-          if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "检测到已有非 GPU 模式的 rainbond 容器。请先执行 docker rm -f rainbond 后，再使用 --enable-gpu 重新安装。"
-          else
-            send_error "An existing non-GPU rainbond container was detected. Remove it with docker rm -f rainbond before reinstalling with --enable-gpu."
-          fi
-          exit 1
-        fi
-      fi
-
       if container_is_running; then
         # Rainbond container is running, get EIP and exit
         local get_eip
@@ -647,28 +560,12 @@ function show_docker_command() {
   local IMAGE
   local EIP
   local UUID
-  local EXISTING_ENABLE_GPU
-  local EXISTING_GPU_PROVIDER
-  local EXISTING_GPU_RUNTIME_CLASS
   IMAGE=$(docker inspect rainbond --format '{{.Config.Image}}' 2>/dev/null)
   EIP=$(get_container_eip)
   UUID=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^UUID=' | cut -d'=' -f2)
-  EXISTING_ENABLE_GPU=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^ENABLE_GPU=' | cut -d'=' -f2)
-  EXISTING_GPU_PROVIDER=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^GPU_PROVIDER=' | cut -d'=' -f2)
-  EXISTING_GPU_RUNTIME_CLASS=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^GPU_RUNTIME_CLASS_NAME=' | cut -d'=' -f2)
 
   # Get volume mounts
   local VOLUME_OPTS=$(docker inspect rainbond --format '{{range .Mounts}}{{if eq .Type "bind"}}-v {{.Source}}:{{.Destination}} {{else if eq .Type "volume"}}-v {{.Name}}:{{.Destination}} {{end}}{{end}}' 2>/dev/null)
-  local GPU_DOCKER_ARGS=""
-  local GPU_ENV_BLOCK=""
-  if is_truthy "$EXISTING_ENABLE_GPU"; then
-    GPU_DOCKER_ARGS="  --gpus all \\"
-    GPU_ENV_BLOCK="  -e ENABLE_GPU=true \\
-  -e GPU_PROVIDER=${EXISTING_GPU_PROVIDER:-nvidia} \\
-  -e GPU_RUNTIME_CLASS_NAME=${EXISTING_GPU_RUNTIME_CLASS:-nvidia} \\
-  -e NVIDIA_VISIBLE_DEVICES=all \\
-  -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \\"
-  fi
 
   # Display the command
   echo -e "${GREEN}"
@@ -678,7 +575,6 @@ function show_docker_command() {
 # 您可以复制并修改以下命令来重新部署:
 
 docker run --privileged -d \\
-${GPU_DOCKER_ARGS}\
   -p 7070:7070 \\
   -p 80:80 \\
   -p 443:443 \\
@@ -687,7 +583,6 @@ ${GPU_DOCKER_ARGS}\
   --name=rainbond \\
   --restart=always \\
   ${VOLUME_OPTS}\\
-${GPU_ENV_BLOCK}\
   -e EIP=${EIP} \\
   -e UUID=${UUID} \\
   ${IMAGE}
@@ -697,7 +592,6 @@ EOF
 # You can copy and modify the following command to redeploy:
 
 docker run --privileged -d \\
-${GPU_DOCKER_ARGS}\
   -p 7070:7070 \\
   -p 80:80 \\
   -p 443:443 \\
@@ -706,7 +600,6 @@ ${GPU_DOCKER_ARGS}\
   --name=rainbond \\
   --restart=always \\
   ${VOLUME_OPTS}\\
-${GPU_ENV_BLOCK}\
   -e EIP=${EIP} \\
   -e UUID=${UUID} \\
   ${IMAGE}
@@ -832,13 +725,13 @@ function setup_port_forward() {
 ################################################################################
 
 # Check for --show parameter
-if [ "$CLI_COMMAND" = "show-command" ]; then
+if [ "${1:-}" = "show-command" ]; then
   show_docker_command
 fi
 
 # Check for port-forward parameter
-if [ "$CLI_COMMAND" = "port-forward" ]; then
-  setup_port_forward "$CLI_COMMAND_ARG1" "$CLI_COMMAND_ARG2"
+if [ "${1:-}" = "port-forward" ]; then
+  setup_port_forward "$2" "$3"
 fi
 
 # Display Rainbond ASCII banner at the very beginning
@@ -1351,63 +1244,6 @@ validate_docker_version() {
     fi
 }
 
-validate_gpu_support_linux() {
-    if [ "$ENABLE_GPU" != "true" ]; then
-        return
-    fi
-
-    if [ "${OS_TYPE}" != "Linux" ]; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "GPU 模式当前仅支持 Linux 宿主机"
-        else
-            send_error "GPU mode currently supports Linux hosts only"
-        fi
-        exit 1
-    fi
-
-    if [ "$GPU_PROVIDER" != "nvidia" ]; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "当前仅支持 NVIDIA GPU，收到 provider=${GPU_PROVIDER}"
-        else
-            send_error "Only NVIDIA GPU is supported currently, got provider=${GPU_PROVIDER}"
-        fi
-        exit 1
-    fi
-
-    if ! command -v nvidia-smi >/dev/null 2>&1; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "未检测到 nvidia-smi，请先在宿主机安装 NVIDIA 驱动"
-        else
-            send_error "nvidia-smi was not found. Install NVIDIA drivers on the host first."
-        fi
-        exit 1
-    fi
-
-    if ! nvidia-smi >/dev/null 2>&1; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "宿主机执行 nvidia-smi 失败，请先修复 NVIDIA 驱动环境"
-        else
-            send_error "Host nvidia-smi failed. Fix the NVIDIA driver environment first."
-        fi
-        exit 1
-    fi
-
-    if ! docker run --rm --gpus all "${GPU_SMOKE_IMAGE}" nvidia-smi >/dev/null 2>&1; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "Docker GPU 自检失败，请先确认宿主机 Docker 已启用 NVIDIA runtime"
-        else
-            send_error "Docker GPU self-check failed. Ensure the host Docker runtime supports NVIDIA GPUs."
-        fi
-        exit 1
-    fi
-
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_info "GPU 模式预检通过，宿主机驱动与 Docker GPU runtime 正常"
-    else
-        send_info "GPU preflight checks passed. Host driver and Docker GPU runtime are ready."
-    fi
-}
-
 # Main Docker management function
 manage_docker() {
     # On macOS, check OrbStack first
@@ -1436,7 +1272,6 @@ manage_docker() {
 
 # Main execution
 manage_docker
-validate_gpu_support_linux
 
 ########################################
 # EIP Detect
@@ -1666,26 +1501,15 @@ fi
 # Generate the installation command based on the detect results
 if [ "$OS_TYPE" = "Linux" ]; then
   VOLUME_OPTS="-v /opt/rainbond:/opt/rainbond"
+  RBD_IMAGE="${RAINBOND_GPU_IMAGE}"
 elif [ "$OS_TYPE" = "Darwin" ]; then
   VOLUME_OPTS="-v rainbond-opt:/opt/rainbond"
-fi
-
-if [ "$ENABLE_GPU" = "true" ]; then
   RBD_IMAGE="${RAINBOND_GPU_IMAGE}"
-else
-  RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-k3s"
-fi
-
-GPU_DOCKER_ARGS=""
-GPU_ENV_ARGS=""
-if [ "$ENABLE_GPU" = "true" ]; then
-  GPU_DOCKER_ARGS="--gpus all"
-  GPU_ENV_ARGS="-e ENABLE_GPU=true -e GPU_PROVIDER=${GPU_PROVIDER} -e GPU_RUNTIME_CLASS_NAME=${GPU_RUNTIME_CLASS_NAME} -e NVIDIA_VISIBLE_DEVICES=all -e NVIDIA_DRIVER_CAPABILITIES=compute,utility"
 fi
 
 # Generate cmd
-docker_run_cmd="docker run --privileged -d ${GPU_DOCKER_ARGS} -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 30000-30010:30000-30010 --name=rainbond --restart=always \
-${VOLUME_OPTS} ${GPU_ENV_ARGS} -e EIP=$EIP -e UUID=${UUID} ${RBD_IMAGE}"
+docker_run_cmd="docker run --privileged -d --gpus all -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 30000-30010:30000-30010 --name=rainbond --restart=always \
+${VOLUME_OPTS} -e ENABLE_GPU=${ENABLE_GPU} -e GPU_PROVIDER=${GPU_PROVIDER} -e GPU_RUNTIME_CLASS_NAME=${GPU_RUNTIME_CLASS_NAME} -e NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES} -e NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES} -e EIP=$EIP -e UUID=${UUID} ${RBD_IMAGE}"
 send_info "$docker_run_cmd"
 
 # Pull image with retry mechanism
