@@ -176,7 +176,7 @@ class NewComponents(object):
         component.service_cname = template.get("service_cname", "default-name")
         component.service_alias = "gr" + component.service_id[-6:]
         component.creater = self.user.pk
-        component.image = template.get("share_image", template["image"])
+        component.image = template.get("share_image", template.get("image", ""))
         component.cmd = template.get("cmd", "")
         component.service_region = self.region_name
         component.service_key = template.get("service_key")
