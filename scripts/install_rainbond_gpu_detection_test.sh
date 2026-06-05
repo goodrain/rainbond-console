@@ -79,32 +79,39 @@ exit 0
   write_stub "${bin_dir}" sleep 'exit 0'
 
   case "${setup_name}" in
-    no-nvidia-device)
-      write_stub "${bin_dir}" lspci 'printf "00:02.0 VGA compatible controller: Intel Corporation Device\n"'
-      ;;
-    nvidia-device-no-driver)
-      write_stub "${bin_dir}" lspci 'printf "03:00.0 VGA compatible controller: NVIDIA Corporation Device 2684\n"'
-      write_stub "${bin_dir}" apt-cache '
-if [ "${1:-}" = "show" ]; then
-  exit 1
-fi
-printf "nvidia-driver-535 - NVIDIA driver metapackage\n"
+    driver-missing)
+      write_stub "${bin_dir}" lspci '
+printf "lspci %s\n" "$*" >>"${STUB_LOG}"
+printf "03:00.0 VGA compatible controller: NVIDIA Corporation Device 2684\n"
 '
       write_stub "${bin_dir}" apt-get '
 printf "apt-get %s\n" "$*" >>"${STUB_LOG}"
-if printf "%s " "$*" | grep -Fq "install"; then
-  {
-    printf "%s\n" "#!/usr/bin/env bash"
-    printf "%s\n" "printf \"NVIDIA-SMI test output\\n\""
-  } >"${TEST_BIN}/nvidia-smi"
-  chmod +x "${TEST_BIN}/nvidia-smi"
-fi
 exit 0
 '
       ;;
-    driver-ready-docker-needs-toolkit)
-      write_stub "${bin_dir}" lspci 'printf "03:00.0 VGA compatible controller: NVIDIA Corporation Device 2684\n"'
-      write_stub "${bin_dir}" nvidia-smi 'printf "NVIDIA-SMI test output\n"'
+    driver-fails)
+      write_stub "${bin_dir}" lspci '
+printf "lspci %s\n" "$*" >>"${STUB_LOG}"
+printf "03:00.0 VGA compatible controller: NVIDIA Corporation Device 2684\n"
+'
+      write_stub "${bin_dir}" nvidia-smi '
+printf "nvidia-smi %s\n" "$*" >>"${STUB_LOG}"
+exit 1
+'
+      write_stub "${bin_dir}" apt-get '
+printf "apt-get %s\n" "$*" >>"${STUB_LOG}"
+exit 0
+'
+      ;;
+    driver-ready)
+      write_stub "${bin_dir}" lspci '
+printf "lspci %s\n" "$*" >>"${STUB_LOG}"
+printf "03:00.0 VGA compatible controller: NVIDIA Corporation Device 2684\n"
+'
+      write_stub "${bin_dir}" nvidia-smi '
+printf "nvidia-smi %s\n" "$*" >>"${STUB_LOG}"
+printf "NVIDIA-SMI test output\n"
+'
       write_stub "${bin_dir}" nvidia-ctk '
 printf "nvidia-ctk %s\n" "$*" >>"${STUB_LOG}"
 touch "${TEST_TMP}/docker-gpu-ready"
@@ -117,6 +124,7 @@ exit 0
   esac
 
   extract_gpu_functions >"${functions_file}"
+  set +e
   STUB_LOG="${tmp_dir}/stub.log" \
   TEST_TMP="${tmp_dir}" \
   TEST_BIN="${bin_dir}" \
@@ -124,7 +132,6 @@ exit 0
   LANG=C \
   OS_TYPE=Linux \
   ENABLE_GPU=true \
-  GPU_SMOKE_IMAGE=smoke-image \
   DOCKER_RUN_STATUS=0 \
   bash -c '
     set +e
@@ -133,7 +140,7 @@ exit 0
     send_info() { printf "INFO: %s\n" "$*" >>"${STUB_LOG}"; }
     send_warn() { printf "WARN: %s\n" "$*" >>"${STUB_LOG}"; }
     send_error() { printf "ERROR: %s\n" "$*" >>"${STUB_LOG}"; }
-    if [ "$2" = "driver-ready-docker-needs-toolkit" ]; then
+    if [ "$2" = "driver-ready" ]; then
       export DOCKER_RUN_STATUS=1
     fi
     validate_gpu_support_linux
@@ -155,32 +162,42 @@ exit 0
       cat "${STUB_LOG}"
     fi
   ' bash "${functions_file}" "${setup_name}" >"${output_file}" 2>&1
+  local case_status=$?
+  set -e
 
   cat "${output_file}"
+  printf "case_status=%s\n" "${case_status}"
 }
 
-no_gpu_output=$(run_gpu_case no-nvidia-device)
-assert_contains "${no_gpu_output}" "status=0"
-assert_contains "${no_gpu_output}" "ENABLE_GPU=false"
-assert_contains "${no_gpu_output}" "GPU_DOCKER_ARGS="
-assert_not_contains "${no_gpu_output}" "--gpus all"
-assert_contains "${no_gpu_output}" "docker_run_cmd=docker run"
-assert_not_contains "${no_gpu_output}" "docker_run_cmd=docker run --privileged -d --gpus all"
+missing_driver_output=$(run_gpu_case driver-missing)
+assert_contains "${missing_driver_output}" "status=0"
+assert_contains "${missing_driver_output}" "ENABLE_GPU=false"
+assert_contains "${missing_driver_output}" "GPU_DOCKER_ARGS="
+assert_not_contains "${missing_driver_output}" "--gpus all"
+assert_contains "${missing_driver_output}" "docker_run_cmd=docker run"
+assert_not_contains "${missing_driver_output}" "docker_run_cmd=docker run --privileged -d --gpus all"
+assert_not_contains "${missing_driver_output}" "lspci"
+assert_not_contains "${missing_driver_output}" "apt-get"
+assert_not_contains "${missing_driver_output}" "docker run --rm --gpus all"
 
-install_driver_output=$(run_gpu_case nvidia-device-no-driver)
-assert_contains "${install_driver_output}" "status=0"
-assert_contains "${install_driver_output}" "ENABLE_GPU=true"
-assert_contains "${install_driver_output}" "GPU_DOCKER_ARGS=--gpus all"
-assert_contains "${install_driver_output}" "docker_run_cmd=docker run --privileged -d --gpus all"
-assert_contains "${install_driver_output}" "apt-get install"
-assert_contains "${install_driver_output}" "docker run"
+failed_driver_output=$(run_gpu_case driver-fails)
+assert_contains "${failed_driver_output}" "status=0"
+assert_contains "${failed_driver_output}" "ENABLE_GPU=false"
+assert_contains "${failed_driver_output}" "GPU_DOCKER_ARGS="
+assert_not_contains "${failed_driver_output}" "--gpus all"
+assert_not_contains "${failed_driver_output}" "lspci"
+assert_not_contains "${failed_driver_output}" "apt-get"
+assert_not_contains "${failed_driver_output}" "docker run --rm --gpus all"
 
-toolkit_output=$(run_gpu_case driver-ready-docker-needs-toolkit)
-assert_contains "${toolkit_output}" "status=0"
-assert_contains "${toolkit_output}" "ENABLE_GPU=true"
-assert_contains "${toolkit_output}" "GPU_DOCKER_ARGS=--gpus all"
-assert_contains "${toolkit_output}" "docker_run_cmd=docker run --privileged -d --gpus all"
-assert_contains "${toolkit_output}" "nvidia-ctk runtime configure --runtime=docker"
-assert_contains "${toolkit_output}" "systemctl restart docker"
+ready_driver_output=$(run_gpu_case driver-ready)
+assert_contains "${ready_driver_output}" "status=0"
+assert_contains "${ready_driver_output}" "ENABLE_GPU=true"
+assert_contains "${ready_driver_output}" "GPU_DOCKER_ARGS=--gpus all"
+assert_contains "${ready_driver_output}" "docker_run_cmd=docker run --privileged -d --gpus all"
+assert_not_contains "${ready_driver_output}" "lspci"
+assert_not_contains "${ready_driver_output}" "apt-get"
+assert_not_contains "${ready_driver_output}" "nvidia-ctk"
+assert_not_contains "${ready_driver_output}" "systemctl restart docker"
+assert_not_contains "${ready_driver_output}" "docker run --rm --gpus all"
 
 printf 'PASS: install_rainbond_gpu_detection_test\n'
