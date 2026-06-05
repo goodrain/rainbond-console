@@ -54,6 +54,39 @@ class AgentLLMConfigServiceTests(TestCase):
         self.assertEqual("true", runtime["LLM_THINKING_ENABLED"])
         self.assertEqual("medium", runtime["LLM_REASONING_EFFORT"])
 
+    def test_update_keeps_existing_api_key_when_blank(self):
+        existing = {
+            "OPENAI_API_KEY": agent_llm_config_service._encrypt_api_key("sk-existing-secret"),
+            "OPENAI_MODEL": "old-model",
+            "OPENAI_BASE_URL": "https://old.example/v1",
+            "LLM_THINKING_ENABLED": True,
+            "LLM_REASONING_EFFORT": "low",
+        }
+        existing_value = json.dumps(existing, ensure_ascii=False, sort_keys=True)
+
+        with mock.patch("console.services.agent_llm_config_service.ConsoleSysConfig.objects.get",
+                        return_value=self._config_obj(existing_value)):
+            masked = agent_llm_config_service.update_config({
+                "openai_api_key": "",
+                "openai_model": "new-model",
+                "openai_base_url": "https://new.example/v1",
+                "llm_thinking_enabled": False,
+                "llm_reasoning_effort": "high",
+            }, updated_by="admin")
+
+        self.assertTrue(masked["openai_api_key_set"])
+        self.assertEqual("new-model", masked["openai_model"])
+        stored = json.loads(self.saved["value"])
+        # 留空提交后，已存储的加密密钥应原样保留
+        self.assertEqual(existing["OPENAI_API_KEY"], stored["OPENAI_API_KEY"])
+        self.assertEqual("new-model", stored["OPENAI_MODEL"])
+
+        with mock.patch("console.services.agent_llm_config_service.ConsoleSysConfig.objects.get",
+                        return_value=self._config_obj(self.saved["value"])):
+            runtime = agent_llm_config_service.get_runtime_config()
+        self.assertEqual("sk-existing-secret", runtime["OPENAI_API_KEY"])
+        self.assertEqual("new-model", runtime["OPENAI_MODEL"])
+
     def test_update_requires_api_key_and_all_config_values(self):
         with self.assertRaises(Exception) as cm:
             agent_llm_config_service.update_config({
