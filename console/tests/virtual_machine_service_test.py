@@ -371,7 +371,9 @@ class VirtualMachineServiceTests(TestCase):
         }
 
         self.assertEqual(json.dumps({"app": "demo"}), attrs["labels"])
-        self.assertNotIn("vm_network_name", attrs)
+        # Deprecated network keys are owned by the region-payload filter
+        # (console/services/app.py) and left untouched by runtime-config saves.
+        self.assertEqual("stale-network", attrs["vm_network_name"])
         self.assertEqual("true", attrs["vm_gpu_enabled"])
         self.assertEqual(json.dumps(["gpu.example.com/A10"]), attrs["vm_gpu_resources"])
         self.assertEqual("true", attrs["vm_usb_enabled"])
@@ -427,8 +429,16 @@ class VirtualMachineServiceTests(TestCase):
             for item in ComponentK8sAttributes.objects.filter(component_id="service-a")
         }
 
-        self.assertEqual({"labels"}, set(attrs.keys()))
         self.assertEqual(json.dumps({"app": "demo"}), attrs["labels"])
+        # Disabled runtime keys are cleared; deprecated network keys are owned by
+        # the region-payload filter (console/services/app.py) and left untouched.
+        managed_keys = {
+            "vm_os_name", "vm_gpu_enabled", "vm_gpu_resources", "vm_gpu_count",
+            "vm_usb_enabled", "vm_usb_resources", "vm_asset_id",
+            "vm_asset_clone_source", "vm_boot_mode", "vm_boot_source_format",
+            "vm_disk_layout",
+        }
+        self.assertEqual(set(), set(attrs.keys()) & managed_keys)
 
     def test_save_vm_runtime_config_syncs_region_when_service_is_complete(self):
         TenantServiceInfo.objects.create(
