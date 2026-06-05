@@ -8254,6 +8254,73 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.mcp.tool-error-fallback",
+      "title": "Return parseable error for any MCP tool failure",
+      "title_zh": "任意 MCP 工具失败均返回可解析错误",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.mcp_query.MCPQueryRPCMixin._dispatch_rpc",
+      "code_paths": [
+        "console/views/mcp_query.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_error_contract_test.py",
+          "selector": "MCPToolErrorDispatchTests.test_generic_tool_exception_is_returned_as_parseable_error"
+        },
+        {
+          "path": "console/tests/mcp_query_error_contract_test.py",
+          "selector": "MCPToolErrorDispatchTests.test_region_style_exception_maps_status_and_extracts_message"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.delete-dependency-conflict",
+      "title": "Delete component returns structured dependency conflict reason",
+      "title_zh": "删除组件返回结构化依赖冲突原因",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[rainbond_delete_component#conflict]",
+      "code_paths": [
+        "console/services/mcp_query_service.py",
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_error_contract_test.py",
+          "selector": "MCPComponentContextErrorTests.test_delete_component_dependency_conflict_returns_structured_reason"
+        },
+        {
+          "path": "console/tests/mcp_query_error_contract_test.py",
+          "selector": "MCPComponentContextErrorTests.test_delete_component_running_conflict_is_non_retryable"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.input-validation-contract",
+      "title": "MCP tools return clear invalid_input/not_found reasons",
+      "title_zh": "MCP 工具对缺参/查无组件返回清晰原因",
+      "interface_type": "service_method",
+      "interface": "console.services.mcp_query_service.call_tool",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_error_contract_test.py",
+          "selector": "MCPComponentContextErrorTests.test_missing_service_id_returns_invalid_input"
+        },
+        {
+          "path": "console/tests/mcp_query_error_contract_test.py",
+          "selector": "MCPComponentContextErrorTests.test_unknown_component_returns_not_found"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
