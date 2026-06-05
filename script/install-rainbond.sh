@@ -6,8 +6,6 @@
 RAINBOND_VERSION=${VERSION:-'v6.9.0-dev'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
 ENABLE_GPU=${ENABLE_GPU:-auto}
-GPU_SMOKE_IMAGE=${GPU_SMOKE_IMAGE:-'nvidia/cuda:12.5.1-base-ubuntu22.04'}
-NVIDIA_DRIVER_PACKAGE=${NVIDIA_DRIVER_PACKAGE:-}
 
 # Define colorful stdout
 RED='\033[0;31m'
@@ -1320,166 +1318,8 @@ set_gpu_mode() {
     GPU_ENV_ARGS="-e ENABLE_GPU=true -e NVIDIA_VISIBLE_DEVICES=all -e NVIDIA_DRIVER_CAPABILITIES=compute,utility"
 }
 
-has_nvidia_device_linux() {
-    if command -v lspci >/dev/null 2>&1; then
-        lspci -nn 2>/dev/null | grep -Ei 'NVIDIA|10de:' >/dev/null 2>&1
-        return $?
-    fi
-
-    find /sys/bus/pci/devices -maxdepth 2 -name vendor -exec grep -qi '^0x10de$' {} \; -print -quit 2>/dev/null | grep -q .
-}
-
 nvidia_smi_ready() {
     command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1
-}
-
-apt_nvidia_driver_package() {
-    if [ -n "${NVIDIA_DRIVER_PACKAGE}" ]; then
-        echo "${NVIDIA_DRIVER_PACKAGE}"
-        return 0
-    fi
-
-    if command -v ubuntu-drivers >/dev/null 2>&1; then
-        local recommended
-        recommended=$(ubuntu-drivers devices 2>/dev/null | awk '/recommended/ {print $3; exit}')
-        if [ -n "${recommended}" ]; then
-            echo "${recommended}"
-            return 0
-        fi
-    fi
-
-    local candidate
-    for candidate in nvidia-driver-550 nvidia-driver-535 nvidia-driver-525; do
-        if apt-cache show "${candidate}" >/dev/null 2>&1; then
-            echo "${candidate}"
-            return 0
-        fi
-    done
-
-    echo "nvidia-driver-535"
-}
-
-install_nvidia_driver_linux() {
-    if command -v apt-get >/dev/null 2>&1; then
-        local driver_package
-        driver_package=$(apt_nvidia_driver_package)
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_info "检测到 NVIDIA 显卡但驱动不可用，正在安装 NVIDIA 驱动: ${driver_package}"
-        else
-            send_info "NVIDIA GPU detected but driver is not ready, installing NVIDIA driver: ${driver_package}"
-        fi
-        apt-get update
-        DEBIAN_FRONTEND=noninteractive apt-get install -y "${driver_package}"
-    elif command -v dnf >/dev/null 2>&1; then
-        local driver_package=${NVIDIA_DRIVER_PACKAGE:-akmod-nvidia}
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_info "检测到 NVIDIA 显卡但驱动不可用，正在安装 NVIDIA 驱动: ${driver_package}"
-        else
-            send_info "NVIDIA GPU detected but driver is not ready, installing NVIDIA driver: ${driver_package}"
-        fi
-        dnf install -y "${driver_package}"
-    elif command -v yum >/dev/null 2>&1; then
-        local driver_package=${NVIDIA_DRIVER_PACKAGE:-kmod-nvidia}
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_info "检测到 NVIDIA 显卡但驱动不可用，正在安装 NVIDIA 驱动: ${driver_package}"
-        else
-            send_info "NVIDIA GPU detected but driver is not ready, installing NVIDIA driver: ${driver_package}"
-        fi
-        yum install -y "${driver_package}"
-    else
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "检测到 NVIDIA 显卡，但无法自动安装驱动。请先手动安装 NVIDIA 驱动并确认 nvidia-smi 可用"
-        else
-            send_error "NVIDIA GPU detected, but automatic driver installation is unsupported. Install the NVIDIA driver manually and ensure nvidia-smi works."
-        fi
-        return 1
-    fi
-
-    modprobe nvidia >/dev/null 2>&1 || true
-    if ! nvidia_smi_ready; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "NVIDIA 驱动安装后 nvidia-smi 仍不可用，请重启宿主机或手动检查驱动状态"
-        else
-            send_error "nvidia-smi is still unavailable after NVIDIA driver installation. Reboot the host or check the driver manually."
-        fi
-        return 1
-    fi
-
-    return 0
-}
-
-configure_nvidia_container_runtime_linux() {
-    if ! command -v nvidia-ctk >/dev/null 2>&1; then
-        install_nvidia_container_toolkit_linux || return 1
-    fi
-
-    if command -v nvidia-ctk >/dev/null 2>&1; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_info "正在配置 Docker NVIDIA runtime..."
-        else
-            send_info "Configuring Docker NVIDIA runtime..."
-        fi
-        nvidia-ctk runtime configure --runtime=docker
-        if command -v systemctl >/dev/null 2>&1; then
-            systemctl restart docker
-        else
-            service docker restart
-        fi
-        sleep 3
-        return 0
-    fi
-
-    if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_error "Docker GPU 自检失败，且未找到 nvidia-ctk。请先手动安装 NVIDIA Container Toolkit"
-    else
-        send_error "Docker GPU self-check failed and nvidia-ctk was not found. Install NVIDIA Container Toolkit manually first."
-    fi
-    return 1
-}
-
-install_nvidia_container_toolkit_linux() {
-    if command -v apt-get >/dev/null 2>&1; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_info "正在安装 NVIDIA Container Toolkit..."
-        else
-            send_info "Installing NVIDIA Container Toolkit..."
-        fi
-        apt-get update
-        DEBIAN_FRONTEND=noninteractive apt-get install -y nvidia-container-toolkit
-    elif command -v dnf >/dev/null 2>&1; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_info "正在安装 NVIDIA Container Toolkit..."
-        else
-            send_info "Installing NVIDIA Container Toolkit..."
-        fi
-        dnf install -y nvidia-container-toolkit
-    elif command -v yum >/dev/null 2>&1; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_info "正在安装 NVIDIA Container Toolkit..."
-        else
-            send_info "Installing NVIDIA Container Toolkit..."
-        fi
-        yum install -y nvidia-container-toolkit
-    else
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "无法自动安装 NVIDIA Container Toolkit，请先手动安装"
-        else
-            send_error "Automatic NVIDIA Container Toolkit installation is unsupported. Install it manually first."
-        fi
-        return 1
-    fi
-}
-
-validate_docker_gpu_linux() {
-    if docker run --rm --gpus all "${GPU_SMOKE_IMAGE}" nvidia-smi >/dev/null 2>&1; then
-        return 0
-    fi
-
-    if ! configure_nvidia_container_runtime_linux; then
-        return 1
-    fi
-
-    docker run --rm --gpus all "${GPU_SMOKE_IMAGE}" nvidia-smi >/dev/null 2>&1
 }
 
 validate_gpu_support_linux() {
@@ -1515,34 +1355,21 @@ validate_gpu_support_linux() {
         return
     fi
 
-    if ! has_nvidia_device_linux; then
+    if ! nvidia_smi_ready; then
         set_cpu_mode
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_info "未检测到 NVIDIA 显卡，将使用 CPU 模式启动 Rainbond"
+            send_info "未检测到可用 NVIDIA 驱动，将使用 CPU 模式启动 Rainbond"
         else
-            send_info "No NVIDIA GPU was detected. Rainbond will start in CPU mode."
+            send_info "NVIDIA driver is not ready. Rainbond will start in CPU mode."
         fi
         return
     fi
 
-    if ! nvidia_smi_ready; then
-        install_nvidia_driver_linux || exit 1
-    fi
-
-    if ! validate_docker_gpu_linux; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "Docker GPU 自检失败，请先确认宿主机 Docker 已启用 NVIDIA runtime"
-        else
-            send_error "Docker GPU self-check failed. Ensure the host Docker runtime supports NVIDIA GPUs."
-        fi
-        exit 1
-    fi
-
     set_gpu_mode
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_info "GPU 模式预检通过，宿主机驱动与 Docker GPU runtime 正常"
+        send_info "检测到可用 NVIDIA 驱动，将使用 GPU 模式启动 Rainbond"
     else
-        send_info "GPU preflight checks passed. Host driver and Docker GPU runtime are ready."
+        send_info "NVIDIA driver is ready. Rainbond will start in GPU mode."
     fi
 }
 
