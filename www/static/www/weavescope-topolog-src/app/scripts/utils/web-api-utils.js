@@ -47,6 +47,29 @@ let firstMessageOnWebsocketAt = 0;
 let continuePolling = true;
 let newData = null;
 const tiem = 0;
+
+function getNodeDetail(nodeMap) {
+  if (!nodeMap || typeof nodeMap.last !== 'function') {
+    return null;
+  }
+  return nodeMap.last();
+}
+
+function getTopologyUrl(topologyUrlsById, nodeDetail) {
+  if (!nodeDetail || !nodeDetail.topologyId || !topologyUrlsById || typeof topologyUrlsById.get !== 'function') {
+    return '';
+  }
+  return topologyUrlsById.get(nodeDetail.topologyId);
+}
+
+function getSafeObject(value) {
+  return value && typeof value === 'object' ? value : {};
+}
+
+function getSafeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 export function buildOptionsQuery(options) {
   if (options) {
     return options.map((value, param) => {
@@ -266,13 +289,16 @@ export function getTopologies(options, dispatch, initialPoll) {
 
 // 转换好雨云的数据到weaveScope的数据
 function goodrainData2scopeData(data = {}) {
+  const normalizedData = getSafeObject(data);
+  const jsonData = getSafeObject(normalizedData.json_data);
+  const jsonSvg = getSafeObject(normalizedData.json_svg);
   const scopeData = {
     add: [],
     update: null,
     remove: null
   };
   const add = [];
-  const keys = Object.keys(data.json_data);
+  const keys = Object.keys(jsonData);
   let node = {};
   let item = {};
   const cloud = {
@@ -302,9 +328,9 @@ function goodrainData2scopeData(data = {}) {
   }
 
   keys.forEach((k) => {
-    if (Object.prototype.hasOwnProperty.call(data.json_data, k)) {
+    if (Object.prototype.hasOwnProperty.call(jsonData, k)) {
       node = {};
-      item = data.json_data[k];
+      item = getSafeObject(jsonData[k]);
       node.cur_status = item.cur_status;
       node.service_cname = item.service_cname;
       node.service_id = item.service_id;
@@ -320,7 +346,7 @@ function goodrainData2scopeData(data = {}) {
       node.stack = true;
       node.stackNum = 1;
       node.linkable = item.cur_status === 'running' ? 1 : 0;
-      node.adjacency = data.json_svg[k] || [];
+      node.adjacency = getSafeArray(jsonSvg[k]);
       add.push(node);
       if (item.is_internet) {
         cloud.adjacency.push(k);
@@ -372,12 +398,15 @@ function goodrainData2scopeData(data = {}) {
 }
 //处理 operator 类型数据
 export function handleOperatorInfo(data) {
-  const keys = Object.keys(data.json_data);
+  const normalizedData = getSafeObject(data);
+  const jsonData = getSafeObject(normalizedData.json_data);
+  const jsonSvg = getSafeObject(normalizedData.json_svg);
+  const keys = Object.keys(jsonData);
   const arr = [];
   keys.forEach((k) => {
-    if (Object.prototype.hasOwnProperty.call(data.json_data, k)) {
+    if (Object.prototype.hasOwnProperty.call(jsonData, k)) {
       const node = {};
-      const item = data.json_data[k];
+      const item = getSafeObject(jsonData[k]);
       node.cur_status = item.cur_status;
       node.service_cname = item.service_cname;
       node.service_id = item.service_id;
@@ -398,7 +427,7 @@ export function handleOperatorInfo(data) {
       node.runtime = item.runtime;
       node.readyReplicas = item.readyReplicas;
       node.linkable = item.cur_status === 'running' ? 1 : 0;
-      node.adjacency = data.json_svg[k] || [];
+      node.adjacency = getSafeArray(jsonSvg[k]);
       arr.push(node);
     }
   });
@@ -483,7 +512,7 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
   // get details for all opened nodes
 
   const windowParent = window.parent;
-  const obj = nodeMap.last();
+  const obj = getNodeDetail(nodeMap);
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   dispatch({
     type: "TEAM_NAME",
@@ -492,7 +521,7 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   if (obj && serviceAlias && tenantName && groupId) {
-    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    const topologyUrl = getTopologyUrl(topologyUrlsById, obj);
     let url = '';
     if (obj.id === 'The Internet') {
       url = `/console/teams/${tenantName}/${groupId}/outer-service?region=${region}&_=${new Date().getTime()}`;
@@ -532,13 +561,13 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
 //获取组件磁盘信息
 export function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
   const windowParent = window.parent;
-  const obj = nodeMap.last();
+  const obj = getNodeDetail(nodeMap);
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   let url = '';
-  if (serviceAlias && tenantName) {
-    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+  if (obj && serviceAlias && tenantName) {
+    const topologyUrl = getTopologyUrl(topologyUrlsById, obj);
     url = `/console/teams/${tenantName}/apps/${serviceAlias}/resource?region=${region}&_=${new Date().getTime()}`;
 
     doRequest({
@@ -566,13 +595,13 @@ export function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, 
 // 获取运行实例
 export function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
   const windowParent = window.parent;
-  const obj = nodeMap.last();
+  const obj = getNodeDetail(nodeMap);
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   let url = '';
-  if (serviceAlias && tenantName) {
-    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+  if (obj && serviceAlias && tenantName) {
+    const topologyUrl = getTopologyUrl(topologyUrlsById, obj);
     url = `/console/teams/${tenantName}/apps/${serviceAlias}/pods?region=${region}&_=${new Date().getTime()}`;
 
     doRequest({
@@ -585,7 +614,8 @@ export function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, d
           res.cur_status = 'running';
         }
         res = res || {};
-        const data = res.data.list.new_pods || [];
+        const list = getSafeObject(res.data && res.data.list);
+        const data = getSafeArray(list.new_pods);
         dispatch({
           type:"GET_PODS",
           data
@@ -600,13 +630,13 @@ export function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, d
 //获取组件访问信息
 export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
   const windowParent = window.parent;
-  const obj = nodeMap.last();
+  const obj = getNodeDetail(nodeMap);
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   let url = '';
-  if (serviceAlias && tenantName) {
-    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+  if (obj && serviceAlias && tenantName) {
+    const topologyUrl = getTopologyUrl(topologyUrlsById, obj);
     url = `/console/teams/${tenantName}/apps/${serviceAlias}/visit?region=${region}&_=${new Date().getTime()}`;
 
     doRequest({
@@ -619,7 +649,9 @@ export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap,
           res.cur_status = 'running';
         }
         res = res || {};
-        const data = res.data.bean.access_info[0] || {};
+        const bean = getSafeObject(res.data && res.data.bean);
+        const accessInfo = getSafeArray(bean.access_info);
+        const data = accessInfo[0] || {};
         dispatch({
           type:"VISIT_INFO",
           data
@@ -657,13 +689,13 @@ export function UserPermission(dispatch) {
 //获取应用访问信息
 export function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
   const windowParent = window.parent;
-  const obj = nodeMap.last();
+  const obj = getNodeDetail(nodeMap);
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   let url = '';
-  if (serviceAlias && tenantName) {
-    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+  if (obj && serviceAlias && tenantName) {
+    const topologyUrl = getTopologyUrl(topologyUrlsById, obj);
     url = `/console/teams/${tenantName}/group/service/visitservice_alias=${serviceAlias}?region=${region}&_=${new Date().getTime()}`;
 
     doRequest({
@@ -691,13 +723,13 @@ export function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeM
 //应用下面的组件数量
 export function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
   const windowParent = window.parent;
-  const obj = nodeMap.last();
+  const obj = getNodeDetail(nodeMap);
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   let url = '';
-  if (serviceAlias && tenantName) {
-    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+  if (obj && serviceAlias && tenantName) {
+    const topologyUrl = getTopologyUrl(topologyUrlsById, obj);
     url = `/console/teams/${tenantName}/groups/${groupId}?region=${region}&_=${new Date().getTime()}`;
 
     doRequest({
@@ -725,13 +757,13 @@ export function appModuleInfo(topologyUrlsById, currentTopologyId, options, node
 //应用下的基本信息
 export function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
   const windowParent = window.parent;
-  const obj = nodeMap.last();
+  const obj = getNodeDetail(nodeMap);
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   let url = '';
-  if (serviceAlias && tenantName) {
-    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+  if (obj && serviceAlias && tenantName) {
+    const topologyUrl = getTopologyUrl(topologyUrlsById, obj);
     url = `/console/teams/${tenantName}/groups/${groupId}/status?region=${region}&_=${new Date().getTime()}`;
 
     doRequest({
@@ -773,27 +805,32 @@ export function Podname(serviceAlias){
     
           res.rank = res.cur_status;
           res = res || {};
-          const data = res.data.list.new_pods[0].pod_name || [];
+          const list = getSafeObject(res.data && res.data.list);
+          const newPods = getSafeArray(list.new_pods);
+          const data = newPods[0] ? newPods[0].pod_name : '';
           resolve(data)
         },
         error: (err) => {
           log(`Error in node details request: ${err.responseText}`);
           // dont treat missing node as error
+          resolve('');
         }
       });
+      return;
     }
+    resolve('');
   })
 }
 // 获取实例中的容器信息
 export async function Dateils(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias){
   const padname=await Podname(serviceAlias)
   const windowParent = window.parent;
-  const obj = nodeMap.last();
+  const obj = getNodeDetail(nodeMap);
   const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
   if (obj && serviceAlias && tenantName && groupId && padname) {
-    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    const topologyUrl = getTopologyUrl(topologyUrlsById, obj);
     let url = '';
     if (obj.id === 'The Internet') {
       url = `/console/teams/${tenantName}/${groupId}/outer-service?region=${region}&_=${new Date().getTime()}`;

@@ -149,3 +149,4 @@ static
 local_allinone.sh
 .agents/
 .claude/knowledge/
+.worktrees/

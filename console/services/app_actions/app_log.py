@@ -180,7 +180,90 @@ class AppEventService(object):
             type_cn = self.translate_event_type(event.type)
             event_re["type_cn"] = type_cn
             re_events.append(event_re)
+        re_events = self.merge_vm_restore_event(re_events, tenant, service, page)
         return re_events, has_next
+
+    def merge_vm_restore_event(self, events, tenant, service, page=1):
+        """Append VM disk restore status to the first operation-record page."""
+        if page != 1 or getattr(service, "extend_method", "") != "vm":
+            return events
+        restore = self.get_vm_restore_status(tenant, service)
+        event = self.build_vm_restore_event(service, restore)
+        if not event:
+            return events
+        duplicate = [item for item in events if item.get("event_id") == event["event_id"]]
+        if duplicate:
+            return events
+        return [event] + events
+
+    def get_vm_restore_status(self, tenant, service):
+        try:
+            body = region_api.check_service_status(
+                service.service_region, tenant.tenant_name, service.service_alias, tenant.enterprise_id)
+            return body.get("bean", {}).get("vm_restore", {})
+        except Exception as e:
+            logger.exception(e)
+            return {}
+
+    def build_vm_restore_event(self, service, restore):
+        if not restore:
+            return None
+        status = restore.get("status") or ""
+        if status not in ("restoring", "success", "failure"):
+            return None
+        now = datetime.datetime.now()
+        create_time = time_to_str(now, fmt="%Y-%m-%dT%H:%M:%S")
+        final_status = "" if status == "restoring" else "complete"
+        message = self.build_vm_restore_message(restore)
+        end_time = "" if status == "restoring" else create_time
+        return {
+            "ID": 0,
+            "event_id": "vm-disk-restore-{0}".format(service.service_id),
+            "tenant_id": getattr(service, "tenant_id", ""),
+            "service_id": service.service_id,
+            "target": "service",
+            "target_id": service.service_id,
+            "user_name": "system",
+            "start_time": create_time,
+            "end_time": end_time,
+            "create_time": create_time,
+            "opt_type": "vm-disk-restore",
+            "syn_type": 0,
+            "status": "success" if status == "success" else ("failure" if status == "failure" else "restoring"),
+            "final_status": final_status,
+            "message": message,
+            "reason": restore.get("message", ""),
+            "deploy_version": getattr(service, "deploy_version", ""),
+            "old_deploy_version": "",
+            "code_version": "",
+            "old_code_version": "",
+            "region": getattr(service, "service_region", ""),
+            "type": "vm-disk-restore",
+            "type_cn": "恢复虚拟机磁盘",
+            "vm_restore": restore,
+        }
+
+    def build_vm_restore_message(self, restore):
+        status_cn = restore.get("status_cn") or "恢复中"
+        progress = restore.get("progress") or "N/A"
+        message = restore.get("message") or ""
+        data_volumes = restore.get("data_volumes") or []
+        volume_parts = []
+        for volume in data_volumes:
+            name = volume.get("name") or ""
+            phase = volume.get("phase") or ""
+            volume_progress = volume.get("progress") or ""
+            if name:
+                if volume_progress:
+                    volume_parts.append("{0} {1} {2}".format(name, phase, volume_progress).strip())
+                elif phase:
+                    volume_parts.append("{0} {1}".format(name, phase).strip())
+        parts = ["{0} {1}".format(status_cn, progress).strip()]
+        if volume_parts:
+            parts.append("；".join(volume_parts))
+        if message:
+            parts.append(message)
+        return "；".join(parts)
 
     def translate_event_type(self, action_type):
         TYPE_MAP = ServiceEventConstants.TYPE_MAP
@@ -317,6 +400,13 @@ class AppEventService(object):
         return my_teams_all_events
 
     def get_event_log(self, tenant, region_name, event_id):
+        if event_id.startswith("vm-disk-restore-"):
+            service_id = event_id.replace("vm-disk-restore-", "", 1)
+            service = service_repo.get_service_by_tenant_and_id(tenant.tenant_id, service_id)
+            if not service:
+                return []
+            restore = self.get_vm_restore_status(tenant, service)
+            return self.build_vm_restore_logs(restore)
         content = []
         try:
             res, rt_data = region_api.get_events_log(tenant.tenant_name, region_name, event_id)
@@ -325,6 +415,28 @@ class AppEventService(object):
         except region_api.CallApiError as e:
             logger.debug(e)
         return content
+
+    def build_vm_restore_logs(self, restore):
+        if not restore:
+            return []
+        lines = []
+        lines.append({"message": "虚拟机磁盘恢复状态：{0}，进度：{1}".format(
+            restore.get("status_cn") or restore.get("status") or "-",
+            restore.get("progress") or "N/A")})
+        message = restore.get("message") or ""
+        if message:
+            lines.append({"message": message})
+        for volume in restore.get("data_volumes") or []:
+            lines.append({"message": "DataVolume {0}: phase={1}, progress={2}, message={3}".format(
+                volume.get("name") or "-",
+                volume.get("phase") or "-",
+                volume.get("progress") or "N/A",
+                volume.get("message") or "-")})
+        importer_pods = restore.get("importer_pods") or []
+        if importer_pods:
+            lines.append({"message": "Importer Pods: {0}".format(
+                ", ".join([pod.get("name", "") for pod in importer_pods if pod.get("name")]))})
+        return lines
 
     def eventinit(self, res_map, msg, region_name):
         res_map["group_name"] = ""

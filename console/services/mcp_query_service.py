@@ -1030,13 +1030,48 @@ class MCPQueryService(object):
         )
         code, msg = app_manage_service.delete(user, team, service, True)
         if code != 200:
-            raise ServiceHandleException(msg="delete error", msg_show=msg, status_code=code)
+            raise self._build_component_delete_error(service, code, msg)
         return {
             "deleted": True,
             "service_id": service.service_id,
             "service_cname": service.service_cname,
             "app_id": app.ID,
         }
+
+    @staticmethod
+    def _build_component_delete_error(service, code, msg):
+        """Turn a non-200 delete result into a structured, non-retryable reason.
+
+        delete_component used to surface a generic "delete error", so the agent
+        could not tell that a dependency/mount/running conflict is not worth
+        retrying (the #1 source of delete retry storms). Map the known precondition
+        failures to an explicit reason + remediation, keeping the dependent names
+        that app_manage_service.delete already put in `msg`.
+        """
+        text = (msg or "").strip()
+        reason = "delete_failed"
+        retryable = None
+        msg_show = text or "删除组件失败"
+        if code == 412 and "依赖" in text:
+            reason = "dependency_conflict"
+            retryable = False
+            msg_show = "{}。请先在依赖管理中解除依赖关系后再删除该组件。".format(text)
+        elif code == 412 and "挂载" in text:
+            reason = "storage_mount_conflict"
+            retryable = False
+            msg_show = "{}。请先解除存储挂载后再删除该组件。".format(text)
+        elif code == 409:
+            reason = "component_running"
+            retryable = False
+            msg_show = text or "组件可能处于运行状态，请先关闭组件后再删除。"
+        details = {
+            "reason": reason,
+            "service_id": service.service_id,
+            "service_cname": getattr(service, "service_cname", ""),
+        }
+        if retryable is not None:
+            details["retryable"] = retryable
+        return ServiceHandleException(msg=reason, msg_show=msg_show, status_code=code, details=details)
 
     def operate_app(self, user, arguments):
         team, app = self._get_team_app_context(

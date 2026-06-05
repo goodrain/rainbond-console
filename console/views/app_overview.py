@@ -20,16 +20,18 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.repositories.oauth_repo import oauth_repo, oauth_user_repo
 from console.services.app import app_service, package_upload_service
 from console.services.app_actions import ws_service
-from console.services.app_config import port_service
+from console.services.app_config import port_service, volume_service
 from console.services.app_config.arch_service import arch_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import app_plugin_service
+from console.services.plugin_service import rbd_plugin_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.kubeblocks_service import kubeblocks_service
+from console.services.virtual_machine import vms
 from console.utils.cnb_build import summarize_build_env
 from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
@@ -42,6 +44,17 @@ from www.utils.return_message import error_message, general_message
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
+
+
+def build_vm_vnc_url(tenant, service, app_k8s_name, vm_url):
+    if service.extend_method != "vm" or not vm_url:
+        return ""
+    namespace = tenant.namespace
+    name = app_k8s_name + "-" + service.k8s_component_name
+    base_vm_url = "{}/vnc_lite.html?path=".format(vm_url)
+    base_path = "k8s/apis/subresources.kubevirt.io/v1alpha3/"
+    path = base_path + "namespaces/{}/virtualmachineinstances/{}/vnc".format(namespace, name)
+    return base_vm_url + path
 
 
 class AppDetailView(AppBaseView):
@@ -74,15 +87,26 @@ class AppDetailView(AppBaseView):
         service_model["group_id"] = group_id
         service_model["namespace"] = namespace
         volumes = volume_repo.get_service_volumes_with_config_file(self.service.service_id)
-        service_model["disk_cap"] = 10
+        service_model["disk_cap"] = 30 if self.service.extend_method == "vm" else 10
         if self.service.extend_method == "vm":
-            namespace = self.tenant.namespace
-            name = app_k8s_name + "-" + self.service.k8s_component_name
-            base_vm_url = "{}/vnc_lite.html?path=".format(vm_url)
-            base_path = "k8s/apis/subresources.kubevirt.io/v1alpha3/"
-            path = base_path + "namespaces/{}/virtualmachineinstances/{}/vnc".format(namespace, name)
-            vm_url = base_vm_url + path
-            bean["vm_url"] = vm_url
+            vm_url = rbd_plugin_service.get_vm_plugin_url(
+                self.tenant.enterprise_id,
+                self.service.service_region,
+                request=request
+            ) or vm_url
+            vm_url = build_vm_vnc_url(self.tenant, self.service, app_k8s_name, vm_url)
+            current_pod_ip = vms.get_vm_current_pod_ip(self.tenant, self.service)
+            vm_connection_url = vm_url if current_pod_ip else ""
+            bean["vm_url"] = vm_connection_url
+            vm_runtime_status = app_service.get_service_status(self.tenant, self.service)
+            bean["vm_profile"] = vms.get_vm_profile(
+                self.service,
+                runtime_status=vm_runtime_status,
+                current_pod_ip=current_pod_ip,
+                connections={
+                    "vnc_url": vm_connection_url,
+                    "console_url": ""
+                })
         if volumes:
             service_model["disk_cap"] = volumes[0].volume_capacity
         bean.update({"service": service_model})
@@ -160,6 +184,64 @@ class AppDetailView(AppBaseView):
                     bean["kubernetes"] = json.loads(service_endpoints.endpoints_info)
 
         result = general_message(200, "success", "查询成功", bean=bean)
+        return Response(result, status=result["code"])
+
+
+class AppVMProfileView(AppBaseView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        vm_url = request.GET.get("vm_url", "")
+        group_map = group_service.get_services_group_name([self.service.service_id])
+        app_k8s_name = group_map.get(self.service.service_id)["k8s_app"]
+        vm_url = rbd_plugin_service.get_vm_plugin_url(
+            self.tenant.enterprise_id,
+            self.service.service_region,
+            request=request
+        ) or vm_url
+        vnc_url = build_vm_vnc_url(self.tenant, self.service, app_k8s_name, vm_url)
+        current_pod_ip = vms.get_vm_current_pod_ip(self.tenant, self.service)
+        vnc_url = vnc_url if current_pod_ip else ""
+        vm_runtime_status = app_service.get_service_status(self.tenant, self.service)
+        profile = vms.get_vm_profile(
+            self.service,
+            runtime_status=vm_runtime_status,
+            current_pod_ip=current_pod_ip,
+            connections={
+                "vnc_url": vnc_url,
+                "console_url": ""
+            })
+        result = general_message(200, "success", "查询成功", bean=profile)
+        return Response(result, status=result["code"])
+
+
+class AppVMDiskView(AppBaseView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        volumes = volume_service.get_service_volumes(self.tenant, self.service)
+        result = general_message(
+            200,
+            "success",
+            "查询成功",
+            list=vms.list_vm_disks(self.service, volumes)
+        )
+        return Response(result, status=result["code"])
+
+    @never_cache
+    def put(self, request, *args, **kwargs):
+        disks = request.data.get("disks", [])
+        if not isinstance(disks, list):
+            return Response(general_message(400, "param error", "磁盘列表格式错误"), status=400)
+        volumes = volume_service.get_service_volumes(self.tenant, self.service)
+        try:
+            normalized = vms.validate_vm_disk_layout(self.service, volumes, disks)
+            saved = vms.save_vm_disk_layout(
+                self.tenant.tenant_id,
+                self.service.service_id,
+                normalized
+            )
+        except ValueError as err:
+            return Response(general_message(400, "param error", str(err)), status=400)
+        result = general_message(200, "success", "保存成功", list=saved)
         return Response(result, status=result["code"])
 
 
@@ -820,15 +902,17 @@ class JobStrategy(AppBaseView):
         result = general_message(200, "success", "修改成功")
         return Response(result, status=result["code"])
 
+
 # 存储文件管理
 class ManageFile(AppBaseView):
     def get(self, request, *args, **kwargs):
         host_path = request.GET.get("host_path", "")
         pod_name = request.GET.get("pod_name", "")
+        container_name = request.GET.get("container_name", "")
         region_name = request.GET.get("region_name", "")
         try:
             res = group_service.get_file_and_dir(region_name, self.tenant_name, self.service.service_alias, host_path, pod_name,
-                                                 self.tenant.namespace)
+                                                 container_name, self.tenant.namespace)
             region = region_services.get_region_by_region_name(region_name)
         except Exception as e:
             logger.exception(e)
@@ -837,7 +921,7 @@ class ManageFile(AppBaseView):
             "host_path": host_path,
             "ws_url": region.wsurl,
             "namespace": self.tenant.namespace,
-            "container_name": self.service.k8s_component_name
+            "container_name": container_name or self.service.k8s_component_name
         }
         result = general_message(200, "success", "获取成功", list=res, bean=bean)
         return Response(result, status=result["code"])

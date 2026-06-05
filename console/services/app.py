@@ -362,8 +362,8 @@ class AppService(object):
         tenant_service.setting = ""
         tenant_service.extend_method = ComponentType.vm.value
         tenant_service.min_node = 1
-        tenant_service.min_memory = 1024
-        tenant_service.min_cpu = 1000
+        tenant_service.min_memory = 1024 * 8
+        tenant_service.min_cpu = 4000
         tenant_service.inner_port = 0
         tenant_service.version = ""
         tenant_service.namespace = "goodrain"
@@ -373,7 +373,7 @@ class AppService(object):
         tenant_service.deploy_version = ""
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"
-        tenant_service.total_memory = 1024
+        tenant_service.total_memory = 1024 * 8
         tenant_service.volume_mount_path = ""
         tenant_service.host_path = ""
         tenant_service.code_from = "image_manual"
@@ -805,11 +805,14 @@ class AppService(object):
             bean = body["bean"]
             status = bean["cur_status"]
             start_time = bean["start_time"]
+            vm_restore = bean.get("vm_restore", {})
         except Exception as e:
             logger.exception(e)
             status = "unKnow"
+            vm_restore = {}
         status_info_map = get_status_info_map(status)
         status_info_map["start_time"] = start_time
+        status_info_map["vm_restore"] = vm_restore
         return status_info_map
 
     def create_region_service(self, tenant, service, user_name, do_deploy=True, dep_sids=None):
@@ -903,10 +906,14 @@ class AppService(object):
             service.k8s_component_name = service.service_alias
         data["k8s_component_name"] = service.k8s_component_name
         data["job_strategy"] = service.job_strategy
-        # create in region
+        component_k8s_attributes = self.__get_component_k8s_attributes_payload(service)
+        if component_k8s_attributes:
+            data["component_k8s_attributes"] = component_k8s_attributes
+        # Create in region and let region persist the current k8s attrs in the same request.
         region_api.create_service(service.service_region, tenant.tenant_name, data)
-        # sync k8s attributes from console DB to region DB
-        self.__sync_k8s_attributes_to_region(tenant, service)
+        # Legacy fallback: if the payload had no attrs, keep the old sync path.
+        if not component_k8s_attributes:
+            self.__sync_k8s_attributes_to_region(tenant, service)
         # conponent install complete
         service.create_status = "complete"
         service.save()
@@ -928,9 +935,40 @@ class AppService(object):
                         tenant.tenant_name, service.service_region, service.service_alias, body)
                     logger.info("[compose-debug] synced k8s attribute {0} to region OK".format(attr.name))
                 except Exception as e:
+                    if "already exist" in str(e):
+                        try:
+                            region_api.update_component_k8s_attribute(
+                                tenant.tenant_name, service.service_region, service.service_alias, body)
+                            logger.info("[compose-debug] updated existing k8s attribute {0} in region".format(attr.name))
+                            continue
+                        except Exception as update_err:
+                            logger.warning("[compose-debug] update existing k8s attribute {0} to region FAILED: {1}".format(attr.name, update_err))
                     logger.warning("[compose-debug] sync k8s attribute {0} to region FAILED: {1}".format(attr.name, e))
         except Exception as e:
             logger.warning("[compose-debug] query k8s attributes for sync FAILED: {0}".format(e))
+
+    def __get_component_k8s_attributes_payload(self, service):
+        attrs = k8s_attribute_repo.get_by_component_id(service.service_id)
+        if not attrs:
+            return []
+        payload = []
+        removed_vm_runtime_attrs = {
+            "vm_network_mode",
+            "vm_network_name",
+            "vm_fixed_ip",
+            "vm_gateway",
+            "vm_dns_servers",
+            "vm_os_family",
+        }
+        for attr in attrs:
+            if getattr(service, "extend_method", "") == "vm" and attr.name in removed_vm_runtime_attrs:
+                continue
+            payload.append({
+                "name": attr.name,
+                "save_type": attr.save_type,
+                "attribute_value": attr.attribute_value,
+            })
+        return payload
 
     def __init_stream_rule_for_region(self, tenant, service, rule, user_name):
 
@@ -1063,13 +1101,26 @@ class AppService(object):
         if service.extend_method == "vm":
             volumes = volume_repo.get_service_volumes_with_config_file(service.service_id)
             disk_cap = data.get("disk_cap")
+            disk_volume_type = data.get("disk_volume_type")
             if len(volumes) == 0:
-                settings = {}
-                settings['volume_capacity'] = disk_cap
+                settings = {
+                    'volume_capacity': disk_cap
+                }
+                settings, _ = volume_service.build_vm_live_migration_volume_settings(
+                    tenant, service, disk_volume_type, settings)
                 volume_service.add_service_volume(
-                    tenant, service, "/disk", "vm-file", "disk", "", settings, user.nick_name, mode=None)
+                    tenant, service, "/disk", disk_volume_type, "disk", "", settings, user.nick_name, mode=None)
             else:
-                volume = volumes.first()
+                volume = volumes.filter(volume_name="disk").first() or volumes.first()
+                settings = {
+                    'volume_capacity': disk_cap
+                }
+                if disk_volume_type:
+                    settings, option = volume_service.build_vm_live_migration_volume_settings(
+                        tenant, service, disk_volume_type, settings)
+                    volume.volume_type = disk_volume_type
+                    volume.access_mode = settings.get("access_mode", volume.access_mode)
+                    volume.volume_provider_name = option.get("provisioner", "")
                 volume.volume_capacity = disk_cap
                 volume.save()
 

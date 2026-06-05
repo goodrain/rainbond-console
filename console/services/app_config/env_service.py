@@ -18,6 +18,7 @@ from console.repositories.app_config import (compile_env_repo, dep_relation_repo
 from www.models.main import TenantServicesPort, TenantServiceEnvVar
 # www
 from www.apiclient.regionapi import RegionInvokeApi
+from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -67,6 +68,26 @@ class AppEnvVarService(object):
     def json_service_env_var(self, attr_name, attr_value, name):
         return json.dumps({"变量名": attr_name, "变量值": attr_value, "说明": name}, ensure_ascii=False)
 
+    @staticmethod
+    def _is_region_env_already_exists_error(err):
+        if not isinstance(err, RegionApiBaseHttpClient.CallApiError):
+            return False
+        body = getattr(err, "body", None)
+        if isinstance(body, dict):
+            msg = body.get("msg", "")
+            return "record already exist" in msg
+        return False
+
+    @staticmethod
+    def _is_region_env_record_not_found_error(err):
+        if not isinstance(err, RegionApiBaseHttpClient.CallApiError):
+            return False
+        body = getattr(err, "body", None)
+        if isinstance(body, dict):
+            msg = body.get("msg", "")
+            return "record not found" in msg
+        return False
+
     def add_service_env_var(self,
                             tenant,
                             service,
@@ -112,7 +133,27 @@ class AppEnvVarService(object):
                 "enterprise_id": tenant.enterprise_id,
                 "operator": user_name
             }
-            region_api.add_service_env(service.service_region, tenant.tenant_name, service.service_alias, attr)
+            try:
+                region_api.add_service_env(service.service_region, tenant.tenant_name, service.service_alias, attr)
+            except RegionApiBaseHttpClient.CallApiError as err:
+                if not self._is_region_env_already_exists_error(err):
+                    raise
+                try:
+                    region_api.update_service_env(service.service_region, tenant.tenant_name, service.service_alias, {
+                        "old_env_name": attr_name,
+                        "env_name": attr_name,
+                        "env_value": str(attr_value),
+                        "scope": scope,
+                        "operator": user_name
+                    })
+                except RegionApiBaseHttpClient.CallApiError as update_err:
+                    if not self._is_region_env_record_not_found_error(update_err):
+                        raise
+                    try:
+                        region_api.add_service_env(service.service_region, tenant.tenant_name, service.service_alias, attr)
+                    except RegionApiBaseHttpClient.CallApiError as retry_add_err:
+                        if not self._is_region_env_already_exists_error(retry_add_err):
+                            raise
         new_env = env_var_repo.add_service_env(**tenantServiceEnvVar)
         return 200, 'success', new_env
 
