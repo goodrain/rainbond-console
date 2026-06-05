@@ -19,13 +19,21 @@ jobs:
           echo "deb http://archive.debian.org/debian/ buster main" > /etc/apt/sources.list
           echo "deb http://archive.debian.org/debian-security buster/updates main" >> /etc/apt/sources.list
           apt-get -o Acquire::Check-Valid-Until=false update
-          apt-get install -y --no-install-recommends gcc git make default-libmysqlclient-dev sqlite3
+          apt-get install -y --no-install-recommends gcc git make default-libmysqlclient-dev sqlite3 curl
 
       - name: Install Python dependencies
         run: |
           mkdir -p "$PIP_SRC"
           python -m pip install --upgrade 'pip<22'
           pip install -r requirements.txt
+
+      - name: Install openapi-client
+        run: |
+          curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz
+          mkdir -p /tmp/openapi-client
+          tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1
+          pip install /tmp/openapi-client
+          rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz
 
       - name: Run tests
         run: python scripts/run_pytest.py . -- -q
