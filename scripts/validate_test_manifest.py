@@ -39,7 +39,7 @@ def collect_marked_tests(repo_root):
     patterns = list(PYTHON_TEST_PATTERNS) + list(GO_TEST_PATTERNS)
     for pattern in patterns:
         for file_path in repo_root.rglob(pattern):
-            if any(part in {".git", "vendor", "_output", "node_modules", "dist"} for part in file_path.parts):
+            if any(part in {".git", ".claude", "vendor", "_output", "node_modules", "dist"} for part in file_path.parts):
                 continue
             matches = CAPABILITY_RE.findall(read_text(file_path))
             if matches:
