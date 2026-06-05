@@ -29,11 +29,17 @@ class AgentLLMConfigService(object):
 
     def update_config(self, data, updated_by=""):
         data = data or {}
-        self._validate_update(data)
-        raw_api_key = data.get("openai_api_key")
+        existing = self._load_config()
+        existing_stored_key = existing.get("OPENAI_API_KEY", "")
+        has_existing_api_key = bool(self._decrypt_api_key(existing_stored_key))
+        self._validate_update(data, has_existing_api_key=has_existing_api_key)
+
+        raw_api_key = self._read_string(data.get("openai_api_key"))
+        # 留空表示保持当前密钥不变；仅当传入新密钥时才重新加密覆盖
+        stored_api_key = self._encrypt_api_key(raw_api_key) if raw_api_key else existing_stored_key
 
         next_config = {
-            "OPENAI_API_KEY": self._encrypt_api_key(str(raw_api_key).strip()),
+            "OPENAI_API_KEY": stored_api_key,
             "OPENAI_MODEL": self._read_string(data.get("openai_model")),
             "OPENAI_BASE_URL": self._read_string(data.get("openai_base_url")),
             "LLM_THINKING_ENABLED": self._read_bool(data.get("llm_thinking_enabled"),
@@ -101,10 +107,9 @@ class AgentLLMConfigService(object):
     def _serialize_config(self, config):
         return json.dumps(config or {}, ensure_ascii=False, sort_keys=True)
 
-    def _validate_update(self, data):
+    def _validate_update(self, data, has_existing_api_key=False):
         errors = []
         required_fields = (
-            ("openai_api_key", "OPENAI_API_KEY"),
             ("openai_model", "OPENAI_MODEL"),
             ("openai_base_url", "OPENAI_BASE_URL"),
             ("llm_reasoning_effort", "LLM_REASONING_EFFORT"),
@@ -112,6 +117,10 @@ class AgentLLMConfigService(object):
         for field, label in required_fields:
             if not self._read_string(data.get(field)):
                 errors.append("{} 不能为空".format(label))
+
+        # 已配置过密钥时允许留空（保持原密钥）；首次配置仍必填
+        if not has_existing_api_key and not self._read_string(data.get("openai_api_key")):
+            errors.append("OPENAI_API_KEY 不能为空")
 
         if data.get("llm_thinking_enabled") is None:
             errors.append("LLM_THINKING_ENABLED 不能为空")
