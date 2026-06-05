@@ -14,7 +14,6 @@ from console.repositories.app import service_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.compose_repo import compose_repo
 from console.repositories.group import group_repo
-from console.repositories.group import group_service_relation_repo
 from console.services.app import app_service
 from console.services.app_actions import app_manage_service
 from console.services.app_check_service import AppCheckService
@@ -94,11 +93,26 @@ class ComposeService(object):
     def get_group_compose_by_group_id(self, group_id):
         return compose_repo.get_group_compose_by_group_id(group_id)
 
+    def _resolve_compose_arch(self, region, arch=None):
+        arch = (arch or "").strip()
+        if arch:
+            return arch
+
+        try:
+            _, body = region_api.get_cluster_nodes_arch(region)
+            arches = [item for item in set(body.get("list", [])) if item]
+            if len(arches) == 1:
+                return arches[0]
+        except Exception as e:
+            logger.warning("get region {0} arch for docker compose failed: {1}".format(region, e))
+        return "amd64"
+
     @transaction.atomic
-    def save_compose_services(self, tenant, user, region, group_compose, data, arch="amd64"):
+    def save_compose_services(self, tenant, user, region, group_compose, data, arch=None):
         # 开启保存点
         sid = transaction.savepoint()
         service_list = []
+        arch = self._resolve_compose_arch(region, arch)
         try:
             if data["check_status"] == "success":
                 if group_compose.create_status == "checking":
@@ -250,7 +264,6 @@ class ComposeService(object):
     def give_up_compose_create(self, tenant, compose_id):
         self.__delete_created_compose_info(tenant, compose_id)
         compose_repo.delete_group_compose_by_compose_id(compose_id)
-
 
     def __delete_created_compose_info(self, tenant, compose_id):
         services = self.get_compose_services(compose_id)
