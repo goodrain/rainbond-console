@@ -1650,6 +1650,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-upgrade.record-status-summary",
+      "title": "App upgrade record status summary",
+      "title_zh": "\u5e94\u7528\u5347\u7ea7\u8bb0\u5f55\u72b6\u6001\u6c47\u603b",
+      "interface_type": "service_method",
+      "interface": "console.services.upgrade_services.UpgradeService._update_app_record_status",
+      "code_paths": [
+        "console/services/upgrade_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/upgrade_services_test.py",
+          "selector": "UpgradeServiceRecordStatusTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-upgrade.records",
       "title": "App Upgrade Records",
       "title_zh": "App Upgrade Records",

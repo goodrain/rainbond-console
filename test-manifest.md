@@ -94,6 +94,7 @@
 | console.app-upgrade.info | 查询应用升级信息 | active | regression | console.services.mcp_query_service.call_tool[rainbond_get_app_upgrade_info] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_upgrade_info_returns_upgrade_items |
 | console.app-upgrade.last-record | App Upgrade Last Record | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.last-record] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_last_upgrade_record_returns_snapshot_metadata |
 | console.app-upgrade.record | App Upgrade Record | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.record] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_upgrade_record_returns_record_detail |
+| console.app-upgrade.record-status-summary | 应用升级记录状态汇总 | active | regression | console.services.upgrade_services.UpgradeService._update_app_record_status | console/tests/upgrade_services_test.py::UpgradeServiceRecordStatusTests |
 | console.app-upgrade.records | App Upgrade Records | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.records] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_query_app_upgrade_records_returns_paginated_items |
 | console.app-upgrade.rollback | App Upgrade Rollback | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.rollback] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_rollback_app_upgrade_record_calls_restore |
 | console.app-upgrade.rollback-records | App Upgrade Rollback Records | active | regression | console.services.mcp_query_service.call_tool[console.app-upgrade.rollback-records] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_rollback_records_returns_items |
@@ -1347,6 +1348,16 @@
 - 业务入口: `console.services.mcp_query_service.call_tool[console.app-upgrade.record]`
 - 代码路径: `console/services/mcp_query_service.py`
 - 测试路径: `console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_app_upgrade_record_returns_record_detail`
+
+### 应用升级记录状态汇总
+
+- Capability ID: `console.app-upgrade.record-status-summary`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.upgrade_services.UpgradeService._update_app_record_status`
+- 代码路径: `console/services/upgrade_services.py`
+- 测试路径: `console/tests/upgrade_services_test.py::UpgradeServiceRecordStatusTests`
 
 ### App Upgrade Records
 
