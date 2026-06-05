@@ -288,6 +288,24 @@ class MCPQueryRPCMixin(object):
                     "content": [{"type": "text", "text": json.dumps(err, ensure_ascii=False, default=str)}],
                     "structuredContent": err,
                 })
+            except Exception as exc:
+                # Catch-all so NO tool failure escapes the MCP error shape. Without it,
+                # non-ServiceHandleException errors (region CallApiError, AttributeError,
+                # ...) bubble up to DRF as an opaque 500 that rainbond-copilot's
+                # extractMcpErrorText cannot read, leaving telemetry error_message null.
+                logger.exception("mcp tool call failed: tool=%s", tool_name)
+                status_code, reason = self._describe_tool_exception(exc)
+                err = {
+                    "status_code": status_code,
+                    "error_code": status_code,
+                    "msg": "tool execution error",
+                    "msg_show": reason,
+                }
+                return self._jsonrpc_result(request_id, {
+                    "isError": True,
+                    "content": [{"type": "text", "text": json.dumps(err, ensure_ascii=False, default=str)}],
+                    "structuredContent": err,
+                })
 
         return self._jsonrpc_error(request_id, -32601, "Method not found: {}".format(method))
 
@@ -329,6 +347,43 @@ class MCPQueryRPCMixin(object):
     @staticmethod
     def _is_authenticated_user(user):
         return user is not None and hasattr(user, "user_id") and getattr(user, "is_authenticated", True)
+
+    @staticmethod
+    def _describe_tool_exception(exc):
+        """Map an arbitrary tool exception to (http_status, human readable reason)."""
+        status_raw = getattr(exc, "status", None)
+        try:
+            status_code = int(status_raw)
+        except (TypeError, ValueError):
+            status_code = 500
+        if not (100 <= status_code <= 599):
+            status_code = 500
+        return status_code, MCPQueryRPCMixin._extract_tool_error_reason(exc)
+
+    @staticmethod
+    def _extract_tool_error_reason(exc):
+        """Pull a concise, non-sensitive failure reason out of an exception.
+
+        Region CallApiError carries a dict `message` whose `body` usually holds the
+        upstream human message; prefer that over dumping the full url/body blob.
+        """
+        message = getattr(exc, "message", None)
+        if isinstance(message, dict):
+            body = message.get("body")
+            if isinstance(body, dict):
+                for key in ("msg_show", "msg", "message", "error"):
+                    value = body.get(key)
+                    if isinstance(value, str) and value.strip():
+                        return value.strip()[:1000]
+            httpcode = message.get("httpcode")
+            if httpcode is not None:
+                return "集群接口返回错误状态 {}".format(httpcode)
+        if isinstance(message, str) and message.strip():
+            return message.strip()[:1000]
+        text = str(exc).strip()
+        if text:
+            return text[:1000]
+        return exc.__class__.__name__
 
 
 class MCPQuerySSEView(MCPQueryRPCMixin, APIView):
