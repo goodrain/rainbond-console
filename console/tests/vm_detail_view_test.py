@@ -110,7 +110,8 @@ class AppVMDetailViewTests(TestCase):
             connections={
                 "vnc_url": expected,
                 "console_url": ""
-            }
+            },
+            runtime_status=mock.ANY,
         )
 
     def test_get_hides_vm_url_until_current_vm_pod_ip_is_ready(self):
@@ -139,5 +140,6 @@ class AppVMDetailViewTests(TestCase):
             connections={
                 "vnc_url": "",
                 "console_url": ""
-            }
+            },
+            runtime_status=mock.ANY,
         )

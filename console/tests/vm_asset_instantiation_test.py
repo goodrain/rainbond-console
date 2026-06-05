@@ -107,7 +107,8 @@ class VMAssetInstantiationTests(TestCase):
         )
         factory = APIRequestFactory()
         view = VMRunCreateView()
-        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns")
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns", enterprise_id="eid")
         view.response_region = "demo-region"
         view.user = SimpleNamespace(pk=1, nick_name="tester")
 
@@ -135,6 +136,10 @@ class VMAssetInstantiationTests(TestCase):
                 "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
                 return_value=False,
                 create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.vms.ensure_vm_platform_running",
+                    return_value=None,
+                    create=True), \
                 mock.patch(
                     "console.views.app_create.vm_run.app_service.create_vm_run_app",
                     return_value=(200, "创建成功", new_service),
@@ -167,7 +172,8 @@ class VMAssetInstantiationTests(TestCase):
         )
         factory = APIRequestFactory()
         view = VMRunCreateView()
-        view.tenant = SimpleNamespace(tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns")
+        view.tenant = SimpleNamespace(
+            tenant_id="tenant-a", tenant_name="demo-team", namespace="tenant-ns", enterprise_id="eid")
         view.response_region = "demo-region"
         view.user = SimpleNamespace(pk=1, nick_name="tester")
 
@@ -195,6 +201,10 @@ class VMAssetInstantiationTests(TestCase):
                 "console.views.app_create.vm_run.app_service.is_k8s_component_name_duplicate",
                 return_value=False,
                 create=True), \
+                mock.patch(
+                    "console.views.app_create.vm_run.vms.ensure_vm_platform_running",
+                    return_value=None,
+                    create=True), \
                 mock.patch(
                     "console.views.app_create.vm_run.app_service.create_vm_run_app",
                     return_value=(200, "创建成功", new_service),
