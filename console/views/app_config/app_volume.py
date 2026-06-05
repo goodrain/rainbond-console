@@ -148,6 +148,10 @@ class AppVolumeView(AppBaseView):
         settings['backup_policy'] = backup_policy
         settings['reclaim_policy'] = reclaim_policy
         settings['allow_expansion'] = allow_expansion
+        if self.service.extend_method == "vm" and volume_type != "config-file":
+            settings, _ = volume_service.build_vm_live_migration_volume_settings(
+                self.tenant, self.service, volume_type, settings)
+            volume_path = volume_service.resolve_vm_volume_path(self.service, volume_path)
         new_information = volume_service.json_service_volume(
             volume_type=volume_type,
             volume_name=volume_name,
@@ -403,6 +407,8 @@ class AppVolumeManageView(AppBaseView):
         else:
             volume_capacity = int(volume_capacity)
         target_volume_capacity = volume.volume_capacity if volume_capacity is None else volume_capacity
+        if self.service.extend_method == "vm" and volume.volume_type != "config-file":
+            new_volume_path = volume_service.resolve_vm_volume_path(self.service, new_volume_path, current_volume=volume)
         mode = request.data.get("mode")
         if mode is not None:
             mode = ensure_volume_mode(mode)

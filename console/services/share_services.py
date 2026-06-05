@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import time
 import requests
 
@@ -44,6 +45,8 @@ region_api = RegionInvokeApi()
 
 class ShareService(object):
     SNAPSHOT_TEMPLATE_TYPE = "application_version"
+    PLATFORM_PLUGIN_NO_INJECT = "NoInject"
+    VM_PUBLISH_CLOSED_STATUSES = ("closed", "stopped", "undeploy")
 
     @classmethod
     def is_snapshot_publish_version(cls, version_obj):
@@ -60,6 +63,10 @@ class ShareService(object):
     def is_snapshot_publish_record(self, share_record):
         return bool(self.get_snapshot_publish_version(share_record))
 
+    @staticmethod
+    def _is_vm_runtime_service(service):
+        return getattr(service, "extend_method", "") == "vm" or getattr(service, "service_source", "") == "vm_run"
+
     def check_service_source(self, team, team_name, group_id, region_name):
         service_list = share_repo.get_service_list_by_group_id(team=team, group_id=group_id)
         # 过滤掉 kubeblocks 类型的组件
@@ -69,15 +76,24 @@ class ShareService(object):
         if k8s_resources_list:
             data = {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}
         if service_list:
-            # 批量查询组件状态
-            service_ids = [service.service_id for service in service_list]
+            vm_services = [service for service in service_list if self._is_vm_runtime_service(service)]
+            if not vm_services:
+                return {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}
+            # VM publish still requires an explicit shutdown state before exporting the root disk.
+            service_ids = [service.service_id for service in vm_services]
             status_list = base_service.status_multi_service(
                 region=region_name, tenant_name=team_name, service_ids=service_ids, enterprise_id=team.enterprise_id)
-            for status in status_list:
-                if status["status"] == "running":
-                    data = {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}
-                    return data
-            data = {"code": 400, "success": False, "msg_show": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
+            status_map = {status.get("service_id"): status.get("status") for status in status_list}
+            for vm_service in vm_services:
+                if status_map.get(vm_service.service_id, "") not in self.VM_PUBLISH_CLOSED_STATUSES:
+                    return {
+                        "code": 400,
+                        "success": False,
+                        "msg_show": "虚拟机发布前必须关机，请先关闭虚拟机组件后再发布。",
+                        "list": list(),
+                        "bean": dict()
+                    }
+            data = {"code": 200, "success": True, "msg_show": "应用可以发布。", "list": list(), "bean": dict()}
         return data
 
     def get_service_ports_by_ids(self, service_ids):
@@ -308,6 +324,7 @@ class ShareService(object):
                 data['k8s_component_name'] = service.k8s_component_name
                 data['deploy_version'] = deploy_versions[data['service_id']] if deploy_versions else service.deploy_version
                 data['image'] = service.image
+                data['git_url'] = service.git_url
                 data['arch'] = service.arch
                 data['service_alias'] = service.service_alias
                 data['service_name'] = service.service_name
@@ -393,6 +410,10 @@ class ShareService(object):
                 data["component_graphs"] = sid_2_graphs.get(service.service_id, None)
                 data["labels"] = labels.get(service.component_id, {})
                 data["component_k8s_attributes"] = sid_2_k8s_attrs.get(service.service_id, None)
+                vm_publish_metadata = self._build_vm_publish_metadata(data)
+                if vm_publish_metadata:
+                    data["service_type"] = "vm"
+                    data["vm"] = vm_publish_metadata
 
                 all_data_map[service.service_id] = data
 
@@ -507,6 +528,18 @@ class ShareService(object):
         return event
 
     @staticmethod
+    def normalize_platform_plugin_positions(positions):
+        normalized_positions = []
+        for position in positions or []:
+            if not position:
+                continue
+            if position == ShareService.PLATFORM_PLUGIN_NO_INJECT:
+                return []
+            if position not in normalized_positions:
+                normalized_positions.append(position)
+        return normalized_positions
+
+    @staticmethod
     def _build_platform_plugin_config(share_version_info):
         if not share_version_info.get("is_platform_plugin", False):
             return None
@@ -517,7 +550,9 @@ class ShareService(object):
             "plugin_type": share_version_info.get("plugin_type", ""),
             "frontend_component": share_version_info.get("frontend_component", ""),
             "entry_path": share_version_info.get("entry_path", ""),
-            "inject_position": share_version_info.get("inject_position", []),
+            "inject_position": ShareService.normalize_platform_plugin_positions(
+                share_version_info.get("inject_position", [])
+            ),
             "menu_title": share_version_info.get("menu_title", ""),
             "route_path": share_version_info.get("route_path", ""),
         }
@@ -525,7 +560,7 @@ class ShareService(object):
     def _build_publish_template_from_snapshot(self, snapshot_template, app_model_id, app_model_name, version, governance_mode,
                                               share_version_info):
         app_template = copy.deepcopy(snapshot_template)
-        app_template["template_version"] = "v2"
+        app_template["template_version"] = self._resolve_publish_template_version(app_template.get("apps", []))
         app_template["group_key"] = app_model_id
         app_template["group_name"] = app_model_name
         app_template["group_version"] = version
@@ -552,6 +587,259 @@ class ShareService(object):
         service.pop("share_slug_path", None)
 
     @staticmethod
+    def _load_json_value(value, default):
+        if value in (None, ""):
+            return default
+        if isinstance(value, (dict, list)):
+            return value
+        try:
+            return json.loads(value)
+        except Exception:
+            return default
+
+    @classmethod
+    def _extract_vm_attr_value(cls, service, attr_name, default=None):
+        attrs = service.get("component_k8s_attributes") or []
+        for attr in attrs:
+            if attr.get("name") != attr_name:
+                continue
+            value = attr.get("attribute_value")
+            if attr.get("save_type") == "json":
+                return cls._load_json_value(value, default if default is not None else {})
+            return value if value not in (None, "") else default
+        return default
+
+    @classmethod
+    def _build_vm_publish_metadata(cls, service):
+        if service.get("extend_method") != "vm":
+            return None
+        boot_mode = cls._extract_vm_attr_value(service, "vm_boot_mode", "") or ""
+        boot_source_format = cls._extract_vm_attr_value(service, "vm_boot_source_format", "") or ""
+        disk_layout = cls._extract_vm_attr_value(service, "vm_disk_layout", []) or []
+        if not isinstance(disk_layout, list):
+            disk_layout = []
+        root_image = service.get("share_image") or service.get("image") or ""
+        fallback_root_source = service.get("git_url", "") or ""
+        volume_capacity_map = {}
+        for volume in service.get("service_volume_map_list", []) or []:
+            if not isinstance(volume, dict):
+                continue
+            volume_name = volume.get("volume_name")
+            if not volume_name:
+                continue
+            volume_capacity_map[str(volume_name)] = volume.get("volume_capacity")
+        normalized_layout = []
+        for index, disk in enumerate(disk_layout):
+            if not isinstance(disk, dict):
+                continue
+            item = dict(disk)
+            if item.get("disk_role") == "root":
+                item["image"] = item.get("image") or root_image
+                item["source_uri"] = item.get("source_uri") or fallback_root_source
+                item["source_type"] = "http-artifact"
+                item["format"] = item.get("format") or boot_source_format
+            volume_name = str(item.get("volume_name") or item.get("disk_key") or "")
+            if not item.get("request_size") and volume_capacity_map.get(volume_name):
+                item["request_size"] = "{}Gi".format(volume_capacity_map[volume_name])
+            item["order_index"] = item.get("order_index", index)
+            normalized_layout.append(item)
+        if not normalized_layout:
+            root_capacity = volume_capacity_map.get("disk")
+            normalized_layout = [{
+                "disk_key": "disk",
+                "disk_name": "system-disk",
+                "disk_role": "root",
+                "device_type": "disk",
+                "order_index": 0,
+                "volume_name": "disk",
+                "request_size": "{}Gi".format(root_capacity) if root_capacity else "",
+                "format": boot_source_format,
+                "source_type": "http-artifact",
+                "image": root_image,
+                "source_uri": fallback_root_source,
+                "checksum": "",
+            }]
+        return {
+            "boot_mode": boot_mode,
+            "machine_type": "",
+            "boot_source_format": boot_source_format,
+            "disk_layout": normalized_layout,
+        }
+
+    @classmethod
+    def _sync_vm_root_disk_image(cls, service, image_name):
+        vm = service.get("vm")
+        if not isinstance(vm, dict):
+            return
+        disk_layout = vm.get("disk_layout") or []
+        for disk in disk_layout:
+            if not isinstance(disk, dict):
+                continue
+            if str(disk.get("disk_role", "")).lower() == "root":
+                disk["image"] = image_name
+                disk["source_type"] = "http-artifact"
+                return
+
+    @staticmethod
+    def _extract_vm_root_source_uri(service):
+        vm = service.get("vm")
+        if not isinstance(vm, dict):
+            return service.get("git_url", "") or ""
+        for disk in vm.get("disk_layout") or []:
+            if not isinstance(disk, dict):
+                continue
+            if str(disk.get("disk_role", "")).lower() == "root":
+                return disk.get("source_uri") or service.get("git_url", "") or ""
+        return service.get("git_url", "") or ""
+
+    @staticmethod
+    def _is_vm_publish_component(service):
+        return bool(
+            isinstance(service, dict) and (
+                service.get("vm")
+                or service.get("extend_method") == "vm"
+                or service.get("service_type") == "vm"
+            )
+        )
+
+    @staticmethod
+    def _is_existing_vm_export_source(source_uri):
+        source_uri = str(source_uri or "").strip().lower()
+        return source_uri.startswith(("http://", "https://")) and "/volumes/" in source_uri and "disk.img" in source_uri
+
+    @staticmethod
+    def _sync_vm_root_disk_source_uri(service, source_uri):
+        vm = service.get("vm")
+        if not isinstance(vm, dict):
+            return
+        for disk in vm.get("disk_layout") or []:
+            if not isinstance(disk, dict):
+                continue
+            if str(disk.get("disk_role", "")).lower() == "root":
+                disk["source_uri"] = source_uri
+                disk["source_type"] = disk.get("source_type") or "registry"
+                return
+
+    @staticmethod
+    def _normalize_vm_export_name(value):
+        export_name = re.sub(r"[^a-z0-9-]+", "-", str(value or "").lower()).strip("-")
+        if not export_name:
+            export_name = "vm-root-export"
+        if len(export_name) > 48:
+            export_name = export_name[:48].strip("-")
+        return export_name or "vm-root-export"
+
+    def _prepare_vm_publish_image_source(self, region_name, tenant_name, service, record_event, wait_seconds=60,
+                                         interval_seconds=2, force_export=False):
+        source_uri = self._extract_vm_root_source_uri(service)
+        if not self._is_vm_publish_component(service):
+            return source_uri, ""
+        logger.info(
+            "[vm-publish] prepare vm image source: record_id=%s service_id=%s service_key=%s service_alias=%s "
+            "source_uri_present=%s force_export=%s",
+            getattr(record_event, "record_id", None),
+            getattr(record_event, "service_id", None) or service.get("service_id"),
+            getattr(record_event, "service_key", None) or service.get("service_key"),
+            getattr(record_event, "service_alias", None) or service.get("service_alias"),
+            bool(source_uri),
+            force_export,
+        )
+        if self._is_existing_vm_export_source(source_uri) and not force_export:
+            logger.info(
+                "[vm-publish] reuse existing vm export source: record_id=%s service_alias=%s",
+                getattr(record_event, "record_id", None),
+                getattr(record_event, "service_alias", None) or service.get("service_alias"),
+            )
+            return source_uri, ""
+
+        service_alias = getattr(record_event, "service_alias", None) or service.get("service_alias")
+        if not service_alias:
+            raise ServiceHandleException(msg="vm export failed", msg_show="虚拟机组件缺少服务别名，无法导出系统盘", status_code=500)
+        export_seed = getattr(record_event, "service_id", None) or service.get("service_id") or service_alias
+        export_name = self._normalize_vm_export_name("vm-root-{}".format(export_seed))
+
+        logger.info(
+            "[vm-publish] create vm export request: record_id=%s region=%s tenant=%s service_alias=%s export_name=%s",
+            getattr(record_event, "record_id", None),
+            region_name,
+            tenant_name,
+            service_alias,
+            export_name,
+        )
+        _, body = region_api.create_vm_export(region_name, tenant_name, service_alias, {
+            "name": export_name,
+            "description": "publish vm root disk",
+        })
+        bean = body.get("bean", {}) if isinstance(body, dict) else {}
+        download_url = bean.get("download_url") or bean.get("downloadUrl") or ""
+        download_token = bean.get("download_token") or bean.get("downloadToken") or ""
+        logger.info(
+            "[vm-publish] create vm export response: record_id=%s service_alias=%s export_name=%s phase=%s "
+            "has_download_url=%s",
+            getattr(record_event, "record_id", None),
+            service_alias,
+            export_name,
+            bean.get("phase", ""),
+            bool(download_url),
+        )
+        if download_url:
+            self._sync_vm_root_disk_source_uri(service, download_url)
+            return download_url, download_token
+
+        logger.info(
+            "[vm-publish] wait vm export ready: record_id=%s service_alias=%s export_name=%s wait_seconds=%s "
+            "interval_seconds=%s",
+            getattr(record_event, "record_id", None),
+            service_alias,
+            export_name,
+            wait_seconds,
+            interval_seconds,
+        )
+        deadline = time.time() + wait_seconds
+        while time.time() < deadline:
+            time.sleep(interval_seconds)
+            _, body = region_api.get_vm_export(region_name, tenant_name, service_alias, export_name)
+            bean = body.get("bean", {}) if isinstance(body, dict) else {}
+            download_url = bean.get("download_url") or bean.get("downloadUrl") or ""
+            download_token = bean.get("download_token") or bean.get("downloadToken") or ""
+            logger.info(
+                "[vm-publish] poll vm export: record_id=%s service_alias=%s export_name=%s phase=%s "
+                "has_download_url=%s",
+                getattr(record_event, "record_id", None),
+                service_alias,
+                export_name,
+                bean.get("phase", ""),
+                bool(download_url),
+            )
+            if download_url:
+                logger.info(
+                    "[vm-publish] vm export ready: record_id=%s service_alias=%s export_name=%s",
+                    getattr(record_event, "record_id", None),
+                    service_alias,
+                    export_name,
+                )
+                self._sync_vm_root_disk_source_uri(service, download_url)
+                return download_url, download_token
+
+        logger.warning(
+            "[vm-publish] vm export wait timeout: record_id=%s service_alias=%s export_name=%s wait_seconds=%s",
+            getattr(record_event, "record_id", None),
+            service_alias,
+            export_name,
+            wait_seconds,
+        )
+        raise ServiceHandleException(msg="vm export not ready", msg_show="虚拟机系统盘导出未就绪，请稍后重试", status_code=500)
+
+    @staticmethod
+    def _resolve_publish_template_version(services):
+        for service in services or []:
+            if not isinstance(service, dict):
+                continue
+            if service.get("vm") or service.get("extend_method") == "vm" or service.get("service_type") == "vm":
+                return "v3"
+        return "v2"
+
+    @staticmethod
     def _apply_slug_delivery(service, slug_info):
         service["service_slug"] = slug_info
         service["share_type"] = "slug"
@@ -569,27 +857,67 @@ class ShareService(object):
         event = self.create_publish_event(record_event, user.nick_name, event_type)
         record_event.event_id = event.event_id
         app_templetes = json.loads(app_version.app_template)
+        force_vm_export = not self.is_snapshot_publish_version(app_version)
         apps = app_templetes.get("apps", None)
         if not apps:
             raise ServiceHandleException(msg="get share app info failed", msg_show="分享的应用信息获取失败", status_code=500)
+        logger.info(
+            "[vm-publish] sync share event start: record_id=%s local_event_id=%s service_id=%s service_key=%s "
+            "service_alias=%s app_version=%s scope=%s force_vm_export=%s",
+            record_event.record_id,
+            record_event.ID,
+            record_event.service_id,
+            record_event.service_key,
+            record_event.service_alias,
+            app_version.version,
+            app_version.scope,
+            force_vm_export,
+        )
         new_apps = list()
         sid = transaction.savepoint()
         try:
             for app in apps:
                 # 处理事件的应用
                 if app["service_key"] == record_event.service_key:
+                    image_info = copy.deepcopy(app.get("service_image", None))
+                    if isinstance(image_info, dict) and self._is_vm_publish_component(app):
+                        logger.info(
+                            "[vm-publish] detected vm publish component: record_id=%s service_id=%s "
+                            "service_key=%s service_alias=%s",
+                            record_event.record_id,
+                            app.get("service_id"),
+                            app.get("service_key"),
+                            app.get("service_alias"),
+                        )
+                        vm_image_source, vm_image_token = self._prepare_vm_publish_image_source(
+                            region_name, tenant_name, app, record_event, force_export=force_vm_export)
+                        if vm_image_source:
+                            image_info["vm_image_source"] = vm_image_source
+                        if vm_image_token:
+                            image_info["vm_image_token"] = vm_image_token
                     body = {
                         "service_key": app["service_key"],
                         "app_version": app_version.version,
                         "deploy_version": app.get("deploy_version", ""),
+                        "arch": app.get("arch", "amd64"),
                         "event_id": event.event_id,
                         "share_user": user.nick_name,
                         "share_scope": app_version.scope,
-                        "image_info": app.get("service_image", None),
+                        "image_info": image_info,
                         "slug_info": app.get("service_slug", None)
                     }
                     re_body = None
                     try:
+                        logger.info(
+                            "[vm-publish] call region share_service: record_id=%s service_alias=%s "
+                            "is_vm=%s has_image_info=%s has_vm_image_source=%s has_slug_info=%s",
+                            record_event.record_id,
+                            record_event.service_alias,
+                            self._is_vm_publish_component(app),
+                            bool(image_info),
+                            isinstance(image_info, dict) and bool(image_info.get("vm_image_source")),
+                            bool(body.get("slug_info")),
+                        )
                         res, re_body = region_api.share_service(region_name, tenant_name, record_event.service_alias, body)
                         bean = re_body.get("bean")
                         if bean:
@@ -599,8 +927,20 @@ class ShareService(object):
                             record_event.update_time = datetime.datetime.now()
                             record_event.save()
                             image_name = bean.get("image_name", None)
+                            logger.info(
+                                "[vm-publish] region share_service accepted: record_id=%s service_alias=%s "
+                                "region_share_id=%s region_event_id=%s status=%s has_image_name=%s has_slug_path=%s",
+                                record_event.record_id,
+                                record_event.service_alias,
+                                record_event.region_share_id,
+                                record_event.event_id,
+                                record_event.event_status,
+                                bool(image_name),
+                                bool(bean.get("slug_path", None)),
+                            )
                             if image_name:
                                 app["share_image"] = image_name
+                                self._sync_vm_root_disk_image(app, image_name)
                                 app.pop("share_slug_path", None)
                             slug_path = bean.get("slug_path", None)
                             if slug_path:
@@ -704,6 +1044,15 @@ class ShareService(object):
         res, re_body = region_api.share_service_result(region_name, tenant_name, record_event.service_alias,
                                                        record_event.region_share_id)
         bean = re_body.get("bean")
+        logger.info(
+            "[vm-publish] poll region share result: record_id=%s service_alias=%s region_share_id=%s "
+            "current_status=%s remote_status=%s",
+            record_event.record_id,
+            record_event.service_alias,
+            record_event.region_share_id,
+            record_event.event_status,
+            bean.get("status", None) if isinstance(bean, dict) else None,
+        )
         if bean and bean.get("status", None):
             record_event.event_status = bean.get("status", None)
             record_event.save()
@@ -828,7 +1177,8 @@ class ShareService(object):
                         snapshot_template, app_model_id, app_model_name, version, governance_mode, share_version_info
                     )
                 else:
-                    app_template["template_version"] = "v2"
+                    app_template["template_version"] = self._resolve_publish_template_version(
+                        share_info.get("share_service_list", []))
                     app_template["group_key"] = app_model_id
                     app_template["group_name"] = app_model_name
                     app_template["group_version"] = version

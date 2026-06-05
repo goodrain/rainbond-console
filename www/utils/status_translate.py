@@ -20,6 +20,12 @@ def status_map():
         "activeAction": ['deploy', 'stop', 'reboot'],
     }
     # region
+    status_map["restoring"] = {
+        "status_cn": "恢复中",
+        "disabledAction": ['restart', 'visit', 'manage_container'],
+        "activeAction": ['deploy', 'stop', 'reboot'],
+    }
+    # region
     status_map["waiting"] = {
         "status_cn": "等待运行",
         "disabledAction": ["restart"],

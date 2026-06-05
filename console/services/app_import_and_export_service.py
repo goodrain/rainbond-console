@@ -115,9 +115,35 @@ class AppExportService(object):
 
     def __normalize_export_item(self, item):
         export_item = dict(item or {})
+        if export_item.get("extend_method") == "vm":
+            export_item["service_type"] = "vm"
         if not export_item.get("share_image") and export_item.get("image"):
             export_item["share_image"] = export_item["image"]
+        vm_payload = export_item.get("vm") or {}
+        disk_layout = vm_payload.get("disk_layout") or []
+        if isinstance(vm_payload, dict) and isinstance(disk_layout, list):
+            export_item["service_type"] = "vm"
+            root_image = export_item.get("share_image") or export_item.get("image") or ""
+            normalized_layout = []
+            for disk in disk_layout:
+                if not isinstance(disk, dict):
+                    continue
+                item_disk = dict(disk)
+                if str(item_disk.get("disk_role", "")).lower() == "root":
+                    item_disk["image"] = item_disk.get("image") or root_image
+                    item_disk["source_type"] = item_disk.get("source_type") or "registry"
+                normalized_layout.append(item_disk)
+            if normalized_layout:
+                vm_payload["disk_layout"] = normalized_layout
+                export_item["vm"] = vm_payload
         return export_item
+
+    @staticmethod
+    def __resolve_export_template_version(template):
+        for component in template.get("apps", []):
+            if component.get("vm") or component.get("extend_method") == "vm" or component.get("service_type") == "vm":
+                return "v3"
+        return template.get("template_version", "v2") or "v2"
 
     def __normalize_export_template(self, app_template):
         template = dict(app_template or {})
@@ -129,6 +155,7 @@ class AppExportService(object):
             self.__normalize_export_item(plugin)
             for plugin in template.get("plugins", [])
         ]
+        template["template_version"] = self.__resolve_export_template_version(template)
         return template
 
     def encode_image(self, image_url):

@@ -1,5 +1,6 @@
 #!/bin/sh
 
+set -e
 
 ########################################
 # Initialize configuration
@@ -55,6 +56,22 @@ spec:
 EOF
 }
 
+validate_gpu_runtime() {
+  if [ "${ENABLE_GPU:-false}" != "true" ]; then
+    return
+  fi
+
+  if [ ! -e "/dev/nvidia0" ] || [ ! -e "/dev/nvidiactl" ]; then
+    echo "ERROR: GPU mode requested but NVIDIA devices are not available inside the container"
+    exit 1
+  fi
+
+  if ! command -v nvidia-container-runtime >/dev/null 2>&1; then
+    echo "ERROR: GPU mode requested but nvidia-container-runtime is not installed in the dind image"
+    exit 1
+  fi
+}
+
 if [ ! -f "/opt/rainbond/k3s/server/static/rainbond-cluster.tgz" ] || \
    [ ! -f "/opt/rainbond/k3s/server/manifests/rainbond-cluster.yaml" ] || \
    [ ! -f "/opt/rainbond/k3s/agent/images/k3s-images.tar.zst" ]; then
@@ -62,6 +79,8 @@ if [ ! -f "/opt/rainbond/k3s/server/static/rainbond-cluster.tgz" ] || \
 else
   rainbond_cluster_yaml
 fi
+
+validate_gpu_runtime
 
 if [ ! -f "/root/.bash_aliases" ]; then
   echo "alias kubectl='k3s kubectl'" >> /root/.bash_aliases

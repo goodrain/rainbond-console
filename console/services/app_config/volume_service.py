@@ -30,6 +30,7 @@ volume_ready = "READY"
 
 
 class AppVolumeService(object):
+    VM_DEVICE_PATHS = ("/disk", "/lun", "/cdrom")
     SYSDIRS = [
         "/",
         "/bin",
@@ -111,6 +112,34 @@ class AppVolumeService(object):
 
         return base_opts
 
+    def normalize_volume_option_access_modes(self, option):
+        access_modes = option.get("access_mode", []) if isinstance(option, dict) else []
+        if isinstance(access_modes, (list, tuple)):
+            return [str(mode or "").upper() for mode in access_modes if str(mode or "").strip()]
+        if access_modes:
+            return [str(access_modes).upper()]
+        return []
+
+    def get_service_volume_option(self, tenant, service, volume_type):
+        options = self.get_service_support_volume_options(tenant, service)
+        for option in options:
+            if option.get("volume_type") == volume_type:
+                return option
+        return None
+
+    def build_vm_live_migration_volume_settings(self, tenant, service, volume_type, settings=None):
+        option = self.get_service_volume_option(tenant, service, volume_type)
+        if not option:
+            raise ServiceHandleException(
+                msg="vm live migration volume type not found",
+                msg_show="所选存储类型不存在或不可用",
+                status_code=409)
+
+        access_modes = self.normalize_volume_option_access_modes(option)
+        next_settings = dict(settings or {})
+        next_settings["access_mode"] = "RWX" if "RWX" in access_modes else (access_modes[0] if access_modes else "")
+        return next_settings, option
+
     def get_market_default_volume_type(self, tenant, service, fallback_volume_type):
         region_name = getattr(service, "service_region", "")
         enterprise_id = getattr(tenant, "enterprise_id", "")
@@ -186,6 +215,29 @@ class AppVolumeService(object):
         settings["volume_type"] = "share-file"
         settings["changed"] = True
         return settings
+
+    def resolve_market_restore_volume_settings(self, tenant, service, volume):
+        selected_volume_type = self.get_market_default_volume_type(tenant, service, volume["volume_type"])
+        settings = self.get_best_suitable_volume_settings(
+            tenant,
+            service,
+            selected_volume_type,
+            volume.get("access_mode"),
+            volume.get("share_policy"),
+            volume.get("backup_policy"),
+            None,
+            volume.get("volume_provider_name"),
+        )
+        if settings["changed"]:
+            volume_type = settings["volume_type"]
+            if volume.get("volume_capacity") not in (None, 0):
+                settings["volume_capacity"] = volume.get("volume_capacity")
+        else:
+            volume_type = selected_volume_type
+            settings["volume_capacity"] = volume.get("volume_capacity", 10)
+            if settings["volume_capacity"] == 0:
+                settings["volume_capacity"] = 10
+        return volume_type, settings
 
     def get_all_service_volumes_with_status(self, tenant, service):
         # Used by MCP tools that need full visibility into a component's
@@ -297,6 +349,45 @@ class AppVolumeService(object):
             # volume_path不能重复
             if path["volume_path"].startswith(volume_path + "/") or volume_path.startswith(path["volume_path"] + "/"):
                 raise ErrVolumePath(msg="path error", msg_show="已存在以{0}开头的路径".format(path["volume_path"]), status_code=412)
+
+    def normalize_vm_volume_device_path(self, volume_path):
+        path = str(volume_path or "").strip()
+        for base_path in self.VM_DEVICE_PATHS:
+            if path == base_path or path.startswith(base_path + "-"):
+                return base_path
+        return path
+
+    def resolve_vm_volume_path(self, service, volume_path, current_volume=None):
+        path = str(volume_path or "").strip()
+        if getattr(service, "extend_method", "") != ComponentType.vm.value:
+            return path
+
+        base_path = self.normalize_vm_volume_device_path(path)
+        if base_path not in self.VM_DEVICE_PATHS:
+            return path
+
+        current_path = str(getattr(current_volume, "volume_path", "") or "").strip()
+        if current_path and self.normalize_vm_volume_device_path(current_path) == base_path:
+            return current_path
+
+        existing_paths = set()
+        current_id = getattr(current_volume, "ID", None)
+        for volume in volume_repo.get_service_volumes(service.service_id):
+            if current_id and getattr(volume, "ID", None) == current_id:
+                continue
+            existing_path = str(getattr(volume, "volume_path", "") or "").strip()
+            if existing_path:
+                existing_paths.add(existing_path)
+
+        if base_path not in existing_paths:
+            return base_path
+
+        index = 1
+        while True:
+            candidate = "{}-{}".format(base_path, index)
+            if candidate not in existing_paths:
+                return candidate
+            index += 1
 
     def __setting_volume_access_mode(self, service, volume_type, settings):
         access_mode = settings.get("access_mode", "")
@@ -476,6 +567,12 @@ class AppVolumeService(object):
                 "volume_name": volume.volume_name
             }
             volume_repo.add_service_config_file(**file_data)
+        if service.extend_method == ComponentType.vm.value and volume_type != "config-file":
+            from console.services.virtual_machine import vms
+
+            volumes = volume_repo.get_service_volumes(service.service_id)
+            disk_layout = vms.list_vm_disks(service, volumes)
+            vms.save_vm_disk_layout(tenant.tenant_id, service.service_id, disk_layout)
         return volume
 
     def delete_service_volume_by_id(self, tenant, service, volume_id, user_name='', force=None):

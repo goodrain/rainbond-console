@@ -11,6 +11,29 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "openapi_client" not in sys.modules:
+    openapi_client_module = ModuleType("openapi_client")
+    configuration_module = ModuleType("openapi_client.configuration")
+    rest_module = ModuleType("openapi_client.rest")
+
+    class _OpenAPIConfiguration(object):
+        def __init__(self):
+            self.host = ""
+            self.ssl_ca_cert = None
+            self.verify_ssl = False
+
+    class _ApiException(Exception):
+        pass
+
+    openapi_client_module.ApiClient = object
+    openapi_client_module.MarketOpenapiApi = object
+    configuration_module.Configuration = _OpenAPIConfiguration
+    rest_module.ApiException = _ApiException
+    openapi_client_module.configuration = configuration_module
+    openapi_client_module.rest = rest_module
+    sys.modules["openapi_client"] = openapi_client_module
+    sys.modules["openapi_client.configuration"] = configuration_module
+    sys.modules["openapi_client.rest"] = rest_module
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
@@ -82,3 +105,68 @@ class MarketAppDefaultStorageClassTests(TestCase):
         self.assertEqual(config_files, [])
         self.assertEqual(volumes, ["created-volume"])
         self.assertEqual(create_volume.call_args[0][3], "nfs-storage")
+
+    # capability_id: console.market-app.restore-volume-capacity-helper
+    def test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes(self):
+        service = AppVolumeService()
+        volume = {
+            "volume_name": "disk",
+            "volume_path": "/disk",
+            "volume_type": "nfs-storage-nvme",
+            "volume_capacity": 30,
+            "access_mode": "RWX",
+            "share_policy": "exclusive",
+        }
+
+        with mock.patch.object(
+            service,
+            "get_market_default_volume_type",
+            return_value="nfs-storage-nvme",
+        ), mock.patch.object(
+            service,
+            "get_best_suitable_volume_settings",
+            return_value={"volume_type": "share-file", "changed": True},
+        ):
+            volume_type, settings = service.resolve_market_restore_volume_settings(
+                self.tenant,
+                self.component,
+                volume,
+            )
+
+        self.assertEqual(volume_type, "share-file")
+        self.assertEqual(settings["volume_capacity"], 30)
+
+    # capability_id: console.market-app.restore-preserves-volume-capacity-on-storage-fallback
+    def test_template_to_volumes_preserves_capacity_when_storage_type_changes(self):
+        installer = new_components_module.NewComponents.__new__(new_components_module.NewComponents)
+        installer.tenant = self.tenant
+
+        with mock.patch.object(
+            new_components_module.volume_service,
+            "get_market_default_volume_type",
+            return_value="nfs-storage-nvme",
+        ), mock.patch.object(
+            new_components_module.volume_service,
+            "get_best_suitable_volume_settings",
+            return_value={"volume_type": "share-file", "changed": True},
+        ), mock.patch.object(
+            new_components_module.volume_service,
+            "create_service_volume",
+            return_value="created-volume",
+        ) as create_volume:
+            installer._template_to_volumes(
+                self.component,
+                [
+                    {
+                        "volume_name": "disk",
+                        "volume_path": "/disk",
+                        "volume_type": "nfs-storage-nvme",
+                        "volume_capacity": 30,
+                        "access_mode": "RWX",
+                        "share_policy": "exclusive",
+                    }
+                ],
+            )
+
+        self.assertEqual(create_volume.call_args[0][3], "share-file")
+        self.assertEqual(create_volume.call_args[1]["settings"]["volume_capacity"], 30)

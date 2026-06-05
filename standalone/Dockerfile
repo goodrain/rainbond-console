@@ -24,7 +24,13 @@ COPY k3s-images-$TARGETARCH.tar.zst /tmp/k3s-images.tar.zst
 COPY --from=base /tmp/rainbond-cluster.tgz /tmp/rainbond-cluster.tgz
 COPY --from=base /tmp/k3s /bin/k3s
 
-RUN apt-get update && apt -y install ca-certificates && \
+RUN apt-get update && apt -y install ca-certificates curl gnupg && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /etc/apt/keyrings/nvidia-container-toolkit-keyring.gpg && \
+    curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+      sed 's#deb https://#deb [signed-by=/etc/apt/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' > /etc/apt/sources.list.d/nvidia-container-toolkit.list && \
+    apt-get update && \
+    apt -y install nvidia-container-toolkit && \
     rm -rf /var/lib/apt/lists/*
 
 ENV VERSION=${VERSION}

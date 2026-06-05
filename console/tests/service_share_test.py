@@ -12,6 +12,29 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "openapi_client" not in sys.modules:
+    openapi_client_module = ModuleType("openapi_client")
+    configuration_module = ModuleType("openapi_client.configuration")
+    rest_module = ModuleType("openapi_client.rest")
+
+    class _DummyConfiguration(object):
+        def __init__(self):
+            self.client_side_validation = False
+            self.host = ""
+            self.api_key = {}
+
+    class _DummyApiException(Exception):
+        status = 500
+        body = ""
+
+    openapi_client_module.ApiClient = object
+    openapi_client_module.MarketOpenapiApi = object
+    configuration_module.Configuration = _DummyConfiguration
+    rest_module.ApiException = _DummyApiException
+
+    sys.modules["openapi_client"] = openapi_client_module
+    sys.modules["openapi_client.configuration"] = configuration_module
+    sys.modules["openapi_client.rest"] = rest_module
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
@@ -24,6 +47,7 @@ from console.services.share_services import share_service as share_service_insta
 from console.services import share_services as share_services_module  # noqa: E402
 from console.views import service_share  # noqa: E402
 from console.views.service_share import ServiceShareInfoView, ServiceShareRecordView  # noqa: E402
+from console.repositories import share_repo as share_repo_module  # noqa: E402
 
 
 # capability_id: console.service-share.create-record
@@ -194,6 +218,119 @@ class ServiceShareRecordListViewTestCase(TestCase):
         self.assertEqual(response.data["data"]["list"], [])
 
 
+class ShareRepoVMServiceSourceTestCase(TestCase):
+    # capability_id: console.service-share.vm-qcow2-publish
+    def test_get_service_list_keeps_vm_run_components_for_publish(self):
+        query = mock.Mock()
+        query.exclude.return_value = query
+        team = mock.Mock(tenant_id=1)
+
+        with mock.patch.object(
+                share_repo_module.ServiceGroupRelation.objects,
+                "filter",
+                return_value=[mock.Mock(service_id="svc-vm")],
+        ), mock.patch.object(
+                share_repo_module.TenantServiceInfo.objects,
+                "filter",
+                return_value=query,
+        ) as service_filter:
+            result = share_repo_module.share_repo.get_service_list_by_group_id(team, 30)
+
+        service_filter.assert_called_once_with(service_id__in=["svc-vm"])
+        query.exclude.assert_called_once_with(service_source="third_party")
+        self.assertIs(result, query)
+
+
+# capability_id: console.service-share.stopped-component-publish
+# capability_id: console.service-share.vm-shutdown-guard
+class ShareServiceCheckServiceSourceTestCase(TestCase):
+    def test_check_service_source_allows_stopped_non_vm_component_publish(self):
+        team = mock.Mock(tenant_id=1, enterprise_id="eid")
+        service = mock.Mock(service_id="svc-web", extend_method="docker", service_source="source_code")
+
+        with mock.patch.object(share_services_module.share_repo, "get_service_list_by_group_id",
+                               return_value=[service]), \
+                mock.patch.object(share_services_module.k8s_resources_repo, "list_by_app_id", return_value=[]), \
+                mock.patch.object(
+                    share_services_module.base_service,
+                    "status_multi_service",
+                    return_value=[{"service_id": "svc-web", "status": "closed"}]):
+            result = share_service_instance.check_service_source(
+                team=team,
+                team_name="demo-team",
+                group_id=30,
+                region_name="demo-region",
+            )
+
+        self.assertEqual(200, result["code"])
+        self.assertTrue(result["success"])
+
+    def test_check_service_source_rejects_running_vm_publish(self):
+        team = mock.Mock(tenant_id=1, enterprise_id="eid")
+        service = mock.Mock(service_id="svc-vm", extend_method="vm")
+
+        with mock.patch.object(share_services_module.share_repo, "get_service_list_by_group_id",
+                               return_value=[service]), \
+                mock.patch.object(share_services_module.k8s_resources_repo, "list_by_app_id", return_value=[]), \
+                mock.patch.object(
+                    share_services_module.base_service,
+                    "status_multi_service",
+                    return_value=[{"service_id": "svc-vm", "status": "running"}]):
+            result = share_service_instance.check_service_source(
+                team=team,
+                team_name="demo-team",
+                group_id=30,
+                region_name="demo-region",
+            )
+
+        self.assertEqual(400, result["code"])
+        self.assertEqual("虚拟机发布前必须关机，请先关闭虚拟机组件后再发布。", result["msg_show"])
+
+    def test_check_service_source_allows_closed_vm_publish(self):
+        team = mock.Mock(tenant_id=1, enterprise_id="eid")
+        service = mock.Mock(service_id="svc-vm", extend_method="vm")
+
+        with mock.patch.object(share_services_module.share_repo, "get_service_list_by_group_id",
+                               return_value=[service]), \
+                mock.patch.object(share_services_module.k8s_resources_repo, "list_by_app_id", return_value=[]), \
+                mock.patch.object(
+                    share_services_module.base_service,
+                    "status_multi_service",
+                    return_value=[{"service_id": "svc-vm", "status": "closed"}]):
+            result = share_service_instance.check_service_source(
+                team=team,
+                team_name="demo-team",
+                group_id=30,
+                region_name="demo-region",
+            )
+
+        self.assertEqual(200, result["code"])
+        self.assertTrue(result["success"])
+
+    def test_check_service_source_only_checks_vm_status_in_mixed_app(self):
+        team = mock.Mock(tenant_id=1, enterprise_id="eid")
+        vm_service = mock.Mock(service_id="svc-vm", extend_method="vm", service_source="")
+        web_service = mock.Mock(service_id="svc-web", extend_method="docker", service_source="source_code")
+
+        with mock.patch.object(share_services_module.share_repo, "get_service_list_by_group_id",
+                               return_value=[vm_service, web_service]), \
+                mock.patch.object(share_services_module.k8s_resources_repo, "list_by_app_id", return_value=[]), \
+                mock.patch.object(
+                    share_services_module.base_service,
+                    "status_multi_service",
+                    return_value=[{"service_id": "svc-vm", "status": "closed"}]) as status_multi_service_mock:
+            result = share_service_instance.check_service_source(
+                team=team,
+                team_name="demo-team",
+                group_id=30,
+                region_name="demo-region",
+            )
+
+        self.assertEqual(200, result["code"])
+        status_multi_service_mock.assert_called_once_with(
+            region="demo-region", tenant_name="demo-team", service_ids=["svc-vm"], enterprise_id="eid")
+
+
 class ShareServiceCreateSnapshotPublishTestCase(TestCase):
     def setUp(self):
         self.tenant = mock.Mock(enterprise_id="eid", tenant_name="demo-team")
@@ -284,6 +421,7 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
                 mock.patch.object(share_services_module.RainbondCenterApp.objects, "filter", return_value=snapshot_filter), \
                 mock.patch("console.services.group_service.group_service.get_app_by_id",
                            return_value=self.runtime_app), \
+                mock.patch.object(share_services_module.ServiceSourceInfo.objects, "filter") as service_source_filter, \
                 mock.patch.object(share_services_module.ServiceShareRecordEvent.objects, "filter") as service_events_filter, \
                 mock.patch.object(share_services_module, "ServiceShareRecordEvent") as service_event_cls, \
                 mock.patch.object(share_services_module, "PluginShareRecordEvent") as plugin_event_cls, \
@@ -291,6 +429,7 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
                                   return_value=app_version_instance) as app_version_cls, \
                 mock.patch.object(share_services_module.app_store, "get_app_hub_info", return_value={"hub": "demo"}), \
                 mock.patch.object(share_services_module.app_store, "is_no_multiple_region_hub", return_value=False):
+            service_source_filter.return_value.values_list.return_value = []
             service_events_filter.return_value.delete.return_value = None
             service_event_cls.return_value.save = mock.Mock()
             plugin_event_cls.return_value.save = mock.Mock()
@@ -391,6 +530,413 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
         self.assertEqual(saved_component["service_image"], {"hub": "demo-image-target"})
         self.assertNotIn("share_slug_path", saved_component)
         self.assertNotIn("service_slug", saved_component)
+
+    def test_sync_event_passes_vm_image_source_for_vm_publish(self):
+        app_version = mock.Mock(
+            template_type=share_service_instance.SNAPSHOT_TEMPLATE_TYPE,
+            scope="team",
+            version="1.2.3",
+            update_time=None,
+            save=mock.Mock(),
+        )
+        app_version.app_template = json.dumps(
+            {
+                "template_version": "v3",
+                "group_key": "hidden-app-id",
+                "group_name": "demo-app",
+                "group_version": "0.0.2",
+                "governance_mode": "BUILD_IN_SERVICE_MESH",
+                "apps": [{
+                    "service_id": "svc-snapshot",
+                    "service_key": "svc-snapshot",
+                    "service_share_uuid": "svc-snapshot+svc-snapshot",
+                    "service_alias": "svc-snapshot",
+                    "service_cname": "svc-snapshot",
+                    "need_share": True,
+                    "arch": "amd64",
+                    "service_type": "vm",
+                    "service_related_plugin_config": [],
+                    "service_image": {"hub": "demo-image-target"},
+                    "share_image": "registry.example.com/team/windows-root:v1",
+                    "vm": {
+                        "boot_mode": "bios",
+                        "boot_source_format": "qcow2",
+                        "disk_layout": [{
+                            "disk_key": "disk",
+                            "disk_role": "root",
+                            "source_type": "registry",
+                            "image": "registry.example.com/team/windows-root:v1",
+                            "source_uri": "https://virt-export.example.com/volumes/manual22/disk.img.gz",
+                        }]
+                    },
+                }],
+                "plugins": [],
+                "k8s_resources": [],
+                "app_config_groups": [],
+                "ingress_http_routes": [],
+            }
+        )
+        record_event = mock.Mock(
+            record_id=self.share_record.ID,
+            service_key="svc-snapshot",
+            service_id="svc-snapshot",
+            service_alias="svc-snapshot",
+            save=mock.Mock(),
+        )
+        self.user.nick_name = "demo-user"
+
+        with mock.patch.object(
+                share_services_module.rainbond_app_repo,
+                "get_rainbond_app_version_by_record_id",
+                return_value=app_version), \
+                mock.patch.object(
+                    share_service_instance,
+                    "create_publish_event",
+                    return_value=mock.Mock(event_id="event-id")), \
+                mock.patch.object(share_services_module.region_api, "share_service", return_value=(None, {"bean": {"share_id": "sid", "event_id": "eid", "image_name": "registry.example.com/team/windows-root:v1"}})) as share_service_mock:
+            share_service_instance.sync_event(
+                self.user,
+                self.region_name,
+                self.team.tenant_name,
+                record_event,
+            )
+
+        _, call_args, _ = share_service_mock.mock_calls[0]
+        share_body = call_args[3]
+        self.assertEqual("amd64", share_body["arch"])
+        self.assertEqual(
+            "https://virt-export.example.com/volumes/manual22/disk.img.gz",
+            share_body["image_info"]["vm_image_source"],
+        )
+        self.assertNotIn("vm_image_token", share_body["image_info"])
+
+    def test_sync_event_passes_vm_export_token_for_live_vm_publish(self):
+        app_version = mock.Mock(
+            template_type="",
+            scope="team",
+            version="1.2.3",
+            update_time=None,
+            save=mock.Mock(),
+        )
+        app_version.app_template = json.dumps(
+            {
+                "template_version": "v3",
+                "group_key": "hidden-app-id",
+                "group_name": "demo-app",
+                "group_version": "0.0.2",
+                "governance_mode": "BUILD_IN_SERVICE_MESH",
+                "apps": [{
+                    "service_id": "svc-vm",
+                    "service_key": "svc-vm",
+                    "service_share_uuid": "svc-vm+svc-vm",
+                    "service_alias": "svc-vm",
+                    "service_cname": "svc-vm",
+                    "need_share": True,
+                    "arch": "amd64",
+                    "service_type": "vm",
+                    "service_related_plugin_config": [],
+                    "service_image": {"hub": "demo-image-target"},
+                    "vm": {
+                        "disk_layout": [{
+                            "disk_key": "disk",
+                            "disk_role": "root",
+                            "source_type": "registry",
+                            "image": "registry.example.com/team/windows-root:v1",
+                        }]
+                    },
+                }],
+                "plugins": [],
+                "k8s_resources": [],
+                "app_config_groups": [],
+                "ingress_http_routes": [],
+            }
+        )
+        record_event = mock.Mock(
+            record_id=self.share_record.ID,
+            service_key="svc-vm",
+            service_id="svc-vm",
+            service_alias="svc-vm",
+            save=mock.Mock(),
+        )
+        self.user.nick_name = "demo-user"
+
+        with mock.patch.object(
+                share_services_module.rainbond_app_repo,
+                "get_rainbond_app_version_by_record_id",
+                return_value=app_version), \
+                mock.patch.object(
+                    share_service_instance,
+                    "create_publish_event",
+                    return_value=mock.Mock(event_id="event-id")), \
+                mock.patch.object(
+                    share_services_module.region_api,
+                    "create_vm_export",
+                    return_value=(None, {"bean": {
+                        "phase": "Ready",
+                        "download_url": "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
+                        "download_token": "download-token",
+                    }})), \
+                mock.patch.object(
+                    share_services_module.region_api,
+                    "share_service",
+                    return_value=(None, {"bean": {
+                        "share_id": "sid",
+                        "event_id": "eid",
+                        "image_name": "registry.example.com/team/windows-root:v1",
+                    }})) as share_service_mock:
+            share_service_instance.sync_event(
+                self.user,
+                self.region_name,
+                self.team.tenant_name,
+                record_event,
+            )
+
+        _, call_args, _ = share_service_mock.mock_calls[0]
+        share_body = call_args[3]
+        self.assertEqual(
+            "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
+            share_body["image_info"]["vm_image_source"],
+        )
+        self.assertEqual("download-token", share_body["image_info"]["vm_image_token"])
+
+    def test_create_share_info_normalizes_no_inject_platform_plugin_positions_to_empty_list(self):
+        self.share_info["app_version_info"].update({
+            "is_platform_plugin": True,
+            "plugin_id": "rainbond-demo-plugin",
+            "plugin_name": "rainbond-demo-plugin",
+            "plugin_type": "JSInject",
+            "frontend_component": "svc-snapshot",
+            "entry_path": "/static/main.js",
+            "inject_position": ["NoInject"],
+            "menu_title": "Demo Plugin",
+            "route_path": "/plugins/demo-plugin",
+        })
+        app_version_instance = mock.Mock(save=mock.Mock(), arch="amd64")
+        snapshot_filter = mock.Mock()
+        snapshot_filter.first.return_value = self.target_template
+
+        with mock.patch.object(share_services_module.rainbond_app_repo, "get_app_version", return_value=self.snapshot_version), \
+                mock.patch.object(share_services_module.RainbondCenterApp.objects, "filter", return_value=snapshot_filter), \
+                mock.patch("console.services.group_service.group_service.get_app_by_id",
+                           return_value=self.runtime_app), \
+                mock.patch.object(share_services_module.ServiceSourceInfo.objects, "filter") as service_source_filter, \
+                mock.patch.object(share_services_module.ServiceShareRecordEvent.objects, "filter") as service_events_filter, \
+                mock.patch.object(share_services_module, "ServiceShareRecordEvent") as service_event_cls, \
+                mock.patch.object(share_services_module, "PluginShareRecordEvent") as plugin_event_cls, \
+                mock.patch.object(share_services_module, "RainbondCenterAppVersion",
+                                  return_value=app_version_instance) as app_version_cls, \
+                mock.patch.object(share_services_module.app_store, "get_app_hub_info", return_value={"hub": "demo"}), \
+                mock.patch.object(share_services_module.app_store, "is_no_multiple_region_hub", return_value=False):
+            service_source_filter.return_value.values_list.return_value = []
+            service_events_filter.return_value.delete.return_value = None
+            service_event_cls.return_value.save = mock.Mock()
+            plugin_event_cls.return_value.save = mock.Mock()
+
+            code, msg, bean = share_service_instance.create_share_info(
+                tenant=self.tenant,
+                region_name=self.region_name,
+                share_record=self.share_record,
+                share_team=self.team,
+                share_user=self.user,
+                share_info=self.share_info,
+                use_force=True,
+                user_id=None,
+            )
+
+        self.assertEqual(code, 200)
+        self.assertEqual(msg, "分享信息处理成功")
+        self.assertIsNotNone(bean)
+
+        saved_template = json.loads(app_version_cls.call_args[1]["app_template"])
+        self.assertEqual(saved_template["platform_plugin"]["inject_position"], [])
+
+
+class ShareServicePlatformPluginConfigTestCase(TestCase):
+    def test_normalize_platform_plugin_positions_drops_no_inject_marker(self):
+        positions = share_service_instance.normalize_platform_plugin_positions(
+            ["Platform", "NoInject", "Team"]
+        )
+
+        self.assertEqual(positions, [])
+
+    def test_normalize_platform_plugin_positions_preserves_regular_views(self):
+        positions = share_service_instance.normalize_platform_plugin_positions(
+            ["Platform", "Application", "Platform"]
+        )
+
+        self.assertEqual(positions, ["Platform", "Application"])
+
+
+class ShareServiceVMPublishMetadataTestCase(TestCase):
+    # capability_id: console.service-share.vm-qcow2-publish
+
+    def test_build_vm_publish_metadata_from_runtime_attrs(self):
+        service = {
+            "extend_method": "vm",
+            "image": "registry.example.com/team/windows-root:staging",
+            "git_url": "https://virt-export.example.com/volumes/manual22/disk.img.gz",
+            "service_volume_map_list": [{
+                "volume_name": "disk",
+                "volume_capacity": 80,
+            }],
+            "component_k8s_attributes": [
+                {"name": "vm_boot_mode", "save_type": "string", "attribute_value": "bios"},
+                {"name": "vm_boot_source_format", "save_type": "string", "attribute_value": "qcow2"},
+                {
+                    "name": "vm_disk_layout",
+                    "save_type": "json",
+                    "attribute_value": json.dumps([{
+                        "disk_key": "disk",
+                        "disk_name": "system-disk",
+                        "disk_role": "root",
+                        "device_type": "disk",
+                        "order_index": 0,
+                        "volume_name": "disk",
+                    }]),
+                },
+            ],
+        }
+
+        payload = share_service_instance._build_vm_publish_metadata(service)
+
+        self.assertEqual("bios", payload["boot_mode"])
+        self.assertEqual("qcow2", payload["boot_source_format"])
+        self.assertEqual("http-artifact", payload["disk_layout"][0]["source_type"])
+        self.assertEqual("registry.example.com/team/windows-root:staging", payload["disk_layout"][0]["image"])
+        self.assertEqual("80Gi", payload["disk_layout"][0]["request_size"])
+        self.assertEqual("https://virt-export.example.com/volumes/manual22/disk.img.gz", payload["disk_layout"][0]["source_uri"])
+
+    def test_sync_vm_root_disk_image_updates_root_disk_only(self):
+        service = {
+            "vm": {
+                "disk_layout": [
+                    {"disk_role": "root", "image": "registry.example.com/old/root:v1"},
+                    {"disk_role": "data", "image": "registry.example.com/old/data:v1"},
+                ]
+            }
+        }
+
+        share_service_instance._sync_vm_root_disk_image(
+            service, "registry.example.com/new/root:v2")
+
+        self.assertEqual("registry.example.com/new/root:v2", service["vm"]["disk_layout"][0]["image"])
+        self.assertEqual("http-artifact", service["vm"]["disk_layout"][0]["source_type"])
+        self.assertEqual("registry.example.com/old/data:v1", service["vm"]["disk_layout"][1]["image"])
+
+    def test_resolve_publish_template_version_uses_v3_for_vm_components(self):
+        version = share_service_instance._resolve_publish_template_version([
+            {
+                "service_type": "vm",
+                "extend_method": "vm",
+                "vm": {"boot_source_format": "qcow2"},
+            }
+        ])
+
+        self.assertEqual("v3", version)
+
+    def test_extract_vm_root_source_uri_falls_back_to_git_url(self):
+        service = {
+            "git_url": "https://virt-export.example.com/disk.img.gz",
+            "vm": {
+                "disk_layout": [{
+                    "disk_role": "root",
+                    "source_uri": "",
+                }]
+            }
+        }
+
+        source_uri = share_service_instance._extract_vm_root_source_uri(service)
+
+        self.assertEqual("https://virt-export.example.com/disk.img.gz", source_uri)
+
+    def test_prepare_vm_publish_image_source_creates_live_export_when_source_missing(self):
+        service = {
+            "service_id": "svc-vm",
+            "service_alias": "vm-demo",
+            "service_type": "vm",
+            "vm": {
+                "disk_layout": [{
+                    "disk_role": "root",
+                    "source_type": "registry",
+                    "image": "registry.example.com/team/windows-root:v1",
+                }]
+            },
+        }
+        record_event = mock.Mock(service_id="svc-vm", service_alias="vm-demo")
+
+        with mock.patch.object(
+                share_services_module.region_api,
+                "create_vm_export",
+                return_value=(None, {"bean": {
+                    "phase": "Ready",
+                    "download_url": "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
+                    "download_token": "download-token",
+                }}),
+        ) as create_export:
+            source, token = share_service_instance._prepare_vm_publish_image_source(
+                "demo-region", "demo-team", service, record_event, wait_seconds=0)
+
+        self.assertEqual("https://virt-export.default.svc/volumes/manual22/disk.img.gz", source)
+        self.assertEqual("download-token", token)
+        create_export.assert_called_once()
+        self.assertEqual(
+            "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
+            service["vm"]["disk_layout"][0]["source_uri"],
+        )
+
+    def test_prepare_vm_publish_image_source_reuses_existing_export_url(self):
+        service = {
+            "service_type": "vm",
+            "vm": {
+                "disk_layout": [{
+                    "disk_role": "root",
+                    "source_uri": "https://virt-export.default.svc/volumes/manual22/disk.img.gz",
+                }]
+            },
+        }
+        record_event = mock.Mock(service_id="svc-vm", service_alias="vm-demo")
+
+        with mock.patch.object(share_services_module.region_api, "create_vm_export") as create_export:
+            source, token = share_service_instance._prepare_vm_publish_image_source(
+                "demo-region", "demo-team", service, record_event, wait_seconds=0)
+
+        self.assertEqual("https://virt-export.default.svc/volumes/manual22/disk.img.gz", source)
+        self.assertEqual("", token)
+        create_export.assert_not_called()
+
+    def test_prepare_vm_publish_image_source_refreshes_existing_export_url_when_forced(self):
+        service = {
+            "service_id": "svc-vm",
+            "service_alias": "vm-demo",
+            "service_type": "vm",
+            "vm": {
+                "disk_layout": [{
+                    "disk_role": "root",
+                    "source_uri": "https://virt-export.default.svc/volumes/manual22/old-disk.img.gz",
+                }]
+            },
+        }
+        record_event = mock.Mock(service_id="svc-vm", service_alias="vm-demo")
+
+        with mock.patch.object(
+                share_services_module.region_api,
+                "create_vm_export",
+                return_value=(None, {"bean": {
+                    "phase": "Ready",
+                    "download_url": "https://virt-export.default.svc/volumes/manual22/new-disk.img.gz",
+                    "download_token": "new-download-token",
+                }}),
+        ) as create_export:
+            source, token = share_service_instance._prepare_vm_publish_image_source(
+                "demo-region", "demo-team", service, record_event, wait_seconds=0, force_export=True)
+
+        self.assertEqual("https://virt-export.default.svc/volumes/manual22/new-disk.img.gz", source)
+        self.assertEqual("new-download-token", token)
+        create_export.assert_called_once()
+        self.assertEqual(
+            "https://virt-export.default.svc/volumes/manual22/new-disk.img.gz",
+            service["vm"]["disk_layout"][0]["source_uri"],
+        )
 
 
 class ShareServicePreferredAppTestCase(TestCase):

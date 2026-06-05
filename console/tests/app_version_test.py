@@ -1138,6 +1138,97 @@ class AppVersionServiceRollbackPlanTestCase(TestCase):
         self.assertEqual(plan["restored"], {"demo"})
 
 
+# capability_id: console.app-version.rollback-vm-snapshot-guard
+class AppVersionServiceRollbackVMSnapshotGuardTestCase(TestCase):
+    def test_serialize_version_marks_vm_snapshot_not_rollbackable(self):
+        version_obj = mock.Mock(
+            ID=12,
+            version="1.0.0",
+            version_alias="",
+            app_version_info="vm snapshot",
+            create_time=None,
+            update_time=None,
+            group_id=42,
+            app_id="hidden-app-id",
+            template_type=app_version_service.SNAPSHOT_TEMPLATE_TYPE,
+            arch="amd64",
+            app_template=json.dumps({
+                "apps": [{
+                    "service_alias": "vm-service",
+                    "extend_method": "vm",
+                    "service_type": "vm",
+                    "service_source": "vm_run",
+                }]
+            }),
+        )
+
+        result = app_version_service._serialize_version(version_obj)
+
+        self.assertFalse(result["can_rollback"])
+        self.assertEqual(result["rollback_disabled_reason"], "携带虚拟机类型的模板快照不支持回滚升级")
+
+    def test_rollback_snapshot_rejects_vm_component_template_before_restore(self):
+        relation = mock.Mock(app_model_id="hidden-app-id")
+        target_template = {
+            "snapshot_id": "snapshot-id",
+            "apps": [{
+                "service_alias": "vm-service",
+                "extend_method": "vm",
+                "service_type": "vm",
+                "service_source": "vm_run",
+            }],
+        }
+        target_version = mock.Mock(
+            ID=12,
+            version="1.0.0",
+            app_template=json.dumps(target_template),
+        )
+        target_query = mock.Mock()
+        target_query.first.return_value = target_version
+        versions_query = mock.Mock()
+        filtered_versions = mock.Mock()
+        ordered_versions = mock.Mock()
+        versions_query.filter.return_value = filtered_versions
+        filtered_versions.order_by.return_value = ordered_versions
+        ordered_versions.first.return_value = target_version
+
+        restore_instance = mock.Mock()
+        restore_instance.restore.return_value = (mock.Mock(to_dict=mock.Mock(return_value={"ID": 9})), None)
+
+        with mock.patch.object(
+                app_version_service,
+                "get_hidden_template",
+                return_value=(relation, mock.Mock())), \
+                mock.patch.object(
+                    app_version_service_module.RainbondCenterAppVersion.objects,
+                    "filter",
+                    return_value=target_query), \
+                mock.patch.object(
+                    app_version_service_module.rainbond_app_repo,
+                    "get_rainbond_app_versions",
+                    return_value=versions_query), \
+                mock.patch.object(
+                    app_version_service,
+                    "_build_app_template",
+                    return_value={"apps": []}), \
+                mock.patch.object(
+                    app_version_service_module,
+                    "AppVersionRollbackRestore",
+                    return_value=restore_instance) as restore_cls:
+            with self.assertRaises(ServiceHandleException) as context:
+                app_version_service.rollback_snapshot(
+                    mock.Mock(tenant_id="tenant-id"),
+                    mock.Mock(region_name="demo-region"),
+                    mock.Mock(),
+                    mock.Mock(ID=42, group_name="demo-app"),
+                    12,
+                )
+
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(context.exception.msg_show, "携带虚拟机类型的模板快照不支持回滚升级")
+        restore_cls.assert_not_called()
+
+
 # capability_id: console.app-version.rollback-restore-components
 class AppVersionRollbackRestoreSnapshotCoverageTestCase(TestCase):
     def test_get_snapshot_keeps_components_missing_from_current_runtime(self):

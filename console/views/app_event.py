@@ -265,6 +265,7 @@ class AppEventsView(RegionTenantHeaderView):
                     events, total, has_next = event_service.get_target_events(target, target_id,
                                                                               self.tenant, self.service.service_region, int(page),
                                                                               int(page_size))
+                    events = event_service.merge_vm_restore_event(events, self.tenant, self.service, int(page))
                     relys = []
                     for event in events:
                         if event["opt_type"] == "INITIATING":

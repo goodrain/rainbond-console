@@ -1,7 +1,21 @@
+import collections
+import os
+import sys
+from types import ModuleType
 from unittest import TestCase, mock
 
-from console.exception.main import ServiceHandleException
-from console.services.platform_plugin_service import platform_plugin_service
+for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
+    if not hasattr(collections, attr):
+        setattr(collections, attr, getattr(collections.abc, attr))
+
+sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
+
+import django  # noqa: E402
+django.setup()
+
+from console.exception.main import ServiceHandleException  # noqa: E402
+from console.services.platform_plugin_service import platform_plugin_service  # noqa: E402
 
 
 class PlatformPluginServiceTests(TestCase):
@@ -278,6 +292,30 @@ class PlatformPluginServiceTests(TestCase):
         cloud_model.assert_called_once()
         call_args = cloud_model.call_args[0]
         self.assertEqual("arm-app-key", call_args[1])
+
+    # capability_id: console.platform-plugin.vm-runtime-status-guard
+    def test_ensure_vm_plugin_running_accepts_running_status(self):
+        with mock.patch.object(platform_plugin_service, "_get_installed_plugins", return_value={
+                "rainbond-vm": {
+                    "name": "rainbond-vm",
+                    "status": "RUNNING",
+                }
+        }):
+            platform_plugin_service.ensure_vm_plugin_running("eid", "region")
+
+    # capability_id: console.platform-plugin.vm-runtime-status-guard
+    def test_ensure_vm_plugin_running_rejects_non_running_status(self):
+        with mock.patch.object(platform_plugin_service, "_get_installed_plugins", return_value={
+                "rainbond-vm": {
+                    "name": "rainbond-vm",
+                    "status": "FAILED",
+                }
+        }):
+            with self.assertRaises(ServiceHandleException) as context:
+                platform_plugin_service.ensure_vm_plugin_running("eid", "region")
+
+        self.assertEqual(412, context.exception.status_code)
+        self.assertEqual("虚拟机功能未正常运行，不允许执行虚拟机相关操作", context.exception.msg_show)
 
     # ---------- arch field parsing ----------
 

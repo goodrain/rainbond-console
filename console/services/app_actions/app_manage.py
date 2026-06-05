@@ -53,6 +53,7 @@ from console.enum.component_enum import is_kubeblocks
 from django.conf import settings
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
+from www.apiclient.regionapibaseclient import build_region_error_msg_show
 from www.models.main import ServiceGroupRelation
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
@@ -90,6 +91,28 @@ class AppManageBase(object):
         self.ResourceOperationVerticalUpgrade = "vertical-upgrade"
         self.ResourceOperationHorizontalUpgrade = "horizontal-upgrade"
 
+    @staticmethod
+    def extract_region_error_msg_show(err, default="组件异常"):
+        if not err:
+            return default
+        body = getattr(err, "body", None)
+        if isinstance(body, dict):
+            msg = body.get("msg")
+            if msg:
+                return build_region_error_msg_show(msg)
+            nested = body.get("body")
+            if isinstance(nested, dict) and nested.get("msg"):
+                return build_region_error_msg_show(nested.get("msg"))
+            raw = body.get("raw")
+            if raw:
+                return str(raw)
+        message = getattr(err, "message", None)
+        if isinstance(message, dict):
+            msg = message.get("body", {}).get("msg") if isinstance(message.get("body"), dict) else None
+            if msg:
+                return build_region_error_msg_show(msg)
+        return default
+
     def cur_service_memory(self, tenant, cur_service):
         """查询当前组件占用的内存"""
         memory = 0
@@ -112,6 +135,25 @@ class AppManageBase(object):
 
 
 class AppManageService(AppManageBase):
+    @staticmethod
+    def _is_vm_restore_runtime_status(service, status):
+        if getattr(service, "extend_method", "") != ComponentType.vm.value:
+            return False
+        return status == "restoring"
+
+    def _cleanup_incomplete_vm_asset(self, tenant, service):
+        if getattr(service, "extend_method", "") != ComponentType.vm.value:
+            return
+        image_url = getattr(service, "image", "")
+        if not image_url:
+            return
+        asset = vm_repo.get_vm_image_instance_by_tenant_id_and_image_url(tenant.tenant_id, image_url)
+        if not asset:
+            return
+        if getattr(asset, "status", "") == "ready" and getattr(asset, "image_url", ""):
+            return
+        vm_repo.delete_vm_image_by_image_url(tenant.tenant_id, image_url)
+
     def start(self, tenant, service, user, oauth_instance):
         if service.service_source != "third_party" and not check_account_quota(tenant.creater, service.service_region,
                                                                                self.ResourceOperationStart):
@@ -125,7 +167,7 @@ class AppManageService(AppManageBase):
                 logger.debug("user {0} start app !".format(user.nick_name))
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, "组件异常"
+                return getattr(e, "status", 507) or 507, self.extract_region_error_msg_show(e)
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, "操作过于频繁，请稍后再试"
@@ -854,7 +896,9 @@ class AppManageService(AppManageBase):
                 service.save()
             except region_api.CallApiError as e:
                 logger.exception(e)
-                return 507, "组件异常"
+                body = getattr(e, "body", {}) or {}
+                message = body.get("msg_show") or body.get("msg") or body.get("message") or "组件异常"
+                return e.status or 507, message
             except region_api.CallApiFrequentError as e:
                 logger.exception(e)
                 return 409, "操作过于频繁，请稍后再试"
@@ -976,7 +1020,7 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             pass
         if service.create_status != "complete":
-            vm_repo.delete_vm_image_by_image_url(service.image)
+            self._cleanup_incomplete_vm_asset(tenant, service)
         env_var_repo.delete_service_env(tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(service.service_id)
         domain_repo.delete_service_domain(service.service_id)
@@ -1147,7 +1191,13 @@ class AppManageService(AppManageBase):
             status_info = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
                                                           tenant.enterprise_id)
             status = status_info["bean"]["cur_status"]
-            if status in ("running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal", "some_abnormal"):
+            if self._is_vm_restore_runtime_status(service, status):
+                return False
+            if service.service_source == "vm_run" and status == "abnormal":
+                return False
+            if status in (
+                    "running", "starting", "restoring", "stopping", "failure", "unKnow", "unusual", "abnormal",
+                    "some_abnormal"):
                 return True
         except region_api.CallApiError as e:
             if int(e.status) == 404:

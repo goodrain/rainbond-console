@@ -41,8 +41,12 @@ export const initialState = makeMap({
   contrastMode: false,
   controlPipes: makeOrderedMap(), // pipeId -> controlPipe
   controlStatus: makeMap(),
-  currentTopology: null,
-  currentTopologyId: null,
+  currentTopology: makeMap({
+    id: 'services',
+    parentId: null,
+    stats: makeMap()
+  }),
+  currentTopologyId: 'services',
   errorUrl: null,
   exportingGraph: false,
   forceRelayout: false,

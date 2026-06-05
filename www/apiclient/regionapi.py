@@ -323,6 +323,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
+    def get_vm_live_update_capability(self, region, tenant_name, service_alias):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/{}/services/{}/vm-live-update-capability".format(
+            tenant_region.region_tenant_name, service_alias)
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
     def change_memory(self, region, tenant_name, service_alias, body):
         """根据组件语言设置内存"""
 
@@ -991,6 +1001,25 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = "{0}/v2/tenants/{1}/services/{2}/share".format(url, tenant_region.region_tenant_name, service_alias)
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
+        return res, body
+
+    def create_vm_export(self, region, tenant_name, service_alias, body):
+        """创建 VM live export"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = "{0}/v2/tenants/{1}/services/{2}/vm-exports".format(url, tenant_region.region_tenant_name, service_alias)
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
+        return res, body
+
+    def get_vm_export(self, region, tenant_name, service_alias, export_name):
+        """查询 VM live export"""
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = "{0}/v2/tenants/{1}/services/{2}/vm-exports/{3}".format(
+            url, tenant_region.region_tenant_name, service_alias, export_name)
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
     def share_service_result(self, region, tenant_name, service_alias, region_share_id):
@@ -2676,6 +2705,25 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
+    def get_vm_capabilities(self, region, tenant_name):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/vm/capabilities"
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return res, body
+
+    def create_vm_snapshot(self, region, tenant_name, service_alias, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/{}/services/{}/vm-snapshots".format(
+            tenant_region.region_tenant_name, service_alias)
+
+        self._set_headers(token)
+        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
+        return res, body
+
     def get_node_info(self, region, node_name):
         region_info = self.get_region_info(region)
         if not region_info:
@@ -2867,16 +2915,17 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, check_status=check_status)
         return body
 
-    def get_files(self, region_name, tenant_name, service_alias, path, pod_name, namespace):
+    def get_files(self, region_name, tenant_name, service_alias, path, pod_name, container_name, namespace):
         """获取组件的构建版本"""
 
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = (url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias +
-               "/file-manage?path={0}&pod_name={1}&namespace={2}".format(path, pod_name, namespace))
+               "/file-manage?path={0}&pod_name={1}&container_name={2}&namespace={3}".format(
+                   path, pod_name, container_name, namespace))
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
+        res, body = self._get(url, self.default_headers, region=region_name, timeout=30)
         return body
 
     def get_pod_volume(self, region_name, tenant_name, pod_name, namespace, volume_path, service):

@@ -117,7 +117,11 @@ class NewComponents(object):
             # graphs
             graphs = self._template_to_component_graphs(cpt, component_tmpl.get("component_graphs"), cpt.arch)
             # component k8s attributes
-            k8s_attrs = self._template_to_k8s_attributes(cpt, component_tmpl.get("component_k8s_attributes"))
+            k8s_attrs = self._template_to_k8s_attributes(
+                cpt,
+                component_tmpl.get("component_k8s_attributes"),
+                component_tmpl,
+            )
             service_group_rel = ServiceGroupRelation(
                 service_id=cpt.component_id,
                 group_id=self.original_app.app_id,
@@ -183,7 +187,7 @@ class NewComponents(object):
         component.deploy_version = template.get("deploy_version")
         arch = template.get("arch", "amd64")
         component.arch = arch if arch else "amd64"
-        component.service_type = "application"
+        component.service_type = "vm" if template.get("service_type") == "vm" or template.get("vm") else "application"
         component.service_source = AppConstants.MARKET
         component.create_status = "complete"
         component.tenant_service_group_id = self.original_app.upgrade_group_id
@@ -369,24 +373,12 @@ class NewComponents(object):
                         file_content=volume["file_content"])
                     config_files.append(config_file)
                 else:
-                    selected_volume_type = volume_service.get_market_default_volume_type(
-                        self.tenant, component, volume["volume_type"])
-                    settings = volume_service.get_best_suitable_volume_settings(self.tenant, component, selected_volume_type,
-                                                                                volume.get("access_mode"),
-                                                                                volume.get("share_policy"),
-                                                                                volume.get("backup_policy"), None,
-                                                                                volume.get("volume_provider_name"))
+                    original_volume_type = volume["volume_type"]
+                    volume["volume_type"], settings = volume_service.resolve_market_restore_volume_settings(
+                        self.tenant, component, volume)
                     if settings["changed"]:
-                        logger.debug('volume type changed from {0} to {1}'.format(volume["volume_type"],
-                                                                                  settings["volume_type"]))
-                        volume["volume_type"] = settings["volume_type"]
-                        if volume["volume_type"] == "share-file":
-                            volume["volume_capacity"] = 0
-                    else:
-                        volume["volume_type"] = selected_volume_type
-                        settings["volume_capacity"] = volume.get("volume_capacity", 10)
-                        if settings["volume_capacity"] == 0:
-                            settings["volume_capacity"] = 10
+                        logger.debug('volume type changed from {0} to {1}'.format(original_volume_type,
+                                                                                  volume["volume_type"]))
                     if os.getenv("USE_SAAS"):
                         cloud_provider = os.getenv("CLOUD_PROVIDER", "")
                         if cloud_provider in ["baidu", "hsy"]:
@@ -626,16 +618,104 @@ class NewComponents(object):
                     create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         return new_labels
 
-    def _template_to_k8s_attributes(self, component, attributes):
-        if not attributes:
+    def _template_to_k8s_attributes(self, component, attributes, component_tmpl):
+        new_attributes = []
+        seen = set()
+        for attribute in attributes or []:
+            attr = ComponentK8sAttributes(
+                tenant_id=component.tenant_id,
+                component_id=component.service_id,
+                name=attribute["name"],
+                save_type=attribute["save_type"],
+                attribute_value=attribute["attribute_value"])
+            new_attributes.append(attr)
+            seen.add(attr.name)
+        vm_payload = self._template_to_vm_k8s_attributes(component, component_tmpl)
+        for attribute in vm_payload:
+            if attribute.name in seen:
+                continue
+            new_attributes.append(attribute)
+            seen.add(attribute.name)
+        return new_attributes
+
+    def _template_to_vm_k8s_attributes(self, component, component_tmpl):
+        vm_payload = (component_tmpl or {}).get("vm", {})
+        if not vm_payload:
             return []
         new_attributes = []
-        for attribute in attributes:
+        mapping = [
+            ("vm_boot_mode", "string", vm_payload.get("boot_mode", "")),
+            ("vm_boot_source_format", "string", vm_payload.get("boot_source_format", "")),
+        ]
+        for name, save_type, value in mapping:
+            if value in (None, ""):
+                continue
             new_attributes.append(
                 ComponentK8sAttributes(
                     tenant_id=component.tenant_id,
                     component_id=component.service_id,
-                    name=attribute["name"],
-                    save_type=attribute["save_type"],
-                    attribute_value=attribute["attribute_value"]))
+                    name=name,
+                    save_type=save_type,
+                    attribute_value=value))
+        disk_layout = vm_payload.get("disk_layout", [])
+        if disk_layout not in (None, []):
+            new_attributes.append(
+                ComponentK8sAttributes(
+                    tenant_id=component.tenant_id,
+                    component_id=component.service_id,
+                    name="vm_disk_layout",
+                    save_type="json",
+                    attribute_value=json.dumps(disk_layout)))
+        disk_imports = self._template_to_vm_disk_imports(vm_payload)
+        if disk_imports:
+            new_attributes.append(
+                ComponentK8sAttributes(
+                    tenant_id=component.tenant_id,
+                    component_id=component.service_id,
+                    name="vm_disk_imports",
+                    save_type="json",
+                    attribute_value=json.dumps(disk_imports)))
         return new_attributes
+
+    @staticmethod
+    def _template_to_vm_disk_imports(vm_payload):
+        disk_imports = {}
+        for disk in (vm_payload or {}).get("disk_layout", []) or []:
+            if not isinstance(disk, dict):
+                continue
+            image_url = disk.get("image_url") or disk.get("image") or disk.get("download_url") or ""
+            source_uri = disk.get("source_uri") or ""
+            source_type = str(disk.get("source_type") or "").strip().lower()
+            if not image_url and source_uri.startswith(("http://", "https://")):
+                image_url = source_uri
+                source_type = source_type or "http"
+            if not image_url:
+                continue
+            volume_name = str(disk.get("volume_name") or disk.get("disk_key") or disk.get("disk_name") or "")
+            if not volume_name:
+                continue
+            if not source_type:
+                if image_url.startswith(("http://", "https://")):
+                    source_type = "http"
+                else:
+                    source_type = "registry"
+            if source_type == "registry" and NewComponents._is_published_vm_root_artifact(disk, source_uri):
+                source_type = "http-artifact"
+            disk_imports[volume_name] = {
+                "volume_name": volume_name,
+                "disk_key": disk.get("disk_key") or volume_name,
+                "disk_name": disk.get("disk_name") or disk.get("disk_key") or volume_name,
+                "image_url": image_url,
+                "source_uri": source_uri,
+                "format": disk.get("format") or "",
+                "checksum": disk.get("checksum") or "",
+                "source_type": source_type,
+            }
+        return disk_imports
+
+    @staticmethod
+    def _is_published_vm_root_artifact(disk, source_uri):
+        if str((disk or {}).get("disk_role", "")).lower() != "root":
+            return False
+        source_uri = str(source_uri or "").strip().lower()
+        return source_uri.startswith(("http://", "https://")) and "/volumes/" in source_uri and "disk.img" in source_uri

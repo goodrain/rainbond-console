@@ -40,6 +40,9 @@ FREQUENT_OPERATION_MESSAGES = (
     "wait a moment please",
     "just wait a moment",
 )
+VM_SNAPSHOT_FEATURE_GATE_DISABLED_RE = re.compile(
+    r"snapshot feature gate not enabled",
+    re.IGNORECASE)
 
 
 def build_region_error_msg_show(message):
@@ -47,6 +50,9 @@ def build_region_error_msg_show(message):
     if msg_show:
         return msg_show
     msg_show = build_domain_conflict_msg_show(message)
+    if msg_show:
+        return msg_show
+    msg_show = build_vm_snapshot_feature_gate_msg_show(message)
     if msg_show:
         return msg_show
     return message
@@ -83,6 +89,12 @@ def build_domain_conflict_msg_show(message):
     return (
         "域名 {domain} 与命名空间 {namespace} 下资源 {resource} 的现有证书配置冲突，请先清理冲突配置后重试。"
     ).format(**details)
+
+
+def build_vm_snapshot_feature_gate_msg_show(message):
+    if not message or not VM_SNAPSHOT_FEATURE_GATE_DISABLED_RE.search(message):
+        return None
+    return "当前数据中心未启用 KubeVirt 虚拟机快照能力，无法创建虚拟机快照。请先启用 snapshot feature gate 后重试。"
 
 
 def is_frequent_operation_message(message):
@@ -404,6 +416,8 @@ class RegionApiBaseHttpClient(object):
             requests_args['body'] = request.body
         if 'fields' not in requests_args:
             requests_args['fields'] = QueryDict('', mutable=True)
+        if 'preload_content' not in requests_args:
+            requests_args['preload_content'] = False
 
         # Overwrite any headers and params from the incoming request with explicitly
         # specified values for the requests library.
@@ -420,10 +434,53 @@ class RegionApiBaseHttpClient(object):
         region = region_repo.get_region_by_region_name(region_name)
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
-        client = self.get_client(region_config=region)
-        response = client.request(method=request.method, timeout=20, url="{}{}".format(region.url, url), **requests_args)
 
-        proxy_response = HttpResponse(response.data, status=response.status)
+        if settings.MODULES["RegionToken"]:
+            original_authorization = None
+            for key in list(headers.keys()):
+                if key.lower() == "authorization":
+                    original_authorization = headers.pop(key)
+                    break
+
+            if original_authorization and "X-Original-Authorization" not in headers:
+                headers["X-Original-Authorization"] = original_authorization
+
+            headers["Authorization"] = getattr(region, "token", "") or os.environ.get("REGION_TOKEN", "")
+
+        requests_args['headers'] = headers
+
+        client = self.get_client(region_config=region)
+        response = client.request(
+            method=request.method,
+            timeout=urllib3.Timeout(connect=None, read=None),
+            url="{}{}".format(region.url, url),
+            **requests_args
+        )
+
+        content_type = response.headers.get("Content-Type", "")
+        is_event_stream = content_type.lower().startswith("text/event-stream")
+
+        if is_event_stream:
+            def event_stream():
+                try:
+                    for chunk in response.stream(4096):
+                        if chunk:
+                            yield chunk
+                finally:
+                    response.release_conn()
+
+            proxy_response = StreamingHttpResponse(
+                event_stream(),
+                status=response.status,
+                content_type=content_type or None,
+            )
+            proxy_response['Content-Encoding'] = 'identity'
+        else:
+            try:
+                body = response.data
+            finally:
+                response.release_conn()
+            proxy_response = HttpResponse(body, status=response.status)
 
         excluded_headers = set([
             # Hop-by-hop headers

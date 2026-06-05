@@ -14,8 +14,7 @@ class ShareRepo(object):
         if not svc_relations:
             return []
         svc_ids = [svc_rel.service_id for svc_rel in svc_relations]
-        return TenantServiceInfo.objects.filter(service_id__in=svc_ids).exclude(service_source="third_party").exclude(
-            service_source="vm_run")
+        return TenantServiceInfo.objects.filter(service_id__in=svc_ids).exclude(service_source="third_party")
 
     def get_port_list_by_service_ids(self, service_ids):
         port_list = TenantServicesPort.objects.filter(service_id__in=service_ids)
