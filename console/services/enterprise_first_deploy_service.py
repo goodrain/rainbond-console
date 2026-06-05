@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
+import re
 import threading
 import time
 from datetime import datetime
@@ -37,9 +38,13 @@ class EnterpriseFirstDeployService(object):
     FAILURE_STAGE_UNKNOWN = "unknown"
     MAX_FAILURE_EVENTS = 20
     MAX_FAILURE_LOG_LINES = 50
+    MAX_BUILD_FAILURE_LOG_LINES = 200
     MAX_FAILURE_LOG_LINE_LENGTH = 4096
     MAX_FAILURE_REASON_LENGTH = 1024
     RUNTIME_OBSERVE_WINDOW = 60
+    READINESS_FINAL_OBSERVE_WINDOW = 180
+    BUILD_FAILURE_LOG_WAIT_WINDOW = 60
+    BUILD_FAILURE_LOG_RETRY_INTERVAL = 5
     RUNTIME_EVENT_QUERY_SIZE = 20
     RESUME_INTERVAL = 15
     BUILD_OPT_KEYWORDS = ("build", "slug", "package")
@@ -79,6 +84,14 @@ class EnterpriseFirstDeployService(object):
         "livenessrestart",
         "initiating",
     }
+    SENSITIVE_QUOTED_ASSIGNMENT_RE = re.compile(
+        r"\b((?:password|passwd|pwd|token|secret|authorization|api[_-]?key))(\s*[:=]\s*)([\"'])(.*?)(\3)",
+        re.IGNORECASE)
+    SENSITIVE_BARE_ASSIGNMENT_RE = re.compile(
+        r"\b((?:password|passwd|pwd|token|secret|authorization|api[_-]?key))(\s*[:=]\s*)([^,\s\"';&]+)",
+        re.IGNORECASE)
+    AUTH_TOKEN_RE = re.compile(r"\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+", re.IGNORECASE)
+    URL_CREDENTIAL_RE = re.compile(r"(https?://)[^:/\s]+:[^@\s]+@", re.IGNORECASE)
 
     def __init__(self):
         self._running_keys = set()
@@ -214,7 +227,15 @@ class EnterpriseFirstDeployService(object):
         payload = enterprise_first_deploy_repo.load_payload(record)
         return self._sync_record(record, payload, tenant_name, region_name)
 
-    def _build_payload(self, enterprise_id, tenant_name, region_name, deploy_type, operator="", source_language="", service_id="", service_alias=""):
+    def _build_payload(self,
+                       enterprise_id,
+                       tenant_name,
+                       region_name,
+                       deploy_type,
+                       operator="",
+                       source_language="",
+                       service_id="",
+                       service_alias=""):
         enterprise = TenantEnterprise.objects.filter(enterprise_id=enterprise_id).first()
         payload = {
             "enterprise_id": enterprise_id,
@@ -326,7 +347,8 @@ class EnterpriseFirstDeployService(object):
             return self.STATUS_SUCCESS
 
         if "timeout" in normalized:
-            self._set_stage_failure(payload, self.FAILURE_STAGE_BUILD, tenant_name, region_name, stage_status=self.STAGE_STATUS_TIMEOUT)
+            self._set_stage_failure(
+                payload, self.FAILURE_STAGE_BUILD, tenant_name, region_name, stage_status=self.STAGE_STATUS_TIMEOUT)
             self._complete_tracking(record, payload, self.STATUS_FAILURE)
             return self.STATUS_FAILURE
 
@@ -393,7 +415,9 @@ class EnterpriseFirstDeployService(object):
                 return
             payload = enterprise_first_deploy_repo.load_payload(record)
             if payload.get("status") == self.STATUS_PENDING:
-                stage = self.FAILURE_STAGE_BUILD if payload.get("build_status") == self.STAGE_STATUS_PENDING else self.FAILURE_STAGE_RUNTIME
+                stage = (
+                    self.FAILURE_STAGE_BUILD
+                    if payload.get("build_status") == self.STAGE_STATUS_PENDING else self.FAILURE_STAGE_RUNTIME)
                 self._set_stage_failure(payload, stage, stage_status=self.STAGE_STATUS_TIMEOUT)
                 self._complete_tracking(record, payload, self.STATUS_FAILURE)
         finally:
@@ -448,7 +472,15 @@ class EnterpriseFirstDeployService(object):
         payload["{}_failure_events".format(stage)] = []
         payload["{}_failure_logs".format(stage)] = []
 
-    def _set_stage_failure(self, payload, stage, tenant_name="", region_name="", failed_events=None, reason="", stage_status="", failure_logs=None):
+    def _set_stage_failure(self,
+                           payload,
+                           stage,
+                           tenant_name="",
+                           region_name="",
+                           failed_events=None,
+                           reason="",
+                           stage_status="",
+                           failure_logs=None):
         failed_events = failed_events or []
         now = self._now()
         payload["payload_version"] = self.PAYLOAD_VERSION
@@ -495,12 +527,17 @@ class EnterpriseFirstDeployService(object):
             return self.STATUS_SUCCESS
         if payload.get("service_alias") or payload.get("service_aliases"):
             if self._runtime_window_elapsed(runtime_watch_started_at):
+                if self._is_soft_runtime_failure(payload) and not self._readiness_final_window_elapsed(runtime_watch_started_at):
+                    return None
+                failed_events, failure_logs, timeout_reason = self._collect_runtime_timeout_snapshot(
+                    payload, tenant_name, region_name, runtime_watch_started_at)
                 self._set_stage_failure(
                     payload,
                     self.FAILURE_STAGE_RUNTIME,
-                    reason=payload.get("runtime_failure_reason") or "runtime verification timeout",
+                    failed_events=payload.get("runtime_failure_events") or failed_events,
+                    reason=payload.get("runtime_failure_reason") or timeout_reason,
                     stage_status=self.STAGE_STATUS_TIMEOUT,
-                    failure_logs=payload.get("runtime_failure_logs") or [])
+                    failure_logs=payload.get("runtime_failure_logs") or failure_logs)
                 return self.STATUS_FAILURE
             return None
 
@@ -519,13 +556,182 @@ class EnterpriseFirstDeployService(object):
             return self.STATUS_FAILURE
 
         if self._runtime_window_elapsed(runtime_watch_started_at):
+            failed_events, failure_logs, timeout_reason = self._collect_runtime_timeout_snapshot(
+                payload, tenant_name, region_name, runtime_watch_started_at)
             self._set_stage_failure(
                 payload,
                 self.FAILURE_STAGE_RUNTIME,
-                reason=payload.get("runtime_failure_reason") or "runtime verification timeout",
-                stage_status=self.STAGE_STATUS_TIMEOUT)
+                failed_events=payload.get("runtime_failure_events") or failed_events,
+                reason=payload.get("runtime_failure_reason") or timeout_reason,
+                stage_status=self.STAGE_STATUS_TIMEOUT,
+                failure_logs=payload.get("runtime_failure_logs") or failure_logs)
             return self.STATUS_FAILURE
         return None
+
+    def _collect_runtime_timeout_snapshot(self, payload, tenant_name, region_name, runtime_watch_started_at):
+        aliases = self._runtime_service_aliases(payload)
+        service_id = self._first_service_id(payload)
+        lines = []
+        observed_pods = False
+        missing_pods = False
+        not_running = False
+        containers_not_ready = False
+        detail_unavailable = False
+
+        if not aliases:
+            reason = "runtime timeout: no service alias configured"
+            lines.append({"time": "", "message": reason})
+            return (
+                [self._build_runtime_timeout_event(service_id, reason, runtime_watch_started_at)],
+                self._build_runtime_snapshot_logs(lines),
+                reason,
+            )
+
+        for service_alias in aliases:
+            pods = self._get_service_pods_for_runtime(payload, tenant_name, region_name, service_alias)
+            if not pods:
+                missing_pods = True
+                lines.append({
+                    "time": "",
+                    "message": "runtime timeout: no pods observed for service_alias {}".format(service_alias),
+                })
+                continue
+            observed_pods = True
+            candidate_pods = [pod for pod in pods if pod.get("_group") == "new_pods"] or pods
+            for pod in candidate_pods:
+                pod_name = pod.get("pod_name") or ""
+                pod_status = pod.get("pod_status") or ""
+                pod_detail = self._get_runtime_pod_detail(region_name, tenant_name, service_alias, pod_name)
+                if not pod_detail:
+                    detail_unavailable = True
+                status_info = (pod_detail or {}).get("status") or {}
+                detail_status = status_info.get("type_str") or ""
+                status_reason = status_info.get("reason") or ""
+                status_message = status_info.get("message") or ""
+                if pod_status.upper() != "RUNNING" or (detail_status and detail_status.upper() != "RUNNING"):
+                    not_running = True
+                if self._is_soft_runtime_text(status_reason) or self._is_soft_runtime_text(status_message):
+                    containers_not_ready = True
+                lines.append({
+                    "time": "",
+                    "message": self._runtime_pod_snapshot_message(
+                        service_alias, pod_name, pod_status, detail_status, status_reason, status_message),
+                })
+                self._append_runtime_detail_snapshot_lines(lines, service_alias, pod_name, pod_detail)
+
+        if not observed_pods:
+            reason = "runtime timeout: no pods observed"
+        elif missing_pods:
+            reason = "runtime timeout: some components have no pods observed"
+        elif containers_not_ready:
+            reason = "runtime timeout: containers not ready"
+        elif not_running:
+            reason = "runtime timeout: pods not running"
+        elif detail_unavailable:
+            reason = "runtime timeout: pod detail unavailable"
+        else:
+            reason = "runtime timeout: no diagnostic failure observed"
+        return (
+            [self._build_runtime_timeout_event(service_id, reason, runtime_watch_started_at)],
+            self._build_runtime_snapshot_logs(lines),
+            reason,
+        )
+
+    def _runtime_service_aliases(self, payload):
+        aliases = []
+        primary = payload.get("service_alias")
+        if primary:
+            aliases.append(primary)
+        for alias in payload.get("service_aliases") or []:
+            if alias and alias not in aliases:
+                aliases.append(alias)
+        return aliases
+
+    @staticmethod
+    def _first_service_id(payload):
+        return (payload.get("service_ids") or [""])[0]
+
+    def _build_runtime_timeout_event(self, service_id, reason, runtime_watch_started_at):
+        now = self._now()
+        return {
+            "event_id": "runtime-timeout",
+            "service_id": service_id or "",
+            "opt_type": "RuntimeVerificationTimeout",
+            "status": self.STAGE_STATUS_TIMEOUT,
+            "final_status": "complete",
+            "message": self._shrink_text(reason, self.MAX_FAILURE_REASON_LENGTH),
+            "reason": self._shrink_text(reason, self.MAX_FAILURE_REASON_LENGTH),
+            "start_time": runtime_watch_started_at or "",
+            "end_time": now,
+        }
+
+    def _build_runtime_snapshot_logs(self, lines):
+        normalized_lines, truncated = self._normalize_log_lines(lines)
+        if not normalized_lines:
+            return []
+        return [{
+            "stage": self.FAILURE_STAGE_RUNTIME,
+            "event_id": "runtime-timeout",
+            "source": "runtime_snapshot",
+            "truncated": truncated,
+            "lines": normalized_lines,
+        }]
+
+    def _runtime_pod_snapshot_message(self, service_alias, pod_name, pod_status, detail_status, status_reason, status_message):
+        message = "service_alias {} pod {}: pod_status={}, detail_status={}".format(
+            service_alias, pod_name or "-", pod_status or "-", detail_status or "-")
+        if status_reason:
+            message = "{} reason={}".format(message, status_reason)
+        if status_message:
+            message = "{} message={}".format(message, status_message)
+        return message
+
+    def _append_runtime_detail_snapshot_lines(self, lines, service_alias, pod_name, pod_detail):
+        for event in ((pod_detail or {}).get("events") or [])[:5]:
+            message = event.get("message") or ""
+            if message:
+                lines.append({
+                    "time": event.get("age") or "",
+                    "message": "service_alias {} pod {} event {}: {}".format(
+                        service_alias, pod_name or "-", event.get("reason") or "-", message),
+                })
+        for container_group in ("init_containers", "containers"):
+            for container in ((pod_detail or {}).get(container_group) or [])[:5]:
+                state = container.get("state") or container.get("status") or ""
+                reason = container.get("reason") or ""
+                if not state and not reason:
+                    continue
+                lines.append({
+                    "time": "",
+                    "message": "service_alias {} pod {} {} {}: state={}, reason={}".format(
+                        service_alias, pod_name or "-", container_group, container.get("container_name") or "-",
+                        state or "-", reason or "-"),
+                })
+
+    def _is_soft_runtime_failure(self, payload):
+        opt_type = (payload.get("runtime_failure_opt_type") or "").lower()
+        if opt_type in self.SOFT_FAILURE_OPT_TYPES:
+            return True
+        if self._is_soft_runtime_text(payload.get("runtime_failure_reason")):
+            return True
+        for failure_log in payload.get("runtime_failure_logs") or []:
+            for line in failure_log.get("lines") or []:
+                if self._is_soft_runtime_text(line.get("message")):
+                    return True
+        return False
+
+    @staticmethod
+    def _is_soft_runtime_text(value):
+        value = (value or "").lower()
+        if not value:
+            return False
+        return (
+            "readiness" in value or
+            "就绪" in value or
+            "containersnotready" in value or
+            "liveness" in value or
+            "startup" in value
+        )
 
     def _detect_failure_stage(self, deploy_type, failed_events):
         for event in failed_events:
@@ -633,23 +839,34 @@ class EnterpriseFirstDeployService(object):
         event_id = failure_event.get("event_id")
         if not event_id:
             return []
-        try:
-            res, body = region_api.get_events_log(tenant_name, region_name, event_id)
-        except Exception as e:
-            logger.warning("get %s failure logs failed: %s", failure_stage, e)
-            return []
-        if not self._is_success_response(res):
-            return []
-        lines, truncated = self._normalize_log_lines((body or {}).get("list") or [])
-        if not lines:
-            return []
-        return [{
-            "stage": failure_stage,
-            "event_id": event_id,
-            "source": "event_log",
-            "truncated": truncated,
-            "lines": lines,
-        }]
+        attempts = self._failure_log_collect_attempts(failure_stage)
+        max_lines = self.MAX_BUILD_FAILURE_LOG_LINES if failure_stage == self.FAILURE_STAGE_BUILD else self.MAX_FAILURE_LOG_LINES
+        for attempt in range(attempts):
+            try:
+                res, body = region_api.get_events_log(tenant_name, region_name, event_id)
+            except Exception as e:
+                logger.warning("get %s failure logs failed: %s", failure_stage, e)
+                res, body = None, None
+            if self._is_success_response(res):
+                lines, truncated = self._normalize_log_lines((body or {}).get("list") or [], max_lines=max_lines)
+                if lines:
+                    return [{
+                        "stage": failure_stage,
+                        "event_id": event_id,
+                        "source": "event_log",
+                        "truncated": truncated,
+                        "lines": lines,
+                    }]
+            if attempt < attempts - 1:
+                time.sleep(self.BUILD_FAILURE_LOG_RETRY_INTERVAL)
+        return []
+
+    def _failure_log_collect_attempts(self, failure_stage):
+        if failure_stage != self.FAILURE_STAGE_BUILD:
+            return 1
+        retry_interval = max(int(self.BUILD_FAILURE_LOG_RETRY_INTERVAL), 1)
+        wait_window = max(int(self.BUILD_FAILURE_LOG_WAIT_WINDOW), 0)
+        return max(int(wait_window / retry_interval) + 1, 1)
 
     def _select_failure_log_event(self, failed_events, failure_stage):
         for event in failed_events:
@@ -660,9 +877,10 @@ class EnterpriseFirstDeployService(object):
                 return event
         return failed_events[0] if failed_events else None
 
-    def _normalize_log_lines(self, log_items):
-        truncated = len(log_items) > self.MAX_FAILURE_LOG_LINES
-        selected = log_items[-self.MAX_FAILURE_LOG_LINES:]
+    def _normalize_log_lines(self, log_items, max_lines=None):
+        max_lines = max_lines or self.MAX_FAILURE_LOG_LINES
+        truncated = len(log_items) > max_lines
+        selected = log_items[-max_lines:]
         lines = []
         for item in selected:
             if isinstance(item, dict):
@@ -671,6 +889,7 @@ class EnterpriseFirstDeployService(object):
             else:
                 message = str(item)
                 line_time = ""
+            message = self._redact_log_message(message)
             message, line_truncated = self._truncate_text(message, self.MAX_FAILURE_LOG_LINE_LENGTH)
             truncated = truncated or line_truncated
             if not message:
@@ -680,6 +899,24 @@ class EnterpriseFirstDeployService(object):
                 "message": message,
             })
         return lines, truncated
+
+    def _redact_log_message(self, message):
+        message = str(message or "")
+        message = self.URL_CREDENTIAL_RE.sub(r"\1<redacted>@", message)
+        message = self.AUTH_TOKEN_RE.sub(r"\1 <redacted>", message)
+        message = self.SENSITIVE_QUOTED_ASSIGNMENT_RE.sub(self._redact_quoted_sensitive_assignment, message)
+        return self.SENSITIVE_BARE_ASSIGNMENT_RE.sub(self._redact_bare_sensitive_assignment, message)
+
+    @staticmethod
+    def _redact_quoted_sensitive_assignment(match):
+        quote = match.group(3)
+        return "{}{}{}<redacted>{}".format(match.group(1), match.group(2), quote, quote)
+
+    @staticmethod
+    def _redact_bare_sensitive_assignment(match):
+        return "{}{}<redacted>".format(
+            match.group(1),
+            match.group(2))
 
     @staticmethod
     def _truncate_text(value, limit):
@@ -742,9 +979,6 @@ class EnterpriseFirstDeployService(object):
     def _inspect_service_pods(self, payload, tenant_name, region_name, runtime_watch_started_at, service_alias):
         pods = self._get_service_pods_for_runtime(payload, tenant_name, region_name, service_alias)
         if not pods:
-            if self._runtime_window_elapsed(runtime_watch_started_at):
-                payload["runtime_failure_reason"] = "runtime verification timeout"
-                payload["runtime_failure_logs"] = []
             return None
 
         candidate_pods = [pod for pod in pods if pod.get("_group") == "new_pods"] or pods
@@ -756,14 +990,16 @@ class EnterpriseFirstDeployService(object):
             if failure:
                 opt_type = (failure["event"].get("opt_type") or "").lower()
                 is_soft = opt_type in self.SOFT_FAILURE_OPT_TYPES
-                if is_soft and not self._runtime_window_elapsed(runtime_watch_started_at):
-                    # Probe/readiness failure during the observe window — container may still be initializing.
-                    # Store as a candidate and keep polling; only finalize after the window elapses.
+                if is_soft:
                     all_running = False
+                    # Probe/readiness failures can be transient. Keep the first snapshot, but only finalize
+                    # after the extended readiness window.
+                    payload["runtime_failure_opt_type"] = opt_type
                     payload["runtime_failure_reason"] = self._shrink_text(failure["reason"], self.MAX_FAILURE_REASON_LENGTH)
                     if not payload.get("runtime_failure_logs"):
                         payload["runtime_failure_logs"] = failure["logs"]
-                    continue
+                    if not self._readiness_final_window_elapsed(runtime_watch_started_at):
+                        continue
                 self._set_stage_failure(
                     payload,
                     self.FAILURE_STAGE_RUNTIME,
@@ -779,6 +1015,7 @@ class EnterpriseFirstDeployService(object):
                 pod_status_info = (pod_detail or {}).get("status") or {}
                 status_message = (pod_status_info.get("message") or pod_status_info.get("reason") or
                                   pod_status or detail_status or "runtime verification timeout")
+                payload["runtime_failure_opt_type"] = pod_status_info.get("reason") or pod_status or detail_status
                 payload["runtime_failure_reason"] = self._shrink_text(status_message, self.MAX_FAILURE_REASON_LENGTH)
                 if not payload.get("runtime_failure_logs"):
                     pod_events = (pod_detail or {}).get("events") or []
@@ -909,14 +1146,14 @@ class EnterpriseFirstDeployService(object):
                 continue
             lines.append({
                 "time": event.get("age") or "",
-                "message": self._shrink_text(message, self.MAX_FAILURE_LOG_LINE_LENGTH),
+                "message": self._shrink_text(self._redact_log_message(message), self.MAX_FAILURE_LOG_LINE_LENGTH),
             })
         if not lines and status:
             message = status.get("message") or status.get("reason") or ""
             if message:
                 lines.append({
                     "time": "",
-                    "message": self._shrink_text(message, self.MAX_FAILURE_LOG_LINE_LENGTH),
+                    "message": self._shrink_text(self._redact_log_message(message), self.MAX_FAILURE_LOG_LINE_LENGTH),
                 })
         if not lines:
             return []
@@ -971,6 +1208,14 @@ class EnterpriseFirstDeployService(object):
         if not watch_time or not current_time:
             return True
         return (current_time - watch_time).total_seconds() >= self.RUNTIME_OBSERVE_WINDOW
+
+    def _readiness_final_window_elapsed(self, runtime_watch_started_at):
+        watch_time = self._parse_time(runtime_watch_started_at)
+        current_time = self._parse_time(self._now())
+        if not watch_time or not current_time:
+            return True
+        final_window = max(self.RUNTIME_OBSERVE_WINDOW, self.READINESS_FINAL_OBSERVE_WINDOW)
+        return (current_time - watch_time).total_seconds() >= final_window
 
     @staticmethod
     def _parse_time(value):

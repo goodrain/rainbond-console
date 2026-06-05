@@ -706,16 +706,33 @@ class TeamService(object):
             
             if hub_type == "Harbor":
                 # Harbor API
-                api_url = "{}/api/v2.0/projects".format(base_url)
-                response = requests.get(
-                    api_url,
-                    auth=(username, password),
-                    verify=False,
-                    timeout=10
-                )
-                if response.status_code == 200:
+                current_page = 1
+                fetch_page_size = 100
+                namespaces = []
+
+                while True:
+                    api_url = "{}/api/v2.0/projects?page={}&page_size={}".format(
+                        base_url, current_page, fetch_page_size)
+                    response = requests.get(
+                        api_url,
+                        auth=(username, password),
+                        verify=False,
+                        timeout=10
+                    )
+                    if response.status_code != 200:
+                        break
+
                     projects = response.json()
-                    return [project["name"] for project in projects]
+                    namespaces.extend([project["name"] for project in projects])
+                    total_count = response.headers.get('X-Total-Count')
+
+                    if not projects:
+                        return namespaces
+                    if total_count and current_page * fetch_page_size >= int(total_count):
+                        return namespaces
+                    if not total_count and len(projects) < fetch_page_size:
+                        return namespaces
+                    current_page += 1
                     
             elif hub_type == "Docker":
                 if "docker.io" in domain:
