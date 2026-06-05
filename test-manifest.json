@@ -8339,6 +8339,422 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.app-version.create-app-from-snapshot-invalid-name",
+      "title": "create_app_from_snapshot_version rejects illegal target app name",
+      "title_zh": "\u4ece\u5feb\u7167\u7248\u672c\u521b\u5efa\u5e94\u7528\u65f6\u62d2\u7edd\u975e\u6cd5\u76ee\u6807\u5e94\u7528\u540d",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-version.create-app-from-snapshot-invalid-name]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_from_snapshot_version_returns_structured_details_for_illegal_target_app_name"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-version.target-app-name-schema",
+      "title": "create_app_from_snapshot_version tool exposes target app name constraints",
+      "title_zh": "create_app_from_snapshot_version \u5de5\u5177\u66b4\u9732\u76ee\u6807\u5e94\u7528\u540d\u7ea6\u675f",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.list_tools[console.app-version.target-app-name-schema]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_create_app_from_snapshot_version_tool_exposes_target_app_name_constraints"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app.restart-component-operation",
+      "title": "operate_app restart maps to batch action",
+      "title_zh": "operate_app \u91cd\u542f\u6620\u5c04\u5230\u6279\u91cf\u64cd\u4f5c",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app.restart-component-operation]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_operate_app_restart_calls_batch_action"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.autoscaler-invalid-metrics",
+      "title": "manage_component_autoscaler rejects incomplete metric before service call",
+      "title_zh": "manage_component_autoscaler \u5728\u8c03\u7528\u670d\u52a1\u524d\u62d2\u7edd\u4e0d\u5b8c\u6574\u6307\u6807",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.autoscaler-invalid-metrics]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_autoscaler_create_rejects_incomplete_metric_before_service_call"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.default-resource-spec",
+      "title": "Component creation tools expose default resource guidance",
+      "title_zh": "\u7ec4\u4ef6\u521b\u5efa\u5de5\u5177\u66b4\u9732\u9ed8\u8ba4\u8d44\u6e90\u89c4\u683c\u6307\u5f15",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.list_tools[console.component.default-resource-spec]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_component_creation_tools_expose_default_resource_guidance"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.port-batch-add",
+      "title": "manage_component_ports batch add delegates to batch service",
+      "title_zh": "manage_component_ports \u6279\u91cf\u65b0\u589e\u59d4\u6258\u7ed9\u6279\u91cf\u670d\u52a1",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.port-batch-add]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_add_delegates_to_batch_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.port-batch-enable-inner",
+      "title": "manage_component_ports batch enable inner loads context once",
+      "title_zh": "manage_component_ports \u6279\u91cf\u5f00\u542f\u5185\u7f51\u7aef\u53e3\u53ea\u52a0\u8f7d\u4e00\u6b21\u4e0a\u4e0b\u6587",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.port-batch-enable-inner]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_enable_inner_loads_context_once"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.port-batch-enable-outer",
+      "title": "manage_component_ports batch enable outer accepts integer items",
+      "title_zh": "manage_component_ports \u6279\u91cf\u5f00\u542f\u5916\u7f51\u7aef\u53e3\u63a5\u53d7\u6574\u6570\u9879",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.port-batch-enable-outer]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_enable_outer_accepts_integer_items"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.gateway.create-app-invalid-display-name",
+      "title": "create_app returns structured details for illegal app name",
+      "title_zh": "create_app \u5bf9\u975e\u6cd5\u5e94\u7528\u540d\u8fd4\u56de\u7ed3\u6784\u5316\u9519\u8bef\u8be6\u60c5",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.gateway.create-app-invalid-display-name]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_returns_structured_details_for_illegal_app_name"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.local-path-create-schema",
+      "title": "create_component_from_local_package tool schema exposes server-side local path guidance",
+      "title_zh": "create_component_from_local_package \u5de5\u5177 schema \u66b4\u9732\u670d\u52a1\u7aef\u672c\u5730\u8def\u5f84\u6307\u5f15",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.list_tools[console.package-upload.local-path-create-schema]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_create_component_from_local_package_tool_schema_exposes_server_side_local_path_guidance"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.http-expired-jwt",
+      "title": "MCP HTTP endpoint returns 401 for expired JWT",
+      "title_zh": "MCP HTTP \u63a5\u53e3\u5bf9\u8fc7\u671f JWT \u8fd4\u56de 401",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.mcp_query.MCPQueryHTTPView.post",
+      "code_paths": [
+        "console/views/mcp_query.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_view_test.py",
+          "selector": "MCPQuerySSEViewTests.test_http_post_returns_401_for_expired_jwt"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-root-disk-selected-storage-type",
+      "title": "update_check_app uses selected storage type for new VM root disk",
+      "title_zh": "update_check_app \u4e3a\u65b0\u5efa\u865a\u62df\u673a\u6839\u76d8\u4f7f\u7528\u6240\u9009\u5b58\u50a8\u7c7b\u578b",
+      "interface_type": "service_method",
+      "interface": "console.services.app.AppService.update_check_app",
+      "code_paths": [
+        "console/services/app.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_live_migration_storage_test.py",
+          "selector": "VMLiveMigrationStorageTests.test_update_check_app_uses_selected_storage_type_for_new_vm_root_disk"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "rainbond-console.vm-live-migration-unique-disk-path",
+      "title": "resolve_vm_volume_path allocates a unique disk path for VM live migration",
+      "title_zh": "resolve_vm_volume_path \u4e3a\u865a\u62df\u673a\u70ed\u8fc1\u79fb\u5206\u914d\u552f\u4e00\u78c1\u76d8\u8def\u5f84",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.volume_service.AppVolumeService.resolve_vm_volume_path",
+      "code_paths": [
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_live_migration_storage_test.py",
+          "selector": "VMLiveMigrationStorageTests.test_resolve_vm_volume_path_allocates_unique_disk_suffix_for_duplicate_vm_device_path"
+        },
+        {
+          "path": "console/tests/vm_live_migration_storage_test.py",
+          "selector": "VMLiveMigrationStorageTests.test_resolve_vm_volume_path_keeps_existing_path_when_editing_same_vm_device_type"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "rainbond-console.vm-export.asset-ready-storage-status",
+      "title": "VM asset readiness requires ready status and image url",
+      "title_zh": "\u865a\u62df\u673a\u8d44\u4ea7\u5c31\u7eea\u9700\u8981 ready \u72b6\u6001\u4e0e\u955c\u50cf\u5730\u5740",
+      "interface_type": "service_method",
+      "interface": "console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_create_flow_regression_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "rainbond-console.vm-run.vm-export-ignore-stale-boot-mode",
+      "title": "resolve_vm_boot_mode ignores stale asset boot mode for Windows ISO",
+      "title_zh": "resolve_vm_boot_mode \u5bf9 Windows ISO \u5ffd\u7565\u8fc7\u671f\u8d44\u4ea7\u542f\u52a8\u6a21\u5f0f",
+      "interface_type": "service_method",
+      "interface": "console.services.virtual_machine.VirtualMachineService.resolve_vm_boot_mode",
+      "code_paths": [
+        "console/services/virtual_machine.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_create_flow_regression_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "rainbond-console.vm-run.vm-export-multi-disk-create",
+      "title": "VM run create supports multi-disk asset instantiation",
+      "title_zh": "\u865a\u62df\u673a\u8fd0\u884c\u521b\u5efa\u652f\u6301\u591a\u78c1\u76d8\u8d44\u4ea7\u5b9e\u4f8b\u5316",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
+      "code_paths": [
+        "console/views/app_create/vm_run.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.restore-preserves-volume-capacity-on-storage-fallback",
+      "title": "Market restore preserves volume capacity when storage type falls back",
+      "title_zh": "\u5e02\u573a\u6062\u590d\u5728\u5b58\u50a8\u7c7b\u578b\u56de\u9000\u65f6\u4fdd\u7559\u5377\u5bb9\u91cf",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app.new_components.NewComponents._template_to_volumes",
+      "code_paths": [
+        "console/services/market_app/new_components.py",
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_storage_test.py",
+          "selector": "MarketAppDefaultStorageClassTests.test_template_to_volumes_preserves_capacity_when_storage_type_changes"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.restore-volume-capacity-helper",
+      "title": "resolve_market_restore_volume_settings preserves capacity when storage type changes",
+      "title_zh": "resolve_market_restore_volume_settings \u5728\u5b58\u50a8\u7c7b\u578b\u53d8\u5316\u65f6\u4fdd\u7559\u5bb9\u91cf",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.volume_service.AppVolumeService.resolve_market_restore_volume_settings",
+      "code_paths": [
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_storage_test.py",
+          "selector": "MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.local-path-missing-details",
+      "title": "_normalize_local_path raises structured details when path missing",
+      "title_zh": "_normalize_local_path \u5728\u8def\u5f84\u7f3a\u5931\u65f6\u629b\u51fa\u7ed3\u6784\u5316\u8be6\u60c5",
+      "interface_type": "service_method",
+      "interface": "console.services.package_upload_tool_service.PackageUploadToolService._normalize_local_path",
+      "code_paths": [
+        "console/services/package_upload_tool_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_tool_service_test.py",
+          "selector": "PackageUploadToolServiceTests.test_normalize_local_path_raises_structured_details_when_path_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.local-path-required-details",
+      "title": "_normalize_local_path raises structured details when path empty",
+      "title_zh": "_normalize_local_path \u5728\u8def\u5f84\u4e3a\u7a7a\u65f6\u629b\u51fa\u7ed3\u6784\u5316\u8be6\u60c5",
+      "interface_type": "service_method",
+      "interface": "console.services.package_upload_tool_service.PackageUploadToolService._normalize_local_path",
+      "code_paths": [
+        "console/services/package_upload_tool_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_tool_service_test.py",
+          "selector": "PackageUploadToolServiceTests.test_normalize_local_path_raises_structured_details_when_path_empty"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.enterprise-config.custom-fields-disabled-bool",
+      "title": "get_custom_fields includes disabled bool fields",
+      "title_zh": "get_custom_fields \u5305\u542b\u88ab\u7981\u7528\u7684\u5e03\u5c14\u5b57\u6bb5",
+      "interface_type": "service_method",
+      "interface": "console.services.config_service.EnterpriseConfigService.get_custom_fields",
+      "code_paths": [
+        "console/services/config_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/config_service_test.py",
+          "selector": "EnterpriseConfigServiceTests.test_get_custom_fields_includes_disabled_bool_fields"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.region-api.vm-snapshot-feature-gate-msg",
+      "title": "_check_status translates VM snapshot feature gate error to actionable msg_show",
+      "title_zh": "_check_status \u5c06\u865a\u62df\u673a\u5feb\u7167\u529f\u80fd\u95e8\u7981\u9519\u8bef\u7ffb\u8bd1\u4e3a\u53ef\u64cd\u4f5c\u63d0\u793a",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status",
+      "code_paths": [
+        "www/apiclient/regionapibaseclient.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-template-import.delete-abnormal-vm",
+      "title": "delete allows abnormal VM to skip the running guard",
+      "title_zh": "delete \u5141\u8bb8\u5f02\u5e38\u72b6\u6001\u865a\u62df\u673a\u8df3\u8fc7\u8fd0\u884c\u4e2d\u6821\u9a8c",
+      "interface_type": "workflow",
+      "interface": "console.services.app_actions.app_manage.AppManageService.delete",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageVMRestoreDeleteTests.test_delete_allows_abnormal_vm_to_skip_running_guard"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
