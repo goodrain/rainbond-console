@@ -260,7 +260,8 @@ class MCPQueryService(object):
             self._tool_get_current_user(), self._tool_get_app_detail(), self._tool_create_app(),
             self._tool_get_component_summary(), self._tool_get_component_detail(),
             self._tool_get_component_pods(), self._tool_get_pod_detail(),
-            self._tool_get_component_logs(), self._tool_get_component_events(), self._tool_get_component_build_logs(),
+            self._tool_get_component_logs(), self._tool_exec_component(), self._tool_get_config_file(),
+            self._tool_get_component_events(), self._tool_get_component_build_logs(),
             self._tool_get_component_build_source(), self._tool_update_component_build_source(),
             self._tool_create_component(),
             self._tool_delete_component(), self._tool_operate_app(), self._tool_manage_component_envs(),
@@ -328,6 +329,10 @@ class MCPQueryService(object):
             return self.get_pod_detail(user, arguments)
         if name == "rainbond_get_component_logs":
             return self.get_component_logs(user, arguments)
+        if name == "rainbond_exec":
+            return self.exec_component(user, arguments)
+        if name == "rainbond_get_config_file":
+            return self.get_config_file(user, arguments)
         if name == "rainbond_get_component_build_logs":
             return self.get_component_build_logs(user, arguments)
         if name == "rainbond_get_component_build_source":
@@ -712,6 +717,7 @@ class MCPQueryService(object):
         action = arguments.get("action", "service") or "service"
         lines = self._parse_int_with_default(arguments.get("lines"), 100)
         follow = bool(arguments.get("follow", False))
+        previous = self._parse_bool_with_default(arguments.get("previous"), False)
         fallback = None
         if action == "container":
             pod_name = self._require_string(arguments, "pod_name")
@@ -735,7 +741,7 @@ class MCPQueryService(object):
                     "container_name": container_name,
                 }
         log_list = self._read_component_pod_logs(
-            team, app.region_name, service.service_alias, pod_name, lines, container_name
+            team, app.region_name, service.service_alias, pod_name, lines, container_name, previous=previous
         )
         return {
             "team_name": team.tenant_name,
@@ -744,9 +750,115 @@ class MCPQueryService(object):
             "service_id": service.service_id,
             "action": action,
             "lines": self._parse_int_with_default(arguments.get("lines"), 100),
+            "previous": previous,
             "items": log_list,
             "total": len(log_list),
             "fallback": fallback,
+        }
+
+    def exec_component(self, user, arguments):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        pod_name = self._require_string(arguments, "pod_name")
+        container_name = arguments.get("container_name", "") or ""
+        command = self._require_command(arguments)
+        timeout_seconds = self._parse_optional_positive_int(
+            arguments.get("timeout_seconds"), "timeout_seconds"
+        ) or 30
+        try:
+            body = region_api.exec_component_pod(
+                team.tenant_name,
+                app.region_name,
+                service.service_alias,
+                pod_name,
+                container_name,
+                command,
+                timeout_seconds=timeout_seconds,
+            )
+        except ServiceHandleException as e:
+            # region 在容器未运行时返回可区分错误，被 region client 统一为该 msg。
+            # 此处不直接抛出，而是返回一个对 AI/用户友好的结果，引导改用 previous 日志。
+            if e.msg == "container not running":
+                return {
+                    "team_name": team.tenant_name,
+                    "region_name": app.region_name,
+                    "app_id": app.ID,
+                    "service_id": service.service_id,
+                    "pod_name": pod_name,
+                    "container_name": container_name,
+                    "container_running": False,
+                    "message": (
+                        "目标容器未处于运行状态，无法 exec。"
+                        "请改用 rainbond_get_component_logs 并设置 previous=true 读取上一次退出前的日志进行排查；"
+                        "若需确认配置文件内容，可使用 rainbond_get_config_file。"
+                    ),
+                }
+            raise
+        detail = self._extract_region_pod_detail(body) if isinstance(body, dict) else {}
+        if not isinstance(detail, dict):
+            detail = {}
+        exit_code = detail.get("exit_code")
+        try:
+            exit_code = int(exit_code) if exit_code is not None else None
+        except (TypeError, ValueError):
+            pass
+        return {
+            "team_name": team.tenant_name,
+            "region_name": app.region_name,
+            "app_id": app.ID,
+            "service_id": service.service_id,
+            "pod_name": pod_name,
+            "container_name": container_name,
+            "container_running": True,
+            "stdout": detail.get("stdout", "") or "",
+            "stderr": detail.get("stderr", "") or "",
+            "exit_code": exit_code,
+            "truncated": bool(detail.get("truncated", False)),
+        }
+
+    def get_config_file(self, user, arguments):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        volume_name = arguments.get("volume_name", "") or ""
+        volume_path = arguments.get("volume_path", "") or ""
+        config_volumes = volume_repo.get_service_volumes_about_config_file(service.service_id) or []
+        config_files = {}
+        for config_file in volume_repo.get_service_config_files(service.service_id) or []:
+            config_files[config_file.volume_id] = config_file
+            if config_file.volume_name:
+                config_files["name:" + config_file.volume_name] = config_file
+        items = []
+        for volume in config_volumes:
+            if volume_name and volume.volume_name != volume_name:
+                continue
+            if volume_path and volume.volume_path != volume_path:
+                continue
+            config_file = config_files.get(volume.ID)
+            if config_file is None and volume.volume_name:
+                config_file = config_files.get("name:" + volume.volume_name)
+            items.append({
+                "volume_name": volume.volume_name,
+                "volume_path": volume.volume_path,
+                "mode": volume.mode,
+                "file_content": config_file.file_content if config_file else "",
+            })
+        return {
+            "team_name": team.tenant_name,
+            "region_name": app.region_name,
+            "app_id": app.ID,
+            "service_id": service.service_id,
+            "items": items,
+            "total": len(items),
         }
 
     def get_component_events(self, user, arguments):
@@ -3713,6 +3825,24 @@ class MCPQueryService(object):
         return ivalue
 
     @staticmethod
+    def _require_command(arguments):
+        value = arguments.get("command")
+        if not isinstance(value, list) or not value:
+            raise ServiceHandleException(
+                msg="invalid command",
+                msg_show="参数command无效，必须是非空字符串数组，如 [\"cat\", \"/app/config.yml\"]",
+                status_code=400)
+        command = []
+        for item in value:
+            if not isinstance(item, str) or item == "":
+                raise ServiceHandleException(
+                    msg="invalid command",
+                    msg_show="参数command无效，数组元素必须是非空字符串",
+                    status_code=400)
+            command.append(item)
+        return command
+
+    @staticmethod
     def _parse_optional_positive_int(value, field, allow_zero=False):
         if value in (None, ""):
             return None
@@ -4174,7 +4304,7 @@ class MCPQueryService(object):
                 item["ports_list"] = [port.container_port for port in ports]
         return {"items": items, "total": len(items)}
 
-    def _read_component_pod_logs(self, team, region_name, service_alias, pod_name, lines, container_name=""):
+    def _read_component_pod_logs(self, team, region_name, service_alias, pod_name, lines, container_name="", previous=False):
         # read_timeout governs how long urllib3 waits for the next chunk
         # (or the initial HTTP response). 3s was tight enough that
         # rbd-api regularly took longer than that to send the response
@@ -4182,7 +4312,8 @@ class MCPQueryService(object):
         # Bumping to 30s keeps streaming responsive for healthy pods
         # while tolerating a slow-to-respond region service.
         resp = region_api.get_component_pod_log(
-            team.tenant_name, region_name, service_alias, pod_name, lines, container_name, read_timeout=30, follow=False
+            team.tenant_name, region_name, service_alias, pod_name, lines, container_name,
+            read_timeout=30, follow=False, previous=previous
         )
         log_list = []
         buffer = ""
@@ -4802,7 +4933,62 @@ class MCPQueryService(object):
                     "lines": {"type": "integer", "minimum": 1, "description": "仅 action=service 时使用，默认 100"},
                     "pod_name": {"type": "string", "description": "仅 action=container 时必填"},
                     "container_name": {"type": "string", "description": "仅 action=container 时必填"},
-                    "follow": {"type": "boolean", "description": "仅 action=container 时使用，是否跟随日志输出"}
+                    "follow": {"type": "boolean", "description": "仅 action=container 时使用，是否跟随日志输出"},
+                    "previous": {"type": "boolean", "description": "是否读取容器上一次（崩溃退出前）的日志。当容器处于 CrashLoopBackOff 或刚重启、当前实例无有效输出时，设为 true 可获取退出前的日志用于排查"}
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id"]
+            }
+        }
+
+    def _tool_exec_component(self):
+        return {
+            "name": "rainbond_exec",
+            "description": (
+                "在指定 Pod 容器内一次性执行命令（one-shot exec），返回 stdout/stderr/exit_code。"
+                "仅适用于处于 Running 状态的容器，用于在线排查（例如 cat 配置文件、env、ls、ps、curl 健康检查等）。"
+                "目标容器若正在崩溃重启（CrashLoopBackOff）或尚未运行，exec 无法连接，"
+                "此时请改用 rainbond_get_component_logs（设置 previous=true 读取上一次退出前日志）排查；"
+                "若需在 Pod 宕机时确认配置文件内容，请使用 rainbond_get_config_file。"
+                "command 必须是字符串数组（如 [\"cat\", \"/app/config.yml\"]），不要传单个字符串。这是调试工具，stdout 会原样返回。"
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                    "pod_name": {"type": "string", "description": "目标 Pod 名称，可通过 rainbond_get_component_pods 获取"},
+                    "container_name": {"type": "string", "description": "目标容器名，缺省时由 region 选择 Pod 的默认容器"},
+                    "command": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                        "description": "要执行的命令及参数，字符串数组形式，如 [\"cat\", \"/app/config.yml\"] 或 [\"sh\", \"-c\", \"env | grep DB\"]"
+                    },
+                    "timeout_seconds": {"type": "integer", "minimum": 1, "description": "命令执行超时时间（秒），默认 30"}
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id", "pod_name", "command"]
+            }
+        }
+
+    def _tool_get_config_file(self):
+        return {
+            "name": "rainbond_get_config_file",
+            "description": (
+                "读取组件的配置文件类（config-file）存储卷的内容。配置文件内容由平台持久化存储，"
+                "即使 Pod 处于宕机/崩溃状态也可读取，适合在排查时确认实际下发到容器的配置（如 config.yml 是否被覆盖）。"
+                "默认返回该组件全部 config-file 存储卷；可用 volume_name 或 volume_path 精确定位某个挂载。"
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                    "volume_name": {"type": "string", "description": "可选，配置文件存储卷名称，用于只返回某个配置文件"},
+                    "volume_path": {"type": "string", "description": "可选，配置文件在容器内的挂载路径，用于按路径定位某个配置文件"}
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }

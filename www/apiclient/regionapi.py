@@ -3270,7 +3270,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             lines=100,
             container_name="",
             read_timeout=30,
-            follow=None):
+            follow=None,
+            previous=False):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/pods/{}/logs?lines={}".format(
@@ -3280,6 +3281,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             url += "&container={}".format(container_name)
         if follow is not None:
             url += "&follow={}".format("true" if follow else "false")
+        if previous:
+            url += "&previous=true"
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -3294,6 +3297,62 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             timeout=urllib3.Timeout(connect=d_connect, read=read_timeout),
         )
         return resp
+
+    def exec_component_pod(self,
+                           tenant_name,
+                           region_name,
+                           service_alias,
+                           pod_name,
+                           container_name,
+                           command,
+                           timeout_seconds=30):
+        """在指定 Pod 的容器内一次性执行命令。
+
+        仅适用于处于 Running 状态的容器。如果目标容器没有运行（崩溃、等待中等），
+        region 会返回可区分的错误，此处会转换为带有 "container not running" 标识的
+        ServiceHandleException，调用方据此引导用户改用 previous 日志排查。
+        """
+        url, token = self.__get_region_access_info(tenant_name, region_name)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
+        url = url + "/v2/tenants/{}/services/{}/pods/{}/exec".format(
+            tenant_region.region_tenant_name, service_alias, pod_name
+        )
+        body = {"command": command}
+        if container_name:
+            body["container"] = container_name
+        if timeout_seconds:
+            body["timeout_seconds"] = timeout_seconds
+        self._set_headers(token)
+        try:
+            res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(body))
+            return body
+        except RegionApiBaseHttpClient.CallApiError as e:
+            message = e.body.get("msg") if isinstance(e.body, dict) else ""
+            message = message or ""
+            if self.__is_container_not_running_message(message):
+                raise ServiceHandleException(
+                    status_code=400,
+                    msg="container not running",
+                    msg_show="目标容器未处于运行状态，无法执行命令，请改用上一次（previous）容器日志排查")
+            raise e
+
+    @staticmethod
+    def __is_container_not_running_message(message):
+        if not message:
+            return False
+        lowered = message.lower()
+        keywords = (
+            "container not running",
+            "not running",
+            "is waiting",
+            "is terminated",
+            "containercreating",
+            "crashloopbackoff",
+        )
+        for keyword in keywords:
+            if keyword in lowered:
+                return True
+        return False
 
     def upgrade_region(self, region_name, data):
         url, token = self.__get_region_access_info(None, region_name)
