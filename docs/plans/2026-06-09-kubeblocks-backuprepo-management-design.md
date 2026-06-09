@@ -2,7 +2,7 @@
 
 ## 一、项目背景
 ### 1.1 项目架构
-Rainbond 当前通过 `rainbond-ui -> rainbond-console -> rainbond -> rainbond-plugins/rainbond-kb adapter -> Kubernetes` 管理 KubeBlocks 数据库。数据库创建和组件备份设置里的 BackupRepo 目前只从 adapter 查询已有集群级 `BackupRepo`，并把仓库名透传给 KubeBlocks Cluster 备份配置。
+Rainbond 当前通过 `rainbond-ui -> rainbond-console -> rainbond -> rainbond-plugins/rainbond-kb adapter -> Kubernetes` 管理 KubeBlocks 数据库。数据库创建和组件备份策略里的 BackupRepo 目前只从 adapter 查询已有集群级 `BackupRepo`，并把仓库名透传给 KubeBlocks Cluster 备份配置。
 
 ### 1.2 现有基础
 - `rainbond-ui` 已有数据库创建页、组件视图备份 Tab、`kubeblocks` DVA model 和 service。
@@ -12,7 +12,7 @@ Rainbond 当前通过 `rainbond-ui -> rainbond-console -> rainbond -> rainbond-p
 
 ### 1.3 核心需求
 将 KubeBlocks `BackupRepo` 管理集成到 Rainbond 平台：
-- 数据库创建页的备份设置支持快捷创建 S3 BackupRepo。
+- 数据库创建页的备份策略支持快捷创建 S3 BackupRepo。
 - 组件视图的备份 Tab 支持管理团队下的 S3 BackupRepo，包括创建、编辑、删除。
 - `BackupRepo` 是集群级资源，但在 Rainbond 中按团队归属管理，console 需要入库存储团队与仓库关系。
 - 为避免集群级重名，真实 `BackupRepo` 名称和凭据 Secret 名称必须加团队 namespace 前缀。
@@ -21,19 +21,19 @@ Rainbond 当前通过 `rainbond-ui -> rainbond-console -> rainbond -> rainbond-p
 ## 二、用户旅程（MUST — 禁止跳过）
 ### 2.1 用户操作流程
 - 用户如何配置/触发该功能？
-  - 在数据库创建页的“备份设置”中，用户可以选择已有团队 S3 仓库，也可以点击“新建 S3”快速填写显示名、Bucket、Endpoint、Region、AccessKey、SecretKey、容量等字段。创建成功后自动选中新仓库。
+  - 在数据库创建页的“备份策略”中，用户可以选择已有团队 S3 仓库，也可以点击“新建 S3”快速填写显示名、Bucket、Endpoint、Region、AccessKey、SecretKey、容量等字段。创建成功后自动选中新仓库。
   - 在组件视图的“备份” Tab 中，用户可以点击“管理 S3 仓库”打开管理抽屉或区域，查看团队下所有 S3 仓库，并执行新增、编辑、删除。
 - 用户如何查看状态/结果？
   - 创建页只展示仓库可选项和基本可用状态。
   - 组件备份页展示仓库表格：显示名、真实 BackupRepo 名称、Bucket、Endpoint、Region、状态、当前是否被使用、操作。
   - 备份策略保存后继续展示当前仓库、周期、保留期和备份列表。
 - 管理员/审批人如何操作？
-  - 沿用团队权限体系。能进入数据库组件备份设置并具备相关管理权限的用户可以管理该团队仓库。
+  - 沿用团队权限体系。能进入数据库组件备份策略并具备相关管理权限的用户可以管理该团队仓库。
   - 平台管理员不新增单独入口；该功能先落在团队组件视图内，避免平台级资源误操作。
 
 ### 2.2 页面原型
 - 数据库创建页：在现有 `DatabaseBackupConfig` 的 BackupRepo 选择框右侧增加“新建 S3”按钮。弹窗为轻量创建表单，成功后刷新仓库列表并选中。
-- 组件视图备份 Tab：在现有“备份设置”卡片右上角增加“管理 S3 仓库”。管理区域使用表格 + 创建/编辑弹窗：
+- 组件视图备份 Tab：在现有“备份策略”卡片右上角增加“管理 S3 仓库”。管理区域使用表格 + 创建/编辑弹窗：
   - 创建：填写完整 S3 信息和密钥。
   - 编辑：允许修改显示名、Bucket、Endpoint、Region、容量、凭据；密钥字段留空表示不变。
   - 删除：二次确认；若仓库仍被任意 KubeBlocks Cluster 引用，后端拒绝删除。
@@ -64,7 +64,7 @@ flowchart LR
 2. 选择仓库创建数据库：
    - 创建页拿到团队仓库列表。
    - 用户选择某仓库，console 创建 KubeBlocks Component 时继续把 `backup_repo` 透传到 adapter 创建 Cluster。
-3. 更新组件备份设置：
+3. 更新组件备份策略：
    - 组件备份 Tab 选择团队仓库并保存。
    - console 校验仓库属于当前团队，再调用现有 backup config 更新链路。
 4. 删除仓库：
