@@ -20,7 +20,7 @@ from rest_framework.test import APIRequestFactory  # noqa: E402
 
 django.setup()
 
-from console.services.app_import_and_export_service import export_service  # noqa: E402
+from console.services.app_import_and_export_service import export_service, import_service  # noqa: E402
 from console.views.center_pool import app_import as app_import_view_module  # noqa: E402
 
 
@@ -141,6 +141,40 @@ class AppExportServiceMetadataTestCase(TestCase):
 
         self.assertEqual(result["plugins"][0]["share_image"], plugin["image"])
 
+    def test_get_app_metadata_copies_scaling_resources_for_package_export(self):
+        app = mock.Mock(pic=None, describe="demo app")
+        component = {
+            "service_alias": "web",
+            "image": "registry.example.com/demo/web:1.0.0",
+            "extend_method_map": {
+                "min_node": 2,
+                "max_node": 7,
+                "step_node": 2,
+                "min_memory": 64,
+                "init_memory": 1024,
+                "max_memory": 4096,
+                "step_memory": 128,
+                "container_cpu": 600,
+            }
+        }
+        app_version = mock.Mock(
+            app_template=json.dumps({
+                "group_key": "demo-app",
+                "group_version": "1.0.0",
+                "apps": [component]
+            }),
+            app_version_info="bugfix",
+            version_alias="stable",
+        )
+
+        metadata = export_service._AppExportService__get_app_metata(app, app_version, {"image_handle": ""})
+        result = json.loads(metadata)
+
+        exported_component = result["apps"][0]
+        self.assertEqual(exported_component["cpu"], 600)
+        self.assertEqual(exported_component["memory"], 1024)
+        self.assertEqual(exported_component["extend_method_map"]["init_memory"], 1024)
+
     # capability_id: console.app-export.query-status
     def test_get_export_status_updates_exporting_record_and_wraps_download_url(self):
         app = mock.Mock(app_id="demo-app")
@@ -151,16 +185,29 @@ class AppExportServiceMetadataTestCase(TestCase):
                 "apps": [{"service_source": "source_code"}],
             }),
         )
-        export_record = mock.Mock(region_name="demo-region", event_id="evt-1", status="exporting", format="rainbond-app", file_path="/v2/download/app.tgz")
+        export_record = mock.Mock(
+            region_name="demo-region",
+            event_id="evt-1",
+            status="exporting",
+            format="rainbond-app",
+            file_path="/v2/download/app.tgz",
+        )
 
-        with mock.patch("console.services.app_import_and_export_service.app_export_record_repo.get_enter_export_record_by_key_and_version",
-                        return_value=[export_record]), \
-                mock.patch("console.services.app_import_and_export_service.region_services.get_enterprise_region_by_region_name",
-                           return_value=mock.Mock(region_name="demo-region")), \
-                mock.patch("console.services.app_import_and_export_service.region_api.get_app_export_status",
-                           return_value=(None, {"bean": {"status": "success", "tar_file_href": "/v2/download/app.tgz"}})), \
-                mock.patch("console.services.app_import_and_export_service.region_repo.get_region_by_region_name",
-                           return_value=mock.Mock(wsurl="http://console.example.com")):
+        with mock.patch(
+            "console.services.app_import_and_export_service."
+            "app_export_record_repo.get_enter_export_record_by_key_and_version",
+            return_value=[export_record],
+        ), mock.patch(
+            "console.services.app_import_and_export_service."
+            "region_services.get_enterprise_region_by_region_name",
+            return_value=mock.Mock(region_name="demo-region"),
+        ), mock.patch(
+            "console.services.app_import_and_export_service.region_api.get_app_export_status",
+            return_value=(None, {"bean": {"status": "success", "tar_file_href": "/v2/download/app.tgz"}}),
+        ), mock.patch(
+            "console.services.app_import_and_export_service.region_repo.get_region_by_region_name",
+            return_value=mock.Mock(wsurl="http://console.example.com"),
+        ):
             result = export_service.get_export_status("eid-1", app, app_version)
 
         self.assertTrue(result["rainbond_app"]["is_export_before"])
@@ -210,7 +257,7 @@ class CenterAppImportViewWorkflowTestCase(TestCase):
                 mock.patch.object(app_import_view_module.transaction, "savepoint_commit"), \
                 mock.patch.object(app_import_view_module.import_service, "get_and_update_import_by_event_id",
                                   return_value=(record, [{"file_name": "demo-app", "status": "success"}])) as get_mock:
-            response = self.view.get(request, "evt-1")
+            response = self.view.get.__wrapped__.__wrapped__(self.view, request, "evt-1")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["data"]["bean"]["event_id"], "evt-1")
@@ -229,6 +276,143 @@ class CenterAppImportViewWorkflowTestCase(TestCase):
         delete_mock.assert_called_once_with("evt-1")
 
 
+class AppImportServiceMetadataTestCase(TestCase):
+    service_module = "console.services.app_import_and_export_service"
+
+    class DummyRainbondCenterApp(object):
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+
+    def build_import_metadata(self):
+        return [{
+            "template_version": "v2",
+            "group_key": "demo-app",
+            "group_name": "Demo App",
+            "group_version": "1.0.0",
+            "apps": [{
+                "service_cname": "web",
+                "service_key": "svc-key",
+                "version": "component-version",
+                "arch": "amd64",
+                "service_extend_method": {
+                    "min_node": 2,
+                    "max_node": 7,
+                    "step_node": 2,
+                    "min_memory": 512,
+                    "max_memory": 4096,
+                    "step_memory": 128,
+                    "is_restart": False,
+                    "container_cpu": 600,
+                },
+            }],
+            "annotations": {},
+        }]
+
+    def test_save_enterprise_import_info_normalizes_extend_method_map(self):
+        import_record = mock.Mock(
+            enterprise_id="eid-1",
+            team_name="demo-team",
+            scope="enterprise",
+            ID=11,
+            region="demo-region",
+        )
+        metadata = json.dumps(self.build_import_metadata())
+
+        with mock.patch(
+            "{}.rainbond_app_repo.get_rainbond_app_by_app_id".format(self.service_module),
+            return_value=None,
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_apps".format(self.service_module),
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_app_versions".format(self.service_module),
+        ) as bulk_versions, mock.patch(
+            "{}.app_store.is_no_multiple_region_hub".format(self.service_module),
+            return_value=False,
+        ):
+            import_service._AppImportService__save_enterprise_import_info(import_record, metadata, "amd64")
+
+        created_version = bulk_versions.call_args[0][0][0]
+        saved_template = json.loads(created_version.app_template)
+        extend_method_map = saved_template["apps"][0]["extend_method_map"]
+        self.assertEqual(extend_method_map["min_node"], 2)
+        self.assertEqual(extend_method_map["max_node"], 7)
+        self.assertEqual(extend_method_map["step_node"], 2)
+        self.assertEqual(extend_method_map["init_memory"], 512)
+        self.assertEqual(extend_method_map["container_cpu"], 600)
+
+    def test_save_team_import_info_normalizes_extend_method_map(self):
+        tenant = mock.Mock(enterprise_id="eid-1", tenant_name="demo-team")
+        metadata = json.dumps(self.build_import_metadata())
+
+        with mock.patch(
+            "{}.rainbond_app_repo.get_rainbond_app_by_app_id".format(self.service_module),
+            return_value=None,
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_apps".format(self.service_module),
+        ) as bulk_apps, mock.patch(
+            "{}.RainbondCenterApp".format(self.service_module),
+            self.DummyRainbondCenterApp,
+        ):
+            import_service._AppImportService__save_import_info(tenant, "team", metadata)
+
+        created_app = bulk_apps.call_args[0][0][0]
+        saved_template = json.loads(created_app.app_template)
+        extend_method_map = saved_template["apps"][0]["extend_method_map"]
+        self.assertEqual(extend_method_map["max_node"], 7)
+        self.assertEqual(extend_method_map["step_node"], 2)
+
+    def test_save_enterprise_import_info_restores_resources_from_ram_fields(self):
+        import_record = mock.Mock(
+            enterprise_id="eid-1",
+            team_name="demo-team",
+            scope="enterprise",
+            ID=11,
+            region="demo-region",
+        )
+        metadata = json.dumps([{
+            "template_version": "v2",
+            "group_key": "demo-app",
+            "group_name": "Demo App",
+            "group_version": "1.0.0",
+            "apps": [{
+                "service_cname": "web",
+                "service_key": "svc-key",
+                "version": "component-version",
+                "cpu": 600,
+                "memory": 1024,
+                "extend_method_map": {
+                    "min_node": 2,
+                    "max_node": 7,
+                    "step_node": 2,
+                    "min_memory": 64,
+                    "init_memory": 0,
+                    "max_memory": 4096,
+                    "step_memory": 128,
+                },
+            }],
+            "annotations": {},
+        }])
+
+        with mock.patch(
+            "{}.rainbond_app_repo.get_rainbond_app_by_app_id".format(self.service_module),
+            return_value=None,
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_apps".format(self.service_module),
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_app_versions".format(self.service_module),
+        ) as bulk_versions, mock.patch(
+            "{}.app_store.is_no_multiple_region_hub".format(self.service_module),
+            return_value=False,
+        ):
+            import_service._AppImportService__save_enterprise_import_info(import_record, metadata, "amd64")
+
+        created_version = bulk_versions.call_args[0][0][0]
+        saved_template = json.loads(created_version.app_template)
+        extend_method_map = saved_template["apps"][0]["extend_method_map"]
+        self.assertEqual(extend_method_map["container_cpu"], 600)
+        self.assertEqual(extend_method_map["init_memory"], 1024)
+
+
 class AppImportPreparationWorkflowTestCase(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
@@ -240,11 +424,23 @@ class AppImportPreparationWorkflowTestCase(TestCase):
         request = self.factory.post("/console/enterprise/app-import/init")
         record = mock.Mock(region="demo-region", event_id="evt-1", source_dir="/tmp/import", status="created_dir")
 
-        with mock.patch.object(app_import_view_module.import_service, "get_user_not_finish_import_record_in_enterprise", return_value=[]), \
-                mock.patch.object(app_import_view_module.import_service, "create_app_import_record_2_enterprise", return_value=record), \
-                mock.patch.object(app_import_view_module.import_service, "get_upload_url", return_value="https://upload.example.com"), \
-                mock.patch.object(app_import_view_module.region_services, "get_region_by_region_name",
-                                  return_value=mock.Mock(region_alias="演示集群")):
+        with mock.patch.object(
+            app_import_view_module.import_service,
+            "get_user_not_finish_import_record_in_enterprise",
+            return_value=[],
+        ), mock.patch.object(
+            app_import_view_module.import_service,
+            "create_app_import_record_2_enterprise",
+            return_value=record,
+        ), mock.patch.object(
+            app_import_view_module.import_service,
+            "get_upload_url",
+            return_value="https://upload.example.com",
+        ), mock.patch.object(
+            app_import_view_module.region_services,
+            "get_region_by_region_name",
+            return_value=mock.Mock(region_alias="演示集群"),
+        ):
             response = view.post(request, enterprise_id="eid-1")
 
         self.assertEqual(response.status_code, 200)
@@ -261,7 +457,11 @@ class AppImportPreparationWorkflowTestCase(TestCase):
         record = mock.Mock()
         record.to_dict.return_value = {"event_id": "evt-1", "source_dir": "/tmp/import"}
 
-        with mock.patch.object(app_import_view_module.import_service, "create_import_app_dir", return_value=record) as create_mock:
+        with mock.patch.object(
+            app_import_view_module.import_service,
+            "create_import_app_dir",
+            return_value=record,
+        ) as create_mock:
             response = view.post(request)
 
         self.assertEqual(response.status_code, 200)
@@ -273,7 +473,11 @@ class AppImportPreparationWorkflowTestCase(TestCase):
         view = app_import_view_module.CenterAppTarballDirView()
         request = self.factory.get("/console/teams/demo-team/import-dir/evt-1")
 
-        with mock.patch.object(app_import_view_module.import_service, "get_import_app_dir", return_value=["a.rainbond", "b.rainbond"]) as get_mock:
+        with mock.patch.object(
+            app_import_view_module.import_service,
+            "get_import_app_dir",
+            return_value=["a.rainbond", "b.rainbond"],
+        ) as get_mock:
             response = view.get(request, event_id="evt-1")
 
         self.assertEqual(response.status_code, 200)
@@ -289,7 +493,11 @@ class AppImportPreparationWorkflowTestCase(TestCase):
         record = mock.Mock()
         record.to_dict.return_value = {"event_id": "evt-1", "status": "deleted"}
 
-        with mock.patch.object(app_import_view_module.import_service, "delete_import_app_dir", return_value=record) as delete_mock:
+        with mock.patch.object(
+            app_import_view_module.import_service,
+            "delete_import_app_dir",
+            return_value=record,
+        ) as delete_mock:
             response = view.delete(request)
 
         self.assertEqual(response.status_code, 200)

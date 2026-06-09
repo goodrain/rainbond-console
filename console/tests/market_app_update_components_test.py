@@ -155,6 +155,7 @@ class MarketAppNewComponentsVMK8sAttrsTests(TestCase):
         creator.user = type("FakeUser", (), {"pk": 1})()
         creator.region_name = "demo-region"
         creator.original_app = type("FakeApp", (), {"upgrade_group_id": 1})()
+        creator.is_deploy = False
         template = {
             "service_cname": "vm-root",
             "service_key": "service-1",
@@ -164,6 +165,7 @@ class MarketAppNewComponentsVMK8sAttrsTests(TestCase):
             "share_image": "registry.example.com/team/windows-root:v1",
             "extend_method": "vm",
             "service_type": "vm",
+            "extend_method_map": {"min_node": 1},
             "vm": {
                 "boot_mode": "bios",
                 "boot_source_format": "qcow2",

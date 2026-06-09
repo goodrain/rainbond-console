@@ -28,6 +28,18 @@ baseService = BaseTenantService()
 app_relation_service = AppServiceRelationService()
 region_api = RegionInvokeApi()
 
+EXTEND_METHOD_FIELDS = (
+    "min_node",
+    "max_node",
+    "step_node",
+    "min_memory",
+    "init_memory",
+    "max_memory",
+    "step_memory",
+    "is_restart",
+    "container_cpu",
+)
+
 
 class AppExportService(object):
     def select_handle_region(self, eid):
@@ -136,6 +148,15 @@ class AppExportService(object):
             if normalized_layout:
                 vm_payload["disk_layout"] = normalized_layout
                 export_item["vm"] = vm_payload
+        extend_method_map = dict(export_item.get("extend_method_map") or {})
+        if export_item.get("cpu") is None and extend_method_map.get("container_cpu") is not None:
+            export_item["cpu"] = extend_method_map["container_cpu"]
+        if export_item.get("memory") is None and extend_method_map.get("init_memory") is not None:
+            export_item["memory"] = extend_method_map["init_memory"]
+        if export_item.get("memory") is not None and extend_method_map.get("init_memory") is None:
+            extend_method_map["init_memory"] = export_item["memory"]
+        if extend_method_map:
+            export_item["extend_method_map"] = extend_method_map
         return export_item
 
     @staticmethod
@@ -494,6 +515,30 @@ class AppImportService(object):
             status_list.append({"file_name": kv_map_list[0], "status": kv_map_list[1]})
         return status_list
 
+    def __normalize_import_app_template(self, app_template):
+        apps = []
+        for component in app_template.get("apps", []) or []:
+            apps.append(self.__normalize_import_component_template(component))
+        app_template["apps"] = apps
+        return app_template
+
+    @staticmethod
+    def __normalize_import_component_template(component):
+        service_extend_method = component.get("service_extend_method") or {}
+        extend_method_map = dict(component.get("extend_method_map") or {})
+        for field in EXTEND_METHOD_FIELDS:
+            if extend_method_map.get(field) is None and service_extend_method.get(field) is not None:
+                extend_method_map[field] = service_extend_method[field]
+        if extend_method_map.get("container_cpu") is None and component.get("cpu") is not None:
+            extend_method_map["container_cpu"] = component["cpu"]
+        if not extend_method_map.get("init_memory") and component.get("memory") is not None:
+            extend_method_map["init_memory"] = component["memory"]
+        if extend_method_map.get("init_memory") is None and extend_method_map.get("min_memory") is not None:
+            extend_method_map["init_memory"] = extend_method_map["min_memory"]
+        if extend_method_map:
+            component["extend_method_map"] = extend_method_map
+        return component
+
     def get_import_app_dir(self, event_id):
         """获取应用目录下的包"""
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
@@ -544,6 +589,7 @@ class AppImportService(object):
         if not metadata:
             return
         for app_template in metadata:
+            app_template = self.__normalize_import_app_template(app_template)
             annotations = app_template.get("annotations", {})
             app_describe = app_template.pop("describe", "")
             apps = app_template.get("apps")
@@ -636,6 +682,7 @@ class AppImportService(object):
         metadata = json.loads(metadata)
         key_and_version_list = []
         for app_template in metadata:
+            app_template = self.__normalize_import_app_template(app_template)
             app = rainbond_app_repo.get_rainbond_app_by_app_id(app_template["group_key"])
             if app:
                 # 覆盖原有应用数据

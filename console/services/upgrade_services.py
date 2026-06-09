@@ -333,24 +333,24 @@ class UpgradeService(object):
 
     @staticmethod
     def _is_upgrade_status_unfinished(component_records):
-        for component_record in component_records:
-            if component_record.status in [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]:
-                return True
-            return False
+        unfinished_statuses = [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
+        return any(component_record.status in unfinished_statuses for component_record in component_records)
 
     @staticmethod
     def _is_upgrade_status_failed(component_records):
-        for component_record in component_records:
-            if component_record.status not in [UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.UPGRADE_FAILED.value]:
-                return False
-            return True
+        component_records = list(component_records)
+        failed_statuses = [UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.UPGRADE_FAILED.value]
+        return bool(component_records) and all(
+            component_record.status in failed_statuses for component_record in component_records
+        )
 
     @staticmethod
     def _is_upgrade_status_success(component_records):
-        for component_record in component_records:
-            if component_record.status in [UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]:
-                return False
-            return True
+        component_records = list(component_records)
+        success_statuses = [UpgradeStatus.UPGRADED.value, UpgradeStatus.ROLLBACK.value]
+        return bool(component_records) and all(
+            component_record.status in success_statuses for component_record in component_records
+        )
 
     def get_or_create_upgrade_record(self, tenant_id, group_id, group_key, upgrade_group_id, is_from_cloud, market_name):
         """获取或创建升级记录"""

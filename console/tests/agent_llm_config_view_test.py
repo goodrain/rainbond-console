@@ -163,7 +163,7 @@ class AgentLLMConfigViewTests(SimpleTestCase):
         request = self.factory.get(
             "/console/internal/agent-llm-config/runtime",
             HTTP_X_INTERNAL_TOKEN="5ae43b0db81042d0ba8005386022d1c5",
-            REMOTE_ADDR="203.0.113.7",
+            REMOTE_ADDR="8.8.8.8",
         )
 
         with mock.patch("console.services.auth.authentication.TenantEnterprise.objects.filter") as ent_filter:

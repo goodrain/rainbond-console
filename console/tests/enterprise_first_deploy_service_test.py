@@ -56,6 +56,9 @@ class EnterpriseFirstDeployServiceTests(TestCase):
     def setUp(self):
         self.service = EnterpriseFirstDeployService()
         self.service.RUNTIME_OBSERVE_WINDOW = 30
+        self.service.READINESS_FINAL_OBSERVE_WINDOW = 90
+        self.service.BUILD_FAILURE_LOG_WAIT_WINDOW = 10
+        self.service.BUILD_FAILURE_LOG_RETRY_INTERVAL = 1
         self.service.report_async = False
 
     def test_build_payload_seeds_service_ids_for_runtime_watch(self):
@@ -105,7 +108,7 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         mock_start_report.assert_called_once_with("record-key")
         self.assertFalse(mock_post.called)
 
-    def test_sync_record_reports_build_failure_with_raw_logs(self):
+    def test_sync_record_reports_build_failure_with_redacted_logs(self):
         payload = {
             "enterprise_id": "eid-1",
             "enterprise_name": "demo-enterprise",
@@ -152,8 +155,61 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_reason"], "build failed")
         self.assertEqual(report_payload["failure_events"][0]["event_id"], "event-build-1")
         self.assertEqual(report_payload["failure_logs"][0]["stage"], self.service.FAILURE_STAGE_BUILD)
-        self.assertEqual(report_payload["failure_logs"][0]["lines"][0]["message"], "PASSWORD=plain-text")
+        self.assertEqual(report_payload["failure_logs"][0]["lines"][0]["message"], "PASSWORD=<redacted>")
         self.assertTrue(repo.payload["reported"])
+
+    def test_sync_record_retries_build_failure_logs_before_reporting(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "source_language": "Node.js",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STAGE_STATUS_PENDING,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-build-1"],
+            "service_ids": ["service-1"],
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+        empty_log_response = (Obj(status=200), {"list": []})
+        ready_log_response = (Obj(status=200), {"list": [{"time": "2026-05-06 10:02:59", "message": "npm ERR! build failed"}]})
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{
+                               "event_id": "event-build-1",
+                               "service_id": "service-1",
+                               "opt_type": "build-service",
+                               "status": "failure",
+                               "final_status": "complete",
+                               "message": "build failed",
+                               "reason": "compile error",
+                               "start_time": "2026-05-06 10:00:00",
+                               "end_time": "2026-05-06 10:03:00",
+                           }]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                           side_effect=[empty_log_response, ready_log_response]) as mock_get_logs, \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep") as mock_sleep, \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        self.assertEqual(mock_get_logs.call_count, 2)
+        mock_sleep.assert_called_once_with(self.service.BUILD_FAILURE_LOG_RETRY_INTERVAL)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["failure_logs"][0]["lines"][0]["message"], "npm ERR! build failed")
+
+    def test_redact_log_message_masks_quoted_and_bare_secrets(self):
+        message = 'PASSWORD="plain text" token=abc123 https://user:pass@example.com'
+
+        redacted = self.service._redact_log_message(message)
+
+        self.assertEqual(redacted, 'PASSWORD="<redacted>" token=<redacted> https://<redacted>@example.com')
 
     def test_sync_record_reports_runtime_failure_without_build_logs(self):
         payload = {
@@ -503,7 +559,7 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_reason"], "pod still initializing")
 
     def test_sync_record_includes_pod_events_in_runtime_timeout_failure(self):
-        """Pod not RUNNING with events but no known container reason → pod events included in timeout failure logs."""
+        """Non-readiness pod timeout with events includes pod events in failure logs."""
         payload = {
             "enterprise_id": "eid-1",
             "enterprise_name": "demo-enterprise",
@@ -550,8 +606,8 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                                "name": "pod-1",
                                "status": {
                                    "type_str": "INITIATING",
-                                   "reason": "ContainersNotReady",
-                                   "message": "containers with unready status",
+                                   "reason": "PodInitializing",
+                                   "message": "pod still initializing",
                                },
                                "events": [{
                                    "type": "Warning",
@@ -697,7 +753,12 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                                                    "start_time": "2026-05-07 18:18:07",
                                                    "end_time": "2026-05-07 18:18:10"}]}), \
                 mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
-                           return_value={"bean": {"new_pods": [{"pod_name": "pod-1", "pod_status": "UNHEALTHY"}], "old_pods": []}}), \
+                           return_value={
+                               "bean": {
+                                   "new_pods": [{"pod_name": "pod-1", "pod_status": "UNHEALTHY"}],
+                                   "old_pods": [],
+                               }
+                           }), \
                 mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
                            return_value={"bean": {
                                "name": "pod-1",
@@ -714,8 +775,8 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         # Should NOT immediately fail; container is still initializing
         self.assertIsNone(status)
 
-    def test_readiness_probe_failure_after_observe_window_reports_failure(self):
-        """ContainersNotReady after observe window has elapsed should report FAILURE."""
+    def test_readiness_probe_failure_after_first_window_waits_for_final_window(self):
+        """ContainersNotReady after first observe window should keep polling until final window."""
         payload = {
             "enterprise_id": "eid-1",
             "enterprise_name": "demo-enterprise",
@@ -751,7 +812,12 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                                                    "start_time": "2026-05-07 18:18:07",
                                                    "end_time": "2026-05-07 18:18:10"}]}), \
                 mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
-                           return_value={"bean": {"new_pods": [{"pod_name": "pod-1", "pod_status": "UNHEALTHY"}], "old_pods": []}}), \
+                           return_value={
+                               "bean": {
+                                   "new_pods": [{"pod_name": "pod-1", "pod_status": "UNHEALTHY"}],
+                                   "old_pods": [],
+                               }
+                           }), \
                 mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
                            return_value={"bean": {
                                "name": "pod-1",
@@ -764,13 +830,180 @@ class EnterpriseFirstDeployServiceTests(TestCase):
                 mock.patch.object(self.service, "_now", return_value="2026-05-07 18:18:45"), \
                 mock.patch("console.services.enterprise_first_deploy_service.requests.post",
                            return_value=report_response) as mock_post:
-            # 35 seconds elapsed — past the 30s observe window
+            # 35 seconds elapsed — past the first observe window but before final failure window
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertIsNone(status)
+        self.assertFalse(mock_post.called)
+
+    def test_readiness_probe_failure_after_final_window_reports_failure(self):
+        """ContainersNotReady after final readiness window should report FAILURE."""
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_APP_MARKET,
+            "source_language": "",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STATUS_SUCCESS,
+            "build_started_at": "2026-05-07 18:18:07",
+            "build_finished_at": "2026-05-07 18:18:10",
+            "build_event_id": "event-1",
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-1"],
+            "service_ids": ["service-1"],
+            "service_alias": "demo-service",
+            "service_aliases": [],
+            "runtime_started_at": "2026-05-07 18:18:10",
+            "runtime_watch_started_at": "2026-05-07 18:18:10",
+            "runtime_failure_reason": "就绪检查失败，请查看日志或调整健康检查配置",
+            "runtime_failure_logs": [{"stage": "runtime", "event_id": "pod-1", "source": "pod_event",
+                                      "truncated": False, "lines": [{"time": "60s ago", "message": "Readiness probe failed"}]}],
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = mock.Mock(status_code=200)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{"event_id": "event-1", "status": "success",
+                                                   "opt_type": "start-service", "service_id": "service-1",
+                                                   "final_status": "complete", "message": "", "reason": "",
+                                                   "start_time": "2026-05-07 18:18:07",
+                                                   "end_time": "2026-05-07 18:18:10"}]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                           return_value={
+                               "bean": {
+                                   "new_pods": [{"pod_name": "pod-1", "pod_status": "UNHEALTHY"}],
+                                   "old_pods": [],
+                               }
+                           }), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
+                           return_value={"bean": {
+                               "name": "pod-1",
+                               "status": {"type_str": "UNHEALTHY", "reason": "ContainersNotReady",
+                                          "message": "就绪检查失败，请查看日志或调整健康检查配置"},
+                               "events": [{"message": "Readiness probe failed: connection refused", "age": "95s ago"}],
+                               "containers": [],
+                               "init_containers": [],
+                           }}), \
+                mock.patch.object(self.service, "_now", return_value="2026-05-07 18:19:45"), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            # 95 seconds elapsed — past final failure window
             status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
 
         self.assertEqual(status, self.service.STATUS_FAILURE)
         report_payload = mock_post.call_args[1]["json"]
         self.assertEqual(report_payload["failure_stage"], self.service.FAILURE_STAGE_RUNTIME)
         self.assertIn("就绪检查", report_payload["failure_reason"])
+
+    def test_runtime_timeout_reports_diagnostic_snapshot_when_no_pods_observed(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_APP_MARKET,
+            "source_language": "",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STATUS_SUCCESS,
+            "build_started_at": "2026-05-07 18:18:07",
+            "build_finished_at": "2026-05-07 18:18:10",
+            "build_event_id": "event-1",
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-1"],
+            "service_ids": ["service-1"],
+            "service_alias": "demo-service",
+            "service_aliases": [],
+            "runtime_started_at": "2026-05-07 18:18:10",
+            "runtime_watch_started_at": "2026-05-07 18:18:10",
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{"event_id": "event-1", "status": "success",
+                                                   "opt_type": "start-service", "service_id": "service-1",
+                                                   "final_status": "complete", "message": "", "reason": "",
+                                                   "start_time": "2026-05-07 18:18:07",
+                                                   "end_time": "2026-05-07 18:18:10"}]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                           return_value={"bean": {"new_pods": [], "old_pods": []}}), \
+                mock.patch.object(self.service, "_now", return_value="2026-05-07 18:19:45"), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["failure_reason"], "runtime timeout: no pods observed")
+        self.assertEqual(report_payload["failure_events"][0]["opt_type"], "RuntimeVerificationTimeout")
+        self.assertEqual(report_payload["failure_logs"][0]["source"], "runtime_snapshot")
+        self.assertIn("no pods observed", report_payload["failure_logs"][0]["lines"][0]["message"])
+
+    def test_runtime_timeout_reports_partial_no_pods_for_multi_component_app(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_APP_MARKET,
+            "source_language": "",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STATUS_SUCCESS,
+            "build_started_at": "2026-05-07 18:18:07",
+            "build_finished_at": "2026-05-07 18:18:10",
+            "build_event_id": "event-1",
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-1"],
+            "service_ids": ["service-a", "service-b"],
+            "service_alias": "",
+            "service_aliases": ["svc-a", "svc-b"],
+            "runtime_started_at": "2026-05-07 18:18:10",
+            "runtime_watch_started_at": "2026-05-07 18:18:10",
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+
+        def fake_get_service_pods(region_name, tenant_name, service_alias, enterprise_id):
+            if service_alias == "svc-a":
+                return {"bean": {"new_pods": [{"pod_name": "pod-a-1", "pod_status": "RUNNING"}], "old_pods": []}}
+            return {"bean": {"new_pods": [], "old_pods": []}}
+
+        def fake_pod_detail(region_name, tenant_name, service_alias, pod_name):
+            return {"bean": {
+                "name": pod_name,
+                "status": {"type_str": "RUNNING"},
+                "events": [],
+                "containers": [],
+                "init_containers": [],
+            }}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{"event_id": "event-1", "status": "success",
+                                                   "opt_type": "start-service", "service_id": "service-a",
+                                                   "final_status": "complete", "message": "", "reason": "",
+                                                   "start_time": "2026-05-07 18:18:07",
+                                                   "end_time": "2026-05-07 18:18:10"}]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                           side_effect=fake_get_service_pods), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
+                           side_effect=fake_pod_detail), \
+                mock.patch.object(self.service, "_now", return_value="2026-05-07 18:19:45"), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["failure_reason"], "runtime timeout: some components have no pods observed")
+        self.assertIn("svc-b", report_payload["failure_logs"][0]["lines"][1]["message"])
 
     def test_sync_record_multi_component_app_market_pod_failure(self):
         """Multi-component app_market: service_aliases used, failure in one component triggers FAILURE."""
@@ -806,7 +1039,13 @@ class EnterpriseFirstDeployServiceTests(TestCase):
 
         def fake_pod_detail(region_name, tenant_name, service_alias, pod_name):
             if service_alias == "svc-a":
-                return {"bean": {"name": "pod-a-1", "status": {"type_str": "RUNNING"}, "events": [], "containers": [], "init_containers": []}}
+                return {"bean": {
+                    "name": "pod-a-1",
+                    "status": {"type_str": "RUNNING"},
+                    "events": [],
+                    "containers": [],
+                    "init_containers": [],
+                }}
             return {"bean": {
                 "name": "pod-b-1",
                 "status": {"type_str": "RUNNING"},

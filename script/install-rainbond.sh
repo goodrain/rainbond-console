@@ -3,10 +3,9 @@
 # This script is used to install Rainbond standalone on Linux and MacOS
 
 # Basic environment variables
-RAINBOND_VERSION=${VERSION:-'v6.7.3-release'}
+RAINBOND_VERSION=${VERSION:-'v6.9.0-dev'}
 IMGHUB_MIRROR=${IMGHUB_MIRROR:-'registry.cn-hangzhou.aliyuncs.com/goodrain'}
-ENABLE_GPU=true
-GPU_SMOKE_IMAGE=${GPU_SMOKE_IMAGE:-'nvidia/cuda:12.5.1-base-ubuntu22.04'}
+ENABLE_GPU=${ENABLE_GPU:-auto}
 
 # Define colorful stdout
 RED='\033[0;31m'
@@ -601,21 +600,29 @@ function show_docker_command() {
   local IMAGE
   local EIP
   local UUID
+  local EXISTING_ENABLE_GPU
+  local EXISTING_GPU_PROVIDER
+  local EXISTING_GPU_RUNTIME_CLASS
   IMAGE=$(docker inspect rainbond --format '{{.Config.Image}}' 2>/dev/null)
   EIP=$(get_container_eip)
   UUID=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^UUID=' | cut -d'=' -f2)
+  EXISTING_ENABLE_GPU=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^ENABLE_GPU=' | cut -d'=' -f2)
+  EXISTING_GPU_PROVIDER=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^GPU_PROVIDER=' | cut -d'=' -f2)
+  EXISTING_GPU_RUNTIME_CLASS=$(docker inspect rainbond --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep '^GPU_RUNTIME_CLASS_NAME=' | cut -d'=' -f2)
 
   # Get volume mounts
   local VOLUME_OPTS=$(docker inspect rainbond --format '{{range .Mounts}}{{if eq .Type "bind"}}-v {{.Source}}:{{.Destination}} {{else if eq .Type "volume"}}-v {{.Name}}:{{.Destination}} {{end}}{{end}}' 2>/dev/null)
   local GPU_DOCKER_ARGS=""
   local GPU_ENV_BLOCK=""
-  if true; then
+  if is_truthy "${EXISTING_ENABLE_GPU}"; then
     GPU_DOCKER_ARGS="  --gpus all \\"
     GPU_ENV_BLOCK="  -e ENABLE_GPU=true \\
   -e GPU_PROVIDER=${EXISTING_GPU_PROVIDER:-nvidia} \\
   -e GPU_RUNTIME_CLASS_NAME=${EXISTING_GPU_RUNTIME_CLASS:-nvidia} \\
   -e NVIDIA_VISIBLE_DEVICES=all \\
   -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \\"
+  else
+    GPU_ENV_BLOCK="  -e ENABLE_GPU=false \\"
   fi
 
   # Display the command
@@ -1299,52 +1306,76 @@ validate_docker_version() {
     fi
 }
 
+set_cpu_mode() {
+    ENABLE_GPU=false
+    GPU_DOCKER_ARGS=""
+    GPU_ENV_ARGS="-e ENABLE_GPU=false"
+}
+
+set_gpu_mode() {
+    ENABLE_GPU=true
+    GPU_DOCKER_ARGS="--gpus all"
+    GPU_ENV_ARGS="-e ENABLE_GPU=true -e NVIDIA_VISIBLE_DEVICES=all -e NVIDIA_DRIVER_CAPABILITIES=compute,utility"
+}
+
+nvidia_smi_ready() {
+    command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1
+}
+
 validate_gpu_support_linux() {
-    if [ "$ENABLE_GPU" != "true" ]; then
+    case "$(echo "${ENABLE_GPU:-auto}" | tr '[:upper:]' '[:lower:]')" in
+        false|0|no|off)
+            set_cpu_mode
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                send_info "GPU 模式已禁用，将使用 CPU 模式启动 Rainbond"
+            else
+                send_info "GPU mode is disabled. Rainbond will start in CPU mode."
+            fi
+            return
+            ;;
+        true|1|yes|on|auto)
+            ;;
+        *)
+            if [ "$LANG" == "zh_CN.UTF-8" ]; then
+                send_error "ENABLE_GPU 值无效: ${ENABLE_GPU}，支持 true/false/auto"
+            else
+                send_error "Invalid ENABLE_GPU value: ${ENABLE_GPU}. Supported values: true/false/auto"
+            fi
+            exit 1
+            ;;
+    esac
+
+    if [ "${OS_TYPE}" != "Linux" ]; then
+        set_cpu_mode
+        if [ "$LANG" == "zh_CN.UTF-8" ]; then
+            send_warn "GPU 模式当前仅支持 Linux 宿主机，将使用 CPU 模式启动 Rainbond"
+        else
+            send_warn "GPU mode currently supports Linux hosts only. Rainbond will start in CPU mode."
+        fi
         return
     fi
 
-    if [ "${OS_TYPE}" != "Linux" ]; then
+    if ! nvidia_smi_ready; then
+        set_cpu_mode
         if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "GPU 模式当前仅支持 Linux 宿主机"
+            send_info "未检测到可用 NVIDIA 驱动，将使用 CPU 模式启动 Rainbond"
         else
-            send_error "GPU mode currently supports Linux hosts only"
+            send_info "NVIDIA driver is not ready. Rainbond will start in CPU mode."
         fi
-        exit 1
+        return
     fi
 
-    if ! command -v nvidia-smi >/dev/null 2>&1; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "未检测到 nvidia-smi，请先在宿主机安装 NVIDIA 驱动"
-        else
-            send_error "nvidia-smi was not found. Install NVIDIA drivers on the host first."
-        fi
-        exit 1
-    fi
-
-    if ! nvidia-smi >/dev/null 2>&1; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "宿主机执行 nvidia-smi 失败，请先修复 NVIDIA 驱动环境"
-        else
-            send_error "Host nvidia-smi failed. Fix the NVIDIA driver environment first."
-        fi
-        exit 1
-    fi
-
-    if ! docker run --rm --gpus all "${GPU_SMOKE_IMAGE}" nvidia-smi >/dev/null 2>&1; then
-        if [ "$LANG" == "zh_CN.UTF-8" ]; then
-            send_error "Docker GPU 自检失败，请先确认宿主机 Docker 已启用 NVIDIA runtime"
-        else
-            send_error "Docker GPU self-check failed. Ensure the host Docker runtime supports NVIDIA GPUs."
-        fi
-        exit 1
-    fi
-
+    set_gpu_mode
     if [ "$LANG" == "zh_CN.UTF-8" ]; then
-        send_info "GPU 模式预检通过，宿主机驱动与 Docker GPU runtime 正常"
+        send_info "检测到可用 NVIDIA 驱动，将使用 GPU 模式启动 Rainbond"
     else
-        send_info "GPU preflight checks passed. Host driver and Docker GPU runtime are ready."
+        send_info "NVIDIA driver is ready. Rainbond will start in GPU mode."
     fi
+}
+
+build_docker_run_cmd() {
+    docker_run_cmd="docker run --privileged -d ${GPU_DOCKER_ARGS} -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 30000-30010:30000-30010 --name=rainbond --restart=always \
+${VOLUME_OPTS} ${GPU_ENV_ARGS} -e EIP=$EIP -e UUID=${UUID} ${RBD_IMAGE}"
 }
 
 # Main Docker management function
@@ -1611,12 +1642,8 @@ fi
 
 RBD_IMAGE="${IMGHUB_MIRROR}/rainbond:${RAINBOND_VERSION}-k3s"
 
-GPU_DOCKER_ARGS="--gpus all"
-GPU_ENV_ARGS="-e ENABLE_GPU=true -e NVIDIA_VISIBLE_DEVICES=all -e NVIDIA_DRIVER_CAPABILITIES=compute,utility"
-
 # Generate cmd
-docker_run_cmd="docker run --privileged -d ${GPU_DOCKER_ARGS} -p 7070:7070 -p 80:80 -p 443:443 -p 6060:6060 -p 30000-30010:30000-30010 --name=rainbond --restart=always \
-${VOLUME_OPTS} ${GPU_ENV_ARGS} -e EIP=$EIP -e UUID=${UUID} ${RBD_IMAGE}"
+build_docker_run_cmd
 send_info "$docker_run_cmd"
 
 # Pull image with retry mechanism
