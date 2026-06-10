@@ -8772,6 +8772,23 @@
       ],
       "test_type": "unit",
       "status": "active"
+    },
+    {
+      "id": "console.mcp.operation-failure-context",
+      "title": "MCP get_operation_failure_context tool",
+      "title_zh": "MCP 操作失败上下文工具",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.mcp.operation-failure-context]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_failure_context_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
     }
   ]
 }
