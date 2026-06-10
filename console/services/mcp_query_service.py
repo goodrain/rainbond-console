@@ -1408,7 +1408,10 @@ class MCPQueryService(object):
             raise ServiceHandleException(
                 msg="unsupported action", msg_show="不支持的应用操作: {}".format(action), status_code=400)
         service_ids = arguments.get("service_ids") or self._get_app_service_ids(app)
+        event_ids = []
         if action == "restart":
+            # The restart path returns serialized services and carries no
+            # per-component event_id; event_ids stays empty but present.
             code, msg, result = app_manage_service.batch_action(
                 app.region_name, team, user, action, service_ids, None, None)
             if code != 200:
@@ -1416,12 +1419,49 @@ class MCPQueryService(object):
             result = [self._serialize_model_item(service) for service in result]
         else:
             result = app_manage_service.batch_operations(team, app.region_name, user, action, service_ids, None)
+            event_ids = self._extract_operation_event_ids(result)
         return {
             "app_id": app.ID,
             "action": action,
             "service_ids": service_ids,
             "result": result,
+            "event_ids": event_ids,
         }
+
+    @staticmethod
+    def _extract_operation_event_ids(batch_result):
+        """Map region batch_result entries to [{service_alias, event_id}].
+
+        batch_result entries are {service_id, operation, event_id, status, ...}.
+        Resolve service_alias from the DB so agents get a stable, human-meaningful
+        key to correlate later failure events. Entries without an event_id are
+        skipped (e.g. no-op operations).
+        """
+        if not isinstance(batch_result, list):
+            return []
+        service_ids = [item.get("service_id") for item in batch_result
+                       if isinstance(item, dict) and item.get("service_id")]
+        alias_map = {}
+        if service_ids:
+            try:
+                for svc in service_repo.get_services_by_service_ids(service_ids) or []:
+                    alias_map[svc.service_id] = svc.service_alias
+            except Exception as e:
+                logger.warning("operate_app: resolve service aliases failed: %s", e)
+        event_ids = []
+        for item in batch_result:
+            if not isinstance(item, dict):
+                continue
+            event_id = item.get("event_id")
+            if not event_id:
+                continue
+            service_id = item.get("service_id") or ""
+            event_ids.append({
+                "service_id": service_id,
+                "service_alias": alias_map.get(service_id, ""),
+                "event_id": event_id,
+            })
+        return event_ids
 
     def update_component_envs(self, user, arguments):
         team, app, service = self._get_team_app_service_context(
@@ -2947,11 +2987,48 @@ class MCPQueryService(object):
         update_versions = arguments.get("update_versions")
         if not isinstance(update_versions, list) or not update_versions:
             raise ServiceHandleException(msg="invalid update_versions", msg_show="参数update_versions无效", status_code=400)
-        upgrade_service.openapi_upgrade_app_models(user, team, app.region_name, None, app.ID, {
+        app_records = upgrade_service.openapi_upgrade_app_models(user, team, app.region_name, None, app.ID, {
             "update_versions": update_versions
         })
+        event_ids = self._extract_upgrade_event_ids(app_records)
         items = market_app_service.get_market_apps_in_app(app.region_name, team, app)
-        return {"app_id": app.ID, "upgraded": True, "items": items, "total": len(items)}
+        return {
+            "app_id": app.ID,
+            "upgraded": True,
+            "items": items,
+            "total": len(items),
+            "event_ids": event_ids,
+        }
+
+    @staticmethod
+    def _extract_upgrade_event_ids(app_records):
+        """Pull per-component event ids from upgrade records.
+
+        Each ServiceUpgradeRecord carries the event_id returned by the region
+        deploy call (upgrade_services.py send_upgrade_request). Surfacing them
+        lets the agent correlate a later failure event back to this upgrade.
+        Best-effort: any unexpected record shape is skipped, not raised.
+        """
+        event_ids = []
+        if not isinstance(app_records, (list, tuple)):
+            return event_ids
+        for app_record in app_records:
+            try:
+                service_records = app_record.service_upgrade_records.all()
+            except Exception as e:
+                logger.warning("upgrade_app: read service_upgrade_records failed: %s", e)
+                continue
+            for record in service_records:
+                event_id = getattr(record, "event_id", "") or ""
+                if not event_id:
+                    continue
+                service = getattr(record, "service", None)
+                service_alias = getattr(service, "service_alias", "") if service else ""
+                event_ids.append({
+                    "service_alias": service_alias or "",
+                    "event_id": event_id,
+                })
+        return event_ids
 
     def get_copy_app_info(self, user, arguments):
         team, app = self._get_team_app_context(
@@ -5531,7 +5608,9 @@ class MCPQueryService(object):
     def _tool_operate_app(self):
         return {
             "name": "rainbond_operate_app",
-            "description": "Batch operate application components. Supported actions: start, stop, restart, upgrade, deploy.",
+            "description": "Batch operate application components. Supported actions: start, stop, restart, upgrade, deploy. "
+                           "Response includes event_ids ([{service_id, service_alias, event_id}]); after a failed "
+                           "operation pass an event_id to rainbond_get_operation_failure_context for diagnosis.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -6213,7 +6292,9 @@ class MCPQueryService(object):
     def _tool_upgrade_app(self):
         return {
             "name": "rainbond_upgrade_app",
-            "description": "Upgrade an application using the direct high-level console upgrade flow.",
+            "description": "Upgrade an application using the direct high-level console upgrade flow. "
+                           "Response includes event_ids ([{service_alias, event_id}]); after a failed upgrade "
+                           "pass an event_id to rainbond_get_operation_failure_context for diagnosis.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
