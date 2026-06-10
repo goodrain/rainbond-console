@@ -25,7 +25,8 @@ logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 BACKUP_REPO_SECRET_NAMESPACE = "rbd-plugins"
-BACKUP_REPO_DEFAULT_PROVIDER = "s3"
+BACKUP_REPO_DEFAULT_PROVIDER = "s3-compatible"
+BACKUP_REPO_SUPPORTED_PROVIDERS = ("s3", "s3-compatible", "minio")
 BACKUP_REPO_DEFAULT_ACCESS_METHOD = "Tool"
 BACKUP_REPO_DEFAULT_VOLUME_CAPACITY = "100Gi"
 BACKUP_REPO_DEFAULT_RECLAIM_POLICY = "Retain"
@@ -1920,6 +1921,14 @@ class KubeBlocksService(object):
         return clone
 
     def _build_backup_repo_region_payload(self, record, secrets=None):
+        config = {
+            "bucket": record.bucket,
+            "endpoint": record.endpoint,
+            "region": record.region or "",
+        }
+        if record.storage_provider == "s3-compatible":
+            config["forcePathStyle"] = "true"
+
         payload = {
             "name": record.repo_name,
             "displayName": record.display_name,
@@ -1927,11 +1936,7 @@ class KubeBlocksService(object):
             "accessMethod": record.access_method,
             "pvReclaimPolicy": record.pv_reclaim_policy,
             "volumeCapacity": record.volume_capacity,
-            "config": {
-                "bucket": record.bucket,
-                "endpoint": record.endpoint,
-                "region": record.region or "",
-            },
+            "config": config,
             "credential": {
                 "name": record.secret_name,
                 "namespace": record.secret_namespace,
@@ -1969,7 +1974,7 @@ class KubeBlocksService(object):
         }
 
     def _validate_backup_repo_record(self, record):
-        if record.storage_provider != BACKUP_REPO_DEFAULT_PROVIDER:
+        if record.storage_provider not in BACKUP_REPO_SUPPORTED_PROVIDERS:
             raise ServiceHandleException(msg="unsupported storage provider", msg_show="当前仅支持 S3 存储")
         if not record.bucket:
             raise ServiceHandleException(msg="bucket is required", msg_show="Bucket 不能为空")
