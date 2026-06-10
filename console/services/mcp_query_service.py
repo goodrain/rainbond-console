@@ -3,6 +3,7 @@ import datetime
 import json
 import logging
 import os
+import re
 
 from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist
@@ -36,6 +37,7 @@ from console.services.group_service import group_service
 from console.services.groupcopy_service import groupapp_copy_service
 from console.services.helm_app_yaml import helm_app_service
 from console.services.market_app_service import market_app_service
+from console.services.mcp_failure_classifier import classify_failure
 from console.services.package_component_service import package_component_service
 from console.services.package_upload_tool_service import package_upload_tool_service
 from console.services.plugin import app_plugin_service
@@ -262,6 +264,7 @@ class MCPQueryService(object):
             self._tool_get_component_pods(), self._tool_get_pod_detail(),
             self._tool_get_component_logs(), self._tool_exec_component(), self._tool_get_config_file(),
             self._tool_get_component_events(), self._tool_get_component_build_logs(),
+            self._tool_get_operation_failure_context(),
             self._tool_get_component_build_source(), self._tool_update_component_build_source(),
             self._tool_create_component(),
             self._tool_delete_component(), self._tool_operate_app(), self._tool_manage_component_envs(),
@@ -343,6 +346,8 @@ class MCPQueryService(object):
             return self.get_component_detail(user, arguments)
         if name == "rainbond_get_component_events":
             return self.get_component_events(user, arguments)
+        if name == "rainbond_get_operation_failure_context":
+            return self.get_operation_failure_context(user, arguments)
         if name == "rainbond_create_component":
             return self.create_component(user, arguments)
         if name == "rainbond_delete_component":
@@ -940,6 +945,211 @@ class MCPQueryService(object):
         else:
             haystack = str(item)
         return keyword in haystack
+
+    # --- get_operation_failure_context -----------------------------------
+    FAILURE_CONTEXT_DEFAULT_LOG_TAIL = 30
+    FAILURE_CONTEXT_MAX_LOG_TAIL = 200
+    FAILURE_CONTEXT_MAX_PODS = 3
+    FAILURE_CONTEXT_MAX_LINE_LENGTH = 1024
+    FAILURE_CONTEXT_EVENT_QUERY_SIZE = 20
+    # Bare/quoted credential assignments to mask out of event-log lines. K8s
+    # Warning events are credential-free by nature, but the event-log tail can
+    # carry application output, so it gets a defensive scrub.
+    # Value alternatives, in match order: "Bearer <token>" (Authorization
+    # headers keep the token after a space), double/single-quoted values, then
+    # bare values. Known accepted limitation: keys whose secret word is glued
+    # to a prefix by an underscore (e.g. db_password) miss the \b word boundary
+    # and are not masked.
+    _FAILURE_CONTEXT_SECRET_RE = re.compile(
+        r"(?i)\b(password|passwd|pwd|token|secret|access[_-]?key|api[_-]?key|authorization)"
+        r"(\s*[:=]\s*)"
+        r"(bearer\s+\S+|\"[^\"]*\"|'[^']*'|[^\s,;\"'&]+)")
+
+    def get_operation_failure_context(self, user, arguments):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        log_tail_lines = self._parse_int_with_default(
+            arguments.get("log_tail_lines"), self.FAILURE_CONTEXT_DEFAULT_LOG_TAIL)
+        if log_tail_lines <= 0:
+            log_tail_lines = self.FAILURE_CONTEXT_DEFAULT_LOG_TAIL
+        log_tail_lines = min(log_tail_lines, self.FAILURE_CONTEXT_MAX_LOG_TAIL)
+
+        requested_event_id = arguments.get("event_id")
+        if isinstance(requested_event_id, str):
+            requested_event_id = requested_event_id.strip()
+        else:
+            requested_event_id = ""
+
+        event = self._resolve_failure_event(team, app, service, requested_event_id)
+        event_id = (event or {}).get("event_id") or requested_event_id
+
+        event_log_tail = []
+        if event_id:
+            event_log_tail = self._read_failure_event_log_tail(
+                team, app.region_name, event_id, log_tail_lines)
+
+        pod_warnings = self._collect_pod_warnings(team, app.region_name, service)
+
+        classified_reason = classify_failure(pod_warnings, event_log_tail)
+
+        if pod_warnings:
+            verification_level = "pod_evidence"
+        elif event or event_log_tail:
+            verification_level = "event_only"
+        else:
+            verification_level = "no_evidence"
+
+        return {
+            "team_name": team.tenant_name,
+            "region_name": app.region_name,
+            "app_id": app.ID,
+            "service_id": service.service_id,
+            "event": event,
+            "event_log_tail": event_log_tail,
+            "pod_warnings": pod_warnings,
+            "classified_reason": classified_reason,
+            "verification_level": verification_level,
+        }
+
+    def _resolve_failure_event(self, team, app, service, requested_event_id):
+        """Locate the operation event to anchor on.
+
+        When event_id is given, short-circuit: the caller already knows the
+        event to anchor on, so we skip the events-list query entirely and echo a
+        minimal event whose detail fields stay empty (we do not have them and
+        must not invent them); the log tail is fetched separately by event_id.
+        When absent, pick the most recent non-success operation event. Any
+        sub-query failure degrades to a minimal echo (or None) rather than
+        aborting.
+        """
+        if requested_event_id:
+            return {"event_id": requested_event_id, "opt_type": "", "status": "",
+                    "message": "", "start_time": "", "end_time": ""}
+
+        events = []
+        try:
+            res, body = region_api.get_target_events_list(
+                app.region_name, team.tenant_name, "service", service.service_id,
+                1, self.FAILURE_CONTEXT_EVENT_QUERY_SIZE)
+            if int(res.status) == 200 and isinstance(body, dict):
+                events = body.get("list") or []
+        except Exception as e:
+            logger.warning("failure_context: list events failed for %s: %s", service.service_id, e)
+            events = []
+        events = events or []
+
+        for item in events:
+            if not isinstance(item, dict):
+                continue
+            status = (item.get("status") or "").lower()
+            if status and status != "success":
+                return self._shape_failure_event(item)
+        return None
+
+    @staticmethod
+    def _shape_failure_event(item):
+        return {
+            "event_id": item.get("event_id") or "",
+            "opt_type": item.get("opt_type") or "",
+            "status": item.get("status") or "",
+            "message": item.get("message") or "",
+            "start_time": item.get("start_time") or "",
+            "end_time": item.get("end_time") or "",
+        }
+
+    def _read_failure_event_log_tail(self, team, region_name, event_id, log_tail_lines):
+        try:
+            res, body = region_api.get_events_log(team.tenant_name, region_name, event_id)
+            items = body.get("list") or [] if (int(res.status) == 200 and isinstance(body, dict)) else []
+        except Exception as e:
+            logger.warning("failure_context: read event log failed for %s: %s", event_id, e)
+            return []
+        tail = items[-log_tail_lines:] if log_tail_lines else items
+        lines = []
+        for item in tail:
+            if isinstance(item, dict):
+                message = item.get("message")
+                message = message if isinstance(message, str) else str(item)
+            else:
+                message = str(item)
+            lines.append(self._redact_failure_line(message)[:self.FAILURE_CONTEXT_MAX_LINE_LENGTH])
+        return lines
+
+    def _redact_failure_line(self, message):
+        return self._FAILURE_CONTEXT_SECRET_RE.sub(r"\1\2***", str(message or ""))
+
+    def _collect_pod_warnings(self, team, region_name, service):
+        """Pull Warning events from up to N abnormal pods. Best-effort: any
+        failure returns an empty list so aggregation can degrade gracefully."""
+        try:
+            pods_data = region_api.get_service_pods(
+                region_name, team.tenant_name, service.service_alias, team.enterprise_id)
+        except Exception as e:
+            logger.warning("failure_context: list pods failed for %s: %s", service.service_id, e)
+            return []
+        pods = self._extract_component_pods(pods_data)
+        warnings = []
+        inspected = 0
+        for pod in pods:
+            if inspected >= self.FAILURE_CONTEXT_MAX_PODS:
+                break
+            pod_status = (pod.get("pod_status") or "").upper()
+            if pod_status == "RUNNING":
+                # Only inspect pods that are not cleanly running; a running pod
+                # rarely carries actionable Warning events for an operation failure.
+                continue
+            pod_name = pod.get("pod_name")
+            if not pod_name:
+                continue
+            inspected += 1
+            warnings.extend(self._extract_pod_warning_events(team, region_name, service, pod_name))
+        return warnings
+
+    def _extract_pod_warning_events(self, team, region_name, service, pod_name):
+        try:
+            detail_payload = region_api.pod_detail(
+                region_name, team.tenant_name, service.service_alias, pod_name)
+        except Exception as e:
+            logger.warning("failure_context: pod_detail failed for %s/%s: %s", service.service_id, pod_name, e)
+            return []
+        detail = self._extract_region_pod_detail(detail_payload)
+        if not isinstance(detail, dict):
+            return []
+        warnings = []
+        seen = {}
+        for event in (detail.get("events") or []):
+            if not isinstance(event, dict):
+                continue
+            event_type = (event.get("type") or "").lower()
+            reason = event.get("reason") or ""
+            message = event.get("message") or ""
+            # K8s Warning events are the signal; if type is missing, fall back to
+            # treating any event with a reason+message as a candidate warning.
+            if event_type and event_type != "warning":
+                continue
+            if not reason and not message:
+                continue
+            key = (pod_name, reason, message)
+            if key in seen:
+                continue
+            seen[key] = True
+            count = event.get("count")
+            try:
+                count = int(count) if count is not None else None
+            except (TypeError, ValueError):
+                count = None
+            warnings.append({
+                "pod_name": pod_name,
+                "reason": reason,
+                "count": count,
+                "message": self._redact_failure_line(message)[:self.FAILURE_CONTEXT_MAX_LINE_LENGTH],
+            })
+        return warnings
 
     def _get_component_build_source_snapshot(self, team, app, service):
         build_infos = base_service.get_build_infos(team, [service.service_id])
@@ -5152,6 +5362,43 @@ class MCPQueryService(object):
                     "service_id": {"type": "string"},
                     "page": {"type": "integer", "minimum": 1},
                     "page_size": {"type": "integer", "minimum": 1}
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id"]
+            }
+        }
+
+    def _tool_get_operation_failure_context(self):
+        return {
+            "name": "rainbond_get_operation_failure_context",
+            "description": (
+                "Aggregate structured failure context for a component after a mutating operation "
+                "(rainbond_operate_app / rainbond_upgrade_app / build / deploy) reports failure, or "
+                "when a component becomes abnormal right after such an operation. Returns the failing "
+                "operation event, the tail of its event log, deduplicated K8s pod Warning events, and a "
+                "machine-readable classified_reason "
+                "(config_file_configmap_missing / volume_mount_failed / image_pull_failed / crash_loop / "
+                "probe_failed / unschedulable / k8s_api_rejected / unknown). Call this BEFORE deciding to "
+                "retry: route by classified_reason to the matching root-cause fix; on 'unknown' fall back "
+                "to the normal evidence workflow. event_id is optional — when omitted the most recent "
+                "non-success operation event is used. verification_level reports evidence strength "
+                "(pod_evidence > event_only > no_evidence)."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                    "event_id": {
+                        "type": "string",
+                        "description": "可选。要定位的操作事件 ID。缺省时自动取该组件最近一次非 success 的操作事件。"
+                    },
+                    "log_tail_lines": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "可选，返回事件日志末尾的行数，默认 30，上限 200。失败原因通常在尾部。"
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
