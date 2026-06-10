@@ -5491,6 +5491,10 @@
         {
           "path": "console/tests/kubeblocks_backup_repo_test.py",
           "selector": "KubeBlocksBackupRepoServiceTests.test_create_backup_repo_prefixes_namespace_and_does_not_store_secret_values"
+        },
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_create_backup_repo_rejects_existing_region_repo_name_even_if_deleted"
         }
       ],
       "test_type": "regression",

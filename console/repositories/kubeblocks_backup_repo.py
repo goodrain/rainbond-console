@@ -21,6 +21,12 @@ class KubeBlocksBackupRepoRepository(object):
             is_deleted=False,
         ).first()
 
+    def get_by_region_repo_name(self, region_name, repo_name):
+        return KubeBlocksBackupRepo.objects.filter(
+            region_name=region_name,
+            repo_name=repo_name,
+        ).first()
+
     def get_by_display_name(self, tenant_id, region_name, display_name):
         return KubeBlocksBackupRepo.objects.filter(
             tenant_id=tenant_id,
