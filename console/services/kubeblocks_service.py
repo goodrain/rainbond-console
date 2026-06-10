@@ -263,11 +263,15 @@ class KubeBlocksService(object):
         cpu = params["cpu"]
         if not self._is_valid_cpu(cpu):
             return False, "CPU 配置格式不正确"
+        if not self._is_positive_quantity(cpu, ("m",)):
+            return False, "CPU 配置必须大于0"
 
         # 内存格式校验
         memory = params["memory"]
         if not self._is_valid_memory(memory):
             return False, "内存配置格式不正确"
+        if not self._is_positive_quantity(memory, ("Mi", "Gi", "Ti")):
+            return False, "内存配置必须大于0"
 
         # 存储格式校验
         storage_size = params["storage_size"]
@@ -292,6 +296,18 @@ class KubeBlocksService(object):
         import re
         pattern = r'^\d+(\.\d+)?(Mi|Gi|Ti)$'
         return bool(re.match(pattern, memory))
+
+    def _is_positive_quantity(self, value, units):
+        """验证资源配置数值部分大于0"""
+        normalized = str(value)
+        for unit in units:
+            if unit and normalized.endswith(unit):
+                normalized = normalized[:-len(unit)]
+                break
+        try:
+            return float(normalized) > 0
+        except (TypeError, ValueError):
+            return False
 
     def is_valid_storage(self, storage):
         """验证存储格式"""

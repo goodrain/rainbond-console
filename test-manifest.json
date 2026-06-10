@@ -5559,6 +5559,24 @@
       "status": "active"
     },
     {
+      "id": "console.kubeblocks.cluster-resource-validation",
+      "title": "Validate KubeBlocks cluster resource requests",
+      "title_zh": "\u6821\u9a8c KubeBlocks \u96c6\u7fa4\u8d44\u6e90\u8bf7\u6c42",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService.validate_cluster_params",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_cluster_validation_test.py",
+          "selector": "KubeBlocksClusterValidationTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.lang-version.proxy-upload",
       "title": "Proxy legacy language package upload endpoint",
       "title_zh": "\u4ee3\u7406\u65e7\u7248\u8bed\u8a00\u5305\u4e0a\u4f20\u63a5\u53e3",
@@ -8831,6 +8849,24 @@
         {
           "path": "console/tests/app_manage_test.py",
           "selector": "AppManageVMRestoreDeleteTests.test_delete_allows_abnormal_vm_to_skip_running_guard"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.test-manifest.ignore-worktrees",
+      "title": "Ignore nested worktree tests during manifest validation",
+      "title_zh": "\u6d4b\u8bd5\u6e05\u5355\u6821\u9a8c\u5ffd\u7565\u5d4c\u5957 worktree \u6d4b\u8bd5",
+      "interface_type": "package_function",
+      "interface": "scripts.validate_test_manifest.collect_marked_tests",
+      "code_paths": [
+        "scripts/validate_test_manifest.py"
+      ],
+      "tests": [
+        {
+          "path": "scripts/validate_test_manifest_test.py",
+          "selector": "ValidateTestManifestTests"
         }
       ],
       "test_type": "regression",
