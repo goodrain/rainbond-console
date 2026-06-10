@@ -1811,6 +1811,7 @@ class KubeBlocksService(object):
             status_code = res.get("status", 500)
             if status_code != 200:
                 msg_show = body.get("msg_show", "删除备份仓库失败") if isinstance(body, dict) else "删除备份仓库失败"
+                msg_show = self._format_backup_repo_delete_error(msg_show)
                 return status_code, {"msg_show": msg_show}
 
             kubeblocks_backup_repo_repo.mark_deleted(record)
@@ -1820,6 +1821,16 @@ class KubeBlocksService(object):
         except Exception as e:
             logger.exception(f"删除备份仓库异常: {str(e)}")
             return 500, {"msg_show": f"删除备份仓库异常: {str(e)}"}
+
+    def _format_backup_repo_delete_error(self, msg_show):
+        msg_show = msg_show or "删除备份仓库失败"
+        cluster_match = re.search(r"is in use by cluster\s+([^\s\"'}]+)", msg_show)
+        if cluster_match:
+            cluster_name = cluster_match.group(1).rstrip(".")
+            return "备份仓库正在被数据库组件 {} 使用，不支持删除。请先在该组件的备份策略中取消使用该仓库后再删除".format(cluster_name)
+        if "is in use by cluster" in msg_show:
+            return "备份仓库正在被数据库组件使用，不支持删除。请先在相关组件的备份策略中取消使用该仓库后再删除"
+        return msg_show
 
     def ensure_backup_repo_belongs_to_team(self, tenant, region_name, repo_name):
         if not repo_name:
