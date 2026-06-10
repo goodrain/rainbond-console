@@ -296,6 +296,7 @@
 | console.init-cluster.prefer-latest-pending | 初始化时优先选择最新待处理集群 | active | regression | console.repositories.init_cluster.Cluster.get_rke_cluster_exclude_integrated | console/tests/init_cluster_test.py::ClusterRepositoryTests.test_get_rke_cluster_exclude_integrated_prefers_latest_pending_cluster |
 | console.init-cluster.recycle-empty-interconnected | 回收空白联通集群用于重新初始化 | active | regression | console.repositories.init_cluster.Cluster.get_rke_cluster_exclude_integrated | console/tests/init_cluster_test.py::ClusterRepositoryTests.test_get_rke_cluster_exclude_integrated_recycles_blank_cluster |
 | console.k8s-namespace.normalize-user-prefix | 将用户名规范化为合法的 Kubernetes 命名空间名 | active | regression | console.utils.validation.normalize_name_for_k8s_namespace | console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace |
+| console.kubeblocks.cluster-resource-validation | 校验 KubeBlocks 集群资源请求 | active | regression | console.services.kubeblocks_service.KubeBlocksService.validate_cluster_params | console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksClusterValidationTests |
 | console.lang-version.proxy-upload | 代理旧版语言包上传接口 | active | regression | console.views.enterprise.UploadLongVersion.post | console/tests/lang_version_proxy_test.py::UploadLongVersionProxyViewTests |
 | console.market-app.install-default-storage-class | 应用市场安装使用平台默认存储类 | active | regression | console.services.market_app.new_components.NewComponents._template_to_volumes | console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_resolve_market_default_volume_type_prefers_configured_storage_class<br>console/tests/market_app_storage_test.py::MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class |
 | console.market-app.upgrade-share-image-fallback | Market App Upgrade Share Image Fallback | active | regression | console.services.market_app.update_components | console/tests/market_app_update_components_test.py::MarketAppUpdateComponentsCompatibilityTests.test_create_update_components_falls_back_to_image_when_share_image_missing |
@@ -417,6 +418,7 @@
 | console.source-component.normalize-git-url | 为 Git 地址追加一次子目录参数 | active | regression | console.services.source_component_service.normalize_git_url | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_normalize_git_url_appends_subdirectory_once |
 | console.source-component.prefer-dockerfile | Source Component Prefer Dockerfile | active | regression | console.services.source_component_service | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_requested |
 | console.source-component.prefer-dockerfile-from-dockerfiles-flag | Source Component Prefer Dockerfile From Dockerfiles Flag | active | regression | console.services.source_component_service | console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist |
+| console.test-manifest.ignore-worktrees | 测试清单校验忽略嵌套 worktree 测试 | active | regression | scripts.validate_test_manifest.collect_marked_tests | scripts/validate_test_manifest_test.py::ValidateTestManifestTests |
 | console.timeutil.current-date-str | 返回默认格式的当前日期字符串 | active | regression | console.utils.timeutil.current_time_to_str | console/tests/utils/timeutil_test.py::TimeUtilTests.test_current_time_to_str |
 | console.timeutil.current-time | 返回当前 datetime 对象 | active | regression | console.utils.timeutil.current_time | console/tests/utils/timeutil_test.py::TimeUtilTests.test_current_time |
 | console.timeutil.current-time-str | 返回格式化的当前时间字符串 | active | regression | console.utils.timeutil.current_time_str | console/tests/utils/timeutil_test.py::TimeUtilTests.test_current_time_str |
@@ -3369,6 +3371,16 @@
 - 代码路径: `console/utils/validation.py`
 - 测试路径: `console/tests/utils/validation_test.py::NamespaceNormalizationTests.test_normalize_name_for_k8s_namespace`
 
+### 校验 KubeBlocks 集群资源请求
+
+- Capability ID: `console.kubeblocks.cluster-resource-validation`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.kubeblocks_service.KubeBlocksService.validate_cluster_params`
+- 代码路径: `console/services/kubeblocks_service.py`
+- 测试路径: `console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksClusterValidationTests`
+
 ### 代理旧版语言包上传接口
 
 - Capability ID: `console.lang-version.proxy-upload`
@@ -4578,6 +4590,16 @@
 - 业务入口: `console.services.source_component_service`
 - 代码路径: `console/services/source_component_service.py`
 - 测试路径: `console/tests/source_component_service_test.py::SourceComponentServiceTests.test_auto_create_component_prefers_dockerfile_when_dockerfiles_exist`
+
+### 测试清单校验忽略嵌套 worktree 测试
+
+- Capability ID: `console.test-manifest.ignore-worktrees`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `scripts.validate_test_manifest.collect_marked_tests`
+- 代码路径: `scripts/validate_test_manifest.py`
+- 测试路径: `scripts/validate_test_manifest_test.py::ValidateTestManifestTests`
 
 ### 返回默认格式的当前日期字符串
 
