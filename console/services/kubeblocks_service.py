@@ -1753,6 +1753,8 @@ class KubeBlocksService(object):
                 return 409, {"msg_show": "备份仓库显示名已存在"}
             if kubeblocks_backup_repo_repo.get_by_repo_name(tenant.tenant_id, region_name, record.repo_name):
                 return 409, {"msg_show": "备份仓库已存在"}
+            if kubeblocks_backup_repo_repo.get_by_region_repo_name(region_name, record.repo_name):
+                return 409, {"msg_show": "备份仓库资源名称已存在，请换一个仓库名称"}
 
             payload = self._build_backup_repo_region_payload(record, secrets)
             res, body = region_api.create_kubeblocks_backup_repo(region_name, payload)

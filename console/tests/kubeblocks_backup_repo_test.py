@@ -73,6 +73,39 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
         self.assertEqual(region_payload["secrets"]["accessKeyId"], "ak")
         self.assertEqual(region_payload["secrets"]["secretAccessKey"], "sk")
 
+    # capability_id: console.kubeblocks.backup-repo.team-create
+    def test_create_backup_repo_rejects_existing_region_repo_name_even_if_deleted(self):
+        KubeBlocksBackupRepo.objects.create(
+            tenant_id="tenant-1",
+            team_name="team-a",
+            region_name="region-a",
+            namespace="team-a-ns",
+            display_name="旧仓库",
+            repo_name="team-a-ns-prod",
+            secret_name="team-a-ns-prod-secret",
+            secret_namespace="rbd-plugins",
+            storage_provider="s3-compatible",
+            bucket="rainbond-backup",
+            endpoint="https://s3.example.com",
+            is_deleted=True,
+        )
+        region_api = mock.Mock()
+
+        payload = {
+            "name": "prod",
+            "display_name": "生产仓库",
+            "bucket": "rainbond-backup",
+            "endpoint": "https://s3.example.com",
+            "access_key_id": "ak",
+            "secret_access_key": "sk",
+        }
+        with mock.patch.object(kubeblocks_module, "region_api", region_api):
+            status, body = self.service.create_backup_repo(self.tenant, self.user, "region-a", payload)
+
+        self.assertEqual(status, 409)
+        self.assertEqual(body["msg_show"], "备份仓库资源名称已存在，请换一个仓库名称")
+        region_api.create_kubeblocks_backup_repo.assert_not_called()
+
     # capability_id: console.kubeblocks.backup-repo.team-list
     def test_list_backup_repos_merges_live_status_from_region(self):
         KubeBlocksBackupRepo.objects.create(
