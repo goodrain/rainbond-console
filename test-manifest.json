@@ -5537,6 +5537,24 @@
       "status": "active"
     },
     {
+      "id": "console.kubeblocks.backup-repo.team-delete",
+      "title": "Delete team KubeBlocks backup repo",
+      "title_zh": "\u5220\u9664\u56e2\u961f KubeBlocks \u5907\u4efd\u4ed3\u5e93",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService.delete_backup_repo",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_delete_backup_repo_shows_clear_message_when_in_use"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.lang-version.proxy-upload",
       "title": "Proxy legacy language package upload endpoint",
       "title_zh": "\u4ee3\u7406\u65e7\u7248\u8bed\u8a00\u5305\u4e0a\u4f20\u63a5\u53e3",
