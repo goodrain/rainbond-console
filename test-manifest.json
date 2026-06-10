@@ -8789,6 +8789,24 @@
       ],
       "test_type": "unit",
       "status": "active"
+    },
+    {
+      "id": "console.mcp.operation-event-ids",
+      "title": "MCP operate_app/upgrade_app return operation event ids",
+      "title_zh": "MCP operate_app/upgrade_app 返回操作事件 ID",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.mcp.operation-event-ids]",
+      "code_paths": [
+        "console/services/mcp_query_service.py",
+        "console/services/upgrade_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_operation_event_ids_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
     }
   ]
 }
