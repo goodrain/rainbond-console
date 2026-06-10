@@ -8755,6 +8755,23 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.mcp.operation-failure-classifier",
+      "title": "MCP operation failure classifier",
+      "title_zh": "MCP 操作失败分类器",
+      "interface_type": "package_function",
+      "interface": "console.services.mcp_failure_classifier.classify_failure",
+      "code_paths": [
+        "console/services/mcp_failure_classifier.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_failure_classifier_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
     }
   ]
 }
