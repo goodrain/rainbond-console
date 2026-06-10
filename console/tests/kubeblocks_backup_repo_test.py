@@ -168,3 +168,32 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
 
         with self.assertRaises(ServiceHandleException):
             self.service.ensure_backup_repo_belongs_to_team(self.tenant, "region-a", "team-b-ns-prod")
+
+    # capability_id: console.kubeblocks.backup-repo.team-delete
+    def test_delete_backup_repo_shows_clear_message_when_in_use(self):
+        KubeBlocksBackupRepo.objects.create(
+            tenant_id="tenant-1",
+            team_name="team-a",
+            region_name="region-a",
+            namespace="team-a-ns",
+            display_name="生产仓库",
+            repo_name="team-a-ns-prod",
+            secret_name="team-a-ns-prod-secret",
+            secret_namespace="rbd-plugins",
+            storage_provider="s3-compatible",
+            bucket="rainbond-backup",
+            endpoint="http://minio-service.rbd-system.svc.cluster.local:9000",
+        )
+        region_api = mock.Mock()
+        region_api.delete_kubeblocks_backup_repo.return_value = ({
+            "status": 409
+        }, {
+            "msg_show": 'block-mechanica service returned error: {"code":409,"msg":"delete backup repo: backup repo team-a-ns-prod is in use by cluster team-a-ns/mysql-abc"}\n'
+        })
+
+        with mock.patch.object(kubeblocks_module, "region_api", region_api):
+            status, body = self.service.delete_backup_repo(self.tenant, "region-a", "team-a-ns-prod")
+
+        self.assertEqual(status, 409)
+        self.assertEqual(body["msg_show"], "备份仓库正在被数据库组件 team-a-ns/mysql-abc 使用，不支持删除。请先在该组件的备份策略中取消使用该仓库后再删除")
+        region_api.delete_kubeblocks_backup_repo.assert_called_once_with("region-a", "team-a-ns-prod")
