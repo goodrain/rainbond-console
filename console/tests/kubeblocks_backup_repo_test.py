@@ -74,8 +74,8 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
         self.assertEqual(region_payload["secrets"]["secretAccessKey"], "sk")
 
     # capability_id: console.kubeblocks.backup-repo.team-create
-    def test_create_backup_repo_rejects_existing_region_repo_name_even_if_deleted(self):
-        KubeBlocksBackupRepo.objects.create(
+    def test_create_backup_repo_reclaims_deleted_region_repo_name(self):
+        old_record = KubeBlocksBackupRepo.objects.create(
             tenant_id="tenant-1",
             team_name="team-a",
             region_name="region-a",
@@ -90,6 +90,7 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
             is_deleted=True,
         )
         region_api = mock.Mock()
+        region_api.create_kubeblocks_backup_repo.return_value = ({"status": 200}, {"bean": {"name": "team-a-ns-prod"}})
 
         payload = {
             "name": "prod",
@@ -102,9 +103,12 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
         with mock.patch.object(kubeblocks_module, "region_api", region_api):
             status, body = self.service.create_backup_repo(self.tenant, self.user, "region-a", payload)
 
-        self.assertEqual(status, 409)
-        self.assertEqual(body["msg_show"], "备份仓库资源名称已存在，请换一个仓库名称")
-        region_api.create_kubeblocks_backup_repo.assert_not_called()
+        self.assertEqual(status, 200)
+        self.assertFalse(KubeBlocksBackupRepo.objects.filter(ID=old_record.ID).exists())
+        repo = KubeBlocksBackupRepo.objects.get(repo_name="team-a-ns-prod")
+        self.assertFalse(repo.is_deleted)
+        self.assertEqual(repo.display_name, "生产仓库")
+        region_api.create_kubeblocks_backup_repo.assert_called_once()
 
     # capability_id: console.kubeblocks.backup-repo.team-list
     def test_list_backup_repos_merges_live_status_from_region(self):
@@ -229,4 +233,30 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
 
         self.assertEqual(status, 409)
         self.assertEqual(body["msg_show"], "备份仓库正在被数据库组件 team-a-ns/mysql-abc 使用，不支持删除。请先在该组件的备份策略中取消使用该仓库后再删除")
+        region_api.delete_kubeblocks_backup_repo.assert_called_once_with("region-a", "team-a-ns-prod")
+
+    # capability_id: console.kubeblocks.backup-repo.team-delete
+    def test_delete_backup_repo_removes_console_record_on_success(self):
+        record = KubeBlocksBackupRepo.objects.create(
+            tenant_id="tenant-1",
+            team_name="team-a",
+            region_name="region-a",
+            namespace="team-a-ns",
+            display_name="生产仓库",
+            repo_name="team-a-ns-prod",
+            secret_name="team-a-ns-prod-secret",
+            secret_namespace="rbd-plugins",
+            storage_provider="s3-compatible",
+            bucket="rainbond-backup",
+            endpoint="http://minio-service.rbd-system.svc.cluster.local:9000",
+        )
+        region_api = mock.Mock()
+        region_api.delete_kubeblocks_backup_repo.return_value = ({"status": 200}, {"bean": {}})
+
+        with mock.patch.object(kubeblocks_module, "region_api", region_api):
+            status, body = self.service.delete_backup_repo(self.tenant, "region-a", "team-a-ns-prod")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body["msg_show"], "删除备份仓库成功")
+        self.assertFalse(KubeBlocksBackupRepo.objects.filter(ID=record.ID).exists())
         region_api.delete_kubeblocks_backup_repo.assert_called_once_with("region-a", "team-a-ns-prod")

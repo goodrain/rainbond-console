@@ -1753,7 +1753,10 @@ class KubeBlocksService(object):
                 return 409, {"msg_show": "备份仓库显示名已存在"}
             if kubeblocks_backup_repo_repo.get_by_repo_name(tenant.tenant_id, region_name, record.repo_name):
                 return 409, {"msg_show": "备份仓库已存在"}
-            if kubeblocks_backup_repo_repo.get_by_region_repo_name(region_name, record.repo_name):
+            deleted = kubeblocks_backup_repo_repo.get_deleted_by_region_repo_name(region_name, record.repo_name)
+            if deleted:
+                kubeblocks_backup_repo_repo.delete(deleted)
+            elif kubeblocks_backup_repo_repo.get_by_region_repo_name(region_name, record.repo_name):
                 return 409, {"msg_show": "备份仓库资源名称已存在，请换一个仓库名称"}
 
             payload = self._build_backup_repo_region_payload(record, secrets)
@@ -1816,7 +1819,7 @@ class KubeBlocksService(object):
                 msg_show = self._format_backup_repo_delete_error(msg_show)
                 return status_code, {"msg_show": msg_show}
 
-            kubeblocks_backup_repo_repo.mark_deleted(record)
+            kubeblocks_backup_repo_repo.delete(record)
             return 200, {"msg_show": "删除备份仓库成功"}
         except ServiceHandleException as e:
             return e.status_code, {"msg_show": e.msg_show}
