@@ -3496,9 +3496,48 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/cluster/kubeblocks/backup-repos" 
+        url += "/v2/cluster/kubeblocks/backup-repos"
         self._set_headers(region_info.token)
         res, body = self._get(url, self.default_headers, region=region_name)
+        return res, body
+
+    def create_kubeblocks_backup_repo(self, region_name, backup_repo):
+        """
+        创建 KubeBlocks BackupRepo
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/cluster/kubeblocks/backup-repos"
+        self._set_headers(region_info.token)
+        res, body = self._post(url, self.default_headers, body=json.dumps(backup_repo), region=region_name)
+        return res, body
+
+    def update_kubeblocks_backup_repo(self, region_name, repo_name, backup_repo):
+        """
+        更新 KubeBlocks BackupRepo
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += f"/v2/cluster/kubeblocks/backup-repos/{repo_name}"
+        self._set_headers(region_info.token)
+        res, body = self._put(url, self.default_headers, body=json.dumps(backup_repo), region=region_name)
+        return res, body
+
+    def delete_kubeblocks_backup_repo(self, region_name, repo_name):
+        """
+        删除 KubeBlocks BackupRepo
+        """
+        region_info = self.get_region_info(region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += f"/v2/cluster/kubeblocks/backup-repos/{repo_name}"
+        self._set_headers(region_info.token)
+        res, body = self._delete(url, self.default_headers, region=region_name)
         return res, body
 
     def create_kubeblocks_cluster(self, region_name, cluster_data):
