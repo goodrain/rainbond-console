@@ -5577,6 +5577,24 @@
       "status": "active"
     },
     {
+      "id": "console.kubeblocks.create-no-credential-wait",
+      "title": "Create KubeBlocks component without waiting for credentials",
+      "title_zh": "\u521b\u5efa KubeBlocks \u7ec4\u4ef6\u4e0d\u7b49\u5f85\u8fde\u63a5\u51ed\u636e",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService.create_complete_kubeblocks_component",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_cluster_validation_test.py",
+          "selector": "KubeBlocksCreateFlowTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.lang-version.proxy-upload",
       "title": "Proxy legacy language package upload endpoint",
       "title_zh": "\u4ee3\u7406\u65e7\u7248\u8bed\u8a00\u5305\u4e0a\u4f20\u63a5\u53e3",

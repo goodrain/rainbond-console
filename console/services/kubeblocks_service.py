@@ -66,18 +66,9 @@ class KubeBlocksService(object):
             # 在Region中创建资源
             self._create_region_service(tenant, new_service, user.nick_name)
 
-            connect_ctx = self._fetch_connection_info(
-                region_name=region_name,
-                service_id=new_service.service_id
-            )
-
             # 配置端口信息,传递数据库类型
             database_type = creation_params.get('database_type', '')
-
-            # 配置连接信息（环境变量）
-            self._add_database_env_vars(tenant, user, region_name, new_service, connect_ctx=connect_ctx, database_type=database_type)
-
-            self._configure_service_ports(tenant, user, region_name, new_service, connect_ctx=connect_ctx, database_type=database_type)
+            self._configure_service_ports(tenant, user, region_name, new_service, database_type=database_type)
 
             # 构建部署组件
             deploy_result = self._deploy_component(tenant, new_service, user)
@@ -562,18 +553,20 @@ class KubeBlocksService(object):
 
     def _configure_service_ports(self, tenant, user, region_name, service, connect_ctx=None, database_type=''):
         """配置服务端口"""
-        if connect_ctx is None:
+        port = self._get_default_port_by_database_type(database_type)
+        if port is None and connect_ctx is None:
             connect_ctx = self._fetch_connection_info(
                 region_name=region_name,
                 service_id=service.service_id,
                 msg_show="获取端口信息失败"
             )
-        if not isinstance(connect_ctx, dict):
-            raise ServiceHandleException(
-                msg="invalid connection info returned",
-                msg_show="端口信息无效"
-            )
-        port = connect_ctx.get("port")
+        if port is None:
+            if not isinstance(connect_ctx, dict):
+                raise ServiceHandleException(
+                    msg="invalid connection info returned",
+                    msg_show="端口信息无效"
+                )
+            port = connect_ctx.get("port")
         if not isinstance(port, int):
             raise ServiceHandleException(
                 msg="invalid port info returned",
@@ -639,6 +632,17 @@ class KubeBlocksService(object):
 
         # 返回对应的别名,如果找不到则返回默认值 DB
         return port_alias_mapping.get(database_type_lower, 'DB')
+
+    def _get_default_port_by_database_type(self, database_type):
+        """根据数据库类型返回 KubeBlocks 默认连接端口"""
+        database_type_lower = database_type.lower() if database_type else ''
+        port_mapping = {
+            'mysql': 3306,
+            'postgresql': 6432,
+            'redis': 6379,
+            'rabbitmq': 5672,
+        }
+        return port_mapping.get(database_type_lower)
 
     def _enable_port_outer_service(self, tenant, service, region_name, port, user):
         """
