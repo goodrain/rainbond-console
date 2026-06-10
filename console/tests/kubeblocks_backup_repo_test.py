@@ -67,6 +67,8 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
 
         region_payload = region_api.create_kubeblocks_backup_repo.call_args[0][1]
         self.assertEqual(region_payload["name"], "team-a-ns-prod")
+        self.assertEqual(region_payload["storageProviderRef"], "s3-compatible")
+        self.assertEqual(region_payload["config"]["forcePathStyle"], "true")
         self.assertEqual(region_payload["credential"]["namespace"], "rbd-plugins")
         self.assertEqual(region_payload["secrets"]["accessKeyId"], "ak")
         self.assertEqual(region_payload["secrets"]["secretAccessKey"], "sk")
@@ -108,6 +110,45 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
         self.assertEqual(item["displayName"], "生产仓库")
         self.assertEqual(item["phase"], "Ready")
         self.assertEqual(item["generatedStorageClassName"], "sc-team-a-ns-prod")
+
+    # capability_id: console.kubeblocks.backup-repo.team-list
+    def test_list_backup_repos_keeps_failed_live_status(self):
+        KubeBlocksBackupRepo.objects.create(
+            tenant_id="tenant-1",
+            team_name="team-a",
+            region_name="region-a",
+            namespace="team-a-ns",
+            display_name="生产仓库",
+            repo_name="team-a-ns-prod",
+            secret_name="team-a-ns-prod-secret",
+            secret_namespace="rbd-plugins",
+            storage_provider="s3-compatible",
+            bucket="rainbond-backup",
+            endpoint="http://minio-service.rbd-system.svc.cluster.local:9000",
+        )
+        region_api = mock.Mock()
+        region_api.get_kubeblocks_backup_repos.return_value = ({
+            "status": 200
+        }, {
+            "list": [{
+                "name": "team-a-ns-prod",
+                "phase": "Failed",
+                "conditions": [{
+                    "type": "PreCheckPassed",
+                    "status": "False",
+                    "reason": "PreCheckFailed",
+                    "message": "lookup bucket.minio-service failed",
+                }],
+            }]
+        })
+
+        with mock.patch.object(kubeblocks_module, "region_api", region_api):
+            status, body = self.service.get_team_backup_repos(self.tenant, "region-a")
+
+        self.assertEqual(status, 200)
+        item = body["list"][0]
+        self.assertEqual(item["phase"], "Failed")
+        self.assertEqual(item["conditions"][0]["reason"], "PreCheckFailed")
 
     # capability_id: console.kubeblocks.backup-repo.team-ownership
     def test_ensure_backup_repo_belongs_to_team_rejects_other_team_repo(self):
