@@ -44,11 +44,63 @@ class KubeBlocksStorageClassesView(RegionTenantHeaderView):
 class KubeBlocksBackupReposView(RegionTenantHeaderView):
     def get(self, request, team_name, region_name, *args, **kwargs):
         """
-        获取指定区域下 KubeBlocks BackupRepo 列表
+        获取当前团队下 KubeBlocks BackupRepo 列表
         """
         try:
-            status, data = kubeblocks_service.get_backup_repos(region_name)
+            status, data = kubeblocks_service.get_team_backup_repos(self.tenant, region_name)
             return Response(general_message(status, "success" if status == 200 else "failed", "成功获取" if status == 200 else "获取失败", list=data.get("list", [])))
+        except Exception as e:
+            logger.exception(e)
+            return Response(general_message(500, "request error", f"请求异常: {str(e)}"), status=500)
+
+    def post(self, request, team_name, region_name, *args, **kwargs):
+        """
+        创建当前团队下 KubeBlocks BackupRepo
+        """
+        try:
+            status, data = kubeblocks_service.create_backup_repo(self.tenant, self.user, region_name, request.data or {})
+            return Response(
+                general_message(
+                    status,
+                    "success" if status == 200 else "failed",
+                    data.get("msg_show", "创建成功" if status == 200 else "创建失败"),
+                    bean=data.get("bean", {})
+                ),
+                status=status
+            )
+        except Exception as e:
+            logger.exception(e)
+            return Response(general_message(500, "request error", f"请求异常: {str(e)}"), status=500)
+
+    def put(self, request, team_name, region_name, repo_name, *args, **kwargs):
+        """
+        更新当前团队下 KubeBlocks BackupRepo
+        """
+        try:
+            status, data = kubeblocks_service.update_backup_repo(self.tenant, region_name, repo_name, request.data or {})
+            return Response(
+                general_message(
+                    status,
+                    "success" if status == 200 else "failed",
+                    data.get("msg_show", "更新成功" if status == 200 else "更新失败"),
+                    bean=data.get("bean", {})
+                ),
+                status=status
+            )
+        except Exception as e:
+            logger.exception(e)
+            return Response(general_message(500, "request error", f"请求异常: {str(e)}"), status=500)
+
+    def delete(self, request, team_name, region_name, repo_name, *args, **kwargs):
+        """
+        删除当前团队下 KubeBlocks BackupRepo
+        """
+        try:
+            status, data = kubeblocks_service.delete_backup_repo(self.tenant, region_name, repo_name)
+            return Response(
+                general_message(status, "success" if status == 200 else "failed", data.get("msg_show", "删除成功" if status == 200 else "删除失败")),
+                status=status
+            )
         except Exception as e:
             logger.exception(e)
             return Response(general_message(500, "request error", f"请求异常: {str(e)}"), status=500)
@@ -113,7 +165,8 @@ class KubeBlocksClusterBackupView(AppBaseView):
             status_code, data = kubeblocks_service.update_backup_config(
                 self.response_region,
                 self.service.service_id,
-                body
+                body,
+                tenant=self.tenant
             )
 
             if status_code == 200:

@@ -194,6 +194,34 @@ class TeamHelmReleaseSource(BaseModel):
     update_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text="更新时间")
 
 
+class KubeBlocksBackupRepo(BaseModel):
+    class Meta:
+        db_table = "kubeblocks_backup_repo"
+        unique_together = (("region_name", "repo_name"), ("tenant_id", "region_name", "display_name", "is_deleted"))
+
+    tenant_id = models.CharField(max_length=32, help_text="团队ID")
+    team_name = models.CharField(max_length=64, help_text="团队名称")
+    region_name = models.CharField(max_length=64, help_text="数据中心名称")
+    namespace = models.CharField(max_length=64, help_text="团队命名空间")
+    display_name = models.CharField(max_length=64, help_text="显示名称")
+    repo_name = models.CharField(max_length=128, help_text="KubeBlocks BackupRepo 名称")
+    secret_name = models.CharField(max_length=128, help_text="凭据 Secret 名称")
+    secret_namespace = models.CharField(max_length=64, default="rbd-plugins", help_text="凭据 Secret 命名空间")
+    storage_provider = models.CharField(max_length=32, default="s3", help_text="StorageProvider 名称")
+    access_method = models.CharField(max_length=16, default="Tool", help_text="访问方式")
+    bucket = models.CharField(max_length=255, help_text="S3 Bucket")
+    endpoint = models.CharField(max_length=255, help_text="S3 Endpoint")
+    region = models.CharField(max_length=64, null=True, blank=True, default="", help_text="S3 Region")
+    volume_capacity = models.CharField(max_length=32, default="100Gi", help_text="BackupRepo 容量")
+    pv_reclaim_policy = models.CharField(max_length=16, default="Retain", help_text="PV 回收策略")
+    path_prefix = models.CharField(max_length=255, null=True, blank=True, default="", help_text="备份路径前缀")
+    status = models.CharField(max_length=32, default="", null=True, blank=True, help_text="状态")
+    is_deleted = models.BooleanField(default=False, help_text="是否已删除")
+    creator = models.CharField(max_length=64, null=True, blank=True, default="", help_text="创建人")
+    create_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间")
+    update_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text="更新时间")
+
+
 class RainbondCenterAppInherit(BaseModel):
     """云市应用组继承关系"""
 
