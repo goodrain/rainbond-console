@@ -17,6 +17,9 @@ import sys
 from corsheaders.defaults import default_headers
 
 from goodrain_web.mac_hash import get_hash_mac
+from goodrain_web.sentry_config import init_sentry
+
+init_sentry()
 
 # rainbond version
 VERSION = "5.3.0"

@@ -5480,6 +5480,63 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch("console.services.mcp_query_service.app_check_service.get_service_check_info")
+    @patch("console.services.mcp_query_service.app_check_service.save_service_check_info")
+    @patch("console.services.mcp_query_service.app_check_service.wrap_service_check_info")
+    # capability_id: console.component.check-result
+    def test_get_component_check_result_prefer_dockerfile_forces_dockerfile(
+            self,
+            mock_wrap_check_info,
+            mock_save_check_info,
+            mock_get_check_info,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        # Recovery path: a CNB-classified language (.NetCore) that ships a
+        # Dockerfile must persist as a Dockerfile build when the caller passes
+        # prefer_dockerfile_when_detected, so it does not dead-end on the CNB
+        # version policy (e.g. .NET 7).
+        self.service.service_source = "source_code"
+        self.service.create_status = "checked"  # != complete -> else branch
+        self.service.check_uuid = "chk-1"
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_check_info.return_value = (
+            200, "success",
+            {"check_status": "success", "error_infos": [],
+             "service_info": [{"language": ".NetCore", "dockerfiles": ["Dockerfile"]}]},
+        )
+        captured = {}
+
+        def cap_save(team, app_id, service, data):
+            captured["data"] = data
+            service.create_status = "checked"
+
+        mock_save_check_info.side_effect = cap_save
+        mock_wrap_check_info.return_value = {"check_status": "success", "error_infos": [], "service_info": []}
+
+        mcp_query_service.call_tool(
+            self.user,
+            "rainbond_get_component_check_result",
+            {"team_name": "demo-team", "region_name": "rainbond", "app_id": 12,
+             "service_id": "svc-1", "prefer_dockerfile_when_detected": True},
+        )
+
+        # _select_service_info rewrote the detected language to "dockerfile"
+        # before persistence, so build_strategy will resolve to non-CNB.
+        self.assertEqual(captured["data"]["service_info"][0]["language"], "dockerfile")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     @patch("console.services.mcp_query_service.console_app_service.create_region_service")
     @patch("console.services.mcp_query_service.arch_service.update_affinity_by_arch")
     @patch("console.services.mcp_query_service.app_manage_service.deploy")

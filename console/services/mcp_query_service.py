@@ -3120,6 +3120,7 @@ class MCPQueryService(object):
             self._require_int(arguments, "app_id"),
             self._require_string(arguments, "service_id"),
         )
+        prefer_dockerfile_when_detected = bool(arguments.get("prefer_dockerfile_when_detected", False))
         check_uuid = arguments.get("check_uuid") or service.check_uuid
         if not check_uuid:
             raise ServiceHandleException(msg="check_uuid required", msg_show="参数check_uuid无效", status_code=400)
@@ -3135,6 +3136,16 @@ class MCPQueryService(object):
         else:
             service_info_list = data.get("service_info") or []
             if service_info_list and len(service_info_list) < 2:
+                if prefer_dockerfile_when_detected:
+                    # Re-detect recovery path: apply the same Dockerfile preference
+                    # create_component_from_source uses, so a component whose
+                    # language is CNB-classified but ships a Dockerfile persists as
+                    # a Dockerfile build (build_strategy="") instead of dead-ending
+                    # on CNB (e.g. .NET 7 rejected by the CNB version policy).
+                    service_info_list[0] = source_component_service._select_service_info(
+                        service_info_list[0], True
+                    )
+                    data["service_info"] = service_info_list
                 app_check_service.save_service_check_info(team, app.ID, service, data)
             check_brief_info = app_check_service.wrap_service_check_info(service, data)
 
@@ -6337,7 +6348,15 @@ class MCPQueryService(object):
                     "region_name": {"type": "string"},
                     "app_id": {"type": "integer", "minimum": 1},
                     "service_id": {"type": "string"},
-                    "check_uuid": {"type": "string"}
+                    "check_uuid": {"type": "string"},
+                    "prefer_dockerfile_when_detected": {
+                        "type": "boolean",
+                        "description": (
+                            "仅 MCP 使用。重新检测后若结果同时命中 Dockerfile 和语言型构建方式，"
+                            "优先选择 Dockerfile（与 create 时同名参数一致）。用于恢复路径强制 Dockerfile，"
+                            "避免 CNB 不支持的语言/版本（如 .NET 7）卡死。默认 false。"
+                        )
+                    }
                 },
                 "required": ["team_name", "region_name", "app_id", "service_id"]
             }
