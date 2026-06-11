@@ -1134,6 +1134,8 @@ urlpatterns = [
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/storage_classes$', KubeBlocksStorageClassesView.as_view()),
     # 获取 BackupRepo
     url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/backup_repos$', KubeBlocksBackupReposView.as_view()),
+    # 管理 BackupRepo
+    url(r'^teams/(?P<team_name>[\w\-]+)/regions/(?P<region_name>[\w\-]+)/kubeblocks/backup_repos/(?P<repo_name>[\w\-]+)$', KubeBlocksBackupReposView.as_view()),
     # Cluster detail and expansion (AppBaseView)
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/kubeblocks/detail$', KubeBlocksClusterDetailView.as_view()),
     # 设置备份策略

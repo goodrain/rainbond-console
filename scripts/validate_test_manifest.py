@@ -20,6 +20,15 @@ ALLOWED_INTERFACE_TYPES = {
 }
 ALLOWED_TEST_TYPES = {"unit", "regression", "characterization", "integration"}
 ALLOWED_STATUSES = {"draft", "active", "retired"}
+IGNORED_PATH_PARTS = {
+    ".git",
+    ".claude",
+    ".worktrees",
+    "vendor",
+    "_output",
+    "node_modules",
+    "dist",
+}
 
 
 def load_manifest(path):
@@ -39,7 +48,7 @@ def collect_marked_tests(repo_root):
     patterns = list(PYTHON_TEST_PATTERNS) + list(GO_TEST_PATTERNS)
     for pattern in patterns:
         for file_path in repo_root.rglob(pattern):
-            if any(part in {".git", ".claude", "vendor", "_output", "node_modules", "dist"} for part in file_path.parts):
+            if IGNORED_PATH_PARTS.intersection(file_path.parts):
                 continue
             matches = CAPABILITY_RE.findall(read_text(file_path))
             if matches:
@@ -99,7 +108,11 @@ def validate_manifest(repo_root, manifest_path):
 
         if isinstance(code_paths, list) and status in {"draft", "active"}:
             for code_path in code_paths:
-                ensure(isinstance(code_path, str) and code_path, prefix + ".code_paths entries must be non-empty strings", errors)
+                ensure(
+                    isinstance(code_path, str) and code_path,
+                    prefix + ".code_paths entries must be non-empty strings",
+                    errors,
+                )
                 if isinstance(code_path, str) and code_path:
                     ensure((repo_root / code_path).exists(), prefix + ".code_paths missing: " + code_path, errors)
 
@@ -115,7 +128,11 @@ def validate_manifest(repo_root, manifest_path):
                 selector = test_entry.get("selector")
                 ensure(isinstance(test_path, str) and test_path, test_prefix + ".path must be a non-empty string", errors)
                 if selector is not None:
-                    ensure(isinstance(selector, str) and selector, test_prefix + ".selector must be a non-empty string when present", errors)
+                    ensure(
+                        isinstance(selector, str) and selector,
+                        test_prefix + ".selector must be a non-empty string when present",
+                        errors,
+                    )
                 if isinstance(test_path, str) and test_path:
                     normalized_test_paths.add(test_path)
                     if status in {"draft", "active"}:
@@ -129,7 +146,11 @@ def validate_manifest(repo_root, manifest_path):
 
     for test_path, capability_ids in marked.items():
         for capability_id in capability_ids:
-            ensure(capability_id in manifest_ids, "managed test references unknown capability_id: {0} in {1}".format(capability_id, test_path), errors)
+            ensure(
+                capability_id in manifest_ids,
+                "managed test references unknown capability_id: {0} in {1}".format(capability_id, test_path),
+                errors,
+            )
             if capability_id in capability_test_paths:
                 ensure(
                     test_path in capability_test_paths[capability_id],
@@ -179,4 +200,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
