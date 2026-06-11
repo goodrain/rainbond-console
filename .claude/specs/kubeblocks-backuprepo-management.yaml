@@ -1,0 +1,212 @@
+meta:
+  name: kubeblocks-backuprepo-management
+  version: "1.0"
+  repo: /Users/zhangqihang/MyWork/workrc
+  branch: v6.9.1-dev
+  design_doc: /Users/zhangqihang/MyWork/workrc/rainbond-console/docs/plans/2026-06-09-kubeblocks-backuprepo-management-design.md
+
+sprints:
+  - id: sprint-1
+    name: adapter BackupRepo resource CRUD
+    commits:
+      - id: commit-1
+        message: "feat: manage kubeblocks backup repos in adapter"
+        tasks:
+          - task-1.1
+          - task-1.2
+          - task-1.3
+    tasks:
+      - id: task-1.1
+        name: add adapter BackupRepo API request and routes
+        status: pending
+        files:
+          modify:
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-plugins/rainbond-kb/api/req/req.go
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-plugins/rainbond-kb/api/router.go
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-plugins/rainbond-kb/api/handler/handler.go
+        steps:
+          - action: write-test
+            description: add failing handler/route coverage for POST PUT DELETE /v1/backuprepos
+            run: go test ./api/... -run BackupRepo -count=1
+            expect: FAIL before implementation, PASS after implementation
+          - action: implement
+            description: bind BackupRepo request, pass URL name to update/delete, call service methods
+        acceptance:
+          - cmd: go test ./api/... -run BackupRepo -count=1
+            expect: pass
+
+      - id: task-1.2
+        name: implement adapter Secret and BackupRepo CRUD
+        status: pending
+        files:
+          modify:
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-plugins/rainbond-kb/internal/model/backup.go
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-plugins/rainbond-kb/service/service.go
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-plugins/rainbond-kb/service/backup/backup.go
+        steps:
+          - action: write-test
+            description: add service tests for create, update without secret rotation, reject provider change, delete conflict, delete success
+            run: go test ./service/backup -run BackupRepo -count=1
+            expect: FAIL before implementation, PASS after implementation
+          - action: implement
+            description: create/update corev1 Secret in rbd-plugins, create/update dataprotection BackupRepo, and block delete when a KubeBlocks Cluster references repoName
+        acceptance:
+          - cmd: go test ./service/backup -run BackupRepo -count=1
+            expect: pass
+
+      - id: task-1.3
+        name: extend adapter RBAC
+        status: pending
+        files:
+          modify:
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-plugins/rainbond-kb/deploy/k8s/deploy.yaml
+        steps:
+          - action: implement
+            description: allow backuprepos get/create/update/patch/delete and secrets get/create/update/patch/delete in addition to existing list/watch
+        acceptance:
+          - cmd: go test ./...
+            expect: pass
+
+  - id: sprint-2
+    name: rainbond proxy APIs
+    commits:
+      - id: commit-2
+        message: "feat: proxy kubeblocks backup repo mutations"
+        tasks:
+          - task-2.1
+    tasks:
+      - id: task-2.1
+        name: add rainbond BackupRepo POST PUT DELETE proxy
+        status: pending
+        files:
+          modify:
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond/api/api/api_interface.go
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond/api/controller/kubeblocks.go
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond/api/api_routers/version2/v2Routers.go
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond/api/controller/kubeblocks_test.go
+        steps:
+          - action: write-test
+            description: extend controller proxy tests to verify method and target path for create, update, delete backup repo
+            run: go test ./api/controller -run KubeBlocks -count=1
+            expect: FAIL before implementation, PASS after implementation
+          - action: implement
+            description: register /kubeblocks/backup-repos POST and /kubeblocks/backup-repos/{name} PUT DELETE to forward to adapter /v1/backuprepos
+        acceptance:
+          - cmd: go test ./api/controller -run KubeBlocks -count=1
+            expect: pass
+
+  - id: sprint-3
+    name: console team scoped management
+    commits:
+      - id: commit-3
+        message: "feat: store team kubeblocks backup repos"
+        tasks:
+          - task-3.1
+          - task-3.2
+    tasks:
+      - id: task-3.1
+        name: add console BackupRepo model and migrations
+        status: pending
+        files:
+          modify:
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-console/console/models/main.py
+          create:
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-console/console/migrations/0006_kubeblocksbackuprepo.py
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-console/sql/migrations/0003_add_kubeblocks_backup_repo.sql
+        steps:
+          - action: implement
+            description: add KubeBlocksBackupRepo table with tenant ownership, generated repo/secret names, public S3 config, soft delete flag, and unique constraints
+        acceptance:
+          - cmd: python manage.py check
+            expect: pass
+
+      - id: task-3.2
+        name: implement console BackupRepo service and API
+        status: pending
+        files:
+          modify:
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-console/www/apiclient/regionapi.py
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-console/console/services/kubeblocks_service.py
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-console/console/views/kubeblocks.py
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-console/console/urls/__init__.py
+          create:
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-console/console/repositories/kubeblocks_backup_repo.py
+        steps:
+          - action: write-test
+            description: add service tests for generated names, no secret persistence, list live merge, ownership validation, delete conflict preservation
+            run: pytest tests -k kubeblocks_backup_repo
+            expect: FAIL before implementation, PASS after implementation
+          - action: implement
+            description: expose team-scoped list/create/update/delete, call region API, fixed credential namespace rbd-plugins, and validate selected backup_repo during database create/update backup policy
+        acceptance:
+          - cmd: pytest tests -k kubeblocks_backup_repo
+            expect: pass
+
+  - id: sprint-4
+    name: rainbond-ui flows
+    commits:
+      - id: commit-4
+        message: "feat: add kubeblocks backup repo management ui"
+        tasks:
+          - task-4.1
+          - task-4.2
+          - task-4.3
+    tasks:
+      - id: task-4.1
+        name: add UI API and model effects
+        status: pending
+        files:
+          modify:
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-ui/src/services/kubeblocks.js
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-ui/src/models/kubeblocks.js
+        steps:
+          - action: implement
+            description: add createBackupRepo, updateBackupRepo, deleteBackupRepo services and DVA effects using console team/region routes
+        acceptance:
+          - cmd: yarn build
+            expect: pass after all UI tasks
+
+      - id: task-4.2
+        name: add quick create S3 from database creation page
+        status: pending
+        files:
+          modify:
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-ui/src/components/DatabaseBackupConfig/index.js
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-ui/src/pages/Create/database-config.js
+        steps:
+          - action: implement
+            description: add New S3 button next to BackupRepo select, modal form, submit callback, refresh repo list, auto-select created repo
+        acceptance:
+          - cmd: yarn build
+            expect: pass after all UI tasks
+
+      - id: task-4.3
+        name: add component backup tab S3 repo management
+        status: pending
+        files:
+          modify:
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-ui/src/pages/Component/databaseBackup.js
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-ui/src/locales/zh-CN/component.js
+            - path: /Users/zhangqihang/MyWork/workrc/rainbond-ui/src/locales/en-US/component.js
+        steps:
+          - action: implement
+            description: add manage S3 repositories action, table, create/edit modal, delete confirm, no secret echo, and reuse backup repo list for backup policy select
+        acceptance:
+          - cmd: yarn build
+            expect: pass
+
+final_verification:
+  - repo: /Users/zhangqihang/MyWork/workrc/rainbond-plugins/rainbond-kb
+    cmds:
+      - go test ./...
+  - repo: /Users/zhangqihang/MyWork/workrc/rainbond
+    cmds:
+      - go test ./api/controller -run KubeBlocks -count=1
+      - go build ./...
+      - go vet ./...
+  - repo: /Users/zhangqihang/MyWork/workrc/rainbond-console
+    cmds:
+      - pytest tests -k kubeblocks_backup_repo
+  - repo: /Users/zhangqihang/MyWork/workrc/rainbond-ui
+    cmds:
+      - yarn build
