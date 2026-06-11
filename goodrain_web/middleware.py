@@ -7,9 +7,19 @@ import logging
 
 logger = logging.getLogger('default')
 
+try:
+    import sentry_sdk
+except ImportError:  # pragma: no cover - optional production dependency
+    sentry_sdk = None
+
 
 class ErrorPage(MiddlewareMixin):
     def process_exception(self, request, exception):
+        if sentry_sdk:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("component", "rainbond-console")
+                scope.set_extra("method", request.method)
+                sentry_sdk.capture_exception(exception)
         logger.exception("uncaught_exception", exception)
         if request.path.startswith('/api/') or request.path.startswith('/marketapi/') \
                 or request.path.startswith('/console/'):
