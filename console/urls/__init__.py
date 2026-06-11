@@ -132,6 +132,7 @@ from console.views.plugin.service_plugin import (ServicePluginConfigView, Servic
                                                  ServicePluginsView)
 from console.views.pod import AppPodsView
 from console.views.protocols import RegionProtocolView
+from console.views.posthog_proxy import PostHogProxyView
 from console.views.proxy import ProxyPassView, ProxySSEView
 from console.views.mcp_query import MCPQueryHTTPView, MCPQueryMessageView, MCPQuerySSEView
 from console.views.public_areas import (AllServiceInfo, GroupServiceView, ServiceEventsView, ServiceGroupView,
@@ -194,6 +195,7 @@ urlpatterns = [
     url(r'^monitor/query$', MonitorQueryView.as_view()),
     url(r'^api-gateway/v1/(?P<tenantName>[\w\-]+)/(.*?)', AppApiGatewayView.as_view()),
     url(r'^api-gateway/convert', AppApiGatewayConvertView.as_view()),
+    url(r'^posthog/(?P<path>.*)$', PostHogProxyView.as_view()),
     url(r'^v2/proxy-pass/(.*?)', ProxyPassView.as_view()),
     url(r'^sse/(.*?)', ProxySSEView.as_view()),
     url(r'^mcp/query$', MCPQueryHTTPView.as_view()),

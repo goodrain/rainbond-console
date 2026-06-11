@@ -2,6 +2,11 @@
 from goodrain_web import sentry_config
 
 
+DEFAULT_POSTHOG_PROJECT_TOKEN = "phc_oCoPwcxutKCU9AZtUT63dMTNhWezUxCXCLtSZE6a4wvE"
+DEFAULT_POSTHOG_API_HOST = "/console/posthog"
+DEFAULT_POSTHOG_UI_HOST = "https://posthog.goodrain.com"
+
+
 def test_sentry_config_stays_disabled_without_dsn():
     config = sentry_config.get_sentry_config({})
 
@@ -103,14 +108,27 @@ def test_frontend_config_json_is_valid_json():
     assert '"dsn":"https://example.invalid/1"' in raw
 
 
-def test_frontend_posthog_config_defaults_to_enabled_with_project_token():
+def test_frontend_posthog_config_defaults_to_enabled_without_env_token():
+    config = sentry_config.get_frontend_posthog_config({})
+
+    assert config["enabled"] is True
+    assert config["projectToken"] == DEFAULT_POSTHOG_PROJECT_TOKEN
+    assert config["apiHost"] == DEFAULT_POSTHOG_API_HOST
+    assert config["uiHost"] == DEFAULT_POSTHOG_UI_HOST
+    assert config["personProfiles"] == "identified_only"
+    assert config["maskAllText"] is False
+    assert config["maskAllElementAttributes"] is True
+
+
+def test_frontend_posthog_config_ignores_env_project_token():
     config = sentry_config.get_frontend_posthog_config({
         "RAINBOND_POSTHOG_PROJECT_TOKEN": "project-token",
     })
 
     assert config["enabled"] is True
-    assert config["projectToken"] == "project-token"
-    assert config["apiHost"] == "https://posthog.goodrain.com"
+    assert config["projectToken"] == DEFAULT_POSTHOG_PROJECT_TOKEN
+    assert config["apiHost"] == DEFAULT_POSTHOG_API_HOST
+    assert config["uiHost"] == DEFAULT_POSTHOG_UI_HOST
     assert config["personProfiles"] == "identified_only"
     assert config["maskAllText"] is False
     assert config["maskAllElementAttributes"] is True

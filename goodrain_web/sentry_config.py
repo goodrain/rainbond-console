@@ -12,7 +12,9 @@ SENSITIVE_VALUE_RE = re.compile(
 )
 BEARER_VALUE_RE = re.compile(r"\b(bearer\s+)[a-z0-9._~+/=-]+", re.I)
 DEFAULT_TRACES_SAMPLE_RATE = 0.0
-DEFAULT_POSTHOG_API_HOST = "https://posthog.goodrain.com"
+DEFAULT_POSTHOG_PROJECT_TOKEN = "phc_oCoPwcxutKCU9AZtUT63dMTNhWezUxCXCLtSZE6a4wvE"
+DEFAULT_POSTHOG_API_HOST = "/console/posthog"
+DEFAULT_POSTHOG_UI_HOST = "https://posthog.goodrain.com"
 DEFAULT_POSTHOG_CONFIG_DATE = "2026-05-30"
 DEFAULT_POSTHOG_PERSON_PROFILES = "identified_only"
 
@@ -134,19 +136,13 @@ def get_posthog_enabled(env, project_token):
 
 def get_frontend_posthog_config(env=None):
     env = env or os.environ
-    project_token = get_env_value(
-        env,
-        "RAINBOND_POSTHOG_PROJECT_TOKEN",
-        "RAINBOND_POSTHOG_TOKEN",
-        "POSTHOG_PROJECT_TOKEN",
-        "POSTHOG_TOKEN",
-    )
+    project_token = DEFAULT_POSTHOG_PROJECT_TOKEN
     enabled = get_posthog_enabled(env, project_token)
     return {
         "enabled": enabled,
         "projectToken": project_token if enabled else "",
         "apiHost": get_env_value(env, "RAINBOND_POSTHOG_API_HOST", "POSTHOG_API_HOST") or DEFAULT_POSTHOG_API_HOST,
-        "uiHost": get_env_value(env, "RAINBOND_POSTHOG_UI_HOST", "POSTHOG_UI_HOST"),
+        "uiHost": get_env_value(env, "RAINBOND_POSTHOG_UI_HOST", "POSTHOG_UI_HOST") or DEFAULT_POSTHOG_UI_HOST,
         "defaults": get_env_value(env, "RAINBOND_POSTHOG_DEFAULTS", "POSTHOG_DEFAULTS") or DEFAULT_POSTHOG_CONFIG_DATE,
         "personProfiles": get_env_value(env, "RAINBOND_POSTHOG_PERSON_PROFILES", "POSTHOG_PERSON_PROFILES") or DEFAULT_POSTHOG_PERSON_PROFILES,
         "autocapture": not str_to_bool(env.get("RAINBOND_POSTHOG_AUTOCAPTURE_DISABLED") or env.get("POSTHOG_AUTOCAPTURE_DISABLED")),
