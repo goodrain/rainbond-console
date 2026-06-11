@@ -1833,6 +1833,33 @@ class MCPQueryService(object):
         result["service_id"] = service.service_id
         return result
 
+    @staticmethod
+    def _has_value(arguments, field):
+        return isinstance(arguments.get(field), str) and arguments.get(field).strip() != ""
+
+    def _assert_create_volume_param_names(self, arguments):
+        # create_volume reads volume_path / file_content, while update_volume
+        # reads new_volume_path / new_file_content. LLM callers frequently mix
+        # the two: they invoke create_volume but pass the update_* parameter
+        # names, then receive an opaque "参数volume_path无效" error and wrongly
+        # conclude the path format is restricted. Detect that exact misuse and
+        # return an actionable message that names the right parameter.
+        misuses = [
+            ("volume_path", "new_volume_path"),
+            ("file_content", "new_file_content"),
+        ]
+        for correct_field, wrong_field in misuses:
+            if not self._has_value(arguments, correct_field) and self._has_value(arguments, wrong_field):
+                raise ServiceHandleException(
+                    msg="create_volume expects {0}, got {1}".format(correct_field, wrong_field),
+                    msg_show=(
+                        "create_volume 请使用 {0}（你传的是 {1}，那是 update_volume 的参数）".format(
+                            correct_field, wrong_field
+                        )
+                    ),
+                    status_code=400,
+                )
+
     def _mcp_assert_volume_path_available(self, service, new_volume_path):
         existing_rows = volume_repo.get_service_volumes_with_config_file(
             service.service_id
@@ -1895,6 +1922,7 @@ class MCPQueryService(object):
             )
             return {"items": items, "total": total, "page": page, "page_size": page_size}
         if operation == "create_volume":
+            self._assert_create_volume_param_names(arguments)
             volume_path = self._require_string(arguments, "volume_path")
             # The shared `volume_service.check_volume_path` filters out
             # config-file volumes by design (console contract). MCP creators
@@ -7003,7 +7031,16 @@ class MCPQueryService(object):
     def _tool_manage_component_storage(self):
         return {
             "name": "rainbond_manage_component_storage",
-            "description": "高层存储管理工具，统一处理组件 volume 和挂载关系 mnt。",
+            "description": (
+                "高层存储管理工具，统一处理组件 volume 和挂载关系 mnt。"
+                "各 operation 必填/常用参数组合（注意 create 与 update 使用不同的参数名，不要混用）："
+                "create_volume 必填 volume_name + volume_type + volume_path（config-file 类型还需 file_content）；"
+                "update_volume 必填 volume_id + new_volume_path（config-file 类型用 new_file_content 改内容，可选 volume_capacity 改容量），"
+                "改存储用 new_volume_path / new_file_content，不是 volume_path / file_content；"
+                "delete_volume 必填 volume_id（有依赖时需 force=true 强制删除）；"
+                "create_mnt 必填 mounts 数组（每项含 dep_vol_id + mount_path）；"
+                "delete_mnt 必填 dep_vol_id。"
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -7026,12 +7063,40 @@ class MCPQueryService(object):
                     "dep_app_group": {"type": "string"},
                     "config_name": {"type": "string"},
                     "volume_id": {"type": "integer", "minimum": 1},
-                    "new_volume_path": {"type": "string"},
-                    "new_file_content": {"type": "string"},
+                    "new_volume_path": {
+                        "type": "string",
+                        "description": (
+                            "仅用于 update_volume：修改已存在存储的挂载路径（config-file 类型即容器内文件完整路径）。"
+                            "create_volume 不要用这个字段，应使用 volume_path。"
+                        ),
+                    },
+                    "new_file_content": {
+                        "type": "string",
+                        "description": (
+                            "仅用于 update_volume 且 volume_type=config-file：修改配置文件的新全文内容。"
+                            "create_volume 不要用这个字段，应使用 file_content。"
+                        ),
+                    },
                     "force": {"type": "boolean"},
-                    "volume_name": {"type": "string"},
-                    "volume_type": {"type": "string"},
-                    "volume_path": {"type": "string"},
+                    "volume_name": {
+                        "type": "string",
+                        "description": "create_volume 必填：存储名称（组件内唯一标识，如 nginx-conf）。",
+                    },
+                    "volume_type": {
+                        "type": "string",
+                        "description": (
+                            "create_volume 必填：存储类型。常见值 config-file（配置文件，需配合 volume_path 填文件完整路径 + file_content 填文件全文）、"
+                            "share-file（共享存储）、memoryfs（内存）、local（本地）、nas 等。"
+                        ),
+                    },
+                    "volume_path": {
+                        "type": "string",
+                        "description": (
+                            "create_volume 必填：容器内挂载路径。volume_type=config-file 时填容器内文件的完整路径，"
+                            "例如 /etc/nginx/conf.d/default.conf；其它类型填挂载目录如 /data。"
+                            "修改已存在存储路径请改用 update_volume + new_volume_path。"
+                        ),
+                    },
                     "volume_capacity": {"type": "integer", "minimum": 0},
                     "provider_name": {"type": "string"},
                     "access_mode": {"type": "string"},
@@ -7039,7 +7104,13 @@ class MCPQueryService(object):
                     "back_policy": {"type": "string"},
                     "reclaim_policy": {"type": "string"},
                     "allow_expansion": {"type": "boolean"},
-                    "file_content": {"type": "string"},
+                    "file_content": {
+                        "type": "string",
+                        "description": (
+                            "仅用于 create_volume 且 volume_type=config-file：配置文件的全文内容。"
+                            "修改已存在配置文件请改用 update_volume + new_file_content。"
+                        ),
+                    },
                     "mode": {"type": "integer"},
                     "mounts": {
                         "type": "array",

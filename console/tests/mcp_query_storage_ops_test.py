@@ -259,6 +259,62 @@ class ManageComponentStorageTests(SimpleTestCase):
         mock_add.assert_not_called()
         self.assertEqual(ctx.exception.status_code, 412)
 
+    # capability_id: console.component.storage-create-volume
+    def test_create_volume_rejects_update_param_name_with_actionable_message(self):
+        team, app, service = self._make_context()
+        user = self._make_user()
+        arguments = {
+            "team_name": "team-1",
+            "region_name": "region-1",
+            "app_id": 100,
+            "service_id": "service-1",
+            "operation": "create_volume",
+            "volume_type": "config-file",
+            "volume_name": "nginx-conf",
+            # LLM mistakenly passes update_volume parameter names.
+            "new_volume_path": "/etc/nginx/conf.d/default.conf",
+            "new_file_content": "server {}",
+        }
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
+            with patch(
+                "console.services.mcp_query_service.volume_service.add_service_volume"
+            ) as mock_add:
+                with self.assertRaises(ServiceHandleException) as ctx:
+                    mcp_query_service.manage_component_storage(user, arguments)
+
+        mock_add.assert_not_called()
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn("volume_path", ctx.exception.msg_show)
+        self.assertIn("new_volume_path", ctx.exception.msg_show)
+
+    # capability_id: console.component.storage-create-volume
+    def test_create_volume_rejects_update_file_content_param_name(self):
+        team, app, service = self._make_context()
+        user = self._make_user()
+        arguments = {
+            "team_name": "team-1",
+            "region_name": "region-1",
+            "app_id": 100,
+            "service_id": "service-1",
+            "operation": "create_volume",
+            "volume_type": "config-file",
+            "volume_name": "nginx-conf",
+            "volume_path": "/etc/nginx/conf.d/default.conf",
+            # volume_path supplied correctly, but file_content uses the update name.
+            "new_file_content": "server {}",
+        }
+        with patch.object(mcp_query_service, "_get_team_app_service_context", return_value=(team, app, service)):
+            with patch(
+                "console.services.mcp_query_service.volume_service.add_service_volume"
+            ) as mock_add:
+                with self.assertRaises(ServiceHandleException) as ctx:
+                    mcp_query_service.manage_component_storage(user, arguments)
+
+        mock_add.assert_not_called()
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn("file_content", ctx.exception.msg_show)
+        self.assertIn("new_file_content", ctx.exception.msg_show)
+
     # capability_id: console.component.storage-delete-mount
     def test_delete_mnt_removes_relation(self):
         team, app, service = self._make_context()
