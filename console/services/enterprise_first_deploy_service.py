@@ -36,6 +36,19 @@ class EnterpriseFirstDeployService(object):
     FAILURE_STAGE_BUILD = "build"
     FAILURE_STAGE_RUNTIME = "runtime"
     FAILURE_STAGE_UNKNOWN = "unknown"
+    FAILURE_CATEGORY_COMPILE_FAILED = "compile_failed"
+    FAILURE_CATEGORY_IMAGE_PULL_FAILED = "image_pull_failed"
+    FAILURE_CATEGORY_IMAGE_PUSH_FAILED = "image_push_failed"
+    FAILURE_CATEGORY_VERSION_INFO_FAILED = "version_info_failed"
+    FAILURE_CATEGORY_RUNTIME_TIMEOUT = "runtime_timeout"
+    FAILURE_CATEGORY_POD_CRASH_LOOP = "pod_crash_loop"
+    FAILURE_CATEGORY_NO_AVAILABLE_NODES = "no_available_nodes"
+    FAILURE_CATEGORY_UNKNOWN = "unknown"
+    LOG_COLLECT_STATUS_COLLECTED = "event_log_collected"
+    LOG_COLLECT_STATUS_EMPTY_AFTER_RETRY = "event_log_empty_after_retry"
+    LOG_COLLECT_STATUS_API_ERROR = "event_log_api_error"
+    LOG_COLLECT_STATUS_NO_EVENT_ID = "no_event_id"
+    LOG_COLLECT_STATUS_PROVIDED = "provided"
     MAX_FAILURE_EVENTS = 20
     MAX_FAILURE_LOG_LINES = 50
     MAX_BUILD_FAILURE_LOG_LINES = 200
@@ -44,6 +57,7 @@ class EnterpriseFirstDeployService(object):
     RUNTIME_OBSERVE_WINDOW = 60
     READINESS_FINAL_OBSERVE_WINDOW = 180
     BUILD_FAILURE_LOG_WAIT_WINDOW = 60
+    COMPILE_FAILURE_LOG_WAIT_WINDOW = 180
     BUILD_FAILURE_LOG_RETRY_INTERVAL = 5
     RUNTIME_EVENT_QUERY_SIZE = 20
     RESUME_INTERVAL = 15
@@ -272,6 +286,8 @@ class EnterpriseFirstDeployService(object):
             "runtime_watch_started_at": "",
             "failure_stage": "",
             "failure_reason": "",
+            "failure_category": "",
+            "log_collect_status": "",
             "failure_events": [],
             "failure_logs": [],
         }
@@ -300,6 +316,15 @@ class EnterpriseFirstDeployService(object):
             if event_id and status:
                 status_map[str(event_id)] = status
 
+        failed_events = [
+            event for event in [self._normalize_event_data(event) for event in events]
+            if event.get("status") in (self.STATUS_FAILURE, "timeout")
+        ]
+        if failed_events:
+            self._set_stage_failure(payload, self.FAILURE_STAGE_BUILD, tenant_name, region_name, failed_events=failed_events)
+            self._complete_tracking(record, payload, self.STATUS_FAILURE)
+            return self.STATUS_FAILURE
+
         if not status_map:
             if payload.get("build_status") == self.STATUS_SUCCESS:
                 runtime_status = self._inspect_runtime_status(record, payload, tenant_name, region_name)
@@ -310,15 +335,6 @@ class EnterpriseFirstDeployService(object):
                     self._complete_tracking(record, payload, self.STATUS_SUCCESS)
                     return self.STATUS_SUCCESS
             return None
-
-        failed_events = [
-            event for event in [self._normalize_event_data(event) for event in events]
-            if event.get("status") in (self.STATUS_FAILURE, "timeout")
-        ]
-        if failed_events:
-            self._set_stage_failure(payload, self.FAILURE_STAGE_BUILD, tenant_name, region_name, failed_events=failed_events)
-            self._complete_tracking(record, payload, self.STATUS_FAILURE)
-            return self.STATUS_FAILURE
 
         if len(status_map) < len(set(event_ids)):
             return None
@@ -490,24 +506,33 @@ class EnterpriseFirstDeployService(object):
             payload["{}_started_at".format(stage)] = now
         compact_events = self._shrink_failure_events(failed_events)
         payload["{}_failure_events".format(stage)] = compact_events
-        payload["{}_failure_reason".format(stage)] = self._shrink_text(
-            reason or self._detect_failure_reason(failed_events),
-            self.MAX_FAILURE_REASON_LENGTH)
+        payload["{}_failure_reason".format(stage)] = self._failure_reason_or_default(stage, failed_events, reason)
+        failure_category = self._detect_failure_category(stage, compact_events, payload["{}_failure_reason".format(stage)])
+        payload["{}_failure_category".format(stage)] = failure_category
         if compact_events:
+            for event in compact_events:
+                event["failure_category"] = failure_category
             payload["{}_event_id".format(stage)] = compact_events[0].get("event_id", "")
             service_id = compact_events[0].get("service_id", "")
             if service_id and service_id not in payload.get("service_ids", []):
                 payload.setdefault("service_ids", []).append(service_id)
         if failure_logs is not None:
             payload["{}_failure_logs".format(stage)] = failure_logs
+            payload["{}_log_collect_status".format(stage)] = self.LOG_COLLECT_STATUS_PROVIDED
         else:
-            payload["{}_failure_logs".format(stage)] = self._collect_failure_logs(
+            logs, log_collect_status = self._collect_failure_logs_with_status(
                 tenant_name or payload.get("tenant_name"),
                 region_name or payload.get("region_name"),
                 failed_events,
-                stage)
+                stage,
+                failure_category,
+                payload["{}_failure_reason".format(stage)])
+            payload["{}_failure_logs".format(stage)] = logs
+            payload["{}_log_collect_status".format(stage)] = log_collect_status
         payload["failure_stage"] = stage
         payload["failure_reason"] = payload["{}_failure_reason".format(stage)]
+        payload["failure_category"] = payload["{}_failure_category".format(stage)]
+        payload["log_collect_status"] = payload["{}_log_collect_status".format(stage)]
         payload["failure_events"] = payload["{}_failure_events".format(stage)]
         payload["failure_logs"] = payload["{}_failure_logs".format(stage)]
 
@@ -699,13 +724,26 @@ class EnterpriseFirstDeployService(object):
             for container in ((pod_detail or {}).get(container_group) or [])[:5]:
                 state = container.get("state") or container.get("status") or ""
                 reason = container.get("reason") or ""
-                if not state and not reason:
+                image = container.get("image") or ""
+                exit_code = container.get("exit_code")
+                message = container.get("message") or ""
+                if not state and not reason and not image and exit_code in (None, "") and not message:
                     continue
+                details = [
+                    "state={}".format(state or "-"),
+                    "reason={}".format(reason or "-"),
+                ]
+                if image:
+                    details.append("image={}".format(image))
+                if exit_code not in (None, ""):
+                    details.append("exit_code={}".format(exit_code))
+                if message:
+                    details.append("message={}".format(message))
                 lines.append({
                     "time": "",
-                    "message": "service_alias {} pod {} {} {}: state={}, reason={}".format(
+                    "message": "service_alias {} pod {} {} {}: {}".format(
                         service_alias, pod_name or "-", container_group, container.get("container_name") or "-",
-                        state or "-", reason or "-"),
+                        ", ".join(details)),
                 })
 
     def _is_soft_runtime_failure(self, payload):
@@ -760,6 +798,13 @@ class EnterpriseFirstDeployService(object):
                 return event["reason"]
         return ""
 
+    def _failure_reason_or_default(self, failure_stage, failed_events, reason):
+        detected_reason = reason or self._detect_failure_reason(failed_events)
+        if detected_reason:
+            return self._shrink_text(detected_reason, self.MAX_FAILURE_REASON_LENGTH)
+        return "{} failure: no failure reason reported".format(
+            failure_stage or self.FAILURE_STAGE_UNKNOWN)
+
     def _start_report_thread(self, key):
         with self._lock:
             if key in self._reporting_keys:
@@ -800,6 +845,8 @@ class EnterpriseFirstDeployService(object):
                 "payload_version": payload.get("payload_version", self.PAYLOAD_VERSION),
                 "failure_stage": payload.get("failure_stage", self.FAILURE_STAGE_UNKNOWN),
                 "failure_reason": payload.get("failure_reason", ""),
+                "failure_category": payload.get("failure_category", self.FAILURE_CATEGORY_UNKNOWN),
+                "log_collect_status": payload.get("log_collect_status", ""),
                 "failure_events": payload.get("failure_events") or [],
                 "failure_logs": payload.get("failure_logs") or [],
             })
@@ -833,20 +880,41 @@ class EnterpriseFirstDeployService(object):
         return compact_events
 
     def _collect_failure_logs(self, tenant_name, region_name, failed_events, failure_stage):
+        logs, _ = self._collect_failure_logs_with_status(
+            tenant_name,
+            region_name,
+            failed_events,
+            failure_stage,
+            self.FAILURE_CATEGORY_UNKNOWN,
+            self._detect_failure_reason(failed_events))
+        return logs
+
+    def _collect_failure_logs_with_status(
+            self, tenant_name, region_name, failed_events, failure_stage, failure_category, reason):
         failure_event = self._select_failure_log_event(failed_events, failure_stage)
         if not failure_event or not tenant_name or not region_name:
-            return []
+            return (
+                [self._build_failure_diagnostic_log(
+                    failure_stage, failure_category, self.LOG_COLLECT_STATUS_NO_EVENT_ID, failed_events, reason)],
+                self.LOG_COLLECT_STATUS_NO_EVENT_ID,
+            )
         event_id = failure_event.get("event_id")
         if not event_id:
-            return []
-        attempts = self._failure_log_collect_attempts(failure_stage)
+            return (
+                [self._build_failure_diagnostic_log(
+                    failure_stage, failure_category, self.LOG_COLLECT_STATUS_NO_EVENT_ID, failed_events, reason)],
+                self.LOG_COLLECT_STATUS_NO_EVENT_ID,
+            )
+        attempts = self._failure_log_collect_attempts(failure_stage, failure_category)
         max_lines = self.MAX_BUILD_FAILURE_LOG_LINES if failure_stage == self.FAILURE_STAGE_BUILD else self.MAX_FAILURE_LOG_LINES
+        had_api_error = False
         for attempt in range(attempts):
             try:
                 res, body = region_api.get_events_log(tenant_name, region_name, event_id)
             except Exception as e:
                 logger.warning("get %s failure logs failed: %s", failure_stage, e)
                 res, body = None, None
+                had_api_error = True
             if self._is_success_response(res):
                 lines, truncated = self._normalize_log_lines((body or {}).get("list") or [], max_lines=max_lines)
                 if lines:
@@ -854,18 +922,90 @@ class EnterpriseFirstDeployService(object):
                         "stage": failure_stage,
                         "event_id": event_id,
                         "source": "event_log",
+                        "failure_category": failure_category,
+                        "log_collect_status": self.LOG_COLLECT_STATUS_COLLECTED,
                         "truncated": truncated,
                         "lines": lines,
-                    }]
+                    }], self.LOG_COLLECT_STATUS_COLLECTED
+            elif res is not None:
+                had_api_error = True
             if attempt < attempts - 1:
                 time.sleep(self.BUILD_FAILURE_LOG_RETRY_INTERVAL)
-        return []
+        status = self.LOG_COLLECT_STATUS_API_ERROR if had_api_error else self.LOG_COLLECT_STATUS_EMPTY_AFTER_RETRY
+        return (
+            [self._build_failure_diagnostic_log(failure_stage, failure_category, status, failed_events, reason)],
+            status,
+        )
 
-    def _failure_log_collect_attempts(self, failure_stage):
+    def _build_failure_diagnostic_log(self, failure_stage, failure_category, log_collect_status, failed_events, reason):
+        event = self._select_failure_log_event(failed_events, failure_stage) or {}
+        diagnostic = {
+            "stage": failure_stage,
+            "event_id": event.get("event_id", ""),
+            "source": "diagnostic_summary",
+            "failure_category": failure_category,
+            "log_collect_status": log_collect_status,
+            "truncated": False,
+            "lines": [{
+                "time": "",
+                "message": self._failure_diagnostic_message(
+                    failure_stage, failure_category, log_collect_status, event, reason),
+            }],
+        }
+        return diagnostic
+
+    def _failure_diagnostic_message(self, failure_stage, failure_category, log_collect_status, event, reason):
+        parts = [
+            "failure_stage={}".format(failure_stage or self.FAILURE_STAGE_UNKNOWN),
+            "failure_category={}".format(failure_category or self.FAILURE_CATEGORY_UNKNOWN),
+            "log_collect_status={}".format(log_collect_status),
+        ]
+        if event.get("event_id"):
+            parts.append("event_id={}".format(event.get("event_id")))
+        if event.get("opt_type"):
+            parts.append("opt_type={}".format(event.get("opt_type")))
+        if reason:
+            parts.append("reason={}".format(self._shrink_text(reason, self.MAX_FAILURE_REASON_LENGTH)))
+        event_reason = event.get("reason") or ""
+        if event_reason and event_reason != reason:
+            parts.append("event_reason={}".format(self._shrink_text(event_reason, self.MAX_FAILURE_REASON_LENGTH)))
+        return "; ".join(parts)
+
+    def _detect_failure_category(self, failure_stage, failed_events, reason):
+        event_text = " ".join([
+            "{} {}".format(event.get("message") or "", event.get("reason") or "")
+            for event in failed_events or []
+        ])
+        reason_text = "{} {}".format(reason or self._detect_failure_reason(failed_events) or "", event_text).lower()
+        opt_types = " ".join([(event.get("opt_type") or "") for event in failed_events or []]).lower()
+        if ("拉取镜像失败" in reason_text or "failed to pull image" in reason_text or
+                "imagepull" in opt_types or "errimagepull" in opt_types or
+                "imagepullbackoff" in reason_text or "errimagepull" in reason_text):
+            return self.FAILURE_CATEGORY_IMAGE_PULL_FAILED
+        if "推送镜像" in reason_text or "push image" in reason_text:
+            return self.FAILURE_CATEGORY_IMAGE_PUSH_FAILED
+        if "版本信息" in reason_text or "version info" in reason_text:
+            return self.FAILURE_CATEGORY_VERSION_INFO_FAILED
+        if failure_stage == self.FAILURE_STAGE_BUILD:
+            if "编译失败" in reason_text or "build failed" in reason_text or "构建镜像失败" in reason_text:
+                return self.FAILURE_CATEGORY_COMPILE_FAILED
+            return self.FAILURE_CATEGORY_UNKNOWN
+        if "runtimeverificationtimeout" in opt_types or "runtime timeout" in reason_text:
+            return self.FAILURE_CATEGORY_RUNTIME_TIMEOUT
+        if "crashloopbackoff" in opt_types or "back-off restarting" in reason_text:
+            return self.FAILURE_CATEGORY_POD_CRASH_LOOP
+        if "没有可用节点" in reason_text or "nodes are available" in reason_text:
+            return self.FAILURE_CATEGORY_NO_AVAILABLE_NODES
+        return self.FAILURE_CATEGORY_UNKNOWN
+
+    def _failure_log_collect_attempts(self, failure_stage, failure_category=""):
         if failure_stage != self.FAILURE_STAGE_BUILD:
             return 1
         retry_interval = max(int(self.BUILD_FAILURE_LOG_RETRY_INTERVAL), 1)
-        wait_window = max(int(self.BUILD_FAILURE_LOG_WAIT_WINDOW), 0)
+        if failure_category == self.FAILURE_CATEGORY_COMPILE_FAILED:
+            wait_window = max(int(self.COMPILE_FAILURE_LOG_WAIT_WINDOW), 0)
+        else:
+            wait_window = max(int(self.BUILD_FAILURE_LOG_WAIT_WINDOW), 0)
         return max(int(wait_window / retry_interval) + 1, 1)
 
     def _select_failure_log_event(self, failed_events, failure_stage):
@@ -1019,7 +1159,7 @@ class EnterpriseFirstDeployService(object):
                 payload["runtime_failure_reason"] = self._shrink_text(status_message, self.MAX_FAILURE_REASON_LENGTH)
                 if not payload.get("runtime_failure_logs"):
                     pod_events = (pod_detail or {}).get("events") or []
-                    candidate_logs = self._build_runtime_pod_logs(pod_name, pod_events, pod_status_info)
+                    candidate_logs = self._build_runtime_pod_logs(pod_name, pod_events, pod_status_info, pod_detail)
                     if candidate_logs:
                         payload["runtime_failure_logs"] = candidate_logs
         return self.STATUS_SUCCESS if all_running else None
@@ -1098,7 +1238,7 @@ class EnterpriseFirstDeployService(object):
                     "start_time": "",
                     "end_time": "",
                 },
-                "logs": self._build_runtime_pod_logs(pod_name, events, status),
+                "logs": self._build_runtime_pod_logs(pod_name, events, status, pod_detail),
             }
         status_type = (status.get("type_str") or "").upper()
         if status_type in ("ABNORMAL", "UNHEALTHY") and (status.get("message") or status.get("reason")):
@@ -1116,7 +1256,7 @@ class EnterpriseFirstDeployService(object):
                     "start_time": "",
                     "end_time": "",
                 },
-                "logs": self._build_runtime_pod_logs(pod_name, events, status),
+                "logs": self._build_runtime_pod_logs(pod_name, events, status, pod_detail),
             }
         return None
 
@@ -1138,7 +1278,7 @@ class EnterpriseFirstDeployService(object):
                 return message
         return ""
 
-    def _build_runtime_pod_logs(self, pod_name, events, status):
+    def _build_runtime_pod_logs(self, pod_name, events, status, pod_detail=None):
         lines = []
         for event in events or []:
             message = event.get("message") or ""
@@ -1148,6 +1288,32 @@ class EnterpriseFirstDeployService(object):
                 "time": event.get("age") or "",
                 "message": self._shrink_text(self._redact_log_message(message), self.MAX_FAILURE_LOG_LINE_LENGTH),
             })
+        for container_group in ("init_containers", "containers"):
+            for container in ((pod_detail or {}).get(container_group) or [])[:5]:
+                state = container.get("state") or container.get("status") or ""
+                reason = container.get("reason") or ""
+                image = container.get("image") or ""
+                exit_code = container.get("exit_code")
+                message = container.get("message") or ""
+                if not state and not reason and not image and exit_code in (None, "") and not message:
+                    continue
+                details = [
+                    "state={}".format(state or "-"),
+                    "reason={}".format(reason or "-"),
+                ]
+                if image:
+                    details.append("image={}".format(image))
+                if exit_code not in (None, ""):
+                    details.append("exit_code={}".format(exit_code))
+                if message:
+                    details.append("message={}".format(message))
+                lines.append({
+                    "time": "",
+                    "message": self._shrink_text(
+                        self._redact_log_message("{} {}: {}".format(
+                            container_group, container.get("container_name") or "-", ", ".join(details))),
+                        self.MAX_FAILURE_LOG_LINE_LENGTH),
+                })
         if not lines and status:
             message = status.get("message") or status.get("reason") or ""
             if message:
