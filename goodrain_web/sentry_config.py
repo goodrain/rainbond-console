@@ -12,6 +12,7 @@ SENSITIVE_VALUE_RE = re.compile(
 )
 BEARER_VALUE_RE = re.compile(r"\b(bearer\s+)[a-z0-9._~+/=-]+", re.I)
 DEFAULT_TRACES_SAMPLE_RATE = 0.0
+DEFAULT_FRONTEND_SENTRY_TUNNEL = "/console/sentry"
 DEFAULT_POSTHOG_PROJECT_TOKEN = "phc_oCoPwcxutKCU9AZtUT63dMTNhWezUxCXCLtSZE6a4wvE"
 DEFAULT_POSTHOG_API_HOST = "/console/posthog"
 DEFAULT_POSTHOG_UI_HOST = "https://posthog.goodrain.com"
@@ -111,6 +112,12 @@ def get_frontend_sentry_config(env=None):
         "dsn": dsn if enabled else "",
         "environment": get_env_value(env, "RAINBOND_ERROR_REPORTING_ENVIRONMENT", "SENTRY_ENVIRONMENT") or "production",
         "release": get_env_value(env, "RAINBOND_ERROR_REPORTING_RELEASE", "SENTRY_RELEASE", "RELEASE_DESC"),
+        "tunnel": get_env_value(
+            env,
+            "RAINBOND_ERROR_REPORTING_FRONTEND_TUNNEL",
+            "SENTRY_FRONTEND_TUNNEL",
+            "SENTRY_TUNNEL",
+        ) or DEFAULT_FRONTEND_SENTRY_TUNNEL,
         "tracesSampleRate": parse_sample_rate(env.get("SENTRY_TRACES_SAMPLE_RATE")),
     }
 
