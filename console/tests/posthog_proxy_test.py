@@ -65,6 +65,24 @@ class PostHogProxyViewTests(SimpleTestCase):
 
         self.assertEqual(config_url, "https://posthog-ingest.example.com/array/phc_token/config.js")
 
+    def test_replay_target_defaults_to_api_target(self):
+        with mock.patch.dict(os.environ, {"RAINBOND_POSTHOG_PROXY_TARGET": "https://posthog-ingest.example.com"}, clear=True):
+            replay_url = _build_target_url("s/", "ip=0")
+
+        self.assertEqual(replay_url, "https://posthog-ingest.example.com/s/?ip=0")
+
+    def test_replay_target_can_be_overridden_separately(self):
+        env = {
+            "RAINBOND_POSTHOG_PROXY_TARGET": "https://posthog-ingest.example.com",
+            "RAINBOND_POSTHOG_REPLAY_PROXY_TARGET": "http://posthog-replay-capture:3000",
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            replay_url = _build_target_url("s/", "ip=0")
+            event_url = _build_target_url("e/", "ip=0")
+
+        self.assertEqual(replay_url, "http://posthog-replay-capture:3000/s/?ip=0")
+        self.assertEqual(event_url, "https://posthog-ingest.example.com/e/?ip=0")
+
     def test_post_proxies_to_configured_posthog_host_without_rainbond_credentials(self):
         request = self.factory.post(
             "/console/posthog/e/?ip=0&_=1781193125735&ver=1.386.1",
