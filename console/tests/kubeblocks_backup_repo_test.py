@@ -74,6 +74,33 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
         self.assertEqual(region_payload["secrets"]["secretAccessKey"], "sk")
 
     # capability_id: console.kubeblocks.backup-repo.team-create
+    def test_create_backup_repo_allows_virtual_hosted_style_access(self):
+        region_api = mock.Mock()
+        region_api.create_kubeblocks_backup_repo.return_value = ({"status": 200}, {"bean": {"name": "team-a-ns-oss"}})
+
+        payload = {
+            "name": "oss",
+            "display_name": "阿里云 OSS",
+            "bucket": "rainbond-backup",
+            "endpoint": "oss-cn-beijing.aliyuncs.com",
+            "region": "oss-cn-beijing",
+            "force_path_style": False,
+            "access_key_id": "ak",
+            "secret_access_key": "sk",
+            "volume_capacity": "100Gi",
+        }
+        with mock.patch.object(kubeblocks_module, "region_api", region_api):
+            status, body = self.service.create_backup_repo(self.tenant, self.user, "region-a", payload)
+
+        self.assertEqual(status, 200)
+        repo = KubeBlocksBackupRepo.objects.get(repo_name="team-a-ns-oss")
+        self.assertFalse(repo.force_path_style)
+
+        region_payload = region_api.create_kubeblocks_backup_repo.call_args[0][1]
+        self.assertEqual(region_payload["config"]["forcePathStyle"], "false")
+        self.assertEqual(body["bean"]["forcePathStyle"], False)
+
+    # capability_id: console.kubeblocks.backup-repo.team-create
     def test_create_backup_repo_reclaims_deleted_region_repo_name(self):
         old_record = KubeBlocksBackupRepo.objects.create(
             tenant_id="tenant-1",

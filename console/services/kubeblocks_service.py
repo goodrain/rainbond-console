@@ -1904,6 +1904,7 @@ class KubeBlocksService(object):
             bucket=(data.get("bucket") or "").strip(),
             endpoint=(data.get("endpoint") or "").strip(),
             region=(data.get("region") or "").strip(),
+            force_path_style=self._parse_backup_repo_force_path_style(data),
             volume_capacity=(data.get("volume_capacity") or data.get("volumeCapacity") or BACKUP_REPO_DEFAULT_VOLUME_CAPACITY).strip(),
             pv_reclaim_policy=(data.get("pv_reclaim_policy") or data.get("pvReclaimPolicy") or BACKUP_REPO_DEFAULT_RECLAIM_POLICY).strip(),
             path_prefix=(data.get("path_prefix") or data.get("pathPrefix") or "").strip(),
@@ -1935,6 +1936,8 @@ class KubeBlocksService(object):
                 if key in data:
                     update_data[target] = (data.get(key) or "").strip()
                     break
+        if "force_path_style" in data or "forcePathStyle" in data:
+            update_data["force_path_style"] = self._parse_backup_repo_force_path_style(data)
 
         access_key_id = (data.get("access_key_id") or data.get("accessKeyId") or "").strip()
         secret_access_key = (data.get("secret_access_key") or data.get("secretAccessKey") or "").strip()
@@ -1963,7 +1966,7 @@ class KubeBlocksService(object):
             "region": record.region or "",
         }
         if record.storage_provider == "s3-compatible":
-            config["forcePathStyle"] = "true"
+            config["forcePathStyle"] = "true" if record.force_path_style else "false"
 
         payload = {
             "name": record.repo_name,
@@ -1994,6 +1997,8 @@ class KubeBlocksService(object):
             "bucket": record.bucket,
             "endpoint": record.endpoint,
             "region": record.region or "",
+            "forcePathStyle": record.force_path_style,
+            "force_path_style": record.force_path_style,
             "phase": phase,
             "status": phase,
             "accessMethod": record.access_method,
@@ -2008,6 +2013,17 @@ class KubeBlocksService(object):
             "conditions": live.get("conditions", []),
             "used": False,
         }
+
+    def _parse_backup_repo_force_path_style(self, data):
+        value = data.get("force_path_style", data.get("forcePathStyle", True))
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return True
+        value = str(value).strip().lower()
+        if value in ("false", "0", "no", "off", "virtual", "virtual-hosted", "virtual_hosted"):
+            return False
+        return True
 
     def _validate_backup_repo_record(self, record):
         if record.storage_provider not in BACKUP_REPO_SUPPORTED_PROVIDERS:
