@@ -11,7 +11,6 @@ from console.exception.bcode import ErrQualifiedName
 from console.repositories.app import service_repo
 from console.repositories.group import group_service_relation_repo, group_repo
 from console.repositories.region_app import region_app_repo
-from console.services.app_config_group import app_config_group_service
 from console.services.helm_app import helm_app_service
 from console.services.app_actions import app_manage_service
 from console.services.group_service import group_service
@@ -19,7 +18,6 @@ from console.services.application import application_service
 from console.services.market_app_service import market_app_service
 from console.services.k8s_resource import k8s_resource_service
 from console.services.operation_log import operation_log_service, Operation
-from console.services.kubeblocks_service import kubeblocks_service
 from console.utils.reqparse import parse_item
 from console.utils.validation import is_qualified_name
 from console.views.base import (ApplicationView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView,
@@ -237,23 +235,7 @@ class TenantGroupHandleView(ApplicationView):
         """
         删除应用及所有资源
         """
-        # delete services
-        services = group_service.batch_delete_app_services(self.user, self.tenant.tenant_id, self.region_name, app_id)
-        # delete kubeblocks cluster
-        service_ids = [service.service_id for service in services]
-        # delete kubeblocks cluster if service is kubeblocks cluster
-        kubeblocks_service.delete_kubeblocks_cluster(service_ids, self.region_name)
-        # delete k8s resource
-        k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
-        resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
-        k8s_resource_service.batch_delete_k8s_resource(self.user.enterprise_id, self.tenant.tenant_name, str(app_id),
-                                                       self.region_name, resource_ids)
-        # delete configs
-        app_config_group_service.batch_delete_config_group(self.region_name, self.tenant.tenant_name, app_id)
-        # delete records
-        group_service.delete_app_share_records(self.tenant.tenant_name, app_id)
-        # delete app
-        group_service.delete_app(self.tenant, self.region_name, self.app)
+        services = group_service.delete_app_with_resources(self.user, self.tenant, self.region_name, self.app)
         component_names = []
         comment = ""
         old_information = list()

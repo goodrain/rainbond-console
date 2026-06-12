@@ -8807,6 +8807,24 @@
       ],
       "test_type": "unit",
       "status": "active"
+    },
+    {
+      "id": "console.app.delete-with-resources",
+      "title": "Delete application along with components and attached resources",
+      "title_zh": "\u5220\u9664\u5e94\u7528\u53ca\u5176\u7ec4\u4ef6\u4e0e\u5173\u8054\u8d44\u6e90",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.GroupService.delete_app_with_resources",
+      "code_paths": [
+        "console/services/group_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_service_test.py",
+          "selector": "GroupServiceDeleteAppWithResourcesTestCase"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
     }
   ]
 }

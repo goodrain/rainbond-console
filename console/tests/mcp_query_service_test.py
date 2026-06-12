@@ -5784,7 +5784,7 @@ class MCPQueryServiceDeleteAppTests(SimpleTestCase):
             creater=1002,
         )
 
-    @patch("console.services.mcp_query_service.group_service.delete_app")
+    @patch("console.services.mcp_query_service.group_service.delete_app_with_resources")
     @patch("console.services.mcp_query_service.group_service_relation_repo.count_service_by_app_id")
     @patch("console.services.mcp_query_service.team_repo.get_user_tenant_by_name")
     @patch("console.services.mcp_query_service.enterprise_user_perm_repo.is_admin")
@@ -5830,7 +5830,7 @@ class MCPQueryServiceDeleteAppTests(SimpleTestCase):
 
         self.assertFalse(confirm_result.get("requires_confirmation"))
         self.assertTrue(confirm_result.get("deleted"))
-        mock_delete_app.assert_called_once_with(self.tenant, self.app.region_name, self.app)
+        mock_delete_app.assert_called_once_with(self.user, self.tenant, self.app.region_name, self.app)
 
     @patch("console.services.mcp_query_service.group_service_relation_repo.count_service_by_app_id")
     @patch("console.services.mcp_query_service.team_repo.get_user_tenant_by_name")
