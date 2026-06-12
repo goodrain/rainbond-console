@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 DEFAULT_POSTHOG_API_PROXY_TARGET = "https://posthog.goodrain.com"
 DEFAULT_POSTHOG_ASSET_PROXY_TARGET = "https://posthog.goodrain.com"
+DEFAULT_POSTHOG_REPLAY_PROXY_TARGET = ""
 REQUEST_TIMEOUT = (3, 10)
 
 REQUEST_HEADER_MAP = {
@@ -54,15 +55,31 @@ def _get_asset_proxy_target(api_target):
     ).rstrip("/")
 
 
+def _get_replay_proxy_target(api_target):
+    return (
+        os.environ.get("RAINBOND_POSTHOG_REPLAY_PROXY_TARGET")
+        or os.environ.get("POSTHOG_REPLAY_PROXY_TARGET")
+        or DEFAULT_POSTHOG_REPLAY_PROXY_TARGET
+        or api_target
+    ).rstrip("/")
+
+
 def _is_asset_path(path):
     request_path = (path or "").lstrip("/")
     return request_path.startswith("static/") or request_path.startswith("array/")
+
+
+def _is_replay_path(path):
+    request_path = (path or "").lstrip("/")
+    return request_path == "s" or request_path.startswith("s/")
 
 
 def _get_proxy_target(path):
     api_target = _get_api_proxy_target()
     if _is_asset_path(path):
         return _get_asset_proxy_target(api_target)
+    if _is_replay_path(path):
+        return _get_replay_proxy_target(api_target)
     return api_target
 
 
