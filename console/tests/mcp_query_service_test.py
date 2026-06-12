@@ -2867,6 +2867,55 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
     @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.console_app_service.create_docker_run_app")
+    @patch("console.services.mcp_query_service.group_service.add_service_to_group")
+    @patch("console.services.mcp_query_service.console_app_service.create_region_service")
+    @patch("console.services.mcp_query_service.app_manage_service.deploy")
+    # capability_id: console.component.create-from-image
+    def test_create_component_copies_docker_cmd_into_cmd(
+            self,
+            mock_deploy,
+            mock_create_region_service,
+            mock_add_service_to_group,
+            mock_create_docker_run_app,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        # create_docker_run_app only persists docker_cmd; the MCP path skips
+        # the docker-run check stage that would parse it into service.cmd,
+        # while deploy only sends service.cmd to the builder. The handler
+        # must copy it over or the start command never reaches the container.
+        self.service.cmd = ""
+        self.service.docker_cmd = "bundle exec rails server -p 3000"
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_create_docker_run_app.return_value = (200, "success", self.service)
+        mock_add_service_to_group.return_value = (200, "success")
+        mock_create_region_service.return_value = self.service
+        mock_deploy.return_value = (200, "success", "evt-1")
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_create_component",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_cname": "component-1",
+                "image": "chatwoot/chatwoot:latest",
+                "docker_cmd": "bundle exec rails server -p 3000",
+                "is_deploy": True,
+            },
+        )
+
+        self.assertEqual(result["service_id"], "svc-1")
+        self.assertEqual(self.service.cmd, "bundle exec rails server -p 3000")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
     @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
     @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
     @patch("console.services.mcp_query_service.app_manage_service.delete")
@@ -3031,6 +3080,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
                 "build_strategy": "cnb",
                 "user": "git-user",
                 "password": "secret-token",
+                "docker_cmd": "",
             }
         }
         mock_get_arch.return_value = (None, {"list": ["amd64", "arm64", "amd64"]})
@@ -3051,6 +3101,7 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(result["build_source"]["username"], "git-user")
         self.assertTrue(result["build_source"]["has_password"])
         self.assertNotIn("password", result["build_source"])
+        self.assertNotIn("docker_cmd", result["build_source"])
         self.assertEqual(sorted(result["build_source"]["arch_options"]), ["amd64", "arm64"])
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
@@ -3116,6 +3167,107 @@ class MCPQueryServiceApplicationToolTests(SimpleTestCase):
         self.assertEqual(source_record.user_name, "git-user")
         self.assertEqual(source_record.password, "git-pass")
         mock_update_affinity.assert_called_once_with("arm64", self.team, "rainbond", self.service)
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch.object(mcp_query_service, "_get_component_build_source_snapshot")
+    @patch("console.services.mcp_query_service.service_source_repo.get_service_source")
+    @patch("console.services.mcp_query_service.arch_service.update_affinity_by_arch")
+    # capability_id: console.component.build-source-update-image-cmd
+    def test_update_component_build_source_keeps_cmd_when_omitted_on_image_update(
+            self,
+            mock_update_affinity,
+            mock_get_service_source,
+            mock_snapshot,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        # An image component already carrying a start command: an image-only
+        # update (no `cmd` argument) must not silently wipe it. The stored
+        # service_source is "docker_image" while callers pass "docker_run",
+        # so the old inequality check erased cmd on every such call.
+        self.service.service_source = "docker_image"
+        self.service.cmd = "bundle exec rails server -p 3000"
+        self.service.arch = "amd64"
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_service_source.return_value = None
+        mock_snapshot.return_value = {"service_source": "docker_image"}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_update_component_build_source",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "service_source": "docker_run",
+                "image": "chatwoot/chatwoot:v3.0",
+            },
+        )
+
+        self.assertTrue(result["updated"])
+        self.assertEqual(self.service.image, "chatwoot/chatwoot:v3.0")
+        self.assertEqual(self.service.cmd, "bundle exec rails server -p 3000")
+
+    @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
+    @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")
+    @patch("console.services.mcp_query_service.group_service.get_app_by_id")
+    @patch("console.services.mcp_query_service.service_repo.get_service_by_service_id")
+    @patch("console.services.mcp_query_service.group_service_relation_repo.get_services_by_group")
+    @patch.object(mcp_query_service, "_get_component_build_source_snapshot")
+    @patch("console.services.mcp_query_service.service_source_repo.get_service_source")
+    @patch("console.services.mcp_query_service.arch_service.update_affinity_by_arch")
+    # capability_id: console.component.build-source-update-image-cmd
+    def test_update_component_build_source_sets_cmd_and_syncs_docker_cmd(
+            self,
+            mock_update_affinity,
+            mock_get_service_source,
+            mock_snapshot,
+            mock_relations,
+            mock_get_service,
+            mock_get_app,
+            mock_get_region,
+            mock_get_team,
+    ):
+        self.service.service_source = "docker_image"
+        self.service.cmd = ""
+        self.service.docker_cmd = ""
+        self.service.arch = "amd64"
+        mock_get_team.return_value = self.team
+        mock_get_region.return_value = Obj(region_name="rainbond", enterprise_id="eid-1")
+        mock_get_app.return_value = self.app
+        mock_get_service.return_value = self.service
+        mock_relations.return_value = [Obj(service_id="svc-1")]
+        mock_get_service_source.return_value = None
+        mock_snapshot.return_value = {"service_source": "docker_image"}
+
+        result = mcp_query_service.call_tool(
+            self.user,
+            "rainbond_update_component_build_source",
+            {
+                "team_name": "demo-team",
+                "region_name": "rainbond",
+                "app_id": 12,
+                "service_id": "svc-1",
+                "service_source": "docker_run",
+                "cmd": "bundle exec sidekiq -C config/sidekiq.yml",
+            },
+        )
+
+        self.assertTrue(result["updated"])
+        self.assertEqual(self.service.cmd, "bundle exec sidekiq -C config/sidekiq.yml")
+        self.assertEqual(self.service.docker_cmd, "bundle exec sidekiq -C config/sidekiq.yml")
 
     @patch("console.services.mcp_query_service.team_services.get_enterprise_tenant_by_tenant_name")
     @patch("console.services.mcp_query_service.region_services.get_enterprise_region_by_region_name")

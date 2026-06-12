@@ -3423,6 +3423,28 @@
       "status": "active"
     },
     {
+      "id": "console.component.build-source-update-image-cmd",
+      "title": "Component Build Source Update keeps/sets image start command",
+      "title_zh": "构建源更新保留/设置镜像启动命令",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.build-source-update-image-cmd]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_update_component_build_source_keeps_cmd_when_omitted_on_image_update"
+        },
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_update_component_build_source_sets_cmd_and_syncs_docker_cmd"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.change-image",
       "title": "Change component image",
       "title_zh": "\u4fee\u6539\u7ec4\u4ef6\u955c\u50cf",
