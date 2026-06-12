@@ -8,7 +8,7 @@ import re
 from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist
 
-from console.constants import PluginCategoryConstants
+from console.constants import AppConstants, PluginCategoryConstants
 from console.models.main import PluginShareRecordEvent, ServiceShareRecordEvent
 from console.exception.exceptions import ExterpriseNotExistError, TenantNotExistError
 from console.exception.main import ServiceHandleException
@@ -1154,6 +1154,11 @@ class MCPQueryService(object):
     def _get_component_build_source_snapshot(self, team, app, service):
         build_infos = base_service.get_build_infos(team, [service.service_id])
         bean = dict(build_infos.get(service.service_id) or {})
+        # Hide the legacy docker_cmd column from agents: the effective start
+        # command for image components is `cmd` (what deploy sends to the
+        # builder). Exposing both led agents to treat an empty docker_cmd as
+        # "the command was not applied" and recreate healthy components.
+        bean.pop("docker_cmd", None)
         username = bean.pop("user", bean.pop("user_name", "")) or ""
         has_password = bool(bean.pop("password", ""))
         bean["username"] = username
@@ -1275,7 +1280,18 @@ class MCPQueryService(object):
                 service.version = version
             if "cmd" in arguments:
                 service.cmd = arguments.get("cmd", "") or ""
-            elif target_source != getattr(service, "service_source", ""):
+                # Keep the legacy docker_cmd column aligned so build-source
+                # snapshots don't show a stale/empty docker_cmd next to the
+                # effective cmd — agents misread that as "the command was
+                # not applied" and delete/recreate the component.
+                service.docker_cmd = service.cmd
+            elif getattr(service, "service_source", "") == AppConstants.SOURCE_CODE:
+                # Only wipe cmd when actually converting away from source
+                # code. The stored value for image components is always
+                # "docker_image" while callers pass "docker_run", so the
+                # previous `target_source != service.service_source` check
+                # silently erased the start command on every cmd-less
+                # image-side update.
                 service.cmd = ""
             if "server_type" in arguments:
                 service.server_type = arguments.get("server_type", "") or ""
@@ -1319,6 +1335,16 @@ class MCPQueryService(object):
         )
         if code != 200:
             raise ServiceHandleException(msg="service create fail", msg_show=msg_show, status_code=code)
+
+        if docker_cmd:
+            # create_docker_run_app only stores docker_cmd, which in the UI
+            # flow is parsed into service.cmd by the docker-run check stage.
+            # The MCP path deploys without that check, and both
+            # create_region_service (container_cmd) and deploy
+            # (image_info.cmd) read service.cmd — without this copy the
+            # start command the agent provided never reaches the container.
+            new_service.cmd = docker_cmd
+            new_service.save()
 
         if docker_password or docker_user_name:
             console_app_service.create_service_source_info(team, new_service, docker_user_name, docker_password)
