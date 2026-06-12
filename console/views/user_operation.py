@@ -30,7 +30,6 @@ from console.views.base import BaseApiView, JWTAuthApiView
 from django import forms
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework_jwt.settings import api_settings
 from www.models.main import Users
 from www.utils.crypt import AuthCode, make_uuid
 from www.utils.mail import send_reset_pass_mail
@@ -38,11 +37,9 @@ from www.utils.return_message import error_message, general_message
 from console.login.jwt_manager import JwtManager
 from console.services.user_service import user_service
 from console.exception.main import ServiceHandleException
-from rest_framework_jwt.views import jwt_response_payload_handler
+from console.utils import jwt_issuer
+from console.utils.jwt_issuer import issue_jwt
 from console.services.sms_service import sms_service
-
-jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
-jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 
 logger = logging.getLogger("default")
 
@@ -205,8 +202,7 @@ class TenantServiceView(BaseApiView):
                 data["phone"] = user.phone
                 data["real_name"] = user.real_name
                 data["enterprise_id"] = user.enterprise_id
-                payload = jwt_payload_handler(user)
-                token = jwt_encode_handler(payload)
+                token = issue_jwt(user)
                 data["token"] = token
                 jwt_manager = JwtManager()
                 jwt_manager.set(token, user.user_id)
@@ -778,8 +774,7 @@ class RegisterByPhoneView(BaseApiView):
                 logger.warning("create default team failed", e)
             # 生成token
             jwt_manager = JwtManager()
-            payload = jwt_payload_handler(user)
-            token = jwt_encode_handler(payload)
+            token = issue_jwt(user)
             jwt_manager.set(token, user.user_id)
 
             data = {
@@ -829,15 +824,14 @@ class LoginByPhoneView(BaseApiView):
             login_event = LoginEvent(user, login_event_repo, request=request)
             login_event.login()
             # 生成token
-            payload = jwt_payload_handler(user)
-            token = jwt_encode_handler(payload)
-            response_data = jwt_response_payload_handler(token, user, request)
+            token = issue_jwt(user)
+            response_data = jwt_issuer.jwt_response_payload(token, user, request)
             result = general_message(200, "login success", "登录成功", bean=response_data)
             response = Response(result)
-            if api_settings.JWT_AUTH_COOKIE:
+            if jwt_issuer.JWT_AUTH_COOKIE:
                 # 设置10年过期时间，相当于永久
                 expiration = (datetime.now() + timedelta(days=3650))
-                response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
+                response.set_cookie(jwt_issuer.JWT_AUTH_COOKIE, token, expires=expiration)
             jwt_manager = JwtManager()
             jwt_manager.set(response_data["token"], user.user_id)
             return Response(result, status=status.HTTP_200_OK)

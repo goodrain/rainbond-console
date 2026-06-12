@@ -7,18 +7,24 @@ from console.repositories.login_event import login_event_repo
 from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.utils.cache import cache
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework_jwt.settings import api_settings
-from rest_framework_jwt.views import JSONWebTokenAPIView, jwt_response_payload_handler
+from rest_framework.views import APIView
 
 from console.serializer import CustomJWTSerializer
 from console.login.jwt_manager import JwtManager
+from console.utils import jwt_issuer
 from www.services import user_svc
 from www.utils.return_message import general_message, error_message
 
 
-class JWTTokenView(JSONWebTokenAPIView):
+class JWTTokenView(APIView):
+    permission_classes = (AllowAny, )
+    authentication_classes = ()
     serializer_class = CustomJWTSerializer
+
+    def get_serializer(self, *args, **kwargs):
+        return self.serializer_class(*args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         """
@@ -86,15 +92,15 @@ class JWTTokenView(JSONWebTokenAPIView):
                 return Response(result, status=code)
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
-                user = serializer.object.get('user') or request.user
-                token = serializer.object.get('token')
-                response_data = jwt_response_payload_handler(token, user, request)
+                user = serializer.validated_data.get('user') or request.user
+                token = serializer.validated_data.get('token')
+                response_data = jwt_issuer.jwt_response_payload(token, user, request)
                 result = general_message(200, "login success", "登录成功", bean=response_data)
                 response = Response(result)
-                if api_settings.JWT_AUTH_COOKIE:
+                if jwt_issuer.JWT_AUTH_COOKIE:
                     # 设置10年过期时间，相当于永久
                     expiration = (datetime.datetime.now() + datetime.timedelta(days=3650))
-                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
+                    response.set_cookie(jwt_issuer.JWT_AUTH_COOKIE, token, expires=expiration)
                 jwt_manager = JwtManager()
                 jwt_manager.set(response_data["token"], user.user_id)
                 login_event = LoginEvent(user, login_event_repo, request=request)

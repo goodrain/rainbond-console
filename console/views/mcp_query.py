@@ -22,7 +22,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_jwt.settings import api_settings
+from console.utils import jwt_issuer
 
 logger = logging.getLogger("default")
 
@@ -37,7 +37,7 @@ _MCP_HTTP_SESSION_MAX_AGE_SECONDS = 1800
 def _request_has_mcp_auth_input(request):
     if get_authorization_header(request):
         return True
-    if api_settings.JWT_AUTH_COOKIE and request.COOKIES.get(api_settings.JWT_AUTH_COOKIE):
+    if jwt_issuer.JWT_AUTH_COOKIE and request.COOKIES.get(jwt_issuer.JWT_AUTH_COOKIE):
         return True
     for key in ("token", "access_token", "jwt"):
         if request.GET.get(key):
@@ -141,7 +141,7 @@ class MCPJSONWebTokenAuthentication(JSONWebTokenAuthentication):
 
     def get_jwt_value(self, request):
         auth = get_authorization_header(request).split()
-        auth_header_prefix = api_settings.JWT_AUTH_HEADER_PREFIX.lower()
+        auth_header_prefix = jwt_issuer.JWT_AUTH_HEADER_PREFIX.lower()
         valid_prefixes = [auth_header_prefix, "jwt", "bearer"]
 
         raw_header = smart_text(get_authorization_header(request) or b"").strip()
@@ -163,8 +163,8 @@ class MCPJSONWebTokenAuthentication(JSONWebTokenAuthentication):
             if raw_header.count(".") == 2:
                 return raw_header
 
-        if api_settings.JWT_AUTH_COOKIE:
-            cookie_token = request.COOKIES.get(api_settings.JWT_AUTH_COOKIE)
+        if jwt_issuer.JWT_AUTH_COOKIE:
+            cookie_token = request.COOKIES.get(jwt_issuer.JWT_AUTH_COOKIE)
             if cookie_token:
                 return cookie_token
 

@@ -47,8 +47,7 @@ def login(request, user):
 
 
 def jwtlogin(request, user):
-    from rest_framework_jwt.settings import api_settings
-    from rest_framework_jwt.views import jwt_response_payload_handler
+    from console.utils import jwt_issuer
     """
     Persist a user id and a backend in the request. This way a user doesn't
     have to reauthenticate on every request. Note that data set during
@@ -75,11 +74,11 @@ def jwtlogin(request, user):
     if hasattr(request, 'user'):
         request.user = user
     rotate_token(request)
-    response_data = jwt_response_payload_handler(rotate_token, user, request)
-    if api_settings.JWT_AUTH_COOKIE:
+    response_data = jwt_issuer.jwt_response_payload(rotate_token, user, request)
+    if jwt_issuer.JWT_AUTH_COOKIE:
         # 使用JWT配置的过期时间（已设置为10年）
-        expiration = (datetime.utcnow() + api_settings.JWT_EXPIRATION_DELTA)
-        response_data.set_cookie(api_settings.JWT_AUTH_COOKIE, rotate_token, expires=expiration, httponly=True)
+        expiration = (datetime.utcnow() + jwt_issuer.JWT_EXPIRATION_DELTA)
+        response_data.set_cookie(jwt_issuer.JWT_AUTH_COOKIE, rotate_token, expires=expiration, httponly=True)
 
 
 def logout(request):
