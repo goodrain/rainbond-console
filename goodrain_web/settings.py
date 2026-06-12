@@ -79,7 +79,7 @@ GITLAB_ADMIN_ID = 2
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated', ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'console.login.jwt_authentication.JWTAuthenticationSafe',
         'console.services.auth.authentication.InternalTokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
@@ -148,27 +148,19 @@ MODULES = {
 
 TENANT_VALID_TIME = 7
 
-JWT_AUTH = {
-    'JWT_ENCODE_HANDLER': 'rest_framework_jwt.utils.jwt_encode_handler',
-    'JWT_DECODE_HANDLER': 'rest_framework_jwt.utils.jwt_decode_handler',
-    'JWT_PAYLOAD_HANDLER': 'rest_framework_jwt.utils.jwt_payload_handler',
-    'JWT_PAYLOAD_GET_USER_ID_HANDLER': 'rest_framework_jwt.utils.jwt_get_user_id_from_payload_handler',
-    'JWT_RESPONSE_PAYLOAD_HANDLER': 'rest_framework_jwt.utils.jwt_response_payload_handler',
-    'JWT_SECRET_KEY': SECRET_KEY,
-    'JWT_GET_USER_SECRET_KEY': None,
-    'JWT_PUBLIC_KEY': None,
-    'JWT_PRIVATE_KEY': None,
-    'JWT_ALGORITHM': 'HS256',
-    'JWT_VERIFY': True,
-    'JWT_VERIFY_EXPIRATION': True,
-    'JWT_LEEWAY': 0,
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=3650),  # 设置为10年，相当于永久
-    'JWT_AUDIENCE': None,  # Keep None to accept both old tokens and new portal tokens
-    'JWT_ISSUER': None,
-    'JWT_ALLOW_REFRESH': False,
-    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=3650),  # 设置为10年，相当于永久
-    'JWT_AUTH_HEADER_PREFIX': 'GRJWT',
-    'JWT_AUTH_COOKIE': "token",
+# djangorestframework-simplejwt configuration.
+# Compatibility contract (external projects + e2e baseline rely on it):
+# - HS256 signed with SECRET_KEY (SIGNING_KEY defaults to SECRET_KEY)
+# - payload contains user_id / username / email / exp (see console/utils/jwt_issuer.py)
+# - ~10 year token lifetime, no blacklist/revocation
+SIMPLE_JWT = {
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(days=3650),  # 设置为10年，相当于永久
+    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=3650),
+    'USER_ID_FIELD': 'user_id',
+    'USER_ID_CLAIM': 'user_id',
+    'AUTH_HEADER_TYPES': ('GRJWT', 'JWT'),
 }
 
 # 以下参数待去除
@@ -193,7 +185,7 @@ AUTHENTICATION_BACKENDS = ('console.services.auth.backends.ModelBackend', 'conso
 LOGIN_URL = '/login'
 INSTALLED_APPS = ('django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages',
                   'django.contrib.staticfiles', 'crispy_forms', 'rest_framework', 'rest_framework.authtoken',
-                  'rest_framework_jwt', 'www', 'corsheaders', 'console', 'console.cloud')
+                  'www', 'corsheaders', 'console', 'console.cloud')
 # Application definition
 if IS_OPEN_API:
     INSTALLED_APPS = (
@@ -205,7 +197,6 @@ if IS_OPEN_API:
         'crispy_forms',
         'rest_framework',
         'rest_framework.authtoken',
-        'rest_framework_jwt',
         'drf_yasg',
         'www',
         'corsheaders',
@@ -275,6 +266,9 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 STATIC_ROOT = 'static/'
+
+# Keep legacy implicit primary key type after Django 3.2 upgrade
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 LOGGING = {
@@ -339,8 +333,6 @@ LOGGING = {
 CORS_ORIGIN_ALLOW_ALL = True
 # add this for solve cross domain
 CORS_ALLOW_CREDENTIALS = True
-
-CORS_ORIGIN_WHITELIST = ('*')
 
 CORS_ALLOW_METHODS = ('DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'VIEW', 'TRACE', 'CONNECT', 'HEAD')
 

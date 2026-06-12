@@ -3,7 +3,8 @@
 import datetime
 import logging
 from rest_framework.response import Response
-from rest_framework_jwt.settings import api_settings
+from console.utils import jwt_issuer
+from console.utils.jwt_issuer import issue_jwt
 from django.db.transaction import atomic
 from console.repositories.user_repo import user_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -14,8 +15,6 @@ from console.login.jwt_manager import JwtManager
 
 from www.models.main import Users
 
-jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
-jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 
 logger = logging.getLogger("default")
 
@@ -90,13 +89,12 @@ class OAuthUserService(object):
             authenticated_user.save()
 
             if login_user_to_use:
-                payload = jwt_payload_handler(login_user_to_use)
-                token = jwt_encode_handler(payload)
+                token = issue_jwt(login_user_to_use)
                 response = Response({"data": {"bean": {"token": token}}}, status=200)
-                if api_settings.JWT_AUTH_COOKIE:
+                if jwt_issuer.JWT_AUTH_COOKIE:
                     # 设置10年过期时间，相当于永久
                     expiration = (datetime.datetime.now() + datetime.timedelta(days=3650))
-                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
+                    response.set_cookie(jwt_issuer.JWT_AUTH_COOKIE, token, expires=expiration)
                 jwt_manager = JwtManager()
                 jwt_manager.set(token, login_user_to_use.user_id)
                 return response
@@ -130,13 +128,12 @@ class OAuthUserService(object):
             )
             if effective_user:
                 # 如果关联了用户 (传入或通过邮箱找到)，执行登录
-                payload = jwt_payload_handler(effective_user)
-                token = jwt_encode_handler(payload)
+                token = issue_jwt(effective_user)
                 response = Response({"data": {"bean": {"token": token}}}, status=200)
-                if api_settings.JWT_AUTH_COOKIE:
+                if jwt_issuer.JWT_AUTH_COOKIE:
                     # 设置10年过期时间，相当于永久，并添加 httponly
                     expiration = (datetime.datetime.now() + datetime.timedelta(days=3650))
-                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
+                    response.set_cookie(jwt_issuer.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
                 jwt_manager = JwtManager()
                 jwt_manager.set(token, effective_user.user_id)
                 return response

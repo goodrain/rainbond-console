@@ -4,17 +4,14 @@ import logging
 import os
 import traceback
 
-import jwt
 from addict import Dict
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
 from console.exception.main import (BusinessException, NoPermissionsError, ResourceNotEnoughException, ServiceHandleException,
                                     AbortRequest)
-from console.login.login_event import LoginEvent
 from console.models.main import (EnterpriseUserPerm, OAuthServices, PermsInfo, RoleInfo, RolePerms, UserOAuthServices, UserRole)
 # repository
 from console.repositories.enterprise_repo import (enterprise_repo, enterprise_user_perm_repo)
 from console.repositories.group import group_repo
-from console.repositories.login_event import login_event_repo
 from console.repositories.user_repo import user_repo
 from console.repositories.upgrade_repo import upgrade_repo
 from console.repositories.region_repo import region_repo
@@ -24,11 +21,8 @@ from console.services.group_service import group_service
 from console.services.user_services import user_services
 from console.utils import perms
 from console.utils.oauth.oauth_types import get_oauth_instance
-from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
-from django.utils import six
-from django.utils.encoding import smart_text
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as trans
 
@@ -36,169 +30,16 @@ from console.utils.perms import get_perms, APP
 from default_region import make_uuid
 from goodrain_web import errors
 from rest_framework import exceptions, status
-from rest_framework.authentication import get_authorization_header
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView, set_rollback
-from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
-from rest_framework_jwt.settings import api_settings
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import TenantEnterprise, Tenants, Users, TenantServiceInfo, ServiceGroup
-from console.login.jwt_manager import JwtManager
+from www.models.main import TenantEnterprise, Tenants, TenantServiceInfo, ServiceGroup
+from console.login.jwt_authentication import (JSONWebTokenAuthentication, JWTAuthenticationSafe)  # noqa: F401
 from console.services.auth.authentication import InternalTokenAuthentication
 
-jwt_get_username_from_payload = api_settings.JWT_PAYLOAD_GET_USERNAME_HANDLER
-jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
 logger = logging.getLogger("default")
-jwt_response_payload_handler = api_settings.JWT_RESPONSE_PAYLOAD_HANDLER
-
-
-class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
-    """
-    Clients should authenticate by passing the token key in the "Authorization"
-    HTTP header, prepended with the string specified in the setting
-    `JWT_AUTH_HEADER_PREFIX`. For example:
-
-        Authorization: JWT eyJhbGciOiAiSFMyNTYiLCAidHlwIj
-    """
-    www_authenticate_realm = 'api'
-
-    def get_jwt_value(self, request):
-        auth = get_authorization_header(request).split()
-        auth_header_prefix = api_settings.JWT_AUTH_HEADER_PREFIX.lower()
-        # Also accept standard 'jwt' prefix for external tokens (e.g., from Rainbill portal)
-        valid_prefixes = [auth_header_prefix, 'jwt']
-        request_path = getattr(request, 'path', '') or getattr(request, 'path_info', '')
-        is_resource_center_log_request = '/resource-center/pods/' in request_path and request_path.endswith('/logs')
-
-        if is_resource_center_log_request:
-            logger.info(
-                "resource center log auth request path=%s auth_header_present=%s token_cookie_present=%s team_cookie_present=%s",
-                request.get_full_path(),
-                bool(auth),
-                bool(request.COOKIES.get(api_settings.JWT_AUTH_COOKIE)),
-                bool(request.COOKIES.get('team') or request.COOKIES.get('team_name')),
-            )
-
-        if not auth:
-            if api_settings.JWT_AUTH_COOKIE:
-                return request.COOKIES.get(api_settings.JWT_AUTH_COOKIE)
-            return None
-
-        if smart_text(auth[0].lower()) not in valid_prefixes:
-            return None
-
-        if len(auth) == 1:
-            msg = _('请求头不合法，未提供认证信息')
-            raise exceptions.AuthenticationFailed(msg)
-        elif len(auth) > 2:
-            msg = _("请求头不合法")
-            raise exceptions.AuthenticationFailed(msg)
-        return auth[1]
-
-    def authenticate(self, request):
-        """
-        Returns a two-tuple of `User` and token if a valid signature has been
-        supplied using JWT-based authentication.  Otherwise returns `None`.
-        """
-        jwt_value = self.get_jwt_value(request)
-        if jwt_value is None:
-            msg = _('未提供验证信息')
-            raise AuthenticationInfoHasExpiredError(msg)
-
-        try:
-            payload = jwt_decode_handler(jwt_value)
-        except jwt.InvalidAudienceError:
-            # Fallback: Try decoding without audience verification for external portal tokens
-            try:
-                payload = jwt.decode(
-                    jwt_value.decode('utf-8') if isinstance(jwt_value, bytes) else jwt_value,
-                    settings.SECRET_KEY,
-                    algorithms=['HS256'],
-                    options={'verify_aud': False}
-                )
-            except Exception:
-                msg = _('认证信息错误,请求Token不合法')
-                raise AuthenticationInfoHasExpiredError(msg)
-        except jwt.ExpiredSignature:
-            msg = _('认证信息已过期')
-            raise AuthenticationInfoHasExpiredError(msg)
-        except jwt.DecodeError:
-            msg = _('认证信息错误')
-            raise AuthenticationInfoHasExpiredError(msg)
-        except jwt.InvalidTokenError:
-            msg = _('认证信息错误,请求Token不合法')
-            raise AuthenticationInfoHasExpiredError(msg)
-
-        user = self.authenticate_credentials(payload)
-        
-        # Store token in jwt_manager for session tracking
-        jwt_manager = JwtManager()
-        jwt_manager.set(jwt_value, user.user_id)
-        
-        login_event = LoginEvent(user, login_event_repo)
-        login_event.active()
-        return user, jwt_value
-
-    def authenticate_credentials(self, payload):
-        """
-        Returns an active user that matches the payload's user id and email.
-        """
-        username = jwt_get_username_from_payload(payload)
-        # Fallback: try 'username' field for external JWT (e.g., from Rainbill portal)
-        if not username:
-            username = payload.get('username')
-
-        user_id = payload.get('user_id')
-        if not username and not user_id:
-            msg = _('认证信息不合法.')
-            # raise exceptions.AuthenticationFailed(msg)
-            logger.debug('==========================>{}'.format(msg))
-            raise AuthenticationInfoHasExpiredError(msg)
-
-        if user_id:
-            try:
-                user = Users.objects.filter(user_id=int(user_id)).first()
-            except (TypeError, ValueError):
-                user = None
-            if user:
-                if username and user.nick_name != username:
-                    msg = _('认证信息不合法.')
-                    logger.warning("jwt payload user mismatch: user_id=%s username=%s db_username=%s", user_id, username,
-                                   user.nick_name)
-                    raise AuthenticationInfoHasExpiredError(msg)
-                if not user.is_active:
-                    msg = _('用户身份未激活.')
-                    raise AuthenticationInfoHasExpiredError(msg)
-                return user
-
-        try:
-            user = Users.objects.get(nick_name=username)
-        except Users.DoesNotExist:
-            msg = _('签名不合法.')
-            raise AuthenticationInfoHasExpiredError(msg)
-
-        if not user.is_active:
-            msg = _('用户身份未激活.')
-            raise AuthenticationInfoHasExpiredError(msg)
-
-        return user
-
-
-class JWTAuthenticationSafe(JSONWebTokenAuthentication):
-    """
-    Use authentication_classes=[] in the view, but this always bypasses JWT authentication,
-    even when there is a valid Authorization-header with a token.
-    This class can obtain relevant user information when it has a token,
-    and is used for apis that do not require authentication
-    """
-
-    def authenticate(self, request):
-        try:
-            return super().authenticate(request=request)
-        except AuthenticationInfoHasExpiredError:
-            return None
 
 
 class BaseApiView(APIView):
@@ -741,33 +582,33 @@ def custom_exception_handler(exc, context):
         return Response(data, status=401)
     elif isinstance(exc, Http404):
         msg = trans('Not found.')
-        data = {'detail': six.text_type(msg)}
+        data = {'detail': str(msg)}
         # 处理数据为标准返回格式
         data.update({
             "code": status.HTTP_404_NOT_FOUND,
-            "msg": "{0}".format(six.text_type(msg)),
-            "msg_show": "{0}".format(six.text_type(msg))
+            "msg": "{0}".format(str(msg)),
+            "msg_show": "{0}".format(str(msg))
         })
         set_rollback()
         return Response(data, status=status.HTTP_404_NOT_FOUND)
     elif isinstance(exc, PermissionDenied):
         msg = trans('Permission denied.')
-        data = {'detail': six.text_type(msg)}
+        data = {'detail': str(msg)}
         # 处理数据为标准返回格式
         data.update({
             "code": status.HTTP_403_FORBIDDEN,
-            "msg": "{0}".format(six.text_type(msg)),
+            "msg": "{0}".format(str(msg)),
             "msg_show": "{0}".format("不允许的操作")
         })
         set_rollback()
         return Response(data, status=status.HTTP_403_FORBIDDEN)
     elif isinstance(exc, errors.PermissionDenied):
         msg = trans('Permission denied.')
-        data = {'detail': six.text_type(msg)}
+        data = {'detail': str(msg)}
         # 处理数据为标准返回格式
         data.update({
             "code": status.HTTP_403_FORBIDDEN,
-            "msg": "{0}".format(six.text_type(msg)),
+            "msg": "{0}".format(str(msg)),
             "msg_show": "{0}".format("您无权限执行此操作")
         })
         set_rollback()

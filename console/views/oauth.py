@@ -15,7 +15,6 @@ from console.models.main import OAuthServices
 from django.http import HttpResponseRedirect
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework_jwt.settings import api_settings
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
 from www.utils.return_message import error_message
@@ -24,9 +23,6 @@ from console.utils.reqparse import parse_item
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
-
-jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
-jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 
 
 class OauthType(JWTAuthApiView):
