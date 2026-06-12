@@ -3,6 +3,7 @@ import datetime
 import json
 import logging
 import os
+import re
 
 from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist
@@ -36,6 +37,7 @@ from console.services.group_service import group_service
 from console.services.groupcopy_service import groupapp_copy_service
 from console.services.helm_app_yaml import helm_app_service
 from console.services.market_app_service import market_app_service
+from console.services.mcp_failure_classifier import classify_failure
 from console.services.package_component_service import package_component_service
 from console.services.package_upload_tool_service import package_upload_tool_service
 from console.services.plugin import app_plugin_service
@@ -262,6 +264,7 @@ class MCPQueryService(object):
             self._tool_get_component_pods(), self._tool_get_pod_detail(),
             self._tool_get_component_logs(), self._tool_exec_component(), self._tool_get_config_file(),
             self._tool_get_component_events(), self._tool_get_component_build_logs(),
+            self._tool_get_operation_failure_context(),
             self._tool_get_component_build_source(), self._tool_update_component_build_source(),
             self._tool_create_component(),
             self._tool_delete_component(), self._tool_operate_app(), self._tool_manage_component_envs(),
@@ -343,6 +346,8 @@ class MCPQueryService(object):
             return self.get_component_detail(user, arguments)
         if name == "rainbond_get_component_events":
             return self.get_component_events(user, arguments)
+        if name == "rainbond_get_operation_failure_context":
+            return self.get_operation_failure_context(user, arguments)
         if name == "rainbond_create_component":
             return self.create_component(user, arguments)
         if name == "rainbond_delete_component":
@@ -941,6 +946,211 @@ class MCPQueryService(object):
             haystack = str(item)
         return keyword in haystack
 
+    # --- get_operation_failure_context -----------------------------------
+    FAILURE_CONTEXT_DEFAULT_LOG_TAIL = 30
+    FAILURE_CONTEXT_MAX_LOG_TAIL = 200
+    FAILURE_CONTEXT_MAX_PODS = 3
+    FAILURE_CONTEXT_MAX_LINE_LENGTH = 1024
+    FAILURE_CONTEXT_EVENT_QUERY_SIZE = 20
+    # Bare/quoted credential assignments to mask out of event-log lines. K8s
+    # Warning events are credential-free by nature, but the event-log tail can
+    # carry application output, so it gets a defensive scrub.
+    # Value alternatives, in match order: "Bearer <token>" (Authorization
+    # headers keep the token after a space), double/single-quoted values, then
+    # bare values. Known accepted limitation: keys whose secret word is glued
+    # to a prefix by an underscore (e.g. db_password) miss the \b word boundary
+    # and are not masked.
+    _FAILURE_CONTEXT_SECRET_RE = re.compile(
+        r"(?i)\b(password|passwd|pwd|token|secret|access[_-]?key|api[_-]?key|authorization)"
+        r"(\s*[:=]\s*)"
+        r"(bearer\s+\S+|\"[^\"]*\"|'[^']*'|[^\s,;\"'&]+)")
+
+    def get_operation_failure_context(self, user, arguments):
+        team, app, service = self._get_team_app_service_context(
+            user,
+            self._require_string(arguments, "team_name"),
+            self._require_string(arguments, "region_name"),
+            self._require_int(arguments, "app_id"),
+            self._require_string(arguments, "service_id"),
+        )
+        log_tail_lines = self._parse_int_with_default(
+            arguments.get("log_tail_lines"), self.FAILURE_CONTEXT_DEFAULT_LOG_TAIL)
+        if log_tail_lines <= 0:
+            log_tail_lines = self.FAILURE_CONTEXT_DEFAULT_LOG_TAIL
+        log_tail_lines = min(log_tail_lines, self.FAILURE_CONTEXT_MAX_LOG_TAIL)
+
+        requested_event_id = arguments.get("event_id")
+        if isinstance(requested_event_id, str):
+            requested_event_id = requested_event_id.strip()
+        else:
+            requested_event_id = ""
+
+        event = self._resolve_failure_event(team, app, service, requested_event_id)
+        event_id = (event or {}).get("event_id") or requested_event_id
+
+        event_log_tail = []
+        if event_id:
+            event_log_tail = self._read_failure_event_log_tail(
+                team, app.region_name, event_id, log_tail_lines)
+
+        pod_warnings = self._collect_pod_warnings(team, app.region_name, service)
+
+        classified_reason = classify_failure(pod_warnings, event_log_tail)
+
+        if pod_warnings:
+            verification_level = "pod_evidence"
+        elif event or event_log_tail:
+            verification_level = "event_only"
+        else:
+            verification_level = "no_evidence"
+
+        return {
+            "team_name": team.tenant_name,
+            "region_name": app.region_name,
+            "app_id": app.ID,
+            "service_id": service.service_id,
+            "event": event,
+            "event_log_tail": event_log_tail,
+            "pod_warnings": pod_warnings,
+            "classified_reason": classified_reason,
+            "verification_level": verification_level,
+        }
+
+    def _resolve_failure_event(self, team, app, service, requested_event_id):
+        """Locate the operation event to anchor on.
+
+        When event_id is given, short-circuit: the caller already knows the
+        event to anchor on, so we skip the events-list query entirely and echo a
+        minimal event whose detail fields stay empty (we do not have them and
+        must not invent them); the log tail is fetched separately by event_id.
+        When absent, pick the most recent non-success operation event. Any
+        sub-query failure degrades to a minimal echo (or None) rather than
+        aborting.
+        """
+        if requested_event_id:
+            return {"event_id": requested_event_id, "opt_type": "", "status": "",
+                    "message": "", "start_time": "", "end_time": ""}
+
+        events = []
+        try:
+            res, body = region_api.get_target_events_list(
+                app.region_name, team.tenant_name, "service", service.service_id,
+                1, self.FAILURE_CONTEXT_EVENT_QUERY_SIZE)
+            if int(res.status) == 200 and isinstance(body, dict):
+                events = body.get("list") or []
+        except Exception as e:
+            logger.warning("failure_context: list events failed for %s: %s", service.service_id, e)
+            events = []
+        events = events or []
+
+        for item in events:
+            if not isinstance(item, dict):
+                continue
+            status = (item.get("status") or "").lower()
+            if status and status != "success":
+                return self._shape_failure_event(item)
+        return None
+
+    @staticmethod
+    def _shape_failure_event(item):
+        return {
+            "event_id": item.get("event_id") or "",
+            "opt_type": item.get("opt_type") or "",
+            "status": item.get("status") or "",
+            "message": item.get("message") or "",
+            "start_time": item.get("start_time") or "",
+            "end_time": item.get("end_time") or "",
+        }
+
+    def _read_failure_event_log_tail(self, team, region_name, event_id, log_tail_lines):
+        try:
+            res, body = region_api.get_events_log(team.tenant_name, region_name, event_id)
+            items = body.get("list") or [] if (int(res.status) == 200 and isinstance(body, dict)) else []
+        except Exception as e:
+            logger.warning("failure_context: read event log failed for %s: %s", event_id, e)
+            return []
+        tail = items[-log_tail_lines:] if log_tail_lines else items
+        lines = []
+        for item in tail:
+            if isinstance(item, dict):
+                message = item.get("message")
+                message = message if isinstance(message, str) else str(item)
+            else:
+                message = str(item)
+            lines.append(self._redact_failure_line(message)[:self.FAILURE_CONTEXT_MAX_LINE_LENGTH])
+        return lines
+
+    def _redact_failure_line(self, message):
+        return self._FAILURE_CONTEXT_SECRET_RE.sub(r"\1\2***", str(message or ""))
+
+    def _collect_pod_warnings(self, team, region_name, service):
+        """Pull Warning events from up to N abnormal pods. Best-effort: any
+        failure returns an empty list so aggregation can degrade gracefully."""
+        try:
+            pods_data = region_api.get_service_pods(
+                region_name, team.tenant_name, service.service_alias, team.enterprise_id)
+        except Exception as e:
+            logger.warning("failure_context: list pods failed for %s: %s", service.service_id, e)
+            return []
+        pods = self._extract_component_pods(pods_data)
+        warnings = []
+        inspected = 0
+        for pod in pods:
+            if inspected >= self.FAILURE_CONTEXT_MAX_PODS:
+                break
+            pod_status = (pod.get("pod_status") or "").upper()
+            if pod_status == "RUNNING":
+                # Only inspect pods that are not cleanly running; a running pod
+                # rarely carries actionable Warning events for an operation failure.
+                continue
+            pod_name = pod.get("pod_name")
+            if not pod_name:
+                continue
+            inspected += 1
+            warnings.extend(self._extract_pod_warning_events(team, region_name, service, pod_name))
+        return warnings
+
+    def _extract_pod_warning_events(self, team, region_name, service, pod_name):
+        try:
+            detail_payload = region_api.pod_detail(
+                region_name, team.tenant_name, service.service_alias, pod_name)
+        except Exception as e:
+            logger.warning("failure_context: pod_detail failed for %s/%s: %s", service.service_id, pod_name, e)
+            return []
+        detail = self._extract_region_pod_detail(detail_payload)
+        if not isinstance(detail, dict):
+            return []
+        warnings = []
+        seen = {}
+        for event in (detail.get("events") or []):
+            if not isinstance(event, dict):
+                continue
+            event_type = (event.get("type") or "").lower()
+            reason = event.get("reason") or ""
+            message = event.get("message") or ""
+            # K8s Warning events are the signal; if type is missing, fall back to
+            # treating any event with a reason+message as a candidate warning.
+            if event_type and event_type != "warning":
+                continue
+            if not reason and not message:
+                continue
+            key = (pod_name, reason, message)
+            if key in seen:
+                continue
+            seen[key] = True
+            count = event.get("count")
+            try:
+                count = int(count) if count is not None else None
+            except (TypeError, ValueError):
+                count = None
+            warnings.append({
+                "pod_name": pod_name,
+                "reason": reason,
+                "count": count,
+                "message": self._redact_failure_line(message)[:self.FAILURE_CONTEXT_MAX_LINE_LENGTH],
+            })
+        return warnings
+
     def _get_component_build_source_snapshot(self, team, app, service):
         build_infos = base_service.get_build_infos(team, [service.service_id])
         bean = dict(build_infos.get(service.service_id) or {})
@@ -1198,7 +1408,10 @@ class MCPQueryService(object):
             raise ServiceHandleException(
                 msg="unsupported action", msg_show="不支持的应用操作: {}".format(action), status_code=400)
         service_ids = arguments.get("service_ids") or self._get_app_service_ids(app)
+        event_ids = []
         if action == "restart":
+            # The restart path returns serialized services and carries no
+            # per-component event_id; event_ids stays empty but present.
             code, msg, result = app_manage_service.batch_action(
                 app.region_name, team, user, action, service_ids, None, None)
             if code != 200:
@@ -1206,12 +1419,49 @@ class MCPQueryService(object):
             result = [self._serialize_model_item(service) for service in result]
         else:
             result = app_manage_service.batch_operations(team, app.region_name, user, action, service_ids, None)
+            event_ids = self._extract_operation_event_ids(result)
         return {
             "app_id": app.ID,
             "action": action,
             "service_ids": service_ids,
             "result": result,
+            "event_ids": event_ids,
         }
+
+    @staticmethod
+    def _extract_operation_event_ids(batch_result):
+        """Map region batch_result entries to [{service_alias, event_id}].
+
+        batch_result entries are {service_id, operation, event_id, status, ...}.
+        Resolve service_alias from the DB so agents get a stable, human-meaningful
+        key to correlate later failure events. Entries without an event_id are
+        skipped (e.g. no-op operations).
+        """
+        if not isinstance(batch_result, list):
+            return []
+        service_ids = [item.get("service_id") for item in batch_result
+                       if isinstance(item, dict) and item.get("service_id")]
+        alias_map = {}
+        if service_ids:
+            try:
+                for svc in service_repo.get_services_by_service_ids(service_ids) or []:
+                    alias_map[svc.service_id] = svc.service_alias
+            except Exception as e:
+                logger.warning("operate_app: resolve service aliases failed: %s", e)
+        event_ids = []
+        for item in batch_result:
+            if not isinstance(item, dict):
+                continue
+            event_id = item.get("event_id")
+            if not event_id:
+                continue
+            service_id = item.get("service_id") or ""
+            event_ids.append({
+                "service_id": service_id,
+                "service_alias": alias_map.get(service_id, ""),
+                "event_id": event_id,
+            })
+        return event_ids
 
     def update_component_envs(self, user, arguments):
         team, app, service = self._get_team_app_service_context(
@@ -1583,6 +1833,33 @@ class MCPQueryService(object):
         result["service_id"] = service.service_id
         return result
 
+    @staticmethod
+    def _has_value(arguments, field):
+        return isinstance(arguments.get(field), str) and arguments.get(field).strip() != ""
+
+    def _assert_create_volume_param_names(self, arguments):
+        # create_volume reads volume_path / file_content, while update_volume
+        # reads new_volume_path / new_file_content. LLM callers frequently mix
+        # the two: they invoke create_volume but pass the update_* parameter
+        # names, then receive an opaque "参数volume_path无效" error and wrongly
+        # conclude the path format is restricted. Detect that exact misuse and
+        # return an actionable message that names the right parameter.
+        misuses = [
+            ("volume_path", "new_volume_path"),
+            ("file_content", "new_file_content"),
+        ]
+        for correct_field, wrong_field in misuses:
+            if not self._has_value(arguments, correct_field) and self._has_value(arguments, wrong_field):
+                raise ServiceHandleException(
+                    msg="create_volume expects {0}, got {1}".format(correct_field, wrong_field),
+                    msg_show=(
+                        "create_volume 请使用 {0}（你传的是 {1}，那是 update_volume 的参数）".format(
+                            correct_field, wrong_field
+                        )
+                    ),
+                    status_code=400,
+                )
+
     def _mcp_assert_volume_path_available(self, service, new_volume_path):
         existing_rows = volume_repo.get_service_volumes_with_config_file(
             service.service_id
@@ -1645,6 +1922,7 @@ class MCPQueryService(object):
             )
             return {"items": items, "total": total, "page": page, "page_size": page_size}
         if operation == "create_volume":
+            self._assert_create_volume_param_names(arguments)
             volume_path = self._require_string(arguments, "volume_path")
             # The shared `volume_service.check_volume_path` filters out
             # config-file volumes by design (console contract). MCP creators
@@ -2737,11 +3015,48 @@ class MCPQueryService(object):
         update_versions = arguments.get("update_versions")
         if not isinstance(update_versions, list) or not update_versions:
             raise ServiceHandleException(msg="invalid update_versions", msg_show="参数update_versions无效", status_code=400)
-        upgrade_service.openapi_upgrade_app_models(user, team, app.region_name, None, app.ID, {
+        app_records = upgrade_service.openapi_upgrade_app_models(user, team, app.region_name, None, app.ID, {
             "update_versions": update_versions
         })
+        event_ids = self._extract_upgrade_event_ids(app_records)
         items = market_app_service.get_market_apps_in_app(app.region_name, team, app)
-        return {"app_id": app.ID, "upgraded": True, "items": items, "total": len(items)}
+        return {
+            "app_id": app.ID,
+            "upgraded": True,
+            "items": items,
+            "total": len(items),
+            "event_ids": event_ids,
+        }
+
+    @staticmethod
+    def _extract_upgrade_event_ids(app_records):
+        """Pull per-component event ids from upgrade records.
+
+        Each ServiceUpgradeRecord carries the event_id returned by the region
+        deploy call (upgrade_services.py send_upgrade_request). Surfacing them
+        lets the agent correlate a later failure event back to this upgrade.
+        Best-effort: any unexpected record shape is skipped, not raised.
+        """
+        event_ids = []
+        if not isinstance(app_records, (list, tuple)):
+            return event_ids
+        for app_record in app_records:
+            try:
+                service_records = app_record.service_upgrade_records.all()
+            except Exception as e:
+                logger.warning("upgrade_app: read service_upgrade_records failed: %s", e)
+                continue
+            for record in service_records:
+                event_id = getattr(record, "event_id", "") or ""
+                if not event_id:
+                    continue
+                service = getattr(record, "service", None)
+                service_alias = getattr(service, "service_alias", "") if service else ""
+                event_ids.append({
+                    "service_alias": service_alias or "",
+                    "event_id": event_id,
+                })
+        return event_ids
 
     def get_copy_app_info(self, user, arguments):
         team, app = self._get_team_app_context(
@@ -5157,6 +5472,43 @@ class MCPQueryService(object):
             }
         }
 
+    def _tool_get_operation_failure_context(self):
+        return {
+            "name": "rainbond_get_operation_failure_context",
+            "description": (
+                "Aggregate structured failure context for a component after a mutating operation "
+                "(rainbond_operate_app / rainbond_upgrade_app / build / deploy) reports failure, or "
+                "when a component becomes abnormal right after such an operation. Returns the failing "
+                "operation event, the tail of its event log, deduplicated K8s pod Warning events, and a "
+                "machine-readable classified_reason "
+                "(config_file_configmap_missing / volume_mount_failed / image_pull_failed / crash_loop / "
+                "probe_failed / unschedulable / k8s_api_rejected / unknown). Call this BEFORE deciding to "
+                "retry: route by classified_reason to the matching root-cause fix; on 'unknown' fall back "
+                "to the normal evidence workflow. event_id is optional — when omitted the most recent "
+                "non-success operation event is used. verification_level reports evidence strength "
+                "(pod_evidence > event_only > no_evidence)."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "team_name": {"type": "string"},
+                    "region_name": {"type": "string"},
+                    "app_id": {"type": "integer", "minimum": 1},
+                    "service_id": {"type": "string"},
+                    "event_id": {
+                        "type": "string",
+                        "description": "可选。要定位的操作事件 ID。缺省时自动取该组件最近一次非 success 的操作事件。"
+                    },
+                    "log_tail_lines": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "可选，返回事件日志末尾的行数，默认 30，上限 200。失败原因通常在尾部。"
+                    }
+                },
+                "required": ["team_name", "region_name", "app_id", "service_id"]
+            }
+        }
+
     def _tool_get_component_build_logs(self):
         return {
             "name": "rainbond_get_component_build_logs",
@@ -5284,7 +5636,9 @@ class MCPQueryService(object):
     def _tool_operate_app(self):
         return {
             "name": "rainbond_operate_app",
-            "description": "Batch operate application components. Supported actions: start, stop, restart, upgrade, deploy.",
+            "description": "Batch operate application components. Supported actions: start, stop, restart, upgrade, deploy. "
+                           "Response includes event_ids ([{service_id, service_alias, event_id}]); after a failed "
+                           "operation pass an event_id to rainbond_get_operation_failure_context for diagnosis.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -5966,7 +6320,9 @@ class MCPQueryService(object):
     def _tool_upgrade_app(self):
         return {
             "name": "rainbond_upgrade_app",
-            "description": "Upgrade an application using the direct high-level console upgrade flow.",
+            "description": "Upgrade an application using the direct high-level console upgrade flow. "
+                           "Response includes event_ids ([{service_alias, event_id}]); after a failed upgrade "
+                           "pass an event_id to rainbond_get_operation_failure_context for diagnosis.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -6675,7 +7031,16 @@ class MCPQueryService(object):
     def _tool_manage_component_storage(self):
         return {
             "name": "rainbond_manage_component_storage",
-            "description": "高层存储管理工具，统一处理组件 volume 和挂载关系 mnt。",
+            "description": (
+                "高层存储管理工具，统一处理组件 volume 和挂载关系 mnt。"
+                "各 operation 必填/常用参数组合（注意 create 与 update 使用不同的参数名，不要混用）："
+                "create_volume 必填 volume_name + volume_type + volume_path（config-file 类型还需 file_content）；"
+                "update_volume 必填 volume_id + new_volume_path（config-file 类型用 new_file_content 改内容，可选 volume_capacity 改容量），"
+                "改存储用 new_volume_path / new_file_content，不是 volume_path / file_content；"
+                "delete_volume 必填 volume_id（有依赖时需 force=true 强制删除）；"
+                "create_mnt 必填 mounts 数组（每项含 dep_vol_id + mount_path）；"
+                "delete_mnt 必填 dep_vol_id。"
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -6698,12 +7063,40 @@ class MCPQueryService(object):
                     "dep_app_group": {"type": "string"},
                     "config_name": {"type": "string"},
                     "volume_id": {"type": "integer", "minimum": 1},
-                    "new_volume_path": {"type": "string"},
-                    "new_file_content": {"type": "string"},
+                    "new_volume_path": {
+                        "type": "string",
+                        "description": (
+                            "仅用于 update_volume：修改已存在存储的挂载路径（config-file 类型即容器内文件完整路径）。"
+                            "create_volume 不要用这个字段，应使用 volume_path。"
+                        ),
+                    },
+                    "new_file_content": {
+                        "type": "string",
+                        "description": (
+                            "仅用于 update_volume 且 volume_type=config-file：修改配置文件的新全文内容。"
+                            "create_volume 不要用这个字段，应使用 file_content。"
+                        ),
+                    },
                     "force": {"type": "boolean"},
-                    "volume_name": {"type": "string"},
-                    "volume_type": {"type": "string"},
-                    "volume_path": {"type": "string"},
+                    "volume_name": {
+                        "type": "string",
+                        "description": "create_volume 必填：存储名称（组件内唯一标识，如 nginx-conf）。",
+                    },
+                    "volume_type": {
+                        "type": "string",
+                        "description": (
+                            "create_volume 必填：存储类型。常见值 config-file（配置文件，需配合 volume_path 填文件完整路径 + file_content 填文件全文）、"
+                            "share-file（共享存储）、memoryfs（内存）、local（本地）、nas 等。"
+                        ),
+                    },
+                    "volume_path": {
+                        "type": "string",
+                        "description": (
+                            "create_volume 必填：容器内挂载路径。volume_type=config-file 时填容器内文件的完整路径，"
+                            "例如 /etc/nginx/conf.d/default.conf；其它类型填挂载目录如 /data。"
+                            "修改已存在存储路径请改用 update_volume + new_volume_path。"
+                        ),
+                    },
                     "volume_capacity": {"type": "integer", "minimum": 0},
                     "provider_name": {"type": "string"},
                     "access_mode": {"type": "string"},
@@ -6711,7 +7104,13 @@ class MCPQueryService(object):
                     "back_policy": {"type": "string"},
                     "reclaim_policy": {"type": "string"},
                     "allow_expansion": {"type": "boolean"},
-                    "file_content": {"type": "string"},
+                    "file_content": {
+                        "type": "string",
+                        "description": (
+                            "仅用于 create_volume 且 volume_type=config-file：配置文件的全文内容。"
+                            "修改已存在配置文件请改用 update_volume + new_file_content。"
+                        ),
+                    },
                     "mode": {"type": "integer"},
                     "mounts": {
                         "type": "array",

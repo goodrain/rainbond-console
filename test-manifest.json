@@ -8889,6 +8889,58 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.mcp.operation-failure-classifier",
+      "title": "MCP operation failure classifier",
+      "title_zh": "MCP 操作失败分类器",
+      "interface_type": "package_function",
+      "interface": "console.services.mcp_failure_classifier.classify_failure",
+      "code_paths": [
+        "console/services/mcp_failure_classifier.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_failure_classifier_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.operation-failure-context",
+      "title": "MCP get_operation_failure_context tool",
+      "title_zh": "MCP 操作失败上下文工具",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.mcp.operation-failure-context]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_failure_context_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.operation-event-ids",
+      "title": "MCP operate_app/upgrade_app return operation event ids",
+      "title_zh": "MCP operate_app/upgrade_app 返回操作事件 ID",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.mcp.operation-event-ids]",
+      "code_paths": [
+        "console/services/mcp_query_service.py",
+        "console/services/upgrade_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_operation_event_ids_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
     }
   ]
 }
