@@ -212,6 +212,7 @@ class KubeBlocksBackupRepo(BaseModel):
     bucket = models.CharField(max_length=255, help_text="S3 Bucket")
     endpoint = models.CharField(max_length=255, help_text="S3 Endpoint")
     region = models.CharField(max_length=64, null=True, blank=True, default="", help_text="S3 Region")
+    force_path_style = models.BooleanField(default=True, help_text="是否使用路径风格访问 Bucket")
     volume_capacity = models.CharField(max_length=32, default="100Gi", help_text="BackupRepo 容量")
     pv_reclaim_policy = models.CharField(max_length=16, default="Retain", help_text="PV 回收策略")
     path_prefix = models.CharField(max_length=255, null=True, blank=True, default="", help_text="备份路径前缀")
