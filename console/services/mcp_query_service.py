@@ -3988,7 +3988,7 @@ class MCPQueryService(object):
         if int(token_payload.get("app_id", 0)) != app_id:
             raise ServiceHandleException(msg="token app mismatch", msg_show="确认令牌与目标应用不匹配", status_code=400)
 
-        group_service.delete_app(tenant, app.region_name, app)
+        group_service.delete_app_with_resources(user, tenant, app.region_name, app)
 
         return {
             "requires_confirmation": False,

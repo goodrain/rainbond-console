@@ -60,6 +60,39 @@ class GroupServiceDeleteAppTestCase(TestCase):
         )
 
 
+# capability_id: console.app.delete-with-resources
+class GroupServiceDeleteAppWithResourcesTestCase(TestCase):
+    def test_delete_app_with_resources_deletes_components_and_attached_resources(self):
+        user = Obj(user_id=1001, enterprise_id="eid-1", nick_name="admin")
+        tenant = Obj(tenant_id="team-1", tenant_name="demo-team", enterprise_id="eid-1")
+        app = Obj(ID=42, app_id=42, app_type="rainbond", group_name="demo-app")
+        services = [Obj(service_id="svc-1"), Obj(service_id="svc-2")]
+        k8s_resources = [Obj(ID=7), Obj(ID=8)]
+
+        with mock.patch.object(group_service, "batch_delete_app_services",
+                               return_value=services) as batch_delete_mock, \
+                mock.patch("console.services.kubeblocks_service.kubeblocks_service.delete_kubeblocks_cluster"
+                           ) as delete_kubeblocks_mock, \
+                mock.patch("console.services.k8s_resource.k8s_resource_service.list_by_app_id",
+                           return_value=k8s_resources) as list_k8s_mock, \
+                mock.patch("console.services.k8s_resource.k8s_resource_service.batch_delete_k8s_resource"
+                           ) as delete_k8s_mock, \
+                mock.patch.object(group_service_module.app_config_group_service,
+                                  "batch_delete_config_group") as delete_config_group_mock, \
+                mock.patch.object(group_service, "delete_app_share_records") as delete_share_mock, \
+                mock.patch.object(group_service, "delete_app") as delete_app_mock:
+            result = group_service.delete_app_with_resources(user, tenant, "demo-region", app)
+
+        self.assertEqual(result, services)
+        batch_delete_mock.assert_called_once_with(user, "team-1", "demo-region", 42)
+        delete_kubeblocks_mock.assert_called_once_with(["svc-1", "svc-2"], "demo-region")
+        list_k8s_mock.assert_called_once_with("42")
+        delete_k8s_mock.assert_called_once_with("eid-1", "demo-team", "42", "demo-region", [7, 8])
+        delete_config_group_mock.assert_called_once_with("demo-region", "demo-team", 42)
+        delete_share_mock.assert_called_once_with("demo-team", 42)
+        delete_app_mock.assert_called_once_with(tenant, "demo-region", app)
+
+
 class GroupServiceAppStatusAggregationTests(TestCase):
     # capability_id: console.app-status.aggregate-rainbond-components
     def test_get_app_status_uses_component_aggregation_for_rainbond_apps(self):
