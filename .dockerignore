@@ -18,3 +18,16 @@ static/
 test/
 tests/
 Dockerfile
+.claude/
+docs/
+.github/
+.vscode/
+.idea/
+__pycache__/
+*.pyo
+.pytest_cache/
+.tox/
+htmlcov/
+.coverage
+node_modules/
+*.tar.gz

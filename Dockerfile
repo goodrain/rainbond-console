@@ -24,16 +24,19 @@ WORKDIR /app/ui
 ENV PATH="/app/ui/py_venv/bin:$PATH"
 
 RUN python -m venv --copies /app/ui/py_venv && \
-    python -m pip install --upgrade pip && pip install numpy==1.19.3 && \
-    pip install -r requirements.txt $PYTHONPROXY && \
+    python -m pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt $PYTHONPROXY && \
     curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz && \
     mkdir -p /tmp/openapi-client && \
     tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1 && \
-    pip install /tmp/openapi-client $PYTHONPROXY && \
+    pip install --no-cache-dir /tmp/openapi-client $PYTHONPROXY && \
     rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz && \
-    python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework
+    python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework && \
+    find /app/ui/py_venv/lib/python3.6/site-packages -depth -type d \( -name __pycache__ -o -name tests \) -exec rm -rf {} + && \
+    find /app/ui/py_venv -name '*.pyc' -delete
 
 RUN git clone --depth=1 -b main https://github.com/goodrain/rainbond-chart /app/ui/rainbond-chart && \
+    rm -rf /app/ui/rainbond-chart/.git && \
     sed -i "s/installVersion: .*/installVersion: $VERSION/" /app/ui/rainbond-chart/values.yaml && \
     wget https://get.helm.sh/helm-v3.16.2-linux-$TARGETARCH.tar.gz -O /tmp/helm.tar.gz && \
     tar -zxvf /tmp/helm.tar.gz -C /tmp && \
@@ -65,7 +68,7 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
 	echo "deb http://archive.debian.org/debian/ stretch main" > /etc/apt/sources.list && \
 	echo "deb http://archive.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
 	apt-get update && apt-get --no-install-recommends install -y \
-	curl mysql-client sqlite3 default-libmysqlclient-dev && \
+	curl mysql-client sqlite3 libmariadbclient18 && \
   mkdir -p /app/logs /app/data && \
 	rm -rf /var/lib/apt/lists/*
 
