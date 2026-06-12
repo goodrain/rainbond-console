@@ -8,7 +8,8 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
 
-DEFAULT_POSTHOG_PROXY_TARGET = "https://posthog.goodrain.com"
+DEFAULT_POSTHOG_API_PROXY_TARGET = "https://posthog.goodrain.com"
+DEFAULT_POSTHOG_ASSET_PROXY_TARGET = "https://posthog.goodrain.com"
 REQUEST_TIMEOUT = (3, 10)
 
 REQUEST_HEADER_MAP = {
@@ -36,16 +37,37 @@ class PostHogProxyRequestError(Exception):
     pass
 
 
-def _get_proxy_target():
+def _get_api_proxy_target():
     return (
         os.environ.get("RAINBOND_POSTHOG_PROXY_TARGET")
         or os.environ.get("POSTHOG_PROXY_TARGET")
-        or DEFAULT_POSTHOG_PROXY_TARGET
+        or DEFAULT_POSTHOG_API_PROXY_TARGET
     ).rstrip("/")
 
 
+def _get_asset_proxy_target(api_target):
+    return (
+        os.environ.get("RAINBOND_POSTHOG_ASSET_PROXY_TARGET")
+        or os.environ.get("POSTHOG_ASSET_PROXY_TARGET")
+        or api_target
+        or DEFAULT_POSTHOG_ASSET_PROXY_TARGET
+    ).rstrip("/")
+
+
+def _is_asset_path(path):
+    request_path = (path or "").lstrip("/")
+    return request_path.startswith("static/") or request_path.startswith("array/")
+
+
+def _get_proxy_target(path):
+    api_target = _get_api_proxy_target()
+    if _is_asset_path(path):
+        return _get_asset_proxy_target(api_target)
+    return api_target
+
+
 def _build_target_url(path, query_string):
-    target = urlsplit(_get_proxy_target())
+    target = urlsplit(_get_proxy_target(path))
     if not target.scheme or not target.netloc:
         raise ValueError("invalid posthog proxy target")
     base_path = target.path.rstrip("/")
@@ -61,6 +83,10 @@ def _build_upstream_headers(request):
         value = request.META.get(meta_key)
         if value:
             headers[header_name] = value
+    forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR") or request.META.get("REMOTE_ADDR")
+    if forwarded_for:
+        headers["X-Forwarded-For"] = forwarded_for
+    headers["X-Forwarded-Proto"] = request.scheme
     return headers
 
 
