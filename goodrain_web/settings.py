@@ -221,6 +221,7 @@ if IS_OPEN_API:
     }
 MIDDLEWARE = (
     'goodrain_web.middleware.ErrorPage',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.gzip.GZipMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'console.services.auth.middleware.AuthenticationMiddleware',
