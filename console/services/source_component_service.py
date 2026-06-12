@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 import time
 
 from console.constants import SourceCodeType
 from console.exception.main import ServiceHandleException
+from console.repositories.app import service_source_repo
 from console.repositories.deploy_repo import deploy_repo
 from console.services.app import app_service as console_app_service
 from console.services.app_actions import app_manage_service
@@ -21,6 +23,56 @@ class SourceComponentService(object):
     MAX_CHECK_RETRIES = 30
     CHECK_POLL_INTERVAL = 2
     VALID_SERVER_TYPES = ("git", "svn", "oss")
+    DOCKERFILE_PREFERENCE_KEY = "prefer_dockerfile_when_detected"
+
+    def persist_dockerfile_preference(self, team, service):
+        """Persist the Dockerfile build preference in service_source.extend_info.
+
+        Called when detection has not finished inside the create call (the
+        timeout/pending path), so the follow-up check-result call can re-apply
+        the preference without the caller re-passing the flag. Persistence
+        failures must never break component creation, so errors are swallowed
+        after logging.
+        """
+        try:
+            extend_info = self._load_source_extend_info(team, service)
+            extend_info[self.DOCKERFILE_PREFERENCE_KEY] = True
+            service_source_repo.update_or_create_service_source(
+                team_id=team.tenant_id,
+                service_id=service.service_id,
+                extend_info=json.dumps(extend_info, ensure_ascii=False),
+            )
+        except Exception:
+            logger.warning(
+                "persist dockerfile preference failed, service_id=%s", service.service_id, exc_info=True)
+
+    def load_dockerfile_preference(self, team, service):
+        """Read back the persisted Dockerfile build preference (default False)."""
+        try:
+            return bool(self._load_source_extend_info(team, service).get(self.DOCKERFILE_PREFERENCE_KEY, False))
+        except Exception:
+            logger.warning(
+                "load dockerfile preference failed, service_id=%s", service.service_id, exc_info=True)
+            return False
+
+    @staticmethod
+    def _load_source_extend_info(team, service):
+        source = service_source_repo.get_service_source(team.tenant_id, service.service_id)
+        if not source or not source.extend_info:
+            return {}
+        try:
+            extend_info = json.loads(source.extend_info)
+        except ValueError:
+            return {}
+        return extend_info if isinstance(extend_info, dict) else {}
+
+    @classmethod
+    def build_unapplied_preference_note(cls, selected_language):
+        return (
+            "已请求 Dockerfile 构建（prefer_dockerfile_when_detected=true），但代码检测未在构建目录根路径发现 Dockerfile，"
+            "已回退为 {} 语言构建。如需 Dockerfile 构建，请通过 subdirectories 指向包含 Dockerfile 的目录，"
+            "或改用镜像方式部署。".format(selected_language or "检测到的")
+        )
 
     def auto_create_component(
             self,
@@ -98,7 +150,20 @@ class SourceComponentService(object):
             )
         except ServiceHandleException as exc:
             if getattr(exc, "msg", "") == "check timeout":
+                build_mode_note = None
+                if prefer_dockerfile_when_detected:
+                    # Detection outlived the synchronous wait window (large
+                    # repos take minutes to clone), so persist the preference;
+                    # get_component_check_result reads it back and applies it
+                    # before persisting the detection result.
+                    self.persist_dockerfile_preference(team, component)
+                    build_mode_note = (
+                        "Dockerfile 构建偏好已持久化，检测完成后调用 rainbond_get_component_check_result 会自动应用，"
+                        "无需重新传递 prefer_dockerfile_when_detected。"
+                    )
                 return {
+                    "prefer_dockerfile_when_detected": bool(prefer_dockerfile_when_detected),
+                    "build_mode_note": build_mode_note,
                     "service_id": component.service_id,
                     "service_alias": getattr(component, "service_alias", ""),
                     "service_cname": getattr(component, "service_cname", service_cname),
@@ -129,11 +194,17 @@ class SourceComponentService(object):
             )
         selected_language = None
         detected_language_raw = None
+        dockerfile_preference_applied = None
+        build_mode_note = None
         if service_info_list:
             selected_service_info = self._select_service_info(service_info_list[0], prefer_dockerfile_when_detected)
             detected_language_raw = service_info_list[0].get("language")
             selected_language = selected_service_info.get("language")
             service_info_list[0] = selected_service_info
+            if prefer_dockerfile_when_detected:
+                dockerfile_preference_applied = selected_language == "dockerfile"
+                if not dockerfile_preference_applied:
+                    build_mode_note = self.build_unapplied_preference_note(selected_language)
             app_check_service.save_service_check_info(team, app.ID, component, bean)
             self.apply_default_build_config(team, component, selected_service_info)
 
@@ -162,6 +233,8 @@ class SourceComponentService(object):
             "is_deploy": bool(is_deploy),
             "detected_language_raw": detected_language_raw,
             "selected_language": selected_language or getattr(component, "language", ""),
+            "dockerfile_preference_applied": dockerfile_preference_applied,
+            "build_mode_note": build_mode_note,
             "built": True,
         }
 

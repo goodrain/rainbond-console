@@ -3462,6 +3462,11 @@ class MCPQueryService(object):
             self._require_string(arguments, "service_id"),
         )
         prefer_dockerfile_when_detected = bool(arguments.get("prefer_dockerfile_when_detected", False))
+        if not prefer_dockerfile_when_detected:
+            # The create call persists the preference when detection outlives
+            # its synchronous wait window, so the caller does not need to
+            # re-pass the flag on this follow-up call.
+            prefer_dockerfile_when_detected = source_component_service.load_dockerfile_preference(team, service)
         check_uuid = arguments.get("check_uuid") or service.check_uuid
         if not check_uuid:
             raise ServiceHandleException(msg="check_uuid required", msg_show="参数check_uuid无效", status_code=400)
@@ -3469,6 +3474,8 @@ class MCPQueryService(object):
         if code != 200:
             raise ServiceHandleException(msg="get check result error", msg_show=msg, status_code=code)
 
+        dockerfile_preference_applied = None
+        build_mode_note = None
         if service.create_status == "complete":
             service_info = data.get("service_info")
             if not (service_info is not None and len(service_info) > 1 and service_info[0].get("language") == "Java-maven"):
@@ -3487,10 +3494,17 @@ class MCPQueryService(object):
                         service_info_list[0], True
                     )
                     data["service_info"] = service_info_list
+                    selected_language = (service_info_list[0].get("language") or "").strip()
+                    dockerfile_preference_applied = selected_language == "dockerfile"
+                    if not dockerfile_preference_applied:
+                        build_mode_note = source_component_service.build_unapplied_preference_note(selected_language)
                 app_check_service.save_service_check_info(team, app.ID, service, data)
             check_brief_info = app_check_service.wrap_service_check_info(service, data)
 
         return {
+            "prefer_dockerfile_when_detected": prefer_dockerfile_when_detected,
+            "dockerfile_preference_applied": dockerfile_preference_applied,
+            "build_mode_note": build_mode_note,
             "app_id": app.ID,
             "service_id": service.service_id,
             "check_uuid": check_uuid,
@@ -6737,6 +6751,9 @@ class MCPQueryService(object):
                             "仅 MCP 使用。重新检测后若结果同时命中 Dockerfile 和语言型构建方式，"
                             "优先选择 Dockerfile（与 create 时同名参数一致）。用于恢复路径强制 Dockerfile，"
                             "避免 CNB 不支持的语言/版本（如 .NET 7）卡死。默认 false。"
+                            "若 create 时已传 prefer_dockerfile_when_detected=true 且检测超时，"
+                            "偏好已持久化并自动应用，无需重传。响应中的 dockerfile_preference_applied/build_mode_note "
+                            "会说明偏好是否生效。"
                         )
                     }
                 },
