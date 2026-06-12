@@ -593,7 +593,16 @@ class ShareServiceCreateSnapshotPublishTestCase(TestCase):
                     share_service_instance,
                     "create_publish_event",
                     return_value=mock.Mock(event_id="event-id")), \
-                mock.patch.object(share_services_module.region_api, "share_service", return_value=(None, {"bean": {"share_id": "sid", "event_id": "eid", "image_name": "registry.example.com/team/windows-root:v1"}})) as share_service_mock:
+                mock.patch.object(
+                    share_services_module.region_api,
+                    "share_service",
+                    return_value=(None, {
+                        "bean": {
+                            "share_id": "sid",
+                            "event_id": "eid",
+                            "image_name": "registry.example.com/team/windows-root:v1",
+                        }
+                    })) as share_service_mock:
             share_service_instance.sync_event(
                 self.user,
                 self.region_name,
@@ -833,6 +842,17 @@ class ShareServiceVMPublishMetadataTestCase(TestCase):
         ])
 
         self.assertEqual("v3", version)
+
+    def test_resolve_publish_template_version_ignores_stale_vm_service_type(self):
+        version = share_service_instance._resolve_publish_template_version([
+            {
+                "service_type": "vm",
+                "extend_method": "stateless_multiple",
+                "service_source": "docker_image",
+            }
+        ])
+
+        self.assertEqual("v2", version)
 
     def test_extract_vm_root_source_uri_falls_back_to_git_url(self):
         service = {

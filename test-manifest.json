@@ -5702,12 +5702,13 @@
       "interface_type": "service_method",
       "interface": "console.services.market_app_service.MarketAppService.install_app",
       "code_paths": [
-        "console/services/market_app_service.py"
+        "console/services/market_app_service.py",
+        "console/services/app_version_service.py"
       ],
       "tests": [
         {
           "path": "console/tests/market_app_service_test.py",
-          "selector": "MarketAppServiceVMGuardTests.test_install_app_rejects_vm_template_when_vm_plugin_not_running"
+          "selector": "MarketAppServiceVMGuardTests"
         }
       ],
       "test_type": "regression",

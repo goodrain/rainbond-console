@@ -414,6 +414,8 @@ class ShareService(object):
                 if vm_publish_metadata:
                     data["service_type"] = "vm"
                     data["vm"] = vm_publish_metadata
+                elif data.get("service_type") == "vm":
+                    data["service_type"] = "application"
 
                 all_data_map[service.service_id] = data
 
@@ -698,7 +700,7 @@ class ShareService(object):
             isinstance(service, dict) and (
                 service.get("vm")
                 or service.get("extend_method") == "vm"
-                or service.get("service_type") == "vm"
+                or service.get("service_source") == "vm_run"
             )
         )
 
@@ -835,7 +837,7 @@ class ShareService(object):
         for service in services or []:
             if not isinstance(service, dict):
                 continue
-            if service.get("vm") or service.get("extend_method") == "vm" or service.get("service_type") == "vm":
+            if service.get("vm") or service.get("extend_method") == "vm" or service.get("service_source") == "vm_run":
                 return "v3"
         return "v2"
 
@@ -1145,7 +1147,8 @@ class ShareService(object):
                 market_id = share_record.share_app_market_name
             if market_id:
                 scope = "goodrain"
-                market = app_market_service.get_app_market_by_name(share_team.enterprise_id, market_id, user_id=user_id, raise_exception=True)
+                market = app_market_service.get_app_market_by_name(
+                    share_team.enterprise_id, market_id, user_id=user_id, raise_exception=True)
                 cloud_app = app_market_service.get_market_app_model(market, app_model_id, True)
                 if cloud_app:
                     app_model_name = cloud_app.app_name
@@ -1588,8 +1591,9 @@ class ShareService(object):
                     app_version.app_id, app_version.version))
                 return
 
-            logger.info("Not first version of template, checking pipeline plugin: app_id={}, version={}, existing_versions={}".format(
-                app_version.app_id, app_version.version, existing_versions))
+            logger.info(
+                "Not first version of template, checking pipeline plugin: app_id={}, version={}, existing_versions={}".format(
+                    app_version.app_id, app_version.version, existing_versions))
 
             # 先通过 rbd_plugin_service 获取插件列表（包含 URLs）
             from console.services.plugin_service import rbd_plugin_service
@@ -1689,8 +1693,9 @@ class ShareService(object):
                     if triggered:
                         execution_id = data.get("executionId", "")
                         workflow_cr_name = data.get("workflowCrName", "")
-                        logger.info("Pipeline workflow triggered successfully: template={}, version={}, executionId={}, workflowCrName={}".format(
-                            template_uuid, app_version.version, execution_id, workflow_cr_name))
+                        logger.info(
+                            "Pipeline workflow triggered: template=%s, version=%s, executionId=%s, workflowCrName=%s",
+                            template_uuid, app_version.version, execution_id, workflow_cr_name)
                     else:
                         # triggered=false 是正常情况（未配置触发器或触发器未启用）
                         logger.info("Pipeline workflow not triggered: template={}, version={}, reason={}".format(
