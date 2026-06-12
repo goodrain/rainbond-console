@@ -19,7 +19,7 @@ from django.test import RequestFactory, SimpleTestCase  # noqa: E402
 
 django.setup()
 
-from console.views.posthog_proxy import PostHogProxyView  # noqa: E402
+from console.views.posthog_proxy import PostHogProxyView, _build_target_url  # noqa: E402
 
 
 class Obj(object):
@@ -32,6 +32,38 @@ class PostHogProxyViewTests(SimpleTestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.view = PostHogProxyView.as_view()
+
+    def test_default_proxy_target_uses_self_hosted_posthog_host(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            target_url = _build_target_url("e/", "ip=0")
+
+        self.assertEqual(target_url, "https://posthog.goodrain.com/e/?ip=0")
+
+    def test_default_asset_paths_use_posthog_asset_host(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            config_url = _build_target_url("array/phc_token/config.js", "")
+            static_url = _build_target_url("static/remote-config.js", "v=1")
+
+        self.assertEqual(config_url, "https://posthog.goodrain.com/array/phc_token/config.js")
+        self.assertEqual(static_url, "https://posthog.goodrain.com/static/remote-config.js?v=1")
+
+    def test_asset_target_can_be_overridden_separately(self):
+        env = {
+            "RAINBOND_POSTHOG_PROXY_TARGET": "https://posthog-ingest.example.com",
+            "RAINBOND_POSTHOG_ASSET_PROXY_TARGET": "https://assets.example.com",
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            event_url = _build_target_url("e/", "")
+            config_url = _build_target_url("array/phc_token/config.js", "")
+
+        self.assertEqual(event_url, "https://posthog-ingest.example.com/e/")
+        self.assertEqual(config_url, "https://assets.example.com/array/phc_token/config.js")
+
+    def test_asset_target_defaults_to_api_target(self):
+        with mock.patch.dict(os.environ, {"RAINBOND_POSTHOG_PROXY_TARGET": "https://posthog-ingest.example.com"}, clear=True):
+            config_url = _build_target_url("array/phc_token/config.js", "")
+
+        self.assertEqual(config_url, "https://posthog-ingest.example.com/array/phc_token/config.js")
 
     def test_post_proxies_to_configured_posthog_host_without_rainbond_credentials(self):
         request = self.factory.post(
@@ -60,6 +92,7 @@ class PostHogProxyViewTests(SimpleTestCase):
         self.assertEqual(kwargs["data"], b'{"event":"rainbond_ui_click"}')
         self.assertEqual(kwargs["headers"]["Content-Type"], "application/json")
         self.assertEqual(kwargs["headers"]["User-Agent"], "RainbondUITest")
+        self.assertEqual(kwargs["headers"]["X-Forwarded-For"], "127.0.0.1")
         self.assertNotIn("Authorization", kwargs["headers"])
         self.assertNotIn("Cookie", kwargs["headers"])
         self.assertNotIn("X-Csrftoken", kwargs["headers"])

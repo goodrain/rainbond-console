@@ -150,6 +150,7 @@ def get_frontend_posthog_config(env=None):
         "maskAllText": str_to_bool(env.get("RAINBOND_POSTHOG_MASK_ALL_TEXT") or env.get("POSTHOG_MASK_ALL_TEXT")),
         "maskAllElementAttributes": not str_to_bool(env.get("RAINBOND_POSTHOG_UNMASK_ELEMENT_ATTRIBUTES") or env.get("POSTHOG_UNMASK_ELEMENT_ATTRIBUTES")),
         "capturePageleave": str_to_bool(env.get("RAINBOND_POSTHOG_CAPTURE_PAGELEAVE") or env.get("POSTHOG_CAPTURE_PAGELEAVE")),
+        "disableFlags": not str_to_bool(env.get("RAINBOND_POSTHOG_ENABLE_FLAGS") or env.get("POSTHOG_ENABLE_FLAGS")),
         "debug": str_to_bool(env.get("RAINBOND_POSTHOG_DEBUG") or env.get("POSTHOG_DEBUG")),
     }
 
