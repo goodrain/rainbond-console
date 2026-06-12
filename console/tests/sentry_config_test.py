@@ -5,6 +5,7 @@ from goodrain_web import sentry_config
 DEFAULT_POSTHOG_PROJECT_TOKEN = "phc_oCoPwcxutKCU9AZtUT63dMTNhWezUxCXCLtSZE6a4wvE"
 DEFAULT_POSTHOG_API_HOST = "/console/posthog"
 DEFAULT_POSTHOG_UI_HOST = "https://posthog.goodrain.com"
+DEFAULT_SENTRY_TUNNEL = "/console/sentry"
 
 
 def test_sentry_config_stays_disabled_without_dsn():
@@ -87,6 +88,7 @@ def test_frontend_config_only_exposes_dsn_when_enabled():
 
     assert disabled["dsn"] == ""
     assert enabled["dsn"] == "https://example.invalid/1"
+    assert enabled["tunnel"] == DEFAULT_SENTRY_TUNNEL
     assert enabled["tracesSampleRate"] == 0.2
 
 
@@ -100,12 +102,23 @@ def test_frontend_dsn_takes_precedence_over_shared_dsn():
     assert config["dsn"] == "https://browser.example.invalid/2"
 
 
+def test_frontend_sentry_tunnel_can_be_overridden():
+    config = sentry_config.get_frontend_sentry_config({
+        "RAINBOND_ERROR_REPORTING_DSN": "https://example.invalid/1",
+        "RAINBOND_ERROR_REPORTING_FRONTEND_TUNNEL": "/custom/sentry",
+    })
+
+    assert config["enabled"] is True
+    assert config["tunnel"] == "/custom/sentry"
+
+
 def test_frontend_config_json_is_valid_json():
     raw = sentry_config.get_frontend_sentry_config_json({
         "RAINBOND_ERROR_REPORTING_DSN": "https://example.invalid/1",
     })
 
     assert '"dsn":"https://example.invalid/1"' in raw
+    assert '"tunnel":"/console/sentry"' in raw
 
 
 def test_frontend_posthog_config_defaults_to_enabled_without_env_token():
