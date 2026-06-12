@@ -118,6 +118,7 @@ def test_frontend_posthog_config_defaults_to_enabled_without_env_token():
     assert config["personProfiles"] == "identified_only"
     assert config["maskAllText"] is False
     assert config["maskAllElementAttributes"] is True
+    assert config["disableFlags"] is True
 
 
 def test_frontend_posthog_config_ignores_env_project_token():
@@ -132,6 +133,7 @@ def test_frontend_posthog_config_ignores_env_project_token():
     assert config["personProfiles"] == "identified_only"
     assert config["maskAllText"] is False
     assert config["maskAllElementAttributes"] is True
+    assert config["disableFlags"] is True
 
 
 def test_frontend_posthog_config_respects_disabled_switches():
