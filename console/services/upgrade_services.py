@@ -717,6 +717,7 @@ class UpgradeService(object):
     def openapi_upgrade_app_models(self, user, team, region_name, oauth_instance, app_id, data):
         from console.services.market_app_service import market_app_service
         update_versions = data["update_versions"]
+        app_records = []
         for update_version in update_versions:
             app_model_id = update_version["app_model_id"]
             app_model_version = update_version["app_model_version"]
@@ -790,6 +791,11 @@ class UpgradeService(object):
             upgrade_service.upgrade_database(market_services)
             upgrade_service.send_upgrade_request(market_services, team, user, app_record, upgrade_info, oauth_instance)
             upgrade_repo.change_app_record_status(app_record, UpgradeStatus.UPGRADING.value)
+            app_records.append(app_record)
+        # Return the created upgrade records so callers (e.g. the MCP upgrade
+        # tool) can surface the per-component event ids stored on each record's
+        # service_upgrade_records, enabling failure-event correlation.
+        return app_records
 
 
 upgrade_service = UpgradeService()
