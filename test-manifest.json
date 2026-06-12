@@ -5479,6 +5479,122 @@
       "status": "active"
     },
     {
+      "id": "console.kubeblocks.backup-repo.team-create",
+      "title": "Create team KubeBlocks backup repo",
+      "title_zh": "\u521b\u5efa\u56e2\u961f KubeBlocks \u5907\u4efd\u4ed3\u5e93",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService.create_backup_repo",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_create_backup_repo_prefixes_namespace_and_does_not_store_secret_values"
+        },
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_create_backup_repo_rejects_existing_region_repo_name_even_if_deleted"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.kubeblocks.backup-repo.team-list",
+      "title": "List team KubeBlocks backup repos with live status",
+      "title_zh": "\u5217\u51fa\u56e2\u961f KubeBlocks \u5907\u4efd\u4ed3\u5e93\u5e76\u5408\u5e76\u5b9e\u65f6\u72b6\u6001",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService.get_team_backup_repos",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_list_backup_repos_merges_live_status_from_region"
+        },
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_list_backup_repos_keeps_failed_live_status"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.kubeblocks.backup-repo.team-ownership",
+      "title": "Guard KubeBlocks backup repo team ownership",
+      "title_zh": "\u6821\u9a8c KubeBlocks \u5907\u4efd\u4ed3\u5e93\u56e2\u961f\u5f52\u5c5e",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService.ensure_backup_repo_belongs_to_team",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_belongs_to_team_rejects_other_team_repo"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.kubeblocks.backup-repo.team-delete",
+      "title": "Delete team KubeBlocks backup repo",
+      "title_zh": "\u5220\u9664\u56e2\u961f KubeBlocks \u5907\u4efd\u4ed3\u5e93",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService.delete_backup_repo",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_delete_backup_repo_shows_clear_message_when_in_use"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.kubeblocks.cluster-resource-validation",
+      "title": "Validate KubeBlocks cluster resource requests",
+      "title_zh": "\u6821\u9a8c KubeBlocks \u96c6\u7fa4\u8d44\u6e90\u8bf7\u6c42",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService.validate_cluster_params",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_cluster_validation_test.py",
+          "selector": "KubeBlocksClusterValidationTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.kubeblocks.create-no-credential-wait",
+      "title": "Create KubeBlocks component without waiting for credentials",
+      "title_zh": "\u521b\u5efa KubeBlocks \u7ec4\u4ef6\u4e0d\u7b49\u5f85\u8fde\u63a5\u51ed\u636e",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService.create_complete_kubeblocks_component",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_cluster_validation_test.py",
+          "selector": "KubeBlocksCreateFlowTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.lang-version.proxy-upload",
       "title": "Proxy legacy language package upload endpoint",
       "title_zh": "\u4ee3\u7406\u65e7\u7248\u8bed\u8a00\u5305\u4e0a\u4f20\u63a5\u53e3",
@@ -8824,6 +8940,24 @@
         }
       ],
       "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.test-manifest.ignore-worktrees",
+      "title": "Ignore nested worktree tests during manifest validation",
+      "title_zh": "\u6d4b\u8bd5\u6e05\u5355\u6821\u9a8c\u5ffd\u7565\u5d4c\u5957 worktree \u6d4b\u8bd5",
+      "interface_type": "package_function",
+      "interface": "scripts.validate_test_manifest.collect_marked_tests",
+      "code_paths": [
+        "scripts/validate_test_manifest.py"
+      ],
+      "tests": [
+        {
+          "path": "scripts/validate_test_manifest_test.py",
+          "selector": "ValidateTestManifestTests"
+        }
+      ],
+      "test_type": "regression",
       "status": "active"
     }
   ]
