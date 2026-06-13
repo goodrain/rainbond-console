@@ -7,7 +7,7 @@ on:
 jobs:
   unit-test:
     runs-on: ubuntu-latest
-    container: python:3.8-bullseye
+    container: python:3.11-bookworm
     env:
       PIP_SRC: /tmp/pip-src
     steps:

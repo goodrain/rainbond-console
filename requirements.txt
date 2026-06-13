@@ -16,7 +16,7 @@ requests==2.25.1
 python-dateutil~=2.9.0.post0
 rsa==3.4.2
 django-oauth-toolkit==2.3.0
-docker-compose==1.27.4
+PyYAML==6.0.2
 fuzzyfinder==1.0.0
 django-cors-headers==4.3.1
 pypinyin==0.23.0
@@ -24,6 +24,8 @@ djangorestframework-simplejwt==5.3.1
 PyJWT==2.8.0
 oss2==2.4.0
 gevent==22.10.2
+zope.interface==7.2
+zope.event==5.0
 pyOpenSSL==20.0.1
 docker-image-py==0.1.4
 pytest==6.2.5
@@ -40,7 +42,7 @@ redis==3.5.3
 cryptography==3.3
 kubernetes==30.1.0
 django-postgrespool2==2.0.5
-ruamel.yaml==0.15.100
+ruamel.yaml==0.18.6
 volcengine-python-sdk==1.0.126
 alibabacloud_dysmsapi20170525==3.1.2
 alibabacloud-tea-openapi==0.3.12
