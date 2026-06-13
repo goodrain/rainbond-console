@@ -2650,21 +2650,22 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             timeout=10)
         return body
 
-    def get_license_status(self, enterprise_id, region_name):
+    def get_license_status(self, enterprise_id: str, region_name: str) -> Optional[Dict[str, Any]]:
         url, token = self.__get_region_access_info_by_enterprise_id(enterprise_id, region_name)
         url = url + "/v2/license/status"
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return body
 
-    def list_app_statuses_by_app_ids(self, tenant_name, region_name, body):
+    def list_app_statuses_by_app_ids(self, tenant_name: str, region_name: str, body: dict) -> Optional[Dict[str, Any]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{tenant_name}/appstatuses".format(tenant_name=tenant_name)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, body=json.dumps(body), region=region_name)
         return body
 
-    def get_component_log(self, tenant_name, region_name, service_alias, pod_name, container_name, follow=False):
+    def get_component_log(self, tenant_name: str, region_name: str, service_alias: str, pod_name: str,
+                          container_name: str, follow: bool = False) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         follow = "true" if follow else "false"
         url = url + "/v2/tenants/{}/services/{}/log?podName={}&containerName={}&follow={}".format(
@@ -2673,42 +2674,43 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         resp, _ = self._get(url, self._set_headers(token), region=region_name, preload_content=False)
         return resp
 
-    def change_application_volumes(self, tenant_name, region_name, region_app_id):
+    def change_application_volumes(self, tenant_name: str, region_name: str, region_app_id: str) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/apps/{}/volumes".format(tenant_name, region_app_id)
         self._set_headers(token)
         resp, _ = self._put(url, self._set_headers(token), region=region_name)
         return resp
 
-    def get_region_alerts(self, region_name, **kwargs):
+    def get_region_alerts(self, region_name: str, **kwargs: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
         url, token = self.__get_region_access_info(None, region_name)
         url = url + "/api/v1/alerts"
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10, retries=1)
         return res, body
 
-    def create_registry_auth(self, tenant_name, region_name, body):
+    def create_registry_auth(self, tenant_name: str, region_name: str, body: dict) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/registry/auth".format(tenant_name)
         self._set_headers(token)
         resp, _ = self._post(url, self._set_headers(token), region=region_name, body=json.dumps(body))
         return resp
 
-    def update_registry_auth(self, tenant_name, region_name, body):
+    def update_registry_auth(self, tenant_name: str, region_name: str, body: dict) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/registry/auth".format(tenant_name)
         self._set_headers(token)
         resp, _ = self._put(url, self._set_headers(token), region=region_name, body=json.dumps(body))
         return resp
 
-    def delete_registry_auth(self, tenant_name, region_name, body):
+    def delete_registry_auth(self, tenant_name: str, region_name: str, body: dict) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/registry/auth".format(tenant_name)
         self._set_headers(token)
         resp, _ = self._delete(url, self._set_headers(token), region=region_name, body=json.dumps(body))
         return resp
 
-    def get_component_authorization_policy(self, tenant_name, region_name, service_alias, namespace):
+    def get_component_authorization_policy(self, tenant_name: str, region_name: str, service_alias: str,
+                                           namespace: str) -> Optional[Dict[str, Any]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/component_authorization_policy?namespace={}&".format(
             tenant_name, service_alias, namespace)
@@ -2716,7 +2718,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
 
-    def get_app_resource(self, enterprise_id, region, data):
+    def get_app_resource(self, enterprise_id: str, region: str, data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2725,7 +2727,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
         return res, body
 
-    def create_app_resource(self, enterprise_id, region, data):
+    def create_app_resource(self, enterprise_id: str, region: str, data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2734,7 +2736,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
         return res, body
 
-    def update_app_resource(self, enterprise_id, region, data):
+    def update_app_resource(self, enterprise_id: str, region: str, data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2743,7 +2745,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
         return res, body
 
-    def delete_app_resource(self, enterprise_id, region, data):
+    def delete_app_resource(self, enterprise_id: str, region: str, data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2752,7 +2754,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=10)
         return res, body
 
-    def batch_delete_app_resources(self, enterprise_id, region, data):
+    def batch_delete_app_resources(self, enterprise_id: str, region: str, data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2761,41 +2763,45 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name, timeout=20)
         return res, body
 
-    def sync_k8s_resources(self, tenant_name, region_name, data):
+    def sync_k8s_resources(self, tenant_name: str, region_name: str, data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/cluster/sync-k8s-resources"
         res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_name, timeout=100)
         return res, body
 
-    def get_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
+    def get_component_k8s_attribute(self, tenant_name: str, region_name: str, service_alias: str,
+                                    body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
 
-    def create_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
+    def create_component_k8s_attribute(self, tenant_name: str, region_name: str, service_alias: str,
+                                       body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
 
-    def update_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
+    def update_component_k8s_attribute(self, tenant_name: str, region_name: str, service_alias: str,
+                                       body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
         self._set_headers(token)
         res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
 
-    def delete_component_k8s_attribute(self, tenant_name, region_name, service_alias, body):
+    def delete_component_k8s_attribute(self, tenant_name: str, region_name: str, service_alias: str,
+                                       body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/k8s-attributes".format(tenant_name, service_alias)
         self._set_headers(token)
         res, body = self._delete(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
 
-    def get_rbd_pods(self, region):
+    def get_rbd_pods(self, region: str) -> Optional[Dict[str, Any]]:
         """获取rbd pod信息"""
         region_info = self.get_region_info(region)
         if not region_info:
@@ -2805,7 +2811,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, None, region=region, timeout=15)
         return body
 
-    def get_rbd_pod_log(self, region, pod_name, follow=False):
+    def get_rbd_pod_log(self, region: str, pod_name: str, follow: bool = False) -> Any:
         """获取rbd logs信息"""
         region_info = self.get_region_info(region)
         if not region_info:
@@ -2816,7 +2822,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, _ = self._get(url, self.default_headers, None, region=region, preload_content=False)
         return res
 
-    def get_rbd_component_logs(self, region, rbd_name, rows):
+    def get_rbd_component_logs(self, region: str, rbd_name: str, rows: int) -> Optional[Dict[str, Any]]:
         """获取rbd组件日志"""
         region_info = self.get_region_info(region)
         if not region_info:
@@ -2826,7 +2832,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def get_rbd_log_files(self, region, rbb_name):
+    def get_rbd_log_files(self, region: str, rbb_name: str) -> Optional[Dict[str, Any]]:
         """获取rbd日志文件列表"""
         region_info = self.get_region_info(region)
         if not region_info:
@@ -2836,7 +2842,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
 
-    def create_shell_pod(self, region):
+    def create_shell_pod(self, region: str) -> Optional[Dict[str, Any]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2846,7 +2852,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
         return body
 
-    def delete_shell_pod(self, region, pod_name):
+    def delete_shell_pod(self, region: str, pod_name: str) -> Optional[Dict[str, Any]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2856,7 +2862,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region, body=json.dumps(data))
         return body
 
-    def get_cluster_nodes(self, region):
+    def get_cluster_nodes(self, region: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2865,7 +2871,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def get_cluster_nodes_arch(self, region):
+    def get_cluster_nodes_arch(self, region: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2874,7 +2880,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def get_vm_capabilities(self, region, tenant_name):
+    def get_vm_capabilities(self, region: str, tenant_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/vm/capabilities"
@@ -2883,7 +2889,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def create_vm_snapshot(self, region, tenant_name, service_alias, body):
+    def create_vm_snapshot(self, region: str, tenant_name: str, service_alias: str,
+                           body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
         url = url + "/v2/tenants/{}/services/{}/vm-snapshots".format(
@@ -2893,7 +2900,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
 
-    def get_node_info(self, region, node_name):
+    def get_node_info(self, region: str, node_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2902,7 +2909,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def operate_node_action(self, region, node_name, action):
+    def operate_node_action(self, region: str, node_name: str, action: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2911,7 +2918,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region)
         return res, body
 
-    def get_node_labels(self, region, node_name):
+    def get_node_labels(self, region: str, node_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2920,7 +2927,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def update_node_labels(self, region, node_name, data):
+    def update_node_labels(self, region: str, node_name: str, data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2929,7 +2936,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
-    def get_node_taints(self, region, node_name):
+    def get_node_taints(self, region: str, node_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2938,7 +2945,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def update_node_taints(self, region, node_name, data):
+    def update_node_taints(self, region: str, node_name: str, data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2947,7 +2954,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
-    def get_rainbond_components(self, region):
+    def get_rainbond_components(self, region: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2956,7 +2963,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def get_container_disk(self, region, container_type):
+    def get_container_disk(self, region: str, container_type: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2965,7 +2972,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def list_plugins(self, enterprise_id, region_name, official):
+    def list_plugins(self, enterprise_id: str, region_name: str, official: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_enterprise_region_info(enterprise_id, region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2973,7 +2980,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 
-    def create_rbdplugin(self, enterprise_id, region_name, plugin_data):
+    def create_rbdplugin(self, enterprise_id: str, region_name: str, plugin_data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_enterprise_region_info(enterprise_id, region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2981,7 +2988,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, json.dumps(plugin_data), region=region_name, timeout=10)
         return res, body
 
-    def list_abilities(self, enterprise_id, region_name):
+    def list_abilities(self, enterprise_id: str, region_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_enterprise_region_info(enterprise_id, region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2989,7 +2996,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 
-    def update_ability(self, enterprise_id, region_name, ability_id, body):
+    def update_ability(self, enterprise_id: str, region_name: str, ability_id: str,
+                       body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_enterprise_region_info(enterprise_id, region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -2997,7 +3005,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name, timeout=10)
         return res, body
 
-    def get_ability(self, enterprise_id, region_name, ability_id):
+    def get_ability(self, enterprise_id: str, region_name: str, ability_id: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_enterprise_region_info(enterprise_id, region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -3005,56 +3013,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 
-    def get_lang_version(self, enterprise_id, region, lang, show, build_strategy=""):
-        """
-        获取语言版本信息。
-
-        Args:
-            enterprise_id (str): 企业 ID。
-            region (str): 区域名称。
-            lang (str): 语言名称。
-
-        Returns:
-            dict: 包含语言版本信息的字典。
-        """
-        region_info = self.get_enterprise_region_info(enterprise_id, region)
-        if not region_info:
-            raise ServiceHandleException("region not found")
-        url = region_info.url
-        url += "/v2/cluster/langVersion?language={0}&show={1}".format(lang, show)
-        if build_strategy:
-            url += "&build_strategy={0}".format(build_strategy)
-        res, body = self._get(url, self.default_headers, region=region_info.region_name)
-        return body
-
-    def create_lang_version(self, enterprise_id, region, data):
-        region_info = self.get_enterprise_region_info(enterprise_id, region)
-        if not region_info:
-            raise ServiceHandleException("region not found")
-        url = region_info.url
-        url += "/v2/cluster/langVersion"
-        res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
-        return body
-
-    def update_lang_version(self, enterprise_id, region, data):
-        region_info = self.get_enterprise_region_info(enterprise_id, region)
-        if not region_info:
-            raise ServiceHandleException("region not found")
-        url = region_info.url
-        url += "/v2/cluster/langVersion"
-        res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
-        return body
-
-    def delete_lang_version(self, enterprise_id, region, data):
-        region_info = self.get_enterprise_region_info(enterprise_id, region)
-        if not region_info:
-            raise ServiceHandleException("region not found")
-        url = region_info.url
-        url += "/v2/cluster/langVersion"
-        res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
-        return body
-
-    def get_cnb_frameworks(self, enterprise_id, region, lang="nodejs"):
+    def get_cnb_frameworks(self, enterprise_id: str, region: str, lang: str = "nodejs") -> Optional[Dict[str, Any]]:
         region_info = self.get_enterprise_region_info(enterprise_id, region)
         if not region_info:
             raise ServiceHandleException("region not found")
