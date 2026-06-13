@@ -130,11 +130,12 @@ class MarketAppService(object):
             is_deploy=is_deploy)
         if is_deploy and not dry_run:
             tracker = enterprise_first_deploy_service.begin_tracking(
-                enterprise_id=tenant.enterprise_id,
+                # NOTE: tenant.enterprise_id / user.nick_name are Optional[str] model fields
+                enterprise_id=tenant.enterprise_id,  # type: ignore[arg-type]
                 tenant_name=tenant.tenant_name,
                 region_name=region.region_name,
                 deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_APP_MARKET,
-                operator=user.nick_name)
+                operator=user.nick_name)  # type: ignore[arg-type]
         try:
             if dry_run:
                 app_upgrade.preinstall()
