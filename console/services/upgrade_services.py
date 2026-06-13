@@ -881,7 +881,8 @@ class UpgradeService(object):
                     # old_app are passed where a single market_app_version slot
                     # exists (wrong-arg-count bug — see report).
                     install_info = market_app_service.install_service_when_upgrade_app(  # type: ignore[call-arg]
-                        team, region_name, user, app_id, new_app, old_app, services, True,
+                        # arg slots misaligned by the wrong-arg-count bug above -> True lands on a str param
+                        team, region_name, user, app_id, new_app, old_app, services, True,  # type: ignore[arg-type]
                         exist_component.tenant_service_group_id, pc.install_from_cloud, pc.market_name)
                 except ResourceNotEnoughException as re:
                     raise re
