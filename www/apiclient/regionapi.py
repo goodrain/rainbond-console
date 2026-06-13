@@ -27,11 +27,11 @@ logger = logging.getLogger('default')
 
 
 class RegionInvokeApi(RegionApiBaseHttpClient):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         RegionApiBaseHttpClient.__init__(self, *args, **kwargs)
-        self.default_headers = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}
+        self.default_headers: Dict[str, Any] = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}
 
-    def make_proxy_http(self, region_service_info):
+    def make_proxy_http(self, region_service_info: dict) -> Any:
         proxy_info = region_service_info['proxy']
         if proxy_info['type'] == 'http':
             proxy_type = httplib2.socks.PROXY_TYPE_HTTP_NO_TUNNEL
@@ -42,7 +42,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         client = httplib2.Http(proxy_info=proxy, timeout=25)
         return client
 
-    def _set_headers(self, token, **kwargs):
+    def _set_headers(self, token: Optional[str], **kwargs: Any) -> None:
         if settings.MODULES["RegionToken"]:
             if not token:
                 if os.environ.get('REGION_TOKEN'):
@@ -61,9 +61,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             actual_memory = 0
             enterprise_id = ""
             for region in regions:
-                enterprise_id = region.enterprise_id
+                enterprise_id = region.enterprise_id or ""
                 res, body = self.get_region_resources(enterprise_id, region=region.region_name)
-                if res.get("status") == 200:
+                if res.get("status") == 200 and body:
                     actual_node += body["bean"]["all_node"]
                     actual_memory += body["bean"]["cap_mem"]
             actual_memory_gb = int(actual_memory / 1024)
@@ -75,7 +75,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 "actual_memory": actual_memory_gb,
             })
 
-    def __get_tenant_region_info(self, tenant_name, region):
+    def __get_tenant_region_info(self, tenant_name: Any, region: str) -> Any:
         if type(tenant_name) == Tenants:
             tenant_name = tenant_name.tenant_name
         tenants = Tenants.objects.filter(tenant_name=tenant_name)
@@ -2671,14 +2671,14 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url = url + "/v2/tenants/{}/services/{}/log?podName={}&containerName={}&follow={}".format(
             tenant_name, service_alias, pod_name, container_name, follow)
         self._set_headers(token)
-        resp, _ = self._get(url, self._set_headers(token), region=region_name, preload_content=False)
+        resp, _ = self._get(url, self.default_headers, region=region_name, preload_content=False)
         return resp
 
     def change_application_volumes(self, tenant_name: str, region_name: str, region_app_id: str) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/apps/{}/volumes".format(tenant_name, region_app_id)
         self._set_headers(token)
-        resp, _ = self._put(url, self._set_headers(token), region=region_name)
+        resp, _ = self._put(url, self.default_headers, region=region_name)
         return resp
 
     def get_region_alerts(self, region_name: str, **kwargs: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
@@ -2692,21 +2692,21 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/registry/auth".format(tenant_name)
         self._set_headers(token)
-        resp, _ = self._post(url, self._set_headers(token), region=region_name, body=json.dumps(body))
+        resp, _ = self._post(url, self.default_headers, region=region_name, body=json.dumps(body))
         return resp
 
     def update_registry_auth(self, tenant_name: str, region_name: str, body: dict) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/registry/auth".format(tenant_name)
         self._set_headers(token)
-        resp, _ = self._put(url, self._set_headers(token), region=region_name, body=json.dumps(body))
+        resp, _ = self._put(url, self.default_headers, region=region_name, body=json.dumps(body))
         return resp
 
     def delete_registry_auth(self, tenant_name: str, region_name: str, body: dict) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/registry/auth".format(tenant_name)
         self._set_headers(token)
-        resp, _ = self._delete(url, self._set_headers(token), region=region_name, body=json.dumps(body))
+        resp, _ = self._delete(url, self.default_headers, region=region_name, body=json.dumps(body))
         return resp
 
     def get_component_authorization_policy(self, tenant_name: str, region_name: str, service_alias: str,
@@ -3395,7 +3395,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             timeout=urllib3.Timeout(connect=30, read=60 * 60),
         )
 
-        def event_stream():
+        def event_stream() -> Any:
             for chunk in resp.stream(4096):
                 yield str(chunk, encoding="utf-8")
 
