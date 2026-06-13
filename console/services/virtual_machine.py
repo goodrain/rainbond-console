@@ -1,6 +1,9 @@
 import logging
 import json
 
+from datetime import datetime
+from typing import Any, Optional, Tuple
+
 from console.exception.main import ServiceHandleException
 from console.models.main import ComponentK8sAttributes
 from console.repositories.k8s_attribute import k8s_attribute_repo
@@ -57,7 +60,7 @@ VM_DISK_PATH_TO_DEVICE_TYPE = {
 
 
 class VirtualMachineService(object):
-    def ensure_vm_platform_running(self, enterprise_id, region_name):
+    def ensure_vm_platform_running(self, enterprise_id: Optional[str], region_name: str) -> None:
         from console.services.platform_plugin_service import platform_plugin_service
 
         if not enterprise_id or not region_name:
@@ -68,10 +71,11 @@ class VirtualMachineService(object):
             )
         platform_plugin_service.ensure_vm_plugin_running(enterprise_id, region_name)
 
-    def resolve_vm_boot_source(self, tenant, image_name, image_url, source_uri=""):
+    def resolve_vm_boot_source(self, tenant: Tenants, image_name: str, image_url: str, source_uri: str = "") -> Any:
         return resolve_vm_boot_source_binding(tenant, image_name, image_url, source_uri=source_uri)
 
-    def create_vm_export(self, tenant, service, name="", description=""):
+    def create_vm_export(self, tenant: Tenants, service: TenantServiceInfo, name: str = "",
+                         description: str = "") -> dict:
         export_name = str(name or getattr(service, "service_id", "") or "").strip()
         if not export_name:
             raise ValueError("vm export name is required")
@@ -86,7 +90,7 @@ class VirtualMachineService(object):
         )
         return body.get("bean", {}) if isinstance(body, dict) else {}
 
-    def get_vm_export(self, tenant, service, name):
+    def get_vm_export(self, tenant: Tenants, service: TenantServiceInfo, name: str) -> dict:
         export_name = str(name or "").strip()
         if not export_name:
             raise ValueError("vm export name is required")
@@ -98,7 +102,8 @@ class VirtualMachineService(object):
         )
         return body.get("bean", {}) if isinstance(body, dict) else {}
 
-    def list_vm_image(self, tenant_id, region_name=None, tenant_name=None):
+    def list_vm_image(self, tenant_id: str, region_name: Optional[str] = None,
+                      tenant_name: Optional[str] = None) -> list:
         vm_images = list(vm_repo.get_vm_images_by_tenant_id(tenant_id))
         source_ids = [vm_image.source_asset_id for vm_image in vm_images if vm_image.source_asset_id]
         source_map = {}
@@ -107,18 +112,26 @@ class VirtualMachineService(object):
                 image.ID: image
                 for image in VirtualMachineImage.objects.filter(tenant_id=tenant_id, ID__in=source_ids)
             }
-        return [self.serialize_vm_image(vm_image, source_map.get(vm_image.source_asset_id)) for vm_image in vm_images]
+        # NOTE: source_asset_id is an int model field (Optional); dict.get tolerates None at runtime.
+        return [
+            self.serialize_vm_image(vm_image, source_map.get(vm_image.source_asset_id))  # type: ignore[arg-type]
+            for vm_image in vm_images
+        ]
 
-    def get_vm_asset(self, tenant_id, asset_id, region_name=None, tenant_name=None):
+    def get_vm_asset(self, tenant_id: str, asset_id: str, region_name: Optional[str] = None,
+                     tenant_name: Optional[str] = None) -> Optional[dict]:
         vm_image = vm_repo.get_vm_image_instance_by_id(tenant_id, asset_id)
         if not vm_image:
             return None
         source_asset = None
         if vm_image.source_asset_id:
-            source_asset = vm_repo.get_vm_image_instance_by_id(tenant_id, vm_image.source_asset_id)
+            # NOTE: source_asset_id is an int model field used as a str identifier (.ID-as-str pattern).
+            source_asset = vm_repo.get_vm_image_instance_by_id(
+                tenant_id, vm_image.source_asset_id)  # type: ignore[arg-type]
         return self.serialize_vm_image(vm_image, source_asset)
 
-    def create_vm_image_asset(self, tenant_id, name, image_url, **params):
+    def create_vm_image_asset(self, tenant_id: str, name: str, image_url: str,
+                              **params: Any) -> VirtualMachineImage:
         payload = self._normalize_asset_payload({
             "tenant_id": tenant_id,
             "name": name,
@@ -137,11 +150,13 @@ class VirtualMachineService(object):
         )
         return vm_repo.create_vm_image(**payload)
 
-    def get_vm_capabilities(self, region_name, tenant_name):
+    def get_vm_capabilities(self, region_name: str, tenant_name: str) -> dict:
         _, body = region_api.get_vm_capabilities(region_name, tenant_name)
-        return body.get("bean", {})
+        # NOTE: regionapi returns Optional[Dict]; .get is unguarded (potential latent None-bug).
+        return body.get("bean", {})  # type: ignore[union-attr]
 
-    def delete_vm_image(self, tenant_id, asset_id, region_name=None, tenant_name=None):
+    def delete_vm_image(self, tenant_id: str, asset_id: str, region_name: Optional[str] = None,
+                        tenant_name: Optional[str] = None) -> Tuple[int, dict]:
         vm_image = vm_repo.get_vm_image_instance_by_id(tenant_id, asset_id)
         if not vm_image:
             return 0, {}
@@ -149,7 +164,7 @@ class VirtualMachineService(object):
             raise ValueError("vm asset is still referenced")
         return vm_repo.delete_vm_image_by_id(tenant_id, asset_id)
 
-    def get_vm_current_pod_ip(self, tenant, service):
+    def get_vm_current_pod_ip(self, tenant: Tenants, service: TenantServiceInfo) -> str:
         if getattr(service, "extend_method", "") != "vm" or not tenant:
             return ""
         try:
@@ -157,7 +172,7 @@ class VirtualMachineService(object):
                 service.service_region,
                 tenant.tenant_name,
                 service.service_alias,
-                tenant.enterprise_id
+                tenant.enterprise_id  # type: ignore[arg-type]
             )
         except Exception as err:
             logger.exception(err)
@@ -167,7 +182,7 @@ class VirtualMachineService(object):
         if not isinstance(bean, dict):
             return ""
 
-        def pick_pod_ip(pods, running_only=False):
+        def pick_pod_ip(pods: Any, running_only: bool = False) -> str:
             for pod in pods or []:
                 if not isinstance(pod, dict):
                     continue
@@ -187,7 +202,8 @@ class VirtualMachineService(object):
                     return pod_ip
         return ""
 
-    def get_vm_profile(self, service, connections=None, current_pod_ip="", runtime_status=None):
+    def get_vm_profile(self, service: TenantServiceInfo, connections: Optional[dict] = None,
+                       current_pod_ip: str = "", runtime_status: Optional[dict] = None) -> dict:
         if getattr(service, "extend_method", "") != "vm":
             return {}
         runtime = self.get_vm_runtime_config(service.service_id)
@@ -207,7 +223,7 @@ class VirtualMachineService(object):
             "connections": vm_connections
         }
 
-    def list_vm_disks(self, service, volumes=None):
+    def list_vm_disks(self, service: TenantServiceInfo, volumes: Optional[list] = None) -> list:
         if not service or getattr(service, "extend_method", "") != "vm":
             return []
         runtime = self.get_vm_runtime_config(service.service_id)
@@ -217,7 +233,7 @@ class VirtualMachineService(object):
         layout = self._resolve_vm_disk_layout_for_service(runtime, asset, volume_items)
         return self._merge_vm_disk_layout_items(layout, volume_items, runtime, asset)
 
-    def validate_vm_disk_layout(self, service, volumes, disk_layout):
+    def validate_vm_disk_layout(self, service: TenantServiceInfo, volumes: Any, disk_layout: Any) -> list:
         if not service or getattr(service, "extend_method", "") != "vm":
             raise ValueError("only vm service supports disk layout")
         runtime = self.get_vm_runtime_config(service.service_id)
@@ -269,7 +285,8 @@ class VirtualMachineService(object):
 
         return normalized
 
-    def save_vm_disk_layout(self, tenant_id, service_id, disk_layout, sync_context=None):
+    def save_vm_disk_layout(self, tenant_id: str, service_id: str, disk_layout: Any,
+                            sync_context: Optional[dict] = None) -> list:
         normalized = self._normalize_vm_disk_layout_items(disk_layout)
         self._persist_managed_k8s_attribute(
             tenant_id,
@@ -281,7 +298,8 @@ class VirtualMachineService(object):
         )
         return normalized
 
-    def build_initial_vm_disk_layout(self, boot_source_format="", asset=None, restore_plan=None):
+    def build_initial_vm_disk_layout(self, boot_source_format: str = "", asset: Any = None,
+                                     restore_plan: Optional[dict] = None) -> list:
         source_format = str(boot_source_format or "").strip().lower()
         if restore_plan and restore_plan.get("disk_layout"):
             return self._normalize_vm_disk_layout_items(restore_plan.get("disk_layout"))
@@ -308,12 +326,13 @@ class VirtualMachineService(object):
             base_layout[1]["order_index"] = 1
         return self._normalize_vm_disk_layout_items(base_layout)
 
-    def is_vm_asset_ready(self, asset):
+    def is_vm_asset_ready(self, asset: Any) -> bool:
         if not asset:
             return False
         return bool(getattr(asset, "status", "") == "ready" and getattr(asset, "image_url", ""))
 
-    def get_vm_asset_for_service(self, service, asset_id=None):
+    def get_vm_asset_for_service(self, service: TenantServiceInfo,
+                                 asset_id: Any = None) -> Optional[VirtualMachineImage]:
         tenant_id = getattr(service, "tenant_id", "")
         if asset_id:
             asset = vm_repo.get_vm_image_instance_by_id(tenant_id, asset_id)
@@ -321,7 +340,7 @@ class VirtualMachineService(object):
                 return asset
         return vm_repo.get_vm_image_instance_by_tenant_id_and_image_url(tenant_id, getattr(service, "image", ""))
 
-    def get_vm_runtime_config(self, service_id):
+    def get_vm_runtime_config(self, service_id: str) -> dict:
         attrs = {attr.name: attr.attribute_value for attr in k8s_attribute_repo.get_by_component_id(service_id)}
         return {
             "asset_id": self._to_int(attrs.get("vm_asset_id")),
@@ -340,7 +359,8 @@ class VirtualMachineService(object):
             "usb_resources": self._as_list(attrs.get("vm_usb_resources")),
         }
 
-    def save_vm_runtime_config(self, tenant_id, service_id, runtime_config, sync_context=None):
+    def save_vm_runtime_config(self, tenant_id: str, service_id: str, runtime_config: dict,
+                               sync_context: Optional[dict] = None) -> None:
         self.validate_vm_runtime_config(runtime_config)
         attrs = self._build_vm_runtime_attrs(runtime_config)
         current_attrs = {
@@ -371,7 +391,7 @@ class VirtualMachineService(object):
                 sync_context=sync_context
             )
 
-    def save_vm_disk_imports(self, tenant_id, service_id, disk_imports):
+    def save_vm_disk_imports(self, tenant_id: str, service_id: str, disk_imports: Any) -> dict:
         normalized = self._normalize_vm_disk_imports(disk_imports)
         logger.info(
             "vm disk imports prepared: tenant_id=%s service_id=%s disk_count=%s volumes=%s",
@@ -390,7 +410,7 @@ class VirtualMachineService(object):
         )
         return normalized
 
-    def validate_vm_runtime_config(self, runtime_config):
+    def validate_vm_runtime_config(self, runtime_config: dict) -> None:
         gpu_enabled = self._as_bool(runtime_config.get("gpu_enabled"))
         gpu_resources = self._as_list(runtime_config.get("gpu_resources"))
         if gpu_enabled and not gpu_resources:
@@ -398,7 +418,8 @@ class VirtualMachineService(object):
         gpu_count = self._to_int(runtime_config.get("gpu_count"), 1 if gpu_enabled else 0)
         if gpu_enabled and (gpu_count is None or gpu_count < 1):
             raise ValueError("gpu_enabled requires gpu_count")
-        if gpu_enabled and gpu_count > 1 and len(gpu_resources) != 1:
+        # NOTE: prior guard raises when gpu_enabled and gpu_count is None; non-None here (guarded invariant).
+        if gpu_enabled and gpu_count > 1 and len(gpu_resources) != 1:  # type: ignore[operator]
             raise ValueError("gpu_count greater than 1 requires exactly one gpu resource")
 
         usb_enabled = self._as_bool(runtime_config.get("usb_enabled"))
@@ -406,11 +427,14 @@ class VirtualMachineService(object):
         if usb_enabled and not usb_resources:
             raise ValueError("usb_enabled requires usb_resources")
 
-    def serialize_vm_image(self, vm_image, source_asset=None):
+    def serialize_vm_image(self, vm_image: Optional[VirtualMachineImage],
+                           source_asset: Optional[VirtualMachineImage] = None) -> dict:
         if not vm_image:
             return {}
         if vm_image.source_asset_id and not source_asset:
-            source_asset = vm_repo.get_vm_image_instance_by_id(vm_image.tenant_id, vm_image.source_asset_id)
+            # NOTE: source_asset_id is an int model field used as a str identifier (.ID-as-str pattern).
+            source_asset = vm_repo.get_vm_image_instance_by_id(
+                vm_image.tenant_id, vm_image.source_asset_id)  # type: ignore[arg-type]
         extra = self._load_json(vm_image.extra_json, {})
         disks = extra.get("disks", [])
         display_name = (
@@ -453,7 +477,7 @@ class VirtualMachineService(object):
             "update_time": self._format_datetime(getattr(vm_image, "update_time", None)),
         }
 
-    def _build_vm_profile_asset_fallback(self, service, runtime):
+    def _build_vm_profile_asset_fallback(self, service: TenantServiceInfo, runtime: Optional[dict]) -> dict:
         runtime = runtime or {}
         root_disk = self._extract_root_disk_payload(template_payload={"vm": {"disk_layout": runtime.get("disk_layout") or []}})
         if not root_disk:
@@ -504,7 +528,7 @@ class VirtualMachineService(object):
             "update_time": "",
         }
 
-    def _normalize_vm_profile_source_type(self, source_type):
+    def _normalize_vm_profile_source_type(self, source_type: Any) -> str:
         normalized = str(source_type or "").strip().lower()
         if normalized in ("public", "upload", "clone", "existing"):
             return normalized
@@ -514,7 +538,7 @@ class VirtualMachineService(object):
             return "existing"
         return "existing"
 
-    def _extract_vm_profile_asset_name(self, image_url):
+    def _extract_vm_profile_asset_name(self, image_url: Any) -> str:
         value = str(image_url or "").strip()
         if not value:
             return ""
@@ -524,7 +548,7 @@ class VirtualMachineService(object):
             return value.rsplit(":", 1)[-1]
         return value
 
-    def get_vm_asset_reference_count(self, tenant_id, vm_image):
+    def get_vm_asset_reference_count(self, tenant_id: str, vm_image: VirtualMachineImage) -> int:
         # Incomplete VM rows are transient and should not block asset deletion or inflate catalog references.
         active_vm_services = TenantServiceInfo.objects.filter(
             tenant_id=tenant_id,
@@ -544,7 +568,7 @@ class VirtualMachineService(object):
             name="vm_asset_id").values_list("component_id", flat=True)
         return active_vm_services.exclude(service_id__in=bound_service_ids).filter(image=vm_image.image_url).count()
 
-    def _build_vm_runtime_attrs(self, runtime_config):
+    def _build_vm_runtime_attrs(self, runtime_config: dict) -> dict:
         attrs = {}
         os_name = runtime_config.get("os_name")
         if os_name not in (None, ""):
@@ -585,7 +609,8 @@ class VirtualMachineService(object):
 
         return attrs
 
-    def infer_vm_boot_source_format(self, asset=None, template_payload=None, image_name="", image_url="", source_uri=""):
+    def infer_vm_boot_source_format(self, asset: Any = None, template_payload: Optional[dict] = None,
+                                    image_name: str = "", image_url: str = "", source_uri: str = "") -> str:
         root_disk = self._extract_root_disk_payload(asset=asset, template_payload=template_payload)
         if root_disk:
             inferred = root_disk.get("format") or self._infer_asset_format(
@@ -612,7 +637,7 @@ class VirtualMachineService(object):
             return inferred
         return ""
 
-    def _resolve_vm_boot_source_format_for_runtime(self, runtime=None, asset=None):
+    def _resolve_vm_boot_source_format_for_runtime(self, runtime: Optional[dict] = None, asset: Any = None) -> str:
         runtime = runtime or {}
         source_format = str(runtime.get("boot_source_format") or "").strip().lower()
         if source_format:
@@ -620,7 +645,8 @@ class VirtualMachineService(object):
         inferred = self.infer_vm_boot_source_format(asset=asset)
         return str(inferred or "").strip().lower()
 
-    def build_vm_create_disk_imports(self, asset=None, template_payload=None, image_name="", image_url="", source_uri=""):
+    def build_vm_create_disk_imports(self, asset: Any = None, template_payload: Optional[dict] = None,
+                                     image_name: str = "", image_url: str = "", source_uri: str = "") -> list:
         imports = []
         root_import = self._build_vm_root_disk_import(
             asset=asset,
@@ -653,14 +679,14 @@ class VirtualMachineService(object):
         return imports
 
     def resolve_vm_boot_mode(self,
-                             requested_boot_mode="",
-                             asset=None,
-                             template_payload=None,
-                             runtime_config=None,
-                             image_name="",
-                             image_url="",
-                             source_uri="",
-                             boot_source_format=""):
+                             requested_boot_mode: str = "",
+                             asset: Any = None,
+                             template_payload: Optional[dict] = None,
+                             runtime_config: Optional[dict] = None,
+                             image_name: str = "",
+                             image_url: str = "",
+                             source_uri: str = "",
+                             boot_source_format: str = "") -> str:
         boot_mode = self._normalize_vm_boot_mode(requested_boot_mode)
         if boot_mode:
             return boot_mode
@@ -696,7 +722,9 @@ class VirtualMachineService(object):
 
         return "uefi"
 
-    def _build_vm_root_disk_import(self, asset=None, template_payload=None, image_name="", image_url="", source_uri=""):
+    def _build_vm_root_disk_import(self, asset: Any = None, template_payload: Optional[dict] = None,
+                                   image_name: str = "", image_url: str = "",
+                                   source_uri: str = "") -> Optional[dict]:
         boot_source_format = self.infer_vm_boot_source_format(
             asset=asset,
             template_payload=template_payload,
@@ -742,7 +770,8 @@ class VirtualMachineService(object):
             "source_type": "http",
         }
 
-    def _extract_root_disk_payload(self, asset=None, template_payload=None):
+    def _extract_root_disk_payload(self, asset: Any = None,
+                                   template_payload: Optional[dict] = None) -> Optional[dict]:
         if template_payload:
             vm_payload = template_payload.get("vm") or {}
             disk_layout = vm_payload.get("disk_layout") or template_payload.get("disk_layout") or []
@@ -772,7 +801,7 @@ class VirtualMachineService(object):
                     }
         return None
 
-    def _resolve_root_restore_url(self, asset=None, image_url="", source_uri=""):
+    def _resolve_root_restore_url(self, asset: Any = None, image_url: str = "", source_uri: str = "") -> Any:
         candidates = []
         if asset:
             candidates.extend([
@@ -785,10 +814,11 @@ class VirtualMachineService(object):
                 return candidate
         return ""
 
-    def _normalize_vm_boot_mode(self, value):
+    def _normalize_vm_boot_mode(self, value: Any) -> str:
         return str(value or "").strip().lower()
 
-    def _infer_vm_guest_os_family(self, runtime_config=None, asset=None, image_name=""):
+    def _infer_vm_guest_os_family(self, runtime_config: Optional[dict] = None, asset: Any = None,
+                                  image_name: str = "") -> str:
         runtime_config = runtime_config or {}
         explicit = str(runtime_config.get("os_family") or "").strip().lower()
         if explicit in ("windows", "linux"):
@@ -803,15 +833,15 @@ class VirtualMachineService(object):
             return "windows"
         return ""
 
-    def _is_http_source(self, value):
+    def _is_http_source(self, value: Any) -> bool:
         value = str(value or "").strip().lower()
         return value.startswith("http://") or value.startswith("https://")
 
-    def _is_registry_source(self, value):
+    def _is_registry_source(self, value: Any) -> bool:
         value = str(value or "").strip().lower()
         return value.startswith("docker://")
 
-    def _resolve_vm_disk_source_type(self, source_type, image_url="", source_uri=""):
+    def _resolve_vm_disk_source_type(self, source_type: Any, image_url: Any = "", source_uri: Any = "") -> str:
         normalized = str(source_type or "").strip().lower()
         if normalized:
             return normalized
@@ -821,13 +851,13 @@ class VirtualMachineService(object):
             return "registry"
         return ""
 
-    def _is_supported_vm_restore_source(self, source_type, image_url):
+    def _is_supported_vm_restore_source(self, source_type: Any, image_url: Any) -> bool:
         source_type = str(source_type or "").strip().lower()
         if source_type == "registry":
             return bool(str(image_url or "").strip())
         return self._is_http_source(image_url)
 
-    def _is_region_resource_missing_error(self, err):
+    def _is_region_resource_missing_error(self, err: Any) -> bool:
         if isinstance(err, RegionApiBaseHttpClient.CallApiError):
             if getattr(err, "status", None) == 404:
                 return True
@@ -842,7 +872,7 @@ class VirtualMachineService(object):
                 return True
         return False
 
-    def _normalize_vm_disk_imports(self, disk_imports):
+    def _normalize_vm_disk_imports(self, disk_imports: Any) -> dict:
         normalized = {}
         for disk in disk_imports or []:
             volume_name = disk.get("volume_name") or disk.get("disk_key") or disk.get("disk_name")
@@ -863,7 +893,7 @@ class VirtualMachineService(object):
             }
         return normalized
 
-    def _build_vm_volume_disk_items(self, volumes):
+    def _build_vm_volume_disk_items(self, volumes: Any) -> list:
         items = []
         for index, volume in enumerate(volumes or []):
             volume_data = volume.to_dict() if hasattr(volume, "to_dict") else dict(volume)
@@ -893,7 +923,7 @@ class VirtualMachineService(object):
             })
         return items
 
-    def _resolve_vm_disk_layout_for_service(self, runtime, asset, volume_items):
+    def _resolve_vm_disk_layout_for_service(self, runtime: dict, asset: Any, volume_items: list) -> list:
         current_layout = runtime.get("disk_layout") or []
         if current_layout:
             return self._normalize_vm_disk_layout_items(current_layout)
@@ -910,7 +940,7 @@ class VirtualMachineService(object):
             )
         return self._normalize_vm_disk_layout_items(current_layout)
 
-    def _merge_vm_disk_layout_items(self, layout, volume_items, runtime, asset):
+    def _merge_vm_disk_layout_items(self, layout: list, volume_items: list, runtime: dict, asset: Any) -> list:
         normalized_layout = self._normalize_vm_disk_layout_items(layout)
         volume_map = {
             self._compound_vm_disk_key(item): dict(item)
@@ -987,7 +1017,7 @@ class VirtualMachineService(object):
             item["deletable"] = not self._is_vm_root_disk_item(item)
         return resolved
 
-    def _build_vm_installer_disk_item(self, runtime, asset=None):
+    def _build_vm_installer_disk_item(self, runtime: dict, asset: Any = None) -> Optional[dict]:
         source_format = str(runtime.get("boot_source_format") or "").strip().lower()
         layout = runtime.get("disk_layout") or []
         if source_format != "iso":
@@ -1008,8 +1038,8 @@ class VirtualMachineService(object):
             "status": "ready",
         }
 
-    def _normalize_vm_disk_layout_items(self, disk_layout):
-        normalized = []
+    def _normalize_vm_disk_layout_items(self, disk_layout: Any) -> list:
+        normalized: list = []
         seen = set()
         items = [item for item in (disk_layout or []) if isinstance(item, dict)]
         items = sorted(
@@ -1044,7 +1074,7 @@ class VirtualMachineService(object):
             item["boot"] = index == 0
         return normalized
 
-    def _normalize_vm_disk_source_kind(self, item):
+    def _normalize_vm_disk_source_kind(self, item: dict) -> str:
         source_kind = str(item.get("source_kind") or "").strip().lower()
         if source_kind in (VM_DISK_SOURCE_KIND_VOLUME, VM_DISK_SOURCE_KIND_INSTALLER, VM_DISK_SOURCE_KIND_CONTAINER_DISK):
             return source_kind
@@ -1052,7 +1082,7 @@ class VirtualMachineService(object):
             return VM_DISK_SOURCE_KIND_INSTALLER
         return VM_DISK_SOURCE_KIND_VOLUME
 
-    def _normalize_vm_disk_role(self, item, source_kind):
+    def _normalize_vm_disk_role(self, item: dict, source_kind: str) -> str:
         if source_kind == VM_DISK_SOURCE_KIND_INSTALLER:
             return VM_DISK_ROLE_INSTALLER
         if source_kind == VM_DISK_SOURCE_KIND_CONTAINER_DISK:
@@ -1065,7 +1095,7 @@ class VirtualMachineService(object):
             return VM_DISK_ROLE_ROOT
         return VM_DISK_ROLE_DATA
 
-    def _normalize_vm_layout_disk_key(self, item, disk_role, source_kind):
+    def _normalize_vm_layout_disk_key(self, item: dict, disk_role: str, source_kind: str) -> str:
         if source_kind == VM_DISK_SOURCE_KIND_INSTALLER:
             return VM_DISK_INSTALLER_KEY
         disk_key = str(item.get("disk_key") or "").strip()
@@ -1075,7 +1105,7 @@ class VirtualMachineService(object):
             return VM_DISK_ROOT_KEY
         return disk_key
 
-    def _normalize_vm_disk_device_type(self, item, source_kind):
+    def _normalize_vm_disk_device_type(self, item: dict, source_kind: str) -> str:
         if source_kind in (VM_DISK_SOURCE_KIND_INSTALLER, VM_DISK_SOURCE_KIND_CONTAINER_DISK):
             return VM_DISK_DEVICE_CDROM
         device_type = str(item.get("device_type") or "").strip().lower()
@@ -1083,20 +1113,20 @@ class VirtualMachineService(object):
             return device_type
         return VM_DISK_DEVICE_DISK
 
-    def _resolve_vm_device_type(self, volume_path):
+    def _resolve_vm_device_type(self, volume_path: Any) -> str:
         path = str(volume_path or "").strip()
         for base_path, device_type in VM_DISK_PATH_TO_DEVICE_TYPE.items():
             if path == base_path or path.startswith(base_path + "-"):
                 return device_type
         return VM_DISK_DEVICE_DISK
 
-    def _compound_vm_disk_key(self, item):
+    def _compound_vm_disk_key(self, item: dict) -> str:
         return "{}:{}".format(
             item.get("source_kind") or VM_DISK_SOURCE_KIND_VOLUME,
             item.get("disk_key") or ""
         )
 
-    def _is_vm_root_disk_item(self, item):
+    def _is_vm_root_disk_item(self, item: Any) -> bool:
         if not isinstance(item, dict):
             return False
         if item.get("source_kind") == VM_DISK_SOURCE_KIND_INSTALLER:
@@ -1104,7 +1134,7 @@ class VirtualMachineService(object):
         return str(item.get("disk_role") or "").strip().lower() == VM_DISK_ROLE_ROOT or str(
             item.get("disk_key") or "").strip() == VM_DISK_ROOT_KEY
 
-    def _is_vm_installer_disk_item(self, item):
+    def _is_vm_installer_disk_item(self, item: Any) -> bool:
         if not isinstance(item, dict):
             return False
         if str(item.get("source_kind") or "").strip().lower() == VM_DISK_SOURCE_KIND_INSTALLER:
@@ -1113,7 +1143,8 @@ class VirtualMachineService(object):
             return True
         return str(item.get("disk_key") or "").strip() == VM_DISK_INSTALLER_KEY
 
-    def _persist_managed_k8s_attribute(self, tenant_id, service_id, name, save_type, value, sync_context=None):
+    def _persist_managed_k8s_attribute(self, tenant_id: str, service_id: str, name: str, save_type: str,
+                                       value: Any, sync_context: Optional[dict] = None) -> None:
         current_attr = k8s_attribute_repo.get_by_component_id_name(service_id, name).first()
         existed = bool(current_attr)
         if value is None:
@@ -1134,7 +1165,7 @@ class VirtualMachineService(object):
             )
         self._sync_managed_k8s_attribute(sync_context, name, save_type, value, existed_before=existed)
 
-    def _get_vm_attr_sync_context(self, service_id):
+    def _get_vm_attr_sync_context(self, service_id: str) -> Optional[dict]:
         service = TenantServiceInfo.objects.filter(service_id=service_id).first()
         if not service or getattr(service, "create_status", "") != "complete":
             return None
@@ -1148,7 +1179,8 @@ class VirtualMachineService(object):
             "service_alias": service.service_alias,
         }
 
-    def _sync_managed_k8s_attribute(self, sync_context, name, save_type, value, existed_before):
+    def _sync_managed_k8s_attribute(self, sync_context: Optional[dict], name: str, save_type: Optional[str],
+                                    value: Any, existed_before: bool) -> None:
         if not sync_context:
             return
         if value is None:
@@ -1188,7 +1220,7 @@ class VirtualMachineService(object):
                     payload
                 )
 
-    def _normalize_asset_payload(self, payload):
+    def _normalize_asset_payload(self, payload: dict) -> dict:
         normalized = dict(payload)
         labels = normalized.pop("labels", {})
         extra = normalized.pop("extra", {})
@@ -1211,7 +1243,7 @@ class VirtualMachineService(object):
         normalized["extra_json"] = self._dump_json(normalized.get("extra_json"), extra)
         return normalized
 
-    def _load_json(self, value, default):
+    def _load_json(self, value: Any, default: Any) -> Any:
         if value in (None, ""):
             return default
         if isinstance(value, (dict, list)):
@@ -1221,7 +1253,7 @@ class VirtualMachineService(object):
         except Exception:
             return default
 
-    def _dump_json(self, raw_value, default):
+    def _dump_json(self, raw_value: Any, default: Any) -> str:
         if raw_value in (None, ""):
             return json.dumps(default)
         if isinstance(raw_value, str):
@@ -1232,7 +1264,7 @@ class VirtualMachineService(object):
                 return json.dumps(default)
         return json.dumps(raw_value)
 
-    def _infer_asset_format(self, *candidates):
+    def _infer_asset_format(self, *candidates: Any) -> str:
         known_suffixes = (".qcow2", ".img", ".iso", ".tar.gz", ".tar.xz", ".gz", ".xz", ".tar")
         for candidate in candidates:
             candidate = str(candidate or "").lower()
@@ -1241,23 +1273,23 @@ class VirtualMachineService(object):
                     return suffix.lstrip(".")
         return ""
 
-    def _requires_vm_source_build(self, image_url):
+    def _requires_vm_source_build(self, image_url: str) -> Any:
         return requires_vm_source_build(image_url)
 
-    def _build_vm_runtime_image_name(self, tenant, image_name):
+    def _build_vm_runtime_image_name(self, tenant: Tenants, image_name: str) -> Any:
         return build_vm_runtime_image_name(tenant, image_name)
 
-    def _format_datetime(self, value):
+    def _format_datetime(self, value: Optional[datetime]) -> str:
         if not value:
             return ""
         return value.strftime("%Y-%m-%d %H:%M:%S")
 
-    def _as_bool(self, value):
+    def _as_bool(self, value: Any) -> bool:
         if isinstance(value, bool):
             return value
         return str(value).lower() in ("1", "true", "yes", "on", "enabled")
 
-    def _as_list(self, value):
+    def _as_list(self, value: Any) -> list:
         if isinstance(value, list):
             return [item for item in value if str(item).strip()]
         if not value:
@@ -1272,7 +1304,7 @@ class VirtualMachineService(object):
             return [item.strip() for item in value.split(",") if item.strip()]
         return []
 
-    def _as_list_of_dicts(self, value):
+    def _as_list_of_dicts(self, value: Any) -> list:
         if isinstance(value, list):
             return [item for item in value if isinstance(item, dict)]
         if not value:
@@ -1286,7 +1318,7 @@ class VirtualMachineService(object):
                 return []
         return []
 
-    def _to_int(self, value, default=None):
+    def _to_int(self, value: Any, default: Optional[int] = None) -> Optional[int]:
         if value in (None, ""):
             return default
         try:
