@@ -295,11 +295,12 @@ class MarketAppService(object):
                 }
                 self.cmd_create_center_app(**center_app)
                 share_app = share_service.get_app_by_key(key=app_template["group_key"])
-            share_service.update_or_create_rainbond_center_app_version(tenant, region, user, share_app.app_id, version,
-                                                                       app_template)
+            # NOTE: share_app may be None (get_app_by_key returns Optional); assumed non-None on this path
+            share_service.update_or_create_rainbond_center_app_version(
+                tenant, region, user, share_app.app_id, version, app_template)  # type: ignore[union-attr]
             res, body = region_api.get_cluster_nodes_arch(region.region_name)
             chaos_arch = list(set(body.get("list")))  # type: ignore[union-attr,arg-type]
-            template_arch = share_app.arch if share_app.arch else "amd64"
+            template_arch = share_app.arch if share_app.arch else "amd64"  # type: ignore[union-attr]
             if template_arch not in chaos_arch and len(chaos_arch) < 2:
                 raise AbortRequest("app arch does not match build node arch", "应用架构与构建节点架构不匹配", status_code=404, error_code=404)
 
