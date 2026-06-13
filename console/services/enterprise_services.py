@@ -210,7 +210,7 @@ class EnterpriseServices(object):
     def get_enterprise_first(self) -> Optional[TenantEnterprise]:
         return enterprise_repo.get_enterprise_first()
 
-    def get_enterprise_by_enterprise_id(self, enterprise_id: str,
+    def get_enterprise_by_enterprise_id(self, enterprise_id: Optional[str],
                                         exception: bool = True) -> Optional[TenantEnterprise]:
         return enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id, exception=exception)
 

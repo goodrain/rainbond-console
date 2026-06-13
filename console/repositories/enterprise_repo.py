@@ -172,7 +172,8 @@ class TenantEnterpriseRepo(object):
         else:
             return enterprise
 
-    def get_enterprise_by_enterprise_id(self, enterprise_id: str, exception: bool = True) -> Optional[TenantEnterprise]:
+    def get_enterprise_by_enterprise_id(self, enterprise_id: Optional[str],
+                                        exception: bool = True) -> Optional[TenantEnterprise]:
         enterprise = TenantEnterprise.objects.filter(enterprise_id=enterprise_id)
         if not enterprise:
             return None

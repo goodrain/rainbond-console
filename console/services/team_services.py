@@ -84,7 +84,10 @@ class TeamService(object):
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if exist_team_user:
             raise ServiceHandleException(msg="user exist", msg_show="用户已经加入此团队")
-        PermRelTenant.objects.create(tenant_id=tenant.ID, user_id=user.user_id, identity="", enterprise_id=enterprise.ID)
+        # enterprise is non-None: get_enterprise_by_enterprise_id defaults exception=True (raises if missing)
+        PermRelTenant.objects.create(
+            tenant_id=tenant.ID, user_id=user.user_id, identity="",
+            enterprise_id=enterprise.ID)  # type: ignore[union-attr]
         if role_ids:
             user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
 
@@ -200,7 +203,9 @@ class TeamService(object):
         # NOTE: role_repo has no update_user_role_in_tenant_by_user_id_tenant_id_role_id; deprecated
         # method (# todo 废弃) that would AttributeError at runtime -- latent bug, left as-is.
         user_role = role_repo.update_user_role_in_tenant_by_user_id_tenant_id_role_id(  # type: ignore[attr-defined]
-            user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk, role_id_list=role_id_list)
+            user_id=user_id, tenant_id=tenant.pk,
+            enterprise_id=enterprise.pk,  # type: ignore[union-attr]  # exception=True -> non-None
+            role_id_list=role_id_list)
         return user_role
 
     def add_user_role_to_team(self, tenant: Tenants, user_ids: Any, role_ids: Any) -> None:
@@ -223,7 +228,9 @@ class TeamService(object):
                 raise Tenants.DoesNotExist()
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         for user_id in user_list:
-            obj = PermRelTenant.objects.filter(user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk)
+            obj = PermRelTenant.objects.filter(
+                user_id=user_id, tenant_id=tenant.pk,
+                enterprise_id=enterprise.pk)  # type: ignore[union-attr]  # exception=True -> non-None
             if obj:
                 return obj[0].user_id
         return False
