@@ -6,6 +6,10 @@ import re
 import string
 import json
 
+from typing import Any, List, Optional, Tuple
+
+from django.db.models import QuerySet
+
 from console.repositories.init_cluster import rke_cluster, rke_cluster_node
 from goodrain_web.settings import DEFAULT_ENTERPRISE_ID_PATH
 from console.exception.main import ServiceHandleException
@@ -34,13 +38,16 @@ class EnterpriseServices(object):
     企业组件接口，提供以企业为中心的操作集合，企业在云帮体系中为最大业务隔离单元，企业下有团队（也就是tenant）
     """
 
-    def list_all(self, query="", page=None, page_size=None):
+    def list_all(self, query: str = "", page: Optional[int] = None,
+                 page_size: Optional[int] = None) -> Tuple[list, int]:
         ents = enterprise_repo.list_all(query)
         total = ents.count()
         if total == 0:
             return [], 0
-        paginator = Paginator(ents, page_size)
-        pp = paginator.page(page)
+        # NOTE: page/page_size default to None but callers always pass concrete ints when
+        # pagination is reached (total > 0); Django's Paginator stubs reject Optional[int].
+        paginator = Paginator(ents, page_size)  # type: ignore[arg-type]
+        pp = paginator.page(page)  # type: ignore[arg-type]
         data = []
         for ent in pp:
             data.append({
@@ -55,7 +62,7 @@ class EnterpriseServices(object):
             })
         return data, total
 
-    def update(self, eid, data):
+    def update(self, eid: str, data: dict) -> None:
         d = {}
         if data.get("alias", "") != "":
             d["enterprise_alias"] = data["alias"]
@@ -63,13 +70,13 @@ class EnterpriseServices(object):
             d["enterprise_name"] = data["name"]
         enterprise_repo.update(eid, **data)
 
-    def update_alias(self, eid, alias):
+    def update_alias(self, eid: str, alias: str) -> None:
         data = {
             "enterprise_alias": alias,
         }
         enterprise_repo.update(eid, **data)
 
-    def random_tenant_name(self, enterprise=None, length=8):
+    def random_tenant_name(self, enterprise: Any = None, length: int = 8) -> str:
         """
         生成随机的云帮租户（云帮的团队名），副需要符合k8s的规范(小写字母,_)
         :param enterprise 企业信息
@@ -83,7 +90,7 @@ class EnterpriseServices(object):
             tenant_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
         return tenant_name
 
-    def random_enterprise_name(self, length=8):
+    def random_enterprise_name(self, length: int = 8) -> str:
         """
         生成随机的云帮企业名，副需要符合k8s的规范(小写字母,_)
         :param length:
@@ -96,7 +103,7 @@ class EnterpriseServices(object):
         return enter_name
 
     @atomic
-    def create_enterprise(self, enterprise_name='', enterprise_alias=''):
+    def create_enterprise(self, enterprise_name: str = '', enterprise_alias: str = '') -> TenantEnterprise:
         """
         创建一个本地的企业信息, 并生成本地的企业ID
 
@@ -134,9 +141,13 @@ class EnterpriseServices(object):
                 pass
         region = region_repo.get_all_regions().first()
         if region:
-            region.enterprise_id = eid
+            # NOTE: eid is Optional[str] (os.environ.get may return None on a non-first
+            # enterprise); assigned to a CharField. Pre-existing potential latent None-bug.
+            region.enterprise_id = eid  # type: ignore[assignment]
             region.save()
-        enterprise.enterprise_id = eid
+        # NOTE: eid is Optional[str]; assigned to a CharField. Same pre-existing latent
+        # None-bug as above.
+        enterprise.enterprise_id = eid  # type: ignore[assignment]
 
         # 处理企业别名
         if not enterprise_alias:
@@ -147,7 +158,8 @@ class EnterpriseServices(object):
         enterprise.save()
         return enterprise
 
-    def create_oauth_enterprise(self, enterprise_name, enterprise_alias, enterprise_id):
+    def create_oauth_enterprise(self, enterprise_name: str, enterprise_alias: str,
+                                enterprise_id: str) -> TenantEnterprise:
         """
         创建一个本地的企业信息, 并生成本地的企业ID
 
@@ -163,13 +175,13 @@ class EnterpriseServices(object):
         enterprise.save()
         return enterprise
 
-    def get_enterprise_by_id(self, enterprise_id):
+    def get_enterprise_by_id(self, enterprise_id: str) -> Optional[TenantEnterprise]:
         try:
             return TenantEnterprise.objects.get(enterprise_id=enterprise_id)
         except TenantEnterprise.DoesNotExist:
             return None
 
-    def active(self, enterprise, enterprise_token):
+    def active(self, enterprise: TenantEnterprise, enterprise_token: str) -> bool:
         """
         绑定企业与云市的访问的api token
         :param enterprise:
@@ -181,22 +193,29 @@ class EnterpriseServices(object):
         enterprise.save()
         return True
 
-    def get_enterprise_by_enterprise_name(self, enterprise_name, exception=True):
+    def get_enterprise_by_enterprise_name(self, enterprise_name: str,
+                                          exception: bool = True) -> Optional[TenantEnterprise]:
         """
         通过企业名查找企业
         :param enterprise_name: 企业名
         :param exception: 控制如果企业不存在抛异常与否
         :return: 返回 None 或者企业
         """
-        return enterprise_repo.get_enterprise_by_enterprise_name(enterprise_name=enterprise_name, exception=exception)
+        # NOTE: latent bug — enterprise_repo.get_enterprise_by_enterprise_name accepts only
+        # `enterprise_name`; the `exception` kwarg is unexpected and would raise TypeError at
+        # runtime if this branch is exercised. Flagged, not fixed (no behavior change).
+        return enterprise_repo.get_enterprise_by_enterprise_name(  # type: ignore[call-arg]
+            enterprise_name=enterprise_name, exception=exception)
 
-    def get_enterprise_first(self):
+    def get_enterprise_first(self) -> Optional[TenantEnterprise]:
         return enterprise_repo.get_enterprise_first()
 
-    def get_enterprise_by_enterprise_id(self, enterprise_id, exception=True):
+    def get_enterprise_by_enterprise_id(self, enterprise_id: str,
+                                        exception: bool = True) -> Optional[TenantEnterprise]:
         return enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id, exception=exception)
 
-    def create_tenant_enterprise(self, enterprise_id, enterprise_name, enterprise_alias, is_active=True):
+    def create_tenant_enterprise(self, enterprise_id: str, enterprise_name: str, enterprise_alias: str,
+                                 is_active: bool = True) -> TenantEnterprise:
         params = {
             "enterprise_id": enterprise_id,
             "enterprise_name": enterprise_name,
@@ -205,13 +224,14 @@ class EnterpriseServices(object):
         }
         return enterprise_repo.create_enterprise(**params)
 
-    def get_enterprise_by_eids(self, eid_list):
+    def get_enterprise_by_eids(self, eid_list: Any) -> "QuerySet[TenantEnterprise]":
         return enterprise_repo.get_enterprises_by_enterprise_ids(eid_list)
 
-    def get_enterprise_by_enterprise_alias(self, enterprise_alias):
+    def get_enterprise_by_enterprise_alias(self, enterprise_alias: str) -> Optional[TenantEnterprise]:
         return enterprise_repo.get_by_enterprise_alias(enterprise_alias)
 
-    def list_appstore_infos(self, query="", page=None, page_size=None):
+    def list_appstore_infos(self, query: str = "", page: Optional[int] = None,
+                            page_size: Optional[int] = None) -> Tuple[Any, Any]:
         infos = enterprise_repo.list_appstore_infos(query, page, page_size)
         for info in infos:
             appstore_name = ""
@@ -221,10 +241,12 @@ class EnterpriseServices(object):
         total = enterprise_repo.count_appstore_infos(query)
         return infos, total
 
-    def update_appstore_info(self, eid, data):
+    def update_appstore_info(self, eid: str, data: dict) -> Optional[TenantEnterprise]:
         ent = enterprise_repo.get_enterprise_by_enterprise_id(eid)
         # raise TenantEnterpriseToken.DoesNotExist
-        tet = TenantEnterpriseToken.objects.get(enterprise_id=ent.ID)
+        # NOTE: ent is Optional[TenantEnterprise]; invariant — the caller resolves eid from an
+        # existing enterprise context, so it is non-None here.
+        tet = TenantEnterpriseToken.objects.get(enterprise_id=ent.ID)  # type: ignore[union-attr]
         access_url = data["access_url"]
         tet.access_url = access_url
         tet.access_id = ""
@@ -238,7 +260,7 @@ class EnterpriseServices(object):
         return ent
 
     # def get_services_status_by_service_ids(self, region_name, enterprise_id, service_ids):
-    def get_enterprise_runing_service(self, enterprise_id, regions):
+    def get_enterprise_runing_service(self, enterprise_id: str, regions: Any) -> dict:
         cache_key = "{}+enterprise_running_service".format(enterprise_id)
         cache_data = cache.get(cache_key)
         if cache_data:
@@ -276,7 +298,7 @@ class EnterpriseServices(object):
 
         # 3. get all running component
         # attention, component maybe belong to any other enterprise
-        running_component_ids = []
+        running_component_ids: list = []
         for region in regions:
             data = None
             try:
@@ -284,7 +306,9 @@ class EnterpriseServices(object):
             except (region_api.CallApiError, ServiceHandleException) as e:
                 logger.exception("get region:'{0}' running failed: {1}".format(region.region_name, e))
             if data and data.get("service_ids"):
-                running_component_ids.extend(data.get("service_ids"))
+                # NOTE: guarded by the truthiness check above; mypy cannot narrow the
+                # repeated .get() call, which it types as Optional.
+                running_component_ids.extend(data.get("service_ids"))  # type: ignore[arg-type]
 
         # 4 get all running app
         component_and_app = dict()
@@ -316,7 +340,7 @@ class EnterpriseServices(object):
         return data
 
     @staticmethod
-    def create_user_roles(eid, user_id, tenant_name, role_ids):
+    def create_user_roles(eid: str, user_id: str, tenant_name: str, role_ids: Any) -> Any:
         # the user must belong to the enterprise with eid
         user = user_repo.get_enterprise_user_by_id(eid, user_id)
         if not user:
@@ -325,25 +349,32 @@ class EnterpriseServices(object):
         if not tenant:
             raise ErrTenantNotFound
         from console.services.team_services import team_services
-        team_services.add_user_to_team(tenant, user.user_id, role_ids=role_ids)
+        # NOTE: user.user_id is typed int (Users model field) but add_user_to_team's annotated
+        # signature expects str — pre-existing cross-module type mismatch; relies on runtime
+        # int/str coercion in the ORM query. Flagged, not fixed.
+        team_services.add_user_to_team(tenant, user.user_id, role_ids=role_ids)  # type: ignore[arg-type]
         return user_kind_role_service.get_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
 
-    def get_enterprise_alerts(self, enterprise_id):
+    def get_enterprise_alerts(self, enterprise_id: str) -> list:
         regions = region_repo.get_regions_by_enterprise_id(enterprise_id)
         alerts = []
         for region in regions:
             try:
                 res, response = region_api.get_region_alerts(region.region_name)
-                alerts.extend(response["data"]["alerts"])
+                # NOTE: region_api returns Optional[dict] body; non-None on success and any
+                # None access is swallowed by the surrounding try/except.
+                alerts.extend(response["data"]["alerts"])  # type: ignore[index]
             except Exception as e:
                 logger.debug(e)
                 continue
         page_alarms = [alert for alert in alerts if alert["labels"].get("PageAlarm") == "true"]
         return page_alarms
 
-    def get_rbdcomponents(self, region_name):
+    def get_rbdcomponents(self, region_name: str) -> list:
         res, body = region_api.get_rainbond_components(region_name)
-        components = body["list"]
+        # NOTE: region_api returns Optional[dict] body; invariant — non-None on a successful
+        # region call.
+        components = body["list"]  # type: ignore[index]
 
         component_list = []
         for component in components:
@@ -385,9 +416,10 @@ class EnterpriseServices(object):
             component_list.append(component_info)
         return component_list
 
-    def get_node_detail(self, region_name, node_name):
+    def get_node_detail(self, region_name: str, node_name: str) -> dict:
         res, body = region_api.get_node_info(region_name, node_name)
-        node = body["bean"]
+        # NOTE: region_api returns Optional[dict] body; invariant — non-None on success.
+        node = body["bean"]  # type: ignore[index]
         node_status = "NotReady"
         res = {
             "name": node["name"],
@@ -417,9 +449,10 @@ class EnterpriseServices(object):
         res["status"] = node_status
         return res
 
-    def get_nodes(self, region_name):
+    def get_nodes(self, region_name: str) -> Tuple[list, dict]:
         res, body = region_api.get_cluster_nodes(region_name)
-        nodes = body["list"]
+        # NOTE: region_api returns Optional[dict] body; invariant — non-None on success.
+        nodes = body["list"]  # type: ignore[index]
         node_list = []
         all_node_roles = []
         cluster_role_count = {}
@@ -449,13 +482,13 @@ class EnterpriseServices(object):
             cluster_role_count[node_role] = all_node_roles.count(node_role)
         return node_list, cluster_role_count
 
-    def get_enterprise_menus(self, enterprise_id):
+    def get_enterprise_menus(self, enterprise_id: str) -> list:
         top_menus = enterprise_repo.get_top_menu_by_eid(enterprise_id)
         children_menus = enterprise_repo.get_children_menu_by_eid(enterprise_id)
         menus_res = []
         for top_menu in top_menus:
             children = []
-            top_menus_dict = {}
+            top_menus_dict: dict = {}
             top_menus_dict["id"] = top_menu.pk
             top_menus_dict["title"] = top_menu.title
             top_menus_dict["path"] = top_menu.path
@@ -476,16 +509,16 @@ class EnterpriseServices(object):
             menus_res.append(top_menus_dict)
         return menus_res
 
-    def add_enterprise_menu(self, **data):
+    def add_enterprise_menu(self, **data: Any) -> None:
         enterprise_repo.add_menu(**data)
 
-    def get_menus_by_parent_id(self, enterprise_id, parent_id):
+    def get_menus_by_parent_id(self, enterprise_id: str, parent_id: int) -> Any:
         return enterprise_repo.get_menu_by_parent_id(enterprise_id, parent_id)
 
-    def update_enterprise_menu(self, enterprise_id, id, **data):
+    def update_enterprise_menu(self, enterprise_id: str, id: int, **data: Any) -> None:
         enterprise_repo.update_menu(enterprise_id, id, **data)
 
-    def delete_enterprise_menu(self, enterprise_id, id):
+    def delete_enterprise_menu(self, enterprise_id: str, id: int) -> None:
         enterprise_repo.delete_top_menu(enterprise_id, id)
         enterprise_repo.delete_children_menu(enterprise_id, id)
 
