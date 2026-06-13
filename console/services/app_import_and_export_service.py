@@ -125,16 +125,30 @@ class AppExportService(object):
         }
         return json.dumps(app_template, cls=MyEncoder)
 
+    @staticmethod
+    def __is_vm_template_component(component):
+        return bool(
+            isinstance(component, dict) and (
+                component.get("vm")
+                or component.get("extend_method") == "vm"
+                or component.get("service_source") == "vm_run"
+            )
+        )
+
     def __normalize_export_item(self, item):
         export_item = dict(item or {})
-        if export_item.get("extend_method") == "vm":
+        is_vm_component = self.__is_vm_template_component(export_item)
+        if is_vm_component:
             export_item["service_type"] = "vm"
+        elif export_item.get("service_type") == "vm":
+            export_item["service_type"] = "application"
         if not export_item.get("share_image") and export_item.get("image"):
             export_item["share_image"] = export_item["image"]
-        vm_payload = export_item.get("vm") or {}
-        disk_layout = vm_payload.get("disk_layout") or []
+        vm_payload = export_item.get("vm")
+        disk_layout = []
+        if isinstance(vm_payload, dict):
+            disk_layout = vm_payload.get("disk_layout") or []
         if isinstance(vm_payload, dict) and isinstance(disk_layout, list):
-            export_item["service_type"] = "vm"
             root_image = export_item.get("share_image") or export_item.get("image") or ""
             normalized_layout = []
             for disk in disk_layout:
@@ -159,12 +173,12 @@ class AppExportService(object):
             export_item["extend_method_map"] = extend_method_map
         return export_item
 
-    @staticmethod
-    def __resolve_export_template_version(template):
+    @classmethod
+    def __resolve_export_template_version(cls, template):
         for component in template.get("apps", []):
-            if component.get("vm") or component.get("extend_method") == "vm" or component.get("service_type") == "vm":
+            if cls.__is_vm_template_component(component):
                 return "v3"
-        return template.get("template_version", "v2") or "v2"
+        return "v2"
 
     def __normalize_export_template(self, app_template):
         template = dict(app_template or {})

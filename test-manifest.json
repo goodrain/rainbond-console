@@ -5516,6 +5516,10 @@
         },
         {
           "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_create_backup_repo_defaults_to_prechecking_when_region_phase_is_empty"
+        },
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
           "selector": "KubeBlocksBackupRepoServiceTests.test_create_backup_repo_rejects_existing_region_repo_name_even_if_deleted"
         }
       ],
@@ -5539,6 +5543,10 @@
         {
           "path": "console/tests/kubeblocks_backup_repo_test.py",
           "selector": "KubeBlocksBackupRepoServiceTests.test_list_backup_repos_keeps_failed_live_status"
+        },
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_list_backup_repos_marks_missing_when_region_resource_disappears"
         }
       ],
       "test_type": "regression",
@@ -5557,6 +5565,36 @@
         {
           "path": "console/tests/kubeblocks_backup_repo_test.py",
           "selector": "KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_belongs_to_team_rejects_other_team_repo"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.kubeblocks.backup-repo.ready-guard",
+      "title": "Guard KubeBlocks backup repo readiness before use",
+      "title_zh": "使用 KubeBlocks 备份仓库前校验就绪状态",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService.ensure_backup_repo_ready_for_use",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_prechecking_repo"
+        },
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_accepts_ready_repo"
+        },
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_missing_live_repo"
+        },
+        {
+          "path": "console/tests/kubeblocks_cluster_validation_test.py",
+          "selector": "KubeBlocksCreateFlowTests.test_create_cluster_returns_backup_repo_not_ready_message"
         }
       ],
       "test_type": "regression",
@@ -5702,12 +5740,13 @@
       "interface_type": "service_method",
       "interface": "console.services.market_app_service.MarketAppService.install_app",
       "code_paths": [
-        "console/services/market_app_service.py"
+        "console/services/market_app_service.py",
+        "console/services/app_version_service.py"
       ],
       "tests": [
         {
           "path": "console/tests/market_app_service_test.py",
-          "selector": "MarketAppServiceVMGuardTests.test_install_app_rejects_vm_template_when_vm_plugin_not_running"
+          "selector": "MarketAppServiceVMGuardTests"
         }
       ],
       "test_type": "regression",

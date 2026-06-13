@@ -31,6 +31,7 @@ django.setup()
 
 from console.services import kubeblocks_service as kubeblocks_module  # noqa: E402
 from console.services.kubeblocks_service import KubeBlocksService  # noqa: E402
+from console.exception.main import ServiceHandleException  # noqa: E402
 
 
 class KubeBlocksClusterValidationTests(unittest.TestCase):
@@ -169,3 +170,40 @@ class KubeBlocksCreateFlowTests(unittest.TestCase):
         self.service.port_service.add_service_port.assert_called_once()
         self.assertEqual(self.service.port_service.add_service_port.call_args[1]["container_port"], 3306)
         self.assertEqual(self.service.port_service.add_service_port.call_args[1]["port_alias"], "MYSQL")
+
+    # capability_id: console.kubeblocks.backup-repo.ready-guard
+    def test_create_cluster_returns_backup_repo_not_ready_message(self):
+        tenant = SimpleNamespace(tenant_id="tenant-1", namespace="team-a-ns")
+        user = SimpleNamespace(nick_name="alice")
+        service = SimpleNamespace(
+            service_id="service-1",
+            service_alias="gr000001",
+            k8s_component_name="mysql-demo",
+        )
+        params = {
+            "cluster_name": "mysql-demo",
+            "database_type": "mysql",
+            "version": "8.0.30",
+            "cpu": "500m",
+            "memory": "512Mi",
+            "storage_size": "10Gi",
+            "backup_repo": "team-a-ns-prod",
+        }
+
+        with mock.patch.object(self.service, "ensure_backup_repo_ready_for_use",
+                               side_effect=ServiceHandleException(
+                                   msg="backup repo is not ready",
+                                   msg_show="备份仓库正在检测中，请检测通过后再使用",
+                               )), \
+                mock.patch.object(kubeblocks_module.region_api, "create_kubeblocks_cluster") as create_cluster:
+            success, message = self.service._create_cluster(
+                tenant=tenant,
+                user=user,
+                region_name="region-a",
+                params=params,
+                kubeblocks_service=service,
+            )
+
+        self.assertFalse(success)
+        self.assertEqual(message, "备份仓库正在检测中，请检测通过后再使用")
+        create_cluster.assert_not_called()

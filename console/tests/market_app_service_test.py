@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
+import collections
 import os
 import sys
 import importlib
 from types import ModuleType
 from unittest import mock
 from unittest.mock import patch
+
+for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
+    if not hasattr(collections, attr):
+        setattr(collections, attr, getattr(collections.abc, attr))
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
@@ -303,6 +308,7 @@ class MarketAppServiceVMGuardTests(SimpleTestCase):
             "apps": [
                 {
                     "service_cname": "vm-service",
+                    "extend_method": "vm",
                     "service_type": "vm",
                 }
             ]
@@ -335,3 +341,24 @@ class MarketAppServiceVMGuardTests(SimpleTestCase):
         ensure_guard.assert_called_once_with("eid", "demo-region")
         self.assertEqual(412, context.exception.status_code)
         self.assertEqual("虚拟机功能未正常运行，不允许执行虚拟机相关操作", context.exception.msg_show)
+
+    # capability_id: console.market-app.vm-runtime-status-guard
+    def test_install_app_ignores_stale_vm_service_type_for_container_template(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1", tenant_name="demo-team", enterprise_id="eid")
+        app_template = {
+            "apps": [
+                {
+                    "service_cname": "rabbitmq",
+                    "extend_method": "stateless_multiple",
+                    "service_source": "docker_image",
+                    "service_type": "vm",
+                }
+            ]
+        }
+
+        with patch("console.services.market_app_service.vms.ensure_vm_platform_running") as ensure_guard:
+            market_app_service._ensure_vm_template_allowed(tenant, "demo-region", app_template)
+
+        ensure_guard.assert_not_called()

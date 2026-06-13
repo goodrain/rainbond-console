@@ -85,6 +85,62 @@ class AppExportServiceMetadataTestCase(TestCase):
 
         self.assertEqual(result["apps"][0]["share_image"], component["share_image"])
 
+    def test_get_app_metadata_keeps_container_component_type(self):
+        app = mock.Mock(pic=None, describe="demo app")
+        component = {
+            "service_alias": "web",
+            "image": "registry.example.com/demo/web:1.0.0",
+            "extend_method": "stateless_multiple",
+            "service_source": "docker_image",
+            "service_type": "application",
+        }
+        app_version = mock.Mock(
+            app_template=json.dumps({
+                "group_key": "demo-app",
+                "group_version": "1.0.0",
+                "template_version": "v2",
+                "apps": [component]
+            }),
+            app_version_info="bugfix",
+            version_alias="stable",
+        )
+
+        metadata = export_service._AppExportService__get_app_metata(app, app_version, {"image_handle": ""})
+        result = json.loads(metadata)
+
+        exported_component = result["apps"][0]
+        self.assertEqual("application", exported_component["service_type"])
+        self.assertEqual("v2", result["template_version"])
+        self.assertNotIn("vm", exported_component)
+
+    def test_get_app_metadata_normalizes_stale_vm_service_type_for_container(self):
+        app = mock.Mock(pic=None, describe="demo app")
+        component = {
+            "service_alias": "web",
+            "image": "registry.example.com/demo/web:1.0.0",
+            "extend_method": "stateless_multiple",
+            "service_source": "docker_image",
+            "service_type": "vm",
+        }
+        app_version = mock.Mock(
+            app_template=json.dumps({
+                "group_key": "demo-app",
+                "group_version": "1.0.0",
+                "template_version": "v3",
+                "apps": [component]
+            }),
+            app_version_info="bugfix",
+            version_alias="stable",
+        )
+
+        metadata = export_service._AppExportService__get_app_metata(app, app_version, {"image_handle": ""})
+        result = json.loads(metadata)
+
+        exported_component = result["apps"][0]
+        self.assertEqual("application", exported_component["service_type"])
+        self.assertEqual("v2", result["template_version"])
+        self.assertNotIn("vm", exported_component)
+
     def test_get_app_metadata_backfills_vm_root_disk_image_from_share_image(self):
         app = mock.Mock(pic=None, describe="demo app")
         component = {

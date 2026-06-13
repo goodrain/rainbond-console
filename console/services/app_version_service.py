@@ -212,7 +212,6 @@ class AppVersionService(object):
         return bool(
             component.get("vm")
             or component.get("extend_method") == "vm"
-            or component.get("service_type") == "vm"
             or component.get("service_source") == "vm_run"
         )
 
