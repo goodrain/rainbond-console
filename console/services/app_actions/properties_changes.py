@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+from typing import Any, Dict, List, Optional, Tuple
 
 from console.exception.main import AbortRequest, ServiceHandleException
 from console.repositories.app import (app_market_repo, service_repo, service_source_repo)
@@ -17,6 +18,7 @@ from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from console.services.share_services import share_service
+from www.models.main import TenantServiceInfo, Tenants
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
@@ -25,39 +27,57 @@ volume_service = AppVolumeService()
 
 class PropertiesChanges(object):
     # install_from_cloud do not need any more
-    def __init__(self, service, tenant, all_component_one_model=None, only_one_component=False, install_from_cloud=False):
+    def __init__(self,
+                 service: TenantServiceInfo,
+                 tenant: Tenants,
+                 all_component_one_model: Any = None,
+                 only_one_component: bool = False,
+                 install_from_cloud: bool = False) -> None:
         self.service = service
         self.tenant = tenant
         self.service_source = service_source_repo.get_service_source(service.tenant_id, service.service_id)
-        self.current_version = self.service_source.version
-        self.install_from_cloud = self.service_source.is_install_from_cloud()
-        self.market_name = self.service_source.get_market_name()
+        # NOTE: get_service_source returns Optional[ServiceSourceInfo]; every component
+        # backed by this class is expected to have a service_source row (invariant),
+        # so the following derefs assume non-None.
+        self.current_version = self.service_source.version  # type: ignore[union-attr]
+        self.install_from_cloud = self.service_source.is_install_from_cloud()  # type: ignore[union-attr]
+        self.market_name = self.service_source.get_market_name()  # type: ignore[union-attr]
         self.only_one_component = only_one_component
-        self.market = None
+        self.market: Any = None
         self.all_component_one_model = all_component_one_model
+        # set later by get_upgrade_app_template()
+        self.template_updatetime: Any = None
+        self.plugins: Any = None
         if self.install_from_cloud and self.market_name:
-            self.market = app_market_repo.get_app_market_by_name(tenant.enterprise_id, self.market_name, raise_exception=True)
+            # NOTE: market_name is non-None here (guarded above).
+            self.market = app_market_repo.get_app_market_by_name(
+                tenant.enterprise_id, self.market_name, raise_exception=True)  # type: ignore[arg-type]
 
-    def have_upgrade_info(self, tenant, services, version):
+    def have_upgrade_info(self, tenant: Tenants, services: Any, version: str) -> bool:
         from console.services.upgrade_services import upgrade_service
         if not services:
             return False
         for service in services:
-            _, _, upgrade_info = upgrade_service.get_service_changes(service, tenant, version, services)
+            # NOTE: get_service_changes may return None (potential latent None-bug:
+            # unpacking None would raise TypeError); preserved as-is, no behavior change.
+            _, _, upgrade_info = upgrade_service.get_service_changes(  # type: ignore[misc]
+                service, tenant, version, services)
             if upgrade_info:
                 return True
         return False
 
     # This method should be passed in to the app model, which is not necessarily derived from the local database
     # This method should not rely on database resources
-    def get_property_changes(self, template, level="svc"):
+    def get_property_changes(self, template: dict, level: str = "svc") -> Tuple[Any, dict]:
         # when modifying the following properties, you need to
         # synchronize the method 'properties_changes.has_changes'
         component = get_template_component(template, self.service_source)
         if not component:
             return None, {}
         component_names = {}
-        for com in template.get("apps"):
+        # NOTE: template["apps"] is non-None here -- if it were None, component would
+        # be None and we'd have returned at the guard above (invariant).
+        for com in template.get("apps"):  # type: ignore[union-attr]
             component_names[com.get("service_share_uuid")] = com.get("service_cname")
         self.plugins = get_template_plugins(template)
         result = {}
@@ -112,11 +132,12 @@ class PropertiesChanges(object):
 
         return component, result
 
-    def app_config_group_changes(self, template):
+    def app_config_group_changes(self, template: dict) -> Optional[Dict[str, Any]]:
         if not template.get("app_config_groups"):
             return None
         add = []
-        service_key = self.service_source.service_share_uuid.split('+')[0]
+        # NOTE: service_source non-None invariant (see __init__); service_share_uuid set.
+        service_key = self.service_source.service_share_uuid.split('+')[0]  # type: ignore[union-attr]
         service_ids_keys_map = {self.service.service_id: service_key}
         # 从数据库获取对当前组件生效的配置组
         old_cgroups = share_service.config_groups(self.service.service_region, service_ids_keys_map)
@@ -144,7 +165,7 @@ class PropertiesChanges(object):
             return None
         return {"add": add}
 
-    def component_graph_changes(self, component_graphs):
+    def component_graph_changes(self, component_graphs: Any) -> Optional[Dict[str, Any]]:
         if not component_graphs:
             return None
 
@@ -163,7 +184,7 @@ class PropertiesChanges(object):
             return None
         return {"add": add}
 
-    def component_monitor_changes(self, service_monitors):
+    def component_monitor_changes(self, service_monitors: Any) -> Optional[Dict[str, Any]]:
         if not service_monitors:
             return None
         add = []
@@ -178,7 +199,7 @@ class PropertiesChanges(object):
             return None
         return {"add": add}
 
-    def env_changes(self, envs):
+    def env_changes(self, envs: Any) -> Optional[Dict[str, Any]]:
         """
         Environment variables are only allowed to increase, not allowed to
         update and delete. Compare existing environment variables and input
@@ -191,7 +212,7 @@ class PropertiesChanges(object):
             return None
         return {"add": add_env}
 
-    def deploy_version_changes(self, new):
+    def deploy_version_changes(self, new: Any) -> Optional[Dict[str, Any]]:
         """
         compare the old and new deploy versions to determine if there is any change
         """
@@ -203,22 +224,28 @@ class PropertiesChanges(object):
             return None
         return {"old": self.service.deploy_version, "new": new, "is_change": is_change}
 
-    def app_version_changes(self, new):
+    def app_version_changes(self, new: Any) -> Optional[Dict[str, Any]]:
         """
         compare the old and new application versions to determine if there is any change.
         application means application from market.
         """
-        if self.service_source.version == new:
+        # NOTE: service_source non-None invariant (see __init__).
+        if self.service_source.version == new:  # type: ignore[union-attr]
             return None
-        return {"old": self.service_source.version, "new": new, "is_change": self.service_source.version != new}
+        return {
+            "old": self.service_source.version,  # type: ignore[union-attr]
+            "new": new,
+            "is_change": self.service_source.version != new  # type: ignore[union-attr]
+        }
 
-    def slug_path_changes(self, new):
+    def slug_path_changes(self, new: Any) -> Optional[Dict[str, Any]]:
         """
         compare the old and new slug_path to determine if there is any change.
         """
         if new is None:
             return None
-        extend_info = json.loads(self.service_source.extend_info)
+        # NOTE: service_source non-None invariant (see __init__).
+        extend_info = json.loads(self.service_source.extend_info)  # type: ignore[union-attr,arg-type]
         old_slug_path = extend_info.get("slug_path", None)
         if old_slug_path is None or old_slug_path == new:
             return None
@@ -226,7 +253,11 @@ class PropertiesChanges(object):
             return None
         return {"old": old_slug_path, "new": new, "is_change": old_slug_path != new}
 
-    def dep_services_changes(self, component, dep_uuids, component_names={}, level="svc"):
+    def dep_services_changes(self,
+                             component: Any,
+                             dep_uuids: Any,
+                             component_names: dict = {},
+                             level: str = "svc") -> Optional[Dict[str, Any]]:
         """
         find out the dependencies that need to be created and
         the dependencies that need to be removed
@@ -240,17 +271,22 @@ class PropertiesChanges(object):
 
         group_id = service_group_relation_repo.get_group_id_by_service(self.service)
         # dep services from exist service
-        new_dep_services = service_repo.list_by_svc_share_uuids(group_id, dep_uuids)
+        # NOTE: get_group_id_by_service returns Optional; group_id is expected to be
+        # present for a grouped service (invariant).
+        new_dep_services = service_repo.list_by_svc_share_uuids(group_id, dep_uuids)  # type: ignore[arg-type]
         if level == "app":
             exist_uuids = [svc["service_share_uuid"] for svc in new_dep_services]
             # dep services from apps
             # combine two types of dep_services
-            for new_dep_service in self.new_dep_services_from_apps(component, dep_uuids, component_names):
+            # NOTE: component is truthy at level=="app" (callers pass a real component),
+            # so new_dep_services_from_apps does not return None here.
+            for new_dep_service in self.new_dep_services_from_apps(  # type: ignore[union-attr]
+                    component, dep_uuids, component_names):
                 if new_dep_service["service_share_uuid"] not in exist_uuids:
                     new_dep_services.append(new_dep_service)
 
         # filter existing dep services
-        def dep_service_existed(service):
+        def dep_service_existed(service: dict) -> bool:
             if service.get("service_id", None) is None:
                 return service["service_share_uuid"] in service_share_uuids
             return service["service_id"] in service_ids
@@ -262,8 +298,14 @@ class PropertiesChanges(object):
             "add": add,
         }
 
-    def new_dep_services_from_apps(self, component, dep_uuids, component_names={}):
-        result = []
+    def new_dep_services_from_apps(self, component: Any, dep_uuids: Any,
+                                   component_names: dict = {}) -> Optional[list]:
+        # NOTE: returns None when component is falsy, but the only caller
+        # (dep_services_changes, level=="app") iterates the result without a None
+        # guard. In practice component is truthy there (get_property_changes returns
+        # early if component is None), so this path is not hit -- potential latent
+        # None-bug if invoked directly with a falsy component.
+        result: List[dict] = []
         if not component:
             return None
         for dep_service in component.get("dep_service_map_list", []):
@@ -273,10 +315,10 @@ class PropertiesChanges(object):
             result.append({"service_share_uuid": service_share_uuid, "service_cname": component_names.get(service_share_uuid)})
         return result
 
-    def port_changes(self, new_ports):
+    def port_changes(self, new_ports: Any) -> Optional[Dict[str, Any]]:
         """port can only be created, cannot be updated and deleted"""
         if not new_ports:
-            return
+            return None
         old_ports = port_repo.get_service_ports(self.service.tenant_id, self.service.service_id)
         old_container_ports = {port.container_port: port for port in old_ports}
         create_ports = [port for port in new_ports if port["container_port"] not in old_container_ports]
@@ -301,9 +343,9 @@ class PropertiesChanges(object):
         logger.debug("ports: {}".format(json.dumps(result)))
         return result
 
-    def volume_changes(self, new_volumes):
+    def volume_changes(self, new_volumes: Any) -> Optional[Dict[str, Any]]:
         if not new_volumes:
-            return
+            return None
         old_volumes = volume_repo.get_service_volumes_with_config_file(self.service.service_id)
         old_volume_paths = {volume.volume_path: volume for volume in old_volumes}
         old_volume_names = {volume.volume_name: volume for volume in old_volumes}
@@ -321,7 +363,9 @@ class PropertiesChanges(object):
                 continue
             if not new_volume.get("file_content"):
                 continue
-            old_file_content = volume_repo.get_service_config_file(old_volume)
+            # NOTE: old_volume is non-None here -- the preceding guards `continue`
+            # whenever it is falsy; mypy cannot narrow the combined conditions.
+            old_file_content = volume_repo.get_service_config_file(old_volume)  # type: ignore[arg-type]
             if old_file_content and old_file_content.file_content != new_volume["file_content"]:
                 update.append(new_volume)
         if not add and not update:
@@ -331,7 +375,7 @@ class PropertiesChanges(object):
             "upd": update,
         }
 
-    def plugin_changes(self, new_plugins):
+    def plugin_changes(self, new_plugins: Any) -> Optional[Dict[str, Any]]:
         if not new_plugins:
             return None
         old_plugins, _ = app_plugin_service.get_plugins_by_service_id(self.service.service_region, self.service.tenant_id,
@@ -354,7 +398,7 @@ class PropertiesChanges(object):
             return None
         return {"add": add}
 
-    def probe_changes(self, new_probes):
+    def probe_changes(self, new_probes: Any) -> Optional[Dict[str, Any]]:
         if not new_probes:
             return None
         new_probe = new_probes[0]
@@ -371,12 +415,12 @@ class PropertiesChanges(object):
                 return {"add": [], "upd": new_probe}
         return None
 
-    def dep_volumes_changes(self, new_dep_volumes):
-        def key(sid, mnt_name):
+    def dep_volumes_changes(self, new_dep_volumes: Any) -> Optional[Dict[str, Any]]:
+        def key(sid: str, mnt_name: str) -> str:
             return sid + "-" + mnt_name
 
         if not new_dep_volumes:
-            return
+            return None
         old_dep_volumes = mnt_repo.get_service_mnts(self.service.tenant_id, self.service.service_id)
         olds = {key(item.dep_service_id, item.mnt_name): item for item in old_dep_volumes}
 
@@ -389,25 +433,29 @@ class PropertiesChanges(object):
             logger.debug("dep_service: {}".format(dep_service))
             if dep_service is None:
                 continue
-            if olds.get(key(dep_service["service_id"], new_dep_volume["mnt_name"]), None):
+            # NOTE: get_service_by_service_key is annotated to return a TenantServiceInfo
+            # model, but at runtime returns a dict row (list_by_svc_share_uuids yields
+            # dicts), so it is indexed by key. Suppressing the model "not indexable"
+            # error here -- the annotation upstream is in a strict-locked module.
+            if olds.get(key(dep_service["service_id"], new_dep_volume["mnt_name"]), None):  # type: ignore[index]
                 logger.debug("ignore dep volume: {}; dep volume exist.".format(
-                    key(dep_service["service_id"], new_dep_volume["mnt_name"])))
+                    key(dep_service["service_id"], new_dep_volume["mnt_name"])))  # type: ignore[index]
                 continue
 
             volume_service.check_volume_path(self.service, new_dep_volume["mnt_dir"], local_path=local_path)
 
-            new_dep_volume["service_id"] = dep_service["service_id"]
+            new_dep_volume["service_id"] = dep_service["service_id"]  # type: ignore[index]
             add.append(new_dep_volume)
         if not add:
             return None
         return {"add": add}
 
 
-def has_changes(changes):
-    def alpha(x):
+def has_changes(changes: dict) -> bool:
+    def alpha(x: Any) -> Any:
         return x and x.get("is_change", None)
 
-    def beta(x):
+    def beta(x: Any) -> Any:
         return x and (x.get("add", None) or x.get("del", None) or x.get("upd", None))
 
     a = ["deploy_version", "app_version"]
@@ -423,16 +471,19 @@ def has_changes(changes):
     return False
 
 
-def get_upgrade_app_version_template_app(tenant, version, pc):
+def get_upgrade_app_version_template_app(tenant: Tenants, version: str, pc: "PropertiesChanges") -> Any:
     if pc.install_from_cloud:
+        # NOTE: pc.service_source non-None invariant (set in PropertiesChanges.__init__).
         data = app_market_service.get_market_app_model_version(
-            pc.market, pc.service_source.group_key, version, get_template=True)
+            pc.market, pc.service_source.group_key, version, get_template=True)  # type: ignore[union-attr,arg-type]
         template = json.loads(data.template)
         apps = template.get("apps")
 
-        def func(x):
-            result = x.get("service_share_uuid", None) == pc.service_source.service_share_uuid \
-                     or x.get("service_key", None) == pc.service_source.service_share_uuid
+        def func(x: dict) -> bool:
+            # NOTE: pc.service_source non-None invariant.
+            ss_uuid = pc.service_source.service_share_uuid  # type: ignore[union-attr]
+            result = x.get("service_share_uuid", None) == ss_uuid \
+                or x.get("service_key", None) == ss_uuid
             return result
 
         app = next(iter([x for x in apps if func(x)]), None)
@@ -441,16 +492,18 @@ def get_upgrade_app_version_template_app(tenant, version, pc):
     return app
 
 
-def get_upgrade_app_template(tenant, version, pc):
+def get_upgrade_app_template(tenant: Tenants, version: Any, pc: "PropertiesChanges") -> dict:
     template = None
     if pc.install_from_cloud:
+        # NOTE: pc.service_source non-None invariant (set in PropertiesChanges.__init__).
         data = app_market_service.get_market_app_model_version(
-            pc.market, pc.service_source.group_key, version, get_template=True)
+            pc.market, pc.service_source.group_key, version, get_template=True)  # type: ignore[union-attr,arg-type]
         template = json.loads(data.template)
         pc.template_updatetime = data.update_time
     else:
-        data = rainbond_app_repo.get_enterpirse_app_by_key_and_version(tenant.enterprise_id, pc.service_source.group_key,
-                                                                       version)
+        # NOTE: pc.service_source non-None invariant.
+        data = rainbond_app_repo.get_enterpirse_app_by_key_and_version(
+            tenant.enterprise_id, pc.service_source.group_key, version)  # type: ignore[union-attr,arg-type]
         if not data:
             raise ServiceHandleException(msg="app version {} can not exist".format(version), msg_show="版本已被删除")
         template = json.loads(data.app_template)
@@ -460,10 +513,10 @@ def get_upgrade_app_template(tenant, version, pc):
     raise ServiceHandleException(msg="app version {} can not exist".format(version), msg_show="版本已被删除")
 
 
-def get_template_component(template, service_source):
+def get_template_component(template: Any, service_source: Any) -> Any:
     apps = template.get("apps")
 
-    def func(x):
+    def func(x: dict) -> bool:
         result = x.get("service_share_uuid", None) == service_source.service_share_uuid \
                     or x.get("service_key", None) == service_source.service_share_uuid
         return result
@@ -471,5 +524,5 @@ def get_template_component(template, service_source):
     return next(iter([x for x in apps if func(x)]), None)
 
 
-def get_template_plugins(template):
+def get_template_plugins(template: dict) -> Any:
     return template.get("plugins")
