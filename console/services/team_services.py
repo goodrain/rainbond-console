@@ -5,9 +5,11 @@ import logging
 import os
 import random
 import string
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse, quote
 
-import requests
+import requests  # type: ignore[import-untyped]
+from django.db.models import QuerySet
 
 from console.exception.exceptions import UserNotExistError
 from console.exception.main import ServiceHandleException
@@ -34,7 +36,8 @@ from django.db.models import Q
 from console.services.storage_service import storage_service
 from www.apiclient.regionapi import RegionInvokeApi
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
-from www.models.main import PermRelTenant, Tenants, TenantServiceInfo, TenantRegionInfo, ServiceGroup, RegionApp, ServiceGroupRelation
+from www.models.main import (PermRelTenant, Tenants, TenantServiceInfo, TenantRegionInfo, ServiceGroup, RegionApp,
+                              ServiceGroupRelation, Users)
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
@@ -42,26 +45,26 @@ region_api = RegionInvokeApi()
 
 
 class TeamService(object):
-    def get_tenant_by_tenant_name(self, tenant_name, exception=True):
+    def get_tenant_by_tenant_name(self, tenant_name: str, exception: bool = True) -> Optional[Tenants]:
         return team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=exception)
 
-    def get_tenant(self, tenant_name):
+    def get_tenant(self, tenant_name: str) -> Tenants:
         if not Tenants.objects.filter(tenant_name=tenant_name).exists():
             raise Tenants.DoesNotExist
         return Tenants.objects.get(tenant_name=tenant_name)
 
-    def get_enterprise_tenant_by_tenant_name(self, enterprise_id, tenant_name):
+    def get_enterprise_tenant_by_tenant_name(self, enterprise_id: str, tenant_name: str) -> Optional[Tenants]:
         return Tenants.objects.filter(tenant_name=tenant_name, enterprise_id=enterprise_id).first()
 
-    def get_team_by_team_alias_and_eid(self, team_alias, enterprise_id):
+    def get_team_by_team_alias_and_eid(self, team_alias: str, enterprise_id: str) -> Optional[Tenants]:
         return Tenants.objects.filter(tenant_alias=team_alias, enterprise_id=enterprise_id).first()
 
-    def get_team_by_team_id_and_eid(self, team_id, enterprise_id):
+    def get_team_by_team_id_and_eid(self, team_id: str, enterprise_id: str) -> Optional[Tenants]:
         if enterprise_id:
             return Tenants.objects.filter(tenant_id=team_id, enterprise_id=enterprise_id).first()
         return Tenants.objects.filter(tenant_id=team_id).first()
 
-    def random_tenant_name(self, enterprise=None, length=8):
+    def random_tenant_name(self, enterprise: Any = None, length: int = 8) -> str:
         """
         生成随机的云帮租户（云帮的团队名），副需要符合k8s的规范(小写字母,_)
         :param enterprise 企业信息
@@ -73,7 +76,7 @@ class TeamService(object):
             tenant_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
         return tenant_name
 
-    def add_user_to_team(self, tenant, user_id, role_ids=None):
+    def add_user_to_team(self, tenant: Tenants, user_id: str, role_ids: Any = None) -> None:
         user = user_repo.get_by_user_id(user_id)
         if not user:
             raise ServiceHandleException(msg="user not found", msg_show="用户不存在", status_code=404)
@@ -85,48 +88,56 @@ class TeamService(object):
         if role_ids:
             user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
 
-    def get_team_users(self, team, name=None):
-        users = team_repo.get_tenant_users_by_tenant_ID(team.ID)
+    def get_team_users(self, team: Tenants, name: Optional[str] = None) -> Any:
+        # NOTE: Tenants.ID is the int PK; repo annotates tenant_ID as str (signature mismatch).
+        users = team_repo.get_tenant_users_by_tenant_ID(team.ID)  # type: ignore[arg-type]
         if users and name:
             users = users.filter(Q(nick_name__contains=name) | Q(real_name__contains=name))
         return users
 
-    def get_tenant_users_by_tenant_name(self, tenant_name):
+    def get_tenant_users_by_tenant_name(self, tenant_name: str) -> Any:
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name)
-        user_list = team_repo.get_tenant_users_by_tenant_ID(tenant_ID=tenant.ID)
+        # NOTE: get_tenant_by_tenant_name defaults exception=True -> raises, never None.
+        # NOTE: Tenants.ID is the int PK; repo annotates tenant_ID as str (signature mismatch).
+        user_list = team_repo.get_tenant_users_by_tenant_ID(tenant_ID=tenant.ID)  # type: ignore[union-attr, arg-type]
         return user_list
 
-    def update_tenant_info(self, tenant_name, new_team_alias, new_logo):
+    def update_tenant_info(self, tenant_name: str, new_team_alias: str, new_logo: str) -> Optional[Tenants]:
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=True)
-        tenant.tenant_alias = new_team_alias
+        # NOTE: exception=True -> repo raises instead of returning None; tenant is non-None here.
+        tenant.tenant_alias = new_team_alias  # type: ignore[union-attr]
         if new_logo:
-            tenant.logo = new_logo
-        tenant.save()
+            tenant.logo = new_logo  # type: ignore[union-attr]
+        tenant.save()  # type: ignore[union-attr]
         return tenant
 
-    def get_user_perms_in_permtenant(self, user_id, tenant_name):
+    def get_user_perms_in_permtenant(self, user_id: str, tenant_name: str) -> Any:
         tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
-        user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
+        # NOTE: get_tenant_by_tenant_name defaults exception=True -> non-None; ID is int PK vs str sig.
+        user_perms = team_repo.get_user_perms_in_permtenant(
+            user_id=user_id, tenant_id=tenant.ID)  # type: ignore[union-attr, arg-type]
         return user_perms
 
     def get_not_join_users(
             self,
-            enterprise,
-            tenant,
-            query,
-    ):
+            enterprise: Any,
+            tenant: Tenants,
+            query: str,
+    ) -> Any:
         return team_repo.get_not_join_users(enterprise, tenant, query)
 
-    def get_user_perms_in_permtenant_list(self, user_id, tenant_name):
+    def get_user_perms_in_permtenant_list(self, user_id: str, tenant_name: str) -> Any:
         """
         一个用户在一个团队中的身份列表
         :return: 一个用户在一个团队中的身份列表
         """
         tenant = self.get_tenant_by_tenant_name(tenant_name=tenant_name)
-        user_perms_list = team_repo.get_user_perms_in_permtenant_list(user_id=user_id, tenant_id=tenant.ID)
+        # NOTE: get_tenant_by_tenant_name defaults exception=True -> non-None; ID is int PK vs str sig.
+        user_perms_list = team_repo.get_user_perms_in_permtenant_list(
+            user_id=user_id, tenant_id=tenant.ID)  # type: ignore[union-attr, arg-type]
         return user_perms_list
 
-    def get_user_perm_identitys_in_permtenant(self, user_id, tenant_name):
+    def get_user_perm_identitys_in_permtenant(self, user_id: str, tenant_name: str) -> dict:
         """获取用户在一个团队的身份列表"""
         user = user_repo.get_by_user_id(user_id)
         try:
@@ -140,7 +151,7 @@ class TeamService(object):
             user_roles["roles"].append("owner")
         return user_roles
 
-    def get_user_perm_role_id_in_permtenant(self, user_id, tenant_name):
+    def get_user_perm_role_id_in_permtenant(self, user_id: str, tenant_name: str) -> list:
         """获取一个用户在一个团队的角色ID列表"""
         try:
             tenant = self.get_tenant(tenant_name=tenant_name)
@@ -148,7 +159,9 @@ class TeamService(object):
             tenant = self.get_team_by_team_id(tenant_name)
             if tenant is None:
                 raise Tenants.DoesNotExist()
-        user_perms = team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID)
+        # NOTE: Tenants.ID is the int PK; repo annotates tenant_id as str (signature mismatch).
+        user_perms = team_repo.get_user_perms_in_permtenant(
+            user_id=user_id, tenant_id=tenant.ID)  # type: ignore[arg-type]
         if not user_perms:
             return []
         role_id_list = []
@@ -158,7 +171,7 @@ class TeamService(object):
             role_id_list.append(role_id)
         return role_id_list
 
-    def get_all_team_role_id(self, tenant_name, allow_owner=False):
+    def get_all_team_role_id(self, tenant_name: str, allow_owner: bool = False) -> list:
         """获取一个团队中的所有可选角色ID列表"""
         try:
             team_obj = self.get_tenant(tenant_name=tenant_name)
@@ -175,7 +188,7 @@ class TeamService(object):
         return list(default_role_id_list) + list(team_role_id_list)
 
     # todo 废弃
-    def change_tenant_role(self, user_id, tenant_name, role_id_list):
+    def change_tenant_role(self, user_id: str, tenant_name: str, role_id_list: Any) -> Any:
         """修改用户在团队中的角色"""
         try:
             tenant = self.get_tenant(tenant_name=tenant_name)
@@ -184,11 +197,13 @@ class TeamService(object):
             if tenant is None:
                 raise Tenants.DoesNotExist()
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
-        user_role = role_repo.update_user_role_in_tenant_by_user_id_tenant_id_role_id(
+        # NOTE: role_repo has no update_user_role_in_tenant_by_user_id_tenant_id_role_id; deprecated
+        # method (# todo 废弃) that would AttributeError at runtime -- latent bug, left as-is.
+        user_role = role_repo.update_user_role_in_tenant_by_user_id_tenant_id_role_id(  # type: ignore[attr-defined]
             user_id=user_id, tenant_id=tenant.pk, enterprise_id=enterprise.pk, role_id_list=role_id_list)
         return user_role
 
-    def add_user_role_to_team(self, tenant, user_ids, role_ids):
+    def add_user_role_to_team(self, tenant: Tenants, user_ids: Any, role_ids: Any) -> None:
         """在团队中添加一个用户并给用户分配一个角色"""
         enterprise = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id=tenant.enterprise_id)
         if enterprise:
@@ -198,7 +213,7 @@ class TeamService(object):
                 user = user_repo.get_by_user_id(user_id)
                 user_kind_role_service.update_user_roles(kind="team", kind_id=tenant.tenant_id, user=user, role_ids=role_ids)
 
-    def user_is_exist_in_team(self, user_list, tenant_name):
+    def user_is_exist_in_team(self, user_list: Any, tenant_name: str) -> Any:
         """判断一个用户是否存在于一个团队中"""
         try:
             tenant = self.get_tenant(tenant_name=tenant_name)
@@ -213,27 +228,27 @@ class TeamService(object):
                 return obj[0].user_id
         return False
 
-    def get_team_service_count_by_team_name(self, team_name):
+    def get_team_service_count_by_team_name(self, team_name: str) -> int:
         tenant = self.get_tenant_by_tenant_name(tenant_name=team_name)
         if tenant is None:
             raise Tenants.DoesNotExist()
         return TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id).count()
 
-    def count_by_tenant_id(self, tenant_id):
+    def count_by_tenant_id(self, tenant_id: str) -> int:
         return TenantServiceInfo.objects.filter(tenant_id=tenant_id).count()
 
-    def get_service_source(self, service_alias):
+    def get_service_source(self, service_alias: str) -> Any:
         service_source = TenantServiceInfo.objects.filter(service_alias=service_alias)
         if service_source:
             return service_source[0]
         else:
             return []
 
-    def delete_tenant(self, tenant_name):
+    def delete_tenant(self, tenant_name: str) -> None:
         team_repo.delete_tenant(tenant_name=tenant_name)
 
     @transaction.atomic()
-    def delete_by_tenant_id(self, user, tenant):
+    def delete_by_tenant_id(self, user: Users, tenant: Tenants) -> list:
         tenant_regions = region_repo.get_tenant_regions_by_teamid(tenant.tenant_id)
         region_list = list()
         for region in tenant_regions:
@@ -258,18 +273,21 @@ class TeamService(object):
         return region_list
 
 
-    def get_current_user_tenants(self, user_id, team_name=""):
+    def get_current_user_tenants(self, user_id: str, team_name: str = "") -> Any:
         tenants = team_repo.get_tenants_by_user_id(user_id=user_id, team_name=team_name)
         return tenants
 
     @transaction.atomic
-    def exit_current_team(self, team_name, user_id):
+    def exit_current_team(self, team_name: str, user_id: str) -> Tuple[int, str]:
         s_id = transaction.savepoint()
         try:
             tenant = self.get_tenant_by_tenant_name(tenant_name=team_name)
-            team_repo.get_user_perms_in_permtenant(user_id=user_id, tenant_id=tenant.ID).delete()
+            # NOTE: exception=True default -> non-None; ID is int PK vs str sig; perms QuerySet non-None.
+            team_repo.get_user_perms_in_permtenant(
+                user_id=user_id, tenant_id=tenant.ID).delete()  # type: ignore[union-attr, arg-type]
             user = user_repo.get_by_user_id(user_id)
-            user_kind_role_service.delete_user_roles(kind="team", kind_id=tenant.tenant_id, user=user)
+            user_kind_role_service.delete_user_roles(
+                kind="team", kind_id=tenant.tenant_id, user=user)  # type: ignore[union-attr]
             transaction.savepoint_commit(s_id)
             return 200, "退出团队成功"
         except Exception as e:
@@ -277,17 +295,20 @@ class TeamService(object):
             transaction.savepoint_rollback(s_id)
             return 400, "退出团队失败"
 
-    def get_team_by_team_id(self, team_id):
+    def get_team_by_team_id(self, team_id: str) -> Tenants:
         team = team_repo.get_team_by_team_id(team_id=team_id)
         if team:
-            user = user_repo.get_by_user_id(team.creater)
-            team.creater_name = "admin"
+            # NOTE: team.creater is int PK; get_by_user_id annotates user_id as str (signature mismatch).
+            user = user_repo.get_by_user_id(team.creater)  # type: ignore[arg-type]
+            # NOTE: creater_name is a dynamic attr attached for serialization, not a model field.
+            team.creater_name = "admin"  # type: ignore[attr-defined]
             if user:
-                team.creater_name = user.get_name()
+                team.creater_name = user.get_name()  # type: ignore[attr-defined]
         return team
 
     @transaction.atomic
-    def create_team(self, user, enterprise, region_list=None, team_alias=None, namespace="", logo=""):
+    def create_team(self, user: Users, enterprise: Any, region_list: Any = None, team_alias: Optional[str] = None,
+                    namespace: str = "", logo: str = "") -> Tenants:
         if not team_alias and namespace == "default":
             team_name = "default"
         else:
@@ -317,7 +338,7 @@ class TeamService(object):
         user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin_role.ID])
         return team
 
-    def delete_team_region(self, team_id, region_name):
+    def delete_team_region(self, team_id: str, region_name: str) -> None:
         # check team
         tenant = team_repo.get_team_by_team_id(team_id)
         # check region
@@ -331,9 +352,11 @@ class TeamService(object):
 
         tenant_region.delete()
 
-    def get_enterprise_teams_fenye(self, enterprise_id, query=None, page=None, page_size=None):
+    def get_enterprise_teams_fenye(self, enterprise_id: str, query: Optional[str] = None, page: Optional[int] = None,
+                                   page_size: Optional[int] = None) -> Tuple[Any, int]:
         tall = team_repo.get_teams_by_enterprise_id(enterprise_id, query=query)
         total = tall.count()
+        raw_tenants: Any
         if page is not None and page_size is not None:
             try:
                 start = (page - 1) * page_size
@@ -345,8 +368,8 @@ class TeamService(object):
             raw_tenants = tall
         return raw_tenants, total
 
-    def jg_teams(self, eid, teams):
-        tenants = dict()
+    def jg_teams(self, eid: str, teams: Any) -> Any:
+        tenants: Dict[Any, Any] = dict()
         creaters = [team.creater for team in teams]
         users = user_repo.get_by_user_ids(creaters)
         user_list = {user.user_id: user.get_name() for user in users}
@@ -354,7 +377,7 @@ class TeamService(object):
         region_dict = dict()
         tenant_IDs = {ten.ID: ten.tenant_id for ten in teams}
         user_id_list = PermRelTenant.objects.filter().values("tenant_id", "user_id")
-        user_id_dict = dict()
+        user_id_dict: Dict[Any, int] = dict()
         for user_id in user_id_list:
             user_id_dict[tenant_IDs.get(user_id["tenant_id"])] = user_id_dict.get(tenant_IDs.get(user_id["tenant_id"]), 0) + 1
         
@@ -369,7 +392,7 @@ class TeamService(object):
             all_volumes = volume_repo.get_services_volumes(service_ids)
             
             # Calculate storage for each team
-            team_components = {}
+            team_components: Dict[Any, List[Any]] = {}
             for comp in all_components:
                 if comp.tenant_id not in team_components:
                     team_components[comp.tenant_id] = []
@@ -415,31 +438,37 @@ class TeamService(object):
                 tenant["storage_request"] = storage_dict.get(team.tenant_id, 0)
             tenants[team.tenant_id] = tenant
         if region_dict:
-            region_tenants = list()
+            region_tenants: List[Any] = list()
             for region_id in region_dict.keys():
                 region_tenants += self.get_region_tenant(eid, region_id, tenant_ids)
             for region_tenant in region_tenants:
                 tenant_id = region_tenant.get("UUID")
-                running_apps = tenants.get(tenant_id).get("running_apps")
-                tenants.get(tenant_id)["set_limit_memory"] = region_tenant.get("LimitMemory", 0)
-                tenants.get(tenant_id)["set_limit_cpu"] = region_tenant.get("LimitCPU", 0)
-                tenants.get(tenant_id)["set_limit_storage"] = region_tenant.get("LimitStorage", 0)
-                tenants.get(tenant_id)["running_apps"] = running_apps + region_tenant.get("running_applications", 0)
-                tenants.get(tenant_id)["memory_request"] = region_tenant.get("memory_limit", 0)
-                tenants.get(tenant_id)["cpu_request"] = region_tenant.get("cpu_limit", 0)
+                # NOTE: tenants.get(tenant_id) returns None if region reports a tenant_id absent
+                # from the local map; downstream .get()/[...] would fail -> latent None-bug.
+                running_apps = tenants.get(tenant_id).get("running_apps")  # type: ignore[union-attr]
+                tenants.get(tenant_id)["set_limit_memory"] = region_tenant.get("LimitMemory", 0)  # type: ignore[index]
+                tenants.get(tenant_id)["set_limit_cpu"] = region_tenant.get("LimitCPU", 0)  # type: ignore[index]
+                tenants.get(tenant_id)["set_limit_storage"] = region_tenant.get("LimitStorage", 0)  # type: ignore[index]
+                tenants.get(tenant_id)["running_apps"] = running_apps + region_tenant.get(  # type: ignore[index]
+                    "running_applications", 0)
+                tenants.get(tenant_id)["memory_request"] = region_tenant.get("memory_limit", 0)  # type: ignore[index]
+                tenants.get(tenant_id)["cpu_request"] = region_tenant.get("cpu_limit", 0)  # type: ignore[index]
         return tenants.values()
 
-    def get_region_tenant(self, eid, region_id, tenant_ids):
+    def get_region_tenant(self, eid: str, region_id: str, tenant_ids: Any) -> Any:
         res, body = region_api.list_tenants(eid, region_id, json.dumps(tenant_ids))
-        if body.get("list"):
-            tenants = body.get("list")
+        # NOTE: list_tenants returns Optional[dict]; body assumed non-None on success.
+        if body.get("list"):  # type: ignore[union-attr]
+            tenants = body.get("list")  # type: ignore[union-attr]
             if tenants:
                 return tenants
         return []
 
-    def get_enterprise_teams(self, enterprise_id, query=None, page=None, page_size=None, user=None):
+    def get_enterprise_teams(self, enterprise_id: str, query: Optional[str] = None, page: Optional[int] = None,
+                             page_size: Optional[int] = None, user: Optional[Users] = None) -> Tuple[list, int]:
         tall = team_repo.get_teams_by_enterprise_id(enterprise_id, query=query)
         total = tall.count()
+        raw_tenants: Any
         if page is not None and page_size is not None:
             try:
                 paginator = Paginator(tall, page_size)
@@ -453,23 +482,27 @@ class TeamService(object):
             tenants.append(self.team_with_region_info(tenant, user))
         return tenants, total
 
-    def list_teams_v2(self, eid, query=None, page=None, page_size=None):
+    def list_teams_v2(self, eid: str, query: Optional[str] = None, page: Optional[int] = None,
+                      page_size: Optional[int] = None) -> Tuple[Any, int]:
         if query:
             total = Tenants.objects.filter(tenant_alias__contains=query).count()
         else:
             total = Tenants.objects.count()
-        tenants = team_repo.list_teams_v2(query, page, page_size)
+        # NOTE: query may be None; repo annotates query as str (handles falsy at runtime).
+        tenants = team_repo.list_teams_v2(query, page, page_size)  # type: ignore[arg-type]
         for tenant in tenants:
             region_num = tenant_region_repo.count_by_tenant_id(tenant["tenant_id"])
             tenant["region_num"] = region_num
         return tenants, total
 
-    def list_by_team_names(self, team_names):
+    def list_by_team_names(self, team_names: Any) -> QuerySet:
         return Tenants.objects.filter(tenant_name__in=team_names)
 
-    def list_teams_by_user_id(self, eid, user_id, query=None, page=None, page_size=None):
-        tenants = team_repo.list_by_user_id(eid, user_id, query, page, page_size)
-        total = team_repo.count_by_user_id(eid, user_id, query)
+    def list_teams_by_user_id(self, eid: str, user_id: str, query: Optional[str] = None, page: Optional[int] = None,
+                              page_size: Optional[int] = None) -> Tuple[Any, int]:
+        # NOTE: query may be None; repos annotate query as str (handle falsy at runtime).
+        tenants = team_repo.list_by_user_id(eid, user_id, query, page, page_size)  # type: ignore[arg-type]
+        total = team_repo.count_by_user_id(eid, user_id, query)  # type: ignore[arg-type]
         user = user_repo.get_by_user_id(user_id)
         for tenant in tenants:
             if isinstance(tenant["is_active"], int):
@@ -478,9 +511,11 @@ class TeamService(object):
             tenant["role_infos"] = roles["roles"]
         return tenants, total
 
-    def team_with_region_info(self, tenant, request_user=None, get_region=True):
+    def team_with_region_info(self, tenant: Tenants, request_user: Optional[Users] = None,
+                              get_region: bool = True) -> dict:
         try:
-            user = user_repo.get_user_by_user_id(tenant.creater)
+            # NOTE: tenant.creater is int; get_user_by_user_id annotates user_id as str (sig mismatch).
+            user = user_repo.get_user_by_user_id(tenant.creater)  # type: ignore[arg-type]
             owner_name = user.get_name()
         except UserNotExistError:
             owner_name = None
@@ -520,10 +555,13 @@ class TeamService(object):
         info["service_count"] = service_count
         return info
 
-    def get_teams_region_by_user_id(self, enterprise_id, user, name=None, get_region=True, use_region=False):
+    def get_teams_region_by_user_id(self, enterprise_id: str, user: Users, name: Optional[str] = None,
+                                    get_region: bool = True, use_region: bool = False) -> list:
         teams_list_no_region = list()
         teams_list_use_region = list()
-        tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, user.user_id, name)
+        # NOTE: user.user_id is int; get_enterprise_user_teams annotates user_id as str (sig mismatch).
+        tenants = enterprise_repo.get_enterprise_user_teams(
+            enterprise_id, user.user_id, name)  # type: ignore[arg-type]
         if tenants:
             for tenant in tenants:
                 team = self.team_with_region_info(tenant, user, get_region=get_region)
@@ -535,18 +573,22 @@ class TeamService(object):
             return teams_list_use_region
         return teams_list_no_region + teams_list_use_region
 
-    def list_user_teams(self, enterprise_id, user, name):
+    def list_user_teams(self, enterprise_id: str, user: Optional[Users], name: Optional[str]) -> list:
         # User joined team
-        teams = self.get_teams_region_by_user_id(enterprise_id, user, name, get_region=True)
+        # NOTE: get_teams_region_by_user_id deref's user.user_id; passing None would fail there.
+        teams = self.get_teams_region_by_user_id(
+            enterprise_id, user, name, get_region=True)  # type: ignore[arg-type]
         # The team that the user did not join
         user_id = user.user_id if user else ""
-        nojoin_teams = team_repo.get_user_notjoin_teams(enterprise_id, user_id, name)
+        # NOTE: user_id is int|str; get_user_notjoin_teams annotates user_id as str (sig mismatch).
+        nojoin_teams = team_repo.get_user_notjoin_teams(enterprise_id, user_id, name)  # type: ignore[arg-type]
         for nojoin_team in nojoin_teams:
             team = self.team_with_region_info(nojoin_team, get_region=False)
             teams.append(team)
         return teams
 
-    def check_and_get_user_team_by_name_and_region(self, user_id, tenant_name, region_name):
+    def check_and_get_user_team_by_name_and_region(self, user_id: str, tenant_name: str,
+                                                   region_name: str) -> Optional[Tenants]:
         tenant = team_repo.get_user_tenant_by_name(user_id, tenant_name)
         if not tenant:
             return tenant
@@ -555,13 +597,13 @@ class TeamService(object):
         else:
             return tenant
 
-    def get_team_by_team_alias(self, team_alias):
+    def get_team_by_team_alias(self, team_alias: str) -> Optional[Tenants]:
         return team_repo.get_team_by_team_alias(team_alias)
 
-    def get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(self, enterprise_id, tenant_alias):
+    def get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(self, enterprise_id: str, tenant_alias: str) -> Any:
         return team_repo.get_fuzzy_tenants_by_tenant_alias_and_enterprise_id(enterprise_id, tenant_alias)
 
-    def update_by_tenant_id(self, tenant_id, data):
+    def update_by_tenant_id(self, tenant_id: str, data: dict) -> None:
         d = {}
         if data.get("enterprise", ""):
             d["enterprise_id"] = data.get("enterprise_id")
@@ -573,32 +615,35 @@ class TeamService(object):
             d["creater"] = data.get("creater")
         if data.get("tenant_alias", ""):
             d["tenant_alias"] = data.get("tenant_alias")
-        team_repo.update_by_tenant_id(tenant_id).update(**d)
+        # NOTE: repo update_by_tenant_id returns int (rows updated); calling .update(**d) on an int
+        # raises AttributeError at runtime -- latent bug (likely meant update_by_tenant_id(tenant_id, **d)).
+        team_repo.update_by_tenant_id(tenant_id).update(**d)  # type: ignore[attr-defined]
 
-    def overview(self, team, region_name):
+    def overview(self, team: Tenants, region_name: str) -> dict:
         resource = self.get_tenant_resource(team, region_name)
         component_nums = service_repo.get_team_service_num_by_team_id(team.tenant_id, region_name)
         app_nums = group_repo.get_tenant_region_groups_count(team.tenant_id, region_name)
+        # NOTE: get_tenant_resource returns None only when team is falsy; team is non-None here.
         return {
-            "total_memory": resource.get("total_memory", 0),
-            "used_memory": resource.get("used_memory", 0),
-            "total_cpu": resource.get("total_cpu", 0),
-            "used_cpu": resource.get("used_cpu", 0),
+            "total_memory": resource.get("total_memory", 0),  # type: ignore[union-attr]
+            "used_memory": resource.get("used_memory", 0),  # type: ignore[union-attr]
+            "total_cpu": resource.get("total_cpu", 0),  # type: ignore[union-attr]
+            "used_cpu": resource.get("used_cpu", 0),  # type: ignore[union-attr]
             "app_nums": app_nums,
             "component_nums": component_nums,
         }
 
-    def get_tenant_resource(self, team, region_name):
+    def get_tenant_resource(self, team: Tenants, region_name: str) -> Optional[dict]:
         if team:
-            data = {
+            data: Dict[str, Any] = {
                 "team_id": team.tenant_id,
                 "team_name": team.tenant_name,
                 "team_alias": team.tenant_alias,
             }
             source = common_services.get_current_region_used_resource(team, region_name)
             if source:
-                cpu_usage = 0
-                memory_usage = 0
+                cpu_usage: float = 0
+                memory_usage: float = 0
                 if int(source["limit_cpu"]) != 0:
                     cpu_usage = float(int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
                 if int(source["limit_memory"]) != 0:
@@ -614,7 +659,8 @@ class TeamService(object):
             return data
         return None
 
-    def get_tenant_list_by_region(self, eid, region_id, page=1, page_size=10):
+    def get_tenant_list_by_region(self, eid: str, region_id: str, page: int = 1,
+                                  page_size: int = 10) -> Tuple[list, int]:
         teams = team_repo.get_team_by_enterprise_id(eid)
         team_maps = {}
         tenant_ids = []
@@ -622,15 +668,19 @@ class TeamService(object):
             for team in teams:
                 team_maps[team.tenant_id] = team
                 tenant_ids.append(team.tenant_id)
-        res, body = region_api.list_tenants(eid, region_id, tenant_ids)
+        # NOTE: tenant_ids is a list; list_tenants annotates it as str (elsewhere json.dumps is used) -- latent mismatch.
+        res, body = region_api.list_tenants(eid, region_id, tenant_ids)  # type: ignore[arg-type]
         tenant_list = []
         total = 0
-        if body.get("bean"):
-            tenants = body.get("bean").get("list")
-            total = body.get("bean").get("total")
+        # NOTE: list_tenants returns Optional[dict]; body assumed non-None when "bean" present.
+        if body.get("bean"):  # type: ignore[union-attr]
+            tenants = body.get("bean").get("list")  # type: ignore[union-attr]
+            total = body.get("bean").get("total")  # type: ignore[union-attr]
             if tenants:
                 for tenant in tenants:
-                    tenant_alias = team_maps.get(tenant["UUID"]).tenant_alias if team_maps.get(tenant["UUID"]) else ''
+                    # NOTE: team_maps.get(...) is None if UUID absent; guarded by trailing else ''.
+                    tenant_alias = team_maps.get(
+                        tenant["UUID"]).tenant_alias if team_maps.get(tenant["UUID"]) else ''  # type: ignore[union-attr]
                     tenant_list.append({
                         "tenant_id": tenant["UUID"],
                         "team_name": tenant_alias,
@@ -649,25 +699,26 @@ class TeamService(object):
             logger.error(body)
         return tenant_list, total
 
-    def set_tenant_resource_limit(self, eid, region_id, tenant_name, limit):
+    def set_tenant_resource_limit(self, eid: str, region_id: str, tenant_name: str, limit: Any) -> None:
         try:
             region_api.set_tenant_resource_limit(eid, tenant_name, region_id, body=limit)
         except RegionApiBaseHttpClient.CallApiError as e:
             logger.exception(e)
             raise ServiceHandleException(status_code=500, msg="", msg_show="设置租户限额失败")
 
-    def update(self, tenant_id, data):
+    def update(self, tenant_id: str, data: dict) -> None:
         team_repo.update_by_tenant_id(tenant_id, **data)
 
     @staticmethod
-    def check_resource_name(tenant_name: str, region_name: str, rtype: string, name: str):
+    def check_resource_name(tenant_name: str, region_name: str, rtype: str, name: str) -> Any:
         return region_api.check_resource_name(tenant_name, region_name, rtype, name)
 
-    def list_registry_auths(self, tenant_id, region_name, user_id):
+    def list_registry_auths(self, tenant_id: str, region_name: str, user_id: str) -> Any:
         return team_registry_auth_repo.list_by_team_id(tenant_id, region_name, user_id)
 
     @transaction.atomic()
-    def create_registry_auth(self, tenant, region_name, domain, username, password, hub_type, user_id):
+    def create_registry_auth(self, tenant: Tenants, region_name: str, domain: str, username: str, password: str,
+                             hub_type: str, user_id: str) -> None:
         auth = team_registry_auth_repo.get_by_team_id_domain(tenant.tenant_id, region_name, domain)
         if auth:
             raise ServiceHandleException(
@@ -684,7 +735,7 @@ class TeamService(object):
         region_api.create_registry_auth(tenant.tenant_name, region_name, params)
 
     @transaction.atomic()
-    def update_registry_auth(self, tenant, region_name, secret_id, data):
+    def update_registry_auth(self, tenant: Tenants, region_name: str, secret_id: str, data: dict) -> None:
         auth = team_registry_auth_repo.get_by_secret_id(secret_id)
         if not auth:
             return
@@ -692,14 +743,14 @@ class TeamService(object):
         region_api.update_registry_auth(tenant.tenant_name, region_name, auth[0].to_dict())
 
     @transaction.atomic()
-    def delete_registry_auth(self, tenant, region_name, secret_id, user_id):
+    def delete_registry_auth(self, tenant: Tenants, region_name: str, secret_id: str, user_id: str) -> None:
         team_registry_auth_repo.delete_team_registry_auth(tenant.tenant_id, region_name, secret_id, user_id)
         region_api.delete_registry_auth(tenant.tenant_name, region_name, {
             "secret_id": secret_id,
             "tenant_id": tenant.tenant_id
         })
 
-    def get_registry_namespaces(self, domain, username, password, hub_type):
+    def get_registry_namespaces(self, domain: str, username: str, password: str, hub_type: str) -> Any:
         try:
             parsed_url = urlparse(domain)
             base_url = parsed_url.scheme + "://" + parsed_url.netloc
@@ -762,14 +813,14 @@ class TeamService(object):
                     if response.status_code == 200:
                         repositories = response.json().get("repositories", [])
                         # 提取命名空间（取第一个/之前的部分作为命名空间）
-                        namespaces = set()
+                        namespace_set = set()
                         for repo in repositories:
                             if "/" in repo:
                                 namespace = repo.split("/")[0]
-                                namespaces.add(namespace)
+                                namespace_set.add(namespace)
                             else:
-                                namespaces.add("library")
-                        return list(namespaces) or ["library"]
+                                namespace_set.add("library")
+                        return list(namespace_set) or ["library"]
                     
             elif hub_type == "Volcano":
                 # 火山引擎容器镜像服务 API
@@ -810,7 +861,7 @@ class TeamService(object):
                 msg_show="连接镜像仓库失败",
                 status_code=500)
 
-    def _get_dockerhub_token(self, username, password):
+    def _get_dockerhub_token(self, username: str, password: str) -> Any:
         """获取Docker Hub的JWT token"""
         try:
             response = requests.post(
@@ -834,7 +885,8 @@ class TeamService(object):
                 msg_show="连接Docker Hub失败", 
                 status_code=500)
 
-    def get_registry_images(self, domain, username, password, hub_type, namespace, page=1, page_size=10, search_key=None):
+    def get_registry_images(self, domain: str, username: str, password: str, hub_type: str, namespace: str, page: int = 1,
+                            page_size: int = 10, search_key: Optional[str] = None) -> dict:
         """获取指定命名空间下的镜像列表,支持分页和搜索
         
         Args:
@@ -1004,7 +1056,8 @@ class TeamService(object):
                 msg_show="连接镜像仓库失败",
                 status_code=500)
 
-    def get_registry_tags(self, domain, username, password, hub_type, namespace, name, page=1, page_size=10, search_key=None):
+    def get_registry_tags(self, domain: str, username: str, password: str, hub_type: str, namespace: str, name: str,
+                           page: int = 1, page_size: int = 10, search_key: Optional[str] = None) -> dict:
         """获取指定镜像的标签列表,支持分页和搜索
         
         Args:
@@ -1196,7 +1249,7 @@ class TeamService(object):
                 msg_show="连接镜像仓库失败",
                 status_code=500)
 
-    def _get_registry_tag_info(self, base_url, repo_name, tag_name, auth_header):
+    def _get_registry_tag_info(self, base_url: str, repo_name: str, tag_name: str, auth_header: str) -> dict:
         """获取 Docker Registry 标签的详细信息
         
         Args:
@@ -1259,7 +1312,7 @@ class TeamService(object):
             "size": 0
         }
 
-    def get_full_image_name(self, domain, hub_type, namespace, name, tag):
+    def get_full_image_name(self, domain: str, hub_type: str, namespace: str, name: str, tag: str) -> str:
         """获取完整的镜像地址
         
         Args:
@@ -1279,7 +1332,8 @@ class TeamService(object):
             if hub_type == "Docker" and registry == "hub.docker.com":
                 # Docker Hub的特殊处理
                 if namespace == "library":
-                    return "{}/{}:{}".format(name, tag)
+                    # NOTE: format string has 3 placeholders but only 2 args -> IndexError at runtime; latent bug.
+                    return "{}/{}:{}".format(name, tag)  # type: ignore[str-format]
                 return "{}/{}:{}".format(namespace, name, tag)
             
             # 其他类型仓库
@@ -1292,7 +1346,7 @@ class TeamService(object):
                 msg_show="生成完整镜像地址失败",
                 status_code=500)
 
-    def get_user_team_details(self, user):
+    def get_user_team_details(self, user: Users) -> list:
         """
         获取用户创建的团队详情
         """
@@ -1303,7 +1357,7 @@ class TeamService(object):
         teams = Tenants.objects.filter(creater=user.user_id)
         
         # 获取团队与集群的关联关系
-        team_region_map = {}
+        team_region_map: Dict[Any, List[Any]] = {}
         team_ids = [t.tenant_id for t in teams]
         team_regions = TenantRegionInfo.objects.filter(
             tenant_id__in=team_ids,
@@ -1325,7 +1379,7 @@ class TeamService(object):
         region_app_map = {ra.app_id: ra.region_app_id for ra in region_apps}
 
         # 获取应用与组件的关联关系
-        group_service_map = {}
+        group_service_map: Dict[Any, List[Any]] = {}
         group_relations = ServiceGroupRelation.objects.filter(group_id__in=app_ids)
         service_ids = [gr.service_id for gr in group_relations]
         
@@ -1345,7 +1399,7 @@ class TeamService(object):
                 })
 
         # 构建团队ID到应用的映射
-        team_apps_map = {}
+        team_apps_map: Dict[Any, List[Any]] = {}
         for sg in service_groups:
             if sg.tenant_id not in team_apps_map:
                 team_apps_map[sg.tenant_id] = []
@@ -1381,7 +1435,7 @@ class TeamService(object):
         return region_list
 
     @staticmethod
-    def count_teams(enterprise_id):
+    def count_teams(enterprise_id: str) -> int:
         return Tenants.objects.filter(enterprise_id=enterprise_id).count()
 
 

@@ -341,12 +341,15 @@ class BaseService(object):
                             market = markets.get(market_name, None)
                             if not market:
                                 market = app_market_service.get_app_market_by_name(
-                                    tenant.enterprise_id, market_name, raise_exception=True)
+                                    # NOTE: tenant.enterprise_id is Optional[str]; potential None passed as str
+                                    tenant.enterprise_id, market_name, raise_exception=True)  # type: ignore[arg-type]
                                 markets[market_name] = market
 
                             app = apps.get(service_source.group_key, None)
                             if not app:
-                                app, _ = app_market_service.cloud_app_model_to_db_model(market, service_source.group_key, None)
+                                # NOTE: service_source.group_key is Optional[str]; potential None passed as app_id str
+                                app, _ = app_market_service.cloud_app_model_to_db_model(
+                                    market, service_source.group_key, None)  # type: ignore[arg-type]
                                 apps[service_source.group_key] = app
 
                             bean["market_error_code"] = 200

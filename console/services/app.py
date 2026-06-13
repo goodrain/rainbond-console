@@ -881,7 +881,8 @@ class AppService(object):
         data["etcd_key"] = service.check_uuid
 
         # runtime os name
-        data["os_type"] = label_service.get_service_os_name(service)
+        # label_service is the singleton from app_config/__init__.py (shadows the submodule); mypy can't see it
+        data["os_type"] = label_service.get_service_os_name(service)  # type: ignore[attr-defined]
 
         # app id
         app_id = service_group_relation_repo.get_group_id_by_service(service)
@@ -1126,9 +1127,10 @@ class AppService(object):
                 settings = {
                     'volume_capacity': disk_cap
                 }
-                settings, _ = volume_service.build_vm_live_migration_volume_settings(
+                # volume_service is the app_config/__init__.py singleton (shadows submodule); mypy can't see it
+                settings, _ = volume_service.build_vm_live_migration_volume_settings(  # type: ignore[attr-defined]
                     tenant, service, disk_volume_type, settings)
-                volume_service.add_service_volume(
+                volume_service.add_service_volume(  # type: ignore[attr-defined]
                     tenant, service, "/disk", disk_volume_type, "disk", "", settings, user.nick_name, mode=None)
             else:
                 # NOTE: in this else branch len(volumes) != 0, so volume is non-None (invariant).
@@ -1137,7 +1139,7 @@ class AppService(object):
                     'volume_capacity': disk_cap
                 }
                 if disk_volume_type:
-                    settings, option = volume_service.build_vm_live_migration_volume_settings(
+                    settings, option = volume_service.build_vm_live_migration_volume_settings(  # type: ignore[attr-defined]
                         tenant, service, disk_volume_type, settings)
                     volume.volume_type = disk_volume_type  # type: ignore[union-attr]
                     volume.access_mode = settings.get("access_mode", volume.access_mode)  # type: ignore[union-attr]
@@ -1617,7 +1619,7 @@ class AppMarketService(object):
         data = self.app_model_version_serializers(market, results, extend=extend)
         return data
 
-    def cloud_app_model_to_db_model(self, market: AppMarket, app_id: str, version: str,
+    def cloud_app_model_to_db_model(self, market: AppMarket, app_id: str, version: Optional[str],
                                     for_install: bool = False) -> Tuple[RainbondCenterApp, Optional[RainbondCenterAppVersion]]:
         app = app_store.get_app(market, app_id)
         rainbond_app_version = None
