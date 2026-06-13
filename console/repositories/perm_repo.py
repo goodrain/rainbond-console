@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any, Dict, List, Optional
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 
 from console.exception.main import ServiceHandleException
 from console.models.main import PermsInfo
@@ -10,14 +11,14 @@ from console.models.main import RoleInfo
 from console.models.main import RolePerms
 from console.models.main import UserRole
 from console.utils.perms import get_perms_metadata
-from www.models.main import PermRelTenant
+from www.models.main import PermRelTenant, Users
 
 logger = logging.getLogger('default')
 
 
 class PermsRepo(object):
     @transaction.atomic
-    def initialize_permission_settings(self):
+    def initialize_permission_settings(self) -> None:
         """判断有没有初始化权限数据，没有则初始化"""
         all_perms_list = get_perms_metadata()
         has_perms = PermsInfo.objects.all()
@@ -29,16 +30,16 @@ class PermsRepo(object):
                 perms_list.append(PermsInfo(name=perm[0], desc=perm[1], code=perm[2], group=perm[3], kind=perm[4]))
             PermsInfo.objects.bulk_create(perms_list)
 
-    def get_all_perms(self):
+    def get_all_perms(self) -> QuerySet[PermsInfo]:
         perms = PermsInfo.objects.all()
         return perms
 
-    def add_user_tenant_perm(self, perm_info):
+    def add_user_tenant_perm(self, perm_info: dict) -> PermRelTenant:
         perm_re_tenant = PermRelTenant(**perm_info)
         perm_re_tenant.save()
         return perm_re_tenant
 
-    def get_user_tenant_perm(self, tenant_pk, user_pk):
+    def get_user_tenant_perm(self, tenant_pk: str, user_pk: str) -> Optional[PermRelTenant]:
         """
         获取用户在某个团队下的权限
         """
@@ -49,46 +50,46 @@ class PermsRepo(object):
 
 
 class RoleKindRepo(object):
-    def get_roles(self, kind, kind_id, with_default=False):
+    def get_roles(self, kind: str, kind_id: str, with_default: bool = False) -> QuerySet[RoleInfo]:
         if with_default:
             return RoleInfo.objects.filter(Q(kind_id=kind_id) | Q(kind_id="default")).filter(kind=kind)
         return RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
 
-    def get_role_by_id(self, kind, kind_id, id, with_default=False):
+    def get_role_by_id(self, kind: str, kind_id: str, id: str, with_default: bool = False) -> Optional[RoleInfo]:
         if with_default:
             return RoleInfo.objects.filter(Q(kind_id=kind_id) | Q(kind_id="default")).filter(kind=kind, ID=id).first()
         return RoleInfo.objects.filter(kind=kind, kind_id=kind_id, ID=id).first()
 
-    def get_role_by_name(self, kind, kind_id, name, with_default=False):
+    def get_role_by_name(self, kind: str, kind_id: str, name: str, with_default: bool = False) -> Optional[RoleInfo]:
         if with_default:
             return RoleInfo.objects.filter(Q(kind_id=kind_id) | Q(kind_id="default")).filter(kind=kind, name=name).first()
         return RoleInfo.objects.filter(kind=kind, kind_id=kind_id, name=name).first()
 
-    def get_roles_by_names(self, kind, kind_id, names):
+    def get_roles_by_names(self, kind: str, kind_id: str, names: List[str]) -> QuerySet[RoleInfo]:
         return RoleInfo.objects.filter(kind=kind, kind_id=kind_id, name__in=names)
 
-    def create_role(self, kind, kind_id, name):
+    def create_role(self, kind: str, kind_id: str, name: str) -> RoleInfo:
         return RoleInfo.objects.create(kind=kind, kind_id=kind_id, name=name)
 
 
 class RoleRepo(object):
-    def update_role_name(self, role, name):
+    def update_role_name(self, role: RoleInfo, name: str) -> RoleInfo:
         role.name = name
         role.save()
         return role
 
-    def delete_role(self, role):
+    def delete_role(self, role: RoleInfo) -> None:
         role.delete()
 
 
 class RolePermRelationRepo(object):
-    def get_role_perm_relation(self, role_id):
+    def get_role_perm_relation(self, role_id: str) -> QuerySet[RolePerms]:
         return RolePerms.objects.filter(role_id=role_id)
 
-    def get_roles_perm_relation(self, role_ids):
+    def get_roles_perm_relation(self, role_ids: List[str]) -> QuerySet[RolePerms]:
         return RolePerms.objects.filter(role_id__in=role_ids)
 
-    def create_role_perm_relation(self, role_id, perm_codes):
+    def create_role_perm_relation(self, role_id: str, perm_codes: List[str]) -> List[RolePerms]:
         if perm_codes:
             role_perm_list = []
             for perm_code in perm_codes:
@@ -96,21 +97,22 @@ class RolePermRelationRepo(object):
             return RolePerms.objects.bulk_create(role_perm_list)
         return []
 
-    def delete_role_perm_relation(self, role_id):
+    def delete_role_perm_relation(self, role_id: str) -> None:
         role_perms = self.get_role_perm_relation(role_id)
         role_perms.delete()
 
-    def get_role_perms(self, role_id):
+    def get_role_perms(self, role_id: str) -> QuerySet:
         role_perms = self.get_role_perm_relation(role_id)
         if not role_perms:
+            # returns an empty RolePerms queryset as a falsy sentinel
             return role_perms
         perm_codes = role_perms.values_list("perm_code", flat=True)
         return PermsInfo.objects.filter(code__in=perm_codes)
 
 
 class UserKindRoleRepo(object):
-    def get_user_roles_model(self, kind, kind_id, user):
-        user_roles = []
+    def get_user_roles_model(self, kind: str, kind_id: str, user: Optional[Users]) -> Any:
+        user_roles: Any = []
         if not user:
             raise ServiceHandleException(msg="no found user", msg_show="用户不存在", status_code=404)
         roles = RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
@@ -119,9 +121,9 @@ class UserKindRoleRepo(object):
             user_roles = UserRole.objects.filter(role_id__in=role_ids, user_id=user.user_id)
         return user_roles
 
-    def get_users_roles(self, kind, kind_id, users, creater_id=0):
+    def get_users_roles(self, kind: str, kind_id: str, users: Any, creater_id: int = 0) -> List[dict]:
         data = []
-        user_roles_kv = {}
+        user_roles_kv: Dict[str, list] = {}
         roles = RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
         if roles:
             for user in users:
@@ -148,7 +150,7 @@ class UserKindRoleRepo(object):
             })
         return data
 
-    def get_user_roles(self, kind, kind_id, user):
+    def get_user_roles(self, kind: str, kind_id: str, user: Optional[Users]) -> dict:
         if not user:
             raise ServiceHandleException(msg="no found user", msg_show="用户不存在", status_code=404)
         user_roles_list = []
@@ -165,7 +167,7 @@ class UserKindRoleRepo(object):
         data = {"nick_name": user.nick_name, "user_id": user.user_id, "roles": user_roles_list}
         return data
 
-    def update_user_roles(self, kind, kind_id, user, role_ids):
+    def update_user_roles(self, kind: str, kind_id: str, user: Optional[Users], role_ids: List[int]) -> None:
         update_role_list = []
         if not user:
             raise ServiceHandleException(msg="no found user", msg_show="用户不存在", status_code=404)
@@ -178,7 +180,8 @@ class UserKindRoleRepo(object):
             update_role_list.append(UserRole(user_id=user.user_id, role_id=role_id))
         UserRole.objects.bulk_create(update_role_list)
 
-    def delete_user_roles(self, kind, kind_id, user, role_ids=None):
+    def delete_user_roles(self, kind: str, kind_id: str, user: Optional[Users],
+                          role_ids: Optional[List[int]] = None) -> None:
         if not user:
             raise ServiceHandleException(msg="no found user", msg_show="用户不存在", status_code=404)
         roles = RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
@@ -190,11 +193,12 @@ class UserKindRoleRepo(object):
                 user_roles = UserRole.objects.filter(role_id__in=has_role_ids, user_id=user.user_id)
             user_roles.delete()
 
-    def delete_users_role(self, kind, kind_id, role_id):
+    def delete_users_role(self, kind: str, kind_id: str, role_id: str) -> None:
         roles = RoleInfo.objects.filter(kind=kind, kind_id=kind_id)
         if roles:
             has_role_ids = roles.values_list("ID", flat=True)
-            if role_id in has_role_ids:
+            # role_id (str) membership against an int-valued flat QuerySet works at runtime
+            if role_id in has_role_ids:  # type: ignore[operator]
                 user_roles = UserRole.objects.filter(role_id=role_id)
                 user_roles.delete()
 
@@ -205,7 +209,7 @@ class OptimizedRolePermRepo(object):
     使用 JOIN 查询替代嵌套子查询，解决慢查询问题
     """
 
-    def get_user_team_perm_codes(self, user_id, tenant_id, app_id=-1):
+    def get_user_team_perm_codes(self, user_id: str, tenant_id: str, app_id: int = -1) -> List[Any]:
         """
         优化方法：获取用户在团队中的权限代码列表
         使用 JOIN 查询替代嵌套子查询
@@ -235,7 +239,7 @@ class OptimizedRolePermRepo(object):
             results = cursor.fetchall()
             return [row[0] for row in results]
 
-    def get_user_team_all_perms(self, user_id, tenant_id):
+    def get_user_team_all_perms(self, user_id: str, tenant_id: str) -> Dict[str, Any]:
         """
         一次性获取用户在团队中的所有权限（全局 + 应用）
 
@@ -251,7 +255,7 @@ class OptimizedRolePermRepo(object):
         """
         from django.db import connection
 
-        result = {
+        result: Dict[str, Any] = {
             'global_perms': [],
             'app_perms': {}
         }
