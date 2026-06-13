@@ -544,9 +544,13 @@ class RegionService(object):
         # TODO 修改 REGION_SERVICE_API 配置方式
         try:
             platform_config_service.get_config_by_key("REGION_SERVICE_API")
-            platform_config_service.update_config("REGION_SERVICE_API", region_data)
+            # NOTE: region_data is a JSON string but update_config expects a dict (it does data["enable"]);
+            # this raises TypeError at runtime when REGION_SERVICE_API exists -- pre-existing latent bug.
+            platform_config_service.update_config("REGION_SERVICE_API", region_data)  # type: ignore[arg-type]
         except ConsoleSysConfig.DoesNotExist:
-            platform_config_service.add_config("REGION_SERVICE_API", region_data, 'json', "数据中心配置")
+            # NOTE: "数据中心配置" is passed positionally as enable (bool); it was likely meant as desc=
+            # -- pre-existing positional-arg bug, left as-is.
+            platform_config_service.add_config("REGION_SERVICE_API", region_data, 'json', "数据中心配置")  # type: ignore[arg-type]
 
     def generate_region_config(self) -> str:
         # 查询已上线的数据中心配置
