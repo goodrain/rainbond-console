@@ -5335,7 +5335,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_summary(self):
+    def _tool_get_component_summary(self) -> dict:
         return {
             "name": "rainbond_get_component_summary",
             "description": "Get an aggregated summary of the component, including status, resources, ports, envs, build envs, storage, autoscaler rules, and recent events. Logs are excluded.",
@@ -5352,7 +5352,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_logs(self):
+    def _tool_get_component_logs(self) -> dict:
         return {
             "name": "rainbond_get_component_logs",
             "description": "获取组件日志。推荐优先使用 action=container 查询指定 pod/container 的容器日志；action=service 为组件普通日志，并在失败时自动回退到首个 pod/container。",
@@ -5374,7 +5374,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_exec_component(self):
+    def _tool_exec_component(self) -> dict:
         return {
             "name": "rainbond_exec",
             "description": (
@@ -5406,7 +5406,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_config_file(self):
+    def _tool_get_config_file(self) -> dict:
         return {
             "name": "rainbond_get_config_file",
             "description": (
@@ -5428,7 +5428,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_envs(self):
+    def _tool_manage_component_envs(self) -> dict:
         return {
             "name": "rainbond_manage_component_envs",
             "description": "高层自定义环境变量管理工具。只用于组件自身环境变量（custom envs, inner）和构建环境变量（build envs），不要用于组件连接信息（outer）。",
@@ -5483,7 +5483,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_connection_envs(self):
+    def _tool_manage_component_connection_envs(self) -> dict:
         return {
             "name": "rainbond_manage_component_connection_envs",
             "description": "高层组件连接信息管理工具。只用于组件连接信息（connection envs, outer），不要用于自定义环境变量（inner）。",
@@ -5505,7 +5505,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_detail(self):
+    def _tool_get_component_detail(self) -> dict:
         return {
             "name": "rainbond_get_component_detail",
             "description": "Get component detail by team, region, app and service ID.",
@@ -5521,7 +5521,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_pods(self):
+    def _tool_get_component_pods(self) -> dict:
         return {
             "name": "rainbond_get_component_pods",
             "description": "List runtime pods of the component with normalized group and container names.",
@@ -5537,7 +5537,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_pod_detail(self):
+    def _tool_get_pod_detail(self) -> dict:
         return {
             "name": "rainbond_get_pod_detail",
             "description": (
@@ -5562,7 +5562,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_events(self):
+    def _tool_get_component_events(self) -> dict:
         return {
             "name": "rainbond_get_component_events",
             "description": "Get component events with pagination.",
@@ -5580,7 +5580,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_operation_failure_context(self):
+    def _tool_get_operation_failure_context(self) -> dict:
         return {
             "name": "rainbond_get_operation_failure_context",
             "description": (
@@ -5617,7 +5617,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_build_logs(self):
+    def _tool_get_component_build_logs(self) -> dict:
         return {
             "name": "rainbond_get_component_build_logs",
             "description": (
@@ -5643,7 +5643,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_build_source(self):
+    def _tool_get_component_build_source(self) -> dict:
         return {
             "name": "rainbond_get_component_build_source",
             "description": "Get current build source summary for a component, including source type, repo/image info, build strategy, build envs, and available arch options. Passwords are not returned.",
@@ -5659,7 +5659,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_update_component_build_source(self):
+    def _tool_update_component_build_source(self) -> dict:
         return {
             "name": "rainbond_update_component_build_source",
             "description": "Update the component build source. Use this for switching between source_code and docker_run/image-manual style inputs; do not use it for build_env_dict updates.",
@@ -5697,7 +5697,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_component(self):
+    def _tool_create_component(self) -> dict:
         return {
             "name": "rainbond_create_component",
             "description": (
@@ -5722,7 +5722,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_component(self):
+    def _tool_delete_component(self) -> dict:
         return {
             "name": "rainbond_delete_component",
             "description": "Delete a component from the specified application.",
@@ -5741,7 +5741,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_operate_app(self):
+    def _tool_operate_app(self) -> dict:
         return {
             "name": "rainbond_operate_app",
             "description": "Batch operate application components. Supported actions: start, stop, restart, upgrade, deploy. "
@@ -5766,7 +5766,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_update_component_envs(self):
+    def _tool_update_component_envs(self) -> dict:
         return {
             "name": "rainbond_update_component_envs",
             "description": "Update component environment variables.",
@@ -5796,7 +5796,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_change_component_image(self):
+    def _tool_change_component_image(self) -> dict:
         return {
             "name": "rainbond_change_component_image",
             "description": "Change image of a docker-based component.",
@@ -5813,7 +5813,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_team_apps(self):
+    def _tool_get_team_apps(self) -> dict:
         return {
             "name": "rainbond_get_team_apps",
             "description": "Get application list under the specified team and region.",
@@ -5828,7 +5828,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_version_overview(self):
+    def _tool_get_app_version_overview(self) -> dict:
         return {
             "name": "rainbond_get_app_version_overview",
             "description": "Get the overview data used by the app version center, including current baseline snapshot and change summary.",
@@ -5843,7 +5843,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_list_app_version_snapshots(self):
+    def _tool_list_app_version_snapshots(self) -> dict:
         return {
             "name": "rainbond_list_app_version_snapshots",
             "description": "List snapshot versions for the specified app version center.",
@@ -5858,7 +5858,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_version_snapshot_detail(self):
+    def _tool_get_app_version_snapshot_detail(self) -> dict:
         return {
             "name": "rainbond_get_app_version_snapshot_detail",
             "description": "Get one snapshot version detail, including diff summary and template content.",
@@ -5874,7 +5874,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_app_version_snapshot(self):
+    def _tool_create_app_version_snapshot(self) -> dict:
         return {
             "name": "rainbond_create_app_version_snapshot",
             "description": "Create a new snapshot version for the app. Optional share payload lets you persist the exact draft content from the snapshot configuration page.",
@@ -5895,7 +5895,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_app_version_snapshot(self):
+    def _tool_delete_app_version_snapshot(self) -> dict:
         return {
             "name": "rainbond_delete_app_version_snapshot",
             "description": "Delete a non-current historical snapshot version.",
@@ -5911,7 +5911,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_rollback_app_version_snapshot(self):
+    def _tool_rollback_app_version_snapshot(self) -> dict:
         return {
             "name": "rainbond_rollback_app_version_snapshot",
             "description": "Rollback the current app runtime state to a target snapshot version.",
@@ -5927,7 +5927,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_list_app_version_rollback_records(self):
+    def _tool_list_app_version_rollback_records(self) -> dict:
         return {
             "name": "rainbond_list_app_version_rollback_records",
             "description": "List rollback records created by app version snapshot rollback actions.",
@@ -5942,7 +5942,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_version_rollback_record_detail(self):
+    def _tool_get_app_version_rollback_record_detail(self) -> dict:
         return {
             "name": "rainbond_get_app_version_rollback_record_detail",
             "description": "Get one app version rollback record with service-level status detail.",
@@ -5958,7 +5958,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_app_version_rollback_record(self):
+    def _tool_delete_app_version_rollback_record(self) -> dict:
         return {
             "name": "rainbond_delete_app_version_rollback_record",
             "description": "Delete a finished app version rollback record.",
@@ -5974,7 +5974,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_app_from_snapshot_version(self):
+    def _tool_create_app_from_snapshot_version(self) -> dict:
         return {
             "name": "rainbond_create_app_from_snapshot_version",
             "description": "Create a new app directly from a snapshot-generated hidden template without publishing it to the local library first.",
@@ -6003,7 +6003,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_publish_candidates(self):
+    def _tool_get_app_publish_candidates(self) -> dict:
         return {
             "name": "rainbond_get_app_publish_candidates",
             "description": "Get publish candidate app models for the version publish page. Use scope=local for local component library or scope=goodrain for cloud app market.",
@@ -6022,7 +6022,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_app_share_record(self):
+    def _tool_create_app_share_record(self) -> dict:
         return {
             "name": "rainbond_create_app_share_record",
             "description": "Create a draft share record for publish or snapshot configuration. For local publish keep scope empty; for cloud publish set scope=goodrain and target.store_id. Set snapshot_mode=true to enter the snapshot creation flow.",
@@ -6042,7 +6042,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_list_app_share_records(self):
+    def _tool_list_app_share_records(self) -> dict:
         return {
             "name": "rainbond_list_app_share_records",
             "description": "List publish records shown in the app version publish drawer.",
@@ -6059,7 +6059,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_share_record(self):
+    def _tool_get_app_share_record(self) -> dict:
         return {
             "name": "rainbond_get_app_share_record",
             "description": "Get one publish record used by the publish configuration page.",
@@ -6075,7 +6075,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_app_share_record(self):
+    def _tool_delete_app_share_record(self) -> dict:
         return {
             "name": "rainbond_delete_app_share_record",
             "description": "Delete or hide a finished publish record from the publish record drawer.",
@@ -6091,7 +6091,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_share_info(self):
+    def _tool_get_app_share_info(self) -> dict:
         return {
             "name": "rainbond_get_app_share_info",
             "description": "Get the draft share content for share step one. Returns publish_mode=snapshot when the draft is based on a snapshot version, otherwise publish_mode=runtime.",
@@ -6107,7 +6107,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_submit_app_share_info(self):
+    def _tool_submit_app_share_info(self) -> dict:
         return {
             "name": "rainbond_submit_app_share_info",
             "description": "Submit share step one data. app_version_info is required; runtime publish may also include share_service_list, share_plugin_list, and share_k8s_resources.",
@@ -6128,7 +6128,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_list_app_share_events(self):
+    def _tool_list_app_share_events(self) -> dict:
         return {
             "name": "rainbond_list_app_share_events",
             "description": "List share step two events for both components and plugins.",
@@ -6142,7 +6142,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_start_app_share_event(self):
+    def _tool_start_app_share_event(self) -> dict:
         return {
             "name": "rainbond_start_app_share_event",
             "description": "Trigger a share step two event. Use event_type=service for component media sync or event_type=plugin for plugin sync.",
@@ -6159,7 +6159,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_share_event(self):
+    def _tool_get_app_share_event(self) -> dict:
         return {
             "name": "rainbond_get_app_share_event",
             "description": "Query one share step two event status for a component or plugin event.",
@@ -6176,7 +6176,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_complete_app_share(self):
+    def _tool_complete_app_share(self) -> dict:
         return {
             "name": "rainbond_complete_app_share",
             "description": "Complete the publish workflow after all share events succeed.",
@@ -6192,7 +6192,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_giveup_app_share(self):
+    def _tool_giveup_app_share(self) -> dict:
         return {
             "name": "rainbond_giveup_app_share",
             "description": "Abort an unfinished share workflow and clean up its draft state.",
@@ -6206,7 +6206,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_build_component(self):
+    def _tool_build_component(self) -> dict:
         return {
             "name": "rainbond_build_component",
             "description": (
@@ -6241,7 +6241,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_last_upgrade_record(self):
+    def _tool_get_app_last_upgrade_record(self) -> dict:
         return {
             "name": "rainbond_get_app_last_upgrade_record",
             "description": "Get the latest upgrade or rollback record for the specified application.",
@@ -6258,7 +6258,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_app_upgrade_records(self):
+    def _tool_query_app_upgrade_records(self) -> dict:
         return {
             "name": "rainbond_query_app_upgrade_records",
             "description": "Query paginated upgrade records for the specified application.",
@@ -6276,7 +6276,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_app_upgrade_record(self):
+    def _tool_create_app_upgrade_record(self) -> dict:
         return {
             "name": "rainbond_create_app_upgrade_record",
             "description": "Create a new upgrade record for a specific upgrade group in the application.",
@@ -6292,7 +6292,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_upgrade_record(self):
+    def _tool_get_app_upgrade_record(self) -> dict:
         return {
             "name": "rainbond_get_app_upgrade_record",
             "description": "Get one upgrade record with service-level status details and snapshot metadata.",
@@ -6308,7 +6308,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_upgrade_detail(self):
+    def _tool_get_app_upgrade_detail(self) -> dict:
         return {
             "name": "rainbond_get_app_upgrade_detail",
             "description": "Get upgrade record context together with available target versions for that record.",
@@ -6324,7 +6324,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_upgrade_changes(self):
+    def _tool_get_app_upgrade_changes(self) -> dict:
         return {
             "name": "rainbond_get_app_upgrade_changes",
             "description": "Get property changes for a target upgrade version before executing the upgrade.",
@@ -6341,7 +6341,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_execute_app_upgrade_record(self):
+    def _tool_execute_app_upgrade_record(self) -> dict:
         return {
             "name": "rainbond_execute_app_upgrade_record",
             "description": "Execute one upgrade record with the selected target version and optional component subset.",
@@ -6362,7 +6362,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_deploy_app_upgrade_record(self):
+    def _tool_deploy_app_upgrade_record(self) -> dict:
         return {
             "name": "rainbond_deploy_app_upgrade_record",
             "description": "Redeploy or continue a specific upgrade/rollback record.",
@@ -6378,7 +6378,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_rollback_records(self):
+    def _tool_get_app_rollback_records(self) -> dict:
         return {
             "name": "rainbond_get_app_rollback_records",
             "description": "List rollback records derived from a specific upgrade record.",
@@ -6394,7 +6394,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_rollback_app_upgrade_record(self):
+    def _tool_rollback_app_upgrade_record(self) -> dict:
         return {
             "name": "rainbond_rollback_app_upgrade_record",
             "description": "Rollback a specific upgrade record using its internal snapshot.",
@@ -6410,7 +6410,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_app_upgrade_info(self):
+    def _tool_get_app_upgrade_info(self) -> dict:
         return {
             "name": "rainbond_get_app_upgrade_info",
             "description": "Get upgradeable application model information for the specified app.",
@@ -6425,7 +6425,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_upgrade_app(self):
+    def _tool_upgrade_app(self) -> dict:
         return {
             "name": "rainbond_upgrade_app",
             "description": "Upgrade an application using the direct high-level console upgrade flow. "
@@ -6446,7 +6446,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_copy_app_info(self):
+    def _tool_get_copy_app_info(self) -> dict:
         return {
             "name": "rainbond_get_copy_app_info",
             "description": "Get component metadata required before copying an application.",
@@ -6461,7 +6461,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_copy_app(self):
+    def _tool_copy_app(self) -> dict:
         return {
             "name": "rainbond_copy_app",
             "description": "Copy application components to another team/region/app using direct console copy flow.",
@@ -6483,7 +6483,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_cloud_markets(self):
+    def _tool_query_cloud_markets(self) -> dict:
         return {
             "name": "rainbond_query_cloud_markets",
             "description": "List configured cloud application markets for an enterprise.",
@@ -6497,7 +6497,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_local_app_models(self):
+    def _tool_query_local_app_models(self) -> dict:
         return {
             "name": "rainbond_query_local_app_models",
             "description": "List local application templates available inside the enterprise market.",
@@ -6518,7 +6518,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_cloud_app_models(self):
+    def _tool_query_cloud_app_models(self) -> dict:
         return {
             "name": "rainbond_query_cloud_app_models",
             "description": "List app templates from a specific cloud market.",
