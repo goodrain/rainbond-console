@@ -14,7 +14,7 @@ RUN mv /dist/index.html /app/ui/www/templates/index.html && \
     cp -a /dist/* /app/ui/www/static/dists/
 
 # build console
-FROM python:3.8-bullseye AS build-console
+FROM python:3.11-bookworm AS build-console
 ARG PYTHONPROXY
 ARG TARGETARCH
 ARG VERSION
@@ -32,7 +32,7 @@ RUN python -m venv --copies /app/ui/py_venv && \
     pip install --no-cache-dir /tmp/openapi-client $PYTHONPROXY && \
     rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz && \
     python manage.py collectstatic --noinput --ignore weavescope-src --ignore drf-yasg --ignore rest_framework && \
-    find /app/ui/py_venv/lib/python3.8/site-packages -depth -type d \( -name __pycache__ -o -name tests \) -exec rm -rf {} + && \
+    find /app/ui/py_venv/lib/python3.11/site-packages -depth -type d \( -name __pycache__ -o -name tests \) -exec rm -rf {} + && \
     find /app/ui/py_venv -name '*.pyc' -delete
 
 RUN git clone --depth=1 -b main https://github.com/goodrain/rainbond-chart /app/ui/rainbond-chart && \
@@ -44,7 +44,7 @@ RUN git clone --depth=1 -b main https://github.com/goodrain/rainbond-chart /app/
     chmod +x /tmp/helm
 
 # build console image
-FROM python:3.8-slim-bullseye
+FROM python:3.11-slim-bookworm
 
 ARG RELEASE_DESC=
 ARG VERSION
@@ -66,7 +66,8 @@ WORKDIR /app/ui
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
 	echo 'Asia/Shanghai' >/etc/timezone && \
 	apt-get update && apt-get --no-install-recommends install -y \
-	curl mariadb-client sqlite3 libmariadb3 && \
+	curl mariadb-client sqlite3 libmariadb3 \
+	libjpeg62-turbo libfreetype6 libpng16-16 zlib1g liblcms2-2 libwebp7 libtiff6 libopenjp2-7 libxcb1 && \
   mkdir -p /app/logs /app/data && \
 	rm -rf /var/lib/apt/lists/*
 
