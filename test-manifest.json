@@ -5637,9 +5637,9 @@
       "status": "active"
     },
     {
-      "id": "console.kubeblocks.create-no-credential-wait",
-      "title": "Create KubeBlocks component without waiting for credentials",
-      "title_zh": "创建 KubeBlocks 组件不等待连接凭据",
+      "id": "console.kubeblocks.create-credential-sync",
+      "title": "Sync KubeBlocks credentials when creating component",
+      "title_zh": "创建 KubeBlocks 组件时同步连接凭据",
       "interface_type": "service_method",
       "interface": "console.services.kubeblocks_service.KubeBlocksService.create_complete_kubeblocks_component",
       "code_paths": [

@@ -3381,9 +3381,9 @@
 - 代码路径: `console/services/kubeblocks_service.py`
 - 测试路径: `console/tests/kubeblocks_cluster_validation_test.py::KubeBlocksClusterValidationTests`
 
-### 创建 KubeBlocks 组件不等待连接凭据
+### 创建 KubeBlocks 组件时同步连接凭据
 
-- Capability ID: `console.kubeblocks.create-no-credential-wait`
+- Capability ID: `console.kubeblocks.create-credential-sync`
 - 状态: `active`
 - 测试类型: `regression`
 - 接口类型: `service_method`
