@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
+from typing import Any, Optional
+
 from console.repositories.base import BaseConnection
 from console.repositories.exceptions import UserRoleNotFoundException
 from console.models.main import TenantUserRole
 
 
 class UserRoleRepo(object):
-    def get_role_names(self, user_id, tenant_id):
+    def get_role_names(self, user_id: str, tenant_id: str) -> Any:
         sql = """
         SELECT
             group_concat( b.role_name ) AS role_names
@@ -26,7 +28,7 @@ class UserRoleRepo(object):
                 tenant_id=tenant_id, user_id=user_id))
         return result[0].get("role_names")
 
-    def get_viewer_role(self):
+    def get_viewer_role(self) -> Optional[TenantUserRole]:
         re = TenantUserRole.objects.filter(role_name="viewer")
         if re:
             return re[0]
