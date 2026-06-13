@@ -13,7 +13,9 @@ from www.models.main import TenantRegionInfo
 class RegionRepo(object):
     def get_active_region_by_tenant_name(self, tenant_name: str) -> Optional[QuerySet[TenantRegionInfo]]:
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=True)
-        regions = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True, is_init=True)
+        # exception=True guarantees a non-None tenant (raises otherwise)
+        regions = TenantRegionInfo.objects.filter(
+            tenant_id=tenant.tenant_id, is_active=True, is_init=True)  # type: ignore[union-attr]
         if regions:
             return regions
         return None
@@ -26,7 +28,8 @@ class RegionRepo(object):
 
     def get_region_by_tenant_name(self, tenant_name: str) -> Optional[QuerySet[TenantRegionInfo]]:
         tenant = team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=True)
-        regions = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id)
+        # exception=True guarantees a non-None tenant (raises otherwise)
+        regions = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id)  # type: ignore[union-attr]
         if regions:
             return regions
         return None
