@@ -6538,7 +6538,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_app_model_versions(self):
+    def _tool_query_app_model_versions(self) -> dict:
         return {
             "name": "rainbond_query_app_model_versions",
             "description": "List versions for a local or cloud app template.",
@@ -6557,7 +6557,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_install_app_model(self):
+    def _tool_install_app_model(self) -> dict:
         return {
             "name": "rainbond_install_app_model",
             "description": "Install a local or cloud app template into an existing app.",
@@ -6578,7 +6578,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_install_app_by_market(self):
+    def _tool_install_app_by_market(self) -> dict:
         return {
             "name": "rainbond_install_app_by_market",
             "description": "Install application components from market into an existing app.",
@@ -6603,7 +6603,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_component_from_source(self):
+    def _tool_create_component_from_source(self) -> dict:
         return {
             "name": "rainbond_create_component_from_source",
             "description": (
@@ -6662,7 +6662,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_component_from_package(self):
+    def _tool_create_component_from_package(self) -> dict:
         return {
             "name": "rainbond_create_component_from_package",
             "description": (
@@ -6685,7 +6685,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_init_package_upload(self):
+    def _tool_init_package_upload(self) -> dict:
         return {
             "name": "rainbond_init_package_upload",
             "description": "Initialize a package upload event and return the upload endpoint before sending the package file.",
@@ -6700,7 +6700,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_upload_package_file(self):
+    def _tool_upload_package_file(self) -> dict:
         return {
             "name": "rainbond_upload_package_file",
             "description": "Upload a local package file or directory to an initialized package upload event; directories are zipped automatically.",
@@ -6723,7 +6723,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_package_upload_status(self):
+    def _tool_get_package_upload_status(self) -> dict:
         return {
             "name": "rainbond_get_package_upload_status",
             "description": "Get uploaded package file names for a package upload event.",
@@ -6738,7 +6738,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_package_upload(self):
+    def _tool_delete_package_upload(self) -> dict:
         return {
             "name": "rainbond_delete_package_upload",
             "description": "Delete uploaded package artifacts for a package upload event and mark the upload record as deleted.",
@@ -6753,7 +6753,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_component_from_local_package(self):
+    def _tool_create_component_from_local_package(self) -> dict:
         return {
             "name": "rainbond_create_component_from_local_package",
             "description": (
@@ -6783,7 +6783,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_check_component(self):
+    def _tool_check_component(self) -> dict:
         return {
             "name": "rainbond_check_component",
             "description": "Step 2 of component creation: start source or package detection for the specified component.",
@@ -6801,7 +6801,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_component_check_result(self):
+    def _tool_get_component_check_result(self) -> dict:
         return {
             "name": "rainbond_get_component_check_result",
             "description": "Step 3 of component creation: get detection result and persist detected metadata.",
@@ -6829,7 +6829,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_component_from_image(self):
+    def _tool_create_component_from_image(self) -> dict:
         return {
             "name": "rainbond_create_component_from_image",
             "description": (
@@ -6854,7 +6854,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_app_from_yaml(self):
+    def _tool_create_app_from_yaml(self) -> dict:
         return {
             "name": "rainbond_create_app_from_yaml",
             "description": "Create a compose application from uploaded YAML event metadata.",
@@ -6873,7 +6873,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_check_yaml_app(self):
+    def _tool_check_yaml_app(self) -> dict:
         return {
             "name": "rainbond_check_yaml_app",
             "description": "Check a compose application created from YAML.",
@@ -6889,7 +6889,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_yaml_app_check_result(self):
+    def _tool_get_yaml_app_check_result(self) -> dict:
         return {
             "name": "rainbond_get_yaml_app_check_result",
             "description": "Get and persist compose YAML check result, returning generated services.",
@@ -6907,7 +6907,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_app_monitor(self):
+    def _tool_query_app_monitor(self) -> dict:
         return {
             "name": "rainbond_query_app_monitor",
             "description": "Query real-time monitor data of components under an application.",
@@ -6923,7 +6923,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_app_monitor_range(self):
+    def _tool_query_app_monitor_range(self) -> dict:
         return {
             "name": "rainbond_query_app_monitor_range",
             "description": "Query historical monitor data of components under an application.",
@@ -6942,7 +6942,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_gateway_rules(self):
+    def _tool_create_gateway_rules(self) -> dict:
         return {
             "name": "rainbond_create_gateway_rules",
             "description": "Create HTTP or TCP gateway rules for an application.",
@@ -6960,7 +6960,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_check_helm_app(self):
+    def _tool_check_helm_app(self) -> dict:
         return {
             "name": "rainbond_check_helm_app",
             "description": "Check helm application information before generating template or deployment.",
@@ -6982,7 +6982,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_build_helm_app(self):
+    def _tool_build_helm_app(self) -> dict:
         return {
             "name": "rainbond_build_helm_app",
             "description": "Generate helm application template directly through console helm flow.",
@@ -7003,7 +7003,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_handle_component_ports(self):
+    def _tool_handle_component_ports(self) -> dict:
         return {
             "name": "rainbond_handle_component_ports",
             "description": "List, add, update, or delete component ports.",
@@ -7034,7 +7034,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_ports(self):
+    def _tool_manage_component_ports(self) -> dict:
         return {
             "name": "rainbond_manage_component_ports",
             "description": (
@@ -7111,7 +7111,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_bind_component_volume(self):
+    def _tool_bind_component_volume(self) -> dict:
         return {
             "name": "rainbond_bind_component_volume",
             "description": "Bind a storage volume to a component.",
@@ -7139,7 +7139,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_storage(self):
+    def _tool_manage_component_storage(self) -> dict:
         return {
             "name": "rainbond_manage_component_storage",
             "description": (
@@ -7239,7 +7239,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_autoscaler(self):
+    def _tool_manage_component_autoscaler(self) -> dict:
         return {
             "name": "rainbond_manage_component_autoscaler",
             "description": "高层自动伸缩管理工具，统一处理伸缩规则和伸缩记录。",
@@ -7276,7 +7276,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_probe(self):
+    def _tool_manage_component_probe(self) -> dict:
         return {
             "name": "rainbond_manage_component_probe",
             "description": "高层探针管理工具，统一处理组件健康探针的查看、新增、修改、删除。",
@@ -7306,7 +7306,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_manage_component_dependency(self):
+    def _tool_manage_component_dependency(self) -> dict:
         return {
             "name": "rainbond_manage_component_dependency",
             "description": "高层依赖管理工具，统一处理组件依赖、反向依赖及可依赖组件查询。",
@@ -7335,7 +7335,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_horizontal_scale_component(self):
+    def _tool_horizontal_scale_component(self) -> dict:
         return {
             "name": "rainbond_horizontal_scale_component",
             "description": "Horizontally scale a component.",
@@ -7352,7 +7352,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_vertical_scale_component(self):
+    def _tool_vertical_scale_component(self) -> dict:
         return {
             "name": "rainbond_vertical_scale_component",
             "description": "Vertically scale a component.",
@@ -7371,7 +7371,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_close_apps(self):
+    def _tool_close_apps(self) -> dict:
         return {
             "name": "rainbond_close_apps",
             "description": "Batch stop application components in a team and region.",
@@ -7389,7 +7389,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_enterprises(self):
+    def _tool_query_enterprises(self) -> dict:
         return {
             "name": "rainbond_query_enterprises",
             "description": "Query enterprises that current enterprise administrator can access.",
@@ -7403,7 +7403,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_regions(self):
+    def _tool_query_regions(self) -> dict:
         return {
             "name": "rainbond_query_regions",
             "description": "Query cluster regions under the specified enterprise. Only available for enterprise administrators.",
@@ -7418,7 +7418,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_region_detail(self):
+    def _tool_get_region_detail(self) -> dict:
         return {
             "name": "rainbond_get_region_detail",
             "description": "Get cluster detail by region ID. Only available for enterprise administrators.",
@@ -7432,7 +7432,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_create_region(self):
+    def _tool_create_region(self) -> dict:
         return {
             "name": "rainbond_create_region",
             "description": "Create a new cluster metadata record.",
@@ -7457,7 +7457,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_update_region(self):
+    def _tool_update_region(self) -> dict:
         return {
             "name": "rainbond_update_region",
             "description": "Update cluster metadata.",
@@ -7482,7 +7482,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_region(self):
+    def _tool_delete_region(self) -> dict:
         return {
             "name": "rainbond_delete_region",
             "description": "Delete cluster metadata.",
@@ -7498,7 +7498,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_region_nodes(self):
+    def _tool_query_region_nodes(self) -> dict:
         return {
             "name": "rainbond_query_region_nodes",
             "description": "Query cluster nodes under the specified region.",
@@ -7511,7 +7511,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_get_region_node_detail(self):
+    def _tool_get_region_node_detail(self) -> dict:
         return {
             "name": "rainbond_get_region_node_detail",
             "description": "Get detail of a cluster node in the specified region.",
@@ -7525,7 +7525,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_region_rbd_components(self):
+    def _tool_query_region_rbd_components(self) -> dict:
         return {
             "name": "rainbond_query_region_rbd_components",
             "description": "Query Rainbond platform components running in the specified region.",
@@ -7538,7 +7538,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _build_create_region_data(self, arguments, enterprise_id):
+    def _build_create_region_data(self, arguments: dict, enterprise_id: str) -> dict:
         return {
             "region_id": arguments.get("region_id") or make_uuid(),
             "enterprise_id": enterprise_id,
@@ -7557,7 +7557,7 @@ class MCPQueryService(object):
             "desc": arguments.get("desc", "") or "",
         }
 
-    def _build_update_region_data(self, arguments):
+    def _build_update_region_data(self, arguments: dict) -> dict:
         allowed_fields = [
             "region_alias", "url", "token", "wsurl", "httpdomain", "tcpdomain", "scope", "ssl_ca_cert", "cert_file",
             "key_file", "status", "desc"
@@ -7570,7 +7570,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="invalid update payload", msg_show="至少需要提供一个可更新字段", status_code=400)
         return update_data
 
-    def _build_region_update_data(self, region):
+    def _build_region_update_data(self, region: Any) -> dict:
         return {
             "region_id": self._value(region, "region_id"),
             "region_alias": self._value(region, "region_alias"),
@@ -7590,7 +7590,7 @@ class MCPQueryService(object):
         }
 
 
-    def _tool_query_teams(self):
+    def _tool_query_teams(self) -> dict:
         return {
             "name": "rainbond_query_teams",
             "description": "Query teams under the specified enterprise.",
@@ -7606,7 +7606,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_apps(self):
+    def _tool_query_apps(self) -> dict:
         return {
             "name": "rainbond_query_apps",
             "description": "Query applications under the specified enterprise.",
@@ -7622,7 +7622,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_query_components(self):
+    def _tool_query_components(self) -> dict:
         return {
             "name": "rainbond_query_components",
             "description": "Query components under the specified application.",
@@ -7639,7 +7639,7 @@ class MCPQueryService(object):
             }
         }
 
-    def _tool_delete_app(self):
+    def _tool_delete_app(self) -> dict:
         return {
             "name": "rainbond_delete_app",
             "description": "Delete an application. This is a destructive operation and requires confirmation.",
