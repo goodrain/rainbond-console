@@ -39,6 +39,41 @@ jobs:
       - name: Check test manifest
         run: make test-manifest-check
 
+  typecheck:
+    runs-on: ubuntu-latest
+    container: python:3.11-bookworm
+    continue-on-error: true
+    env:
+      PIP_SRC: /tmp/pip-src
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install native dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends gcc git make default-libmysqlclient-dev sqlite3 curl
+
+      - name: Install Python dependencies
+        run: |
+          mkdir -p "$PIP_SRC"
+          python -m pip install --upgrade pip 'setuptools<70'
+          pip install -r requirements.txt
+
+      - name: Install openapi-client
+        run: |
+          curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz
+          mkdir -p /tmp/openapi-client
+          tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1
+          pip install /tmp/openapi-client
+          rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz
+
+      - name: Install typing dependencies
+        run: pip install -r requirements-typing.txt
+
+      - name: Run mypy (advisory)
+        run: make typecheck
+
   rainbond-allinone:
     needs: unit-test
     runs-on: ubuntu-latest
