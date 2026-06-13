@@ -12,10 +12,36 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "openapi_client" not in sys.modules:
+    openapi_client_module = ModuleType("openapi_client")
+    configuration_module = ModuleType("openapi_client.configuration")
+    rest_module = ModuleType("openapi_client.rest")
+
+    class _DummyConfiguration(object):
+        def __init__(self):
+            self.client_side_validation = False
+            self.host = ""
+            self.api_key = {}
+
+    class _DummyApiException(Exception):
+        status = 500
+        body = ""
+
+    openapi_client_module.ApiClient = object
+    openapi_client_module.MarketOpenapiApi = object
+    configuration_module.Configuration = _DummyConfiguration
+    rest_module.ApiException = _DummyApiException
+    openapi_client_module.configuration = configuration_module
+    openapi_client_module.rest = rest_module
+    sys.modules["openapi_client"] = openapi_client_module
+    sys.modules["openapi_client.configuration"] = configuration_module
+    sys.modules["openapi_client.rest"] = rest_module
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
+from django.db import OperationalError  # noqa: E402
+from django.db.transaction import TransactionManagementError  # noqa: E402
 from rest_framework.test import APIRequestFactory  # noqa: E402
 
 django.setup()
@@ -309,16 +335,31 @@ class CenterAppImportViewWorkflowTestCase(TestCase):
         record = mock.Mock()
         record.to_dict.return_value = {"event_id": "evt-1", "status": "success"}
 
-        with mock.patch.object(app_import_view_module.transaction, "savepoint", return_value="sp-1"), \
-                mock.patch.object(app_import_view_module.transaction, "savepoint_commit"), \
-                mock.patch.object(app_import_view_module.import_service, "get_and_update_import_by_event_id",
-                                  return_value=(record, [{"file_name": "demo-app", "status": "success"}])) as get_mock:
+        with mock.patch.object(app_import_view_module.import_service, "get_and_update_import_by_event_id",
+                               return_value=(record, [{"file_name": "demo-app", "status": "success"}])) as get_mock:
             response = self.view.get.__wrapped__.__wrapped__(self.view, request, "evt-1")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["data"]["bean"]["event_id"], "evt-1")
         self.assertEqual(response.data["data"]["list"][0]["status"], "success")
         get_mock.assert_called_once_with("evt-1", "amd64")
+
+    # capability_id: console.app-import.query-status
+    def test_get_preserves_database_error_when_transaction_is_broken(self):
+        request = self.factory.get("/console/center/app-import/evt-1", {"arch": "amd64"})
+        database_error = OperationalError("database is locked")
+        rollback_error = TransactionManagementError("An error occurred in the current transaction.")
+
+        with mock.patch.object(app_import_view_module.transaction, "savepoint", return_value="sp-1"), \
+                mock.patch.object(app_import_view_module.transaction, "savepoint_rollback",
+                                  side_effect=rollback_error) as rollback_mock, \
+                mock.patch.object(app_import_view_module.import_service, "get_and_update_import_by_event_id",
+                                  side_effect=database_error):
+            with self.assertRaises(OperationalError) as ctx:
+                self.view.get.__wrapped__.__wrapped__(self.view, request, "evt-1")
+
+        self.assertIs(ctx.exception, database_error)
+        rollback_mock.assert_not_called()
 
     # capability_id: console.app-import.abandon
     def test_delete_abandons_import(self):
@@ -330,6 +371,63 @@ class CenterAppImportViewWorkflowTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["msg_show"], "操作成功")
         delete_mock.assert_called_once_with("evt-1")
+
+
+class AppImportStatusUpdateTestCase(TestCase):
+    # capability_id: console.app-import.query-status
+    def test_get_and_update_import_by_event_id_skips_unchanged_running_status_save(self):
+        import_record = mock.Mock(status="importing", region="region-a", enterprise_id="eid-1")
+
+        with mock.patch(
+                "console.services.app_import_and_export_service."
+                "app_import_record_repo.get_import_record_by_event_id",
+                return_value=import_record,
+        ), mock.patch(
+                "console.services.app_import_and_export_service.region_api.get_enterprise_app_import_status",
+                return_value=(None, {"bean": {"status": "importing", "apps": "demo:checking"}}),
+        ):
+            record, apps_status = import_service.get_and_update_import_by_event_id("evt-1", "amd64")
+
+        self.assertIs(record, import_record)
+        self.assertEqual(apps_status, [{"file_name": "demo", "status": "checking"}])
+        import_record.save.assert_not_called()
+
+    # capability_id: console.app-import.query-status
+    def test_get_and_update_import_by_event_id_saves_partial_success_once(self):
+        import_record = mock.Mock(status="importing", region="region-a", enterprise_id="eid-1")
+
+        with mock.patch(
+                "console.services.app_import_and_export_service."
+                "app_import_record_repo.get_import_record_by_event_id",
+                return_value=import_record,
+        ), mock.patch(
+                "console.services.app_import_and_export_service.region_api.get_enterprise_app_import_status",
+                return_value=(None, {"bean": {"status": "importing", "apps": "web:success,worker:checking"}}),
+        ):
+            record, apps_status = import_service.get_and_update_import_by_event_id("evt-1", "amd64")
+
+        self.assertIs(record, import_record)
+        self.assertEqual(apps_status, [{"file_name": "web", "status": "success"}, {"file_name": "worker", "status": "checking"}])
+        self.assertEqual(import_record.status, "partial_success")
+        import_record.save.assert_called_once_with()
+
+    # capability_id: console.app-import.openapi-query-status
+    def test_openapi_deploy_app_get_import_by_event_id_skips_unchanged_status_save(self):
+        import_record = mock.Mock(status="importing", region="region-a", enterprise_id="eid-1")
+
+        with mock.patch(
+                "console.services.app_import_and_export_service."
+                "app_import_record_repo.get_import_record_by_event_id",
+                return_value=import_record,
+        ), mock.patch(
+                "console.services.app_import_and_export_service.region_api.get_enterprise_app_import_status",
+                return_value=(None, {"bean": {"status": "importing"}}),
+        ):
+            record, metadata = import_service.openapi_deploy_app_get_import_by_event_id("evt-1")
+
+        self.assertIs(record, import_record)
+        self.assertEqual(metadata, [])
+        import_record.save.assert_not_called()
 
 
 class AppImportServiceMetadataTestCase(TestCase):
