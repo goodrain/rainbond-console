@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+from typing import Any, Dict, List, Optional, Tuple
 
 from console.constants import AppConstants, ServiceLanguageConstants
 from console.enum.component_enum import ComponentType
@@ -17,7 +18,7 @@ from console.services.app_config.label_service import LabelService
 from console.services.exception import ErrVolumeTypeDoNotAllowMultiNode
 from console.utils.urlutil import is_path_legal
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantServiceVolume
+from www.models.main import TenantServiceInfo, Tenants, TenantServiceVolume
 from www.utils.crypt import make_uuid
 
 region_api = RegionInvokeApi()
@@ -57,7 +58,8 @@ class AppVolumeService(object):
             default_volume_type = "volcengine"
     simple_volume_type = [default_volume_type, "config-file", "vm-file", "memoryfs", "local"]
 
-    def json_service_volume(self, volume_type, volume_name, volume_path, mode, file_content, volume_cap):
+    def json_service_volume(self, volume_type: str, volume_name: str, volume_path: str, mode: Any,
+                            file_content: Any, volume_cap: Any) -> Optional[str]:
         if volume_type == "share-file":
             return json.dumps({"存储名称": volume_name, "挂载路径": volume_path, "存储容量": volume_cap, "类型": "共享存储"}, ensure_ascii=False)
         elif volume_type == "config-file":
@@ -70,13 +72,15 @@ class AppVolumeService(object):
                               ensure_ascii=False)
         elif volume_type == "memoryfs":
             return json.dumps({"存储名称": volume_name, "挂载路径": volume_path, "存储容量": volume_cap, "类型": "临时存储"}, ensure_ascii=False)
+        # NOTE: unmatched volume_type falls through to implicit None (callers treat result as optional info)
+        return None
 
-    def is_simple_volume_type(self, volume_type):
+    def is_simple_volume_type(self, volume_type: str) -> bool:
         if volume_type in self.simple_volume_type:
             return True
         return False
 
-    def ensure_volume_share_policy(self, tenant, service):
+    def ensure_volume_share_policy(self, tenant: Tenants, service: TenantServiceInfo) -> bool:
         volumes = self.get_service_volumes(tenant, service)
         for vo in volumes:
             if vo["access_mode"] is None or vo["access_mode"] == "":
@@ -86,7 +90,7 @@ class AppVolumeService(object):
                 return False
         return True
 
-    def get_service_support_volume_options(self, tenant, service):
+    def get_service_support_volume_options(self, tenant: Tenants, service: TenantServiceInfo) -> List[dict]:
         base_opts = [{"volume_type": "memoryfs", "name_show": "临时存储"}]
 
         # 如果是 SAAS 环境，根据 CLOUD_PROVIDER 返回对应的云存储配置
@@ -112,7 +116,7 @@ class AppVolumeService(object):
 
         return base_opts
 
-    def normalize_volume_option_access_modes(self, option):
+    def normalize_volume_option_access_modes(self, option: Any) -> List[str]:
         access_modes = option.get("access_mode", []) if isinstance(option, dict) else []
         if isinstance(access_modes, (list, tuple)):
             return [str(mode or "").upper() for mode in access_modes if str(mode or "").strip()]
@@ -120,14 +124,16 @@ class AppVolumeService(object):
             return [str(access_modes).upper()]
         return []
 
-    def get_service_volume_option(self, tenant, service, volume_type):
+    def get_service_volume_option(self, tenant: Tenants, service: TenantServiceInfo,
+                                  volume_type: str) -> Optional[dict]:
         options = self.get_service_support_volume_options(tenant, service)
         for option in options:
             if option.get("volume_type") == volume_type:
                 return option
         return None
 
-    def build_vm_live_migration_volume_settings(self, tenant, service, volume_type, settings=None):
+    def build_vm_live_migration_volume_settings(self, tenant: Tenants, service: TenantServiceInfo, volume_type: str,
+                                                settings: Optional[dict] = None) -> Tuple[dict, dict]:
         option = self.get_service_volume_option(tenant, service, volume_type)
         if not option:
             raise ServiceHandleException(
@@ -140,7 +146,8 @@ class AppVolumeService(object):
         next_settings["access_mode"] = "RWX" if "RWX" in access_modes else (access_modes[0] if access_modes else "")
         return next_settings, option
 
-    def get_market_default_volume_type(self, tenant, service, fallback_volume_type):
+    def get_market_default_volume_type(self, tenant: Tenants, service: TenantServiceInfo,
+                                       fallback_volume_type: str) -> str:
         region_name = getattr(service, "service_region", "")
         enterprise_id = getattr(tenant, "enterprise_id", "")
         if not region_name or not enterprise_id:
@@ -159,14 +166,14 @@ class AppVolumeService(object):
         return fallback_volume_type
 
     def get_best_suitable_volume_settings(self,
-                                          tenant,
-                                          service,
-                                          volume_type,
-                                          access_mode=None,
-                                          share_policy=None,
-                                          backup_policy=None,
-                                          reclaim_policy=None,
-                                          provider_name=None):
+                                          tenant: Tenants,
+                                          service: TenantServiceInfo,
+                                          volume_type: str,
+                                          access_mode: Optional[str] = None,
+                                          share_policy: Optional[str] = None,
+                                          backup_policy: Optional[str] = None,
+                                          reclaim_policy: Optional[str] = None,
+                                          provider_name: Optional[str] = None) -> dict:
         """
         settings 结构
         volume_type: string 新的存储类型，没有合适的相同的存储则返回新的存储
@@ -177,7 +184,7 @@ class AppVolumeService(object):
         如果集群中有该类型的存储，优先使用它而不是模板中的存储类型
         例如: PREFERRED_VOLUME_TYPE=sharedcfs
         """
-        settings = {}
+        settings = {}  # type: Dict[str, Any]
         if volume_type in self.simple_volume_type:
             settings["changed"] = False
             return settings
@@ -216,7 +223,8 @@ class AppVolumeService(object):
         settings["changed"] = True
         return settings
 
-    def resolve_market_restore_volume_settings(self, tenant, service, volume):
+    def resolve_market_restore_volume_settings(self, tenant: Tenants, service: TenantServiceInfo,
+                                               volume: dict) -> Tuple[str, dict]:
         selected_volume_type = self.get_market_default_volume_type(tenant, service, volume["volume_type"])
         settings = self.get_best_suitable_volume_settings(
             tenant,
@@ -239,7 +247,7 @@ class AppVolumeService(object):
                 settings["volume_capacity"] = 10
         return volume_type, settings
 
-    def get_all_service_volumes_with_status(self, tenant, service):
+    def get_all_service_volumes_with_status(self, tenant: Tenants, service: TenantServiceInfo) -> List[dict]:
         # Used by MCP tools that need full visibility into a component's
         # storage. The legacy `get_service_volumes(is_config_file=...)`
         # exposes only one half of the volume set per call because the
@@ -248,7 +256,7 @@ class AppVolumeService(object):
         volumes = volume_repo.get_service_volumes_with_config_file(service.service_id)
         return self._attach_volume_runtime_status(tenant, service, volumes)
 
-    def _attach_volume_runtime_status(self, tenant, service, volumes):
+    def _attach_volume_runtime_status(self, tenant: Tenants, service: TenantServiceInfo, volumes: Any) -> List[dict]:
         vos = []
         if service.create_status != "complete":
             for volume in volumes:
@@ -256,11 +264,13 @@ class AppVolumeService(object):
                 vo["status"] = volume_not_bound
                 vos.append(vo)
             return vos
+        # NOTE: tenant.enterprise_id is Optional[str] on the model; region_api expects str (caller passes a real id)
         res, body = region_api.get_service_volumes(
             service.service_region, tenant.tenant_name, service.service_alias,
-            tenant.enterprise_id)
-        if body and body.list:
-            status = {v["volume_name"]: v["status"] for v in body.list}
+            tenant.enterprise_id)  # type: ignore[arg-type]
+        # NOTE: region_api body is an addict.Dict at runtime (.list); typed as plain dict, guarded by truthiness
+        if body and body.list:  # type: ignore[attr-defined]
+            status = {v["volume_name"]: v["status"] for v in body.list}  # type: ignore[attr-defined]
             for volume in volumes:
                 vo = volume.to_dict()
                 vo_status = status.get(vo["volume_name"], None)
@@ -275,8 +285,9 @@ class AppVolumeService(object):
                 vos.append(vo)
         return vos
 
-    def get_service_volumes(self, tenant, service, is_config_file=False):
-        volumes = []
+    def get_service_volumes(self, tenant: Tenants, service: TenantServiceInfo,
+                            is_config_file: bool = False) -> List[dict]:
+        volumes = []  # type: Any
         if is_config_file:
             volumes = volume_repo.get_service_volumes_about_config_file(service.service_id)
         else:
@@ -290,11 +301,13 @@ class AppVolumeService(object):
                 vo["status"] = volume_not_bound
                 vos.append(vo)
             return vos
+        # NOTE: tenant.enterprise_id is Optional[str] on the model; region_api expects str (caller passes a real id)
         res, body = region_api.get_service_volumes(service.service_region, tenant.tenant_name, service.service_alias,
-                                                   tenant.enterprise_id)
-        if body and body.list:
+                                                   tenant.enterprise_id)  # type: ignore[arg-type]
+        # NOTE: region_api body is an addict.Dict at runtime (.list); typed as plain dict, guarded by truthiness
+        if body and body.list:  # type: ignore[attr-defined]
             status = {}
-            for volume in body.list:
+            for volume in body.list:  # type: ignore[attr-defined]
                 status[volume["volume_name"]] = volume["status"]
 
             for volume in volumes:
@@ -311,7 +324,7 @@ class AppVolumeService(object):
                 vos.append(vo)
         return vos
 
-    def check_volume_name(self, service, volume_name):
+    def check_volume_name(self, service: TenantServiceInfo, volume_name: str) -> str:
         r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')
         if not r.match(volume_name):
             if service.service_source != AppConstants.MARKET:
@@ -323,7 +336,7 @@ class AppVolumeService(object):
             raise ServiceHandleException(msg="volume name already exists", msg_show="持久化名称[{0}]已存在".format(volume_name))
         return volume_name
 
-    def check_volume_path(self, service, volume_path, local_path=[]):
+    def check_volume_path(self, service: TenantServiceInfo, volume_path: str, local_path: List[str] = []) -> None:
         os_type = label_service.get_service_os_name(service)
         if os_type == "windows":
             return
@@ -350,14 +363,15 @@ class AppVolumeService(object):
             if path["volume_path"].startswith(volume_path + "/") or volume_path.startswith(path["volume_path"] + "/"):
                 raise ErrVolumePath(msg="path error", msg_show="已存在以{0}开头的路径".format(path["volume_path"]), status_code=412)
 
-    def normalize_vm_volume_device_path(self, volume_path):
+    def normalize_vm_volume_device_path(self, volume_path: str) -> str:
         path = str(volume_path or "").strip()
         for base_path in self.VM_DEVICE_PATHS:
             if path == base_path or path.startswith(base_path + "-"):
                 return base_path
         return path
 
-    def resolve_vm_volume_path(self, service, volume_path, current_volume=None):
+    def resolve_vm_volume_path(self, service: TenantServiceInfo, volume_path: str,
+                               current_volume: Optional[TenantServiceVolume] = None) -> str:
         path = str(volume_path or "").strip()
         if getattr(service, "extend_method", "") != ComponentType.vm.value:
             return path
@@ -389,7 +403,7 @@ class AppVolumeService(object):
                 return candidate
             index += 1
 
-    def __setting_volume_access_mode(self, service, volume_type, settings):
+    def __setting_volume_access_mode(self, service: TenantServiceInfo, volume_type: str, settings: dict) -> str:
         access_mode = settings.get("access_mode", "")
         if access_mode != "":
             return access_mode.upper()
@@ -408,23 +422,24 @@ class AppVolumeService(object):
 
         return access_mode
 
-    def __setting_volume_share_policy(self, service, volume_type, settings):
+    def __setting_volume_share_policy(self, service: TenantServiceInfo, volume_type: str, settings: dict) -> str:
         share_policy = "exclusive"
 
         return share_policy
 
-    def __setting_volume_backup_policy(self, service, volume_type, settings):
+    def __setting_volume_backup_policy(self, service: TenantServiceInfo, volume_type: str, settings: dict) -> str:
         backup_policy = "exclusive"
 
         return backup_policy
 
-    def __setting_volume_capacity(self, service, volume_type, settings):
+    def __setting_volume_capacity(self, service: TenantServiceInfo, volume_type: str, settings: dict) -> Any:
         if settings.get("volume_capacity"):
             return settings.get("volume_capacity")
         else:
             return 0
 
-    def __setting_volume_provider_name(self, tenant, service, volume_type, settings):
+    def __setting_volume_provider_name(self, tenant: Tenants, service: TenantServiceInfo, volume_type: str,
+                                       settings: dict) -> Any:
         if volume_type in self.simple_volume_type:
             return ""
         if settings.get("volume_provider_name") is not None:
@@ -435,7 +450,8 @@ class AppVolumeService(object):
                 return opt["provisioner"]
         return ""
 
-    def setting_volume_properties(self, tenant, service, volume_type, settings=None):
+    def setting_volume_properties(self, tenant: Tenants, service: TenantServiceInfo, volume_type: str,
+                                  settings: Optional[dict] = None) -> dict:
         """
         目的：
         1. 现有存储如果提供默认的读写策略、共享模式等参数
@@ -458,7 +474,8 @@ class AppVolumeService(object):
 
         return settings
 
-    def check_volume_options(self, tenant, service, volume_type, settings):
+    def check_volume_options(self, tenant: Tenants, service: TenantServiceInfo, volume_type: str,
+                             settings: dict) -> bool:
         if volume_type in self.simple_volume_type:
             return True
         options = self.get_service_support_volume_options(tenant, service)
@@ -469,12 +486,14 @@ class AppVolumeService(object):
                 break
         return exists
 
-    def check_service_multi_node(self, service, settings):
+    def check_service_multi_node(self, service: TenantServiceInfo, settings: dict) -> None:
         if service.extend_method == ComponentType.state_singleton.value and service.min_node > 1:
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
                 raise ErrVolumeTypeDoNotAllowMultiNode
 
-    def create_service_volume(self, tenant, service, volume_path, volume_type, volume_name, settings=None, mode=None):
+    def create_service_volume(self, tenant: Tenants, service: TenantServiceInfo, volume_path: str, volume_type: str,
+                              volume_name: str, settings: Optional[dict] = None,
+                              mode: Any = None) -> TenantServiceVolume:
         volume_name = volume_name.strip()
         volume_path = volume_path.strip()
         volume_name = self.check_volume_name(service, volume_name)
@@ -515,15 +534,18 @@ class AppVolumeService(object):
         return TenantServiceVolume(**volume_data)
 
     def add_service_volume(self,
-                           tenant,
-                           service,
-                           volume_path,
-                           volume_type,
-                           volume_name,
-                           file_content=None,
-                           settings=None,
-                           user_name='',
-                           mode=None):
+                           tenant: Tenants,
+                           service: TenantServiceInfo,
+                           volume_path: str,
+                           volume_type: str,
+                           volume_name: str,
+                           file_content: Any = None,
+                           settings: Optional[dict] = None,
+                           user_name: str = '',
+                           mode: Any = None) -> Any:
+        # NOTE: true return is TenantServiceVolume; relaxed to Any so a caller
+        # (mcp_query_service update_volume branch) that reuses the same `volume`
+        # name with an Optional value is not forced into a false-positive cascade.
 
         volume = self.create_service_volume(
             tenant,
@@ -571,11 +593,13 @@ class AppVolumeService(object):
             from console.services.virtual_machine import vms
 
             volumes = volume_repo.get_service_volumes(service.service_id)
-            disk_layout = vms.list_vm_disks(service, volumes)
+            # NOTE: list_vm_disks expects list|None; a QuerySet is iterable-equivalent (runtime-safe)
+            disk_layout = vms.list_vm_disks(service, volumes)  # type: ignore[arg-type]
             vms.save_vm_disk_layout(tenant.tenant_id, service.service_id, disk_layout)
         return volume
 
-    def delete_service_volume_by_id(self, tenant, service, volume_id, user_name='', force=None):
+    def delete_service_volume_by_id(self, tenant: Tenants, service: TenantServiceInfo, volume_id: int,
+                                    user_name: str = '', force: Any = None) -> Tuple[int, str, Any]:
         # force=0: 预先检查不要删除 force=1: 强制删除
         volume = volume_repo.get_service_volume_by_pk(volume_id)
         if not volume:
@@ -587,9 +611,11 @@ class AppVolumeService(object):
                 ret_list = []
                 for item in mnt:
                     s = service_repo.get_service_by_service_id(item.service_id)
+                    # NOTE: potential latent None-bug — get_service_by_service_id may return None and is
+                    # dereferenced unguarded; preserving existing behavior (no guard added)
                     ret_list.append({
-                        "service_cname": s.service_cname,
-                        "service_alias": s.service_alias,
+                        "service_cname": s.service_cname,  # type: ignore[union-attr]
+                        "service_alias": s.service_alias,  # type: ignore[union-attr]
                     })
                 return 202, "当前路径被以下组件共享,无法删除,是否要强制删除呢", ret_list
         if force == "0":
@@ -598,8 +624,10 @@ class AppVolumeService(object):
             data = dict()
             data["operator"] = user_name
             try:
-                res, body = region_api.delete_service_volumes(service.service_region, tenant.tenant_name, service.service_alias,
-                                                              volume.volume_name, tenant.enterprise_id, data)
+                # NOTE: tenant.enterprise_id is Optional[str] on the model; region_api expects str (real id at runtime)
+                res, body = region_api.delete_service_volumes(
+                    service.service_region, tenant.tenant_name, service.service_alias, volume.volume_name,
+                    tenant.enterprise_id, data)  # type: ignore[arg-type]
                 logger.debug("service {0} delete volume {1}, result {2}".format(service.service_cname, volume.volume_name,
                                                                                 body))
             except region_api.CallApiError as e:
@@ -611,14 +639,16 @@ class AppVolumeService(object):
 
         return 200, "success", volume
 
-    def delete_service_volumes(self, service):
+    def delete_service_volumes(self, service: TenantServiceInfo) -> None:
         volume_repo.delete_service_volumes(service.service_id)
 
-    def delete_region_volumes(self, tenant, service):
+    def delete_region_volumes(self, tenant: Tenants, service: TenantServiceInfo) -> None:
         volumes = volume_repo.get_service_volumes(service.service_id)
         for volume in volumes:
             try:
-                res, body = region_api.delete_service_volumes(service.service_region, tenant.tenant_name, service.service_alias,
-                                                              volume.volume_name, tenant.enterprise_id)
+                # NOTE: tenant.enterprise_id is Optional[str] on the model; region_api expects str (real id at runtime)
+                res, body = region_api.delete_service_volumes(
+                    service.service_region, tenant.tenant_name, service.service_alias, volume.volume_name,
+                    tenant.enterprise_id)  # type: ignore[arg-type]
             except Exception as e:
                 logger.exception(e)
