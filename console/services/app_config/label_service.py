@@ -4,6 +4,7 @@
 """
 import logging
 from datetime import datetime
+from typing import Any, Optional, Tuple
 
 from console.repositories.label_repo import label_repo
 from console.repositories.label_repo import node_label_repo
@@ -12,6 +13,7 @@ from console.repositories.region_repo import region_repo
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.label import ServiceLabels
 from www.models.label import Labels
+from www.models.main import TenantServiceInfo, Tenants
 from www.utils.crypt import make_uuid
 
 logger = logging.getLogger("default")
@@ -19,11 +21,11 @@ region_api = RegionInvokeApi()
 
 
 class LabelService(object):
-    def list_available_labels(self, tenant, region_name):
+    def list_available_labels(self, tenant: Tenants, region_name: str) -> Optional[list]:
         try:
             labels = self.get_region_labels(tenant, region_name)
             if not labels:
-                return
+                return None
 
             self._sync_labels(labels)
 
@@ -34,7 +36,7 @@ class LabelService(object):
             return []
 
     @staticmethod
-    def _sync_labels(labels):
+    def _sync_labels(labels: Any) -> None:
         label_names = [label.label_name for label in label_repo.get_all_labels()]
 
         new_labels = []
@@ -50,19 +52,20 @@ class LabelService(object):
                 ))
         label_repo.bulk_create(new_labels)
 
-    def get_service_labels(self, service):
+    def get_service_labels(self, service: TenantServiceInfo) -> dict:
         service_label_ids = service_label_repo.get_service_labels(service.service_id).values_list("label_id", flat=True)
         logger.debug('----------------->{0}'.format(service_label_ids))
         region_config = region_repo.get_region_by_region_name(service.service_region)
-        node_label_ids = []
+        node_label_ids: Any = []
         # 判断标签是否被节点使用
         if region_config:
             node_label_ids = node_label_repo.get_node_label_by_region(
                 region_config.region_id).exclude(label_id__in=service_label_ids).values_list(
                     "label_id", flat=True)
-        used_labels = label_repo.get_labels_by_label_ids(service_label_ids)
+        # NOTE: service_label_ids is a values_list QuerySet; get_labels_by_label_ids expects List[str].
+        used_labels = label_repo.get_labels_by_label_ids(service_label_ids)  # type: ignore[arg-type]
         logger.debug('-----------used_labels------->{0}'.format(used_labels))
-        unused_labels = []
+        unused_labels: Any = []
         if node_label_ids:
             unused_labels = label_repo.get_labels_by_label_ids(node_label_ids)
 
@@ -72,10 +75,11 @@ class LabelService(object):
         }
         return result
 
-    def add_service_labels(self, tenant, service, label_ids, user_name=''):
+    def add_service_labels(self, tenant: Tenants, service: TenantServiceInfo, label_ids: Any,
+                           user_name: str = '') -> Tuple[int, str, None]:
         labels = label_repo.get_labels_by_label_ids(label_ids)
         labels_list = list()
-        body = dict()
+        body: dict = dict()
         label_map = [label.label_name for label in labels]
         service_labels = list()
         for label_id in label_ids:
@@ -97,19 +101,22 @@ class LabelService(object):
                 if "is exist" not in e.body.get("msg"):
                     logger.exception(e)
                     return 507, "组件异常", None
-        ServiceLabels.objects.bulk_create(service_labels)
+        # NOTE: django-stubs misses .objects on ServiceLabels (model in follow_imports-silenced module); valid at runtime.
+        ServiceLabels.objects.bulk_create(service_labels)  # type: ignore[attr-defined]
         return 200, "操作成功", None
 
-    def get_region_labels(self, tenant, region_name):
+    def get_region_labels(self, tenant: Tenants, region_name: str) -> Any:
         data = region_api.get_region_labels(region_name, tenant.tenant_name)
-        return data["list"]
+        return data["list"]  # type: ignore[index]
+        # NOTE: region_api.get_region_labels return body is Optional; unguarded deref preserved.
 
-    def delete_service_label(self, tenant, service, label_id, user_name=''):
+    def delete_service_label(self, tenant: Tenants, service: TenantServiceInfo, label_id: str,
+                             user_name: str = '') -> Tuple[int, str, None]:
 
         label = label_repo.get_label_by_label_id(label_id)
         if not label:
             return 404, "指定标签不存在", None
-        body = dict()
+        body: dict = dict()
         # 组件标签删除
         label_dict = dict()
         label_list = list()
@@ -128,7 +135,7 @@ class LabelService(object):
 
         return 200, "success", None
 
-    def update_service_state_label(self, tenant, service):
+    def update_service_state_label(self, tenant: Tenants, service: TenantServiceInfo) -> Tuple[int, str]:
         service_status = service.extend_method
         label_dict = dict()
         body = dict()
@@ -141,13 +148,13 @@ class LabelService(object):
         region_api.update_service_state_label(service.service_region, tenant.tenant_name, service.service_alias, label_dict)
         return 200, "success"
 
-    def set_service_os_label(self, tenant, service, os):
+    def set_service_os_label(self, tenant: Tenants, service: TenantServiceInfo, os: str) -> Tuple[int, str, None]:
         os_label = label_repo.get_labels_by_label_name(os)
         if not os_label:
             os_label = label_repo.create_label(os, os)
         return self.add_service_labels(tenant, service, [os_label.label_id])
 
-    def get_service_os_name(self, service):
+    def get_service_os_name(self, service: TenantServiceInfo) -> str:
         os_label = label_repo.get_labels_by_label_name("windows")
         if os_label:
             if service_label_repo.get_service_label(service.service_id, os_label.label_id):
