@@ -69,9 +69,32 @@ class KubeBlocksService(object):
             # 在Region中创建资源
             self._create_region_service(tenant, new_service, user.nick_name)
 
-            # 配置端口信息,传递数据库类型
             database_type = creation_params.get('database_type', '')
-            self._configure_service_ports(tenant, user, region_name, new_service, database_type=database_type)
+            connect_ctx = self._fetch_connection_info(
+                region_name=region_name,
+                service_id=new_service.service_id,
+                msg_show="获取数据库连接信息失败"
+            )
+
+            # 添加数据库连接账号信息
+            self._add_database_env_vars(
+                tenant,
+                user,
+                region_name,
+                new_service,
+                connect_ctx=connect_ctx,
+                database_type=database_type
+            )
+
+            # 配置端口信息,传递数据库类型
+            self._configure_service_ports(
+                tenant,
+                user,
+                region_name,
+                new_service,
+                connect_ctx=connect_ctx,
+                database_type=database_type
+            )
 
             # 构建部署组件
             deploy_result = self._deploy_component(tenant, new_service, user)
@@ -476,21 +499,21 @@ class KubeBlocksService(object):
 
         # 根据数据库类型生成环境变量名前缀
         db_type_upper = database_type.upper() if database_type else ''
-        password_attr_name = f"{db_type_upper}_DEFAULT_PASSWORD" if db_type_upper else "DEFAULT_PASSWORD"
-        username_attr_name = f"{db_type_upper}_DEFAULT_USERNAME" if db_type_upper else "DEFAULT_USERNAME"
+        password_attr_name = f"{db_type_upper}_PASSWORD" if db_type_upper else "PASSWORD"
+        username_attr_name = f"{db_type_upper}_USER" if db_type_upper else "USER"
 
         # 添加数据库连接信息
         env_vars = [
             {
-                "name": "Password",
-                "attr_name": password_attr_name,
-                "attr_value": connect_info.get("password", ""),
-                "scope": "outer"
-            },
-            {
                 "name": "Username",
                 "attr_name": username_attr_name,
                 "attr_value": connect_info.get("username", "root"),
+                "scope": "outer"
+            },
+            {
+                "name": "Password",
+                "attr_name": password_attr_name,
+                "attr_value": connect_info.get("password", ""),
                 "scope": "outer"
             }
         ]
@@ -818,11 +841,15 @@ class KubeBlocksService(object):
                 return 500, {"msg_show": msg or "创建新组件失败"}
 
             # 将备份恢复到新组件
-            status_code, region_restore_data = self.restore_cluster_from_backup(region_name, old_service, new_service,
-                                                                                backup_name)
+            status_code, region_restore_data = self.restore_cluster_from_backup(
+                region_name, old_service, new_service, backup_name
+            )
             if status_code != 200:
-                msg_show = region_restore_data.get("msg_show", "恢复失败") if isinstance(region_restore_data,
-                                                                                         dict) else "恢复失败"
+                msg_show = (
+                    region_restore_data.get("msg_show", "恢复失败")
+                    if isinstance(region_restore_data, dict)
+                    else "恢复失败"
+                )
                 raise ServiceHandleException(
                     msg="restore from backup failed",
                     msg_show=msg_show
@@ -955,7 +982,9 @@ class KubeBlocksService(object):
             else:
                 msg_show = body.get("msg_show", "恢复失败") if isinstance(body, dict) else "恢复失败"
                 logger.error(
-                    f"KubeBlocks 集群恢复失败: service_id={old_service.service_id}, backup={backup_name}, status={status_code}, msg={msg_show}")
+                    f"KubeBlocks 集群恢复失败: service_id={old_service.service_id}, "
+                    f"backup={backup_name}, status={status_code}, msg={msg_show}"
+                )
                 return status_code, {"msg_show": msg_show}
 
         except Exception as e:
@@ -1693,8 +1722,11 @@ class KubeBlocksService(object):
             elif status_code == 403:
                 return 403, {"msg_show": "无权限"}
             else:
-                msg_show = response_body.get("msg_show", "更新参数失败") if isinstance(response_body,
-                                                                                       dict) else "更新参数失败"
+                msg_show = (
+                    response_body.get("msg_show", "更新参数失败")
+                    if isinstance(response_body, dict)
+                    else "更新参数失败"
+                )
                 return status_code, {"msg_show": msg_show}
 
         except Exception as e:
@@ -1967,14 +1999,20 @@ class KubeBlocksService(object):
             repo_name=repo_name,
             secret_name=secret_name,
             secret_namespace=BACKUP_REPO_SECRET_NAMESPACE,
-            storage_provider=(data.get("storage_provider") or data.get("storageProviderRef") or BACKUP_REPO_DEFAULT_PROVIDER).strip(),
+            storage_provider=(
+                data.get("storage_provider") or data.get("storageProviderRef") or BACKUP_REPO_DEFAULT_PROVIDER
+            ).strip(),
             access_method=(data.get("access_method") or data.get("accessMethod") or BACKUP_REPO_DEFAULT_ACCESS_METHOD).strip(),
             bucket=(data.get("bucket") or "").strip(),
             endpoint=(data.get("endpoint") or "").strip(),
             region=(data.get("region") or "").strip(),
             force_path_style=self._parse_backup_repo_force_path_style(data),
-            volume_capacity=(data.get("volume_capacity") or data.get("volumeCapacity") or BACKUP_REPO_DEFAULT_VOLUME_CAPACITY).strip(),
-            pv_reclaim_policy=(data.get("pv_reclaim_policy") or data.get("pvReclaimPolicy") or BACKUP_REPO_DEFAULT_RECLAIM_POLICY).strip(),
+            volume_capacity=(
+                data.get("volume_capacity") or data.get("volumeCapacity") or BACKUP_REPO_DEFAULT_VOLUME_CAPACITY
+            ).strip(),
+            pv_reclaim_policy=(
+                data.get("pv_reclaim_policy") or data.get("pvReclaimPolicy") or BACKUP_REPO_DEFAULT_RECLAIM_POLICY
+            ).strip(),
             path_prefix=(data.get("path_prefix") or data.get("pathPrefix") or "").strip(),
             creator=getattr(user, "nick_name", "") or getattr(user, "username", ""),
         )

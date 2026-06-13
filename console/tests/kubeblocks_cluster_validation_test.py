@@ -87,10 +87,10 @@ class KubeBlocksCreateFlowTests(unittest.TestCase):
     def setUp(self):
         self.service = KubeBlocksService()
 
-    # capability_id: console.kubeblocks.create-no-credential-wait
-    def test_create_complete_does_not_wait_for_connection_info(self):
+    # capability_id: console.kubeblocks.create-credential-sync
+    def test_create_complete_syncs_database_credentials(self):
         tenant = SimpleNamespace(tenant_id="tenant-1", namespace="team-a-ns")
-        user = SimpleNamespace(nick_name="alice")
+        user = SimpleNamespace(nick_name="alice", get_username=lambda: "alice")
         new_service = SimpleNamespace(
             service_id="service-1",
             service_alias="gr000001",
@@ -109,20 +109,23 @@ class KubeBlocksCreateFlowTests(unittest.TestCase):
                 }
             }
         }
+        connect_ctx = {"connect_infos": [{"user": "stub-user", "password": "stub-password"}]}
 
         with mock.patch.object(self.service, "_create_component_metadata", return_value=new_service), \
                 mock.patch.object(self.service, "_create_cluster", return_value=(True, cluster_result)), \
                 mock.patch.object(self.service, "_update_component_name"), \
                 mock.patch.object(self.service, "_add_to_application_group"), \
                 mock.patch.object(self.service, "_create_region_service"), \
+                mock.patch.object(self.service, "_fetch_connection_info", return_value=connect_ctx) as fetch_info, \
+                mock.patch.object(self.service, "_add_database_env_vars") as add_database_env_vars, \
                 mock.patch.object(self.service, "_configure_service_ports") as configure_ports, \
                 mock.patch.object(self.service, "_deploy_component", return_value={"status": "ok"}), \
                 mock.patch.object(self.service, "_build_success_response", return_value={"service_id": "service-1"}), \
                 mock.patch.object(self.service, "_cleanup_on_failure"), \
-                mock.patch.object(kubeblocks_module.deploy_repo, "create_deploy_relation_by_service_id"), \
-                mock.patch.object(kubeblocks_module.region_api, "get_kubeblocks_connect_info",
-                                  side_effect=AssertionError("must not wait for connection info during create")) as fetch_info:
-            success, result_data, error_msg = self.service.create_complete_kubeblocks_component(
+                mock.patch.object(kubeblocks_module.deploy_repo, "create_deploy_relation_by_service_id"):
+            create_complete = self.service.create_complete_kubeblocks_component.__wrapped__
+            success, result_data, error_msg = create_complete(
+                self.service,
                 tenant=tenant,
                 user=user,
                 region_name="region-a",
@@ -135,11 +138,42 @@ class KubeBlocksCreateFlowTests(unittest.TestCase):
         self.assertTrue(success)
         self.assertEqual(result_data, {"service_id": "service-1"})
         self.assertIsNone(error_msg)
-        fetch_info.assert_not_called()
+        fetch_info.assert_called_once_with(region_name="region-a", service_id="service-1", msg_show="获取数据库连接信息失败")
+        add_database_env_vars.assert_called_once()
+        self.assertEqual(add_database_env_vars.call_args[1]["connect_ctx"], fetch_info.return_value)
+        self.assertEqual(add_database_env_vars.call_args[1]["database_type"], "mysql")
         configure_ports.assert_called_once()
+        self.assertEqual(configure_ports.call_args[1]["connect_ctx"], fetch_info.return_value)
         self.assertEqual(configure_ports.call_args[1]["database_type"], "mysql")
 
-    # capability_id: console.kubeblocks.create-no-credential-wait
+    # capability_id: console.kubeblocks.create-credential-sync
+    def test_add_database_env_vars_uses_database_user_and_password_names(self):
+        tenant = SimpleNamespace(tenant_id="tenant-1", enterprise_id="enterprise-1", tenant_name="team-a")
+        user = SimpleNamespace(nick_name="alice", get_username=lambda: "alice")
+        service = SimpleNamespace(
+            tenant_id="tenant-1",
+            service_id="service-1",
+            service_alias="gr000001",
+            service_region="region-a",
+            create_status="creating",
+        )
+
+        self.service.env_service = mock.Mock()
+        self.service.env_service.add_service_env_var.return_value = (200, "success", SimpleNamespace())
+
+        self.service._add_database_env_vars(
+            tenant=tenant,
+            user=user,
+            region_name="region-a",
+            service=service,
+            connect_ctx={"connect_infos": [{"user": "stub-user", "password": "stub-password"}]},
+            database_type="mysql",
+        )
+
+        attr_names = [call_args[1]["attr_name"] for call_args in self.service.env_service.add_service_env_var.call_args_list]
+        self.assertEqual(attr_names, ["MYSQL_USER", "MYSQL_PASSWORD"])
+
+    # capability_id: console.kubeblocks.create-credential-sync
     def test_configure_service_ports_uses_database_type_default_port(self):
         tenant = SimpleNamespace(tenant_id="tenant-1")
         user = SimpleNamespace(nick_name="alice")
