@@ -9,10 +9,12 @@ import logging
 import os
 import random
 import string
+from typing import Any, Dict as TypingDict, List, Optional, Tuple
 from addict import Dict
 
 from django.db import transaction
 from django.db.models import Q
+from django.db.models import QuerySet
 from django.forms.models import model_to_dict
 
 # enum
@@ -49,6 +51,8 @@ from www.models.main import TenantServiceInfo
 from www.models.main import ThirdPartyServiceEndpoints
 from www.models.main import TenantServicesPort
 from www.models.main import ServiceGroup
+from www.models.main import Tenants
+from www.models.main import Users
 from www.tenantservice.baseservice import (BaseTenantService, CodeRepositoriesService, ServicePluginResource)
 from www.utils.crypt import make_uuid
 from www.utils.status_translate import get_status_info_map
@@ -71,8 +75,8 @@ class AppService(object):
         AppConstants.DOCKER_RUN: {"min_memory": 512, "cpu_mode": "fixed", "min_cpu": 0},
     }
 
-    def is_k8s_component_name_duplicate(self, app_id, k8s_component_name, component_id=""):
-        components = []
+    def is_k8s_component_name_duplicate(self, app_id: str, k8s_component_name: str, component_id: str = "") -> bool:
+        components: Any = []
         component_ids = service_group_relation_repo.get_components_by_app_id(app_id).values_list("service_id")
         if len(component_ids) > 0:
             components = service_repo.list_by_ids(component_ids)
@@ -81,14 +85,14 @@ class AppService(object):
                 return True
         return False
 
-    def check_service_cname(self, tenant, service_cname, region):
+    def check_service_cname(self, tenant: Tenants, service_cname: str, region: str) -> Tuple[bool, str]:
         if not service_cname:
             return False, "组件名称不能为空"
         if len(service_cname) > 100:
             return False, "组件名称最多支持100个字符"
         return True, "success"
 
-    def get_component_source_default_resources(self, region, service_source):
+    def get_component_source_default_resources(self, region: str, service_source: str) -> dict:
         resource_spec = self.DEFAULT_COMPONENT_SOURCE_RESOURCES.get(service_source)
         if not resource_spec:
             raise ServiceHandleException(msg="unsupported service source", msg_show="不支持的组件来源", status_code=400)
@@ -103,7 +107,7 @@ class AppService(object):
             "total_memory": min_memory,
         }
 
-    def __init_source_code_app(self, region):
+    def __init_source_code_app(self, region: str) -> TenantServiceInfo:
         """
         初始化源码创建的组件默认数据,未存入数据库
         """
@@ -138,21 +142,21 @@ class AppService(object):
         return tenant_service
 
     def create_source_code_app(self,
-                               region,
-                               tenant,
-                               user,
-                               service_code_from,
-                               service_cname,
-                               service_code_clone_url,
-                               service_code_id,
-                               service_code_version,
-                               server_type,
-                               check_uuid=None,
-                               event_id=None,
-                               oauth_service_id=None,
-                               git_full_name=None,
-                               k8s_component_name="",
-                               arch="amd64"):
+                               region: str,
+                               tenant: Tenants,
+                               user: Users,
+                               service_code_from: str,
+                               service_cname: str,
+                               service_code_clone_url: str,
+                               service_code_id: str,
+                               service_code_version: str,
+                               server_type: str,
+                               check_uuid: Optional[str] = None,
+                               event_id: Optional[str] = None,
+                               oauth_service_id: Optional[str] = None,
+                               git_full_name: Optional[str] = None,
+                               k8s_component_name: str = "",
+                               arch: str = "amd64") -> Tuple[int, str, Optional[TenantServiceInfo]]:
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
@@ -179,7 +183,7 @@ class AppService(object):
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, "创建成功", ts
 
-    def ensure_source_build_default_locale_envs(self, tenant, service):
+    def ensure_source_build_default_locale_envs(self, tenant: Tenants, service: TenantServiceInfo) -> None:
         default_envs = (
             ("LANG", "C.UTF-8"),
             ("LC_ALL", "C.UTF-8"),
@@ -199,8 +203,10 @@ class AppService(object):
                 scope="inner",
             )
 
-    def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id, service_code_version,
-                          check_uuid, event_id, oauth_service_id, git_full_name):
+    def init_repositories(self, service: TenantServiceInfo, user: Users, service_code_from: str,
+                          service_code_clone_url: str, service_code_id: str, service_code_version: str,
+                          check_uuid: Optional[str], event_id: Optional[str], oauth_service_id: Optional[str],
+                          git_full_name: Optional[str]) -> Tuple[int, str]:
         if service_code_from == SourceCodeType.GITLAB_MANUAL or service_code_from == SourceCodeType.GITLAB_DEMO:
             service_code_id = "0"
 
@@ -243,7 +249,8 @@ class AppService(object):
 
         return 200, "success"
 
-    def create_service_source_info(self, tenant, service, user_name, password):
+    def create_service_source_info(self, tenant: Tenants, service: TenantServiceInfo, user_name: str,
+                                   password: str) -> Any:
         params = {
             "team_id": tenant.tenant_id,
             "service_id": service.service_id,
@@ -252,7 +259,7 @@ class AppService(object):
         }
         return service_source_repo.update_or_create_service_source(**params)
 
-    def __init_package_build_app(self, region):
+    def __init_package_build_app(self, region: str) -> TenantServiceInfo:
         """
         初始化本地文件创建的组件默认数据,未存入数据库
         """
@@ -286,8 +293,9 @@ class AppService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def create_package_upload_info(self, region, tenant, user, service_cname, k8s_component_name, event_id, pkg_create_time,
-                                   arch):
+    def create_package_upload_info(self, region: str, tenant: Tenants, user: Users, service_cname: str,
+                                   k8s_component_name: str, event_id: str, pkg_create_time: str,
+                                   arch: str) -> Any:
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
@@ -310,14 +318,14 @@ class AppService(object):
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return ts
 
-    def change_package_upload_info(self, service_id, event_id, pkg_create_time):
+    def change_package_upload_info(self, service_id: str, event_id: str, pkg_create_time: str) -> int:
         data = {
             "git_url": "/grdata/package_build/components/" + service_id + "/events/" + event_id,
             "code_version": pkg_create_time
         }
         return TenantServiceInfo.objects.filter(service_id=service_id).update(**data)
 
-    def __init_docker_image_app(self, region):
+    def __init_docker_image_app(self, region: str) -> TenantServiceInfo:
         """
         初始化docker image创建的组件默认数据,未存入数据库
         """
@@ -350,7 +358,7 @@ class AppService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def __init_vm_image_app(self, region):
+    def __init_vm_image_app(self, region: str) -> TenantServiceInfo:
         """
         初始化vm image创建的组件默认数据,未存入数据库
         """
@@ -382,7 +390,7 @@ class AppService(object):
         tenant_service.service_source = "vm_run"
         return tenant_service
 
-    def create_service_alias(self, service_id):
+    def create_service_alias(self, service_id: str) -> str:
         service_alias = "gr" + service_id[-6:]
         svc = service_repo.get_service_by_service_alias(service_alias)
         if svc is None:
@@ -391,15 +399,15 @@ class AppService(object):
         return service_alias
 
     def create_docker_run_app(self,
-                              region,
-                              tenant,
-                              user,
-                              service_cname,
-                              docker_cmd,
-                              image_type,
-                              k8s_component_name,
-                              image="",
-                              arch="amd64"):
+                              region: str,
+                              tenant: Tenants,
+                              user: Users,
+                              service_cname: str,
+                              docker_cmd: str,
+                              image_type: str,
+                              k8s_component_name: str,
+                              image: str = "",
+                              arch: str = "amd64") -> Tuple[int, str, Optional[TenantServiceInfo]]:
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
             return 412, msg, None
@@ -429,12 +437,12 @@ class AppService(object):
         return 200, "创建成功", ts
 
     def create_kubeblocks_component(self,
-                              region,
-                              tenant,
-                              user,
-                              service_cname,
-                              k8s_component_name="",
-                              arch="amd64"):
+                              region: str,
+                              tenant: Tenants,
+                              user: Users,
+                              service_cname: str,
+                              k8s_component_name: str = "",
+                              arch: str = "amd64") -> Tuple[int, str, Optional[TenantServiceInfo]]:
         """
         创建 KubeBlocks 组件
 
@@ -468,15 +476,15 @@ class AppService(object):
 
         return 200, "创建成功", ts
     def create_vm_run_app(self,
-                          region,
-                          tenant,
-                          user,
-                          service_cname,
-                          k8s_component_name,
-                          image="",
-                          arch="amd64",
-                          event_id="",
-                          vm_url=""):
+                          region: str,
+                          tenant: Tenants,
+                          user: Users,
+                          service_cname: str,
+                          k8s_component_name: str,
+                          image: str = "",
+                          arch: str = "amd64",
+                          event_id: str = "",
+                          vm_url: str = "") -> Tuple[int, str, Optional[TenantServiceInfo]]:
         is_pass, msg = self.check_service_cname(tenant, service_cname, region)
         if not is_pass:
             return 412, msg, None
@@ -500,7 +508,7 @@ class AppService(object):
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return 200, "创建成功", ts
 
-    def __init_third_party_app(self, region):
+    def __init_third_party_app(self, region: str) -> TenantServiceInfo:
         """
         初始化创建外置组件的默认数据,未存入数据库
         """
@@ -532,7 +540,7 @@ class AppService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def __init_kubeblocks_component(self, region):
+    def __init_kubeblocks_component(self, region: str) -> TenantServiceInfo:
         """
         初始化 KubeBlocks 组件的默认数据，未存入数据库
         
@@ -582,14 +590,14 @@ class AppService(object):
         return tenant_service
 
     def create_third_party_app(self,
-                               region,
-                               tenant,
-                               user,
-                               service_cname,
-                               static_endpoints,
-                               endpoints_type,
-                               source_config={},
-                               k8s_component_name=""):
+                               region: str,
+                               tenant: Tenants,
+                               user: Users,
+                               service_cname: str,
+                               static_endpoints: Any,
+                               endpoints_type: str,
+                               source_config: dict = {},
+                               k8s_component_name: str = "") -> Any:
         new_service = self._create_third_component(tenant, region, user, service_cname, k8s_component_name)
         new_service.save()
         if endpoints_type == "kubernetes":
@@ -638,7 +646,8 @@ class AppService(object):
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
         return ts
 
-    def create_third_components(self, tenant, region_name, user, app: ServiceGroup, component_type, services):
+    def create_third_components(self, tenant: Tenants, region_name: str, user: Users, app: ServiceGroup,
+                                component_type: str, services: Any) -> None:
         if component_type != "kubernetes":
             raise AbortRequest("unsupported third component type: {}".format(component_type))
         components = self.create_third_components_kubernetes(tenant, region_name, user, app, services)
@@ -653,7 +662,8 @@ class AppService(object):
             raise ErrThirdComponentStartFailed()
 
     @transaction.atomic
-    def create_third_components_kubernetes(self, tenant, region_name, user, app: ServiceGroup, services):
+    def create_third_components_kubernetes(self, tenant: Tenants, region_name: str, user: Users, app: ServiceGroup,
+                                           services: Any) -> list:
         components = []
         relations = []
         endpoints = []
@@ -731,7 +741,8 @@ class AppService(object):
 
         return components
 
-    def _create_third_component(self, tenant, region_name, user, service_cname, k8s_component_name=""):
+    def _create_third_component(self, tenant: Tenants, region_name: str, user: Users, service_cname: str,
+                                k8s_component_name: str = "") -> TenantServiceInfo:
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(tenant, service_cname, region_name)
         if not is_pass:
@@ -750,7 +761,8 @@ class AppService(object):
         return component
 
     @staticmethod
-    def _save_third_components(components, relations, third_endpoints, ports, envs):
+    def _save_third_components(components: list, relations: list, third_endpoints: list, ports: list,
+                              envs: list) -> None:
         service_repo.bulk_create(components)
         service_group_relation_repo.bulk_create(relations)
         service_endpoints_repo.bulk_create(third_endpoints)
@@ -758,7 +770,7 @@ class AppService(object):
         env_var_repo.bulk_create(envs)
 
     @staticmethod
-    def _create_third_component_body(component, endpoint, ports, envs):
+    def _create_third_component_body(component: TenantServiceInfo, endpoint: dict, ports: list, envs: list) -> dict:
         component_base = component.to_dict()
         component_base["component_id"] = component_base["service_id"]
         component_base["component_name"] = component_base["service_name"]
@@ -776,33 +788,35 @@ class AppService(object):
         }
 
     @staticmethod
-    def _sync_third_components(tenant_name, region_name, region_app_id, component_bodies):
+    def _sync_third_components(tenant_name: str, region_name: str, region_app_id: str, component_bodies: list) -> None:
         body = {
             "components": component_bodies,
         }
         region_api.sync_components(tenant_name, region_name, region_app_id, body)
 
     @staticmethod
-    def _rollback_third_components(tenant_name, region_name, region_app_id, components: [TenantServiceInfo]):
+    def _rollback_third_components(tenant_name: str, region_name: str, region_app_id: str,
+                                  components: List[TenantServiceInfo]) -> None:
         body = {
             "delete_component_ids": [component.component_id for component in components],
         }
         region_api.sync_components(tenant_name, region_name, region_app_id, body)
 
-    def get_app_list(self, tenant_id, region, dep_app_name):
+    def get_app_list(self, tenant_id: str, region: str, dep_app_name: str) -> QuerySet:
         q = Q(tenant_id=tenant_id, service_region=region)
         if dep_app_name:
             q &= Q(service_cname__contains=dep_app_name)
 
         return TenantServiceInfo.objects.filter(q)
 
-    def get_service_status(self, tenant, service):
+    def get_service_status(self, tenant: Tenants, service: TenantServiceInfo) -> dict:
         """获取组件状态"""
         start_time = ""
         try:
             body = region_api.check_service_status(service.service_region, tenant.tenant_name, service.service_alias,
-                                                   tenant.enterprise_id)
-            bean = body["bean"]
+                                                   tenant.enterprise_id)  # type: ignore[arg-type]
+            # NOTE: check_service_status may return None; guarded by the surrounding try/except.
+            bean = body["bean"]  # type: ignore[index]
             status = bean["cur_status"]
             start_time = bean["start_time"]
             vm_restore = bean.get("vm_restore", {})
@@ -815,7 +829,8 @@ class AppService(object):
         status_info_map["vm_restore"] = vm_restore
         return status_info_map
 
-    def create_region_service(self, tenant, service, user_name, do_deploy=True, dep_sids=None):
+    def create_region_service(self, tenant: Tenants, service: TenantServiceInfo, user_name: str,
+                              do_deploy: bool = True, dep_sids: Any = None) -> TenantServiceInfo:
         data = self.__init_create_data(tenant, service, user_name, do_deploy, dep_sids)
         service_dep_relations = dep_relation_repo.get_service_dependencies(tenant.tenant_id, service.service_id)
         # handle dependencies attribute
@@ -844,12 +859,12 @@ class AppService(object):
         if volume_info:
             volume_list = []
             for volume in volume_info:
-                volume_info = model_to_dict(volume)
+                volume_dict = model_to_dict(volume)
                 if volume.volume_type == "config-file":
                     config_file = volume_repo.get_service_config_file(volume)
                     if config_file:
-                        volume_info.update({"file_content": config_file.file_content})
-                volume_list.append(volume_info)
+                        volume_dict.update({"file_content": config_file.file_content})
+                volume_list.append(volume_dict)
             data["volumes_info"] = volume_list
 
         logger.debug(tenant.tenant_name + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
@@ -870,7 +885,8 @@ class AppService(object):
 
         # app id
         app_id = service_group_relation_repo.get_group_id_by_service(service)
-        region_app_id = region_app_repo.get_region_app_id(service.service_region, app_id)
+        # NOTE: get_group_id_by_service may return None; potential latent None-bug.
+        region_app_id = region_app_repo.get_region_app_id(service.service_region, app_id)  # type: ignore[arg-type]
         data["app_id"] = region_app_id
 
         # handle component monitor
@@ -884,10 +900,10 @@ class AppService(object):
             'service_id', 'probe_id', 'mode', 'scheme', 'path', 'port', 'cmd', 'http_header', 'initial_delay_second',
             'period_second', 'timeout_second', 'is_used', 'failure_threshold', 'success_threshold')
         if probes:
-            probes = list(probes)
-            for i in range(len(probes)):
-                probes[i]['is_used'] = 1 if probes[i]['is_used'] else 0
-            data["component_probes"] = probes
+            probe_list: List[Any] = list(probes)
+            for i in range(len(probe_list)):
+                probe_list[i]['is_used'] = 1 if probe_list[i]['is_used'] else 0
+            data["component_probes"] = probe_list
         # handle gateway rules
         http_rules = http_rule_repo.get_service_domains(service.service_id)
         if http_rules:
@@ -898,10 +914,10 @@ class AppService(object):
 
         stream_rule = tcp_domain.get_service_tcpdomains(service.service_id)
         if stream_rule:
-            rule_data = []
-            for rule in stream_rule:
-                rule_data.append(self.__init_stream_rule_for_region(tenant, service, rule, user_name))
-            data["tcp_rules"] = rule_data
+            tcp_rule_data = []
+            for tcp_rule in stream_rule:
+                tcp_rule_data.append(self.__init_stream_rule_for_region(tenant, service, tcp_rule, user_name))
+            data["tcp_rules"] = tcp_rule_data
         if not service.k8s_component_name:
             service.k8s_component_name = service.service_alias
         data["k8s_component_name"] = service.k8s_component_name
@@ -920,7 +936,7 @@ class AppService(object):
         arch_service.update_affinity_by_arch(service.arch, tenant, service.service_region, service)
         return service
 
-    def __sync_k8s_attributes_to_region(self, tenant, service):
+    def __sync_k8s_attributes_to_region(self, tenant: Tenants, service: TenantServiceInfo) -> None:
         """Sync k8s attributes from console DB to region DB after component is registered in region."""
         try:
             attrs = k8s_attribute_repo.get_by_component_id(service.service_id)
@@ -947,7 +963,7 @@ class AppService(object):
         except Exception as e:
             logger.warning("[compose-debug] query k8s attributes for sync FAILED: {0}".format(e))
 
-    def __get_component_k8s_attributes_payload(self, service):
+    def __get_component_k8s_attributes_payload(self, service: TenantServiceInfo) -> list:
         attrs = k8s_attribute_repo.get_by_component_id(service.service_id)
         if not attrs:
             return []
@@ -970,9 +986,10 @@ class AppService(object):
             })
         return payload
 
-    def __init_stream_rule_for_region(self, tenant, service, rule, user_name):
+    def __init_stream_rule_for_region(self, tenant: Tenants, service: TenantServiceInfo, rule: Any,
+                                      user_name: str) -> dict:
 
-        data = dict()
+        data: TypingDict[str, Any] = dict()
         data["tcp_rule_id"] = rule.tcp_rule_id
         data["service_id"] = service.service_id
         data["container_port"] = rule.container_port
@@ -989,11 +1006,12 @@ class AppService(object):
             data["rule_extensions"] = rule_extensions
         return data
 
-    def __init_http_rule_for_region(self, tenant, service, rule, user_name):
+    def __init_http_rule_for_region(self, tenant: Tenants, service: TenantServiceInfo, rule: Any,
+                                    user_name: str) -> dict:
         certificate_info = None
         if rule.certificate_id:
             certificate_info = http_rule_repo.get_certificate_by_pk(int(rule.certificate_id))
-        data = dict()
+        data: TypingDict[str, Any] = dict()
         data["uuid"] = make_uuid(rule.domain_name)
         data["domain"] = rule.domain_name
         data["service_id"] = service.service_id
@@ -1032,8 +1050,9 @@ class AppService(object):
         data["rewrites"] = rewrites
         return data
 
-    def __init_create_data(self, tenant, service, user_name, do_deploy, dep_sids):
-        data = dict()
+    def __init_create_data(self, tenant: Tenants, service: TenantServiceInfo, user_name: str, do_deploy: bool,
+                           dep_sids: Any) -> dict:
+        data: TypingDict[str, Any] = dict()
         data["tenant_id"] = tenant.tenant_id
         data["service_id"] = service.service_id
         data["service_key"] = service.service_key
@@ -1068,7 +1087,7 @@ class AppService(object):
         data["service_name"] = service.service_name
         return data
 
-    def add_service_default_porbe(self, tenant, service):
+    def add_service_default_porbe(self, tenant: Tenants, service: TenantServiceInfo) -> Tuple[int, str, Any]:
         ports = port_service.get_service_ports(service)
         port_length = len(ports)
         if port_length >= 1:
@@ -1095,7 +1114,8 @@ class AppService(object):
             return probe_service.add_service_probe(tenant, service, data)
         return 200, "success", None
 
-    def update_check_app(self, tenant, service, data, user):
+    def update_check_app(self, tenant: Tenants, service: TenantServiceInfo, data: dict,
+                         user: Users) -> Tuple[int, str]:
 
         service_source = service_source_repo.get_service_source(tenant.tenant_id, service.service_id)
         if service.extend_method == "vm":
@@ -1111,6 +1131,7 @@ class AppService(object):
                 volume_service.add_service_volume(
                     tenant, service, "/disk", disk_volume_type, "disk", "", settings, user.nick_name, mode=None)
             else:
+                # NOTE: in this else branch len(volumes) != 0, so volume is non-None (invariant).
                 volume = volumes.filter(volume_name="disk").first() or volumes.first()
                 settings = {
                     'volume_capacity': disk_cap
@@ -1118,11 +1139,11 @@ class AppService(object):
                 if disk_volume_type:
                     settings, option = volume_service.build_vm_live_migration_volume_settings(
                         tenant, service, disk_volume_type, settings)
-                    volume.volume_type = disk_volume_type
-                    volume.access_mode = settings.get("access_mode", volume.access_mode)
-                    volume.volume_provider_name = option.get("provisioner", "")
-                volume.volume_capacity = disk_cap
-                volume.save()
+                    volume.volume_type = disk_volume_type  # type: ignore[union-attr]
+                    volume.access_mode = settings.get("access_mode", volume.access_mode)  # type: ignore[union-attr]
+                    volume.volume_provider_name = option.get("provisioner", "")  # type: ignore[union-attr]
+                volume.volume_capacity = disk_cap  # type: ignore[union-attr]
+                volume.save()  # type: ignore[union-attr]
 
         service_cname = data.get("service_cname", service.service_cname)
         image = data.get("image", service.image)
@@ -1168,7 +1189,7 @@ class AppService(object):
                 service_source.save()
         return 200, "success"
 
-    def generate_service_cname(self, tenant, service_cname, region):
+    def generate_service_cname(self, tenant: Tenants, service_cname: str, region: str) -> str:
         rt_name = service_cname
         while True:
             service = service_repo.get_service_by_region_tenant_and_name(tenant.tenant_id, rt_name, region)
@@ -1179,7 +1200,8 @@ class AppService(object):
                 break
         return rt_name
 
-    def create_third_party_service(self, tenant, service, user_name, is_inner_service=False):
+    def create_third_party_service(self, tenant: Tenants, service: TenantServiceInfo, user_name: str,
+                                   is_inner_service: bool = False) -> TenantServiceInfo:
         data = self.__init_third_party_data(tenant, service, user_name)
         # env var
         envs_info = env_var_repo.get_service_env(tenant.tenant_id, service.service_id).values(
@@ -1208,7 +1230,8 @@ class AppService(object):
         data["etcd_key"] = service.check_uuid
         # 数据中心创建
         app_id = service_group_relation_repo.get_group_id_by_service(service)
-        region_app_id = region_app_repo.get_region_app_id(service.service_region, app_id)
+        # NOTE: get_group_id_by_service may return None; potential latent None-bug.
+        region_app_id = region_app_repo.get_region_app_id(service.service_region, app_id)  # type: ignore[arg-type]
         data["app_id"] = region_app_id
         if not service.k8s_component_name:
             service.k8s_component_name = service.service_alias
@@ -1220,8 +1243,8 @@ class AppService(object):
         service.save()
         return service
 
-    def __init_third_party_data(self, tenant, service, user_name):
-        data = dict()
+    def __init_third_party_data(self, tenant: Tenants, service: TenantServiceInfo, user_name: str) -> dict:
+        data: TypingDict[str, Any] = dict()
         data["tenant_id"] = tenant.tenant_id
         data["service_id"] = service.service_id
         data["service_alias"] = service.service_alias
@@ -1234,24 +1257,29 @@ class AppService(object):
         data["port_type"] = service.port_type
         return data
 
-    def get_service_by_service_key(self, service, dep_service_key):
+    def get_service_by_service_key(self, service: TenantServiceInfo,
+                                   dep_service_key: str) -> Optional[TenantServiceInfo]:
         """
         get service according to service_key that is sometimes called service_share_uuid.
         """
         group_id = service_group_relation_repo.get_group_id_by_service(service)
-        dep_services = service_repo.list_by_svc_share_uuids(group_id, [dep_service_key])
+        # NOTE: get_group_id_by_service may return None; potential latent None-bug.
+        dep_services = service_repo.list_by_svc_share_uuids(group_id, [dep_service_key])  # type: ignore[arg-type]
         if not dep_services:
             logger.warning("service share uuid: {}; failed to get dep service: \
                 service not found".format(dep_service_key))
             return None
         return dep_services[0]
 
-    def get_code_long_build_version(self, eid, region, lang, show, build_strategy=""):
-        return region_api.get_lang_version(eid, region, lang, show, build_strategy).get("list", [])
+    def get_code_long_build_version(self, eid: str, region: str, lang: str, show: Any,
+                                    build_strategy: str = "") -> list:
+        # NOTE: get_lang_version may return None; potential latent None-bug.
+        return region_api.get_lang_version(eid, region, lang, show, build_strategy).get("list", [])  # type: ignore[union-attr]
 
 
 class AppMarketService(object):
-    def get_app_markets(self, enterprise_id, extend, user_id=None, for_publish=False):
+    def get_app_markets(self, enterprise_id: str, extend: str, user_id: Optional[str] = None,
+                        for_publish: bool = False) -> list:
         """获取应用市场列表"""
         markets = app_market_repo.get_app_markets(enterprise_id, user_id, for_publish)
         
@@ -1263,6 +1291,7 @@ class AppMarketService(object):
             app_market_repo.create_default_app_market_if_not_exists(markets, enterprise_id, None)
         
         market_list = []
+        market: Any
         for market in markets:
             dt = {
                 "access_key": market.access_key,
@@ -1307,8 +1336,9 @@ class AppMarketService(object):
             market_list.append(dt)
         return market_list
 
-    def get_app_market(self, enterprise_id, market_name, user_id=None, extend="false", raise_exception=False):
-        market = app_market_repo.get_app_market_by_name(
+    def get_app_market(self, enterprise_id: str, market_name: str, user_id: Optional[str] = None, extend: str = "false",
+                       raise_exception: bool = False) -> Tuple[dict, Any]:
+        market: Any = app_market_repo.get_app_market_by_name(
             enterprise_id, market_name, user_id=user_id if os.getenv("USE_SAAS") else None, raise_exception=raise_exception
         )
         dt = {
@@ -1352,17 +1382,19 @@ class AppMarketService(object):
             })
         return dt, market
 
-    def get_app_market_by_name(self, enterprise_id, name, user_id=None, raise_exception=False):
+    def get_app_market_by_name(self, enterprise_id: str, name: str, user_id: Optional[str] = None,
+                               raise_exception: bool = False) -> Any:
         """根据名称获取应用市场"""
         return app_market_repo.get_app_market_by_name(
             enterprise_id, name, user_id=user_id if os.getenv("USE_SAAS") else None, 
             raise_exception=raise_exception
         )
 
-    def get_app_market_by_domain_url(self, enterprise_id, domain, url, raise_exception=False):
+    def get_app_market_by_domain_url(self, enterprise_id: str, domain: str, url: str,
+                                     raise_exception: bool = False) -> Any:
         return app_market_repo.get_app_market_by_domain_url(enterprise_id, domain, url, raise_exception=raise_exception)
 
-    def create_app_market(self, data, user_id=None):
+    def create_app_market(self, data: dict, user_id: Optional[str] = None) -> Any:
         """创建应用市场"""
         exit_market = app_market_repo.get_app_market_by_name(
             enterprise_id=data["enterprise_id"], 
@@ -1375,7 +1407,7 @@ class AppMarketService(object):
         return app_market_repo.create_app_market(user_id=user_id, **data)
 
     @transaction.atomic
-    def batch_create_app_market(self, eid, data, user_id=None):
+    def batch_create_app_market(self, eid: str, data: Any, user_id: Optional[str] = None) -> list:
         """批量创建应用市场"""
         if data is not None:
             for dt in data:
@@ -1385,12 +1417,15 @@ class AppMarketService(object):
                     user_id=user_id if os.getenv("USE_SAAS") else None
                 )
                 if exist_market:
-                    app_market_repo.update_access_key(enterprise_id=eid, name=dt["name"], access_key=dt["access_key"], user_id=user_id)
+                    # NOTE: update_access_key expects str user_id but user_id may be None; potential latent None-bug.
+                    app_market_repo.update_access_key(
+                        enterprise_id=eid, name=dt["name"], access_key=dt["access_key"],
+                        user_id=user_id)  # type: ignore[arg-type]
                     continue
                 app_market_repo.create_app_market(user_id=user_id, **dt)
         return self.get_app_markets(eid, extend="true", user_id=user_id, for_publish=bool(user_id))
 
-    def update_app_market(self, app_market, data):
+    def update_app_market(self, app_market: AppMarket, data: dict) -> AppMarket:
         exit_market = app_market_repo.get_app_market_by_name(enterprise_id=data["enterprise_id"], name=data["name"])
         if exit_market:
             if exit_market.ID != app_market.ID:
@@ -1404,7 +1439,7 @@ class AppMarketService(object):
         app_market.save()
         return app_market
 
-    def app_models_serializers(self, market, data, extend=False):
+    def app_models_serializers(self, market: AppMarket, data: Any, extend: bool = False) -> list:
         app_models = []
 
         if data:
@@ -1458,7 +1493,7 @@ class AppMarketService(object):
                 app_models.append(Dict(market_info))
         return app_models
 
-    def app_model_serializers(self, market, data, extend=False):
+    def app_model_serializers(self, market: AppMarket, data: Any, extend: bool = False) -> Any:
         app_model = {}
         if data:
             app_model = {
@@ -1491,7 +1526,7 @@ class AppMarketService(object):
                 })
         return Dict(app_model)
 
-    def app_model_versions_serializers(self, market, data, extend=False):
+    def app_model_versions_serializers(self, market: AppMarket, data: Any, extend: bool = False) -> list:
         app_models = []
         if data:
             for dt in data:
@@ -1510,7 +1545,7 @@ class AppMarketService(object):
                 app_models.append(Dict(version))
         return app_models
 
-    def app_model_version_serializers(self, market, data, extend=False):
+    def app_model_version_serializers(self, market: AppMarket, data: Any, extend: bool = False) -> Any:
         version = {}
         if data:
             version = {
@@ -1532,34 +1567,38 @@ class AppMarketService(object):
             }
         return Dict(version)
 
-    def get_market_app_list(self, market, page=1, page_size=10, query=None, query_all=False, extend=False, arch=""):
+    def get_market_app_list(self, market: AppMarket, page: int = 1, page_size: int = 10, query: Optional[str] = None,
+                            query_all: bool = False, extend: bool = False, arch: str = "") -> Tuple[Any, Any, Any, Any]:
         if is_cloud_market_disabled():
             return [], page, page_size, 0
         results = app_store.get_apps(market, page=page, page_size=page_size, query=query, query_all=query_all, arch=arch)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
-    def get_market_plugins_apps(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
+    def get_market_plugins_apps(self, market: AppMarket, page: int = 1, page_size: int = 10, query: Optional[str] = None,
+                                query_all: bool = False, extend: bool = False) -> Tuple[Any, Any, Any, Any]:
         if is_cloud_market_disabled():
             return [], page, page_size, 0
         results = app_store.get_plugins_apps(market, page=page, page_size=page_size, query=query, query_all=query_all)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
-    def get_market_app_models(self, market, page=1, page_size=10, query=None, query_all=False, extend=False):
+    def get_market_app_models(self, market: AppMarket, page: int = 1, page_size: int = 10, query: Optional[str] = None,
+                              query_all: bool = False, extend: bool = False) -> Tuple[Any, Any, Any, Any]:
         if is_cloud_market_disabled():
             return [], page, page_size, 0
         results = app_store.get_apps_templates(market, page=page, page_size=page_size, query=query, query_all=query_all)
         data = self.app_models_serializers(market, results.apps, extend=extend)
         return data, results.page, results.page_size, results.total
 
-    def get_market_app_model(self, market, app_id, extend=False):
+    def get_market_app_model(self, market: AppMarket, app_id: str, extend: bool = False) -> Any:
         if is_cloud_market_disabled():
             return Dict({})
         results = app_store.get_app(market, app_id)
         return self.app_model_serializers(market, results, extend=extend)
 
-    def get_market_app_model_versions(self, market: AppMarket, app_id, query_all=False, extend=False):
+    def get_market_app_model_versions(self, market: AppMarket, app_id: str, query_all: bool = False,
+                                      extend: bool = False) -> list:
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
         if is_cloud_market_disabled():
@@ -1568,7 +1607,8 @@ class AppMarketService(object):
         data = self.app_model_versions_serializers(market, results.versions, extend=extend)
         return data
 
-    def get_market_app_model_version(self, market, app_id, version, for_install=False, extend=False, get_template=False):
+    def get_market_app_model_version(self, market: AppMarket, app_id: str, version: str, for_install: bool = False,
+                                     extend: bool = False, get_template: bool = False) -> Any:
         if not app_id:
             raise ServiceHandleException(msg="param app_id can`t be null", msg_show="参数app_id不能为空")
         if is_cloud_market_disabled():
@@ -1577,7 +1617,8 @@ class AppMarketService(object):
         data = self.app_model_version_serializers(market, results, extend=extend)
         return data
 
-    def cloud_app_model_to_db_model(self, market: AppMarket, app_id, version, for_install=False):
+    def cloud_app_model_to_db_model(self, market: AppMarket, app_id: str, version: str,
+                                    for_install: bool = False) -> Tuple[RainbondCenterApp, Optional[RainbondCenterAppVersion]]:
         app = app_store.get_app(market, app_id)
         rainbond_app_version = None
         app_template = None
@@ -1599,7 +1640,7 @@ class AppMarketService(object):
             pic=app.logo,
             create_time=app.create_time,
             update_time=app.update_time)
-        rainbond_app.market_name = market.name
+        rainbond_app.market_name = market.name  # type: ignore[attr-defined]
         if app_template:
             rainbond_app_version = RainbondCenterAppVersion(
                 app_id=app.app_key_id,
@@ -1609,19 +1650,19 @@ class AppMarketService(object):
                 template_version=app_template.rainbond_version,
                 app_version_info=app_template.description,
                 update_time=app_template.update_time,
-                is_official=1,
+                is_official=True,
                 arch=app_template.arch,
             )
             rainbond_app_version.template_type = app_template.template_type
         return rainbond_app, rainbond_app_version
 
-    def create_market_app_model(self, market, body):
+    def create_market_app_model(self, market: AppMarket, body: dict) -> Any:
         return app_store.create_app(market, body)
 
-    def create_market_app_model_version(self, market, app_id, body):
+    def create_market_app_model_version(self, market: AppMarket, app_id: str, body: dict) -> None:
         app_store.create_app_version(market, app_id, body)
 
-    def list_bindable_markets(self, eid, market_name, market_url, access_key):
+    def list_bindable_markets(self, eid: str, market_name: str, market_url: str, access_key: str) -> list:
         if market_name:
             market = app_market_service.get_app_market_by_name(eid, market_name)
         else:
@@ -1633,13 +1674,13 @@ class AppMarketService(object):
 
         return [bm.to_dict() for bm in bindable_markets]
 
-    def get_market_orgs(self, market):
+    def get_market_orgs(self, market: AppMarket) -> list:
         if is_cloud_market_disabled():
             return []
         results = app_store.get_orgs(market)
         return self.org_serializers(results)
 
-    def org_serializers(self, data):
+    def org_serializers(self, data: Any) -> list:
         organizations = []
         if not data:
             return []
@@ -1653,7 +1694,7 @@ class AppMarketService(object):
             organizations.append(Dict(org))
         return organizations
 
-    def update_market_app(self, app_id, upgrade_group_id, app_model_key, version):
+    def update_market_app(self, app_id: str, upgrade_group_id: str, app_model_key: str, version: str) -> None:
         # plugins
         # config groups
         # app
@@ -1663,13 +1704,14 @@ class AppMarketService(object):
 
 
 class PackageUploadService(object):
-    def get_upload_record(self, team_name, region, event_id):
+    def get_upload_record(self, team_name: str, region: str, event_id: str) -> Optional[PackageUploadRecord]:
         return PackageUploadRecord.objects.filter(team_name=team_name, region=region, event_id=event_id).first()
 
-    def create_upload_record(self, **params):
+    def create_upload_record(self, **params: Any) -> PackageUploadRecord:
         return PackageUploadRecord.objects.create(**params)
 
-    def get_last_upload_record(self, team_name, region, component_id):
+    def get_last_upload_record(self, team_name: str, region: str,
+                               component_id: str) -> Optional[PackageUploadRecord]:
         if component_id:
             return PackageUploadRecord.objects.filter(
                 team_name=team_name, region=region, component_id=component_id,
@@ -1677,16 +1719,17 @@ class PackageUploadService(object):
         return PackageUploadRecord.objects.filter(
             team_name=team_name, region=region, status="unfinished").order_by("-create_time").first()
 
-    def update_upload_record(self, team_name, event_id, **data):
+    def update_upload_record(self, team_name: str, event_id: str, **data: Any) -> int:
         return PackageUploadRecord.objects.filter(team_name=team_name, event_id=event_id).update(**data)
 
-    def get_name_by_component_id(self, component_ids):
+    def get_name_by_component_id(self, component_ids: Any) -> list:
         package_names = []
         for component_id in component_ids:
             res = PackageUploadRecord.objects.filter(
                 component_id=component_id, status="finished").order_by("-create_time").first()
             if res:
-                package_name = eval(res.source_dir)
+                # NOTE: res.source_dir may be None; potential latent None-bug.
+                package_name = eval(res.source_dir)  # type: ignore[arg-type]
                 package_names += package_name
         return package_names
 
