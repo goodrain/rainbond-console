@@ -144,7 +144,8 @@ class SourceComponentService(object):
         if code != 200:
             raise ServiceHandleException(msg="add service to app failure", msg_show=msg_show, status_code=code)
 
-        code, msg, check_info = app_check_service.check_service(team, component, False, "", user)
+        # component is Optional[TenantServiceInfo] but non-None on this path (code==200 guard above)
+        code, msg, check_info = app_check_service.check_service(team, component, False, "", user)  # type: ignore[arg-type]
         if code != 200:
             raise ServiceHandleException(msg="check service error", msg_show=msg, status_code=code)
 
@@ -215,7 +216,8 @@ class SourceComponentService(object):
                 dockerfile_preference_applied = selected_language == "dockerfile"
                 if not dockerfile_preference_applied:
                     build_mode_note = self.build_unapplied_preference_note(selected_language)
-            app_check_service.save_service_check_info(team, app.ID, component, bean)
+            # app.ID is int (AutoField used as str id) and component is Optional but non-None here
+            app_check_service.save_service_check_info(team, app.ID, component, bean)  # type: ignore[arg-type]
             self.apply_default_build_config(team, component, selected_service_info)  # type: ignore[arg-type]
 
         region_component = console_app_service.create_region_service(
