@@ -183,7 +183,7 @@ AUTHENTICATION_BACKENDS = ('console.services.auth.backends.ModelBackend', 'conso
 
 LOGIN_URL = '/login'
 INSTALLED_APPS = ('django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages',
-                  'django.contrib.staticfiles', 'crispy_forms', 'rest_framework', 'rest_framework.authtoken',
+                  'django.contrib.staticfiles', 'rest_framework', 'rest_framework.authtoken',
                   'www', 'corsheaders', 'console', 'console.cloud')
 # Application definition
 if IS_OPEN_API:
@@ -193,7 +193,6 @@ if IS_OPEN_API:
         'django.contrib.sessions',
         'django.contrib.messages',
         'django.contrib.staticfiles',
-        'crispy_forms',
         'rest_framework',
         'rest_framework.authtoken',
         'drf_yasg',
@@ -266,7 +265,6 @@ STATIC_ROOT = 'static/'
 
 # Keep legacy implicit primary key type after Django 3.2 upgrade
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
-CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 LOGGING = {
     'version': 1,
