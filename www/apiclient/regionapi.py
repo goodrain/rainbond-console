@@ -3022,7 +3022,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return body
 
-    def post_proxy(self, region_name, path, data):
+    def post_proxy(self, region_name: str, path: str, data: dict) -> Optional[Dict[str, Any]]:
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -3031,7 +3031,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
         return body
 
-    def get_proxy(self, region_name, path, check_status=True, app_id=""):
+    def get_proxy(self, region_name: str, path: str, check_status: bool = True,
+                  app_id: str = "") -> Optional[Dict[str, Any]]:
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -3043,7 +3044,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, check_status=check_status)
         return body
 
-    def get_files(self, region_name, tenant_name, service_alias, path, pod_name, container_name, namespace):
+    def get_files(self, region_name: str, tenant_name: str, service_alias: str, path: str, pod_name: str,
+                  container_name: str, namespace: str) -> Optional[Dict[str, Any]]:
         """获取组件的构建版本"""
 
         url, token = self.__get_region_access_info(tenant_name, region_name)
@@ -3056,7 +3058,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=30)
         return body
 
-    def get_pod_volume(self, region_name, tenant_name, pod_name, namespace, volume_path, service):
+    def get_pod_volume(self, region_name: str, tenant_name: str, pod_name: str, namespace: str, volume_path: str,
+                       service: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
         region_info = self.get_region_info(region_name=region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -3068,7 +3071,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 
-    def get_app_peer_authentications(self, tenant_name, region_name, region_app_id, namespace, name):
+    def get_app_peer_authentications(self, tenant_name: str, region_name: str, region_app_id: str, namespace: str,
+                                     name: str) -> Optional[Dict[str, Any]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/apps/{}/app_peer_authentications".format(tenant_region.region_tenant_name, region_app_id)
@@ -3077,7 +3081,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
 
-    def app_peer_authentications(self, tenant_name, region_name, region_app_id, data):
+    def app_peer_authentications(self, tenant_name: str, region_name: str, region_app_id: str,
+                                 data: dict) -> Optional[Dict[str, Any]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/apps/{}/app_peer_authentications".format(tenant_region.region_tenant_name, region_app_id)
@@ -3085,7 +3090,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_name)
         return body
 
-    def get_app_authorization_policy(self, tenant_name, region_name, region_app_id, namespace, name):
+    def get_app_authorization_policy(self, tenant_name: str, region_name: str, region_app_id: str, namespace: str,
+                                     name: str) -> Optional[Dict[str, Any]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/apps/{}/app_authorization_policy".format(tenant_region.region_tenant_name, region_app_id)
@@ -3094,7 +3100,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
 
-    def app_authorization_policy(self, tenant_name, region_name, region_app_id, data):
+    def app_authorization_policy(self, tenant_name: str, region_name: str, region_app_id: str,
+                                 data: dict) -> Optional[Dict[str, Any]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/apps/{}/app_authorization_policy".format(tenant_region.region_tenant_name, region_app_id)
@@ -3102,7 +3109,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_name)
         return body
 
-    def get_app_gray_release(self, tenant_name, region_name, region_app_id, namespace, component_id):
+    def get_app_gray_release(self, tenant_name: str, region_name: str, region_app_id: str, namespace: str,
+                             component_id: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/apps/{}/gray_release".format(tenant_region.region_tenant_name, region_app_id)
@@ -3111,7 +3119,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def create_app_gray_release(self, tenant_name, region_name, region_app_id, data):
+    def create_app_gray_release(self, tenant_name: str, region_name: str, region_app_id: str, data: dict) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/apps/{}/gray_release".format(tenant_region.region_tenant_name, region_app_id)
@@ -3119,7 +3127,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_name)
         return body.get("bean", None)
 
-    def update_app_gray_release(self, tenant_name, region_name, region_app_id, data):
+    def update_app_gray_release(self, tenant_name: str, region_name: str, region_app_id: str, data: dict) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/apps/{}/gray_release".format(tenant_region.region_tenant_name, region_app_id)
@@ -3127,7 +3135,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_name)
         return body.get("bean", None)
 
-    def operate_app_gray_release(self, tenant_name, region_name, region_app_id, namespace, operation_method):
+    def operate_app_gray_release(self, tenant_name: str, region_name: str, region_app_id: str, namespace: str,
+                                 operation_method: str) -> Optional[Dict[str, Any]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/apps/{}/operate_gray_release".format(tenant_region.region_tenant_name, region_app_id)
@@ -3136,7 +3145,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region_name)
         return body
 
-    def save_yaml(self, app_id, body):
+    def save_yaml(self, app_id: str, body: dict) -> None:
         name = body["bean"].get("name")
         data = {
             "app_id": app_id,
@@ -3150,7 +3159,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         else:
             k8s_resources_repo.update(app_id=app_id, name=name, kind=data["kind"], content=body["bean"]["content"])
 
-    def api_gateway_post_proxy(self, region, tenant_name, path, data, app_id, service_alias="", port=""):
+    def api_gateway_post_proxy(self, region: RegionConfig, tenant_name: str, path: str, data: dict, app_id: str,
+                               service_alias: str = "", port: Any = "") -> Any:
         if app_id:
             region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
             if "routes/http?" in path:
@@ -3196,7 +3206,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data), region_config=region)
         return body["bean"]
 
-    def api_gateway_get_proxy(self, region, tenant_id, path, app_id, query=""):
+    def api_gateway_get_proxy(self, region: RegionConfig, tenant_id: str, path: str, app_id: Any,
+                              query: str = "") -> Optional[Dict[str, Any]]:
         # 如果指定了 app_id，则转换为区域特定的 app_id，并追加 intID 参数
         if app_id:
             region_app_id = region_app_repo.get_region_app_id(region.region_name, app_id)
@@ -3246,7 +3257,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             body["list"] = domains
         return body
 
-    def api_gateway_delete_proxy(self, region, tenant_name, path):
+    def api_gateway_delete_proxy(self, region: str, tenant_name: str, path: str) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region)
         self._set_headers(token)
         res, body = self._delete(url + path, self.default_headers, region=region)
@@ -3256,15 +3267,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 k8s_resources_repo.delete_route_by_name(n)
         return body["bean"]
 
-    def get_port(self, region, tenant_name, lock=False):
+    def get_port(self, region: str, tenant_name: str, lock: bool = False) -> Tuple[Any, Optional[Dict[str, Any]]]:
         url, token = self.__get_region_access_info(tenant_name, region)
         url = url + "/v2/gateway/ports?lock={}".format(lock)
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def api_gateway_bind_tcp_domain(self, region, tenant_name, k8s_service_name, container_port, app_id,
-                                    ingressPort=None, service_id="", service_type="", protocol="tcp"):
+    def api_gateway_bind_tcp_domain(self, region: str, tenant_name: str, k8s_service_name: str, container_port: int,
+                                    app_id: str, ingressPort: Optional[int] = None, service_id: str = "",
+                                    service_type: str = "", protocol: str = "tcp") -> Optional[Dict[str, Any]]:
         """
         根据endpoint 0.0.0.0:10000 来监听，将请求转发到 region 处理，需要绑定k8s的service
         """
@@ -3285,7 +3297,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             region_app_id) + "&service_id=" + service_id + "&service_type=" + service_type + "&port=" + str(container_port)
         return self.post_proxy(region, path, data)
 
-    def api_gateway_bind_http_domain(self, service_name, region, tenant_name, domains, svc, app_id):
+    def api_gateway_bind_http_domain(self, service_name: str, region: RegionConfig, tenant_name: str, domains: Any,
+                                     svc: Any, app_id: str) -> Any:
         """
         根据域名，k8s的service生成 http 路由规则，默认全部转发。/*
         """
@@ -3309,11 +3322,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             app_id) + "&service_alias=" + service_name + "&port=" + str(svc.container_port)+"&default=true"
         return self.api_gateway_post_proxy(region, tenant_name, path, body, app_id)
 
-    def get_api_gateway(self, region, tenant, app_id):
+    def get_api_gateway(self, region: RegionConfig, tenant: Tenants, app_id: str) -> Optional[Dict[str, Any]]:
         path = "/api-gateway/v1/" + tenant.tenant_name + "/routes/http?appID=" + str(app_id)
         return self.api_gateway_get_proxy(region, tenant.tenant_id, path, app_id)
 
-    def api_gateway_bind_http_domain_convert(self, service_name, region, tenant_name, domains, svc, app_id):
+    def api_gateway_bind_http_domain_convert(self, service_name: str, region: RegionConfig, tenant_name: str,
+                                             domains: Any, svc: Any, app_id: str) -> Any:
         """
         根据域名，k8s的service生成 http 路由规则，默认全部转发。/*
         """
@@ -3335,7 +3349,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         path = "/api-gateway/v1/" + tenant_name + "/routes/http?appID=&service_alias=" + service_name
         return self.api_gateway_post_proxy(region, tenant_name, path, body, app_id)
 
-    def delete_proxy(self, region_name, path, data=None):
+    def delete_proxy(self, region_name: str, path: str, data: Optional[dict] = None) -> Optional[Dict[str, Any]]:
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -3347,7 +3361,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             res, body = self._delete(url, self.default_headers, region=region_name)
         return body
 
-    def put_proxy(self, region_name, path, data):
+    def put_proxy(self, region_name: str, path: str, data: dict) -> Optional[Dict[str, Any]]:
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -3356,7 +3370,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, region=region_name, body=json.dumps(data))
         return body
 
-    def sse_proxy(self, region_name, path):
+    def sse_proxy(self, region_name: str, path: str) -> StreamingHttpResponse:
         region_info = self.get_region_info(region_name)
         if not region_info:
             raise ServiceHandleException("region not found")
@@ -3391,15 +3405,15 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def get_component_pod_log(
             self,
-            tenant_name,
-            region_name,
-            service_alias,
-            pod_name,
-            lines=100,
-            container_name="",
-            read_timeout=30,
-            follow=None,
-            previous=False):
+            tenant_name: str,
+            region_name: str,
+            service_alias: str,
+            pod_name: str,
+            lines: int = 100,
+            container_name: str = "",
+            read_timeout: int = 30,
+            follow: Optional[bool] = None,
+            previous: bool = False) -> Any:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/{}/services/{}/pods/{}/logs?lines={}".format(
@@ -3427,13 +3441,13 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return resp
 
     def exec_component_pod(self,
-                           tenant_name,
-                           region_name,
-                           service_alias,
-                           pod_name,
-                           container_name,
-                           command,
-                           timeout_seconds=30):
+                           tenant_name: str,
+                           region_name: str,
+                           service_alias: str,
+                           pod_name: str,
+                           container_name: str,
+                           command: Any,
+                           timeout_seconds: int = 30) -> Optional[Dict[str, Any]]:
         """在指定 Pod 的容器内一次性执行命令。
 
         仅适用于处于 Running 状态的容器。如果目标容器没有运行（崩溃、等待中等），
@@ -3465,7 +3479,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             raise e
 
     @staticmethod
-    def __is_container_not_running_message(message):
+    def __is_container_not_running_message(message: str) -> bool:
         if not message:
             return False
         lowered = message.lower()
@@ -3482,21 +3496,22 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
                 return True
         return False
 
-    def upgrade_region(self, region_name, data):
+    def upgrade_region(self, region_name: str, data: dict) -> Optional[Dict[str, Any]]:
         url, token = self.__get_region_access_info(None, region_name)
         url = url + "/v2/cluster/rbd-upgrade"
         self._set_headers(token)
         res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
         return body
 
-    def list_upgrade_status(self, region_name):
+    def list_upgrade_status(self, region_name: str) -> Optional[Dict[str, Any]]:
         url, token = self.__get_region_access_info(None, region_name)
         url = url + "/v2/cluster/rbd-upgrade/status"
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region_name)
         return body
 
-    def get_lang_version(self, enterprise_id, region, lang, show, build_strategy=""):
+    def get_lang_version(self, enterprise_id: str, region: str, lang: str, show: Any,
+                         build_strategy: str = "") -> Optional[Dict[str, Any]]:
         """
         获取语言版本信息。
 
@@ -3518,7 +3533,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_info.region_name)
         return body
 
-    def create_lang_version(self, enterprise_id, region, data):
+    def create_lang_version(self, enterprise_id: str, region: str, data: dict) -> Optional[Dict[str, Any]]:
         """
         创建语言版本。
 
@@ -3538,7 +3553,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
         return body
 
-    def update_lang_version(self, enterprise_id, region, data):
+    def update_lang_version(self, enterprise_id: str, region: str, data: dict) -> Optional[Dict[str, Any]]:
         """
            更新语言版本。
 
@@ -3558,7 +3573,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
         return body
 
-    def delete_lang_version(self, enterprise_id, region, data):
+    def delete_lang_version(self, enterprise_id: str, region: str, data: dict) -> Optional[Dict[str, Any]]:
         """
         删除语言版本。
 
@@ -3578,7 +3593,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, body=json.dumps(data), region=region_info.region_name)
         return body
 
-    def set_over_score_rate(self, data):
+    def set_over_score_rate(self, data: dict) -> Dict[str, Any]:
         ret_data = {}
         region_infos = RegionConfig.objects.filter()
         if not region_infos:
@@ -3590,7 +3605,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
             ret_data[region_info.region_name] = body
         return ret_data
 
-    def get_kubeblocks_supported_databases(self, region_name):
+    def get_kubeblocks_supported_databases(self, region_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         获取 KubeBlocks 支持的数据库类型列表
         """
@@ -3603,7 +3618,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_kubeblocks_storage_classes(self, region_name):
+    def get_kubeblocks_storage_classes(self, region_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         获取 KubeBlocks StorageClass 列表
         """
@@ -3616,7 +3631,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_kubeblocks_backup_repos(self, region_name):
+    def get_kubeblocks_backup_repos(self, region_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         获取 KubeBlocks BackupRepo 列表
         """
@@ -3629,7 +3644,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def create_kubeblocks_backup_repo(self, region_name, backup_repo):
+    def create_kubeblocks_backup_repo(self, region_name: str, backup_repo: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         创建 KubeBlocks BackupRepo
         """
@@ -3642,7 +3657,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, body=json.dumps(backup_repo), region=region_name)
         return res, body
 
-    def update_kubeblocks_backup_repo(self, region_name, repo_name, backup_repo):
+    def update_kubeblocks_backup_repo(self, region_name: str, repo_name: str,
+                                      backup_repo: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         更新 KubeBlocks BackupRepo
         """
@@ -3655,7 +3671,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, body=json.dumps(backup_repo), region=region_name)
         return res, body
 
-    def delete_kubeblocks_backup_repo(self, region_name, repo_name):
+    def delete_kubeblocks_backup_repo(self, region_name: str, repo_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         删除 KubeBlocks BackupRepo
         """
@@ -3668,7 +3684,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region_name)
         return res, body
 
-    def create_kubeblocks_cluster(self, region_name, cluster_data):
+    def create_kubeblocks_cluster(self, region_name: str, cluster_data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         创建 KubeBlocks 数据库集群
         """
@@ -3681,7 +3697,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, body=json.dumps(cluster_data), region=region_name)
         return res, body
 
-    def get_kubeblocks_connect_info(self, region_name, cluster_data):
+    def get_kubeblocks_connect_info(self, region_name: str, cluster_data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         获取 KubeBlocks 数据库集群连接信息
         """
@@ -3695,7 +3711,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         return res, body
 
 
-    def get_kubeblocks_cluster_detail(self, region_name, service_id):
+    def get_kubeblocks_cluster_detail(self, region_name: str, service_id: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         获取 KubeBlocks 集群详情
         """
@@ -3708,7 +3724,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def expansion_kubeblocks_cluster(self, region_name, service_id, scale_data):
+    def expansion_kubeblocks_cluster(self, region_name: str, service_id: str,
+                                     scale_data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         伸缩 KubeBlocks 数据库集群
         """
@@ -3721,7 +3738,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, body=json.dumps(scale_data), region=region_name)
         return res, body
 
-    def update_kubeblocks_backup_config(self, region_name, service_id, backup_config):
+    def update_kubeblocks_backup_config(self, region_name: str, service_id: str,
+                                        backup_config: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         更新 KubeBlocks 集群的备份配置, 
         """
@@ -3734,7 +3752,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._put(url, self.default_headers, body=json.dumps(backup_config), region=region_name)
         return res, body
 
-    def create_kubeblocks_manual_backup(self, region_name, service_id):
+    def create_kubeblocks_manual_backup(self, region_name: str, service_id: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         创建 Cluster 的手动备份
         """
@@ -3747,7 +3765,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_kubeblocks_backup_list(self, region_name, service_id, page=None, page_size=None):
+    def get_kubeblocks_backup_list(self, region_name: str, service_id: str, page: Optional[int] = None,
+                                   page_size: Optional[int] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         获取 KubeBlocks 集群的备份列表
         """
@@ -3770,7 +3789,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
         
-    def delete_kubeblocks_backups(self, region_name, service_id, backups):
+    def delete_kubeblocks_backups(self, region_name: str, service_id: str,
+                                  backups: Any) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         删除 KubeBlocks 集群的备份记录, 
         backups 是需要删除的备份名称列表 
@@ -3785,7 +3805,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, body=json.dumps(request_body), region=region_name)
         return res, body
 
-    def delete_kubeblocks_cluster(self, region_name, delete_data):
+    def delete_kubeblocks_cluster(self, region_name: str, delete_data: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         删除 KubeBlocks 集群
         """
@@ -3798,7 +3818,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, body=json.dumps(delete_data), region=region_name)
         return res, body
 
-    def get_kubeblocks_cluster_events(self, region_name, service_id, page, page_size):
+    def get_kubeblocks_cluster_events(self, region_name: str, service_id: str, page: int,
+                                      page_size: int) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         获取 KubeBlocks 集群的事件（操作记录）列表
         """
@@ -3812,7 +3833,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def manage_cluster_status(self, region_name, service_ids, operation):
+    def manage_cluster_status(self, region_name: str, service_ids: Any,
+                              operation: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         管理 KubeBlocks 集群状态
         """
@@ -3829,7 +3851,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, response_body
 
-    def kubeblocks_cluster_pod_detail(self, region_name, service_id, pod_name):
+    def kubeblocks_cluster_pod_detail(self, region_name: str, service_id: str,
+                                      pod_name: str) -> Optional[Dict[str, Any]]:
         """
         获取 KubeBlocks 集群的 pod 详情
         """
@@ -3842,7 +3865,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         _, body = self._get(url, self.default_headers, region=region_name)
         return body
 
-    def get_kubeblocks_cluster_parameters(self, region_name, service_id, page=1, page_size=6, keyword=None):
+    def get_kubeblocks_cluster_parameters(self, region_name: str, service_id: str, page: int = 1, page_size: int = 6,
+                                          keyword: Optional[str] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         获取 KubeBlocks 数据库参数列表
         """
@@ -3868,7 +3892,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def update_kubeblocks_cluster_parameters(self, region_name, service_id, body):
+    def update_kubeblocks_cluster_parameters(self, region_name: str, service_id: str,
+                                             body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         批量更新 KubeBlocks 数据库参数
         """
@@ -3881,7 +3906,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, response_body
 
-    def restore_cluster_from_backup(self, region_name, old_service_id, new_service_id, backup_name):
+    def restore_cluster_from_backup(self, region_name: str, old_service_id: str, new_service_id: str,
+                                    backup_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """
         从备份恢复 cluster
         """
@@ -3900,7 +3926,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, response_body
 
-    def get_cluster_resource(self, region_name, path, params=None):
+    def get_cluster_resource(self, region_name: str, path: str,
+                             params: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """代理 GET 请求到 /v2/cluster/{path}"""
         region_info = self.get_region_info(region_name)
         if not region_info:
@@ -3913,7 +3940,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def post_cluster_resource(self, region_name, path, body, params=None):
+    def post_cluster_resource(self, region_name: str, path: str, body: Any,
+                              params: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """代理 POST 请求到 /v2/cluster/{path}"""
         region_info = self.get_region_info(region_name)
         if not region_info:
@@ -3926,7 +3954,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, self.default_headers, body=body, region=region_name)
         return res, response_body
 
-    def delete_cluster_resource(self, region_name, path, params=None):
+    def delete_cluster_resource(self, region_name: str, path: str,
+                                params: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """代理 DELETE 请求到 /v2/cluster/{path}"""
         region_info = self.get_region_info(region_name)
         if not region_info:
@@ -3939,7 +3968,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region_name)
         return res, body
 
-    def put_cluster_resource(self, region_name, path, body, params=None):
+    def put_cluster_resource(self, region_name: str, path: str, body: Any,
+                             params: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """代理 PUT 请求到 /v2/cluster/{path}"""
         region_info = self.get_region_info(region_name)
         if not region_info:
@@ -3952,7 +3982,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._put(url, self.default_headers, body=body, region=region_name)
         return res, response_body
 
-    def get_tenant_ns_resource_types(self, region_name, tenant_name):
+    def get_tenant_ns_resource_types(self, region_name: str,
+                                     tenant_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取 namespace-scoped 资源类型列表"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/ns-resource-types".format(tenant_name)
@@ -3960,7 +3991,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_tenant_ns_resources(self, region_name, tenant_name, params=None):
+    def get_tenant_ns_resources(self, region_name: str, tenant_name: str,
+                                params: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取 namespace-scoped 资源列表"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/ns-resources".format(tenant_name)
@@ -3971,7 +4003,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_tenant_ns_resource(self, region_name, tenant_name, name, params=None):
+    def get_tenant_ns_resource(self, region_name: str, tenant_name: str, name: str,
+                               params: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取单个 namespace-scoped 资源"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/ns-resources/{}".format(tenant_name, name)
@@ -3982,7 +4015,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def post_tenant_ns_resource(self, region_name, tenant_name, body, params=None, content_type=None):
+    def post_tenant_ns_resource(self, region_name: str, tenant_name: str, body: Any, params: Optional[dict] = None,
+                                content_type: Optional[str] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """创建 namespace-scoped 资源"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/ns-resources".format(tenant_name)
@@ -3996,7 +4030,9 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, headers, body=body, region=region_name)
         return res, response_body
 
-    def put_tenant_ns_resource(self, region_name, tenant_name, name, body, params=None, content_type=None):
+    def put_tenant_ns_resource(self, region_name: str, tenant_name: str, name: str, body: Any,
+                               params: Optional[dict] = None,
+                               content_type: Optional[str] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """更新 namespace-scoped 资源"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/ns-resources/{}".format(tenant_name, name)
@@ -4010,7 +4046,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._put(url, headers, body=body, region=region_name)
         return res, response_body
 
-    def delete_tenant_ns_resource(self, region_name, tenant_name, name, params=None):
+    def delete_tenant_ns_resource(self, region_name: str, tenant_name: str, name: str,
+                                  params: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """删除 namespace-scoped 资源"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/ns-resources/{}".format(tenant_name, name)
@@ -4021,7 +4058,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_tenant_helm_releases(self, region_name, tenant_name, namespace=None):
+    def get_tenant_helm_releases(self, region_name: str, tenant_name: str,
+                                 namespace: Optional[str] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取 Helm release 列表"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/helm/releases".format(tenant_name)
@@ -4031,7 +4069,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def install_tenant_helm_release(self, region_name, tenant_name, body):
+    def install_tenant_helm_release(self, region_name: str, tenant_name: str,
+                                    body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """安装 Helm release"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/helm/releases".format(tenant_name)
@@ -4039,7 +4078,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, response_body
 
-    def preview_tenant_helm_chart(self, region_name, tenant_name, body):
+    def preview_tenant_helm_chart(self, region_name: str, tenant_name: str,
+                                  body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """预览 Helm chart 信息与 values"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/helm/chart-preview".format(tenant_name)
@@ -4047,7 +4087,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, response_body
 
-    def get_tenant_helm_release_history(self, region_name, tenant_name, release_name, namespace=None):
+    def get_tenant_helm_release_history(self, region_name: str, tenant_name: str, release_name: str,
+                                        namespace: Optional[str] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取 Helm release 历史版本"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/helm/releases/{}/history".format(tenant_name, release_name)
@@ -4057,7 +4098,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_tenant_helm_release_detail(self, region_name, tenant_name, release_name, namespace=None):
+    def get_tenant_helm_release_detail(self, region_name: str, tenant_name: str, release_name: str,
+                                       namespace: Optional[str] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取 Helm release 详情"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/helm/releases/{}".format(tenant_name, release_name)
@@ -4067,7 +4109,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def upgrade_tenant_helm_release(self, region_name, tenant_name, release_name, body):
+    def upgrade_tenant_helm_release(self, region_name: str, tenant_name: str, release_name: str,
+                                    body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """升级 Helm release"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/helm/releases/{}".format(tenant_name, release_name)
@@ -4075,7 +4118,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._put(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, response_body
 
-    def rollback_tenant_helm_release(self, region_name, tenant_name, release_name, body):
+    def rollback_tenant_helm_release(self, region_name: str, tenant_name: str, release_name: str,
+                                     body: dict) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """回滚 Helm release"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/helm/releases/{}/rollback".format(tenant_name, release_name)
@@ -4083,7 +4127,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, response_body = self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, response_body
 
-    def uninstall_tenant_helm_release(self, region_name, tenant_name, release_name, namespace=None):
+    def uninstall_tenant_helm_release(self, region_name: str, tenant_name: str, release_name: str,
+                                      namespace: Optional[str] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """卸载 Helm release"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/helm/releases/{}".format(tenant_name, release_name)
@@ -4093,7 +4138,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_resource_center_workload_detail(self, region_name, tenant_name, resource, name, params=None):
+    def get_resource_center_workload_detail(self, region_name: str, tenant_name: str, resource: str, name: str,
+                                            params: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取资源中心工作负载详情"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/resource-center/workloads/{}/{}".format(tenant_name, resource, name)
@@ -4104,7 +4150,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_resource_center_pod_detail(self, region_name, tenant_name, pod_name):
+    def get_resource_center_pod_detail(self, region_name: str, tenant_name: str,
+                                       pod_name: str) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取资源中心容器组详情"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/resource-center/pods/{}".format(tenant_name, pod_name)
@@ -4112,7 +4159,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_resource_center_events(self, region_name, tenant_name, params=None):
+    def get_resource_center_events(self, region_name: str, tenant_name: str,
+                                   params: Optional[dict] = None) -> Tuple[Any, Optional[Dict[str, Any]]]:
         """获取资源中心对象事件"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/resource-center/events".format(tenant_name)
@@ -4123,7 +4171,8 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return res, body
 
-    def get_resource_center_pod_log(self, region_name, tenant_name, pod_name, params=None):
+    def get_resource_center_pod_log(self, region_name: str, tenant_name: str, pod_name: str,
+                                    params: Optional[dict] = None) -> Any:
         """获取资源中心容器组日志流"""
         url, token = self.__get_region_access_info(tenant_name, region_name)
         url += "/v2/tenants/{}/resource-center/pods/{}/logs".format(tenant_name, pod_name)
