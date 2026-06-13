@@ -1505,7 +1505,7 @@ class MCPQueryService(object):
             })
         return event_ids
 
-    def update_component_envs(self, user, arguments):
+    def update_component_envs(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1521,7 +1521,7 @@ class MCPQueryService(object):
         result["service_id"] = service.service_id
         return result
 
-    def manage_component_envs(self, user, arguments):
+    def manage_component_envs(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1616,7 +1616,7 @@ class MCPQueryService(object):
             return {"updated": True, "build_envs": build_env_dict}
         raise ServiceHandleException(msg="invalid env operation", msg_show="不支持的环境变量操作类型", status_code=400)
 
-    def manage_component_connection_envs(self, user, arguments):
+    def manage_component_connection_envs(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1682,7 +1682,7 @@ class MCPQueryService(object):
             return {"updated": True, "env": self._serialize_model_item(result), "from_scope": env.scope, "to_scope": scope}
         raise ServiceHandleException(msg="invalid connection env operation", msg_show="不支持的组件连接信息操作类型", status_code=400)
 
-    def change_component_image(self, user, arguments):
+    def change_component_image(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1701,7 +1701,7 @@ class MCPQueryService(object):
         data["app_id"] = app.ID
         return data
 
-    def handle_component_ports(self, user, arguments):
+    def handle_component_ports(self, user: Any, arguments: dict) -> dict:
         operation = self._require_string(arguments, "operation")
         team, app, service = self._get_team_app_service_context(
             user,
@@ -1758,7 +1758,7 @@ class MCPQueryService(object):
             }
         raise ServiceHandleException(msg="invalid operation", msg_show="不支持的端口操作类型", status_code=400)
 
-    def manage_component_ports(self, user, arguments):
+    def manage_component_ports(self, user: Any, arguments: dict) -> dict:
         operation = self._normalize_component_operation(
             self._require_string(arguments, "operation"),
             self.HIGH_LEVEL_PORT_OPERATION_ALIASES,
@@ -1812,7 +1812,7 @@ class MCPQueryService(object):
         payload["operation"] = operation
         return self.handle_component_ports(user, payload)
 
-    def _batch_add_ports(self, user, arguments, ports_list):
+    def _batch_add_ports(self, user: Any, arguments: dict, ports_list: Any) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1823,7 +1823,7 @@ class MCPQueryService(object):
         created = port_service.batch_add_service_ports(team, service, ports_list, user.nick_name, app=app)
         return {"ports": [self._serialize_model_item(p) for p in created]}
 
-    def _batch_update_ports(self, user, arguments, action, ports_list):
+    def _batch_update_ports(self, user: Any, arguments: dict, action: str, ports_list: Any) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1843,7 +1843,7 @@ class MCPQueryService(object):
             results.append(self._serialize_model_item(port_info))
         return {"ports": results}
 
-    def bind_component_volume(self, user, arguments):
+    def bind_component_volume(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1876,10 +1876,13 @@ class MCPQueryService(object):
         return result
 
     @staticmethod
-    def _has_value(arguments, field):
-        return isinstance(arguments.get(field), str) and arguments.get(field).strip() != ""
+    def _has_value(arguments: dict, field: str) -> bool:
+        # NOTE: the isinstance(...str) guard short-circuits the `and`, so the second
+        # .get(field) is only evaluated when the value is a str; mypy cannot narrow
+        # across two separate .get() calls.
+        return isinstance(arguments.get(field), str) and arguments.get(field).strip() != ""  # type: ignore[union-attr]
 
-    def _assert_create_volume_param_names(self, arguments):
+    def _assert_create_volume_param_names(self, arguments: dict) -> None:
         # create_volume reads volume_path / file_content, while update_volume
         # reads new_volume_path / new_file_content. LLM callers frequently mix
         # the two: they invoke create_volume but pass the update_* parameter
@@ -1902,7 +1905,7 @@ class MCPQueryService(object):
                     status_code=400,
                 )
 
-    def _mcp_assert_volume_path_available(self, service, new_volume_path):
+    def _mcp_assert_volume_path_available(self, service: Any, new_volume_path: str) -> None:
         existing_rows = volume_repo.get_service_volumes_with_config_file(
             service.service_id
         ).values("volume_path")
@@ -1921,7 +1924,7 @@ class MCPQueryService(object):
                     status_code=412,
                 )
 
-    def manage_component_storage(self, user, arguments):
+    def manage_component_storage(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2031,7 +2034,9 @@ class MCPQueryService(object):
             volume.save()
             if volume.volume_type == "config-file" and service_config:
                 service_config.volume_name = volume.volume_name
-                service_config.file_content = new_file_content
+                # NOTE: latent — new_file_content is arguments.get("new_file_content")
+                # which may be None; assigning None to the model's file_content field.
+                service_config.file_content = new_file_content  # type: ignore[assignment]
                 service_config.save()
             return {"updated": True, "volume": self._serialize_model_item(volume)}
         if operation == "delete_volume":
@@ -2061,7 +2066,7 @@ class MCPQueryService(object):
             return {"deleted": True, "dep_vol_id": dep_vol_id}
         raise ServiceHandleException(msg="invalid storage operation", msg_show="不支持的存储操作类型", status_code=400)
 
-    def manage_component_autoscaler(self, user, arguments):
+    def manage_component_autoscaler(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2107,7 +2112,7 @@ class MCPQueryService(object):
             return records
         raise ServiceHandleException(msg="invalid autoscaler operation", msg_show="不支持的自动伸缩操作类型", status_code=400)
 
-    def manage_component_probe(self, user, arguments):
+    def manage_component_probe(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2155,7 +2160,7 @@ class MCPQueryService(object):
             return {"deleted": True, "probe_id": probe_id}
         raise ServiceHandleException(msg="invalid probe operation", msg_show="不支持的探针操作类型", status_code=400)
 
-    def manage_component_dependency(self, user, arguments):
+    def manage_component_dependency(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2217,7 +2222,7 @@ class MCPQueryService(object):
             return {"deleted": True, "dependency": self._serialize_model_item(data)}
         raise ServiceHandleException(msg="invalid dependency operation", msg_show="不支持的依赖操作类型", status_code=400)
 
-    def horizontal_scale_component(self, user, arguments):
+    def horizontal_scale_component(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2233,7 +2238,7 @@ class MCPQueryService(object):
             "new_node": new_node,
         }
 
-    def vertical_scale_component(self, user, arguments):
+    def vertical_scale_component(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2255,7 +2260,7 @@ class MCPQueryService(object):
             "new_cpu": new_cpu,
         }
 
-    def close_apps(self, user, arguments):
+    def close_apps(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -2264,7 +2269,9 @@ class MCPQueryService(object):
             return {"closed": True, "service_ids": [], "result": []}
         service_ids = list(services.values_list("service_id", flat=True))
         if arguments.get("service_ids"):
-            service_ids = list(set(service_ids) & set(arguments.get("service_ids")))
+            # NOTE: guarded by the enclosing `if arguments.get("service_ids"):` so the
+            # value is non-None at runtime; mypy cannot narrow across separate .get() calls.
+            service_ids = list(set(service_ids) & set(arguments.get("service_ids")))  # type: ignore[arg-type]
         code, msg, result = app_manage_service.batch_action(region_name, team, user, "stop", service_ids, None, None)
         if code != 200:
             raise ServiceHandleException(msg="batch close error", msg_show=msg, status_code=code)
@@ -2274,7 +2281,7 @@ class MCPQueryService(object):
             "result": [self._serialize_model_item(service) for service in result],
         }
 
-    def get_team_apps(self, user, arguments):
+    def get_team_apps(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -2283,7 +2290,7 @@ class MCPQueryService(object):
         items = [self._serialize_model_item(app) for app in apps]
         return {"team_name": team.tenant_name, "region_name": region_name, "items": items, "total": len(items)}
 
-    def get_app_version_overview(self, user, arguments):
+    def get_app_version_overview(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2294,7 +2301,7 @@ class MCPQueryService(object):
         overview = app_version_service.get_overview(team, region, user, app)
         return {"app_id": app.ID, "overview": overview}
 
-    def list_app_version_snapshots(self, user, arguments):
+    def list_app_version_snapshots(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2310,7 +2317,7 @@ class MCPQueryService(object):
             "total": len(items),
         }
 
-    def get_app_version_snapshot_detail(self, user, arguments):
+    def get_app_version_snapshot_detail(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2322,7 +2329,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="snapshot not found", msg_show="快照不存在", status_code=404)
         return {"app_id": app.ID, "detail": detail}
 
-    def create_app_version_snapshot(self, user, arguments):
+    def create_app_version_snapshot(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2347,7 +2354,7 @@ class MCPQueryService(object):
             "snapshot": snapshot,
         }
 
-    def delete_app_version_snapshot(self, user, arguments):
+    def delete_app_version_snapshot(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2358,7 +2365,7 @@ class MCPQueryService(object):
         app_version_service.delete_snapshot(app.ID, version_id)
         return {"app_id": app.ID, "version_id": version_id, "deleted": True}
 
-    def rollback_app_version_snapshot(self, user, arguments):
+    def rollback_app_version_snapshot(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2381,7 +2388,7 @@ class MCPQueryService(object):
             "rollback_record": detail or record,
         }
 
-    def list_app_version_rollback_records(self, user, arguments):
+    def list_app_version_rollback_records(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2391,7 +2398,7 @@ class MCPQueryService(object):
         items = app_version_service.list_rollback_records(team.tenant_name, app.region_name, app.ID)
         return {"app_id": app.ID, "items": items, "total": len(items)}
 
-    def get_app_version_rollback_record_detail(self, user, arguments):
+    def get_app_version_rollback_record_detail(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2404,7 +2411,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="rollback record not found", msg_show="回滚记录不存在", status_code=404)
         return {"app_id": app.ID, "record": detail}
 
-    def delete_app_version_rollback_record(self, user, arguments):
+    def delete_app_version_rollback_record(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -2415,7 +2422,7 @@ class MCPQueryService(object):
         app_version_service.delete_rollback_record(app.ID, record_id)
         return {"app_id": app.ID, "record_id": record_id, "deleted": True}
 
-    def create_app_from_snapshot_version(self, user, arguments):
+    def create_app_from_snapshot_version(self, user: Any, arguments: dict) -> dict:
         team_name = self._require_string(arguments, "team_name")
         region_name = self._require_string(arguments, "region_name")
         source_app_id = self._require_int(arguments, "source_app_id")
