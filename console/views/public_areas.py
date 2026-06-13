@@ -17,7 +17,7 @@ from console.services.user_accesstoken_services import user_access_services
 from console.views.base import RegionTenantHeaderView, JWTAuthApiView
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import connection
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from goodrain_web.tools import JuncheePaginator
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi

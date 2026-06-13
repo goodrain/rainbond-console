@@ -4,7 +4,7 @@
 """
 import logging
 
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 
 from console.repositories.label_repo import (label_repo, node_label_repo, service_label_repo)

@@ -10,7 +10,7 @@ from console.services.app_config import dependency_service, port_service
 from console.services.group_service import group_service
 from console.services.operation_log import operation_log_service, Operation
 from console.views.app_config.base import AppBaseView
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.utils.return_message import general_message
 from console.exception.main import AbortRequest

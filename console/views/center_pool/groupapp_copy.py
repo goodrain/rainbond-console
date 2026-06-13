@@ -8,7 +8,7 @@ from console.exception.main import ServiceHandleException
 from console.services.groupcopy_service import groupapp_copy_service
 from console.services.operation_log import operation_log_service, OperationType
 from console.views.base import RegionTenantHeaderView, ApplicationView
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.apiclient.baseclient import HttpClient
 from www.utils.return_message import general_message

@@ -4,7 +4,7 @@
 """
 import logging
 
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework import status
 from rest_framework.response import Response
 

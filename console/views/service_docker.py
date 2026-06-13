@@ -4,7 +4,7 @@
 """
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from console.services.region_services import region_services
 from www.utils.md5Util import md5fun
 from www.utils.url import get_redirect_url

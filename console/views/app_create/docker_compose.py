@@ -13,7 +13,7 @@ from console.services.compose_service import compose_service
 from console.services.group_service import group_service
 from console.views.base import RegionTenantHeaderView
 from django.db import transaction
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.utils.return_message import general_message
 

@@ -1,7 +1,7 @@
 import logging
 import re
 
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 
 from console.repositories.app_config import domain_repo, port_repo
 from console.repositories.service_group_relation_repo import ServiceGroupRelationRepositry

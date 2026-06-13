@@ -8,14 +8,14 @@ from threading import Lock
 
 from django.core import signing
 from django.http import HttpResponse, StreamingHttpResponse
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 
 from console.exception.main import ServiceHandleException
 from console.services.user_services import user_services
 from console.services.mcp_query_service import mcp_query_service
 from console.views.base import JSONWebTokenAuthentication, InternalTokenAuthentication
 from console.exception.exceptions import AuthenticationInfoHasExpiredError
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 from rest_framework import exceptions
 from rest_framework.authentication import get_authorization_header
 from rest_framework.permissions import AllowAny
@@ -144,11 +144,11 @@ class MCPJSONWebTokenAuthentication(JSONWebTokenAuthentication):
         auth_header_prefix = jwt_issuer.JWT_AUTH_HEADER_PREFIX.lower()
         valid_prefixes = [auth_header_prefix, "jwt", "bearer"]
 
-        raw_header = smart_text(get_authorization_header(request) or b"").strip()
+        raw_header = smart_str(get_authorization_header(request) or b"").strip()
         raw_lower = raw_header.lower()
 
         if auth:
-            first = smart_text(auth[0].lower())
+            first = smart_str(auth[0].lower())
             if first in valid_prefixes and len(auth) >= 2:
                 return auth[1]
 
@@ -333,7 +333,7 @@ class MCPQueryRPCMixin(object):
         if serialize_json:
             payload = json.dumps(data, ensure_ascii=False, default=str)
         else:
-            payload = smart_text(data)
+            payload = smart_str(data)
         return "event: {event}\ndata: {data}\n\n".format(event=event, data=payload)
 
     @staticmethod
@@ -341,7 +341,7 @@ class MCPQueryRPCMixin(object):
         if serialize_json:
             payload = json.dumps(data, ensure_ascii=False, default=str)
         else:
-            payload = smart_text(data)
+            payload = smart_str(data)
         return "data: {data}\n\n".format(data=payload)
 
     @staticmethod
@@ -597,7 +597,7 @@ class MCPQueryHTTPView(MCPQueryRPCMixin, APIView):
 
     @staticmethod
     def _request_accepts_sse(request):
-        accept = smart_text(request.META.get("HTTP_ACCEPT", "")).lower()
+        accept = smart_str(request.META.get("HTTP_ACCEPT", "")).lower()
         return "text/event-stream" in accept
 
     @staticmethod

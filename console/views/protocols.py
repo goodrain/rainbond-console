@@ -6,7 +6,7 @@
 import logging
 
 from console.views.base import RegionTenantHeaderView
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 # -*- coding: utf8 -*-
 from www.apiclient.regionapi import RegionInvokeApi

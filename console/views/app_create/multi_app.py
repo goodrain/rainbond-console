@@ -4,7 +4,7 @@ import os
 
 from rest_framework.response import Response
 from www.utils.return_message import general_message
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from console.views.base import RegionTenantHeaderView
 from console.services.multi_app_service import multi_app_service
 

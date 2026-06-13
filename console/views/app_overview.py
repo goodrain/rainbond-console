@@ -37,7 +37,7 @@ from console.utils.oauth.oauth_types import get_oauth_instance
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from django.db import transaction
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.utils.return_message import error_message, general_message

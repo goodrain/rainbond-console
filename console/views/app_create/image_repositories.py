@@ -1,6 +1,6 @@
 import logging
 
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 
 from console.views.base import RegionTenantHeaderView
 from www.apiclient.regionapi import RegionInvokeApi

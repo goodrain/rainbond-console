@@ -6,7 +6,7 @@ import json
 import logging
 from datetime import datetime
 
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 
 from console.enum.component_enum import is_state, is_support, ComponentType, is_kubeblocks

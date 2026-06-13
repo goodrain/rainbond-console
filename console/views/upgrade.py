@@ -2,7 +2,7 @@ import os
 
 import requests
 from django.http import JsonResponse
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 
 from console.utils.offline import is_cloud_market_disabled
 from console.views.base import JWTAuthApiView

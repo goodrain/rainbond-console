@@ -18,7 +18,7 @@ from console.services.operation_log import operation_log_service, Operation
 from console.views.app_config.base import AppBaseView
 from console.views.base import (CloudEnterpriseCenterView, RegionTenantHeaderCloudEnterpriseCenterView)
 from django.db import transaction
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.apiclient.baseclient import HttpClient
 from www.utils.return_message import error_message, general_message

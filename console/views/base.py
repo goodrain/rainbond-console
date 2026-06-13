@@ -23,8 +23,8 @@ from console.utils import perms
 from console.utils.oauth.oauth_types import get_oauth_instance
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
-from django.utils.translation import ugettext as _
-from django.utils.translation import ugettext_lazy as trans
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as trans
 
 from console.utils.perms import get_perms, APP
 from default_region import make_uuid

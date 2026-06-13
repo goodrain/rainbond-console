@@ -6,9 +6,13 @@ from datetime import datetime
 from django.conf import settings
 from django.middleware.csrf import rotate_token
 from django.contrib.auth import load_backend
-from django.utils.translation import LANGUAGE_SESSION_KEY
 from django.utils.crypto import constant_time_compare
 
+
+# Django removed django.utils.translation.LANGUAGE_SESSION_KEY in 4.0
+# (session-stored language was dropped in favour of the language cookie).
+# Preserve the historical key value so existing session payloads keep working.
+LANGUAGE_SESSION_KEY = '_language'
 
 SESSION_KEY = '_auth_user_id'
 BACKEND_SESSION_KEY = '_auth_user_backend'

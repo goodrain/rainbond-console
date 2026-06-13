@@ -20,7 +20,7 @@ from console.utils.validation import (validate_endpoint_address, validate_endpoi
 from console.views.app_config.base import AppBaseView
 from console.views.base import AlowAnyApiView, RegionTenantHeaderView, ApplicationView
 from django.db.transaction import atomic
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants, TenantServiceInfo

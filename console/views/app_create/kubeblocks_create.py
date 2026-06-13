@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 
 from console.exception.bcode import ErrK8sComponentNameExists

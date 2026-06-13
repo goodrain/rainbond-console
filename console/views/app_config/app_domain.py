@@ -24,7 +24,7 @@ from console.utils.reqparse import parse_item
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from django.db import connection
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework import status
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
