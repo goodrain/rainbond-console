@@ -378,7 +378,7 @@ class RegionApiBaseHttpClient(object):
         return res, body
 
     def _post(self, url: str, headers: dict, body: Optional[Any] = None, *args: Any,
-              **kwargs: Any) -> Tuple[Dict, Optional[Any]]:
+              **kwargs: Any) -> Tuple[Any, Any]:
         if body is not None:
             response, content = self._request(url, 'POST', headers=headers, body=body, **kwargs)
         else:
@@ -387,7 +387,7 @@ class RegionApiBaseHttpClient(object):
         return res, body
 
     def _put(self, url: str, headers: dict, body: Optional[Any] = None, *args: Any,
-             **kwargs: Any) -> Tuple[Dict, Optional[Any]]:
+             **kwargs: Any) -> Tuple[Any, Any]:
         if body is not None:
             response, content = self._request(url, 'PUT', headers=headers, body=body, **kwargs)
         else:
@@ -396,7 +396,7 @@ class RegionApiBaseHttpClient(object):
         return res, body
 
     def _delete(self, url: str, headers: dict, body: Optional[Any] = None, *args: Any,
-                **kwargs: Any) -> Tuple[Dict, Optional[Any]]:
+                **kwargs: Any) -> Tuple[Any, Any]:
         if body is not None:
             response, content = self._request(url, 'DELETE', headers=headers, body=body, **kwargs)
         else:
