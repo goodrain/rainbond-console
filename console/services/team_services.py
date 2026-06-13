@@ -260,8 +260,11 @@ class TeamService(object):
         region_list = list()
         for region in tenant_regions:
             try:
-                region_config = region_services.delete_tenant_on_region(tenant.enterprise_id, tenant.tenant_name, region.region_name, user)
-                region_list.append(region_config.region_alias)
+                # NOTE: tenant.enterprise_id is Optional[str]; delete_tenant_on_region declares enterprise_id: str
+                region_config = region_services.delete_tenant_on_region(
+                    tenant.enterprise_id, tenant.tenant_name, region.region_name, user)  # type: ignore[arg-type]
+                # region_config is non-None: delete_tenant_on_region raises ServiceHandleException instead of returning None
+                region_list.append(region_config.region_alias)  # type: ignore[union-attr]
             except ServiceHandleException as e:
                 raise e
             except Exception as e:
