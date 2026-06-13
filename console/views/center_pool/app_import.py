@@ -128,17 +128,9 @@ class CenterAppImportView(JWTAuthApiView):
               type: string
               paramType: path
         """
-        sid = None
         arch = request.GET.get("arch")
-        try:
-            sid = transaction.savepoint()
-            record, apps_status = import_service.get_and_update_import_by_event_id(event_id, arch)
-            transaction.savepoint_commit(sid)
-            result = general_message(200, 'success', "查询成功", bean=record.to_dict(), list=apps_status)
-        except Exception as e:
-            if sid:
-                transaction.savepoint_rollback(sid)
-            raise e
+        record, apps_status = import_service.get_and_update_import_by_event_id(event_id, arch)
+        result = general_message(200, 'success', "查询成功", bean=record.to_dict(), list=apps_status)
         return Response(result, status=result["code"])
 
     def delete(self, request, event_id, *args, **kwargs):

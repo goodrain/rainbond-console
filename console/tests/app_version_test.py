@@ -13,6 +13,27 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+if "openapi_client" not in sys.modules:
+    openapi_client_module = ModuleType("openapi_client")
+    configuration_module = ModuleType("openapi_client.configuration")
+    rest_module = ModuleType("openapi_client.rest")
+
+    class ApiException(Exception):
+        def __init__(self, status=None, reason=None, body=None):
+            super(ApiException, self).__init__(reason)
+            self.status = status
+            self.reason = reason
+            self.body = body
+
+    rest_module.ApiException = ApiException
+    configuration_module.Configuration = object
+    openapi_client_module.ApiClient = object
+    openapi_client_module.MarketOpenapiApi = object
+    openapi_client_module.configuration = configuration_module
+    openapi_client_module.rest = rest_module
+    sys.modules["openapi_client"] = openapi_client_module
+    sys.modules["openapi_client.configuration"] = configuration_module
+    sys.modules["openapi_client.rest"] = rest_module
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
@@ -767,6 +788,156 @@ class AppVersionServiceHiddenTemplateTestCase(TestCase):
                 "template_type": "application_version",
             },
         )
+
+    # capability_id: console.app-version.hidden-template-create
+    def test_get_or_create_hidden_template_avoids_imported_template_id_collision(self):
+        tenant = mock.Mock(
+            tenant_name="demo-team",
+            tenant_id="tenant-id",
+            enterprise_id="enterprise-id",
+        )
+        user = mock.Mock(user_id="user-id")
+        app = mock.Mock(ID=3, group_name="image-manager")
+        imported_app = mock.Mock(app_id="5cca1d55101a3e8b09110443a10d0599", app_name="rehab", source="import")
+        hidden_app = mock.Mock(
+            app_name="image-manager",
+            source="local",
+            scope=app_version_service.HIDDEN_TEMPLATE_SCOPE,
+            is_ingerit=False,
+            describe="App version template for app 3",
+        )
+        relation = mock.Mock()
+        expected_default_id = app_version_service._build_hidden_template_id_by_app_id(app.ID)
+        expected_collision_safe_id = app_version_service._build_collision_safe_hidden_template_id(app.ID)
+
+        def get_app(app_id):
+            if app_id == expected_default_id:
+                return imported_app
+            if app_id == expected_collision_safe_id:
+                return None
+            raise AssertionError("unexpected app_id: {0}".format(app_id))
+
+        with mock.patch.object(app_version_service, "get_hidden_template", return_value=(None, None)), \
+                mock.patch.object(
+                    app_version_service_module.rainbond_app_repo,
+                    "get_rainbond_app_by_app_id",
+                    side_effect=get_app) as get_app_mock, \
+                mock.patch.object(
+                    app_version_service_module.rainbond_app_repo,
+                    "add_basic_app_info",
+                    return_value=hidden_app) as add_app_mock, \
+                mock.patch.object(
+                    app_version_service_module.app_version_template_relation_repo,
+                    "get_or_create",
+                    return_value=relation) as get_or_create_mock:
+            result_relation, result_hidden_app = app_version_service.get_or_create_hidden_template(
+                tenant, user, app
+            )
+
+        self.assertIs(result_relation, relation)
+        self.assertIs(result_hidden_app, hidden_app)
+        self.assertEqual(
+            [call.args[0] for call in get_app_mock.call_args_list],
+            [expected_default_id, expected_collision_safe_id],
+        )
+        imported_app.save.assert_not_called()
+        add_app_mock.assert_called_once_with(
+            app_id=expected_collision_safe_id,
+            app_name="image-manager",
+            create_user="user-id",
+            create_team="demo-team",
+            source="local",
+            dev_status="",
+            scope=app_version_service.HIDDEN_TEMPLATE_SCOPE,
+            describe="App version template for app 3",
+            is_ingerit=False,
+            enterprise_id="enterprise-id",
+            install_number=0,
+            is_official=False,
+            details="",
+            arch="amd64",
+            is_version=True,
+        )
+        get_or_create_mock.assert_called_once_with(
+            3,
+            defaults={
+                "tenant_id": "tenant-id",
+                "app_model_id": expected_collision_safe_id,
+                "app_model_name": "image-manager",
+                "template_type": "application_version",
+            },
+        )
+
+    # capability_id: console.app-version.hidden-template-create
+    def test_get_or_create_hidden_template_repairs_relation_bound_to_imported_template(self):
+        tenant = mock.Mock(
+            tenant_name="demo-team",
+            tenant_id="tenant-id",
+            enterprise_id="enterprise-id",
+        )
+        user = mock.Mock(user_id="user-id")
+        app = mock.Mock(ID=3, group_name="image-manager")
+        imported_app = mock.Mock(app_id="5cca1d55101a3e8b09110443a10d0599", app_name="rehab", source="import")
+        hidden_app = mock.Mock(
+            app_name="image-manager",
+            source="local",
+            scope=app_version_service.HIDDEN_TEMPLATE_SCOPE,
+            is_ingerit=False,
+            describe="App version template for app 3",
+        )
+        relation = mock.Mock(app_model_id=imported_app.app_id, app_model_name="rehab")
+        expected_collision_safe_id = app_version_service._build_collision_safe_hidden_template_id(app.ID)
+        snapshot_version = mock.Mock(
+            app_id=imported_app.app_id,
+            app_template=json.dumps({
+                "group_key": imported_app.app_id,
+                "group_name": "image-manager",
+                "apps": [],
+            }),
+        )
+
+        def get_app(app_id):
+            if app_id == imported_app.app_id:
+                return imported_app
+            if app_id == expected_collision_safe_id:
+                return hidden_app
+            raise AssertionError("unexpected app_id: {0}".format(app_id))
+
+        with mock.patch.object(
+                app_version_service_module.app_version_template_relation_repo,
+                "get_by_group_id",
+                return_value=relation), \
+                mock.patch.object(
+                    app_version_service_module.rainbond_app_repo,
+                    "get_rainbond_app_by_app_id",
+                    side_effect=get_app), \
+                mock.patch.object(
+                    app_version_service_module.rainbond_app_repo,
+                    "add_basic_app_info") as add_app_mock, \
+                mock.patch.object(
+                    app_version_service_module.RainbondCenterAppVersion.objects,
+                    "filter",
+                    return_value=[snapshot_version]) as version_filter_mock:
+            result_relation, result_hidden_app = app_version_service.get_or_create_hidden_template(
+                tenant, user, app
+            )
+
+        self.assertIs(result_relation, relation)
+        self.assertIs(result_hidden_app, hidden_app)
+        self.assertEqual(relation.app_model_id, expected_collision_safe_id)
+        self.assertEqual(relation.app_model_name, "image-manager")
+        self.assertEqual(relation.template_type, "application_version")
+        relation.save.assert_called_once_with()
+        imported_app.save.assert_not_called()
+        add_app_mock.assert_not_called()
+        version_filter_mock.assert_called_once_with(
+            app_id=imported_app.app_id,
+            group_id=app.ID,
+            template_type=app_version_service.SNAPSHOT_TEMPLATE_TYPE,
+        )
+        self.assertEqual(snapshot_version.app_id, expected_collision_safe_id)
+        self.assertEqual(json.loads(snapshot_version.app_template)["group_key"], expected_collision_safe_id)
+        snapshot_version.save.assert_called_once_with()
 
 
 class AppVersionTemplateDeleteTestCase(TestCase):

@@ -849,6 +849,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-import.openapi-query-status",
+      "title": "Query OpenAPI application import status",
+      "title_zh": "查询 OpenAPI 应用导入状态",
+      "interface_type": "service_method",
+      "interface": "console.services.app_import_and_export_service.AppImportService.openapi_deploy_app_get_import_by_event_id",
+      "code_paths": [
+        "console/services/app_import_and_export_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_import_and_export_service_test.py",
+          "selector": "AppImportStatusUpdateTestCase.test_openapi_deploy_app_get_import_by_event_id_skips_unchanged_status_save"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-import.query-status",
       "title": "Query application import status",
       "title_zh": "查询应用导入状态",
@@ -862,6 +880,18 @@
         {
           "path": "console/tests/app_import_and_export_service_test.py",
           "selector": "CenterAppImportViewWorkflowTestCase.test_get_returns_import_status"
+        },
+        {
+          "path": "console/tests/app_import_and_export_service_test.py",
+          "selector": "CenterAppImportViewWorkflowTestCase.test_get_preserves_database_error_when_transaction_is_broken"
+        },
+        {
+          "path": "console/tests/app_import_and_export_service_test.py",
+          "selector": "AppImportStatusUpdateTestCase.test_get_and_update_import_by_event_id_skips_unchanged_running_status_save"
+        },
+        {
+          "path": "console/tests/app_import_and_export_service_test.py",
+          "selector": "AppImportStatusUpdateTestCase.test_get_and_update_import_by_event_id_saves_partial_success_once"
         }
       ],
       "test_type": "regression",
@@ -1888,7 +1918,7 @@
       "tests": [
         {
           "path": "console/tests/app_version_test.py",
-          "selector": "AppVersionServiceHiddenTemplateTestCase.test_get_or_create_hidden_template_creates_hidden_app"
+          "selector": "AppVersionServiceHiddenTemplateTestCase"
         }
       ],
       "test_type": "regression",
