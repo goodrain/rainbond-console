@@ -187,9 +187,45 @@ class AppVersionService(object):
     def _build_hidden_template_id_by_app_id(app_id):
         return hashlib.md5("app-version:{0}".format(app_id).encode("utf-8")).hexdigest()
 
+    @staticmethod
+    def _build_collision_safe_hidden_template_id(app_id, index=0):
+        seed = "app-version-hidden:{0}".format(app_id)
+        if index:
+            seed = "app-version-hidden:{0}:{1}".format(app_id, index)
+        return hashlib.md5(seed.encode("utf-8")).hexdigest()
+
     @classmethod
     def _build_hidden_template_id(cls, app):
         return cls._build_hidden_template_id_by_app_id(app.ID)
+
+    def _is_hidden_template_app(self, app, source_app_id):
+        if not app:
+            return False
+        return bool(
+            getattr(app, "source", None) == self.HIDDEN_TEMPLATE_SOURCE
+            and getattr(app, "scope", None) == self.HIDDEN_TEMPLATE_SCOPE
+            and getattr(app, "is_ingerit", True) is False
+            and getattr(app, "describe", "") == "App version template for app {0}".format(source_app_id)
+        )
+
+    def _resolve_hidden_template_app(self, app):
+        hidden_app_id = self._build_hidden_template_id(app)
+        hidden_app = rainbond_app_repo.get_rainbond_app_by_app_id(hidden_app_id)
+        if not hidden_app or self._is_hidden_template_app(hidden_app, app.ID):
+            return hidden_app_id, hidden_app
+
+        logger.warning(
+            "hidden app template id collision detected: source_app_id=%s hidden_app_id=%s existing_source=%s",
+            app.ID,
+            hidden_app_id,
+            getattr(hidden_app, "source", ""),
+        )
+        for index in range(0, 100):
+            candidate_id = self._build_collision_safe_hidden_template_id(app.ID, index or None)
+            candidate_app = rainbond_app_repo.get_rainbond_app_by_app_id(candidate_id)
+            if not candidate_app or self._is_hidden_template_app(candidate_app, app.ID):
+                return candidate_id, candidate_app
+        raise ServiceHandleException(msg="hidden template id collision", msg_show="应用版本模板 ID 冲突", status_code=500)
 
     @staticmethod
     def _normalize_template_image(item):
@@ -252,15 +288,40 @@ class AppVersionService(object):
             return None, None
         return relation, rainbond_app_repo.get_rainbond_app_by_app_id(relation.app_model_id)
 
+    def _move_snapshot_versions_to_hidden_template(self, source_app_id, target_app_id, app_id):
+        versions = RainbondCenterAppVersion.objects.filter(
+            app_id=source_app_id,
+            group_id=app_id,
+            template_type=self.SNAPSHOT_TEMPLATE_TYPE,
+        )
+        for version in versions:
+            version.app_id = target_app_id
+            try:
+                app_template = json.loads(version.app_template)
+            except Exception:
+                app_template = None
+            if isinstance(app_template, dict):
+                app_template["group_key"] = target_app_id
+                version.app_template = json.dumps(app_template)
+            version.save()
+
+    def _repair_hidden_template_relation(self, relation, hidden_app_id, hidden_app_name, source_app_id, app_id):
+        if source_app_id != hidden_app_id:
+            self._move_snapshot_versions_to_hidden_template(source_app_id, hidden_app_id, app_id)
+        relation.app_model_id = hidden_app_id
+        relation.app_model_name = hidden_app_name
+        relation.template_type = self.SNAPSHOT_TEMPLATE_TYPE
+        relation.save()
+        return relation
+
     def get_or_create_hidden_template(self, tenant, user, app):
         relation, hidden_app = self.get_hidden_template(app.ID)
-        if relation and hidden_app:
+        hidden_app_name = self._build_hidden_template_name(app)
+        if relation and hidden_app and self._is_hidden_template_app(hidden_app, app.ID):
             return relation, hidden_app
 
-        hidden_app_id = self._build_hidden_template_id(app)
-        hidden_app_name = self._build_hidden_template_name(app)
+        hidden_app_id, hidden_app = self._resolve_hidden_template_app(app)
 
-        hidden_app = rainbond_app_repo.get_rainbond_app_by_app_id(hidden_app_id)
         if not hidden_app:
             hidden_app = rainbond_app_repo.add_basic_app_info(
                 app_id=hidden_app_id,
@@ -282,6 +343,12 @@ class AppVersionService(object):
         elif hidden_app.app_name != hidden_app_name:
             hidden_app.app_name = hidden_app_name
             hidden_app.save()
+
+        if relation:
+            relation = self._repair_hidden_template_relation(
+                relation, hidden_app_id, hidden_app_name, relation.app_model_id, app.ID
+            )
+            return relation, hidden_app
 
         relation = app_version_template_relation_repo.get_or_create(
             app.ID,

@@ -1918,7 +1918,7 @@
       "tests": [
         {
           "path": "console/tests/app_version_test.py",
-          "selector": "AppVersionServiceHiddenTemplateTestCase.test_get_or_create_hidden_template_creates_hidden_app"
+          "selector": "AppVersionServiceHiddenTemplateTestCase"
         }
       ],
       "test_type": "regression",
