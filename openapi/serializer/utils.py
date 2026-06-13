@@ -3,7 +3,7 @@
 import re
 import six
 import datetime
-from pytz import timezone
+from zoneinfo import ZoneInfo
 from django.conf import settings
 from rest_framework.fields import CharField
 
@@ -22,8 +22,8 @@ def pagination(data, total, page=1, page_size=10):
     return {"list": data, "total": total, "page": page, "page_size": page_size}
 
 
-cst_tz = timezone(settings.TIME_ZONE)
-utc_tz = timezone('UTC')
+cst_tz = ZoneInfo(settings.TIME_ZONE)
+utc_tz = ZoneInfo('UTC')
 
 
 class DateCharField(CharField):
