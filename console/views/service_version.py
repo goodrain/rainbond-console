@@ -6,7 +6,7 @@ import logging
 import operator
 
 from django.core.paginator import Paginator
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 
 from console.repositories.virtual_machine import vm_repo

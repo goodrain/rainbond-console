@@ -27,7 +27,7 @@ from console.views.base import (AlowAnyApiView, BaseApiView, EnterpriseAdminView
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.db import transaction
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.apiclient.baseclient import HttpClient
 from www.models.main import AnonymousUser

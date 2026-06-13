@@ -10,7 +10,7 @@ from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.views.base import RegionTenantHeaderView
 from console.views.plugin.base import PluginBaseView
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from docker_image import reference
 from goodrain_web.tools import JuncheePaginator
 from rest_framework.response import Response

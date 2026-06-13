@@ -14,7 +14,7 @@ from console.services.app_check_service import (app_check_service, resolve_lang_
 from console.services.source_build_state_service import source_build_state_service
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.views.app_config.base import AppBaseView
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.utils.return_message import general_message
 

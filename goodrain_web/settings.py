@@ -81,7 +81,6 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'console.login.jwt_authentication.JWTAuthenticationSafe',
         'console.services.auth.authentication.InternalTokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ),
     'EXCEPTION_HANDLER':
@@ -256,8 +255,6 @@ FILE_CHARSET = 'utf8'
 TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
-
-USE_L10N = True
 
 USE_TZ = False
 

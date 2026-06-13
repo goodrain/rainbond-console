@@ -1,7 +1,7 @@
 # -*- coding:utf8 -*-
 import logging
 
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from console.models.main import RainbondCenterPlugin
 from console.repositories.enterprise_repo import enterprise_repo

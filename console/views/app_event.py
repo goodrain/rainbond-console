@@ -10,7 +10,7 @@ from console.services.app_actions import event_service, log_service, ws_service
 from console.services.kubeblocks_service import kubeblocks_service
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.models.main import TenantServiceInfo
 from www.utils.return_message import error_message, general_message

@@ -14,7 +14,7 @@ from console.services.operation_log import operation_log_service
 from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.views.base import RegionTenantHeaderView, ApplicationView
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.utils.return_message import error_message, general_message
 

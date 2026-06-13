@@ -5,7 +5,7 @@
 import logging
 
 from django.shortcuts import redirect
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 
 from console.services.git_service import GitCodeService

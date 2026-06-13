@@ -5,7 +5,7 @@
 import json
 import logging
 
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 
 from console.repositories.app_config import volume_repo, mnt_repo

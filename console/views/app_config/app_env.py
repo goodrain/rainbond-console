@@ -28,7 +28,7 @@ from console.utils.response import MessageResponse
 from console.views.app_config.base import AppBaseView
 from django.db import connection
 from django.forms.models import model_to_dict
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.utils.return_message import general_message
 from console.exception.main import AbortRequest

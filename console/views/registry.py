@@ -1,4 +1,4 @@
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from console.services.team_services import team_services
 from www.utils.return_message import general_message
 from rest_framework.response import Response

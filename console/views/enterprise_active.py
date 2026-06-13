@@ -7,7 +7,7 @@ import os
 import base64
 
 from django.conf import settings
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 
 from console.services.enterprise_services import enterprise_services
