@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+from typing import Any, List, Optional
 
 from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist
@@ -257,7 +258,7 @@ class MCPQueryService(object):
         "remove": "delete",
     }
 
-    def list_tools(self, user=None):
+    def list_tools(self, user: Any = None) -> List[dict]:
         tools = [
             self._tool_get_current_user(), self._tool_get_app_detail(), self._tool_create_app(),
             self._tool_get_component_summary(), self._tool_get_component_detail(),
@@ -315,7 +316,7 @@ class MCPQueryService(object):
             ] + tools
         return tools
 
-    def call_tool(self, user, name, arguments=None):
+    def call_tool(self, user: Any, name: str, arguments: Optional[dict] = None) -> Any:
         arguments = arguments or {}
 
         if name == "rainbond_get_current_user":
@@ -535,7 +536,7 @@ class MCPQueryService(object):
 
         raise ServiceHandleException(msg="tool not found", msg_show="工具不存在", status_code=404)
 
-    def get_current_user(self, user):
+    def get_current_user(self, user: Any) -> dict:
         return {
             "user_id": user.user_id,
             "nick_name": getattr(user, "nick_name", None),
@@ -545,7 +546,7 @@ class MCPQueryService(object):
             "is_enterprise_admin": self._is_enterprise_admin(user),
         }
 
-    def get_app_detail(self, user, arguments):
+    def get_app_detail(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -566,7 +567,7 @@ class MCPQueryService(object):
         app_info["app_id"] = app.ID
         return app_info
 
-    def create_app(self, user, arguments):
+    def create_app(self, user: Any, arguments: dict) -> dict:
         team = self._get_team_context(user, self._require_string(arguments, "team_name"))
         region_name = self._require_string(arguments, "region_name")
         self._get_region_by_name_context(user, region_name)
@@ -582,7 +583,7 @@ class MCPQueryService(object):
             k8s_app=k8s_app,
         )
 
-    def get_component_detail(self, user, arguments):
+    def get_component_detail(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -601,7 +602,7 @@ class MCPQueryService(object):
         data["access_infos"] = domain_service.get_component_access_infos(app.region_name, service.service_id)
         return data
 
-    def get_component_pods(self, user, arguments):
+    def get_component_pods(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -628,7 +629,7 @@ class MCPQueryService(object):
             "total": len(items),
         }
 
-    def get_pod_detail(self, user, arguments):
+    def get_pod_detail(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -650,7 +651,7 @@ class MCPQueryService(object):
             raise ServiceHandleException(msg="pod not found", msg_show="Pod 不存在", status_code=404)
         return pod_detail
 
-    def get_component_summary(self, user, arguments):
+    def get_component_summary(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -711,7 +712,7 @@ class MCPQueryService(object):
             },
         }
 
-    def get_component_logs(self, user, arguments):
+    def get_component_logs(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -761,7 +762,7 @@ class MCPQueryService(object):
             "fallback": fallback,
         }
 
-    def exec_component(self, user, arguments):
+    def exec_component(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -826,7 +827,7 @@ class MCPQueryService(object):
             "truncated": bool(detail.get("truncated", False)),
         }
 
-    def get_config_file(self, user, arguments):
+    def get_config_file(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -836,8 +837,9 @@ class MCPQueryService(object):
         )
         volume_name = arguments.get("volume_name", "") or ""
         volume_path = arguments.get("volume_path", "") or ""
-        config_volumes = volume_repo.get_service_volumes_about_config_file(service.service_id) or []
-        config_files = {}
+        config_volumes = volume_repo.get_service_volumes_about_config_file(service.service_id) or []  # type: Any
+        # Dual-key map: keyed by both volume_id (int) and "name:<volume_name>" (str).
+        config_files = {}  # type: dict
         for config_file in volume_repo.get_service_config_files(service.service_id) or []:
             config_files[config_file.volume_id] = config_file
             if config_file.volume_name:
@@ -848,7 +850,8 @@ class MCPQueryService(object):
                 continue
             if volume_path and volume.volume_path != volume_path:
                 continue
-            config_file = config_files.get(volume.ID)
+            # config_file is reused as both loop var (model) and lookup result (Any|None).
+            config_file = config_files.get(volume.ID)  # type: ignore[assignment]
             if config_file is None and volume.volume_name:
                 config_file = config_files.get("name:" + volume.volume_name)
             items.append({
@@ -866,7 +869,7 @@ class MCPQueryService(object):
             "total": len(items),
         }
 
-    def get_component_events(self, user, arguments):
+    def get_component_events(self, user: Any, arguments: dict) -> dict:
         page = self._parse_int_with_default(arguments.get("page"), 1)
         page_size = self._parse_int_with_default(arguments.get("page_size"), 10)
         team, app, service = self._get_team_app_service_context(
@@ -887,7 +890,7 @@ class MCPQueryService(object):
             "has_next": has_next,
         }
 
-    def get_component_build_logs(self, user, arguments):
+    def get_component_build_logs(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -935,7 +938,7 @@ class MCPQueryService(object):
         }
 
     @staticmethod
-    def _build_log_item_contains(item, keyword):
+    def _build_log_item_contains(item: Any, keyword: str) -> bool:
         if isinstance(item, dict):
             haystack = item.get("message")
             if not isinstance(haystack, str):
@@ -965,7 +968,7 @@ class MCPQueryService(object):
         r"(\s*[:=]\s*)"
         r"(bearer\s+\S+|\"[^\"]*\"|'[^']*'|[^\s,;\"'&]+)")
 
-    def get_operation_failure_context(self, user, arguments):
+    def get_operation_failure_context(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1016,7 +1019,7 @@ class MCPQueryService(object):
             "verification_level": verification_level,
         }
 
-    def _resolve_failure_event(self, team, app, service, requested_event_id):
+    def _resolve_failure_event(self, team: Any, app: Any, service: Any, requested_event_id: str) -> Optional[dict]:
         """Locate the operation event to anchor on.
 
         When event_id is given, short-circuit: the caller already knows the
@@ -1031,7 +1034,7 @@ class MCPQueryService(object):
             return {"event_id": requested_event_id, "opt_type": "", "status": "",
                     "message": "", "start_time": "", "end_time": ""}
 
-        events = []
+        events = []  # type: List[Any]
         try:
             res, body = region_api.get_target_events_list(
                 app.region_name, team.tenant_name, "service", service.service_id,
@@ -1052,7 +1055,7 @@ class MCPQueryService(object):
         return None
 
     @staticmethod
-    def _shape_failure_event(item):
+    def _shape_failure_event(item: dict) -> dict:
         return {
             "event_id": item.get("event_id") or "",
             "opt_type": item.get("opt_type") or "",
@@ -1062,7 +1065,8 @@ class MCPQueryService(object):
             "end_time": item.get("end_time") or "",
         }
 
-    def _read_failure_event_log_tail(self, team, region_name, event_id, log_tail_lines):
+    def _read_failure_event_log_tail(self, team: Any, region_name: str, event_id: str,
+                                     log_tail_lines: int) -> List[str]:
         try:
             res, body = region_api.get_events_log(team.tenant_name, region_name, event_id)
             items = body.get("list") or [] if (int(res.status) == 200 and isinstance(body, dict)) else []
@@ -1080,10 +1084,10 @@ class MCPQueryService(object):
             lines.append(self._redact_failure_line(message)[:self.FAILURE_CONTEXT_MAX_LINE_LENGTH])
         return lines
 
-    def _redact_failure_line(self, message):
+    def _redact_failure_line(self, message: Any) -> str:
         return self._FAILURE_CONTEXT_SECRET_RE.sub(r"\1\2***", str(message or ""))
 
-    def _collect_pod_warnings(self, team, region_name, service):
+    def _collect_pod_warnings(self, team: Any, region_name: str, service: Any) -> List[dict]:
         """Pull Warning events from up to N abnormal pods. Best-effort: any
         failure returns an empty list so aggregation can degrade gracefully."""
         try:
@@ -1110,7 +1114,8 @@ class MCPQueryService(object):
             warnings.extend(self._extract_pod_warning_events(team, region_name, service, pod_name))
         return warnings
 
-    def _extract_pod_warning_events(self, team, region_name, service, pod_name):
+    def _extract_pod_warning_events(self, team: Any, region_name: str, service: Any,
+                                    pod_name: str) -> List[dict]:
         try:
             detail_payload = region_api.pod_detail(
                 region_name, team.tenant_name, service.service_alias, pod_name)
@@ -1151,7 +1156,7 @@ class MCPQueryService(object):
             })
         return warnings
 
-    def _get_component_build_source_snapshot(self, team, app, service):
+    def _get_component_build_source_snapshot(self, team: Any, app: Any, service: Any) -> dict:
         build_infos = base_service.get_build_infos(team, [service.service_id])
         bean = dict(build_infos.get(service.service_id) or {})
         # Hide the legacy docker_cmd column from agents: the effective start
@@ -1172,7 +1177,7 @@ class MCPQueryService(object):
             bean["arch_options"] = []
         return bean
 
-    def get_component_build_source(self, user, arguments):
+    def get_component_build_source(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1186,7 +1191,7 @@ class MCPQueryService(object):
             "build_source": self._get_component_build_source_snapshot(team, app, service),
         }
 
-    def update_component_build_source(self, user, arguments):
+    def update_component_build_source(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1248,7 +1253,10 @@ class MCPQueryService(object):
                         status_code=400,
                     )
                 try:
-                    instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+                    # NOTE: oauth_service may be None (repo returns Optional); guarded by
+                    # the surrounding try/except which converts AttributeError into a 400.
+                    instance = get_oauth_instance(
+                        oauth_service.oauth_type, oauth_service, oauth_user)  # type: ignore[union-attr]
                 except Exception:
                     raise ServiceHandleException(msg="oauth service invalid", msg_show="未找到OAuth服务", status_code=400)
                 if not instance.is_git_oauth():
@@ -1257,7 +1265,9 @@ class MCPQueryService(object):
                         msg_show="该OAuth服务不是代码仓库类型",
                         status_code=400,
                     )
-                service.code_from = "oauth_" + oauth_service.oauth_type
+                # NOTE: oauth_service is non-None here (a None would have raised in the
+                # get_oauth_instance try/except above and returned a 400).
+                service.code_from = "oauth_" + oauth_service.oauth_type  # type: ignore[union-attr, operator]
                 service.oauth_service_id = oauth_service_id
                 service.git_full_name = arguments.get("full_name", "") or getattr(service, "git_full_name", "")
             else:
@@ -1313,7 +1323,7 @@ class MCPQueryService(object):
             "build_source": self._get_component_build_source_snapshot(team, app, service),
         }
 
-    def create_component(self, user, arguments):
+    def create_component(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1335,6 +1345,9 @@ class MCPQueryService(object):
         )
         if code != 200:
             raise ServiceHandleException(msg="service create fail", msg_show=msg_show, status_code=code)
+        # NOTE: new_service is non-None past this point (create_docker_run_app only
+        # returns None alongside a non-200 code, which raised above). mypy can't narrow
+        # the tuple element from the code check, so the usages below carry type: ignore.
 
         if docker_cmd:
             # create_docker_run_app only stores docker_cmd, which in the UI
@@ -1343,17 +1356,20 @@ class MCPQueryService(object):
             # create_region_service (container_cmd) and deploy
             # (image_info.cmd) read service.cmd — without this copy the
             # start command the agent provided never reaches the container.
-            new_service.cmd = docker_cmd
-            new_service.save()
+            new_service.cmd = docker_cmd  # type: ignore[union-attr]
+            new_service.save()  # type: ignore[union-attr]
 
         if docker_password or docker_user_name:
-            console_app_service.create_service_source_info(team, new_service, docker_user_name, docker_password)
+            console_app_service.create_service_source_info(
+                team, new_service, docker_user_name, docker_password)  # type: ignore[arg-type]
 
-        code, msg_show = group_service.add_service_to_group(team, app.region_name, app.ID, new_service.service_id)
+        code, msg_show = group_service.add_service_to_group(
+            team, app.region_name, app.ID, new_service.service_id)  # type: ignore[union-attr]
         if code != 200:
             raise ServiceHandleException(msg="add component to app failure", msg_show=msg_show, status_code=code)
 
-        region_new_service = console_app_service.create_region_service(team, new_service, user.nick_name)
+        region_new_service = console_app_service.create_region_service(
+            team, new_service, user.nick_name)  # type: ignore[arg-type]
         event_id = ""
         if is_deploy:
             code, msg_show, event_id = app_manage_service.deploy(team, region_new_service, user)
@@ -1368,7 +1384,7 @@ class MCPQueryService(object):
             "is_deploy": is_deploy,
         }
 
-    def delete_component(self, user, arguments):
+    def delete_component(self, user: Any, arguments: dict) -> dict:
         team, app, service = self._get_team_app_service_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1387,7 +1403,7 @@ class MCPQueryService(object):
         }
 
     @staticmethod
-    def _build_component_delete_error(service, code, msg):
+    def _build_component_delete_error(service: Any, code: int, msg: Optional[str]) -> ServiceHandleException:
         """Turn a non-200 delete result into a structured, non-retryable reason.
 
         delete_component used to surface a generic "delete error", so the agent
@@ -1421,7 +1437,7 @@ class MCPQueryService(object):
             details["retryable"] = retryable
         return ServiceHandleException(msg=reason, msg_show=msg_show, status_code=code, details=details)
 
-    def operate_app(self, user, arguments):
+    def operate_app(self, user: Any, arguments: dict) -> dict:
         team, app = self._get_team_app_context(
             user,
             self._require_string(arguments, "team_name"),
@@ -1455,7 +1471,7 @@ class MCPQueryService(object):
         }
 
     @staticmethod
-    def _extract_operation_event_ids(batch_result):
+    def _extract_operation_event_ids(batch_result: Any) -> List[dict]:
         """Map region batch_result entries to [{service_alias, event_id}].
 
         batch_result entries are {service_id, operation, event_id, status, ...}.
