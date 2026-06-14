@@ -275,7 +275,7 @@ class UserService(object):
         perm = user_access_services.check_user_access_key(token)
         if not perm:
             return None
-        user = self.get_user_by_user_id(perm.user_id)
+        user = self.get_user_by_user_id(perm.user_id)  # type: ignore[arg-type]  # NOTE: int user_id vs str (systemic)
         return user
 
     def get_administrator_user_token(self, user: Any) -> Optional[str]:

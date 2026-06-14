@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
-from www.models.main import ConsoleConfig
+from typing import Any, Dict, List
+
+from django.db.models import QuerySet
+
 from console.repositories.custom_configs import custom_configs_repo
+from www.models.main import ConsoleConfig
 
 
 class CustomConfigsService(object):
     @staticmethod
-    def bulk_create_or_update(configs, user_nick_name=""):
+    def bulk_create_or_update(configs: List[Dict[str, Any]], user_nick_name: str = "") -> None:
         create_config_models = []
         update_config_models = []
         old_configs = custom_configs_repo.list_by_user_nick_name(user_nick_name)
@@ -25,7 +29,7 @@ class CustomConfigsService(object):
         return custom_configs_repo.bulk_create(create_config_models)
 
     @staticmethod
-    def list(user_nick_name=""):
+    def list(user_nick_name: str = "") -> QuerySet:
         if user_nick_name:
             return custom_configs_repo.list_by_user_nick_name(user_nick_name=user_nick_name)
         return custom_configs_repo.list()

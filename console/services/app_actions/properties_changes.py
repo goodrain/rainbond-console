@@ -488,7 +488,7 @@ def get_upgrade_app_version_template_app(tenant: Tenants, version: str, pc: "Pro
 
         app = next(iter([x for x in apps if func(x)]), None)
     else:
-        app = rbd_center_app_service.get_version_app(tenant.enterprise_id, version, pc.service_source)
+        app = rbd_center_app_service.get_version_app(tenant.enterprise_id, version, pc.service_source)  # type: ignore[arg-type]  # NOTE: Optional version (latent)
     return app
 
 
