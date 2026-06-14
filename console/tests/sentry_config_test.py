@@ -63,17 +63,34 @@ def test_telemetry_disabled_switch_wins():
 def test_before_send_filters_sensitive_request_data():
     event = {
         "request": {
+            "url": (
+                "https://rainbond.example.com/console/teams/team-a/"
+                "apps/app-1/overview?token=abc&page=1"
+            ),
             "query_string": "token=abc&page=1",
             "headers": {"Authorization": "secret", "X-Team": "team-a"},
             "data": {"password": "pw", "name": "app"},
+            "method": "GET",
         },
         "message": "authorization=Bearer abc token=def name=app",
     }
 
     sanitized = sentry_config.before_send(event, {})
 
-    assert sanitized["request"] == {"method": None}
+    assert sanitized["request"] == {
+        "method": "GET",
+        "url": "/console/teams/:id/apps/:id/overview?[Filtered]",
+    }
     assert sanitized["message"] == "authorization=[Filtered] token=[Filtered] name=app"
+
+
+def test_get_path_pattern_removes_dynamic_segments_and_query():
+    assert (
+        sentry_config.get_path_pattern(
+            "/console/teams/team-a/apps/123456/overview?token=abc"
+        )
+        == "/console/teams/:id/apps/:id/overview?[Filtered]"
+    )
 
 
 def test_frontend_config_only_exposes_dsn_when_enabled():
