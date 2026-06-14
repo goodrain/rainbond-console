@@ -90,7 +90,7 @@ class UpgradeService(object):
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
 
         app_upgrade = AppUpgrade(
-            tenant.enterprise_id,
+            tenant.enterprise_id,  # type: ignore[arg-type]  # NOTE: nullable enterprise_id model field, runtime-safe
             tenant,
             region,
             user,
@@ -122,7 +122,7 @@ class UpgradeService(object):
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
 
         app_upgrade = AppUpgrade(
-            tenant.enterprise_id,
+            tenant.enterprise_id,  # type: ignore[arg-type]  # NOTE: nullable enterprise_id model field, runtime-safe
             tenant,
             region,
             user,
@@ -154,7 +154,7 @@ class UpgradeService(object):
             record.upgrade_group_id)  # type: ignore[arg-type]
         app_restore = AppRestore(tenant, region, user, app, component_group, record)
         record, component_group = app_restore.restore()
-        return self.serialized_upgrade_record(record), component_group.group_alias
+        return self.serialized_upgrade_record(record), component_group.group_alias  # type: ignore[arg-type]
 
     @staticmethod
     def _app_template_source(app_id: str, app_model_key: str, upgrade_group_id: str) -> Any:

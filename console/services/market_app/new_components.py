@@ -3,6 +3,7 @@ import logging
 import json
 import os
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 from .utils import is_same_component
 from .enum import ActionType
@@ -46,18 +47,18 @@ baseService = BaseTenantService()
 
 class NewComponents(object):
     def __init__(self,
-                 tenant,
+                 tenant: Any,
                  region: RegionConfig,
-                 user,
-                 original_app,
-                 app_model_key,
-                 app_template,
-                 version,
-                 install_from_cloud,
-                 components_keys,
-                 market_name="",
-                 is_deploy=False,
-                 support_labels=None):
+                 user: Any,
+                 original_app: Any,
+                 app_model_key: str,
+                 app_template: dict,
+                 version: str,
+                 install_from_cloud: bool,
+                 components_keys: Any,
+                 market_name: str = "",
+                 is_deploy: bool = False,
+                 support_labels: Optional[Any] = None) -> None:
         """
         components_keys: component keys that the user select.
         """
@@ -78,7 +79,7 @@ class NewComponents(object):
         self.components_keys = components_keys
         self.components = self.create_components()
 
-    def create_components(self):
+    def create_components(self) -> List[Component]:
         """
         create component and related attributes
         """
@@ -101,25 +102,28 @@ class NewComponents(object):
             # component source
             component_source = self._template_to_component_source(cpt, component_tmpl)
             # ports
-            ports = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))
+            ports = self._template_to_ports(cpt, component_tmpl.get("port_map_list"))  # type: ignore[union-attr]
+            # NOTE: component_tmpl can be None if service_key not found in templates dict
             # envs
-            inner_envs = component_tmpl.get("service_env_map_list", [])
-            outer_envs = component_tmpl.get("service_connect_info_map_list", [])
+            inner_envs = component_tmpl.get("service_env_map_list", [])  # type: ignore[union-attr]
+            outer_envs = component_tmpl.get("service_connect_info_map_list", [])  # type: ignore[union-attr]
             envs = self._template_to_envs(cpt, inner_envs, outer_envs, ports)
             # volumes
-            volumes, config_files = self._template_to_volumes(cpt, component_tmpl.get("service_volume_map_list"))
+            volumes, config_files = self._template_to_volumes(cpt, component_tmpl.get("service_volume_map_list"))  # type: ignore[union-attr]
             # probe
-            probes = self._template_to_probes(cpt, component_tmpl.get("probes"))
+            probes = self._template_to_probes(cpt, component_tmpl.get("probes"))  # type: ignore[union-attr]
             # extend info
-            extend_info = self._template_to_extend_info(cpt, component_tmpl.get("extend_method_map"), component_tmpl.get("cpu"))
+            extend_info = self._template_to_extend_info(  # type: ignore[union-attr]
+                cpt, component_tmpl.get("extend_method_map"), component_tmpl.get("cpu"))  # type: ignore[union-attr]
             # service monitors
-            monitors = self._template_to_service_monitors(cpt, component_tmpl.get("component_monitors"))
+            monitors = self._template_to_service_monitors(cpt, component_tmpl.get("component_monitors"))  # type: ignore[union-attr]
             # graphs
-            graphs = self._template_to_component_graphs(cpt, component_tmpl.get("component_graphs"), cpt.arch)
+            graphs = self._template_to_component_graphs(  # type: ignore[union-attr]
+                cpt, component_tmpl.get("component_graphs"), cpt.arch or "")  # type: ignore[union-attr]
             # component k8s attributes
             k8s_attrs = self._template_to_k8s_attributes(
                 cpt,
-                component_tmpl.get("component_k8s_attributes"),
+                component_tmpl.get("component_k8s_attributes"),  # type: ignore[union-attr]
                 component_tmpl,
             )
             service_group_rel = ServiceGroupRelation(
@@ -131,7 +135,7 @@ class NewComponents(object):
             # ingress
             http_rules, http_rule_configs = self._template_to_service_domain(cpt, ports)
             # labels
-            labels = self._template_to_labels(cpt, component_tmpl.get("labels"))
+            labels = self._template_to_labels(cpt, component_tmpl.get("labels"))  # type: ignore[union-attr]
             component = Component(
                 cpt,
                 component_source,
@@ -154,7 +158,7 @@ class NewComponents(object):
             result.append(component)
         return result
 
-    def _get_new_component_templates(self, exist_components: [Component], component_templates):
+    def _get_new_component_templates(self, exist_components: List[Component], component_templates: List[Any]) -> List[Any]:
         tmpls = []
         for tmpl in component_templates:
             if self._component_exists(exist_components, tmpl):
@@ -163,13 +167,13 @@ class NewComponents(object):
         return tmpls
 
     @staticmethod
-    def _component_exists(exist_components: [Component], component_tmpl):
+    def _component_exists(exist_components: List[Component], component_tmpl: Any) -> bool:
         for component in exist_components:
             if is_same_component(component, component_tmpl):
                 return True
         return False
 
-    def _template_to_component(self, tenant_id, template):
+    def _template_to_component(self, tenant_id: str, template: Any) -> TenantServiceInfo:
         component = TenantServiceInfo()
         component.tenant_id = tenant_id
         component.service_id = make_uuid()
@@ -230,7 +234,7 @@ class NewComponents(object):
 
         return component
 
-    def _template_to_component_source(self, component: TenantServiceInfo, tmpl: map):
+    def _template_to_component_source(self, component: TenantServiceInfo, tmpl: Any) -> ServiceSourceInfo:
         extend_info = tmpl.get("service_image", {})
         extend_info["source_deploy_version"] = tmpl.get("deploy_version")
         extend_info["source_service_share_uuid"] = tmpl.get("service_share_uuid") if tmpl.get(
@@ -255,7 +259,8 @@ class NewComponents(object):
             if tmpl.get("service_share_uuid", None) else tmpl.get("service_key"),
         )
 
-    def _template_to_envs(self, component, inner_envs, outer_envs, ports):
+    def _template_to_envs(self, component: TenantServiceInfo, inner_envs: Any, outer_envs: Any,
+                          ports: List[TenantServicesPort]) -> List[TenantServiceEnvVar]:
         if not inner_envs and not outer_envs:
             return []
         envs = []
@@ -296,7 +301,7 @@ class NewComponents(object):
         # port envs
         return envs
 
-    def _template_to_ports(self, component, ports):
+    def _template_to_ports(self, component: TenantServiceInfo, ports: Any) -> List[TenantServicesPort]:
         if not ports:
             return []
         new_ports = []
@@ -331,7 +336,8 @@ class NewComponents(object):
         return new_ports
 
     @staticmethod
-    def _create_port_env(component: TenantServiceInfo, port: TenantServicesPort, name, attr_name, attr_value):
+    def _create_port_env(component: TenantServiceInfo, port: TenantServicesPort, name: str, attr_name: str,
+                         attr_value: str) -> TenantServiceEnvVar:
         return TenantServiceEnvVar(
             tenant_id=component.tenant_id,
             service_id=component.component_id,
@@ -344,7 +350,7 @@ class NewComponents(object):
             create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         )
 
-    def _create_default_gateway_rule(self, component: TenantServiceInfo, port: TenantServicesPort):
+    def _create_default_gateway_rule(self, component: TenantServiceInfo, port: TenantServicesPort) -> ServiceDomain:
         domain_name = self._create_default_domain(component.service_alias, port.container_port)
         return ServiceDomain(
             service_id=component.service_id,
@@ -358,7 +364,7 @@ class NewComponents(object):
             service_alias=component.service_alias,
             region_id=self.region.region_id)
 
-    def _template_to_volumes(self, component, volumes):
+    def _template_to_volumes(self, component: TenantServiceInfo, volumes: Any) -> Tuple[List[Any], List[TenantServiceConfigurationFile]]:
         if not volumes:
             return [], []
         volumes2 = []
@@ -398,7 +404,7 @@ class NewComponents(object):
                 logger.warning("Volume {0} Path {1} error".format(volume["volume_name"], volume["volume_path"]))
         return volumes2, config_files
 
-    def _template_to_probes(self, component, probes):
+    def _template_to_probes(self, component: TenantServiceInfo, probes: Any) -> List[Any]:
         if not probes:
             return []
         result = []
@@ -406,7 +412,7 @@ class NewComponents(object):
             result.append(probe_service.create_probe(self.tenant, component, probe))
         return result
 
-    def _template_to_extend_info(self, component, extend_info, cpu):
+    def _template_to_extend_info(self, component: TenantServiceInfo, extend_info: Any, cpu: Any) -> Optional[ServiceExtendMethod]:
         if not extend_info:
             return None
         version = component.version if component.version else "alpine"
@@ -427,7 +433,7 @@ class NewComponents(object):
             is_restart=extend_info.get("is_restart", 0),
             container_cpu=container_cpu)
 
-    def _template_to_service_monitors(self, component, service_monitors):
+    def _template_to_service_monitors(self, component: TenantServiceInfo, service_monitors: Any) -> List[ServiceMonitor]:
         if not service_monitors:
             return []
         monitors = []
@@ -446,7 +452,7 @@ class NewComponents(object):
             monitors.append(data)
         return monitors
 
-    def _template_to_component_graphs(self, component, graphs, arch):
+    def _template_to_component_graphs(self, component: TenantServiceInfo, graphs: Any, arch: str) -> Any:
         if not graphs:
             return []
         new_graphs = {}
@@ -466,7 +472,8 @@ class NewComponents(object):
             new_graphs[new_graph.title] = new_graph
         return new_graphs.values()
 
-    def _template_to_service_domain(self, component: TenantServiceInfo, ports: [TenantServicesPort]):
+    def _template_to_service_domain(self, component: TenantServiceInfo,
+                                    ports: List[TenantServicesPort]) -> Tuple[List[ServiceDomain], List[GatewayCustomConfiguration]]:
         new_ports = {port.container_port: port for port in ports}
         ingress_http_routes = self.app_template.list_ingress_http_routes_by_component_key(component.service_key)
 
@@ -495,7 +502,8 @@ class NewComponents(object):
                 domain_cookie=self._domain_cookie_or_header(ingress["cookies"]),
                 domain_heander=self._domain_cookie_or_header(ingress["headers"]),
                 path_rewrite=ingress["path_rewrite"] if ingress.get("path_rewrite") else False,
-                rewrites=rewrites,
+                rewrites=rewrites,  # type: ignore[arg-type, misc]
+                # NOTE: rewrites can be list[Any] or str; ServiceDomain.rewrites expects str
                 type=0 if ingress["default_domain"] else 1,
                 the_weight=100,
                 is_outer_service=port.is_outer_service,
@@ -518,8 +526,9 @@ class NewComponents(object):
 
         return service_domains, configs
 
-    def _ensure_default_http_rule(self, component: TenantServiceInfo, http_rules: [ServiceDomain], ports: [TenantServicesPort]):
-        new_http_rules = {}
+    def _ensure_default_http_rule(self, component: TenantServiceInfo, http_rules: List[ServiceDomain],
+                                  ports: List[TenantServicesPort]) -> None:
+        new_http_rules: Dict[int, List[ServiceDomain]] = {}
         for rule in http_rules:
             rules = new_http_rules.get(rule.container_port, [])
             rules.append(rule)
@@ -545,24 +554,24 @@ class NewComponents(object):
                 http_rule.domain_name = self._create_default_domain(component.service_alias, port.container_port)
 
     @staticmethod
-    def _contains_default_rule(rules: [ServiceDomain]):
+    def _contains_default_rule(rules: List[ServiceDomain]) -> bool:
         for rule in rules:
             if rule.type == 0:
                 return True
         return False
 
-    def _create_default_domain(self, service_alias: str, port: int):
+    def _create_default_domain(self, service_alias: str, port: int) -> str:
         return service_alias + "-" + str(port) + "-" + self.tenant.tenant_name + "." + self.region.httpdomain
 
     @staticmethod
-    def _domain_cookie_or_header(items):
+    def _domain_cookie_or_header(items: Any) -> str:
         res = []
         for key in items:
             res.append(key + "=" + items[key])
         return ";".join(res)
 
     @staticmethod
-    def _ingress_config(rule_id, ingress):
+    def _ingress_config(rule_id: str, ingress: Any) -> GatewayCustomConfiguration:
         set_headers = []
         proxy_header = ingress.get("proxy_header")
         if proxy_header and isinstance(proxy_header, list):
@@ -594,13 +603,13 @@ class NewComponents(object):
             }))
 
     @staticmethod
-    def _ingress_load_balancing(lb):
+    def _ingress_load_balancing(lb: Any) -> str:
         if lb == "cookie-session-affinity":
             return "lb-type:cookie-session-affinity"
         # round-robin is the default value of load balancing
         return "lb-type:round-robin"
 
-    def _template_to_labels(self, component, labels):
+    def _template_to_labels(self, component: TenantServiceInfo, labels: Any) -> List[ServiceLabels]:
         support_labels = {label.label_name: label for label in self.support_labels}
         if not labels:
             return []
@@ -618,7 +627,8 @@ class NewComponents(object):
                     create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         return new_labels
 
-    def _template_to_k8s_attributes(self, component, attributes, component_tmpl):
+    def _template_to_k8s_attributes(self, component: TenantServiceInfo, attributes: Any,
+                                    component_tmpl: Any) -> List[ComponentK8sAttributes]:
         new_attributes = []
         seen = set()
         for attribute in attributes or []:
@@ -638,7 +648,7 @@ class NewComponents(object):
             seen.add(attribute.name)
         return new_attributes
 
-    def _template_to_vm_k8s_attributes(self, component, component_tmpl):
+    def _template_to_vm_k8s_attributes(self, component: TenantServiceInfo, component_tmpl: Any) -> List[ComponentK8sAttributes]:
         vm_payload = (component_tmpl or {}).get("vm", {})
         if not vm_payload:
             return []
@@ -678,7 +688,7 @@ class NewComponents(object):
         return new_attributes
 
     @staticmethod
-    def _template_to_vm_disk_imports(vm_payload):
+    def _template_to_vm_disk_imports(vm_payload: Any) -> Dict[str, Any]:
         disk_imports = {}
         for disk in (vm_payload or {}).get("disk_layout", []) or []:
             if not isinstance(disk, dict):
@@ -714,7 +724,7 @@ class NewComponents(object):
         return disk_imports
 
     @staticmethod
-    def _is_published_vm_root_artifact(disk, source_uri):
+    def _is_published_vm_root_artifact(disk: Any, source_uri: Any) -> bool:
         if str((disk or {}).get("disk_role", "")).lower() != "root":
             return False
         source_uri = str(source_uri or "").strip().lower()

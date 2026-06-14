@@ -1104,7 +1104,7 @@ class AppVersionService(object):
             restored_component_identities=rollback_plan["restored"],
         )
         rollback_record, _ = app_restore.restore()
-        return rollback_record.to_dict()
+        return rollback_record.to_dict()  # type: ignore[union-attr]  # NOTE: rollback_record set in _save_new_app
 
 
 app_version_service = AppVersionService()

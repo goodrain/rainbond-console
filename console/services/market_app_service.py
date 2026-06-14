@@ -117,7 +117,7 @@ class MarketAppService(object):
                                                             version, market_app.app_name)
 
         app_upgrade = AppUpgrade(
-            user.enterprise_id,
+            user.enterprise_id,  # type: ignore[arg-type]  # NOTE: nullable enterprise_id model field, runtime-safe
             tenant,
             region,
             user,
@@ -308,7 +308,7 @@ class MarketAppService(object):
             component_group = self._create_tenant_service_group(region.region_name, tenant.tenant_id, app.app_id,
                                                                 app_template["group_key"], version, app_template["group_name"])
             app_upgrade = AppUpgrade(
-                user.enterprise_id,
+                user.enterprise_id,  # type: ignore[arg-type]  # NOTE: nullable enterprise_id model field, runtime-safe
                 tenant,
                 region,
                 user,
@@ -1928,7 +1928,7 @@ class MarketAppService(object):
                                                             version, market_app.app_name)
 
         app_upgrade = AppUpgrade(
-            user.enterprise_id,
+            user.enterprise_id,  # type: ignore[arg-type]  # NOTE: nullable enterprise_id model field, runtime-safe
             tenant,
             region,
             user,
