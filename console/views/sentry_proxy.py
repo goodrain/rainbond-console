@@ -13,6 +13,27 @@ DEFAULT_SENTRY_PROXY_TARGET = "https://sentry.goodrain.com"
 REQUEST_TIMEOUT = (3, 10)
 ENVELOPE_PATH_RE = re.compile(r"(^|.*/)api/\d+/envelope/?$")
 
+EXPLICIT_PROXY_TARGET_KEYS = (
+    "RAINBOND_SENTRY_PROXY_TARGET",
+    "RAINBOND_ERROR_REPORTING_PROXY_TARGET",
+    "SENTRY_PROXY_TARGET",
+)
+FRONTEND_TUNNEL_KEYS = (
+    "RAINBOND_ERROR_REPORTING_FRONTEND_TUNNEL",
+    "SENTRY_FRONTEND_TUNNEL",
+    "SENTRY_TUNNEL",
+)
+SENTRY_DSN_KEYS = (
+    "RAINBOND_ERROR_REPORTING_FRONTEND_DSN",
+    "RAINBOND_ERROR_REPORTING_DSN",
+    "SENTRY_FRONTEND_DSN",
+    "SENTRY_DSN",
+    "RAINBOND_ERROR_REPORTING_CONSOLE_DSN",
+    "RAINBOND_ERROR_REPORTING_BACKEND_DSN",
+    "SENTRY_CONSOLE_DSN",
+    "SENTRY_BACKEND_DSN",
+)
+
 REQUEST_HEADER_MAP = {
     "CONTENT_TYPE": "Content-Type",
     "HTTP_ACCEPT": "Accept",
@@ -39,13 +60,54 @@ class SentryProxyRequestError(Exception):
     pass
 
 
+def _get_env_value(*keys):
+    for key in keys:
+        value = os.environ.get(key)
+        if value:
+            return value
+    return ""
+
+
+def _sanitize_url_target(value, keep_path=True):
+    try:
+        parsed = urlsplit(value or "")
+        port = parsed.port
+    except ValueError:
+        return ""
+    if not parsed.scheme or not parsed.hostname:
+        return ""
+    hostname = parsed.hostname
+    if ":" in hostname and not hostname.startswith("["):
+        hostname = "[{}]".format(hostname)
+    netloc = "{}:{}".format(hostname, port) if port else hostname
+    path = parsed.path.rstrip("/") if keep_path else ""
+    return urlunsplit((parsed.scheme, netloc, path, "", "")).rstrip("/")
+
+
+def _proxy_target_from_dsn(dsn):
+    try:
+        parsed = urlsplit(dsn or "")
+    except ValueError:
+        return ""
+    path_parts = [part for part in parsed.path.split("/") if part]
+    base_path = "/" + "/".join(path_parts[:-1]) if len(path_parts) > 1 else ""
+    return _sanitize_url_target(urlunsplit((parsed.scheme, parsed.netloc, base_path, "", "")))
+
+
 def _get_proxy_target():
-    return (
-        os.environ.get("RAINBOND_SENTRY_PROXY_TARGET")
-        or os.environ.get("RAINBOND_ERROR_REPORTING_PROXY_TARGET")
-        or os.environ.get("SENTRY_PROXY_TARGET")
-        or DEFAULT_SENTRY_PROXY_TARGET
-    ).rstrip("/")
+    explicit_target = _get_env_value(*EXPLICIT_PROXY_TARGET_KEYS)
+    if explicit_target:
+        return explicit_target.rstrip("/")
+
+    tunnel_target = _sanitize_url_target(_get_env_value(*FRONTEND_TUNNEL_KEYS))
+    if tunnel_target:
+        return tunnel_target
+
+    dsn_target = _proxy_target_from_dsn(_get_env_value(*SENTRY_DSN_KEYS))
+    if dsn_target:
+        return dsn_target
+
+    return DEFAULT_SENTRY_PROXY_TARGET
 
 
 def _validate_envelope_path(path):

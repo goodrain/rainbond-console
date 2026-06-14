@@ -145,6 +145,17 @@ def get_frontend_posthog_config(env=None):
     env = env or os.environ
     project_token = DEFAULT_POSTHOG_PROJECT_TOKEN
     enabled = get_posthog_enabled(env, project_token)
+    instance_id = ""
+    instance_properties = {}
+    if enabled:
+        try:
+            from console.services.telemetry import RainbondTelemetryService
+            telemetry = RainbondTelemetryService(env=env)
+            instance_id = telemetry.get_or_create_instance_id()
+            instance_properties = telemetry.get_instance_properties()
+        except Exception:
+            instance_id = ""
+            instance_properties = {}
     return {
         "enabled": enabled,
         "projectToken": project_token if enabled else "",
@@ -159,6 +170,8 @@ def get_frontend_posthog_config(env=None):
         "capturePageleave": str_to_bool(env.get("RAINBOND_POSTHOG_CAPTURE_PAGELEAVE") or env.get("POSTHOG_CAPTURE_PAGELEAVE")),
         "disableFlags": not str_to_bool(env.get("RAINBOND_POSTHOG_ENABLE_FLAGS") or env.get("POSTHOG_ENABLE_FLAGS")),
         "debug": str_to_bool(env.get("RAINBOND_POSTHOG_DEBUG") or env.get("POSTHOG_DEBUG")),
+        "instanceId": instance_id,
+        "instanceProperties": instance_properties,
     }
 
 

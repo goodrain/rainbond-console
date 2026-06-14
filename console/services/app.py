@@ -38,6 +38,7 @@ from console.services.app_config.arch_service import arch_service
 from console.services.app_config.port_service import AppPortService
 from console.services.app_config.probe_service import ProbeService
 from console.services.app_config.service_monitor import service_monitor_repo
+from console.services.telemetry import telemetry_service
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.utils.offline import is_cloud_market_disabled
 from console.utils.validation import validate_endpoints_info
@@ -177,6 +178,12 @@ class AppService(object):
         self.ensure_source_build_default_locale_envs(tenant, new_service)
         logger.debug("service.create, user:{0} create service from source code".format(user.nick_name))
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
+        telemetry_service.track_component_created(
+            tenant=tenant,
+            region_name=region,
+            component=ts,
+            source_type=AppConstants.SOURCE_CODE,
+        )
         return 200, "创建成功", ts
 
     def ensure_source_build_default_locale_envs(self, tenant, service):
@@ -308,6 +315,12 @@ class AppService(object):
         new_service.build_strategy = "cnb"
         new_service.save()
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
+        telemetry_service.track_component_created(
+            tenant=tenant,
+            region_name=region,
+            component=ts,
+            source_type=AppConstants.PACKAGE_BUILD,
+        )
         return ts
 
     def change_package_upload_info(self, service_id, event_id, pkg_create_time):
@@ -425,6 +438,12 @@ class AppService(object):
 
         logger.debug("service.create", "user:{0} create service from docker run command !".format(user.nick_name))
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
+        telemetry_service.track_component_created(
+            tenant=tenant,
+            region_name=region,
+            component=ts,
+            source_type=image_type or AppConstants.DOCKER_IMAGE,
+        )
 
         return 200, "创建成功", ts
 
@@ -465,6 +484,12 @@ class AppService(object):
         logger.debug("service.create", f"user:{user.nick_name} create kubeblocks component: {service_cname}")
 
         ts = TenantServiceInfo.objects.get(service_id=new_service.service_id, tenant_id=new_service.tenant_id)
+        telemetry_service.track_component_created(
+            tenant=tenant,
+            region_name=region,
+            component=ts,
+            source_type="kubeblocks",
+        )
 
         return 200, "创建成功", ts
     def create_vm_run_app(self,
