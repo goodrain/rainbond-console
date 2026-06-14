@@ -24,12 +24,16 @@ DEFAULT_POSTHOG_CONFIG_DATE = "2026-05-30"
 DEFAULT_POSTHOG_PERSON_PROFILES = "identified_only"
 DYNAMIC_SEGMENT_MARKERS = set([
     "teams",
+    "team",
     "tenants",
     "apps",
+    "app",
     "services",
+    "service",
     "components",
     "groups",
     "regions",
+    "region",
     "clusters",
     "nodes",
     "namespaces",
