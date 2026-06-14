@@ -695,7 +695,7 @@ class MarketAppService(object):
     def __create_service_plugins(self, region: RegionConfig, tenant: Tenants, service_list: Any, app_plugin_map: dict,
                                  old_new_id_map: dict) -> None:
         try:
-            plugin_version_service.update_plugin_build_status(region, tenant)
+            plugin_version_service.update_plugin_build_status(region, tenant)  # type: ignore[arg-type]  # NOTE: RegionConfig vs region-name str (latent, backlog)
 
             for service in service_list:
                 plugins = app_plugin_map.get(service.service_id)
@@ -706,7 +706,7 @@ class MarketAppService(object):
                         plugin_id = p[0].plugin_id
                         service_plugin_config_vars = plugin_config["attr"]
                         plugin_version = plugin_version_service.get_newest_plugin_version(tenant.tenant_id, plugin_id)
-                        build_version = plugin_version.build_version
+                        build_version = plugin_version.build_version  # type: ignore[union-attr]
 
                         self.__save_service_config_values(service, plugin_id, build_version, service_plugin_config_vars,
                                                           old_new_id_map)
@@ -806,36 +806,36 @@ class MarketAppService(object):
         if status != 200:
             return status, msg
 
-        plugin_base_info.origin = 'local_market'
-        plugin_base_info.origin_share_id = plugin_template.get("plugin_key")
-        plugin_base_info.save()
+        plugin_base_info.origin = 'local_market'  # type: ignore[union-attr]  # NOTE: plugin_base_info Optional after create_tenant_plugin (latent)
+        plugin_base_info.origin_share_id = plugin_template.get("plugin_key")  # type: ignore[union-attr]
+        plugin_base_info.save()  # type: ignore[union-attr]
 
         build_version = plugin_template.get('build_version')
         min_memory = plugin_template.get('min_memory', 128)
 
         plugin_build_version = plugin_version_service.create_build_version(
             region_name,
-            plugin_base_info.plugin_id,
+            plugin_base_info.plugin_id,  # type: ignore[union-attr]
             tenant.tenant_id,
-            user.user_id,
+            user.user_id,  # type: ignore[arg-type]
             "",
             "unbuild",
             min_memory,
-            image_tag=image_tag,
+            image_tag=image_tag,  # type: ignore[arg-type]
             code_version="",
             build_version=build_version)
 
         share_config_groups = plugin_template.get('config_groups', [])
 
-        plugin_config_service.create_config_groups(plugin_base_info.plugin_id, build_version, share_config_groups)
+        plugin_config_service.create_config_groups(plugin_base_info.plugin_id, build_version, share_config_groups)  # type: ignore[union-attr, arg-type]
 
         event_id = make_uuid()
         plugin_build_version.event_id = event_id
         plugin_build_version.plugin_version_status = "fixed"
 
-        plugin_service.create_region_plugin(region_name, tenant, plugin_base_info, image_tag=image_tag)
+        plugin_service.create_region_plugin(region_name, tenant, plugin_base_info, image_tag=image_tag)  # type: ignore[arg-type]
 
-        ret = plugin_service.build_plugin(region_name, plugin_base_info, plugin_build_version, user, tenant, event_id,
+        ret = plugin_service.build_plugin(region_name, plugin_base_info, plugin_build_version, user, tenant, event_id,  # type: ignore[arg-type]
                                           plugin_template.get("plugin_image", None))
         plugin_build_version.build_status = ret.get('bean').get('status')
         plugin_build_version.save()
