@@ -21,11 +21,17 @@ sys.modules.setdefault("openapi_client", openapi_client)
 sys.modules.setdefault("openapi_client.configuration", configuration_module)
 sys.modules.setdefault("openapi_client.rest", rest_module)
 
-from console.exception.main import ServiceHandleException
-from console.models import KubeBlocksBackupRepo
-from console.services import kubeblocks_service as kubeblocks_module
-from console.services.kubeblocks_service import KubeBlocksService
-from django.test import TestCase
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
+
+import django  # noqa: E402
+
+django.setup()
+
+from console.exception.main import ServiceHandleException  # noqa: E402
+from console.models import KubeBlocksBackupRepo  # noqa: E402
+from console.services import kubeblocks_service as kubeblocks_module  # noqa: E402
+from console.services.kubeblocks_service import KubeBlocksService  # noqa: E402
+from django.test import TestCase  # noqa: E402
 
 
 class KubeBlocksBackupRepoServiceTests(TestCase):
@@ -99,6 +105,28 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
         region_payload = region_api.create_kubeblocks_backup_repo.call_args[0][1]
         self.assertEqual(region_payload["config"]["forcePathStyle"], "false")
         self.assertEqual(body["bean"]["forcePathStyle"], False)
+
+    # capability_id: console.kubeblocks.backup-repo.team-create
+    def test_create_backup_repo_defaults_to_prechecking_when_region_phase_is_empty(self):
+        region_api = mock.Mock()
+        region_api.create_kubeblocks_backup_repo.return_value = ({"status": 200}, {"bean": {"name": "team-a-ns-prod"}})
+
+        payload = {
+            "name": "prod",
+            "display_name": "生产仓库",
+            "bucket": "rainbond-backup",
+            "endpoint": "https://s3.example.com",
+            "access_key_id": "ak",
+            "secret_access_key": "sk",
+        }
+        with mock.patch.object(kubeblocks_module, "region_api", region_api):
+            status, body = self.service.create_backup_repo(self.tenant, self.user, "region-a", payload)
+
+        self.assertEqual(status, 200)
+        repo = KubeBlocksBackupRepo.objects.get(repo_name="team-a-ns-prod")
+        self.assertEqual(repo.status, "PreChecking")
+        self.assertEqual(body["bean"]["phase"], "PreChecking")
+        self.assertEqual(body["bean"]["status"], "PreChecking")
 
     # capability_id: console.kubeblocks.backup-repo.team-create
     def test_create_backup_repo_reclaims_deleted_region_repo_name(self):
@@ -214,6 +242,38 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
         self.assertEqual(item["phase"], "Failed")
         self.assertEqual(item["conditions"][0]["reason"], "PreCheckFailed")
 
+    # capability_id: console.kubeblocks.backup-repo.team-list
+    def test_list_backup_repos_marks_missing_when_region_resource_disappears(self):
+        KubeBlocksBackupRepo.objects.create(
+            tenant_id="tenant-1",
+            team_name="team-a",
+            region_name="region-a",
+            namespace="team-a-ns",
+            display_name="生产仓库",
+            repo_name="team-a-ns-prod",
+            secret_name="team-a-ns-prod-secret",
+            secret_namespace="rbd-plugins",
+            storage_provider="s3",
+            bucket="rainbond-backup",
+            endpoint="https://s3.example.com",
+            region="cn-hangzhou",
+            status="Ready",
+        )
+        region_api = mock.Mock()
+        region_api.get_kubeblocks_backup_repos.return_value = ({
+            "status": 200
+        }, {
+            "list": []
+        })
+
+        with mock.patch.object(kubeblocks_module, "region_api", region_api):
+            status, body = self.service.get_team_backup_repos(self.tenant, "region-a")
+
+        self.assertEqual(status, 200)
+        item = body["list"][0]
+        self.assertEqual(item["phase"], "Missing")
+        self.assertEqual(item["status"], "Missing")
+
     # capability_id: console.kubeblocks.backup-repo.team-ownership
     def test_ensure_backup_repo_belongs_to_team_rejects_other_team_repo(self):
         KubeBlocksBackupRepo.objects.create(
@@ -232,6 +292,100 @@ class KubeBlocksBackupRepoServiceTests(TestCase):
 
         with self.assertRaises(ServiceHandleException):
             self.service.ensure_backup_repo_belongs_to_team(self.tenant, "region-a", "team-b-ns-prod")
+
+    # capability_id: console.kubeblocks.backup-repo.ready-guard
+    def test_ensure_backup_repo_ready_for_use_rejects_prechecking_repo(self):
+        KubeBlocksBackupRepo.objects.create(
+            tenant_id="tenant-1",
+            team_name="team-a",
+            region_name="region-a",
+            namespace="team-a-ns",
+            display_name="生产仓库",
+            repo_name="team-a-ns-prod",
+            secret_name="team-a-ns-prod-secret",
+            secret_namespace="rbd-plugins",
+            storage_provider="s3",
+            bucket="rainbond-backup",
+            endpoint="https://s3.example.com",
+            status="PreChecking",
+        )
+        region_api = mock.Mock()
+        region_api.get_kubeblocks_backup_repos.return_value = ({
+            "status": 200
+        }, {
+            "list": [{
+                "name": "team-a-ns-prod",
+                "phase": "PreChecking",
+            }]
+        })
+
+        with mock.patch.object(kubeblocks_module, "region_api", region_api):
+            with self.assertRaises(ServiceHandleException) as context:
+                self.service.ensure_backup_repo_ready_for_use(self.tenant, "region-a", "team-a-ns-prod")
+
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(context.exception.msg_show, "备份仓库正在检测中，请检测通过后再使用")
+
+    # capability_id: console.kubeblocks.backup-repo.ready-guard
+    def test_ensure_backup_repo_ready_for_use_accepts_ready_repo(self):
+        record = KubeBlocksBackupRepo.objects.create(
+            tenant_id="tenant-1",
+            team_name="team-a",
+            region_name="region-a",
+            namespace="team-a-ns",
+            display_name="生产仓库",
+            repo_name="team-a-ns-prod",
+            secret_name="team-a-ns-prod-secret",
+            secret_namespace="rbd-plugins",
+            storage_provider="s3",
+            bucket="rainbond-backup",
+            endpoint="https://s3.example.com",
+            status="PreChecking",
+        )
+        region_api = mock.Mock()
+        region_api.get_kubeblocks_backup_repos.return_value = ({
+            "status": 200
+        }, {
+            "list": [{
+                "name": "team-a-ns-prod",
+                "phase": "Ready",
+            }]
+        })
+
+        with mock.patch.object(kubeblocks_module, "region_api", region_api):
+            checked = self.service.ensure_backup_repo_ready_for_use(self.tenant, "region-a", "team-a-ns-prod")
+
+        self.assertEqual(checked.ID, record.ID)
+
+    # capability_id: console.kubeblocks.backup-repo.ready-guard
+    def test_ensure_backup_repo_ready_for_use_rejects_missing_live_repo(self):
+        KubeBlocksBackupRepo.objects.create(
+            tenant_id="tenant-1",
+            team_name="team-a",
+            region_name="region-a",
+            namespace="team-a-ns",
+            display_name="生产仓库",
+            repo_name="team-a-ns-prod",
+            secret_name="team-a-ns-prod-secret",
+            secret_namespace="rbd-plugins",
+            storage_provider="s3",
+            bucket="rainbond-backup",
+            endpoint="https://s3.example.com",
+            status="Ready",
+        )
+        region_api = mock.Mock()
+        region_api.get_kubeblocks_backup_repos.return_value = ({
+            "status": 200
+        }, {
+            "list": []
+        })
+
+        with mock.patch.object(kubeblocks_module, "region_api", region_api):
+            with self.assertRaises(ServiceHandleException) as context:
+                self.service.ensure_backup_repo_ready_for_use(self.tenant, "region-a", "team-a-ns-prod")
+
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(context.exception.msg_show, "备份仓库资源不存在或暂不可用，请刷新后重试")
 
     # capability_id: console.kubeblocks.backup-repo.team-delete
     def test_delete_backup_repo_shows_clear_message_when_in_use(self):

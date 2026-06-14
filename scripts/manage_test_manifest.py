@@ -13,7 +13,7 @@ def load_manifest(path):
 
 def save_manifest(path, manifest):
     with path.open("w", encoding="utf-8") as handle:
-        json.dump(manifest, handle, indent=2, ensure_ascii=True)
+        json.dump(manifest, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
 
 
@@ -23,7 +23,7 @@ def update_manifest(path, update_fn):
         manifest = json.load(handle)
         result = update_fn(manifest)
         handle.seek(0)
-        json.dump(manifest, handle, indent=2, ensure_ascii=True)
+        json.dump(manifest, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
         handle.truncate()
         fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
@@ -132,7 +132,7 @@ def cmd_show(args):
     if capability is None:
         print("capability not found: {0}".format(args.capability_id), file=sys.stderr)
         return 1
-    print(json.dumps(capability, indent=2, ensure_ascii=True))
+    print(json.dumps(capability, indent=2, ensure_ascii=False))
     return 0
 
 

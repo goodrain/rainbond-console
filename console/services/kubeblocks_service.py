@@ -31,6 +31,9 @@ BACKUP_REPO_DEFAULT_ACCESS_METHOD = "Tool"
 BACKUP_REPO_DEFAULT_VOLUME_CAPACITY = "100Gi"
 BACKUP_REPO_DEFAULT_RECLAIM_POLICY = "Retain"
 BACKUP_REPO_NAME_PATTERN = re.compile(r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
+BACKUP_REPO_READY_PHASE = "Ready"
+BACKUP_REPO_PENDING_PHASE = "PreChecking"
+BACKUP_REPO_CHECKING_PHASES = ("", "PreChecking", "Checking", "Creating")
 
 
 class KubeBlocksService(object):
@@ -55,7 +58,7 @@ class KubeBlocksService(object):
             if not success:
                 logger.error("KubeBlocks集群创建失败，触发资源清理")
                 self._cleanup_on_failure(new_service, tenant, region_name)
-                return False, cluster_result, "KubeBlocks集群创建失败"
+                return False, None, cluster_result or "KubeBlocks集群创建失败"
 
             # 更新组件的 k8s_component_name
             self._update_component_name(new_service, cluster_result)
@@ -66,9 +69,32 @@ class KubeBlocksService(object):
             # 在Region中创建资源
             self._create_region_service(tenant, new_service, user.nick_name)
 
-            # 配置端口信息,传递数据库类型
             database_type = creation_params.get('database_type', '')
-            self._configure_service_ports(tenant, user, region_name, new_service, database_type=database_type)
+            connect_ctx = self._fetch_connection_info(
+                region_name=region_name,
+                service_id=new_service.service_id,
+                msg_show="获取数据库连接信息失败"
+            )
+
+            # 添加数据库连接账号信息
+            self._add_database_env_vars(
+                tenant,
+                user,
+                region_name,
+                new_service,
+                connect_ctx=connect_ctx,
+                database_type=database_type
+            )
+
+            # 配置端口信息,传递数据库类型
+            self._configure_service_ports(
+                tenant,
+                user,
+                region_name,
+                new_service,
+                connect_ctx=connect_ctx,
+                database_type=database_type
+            )
 
             # 构建部署组件
             deploy_result = self._deploy_component(tenant, new_service, user)
@@ -128,11 +154,11 @@ class KubeBlocksService(object):
             is_valid, error_msg = self.validate_cluster_params(cluster_params)
             if not is_valid:
                 logger.error(f"KubeBlocks 集群参数验证失败: {error_msg}")
-                return False, None
+                return False, error_msg
 
             backup_repo = cluster_params.get("backup_repo", "")
             if backup_repo and backup_repo.strip():
-                self.ensure_backup_repo_belongs_to_team(tenant, region_name, backup_repo)
+                self.ensure_backup_repo_ready_for_use(tenant, region_name, backup_repo)
 
             # 构建集群创建请求数据
             cluster_data = self._build_cluster_request(cluster_params, kubeblocks_service, tenant.namespace)
@@ -147,6 +173,9 @@ class KubeBlocksService(object):
 
             return True, body
 
+        except ServiceHandleException as e:
+            logger.warning(f"创建 KubeBlocks 集群业务校验失败: {e.msg_show}")
+            return False, e.msg_show
         except Exception as e:
             logger.exception(f"创建 KubeBlocks 集群异常: {str(e)}")
             return False, None
@@ -470,21 +499,21 @@ class KubeBlocksService(object):
 
         # 根据数据库类型生成环境变量名前缀
         db_type_upper = database_type.upper() if database_type else ''
-        password_attr_name = f"{db_type_upper}_DEFAULT_PASSWORD" if db_type_upper else "DEFAULT_PASSWORD"
-        username_attr_name = f"{db_type_upper}_DEFAULT_USERNAME" if db_type_upper else "DEFAULT_USERNAME"
+        password_attr_name = f"{db_type_upper}_PASSWORD" if db_type_upper else "PASSWORD"
+        username_attr_name = f"{db_type_upper}_USER" if db_type_upper else "USER"
 
         # 添加数据库连接信息
         env_vars = [
             {
-                "name": "Password",
-                "attr_name": password_attr_name,
-                "attr_value": connect_info.get("password", ""),
-                "scope": "outer"
-            },
-            {
                 "name": "Username",
                 "attr_name": username_attr_name,
                 "attr_value": connect_info.get("username", "root"),
+                "scope": "outer"
+            },
+            {
+                "name": "Password",
+                "attr_name": password_attr_name,
+                "attr_value": connect_info.get("password", ""),
                 "scope": "outer"
             }
         ]
@@ -812,11 +841,15 @@ class KubeBlocksService(object):
                 return 500, {"msg_show": msg or "创建新组件失败"}
 
             # 将备份恢复到新组件
-            status_code, region_restore_data = self.restore_cluster_from_backup(region_name, old_service, new_service,
-                                                                                backup_name)
+            status_code, region_restore_data = self.restore_cluster_from_backup(
+                region_name, old_service, new_service, backup_name
+            )
             if status_code != 200:
-                msg_show = region_restore_data.get("msg_show", "恢复失败") if isinstance(region_restore_data,
-                                                                                         dict) else "恢复失败"
+                msg_show = (
+                    region_restore_data.get("msg_show", "恢复失败")
+                    if isinstance(region_restore_data, dict)
+                    else "恢复失败"
+                )
                 raise ServiceHandleException(
                     msg="restore from backup failed",
                     msg_show=msg_show
@@ -949,7 +982,9 @@ class KubeBlocksService(object):
             else:
                 msg_show = body.get("msg_show", "恢复失败") if isinstance(body, dict) else "恢复失败"
                 logger.error(
-                    f"KubeBlocks 集群恢复失败: service_id={old_service.service_id}, backup={backup_name}, status={status_code}, msg={msg_show}")
+                    f"KubeBlocks 集群恢复失败: service_id={old_service.service_id}, "
+                    f"backup={backup_name}, status={status_code}, msg={msg_show}"
+                )
                 return status_code, {"msg_show": msg_show}
 
         except Exception as e:
@@ -1055,7 +1090,7 @@ class KubeBlocksService(object):
                 body['rbdService'] = {'service_id': service_id}
             backup_repo = body.get("backupRepo") or body.get("backup_repo") or ""
             if tenant is not None and backup_repo:
-                self.ensure_backup_repo_belongs_to_team(tenant, region_name, backup_repo)
+                self.ensure_backup_repo_ready_for_use(tenant, region_name, backup_repo)
 
             res, data = region_api.update_kubeblocks_backup_config(region_name, service_id, body)
             status_code = res.get('status', 500)
@@ -1067,6 +1102,8 @@ class KubeBlocksService(object):
                 msg_show = data.get('msg_show', '备份配置更新失败') if isinstance(data, dict) else '备份配置更新失败'
                 return status_code, {"msg_show": msg_show}
 
+        except ServiceHandleException as e:
+            return e.status_code, {"msg_show": e.msg_show}
         except Exception as e:
             logger.exception("更新备份配置异常: service_id=%s, region=%s, 错误=%s",
                              service_id, region_name, str(e))
@@ -1685,8 +1722,11 @@ class KubeBlocksService(object):
             elif status_code == 403:
                 return 403, {"msg_show": "无权限"}
             else:
-                msg_show = response_body.get("msg_show", "更新参数失败") if isinstance(response_body,
-                                                                                       dict) else "更新参数失败"
+                msg_show = (
+                    response_body.get("msg_show", "更新参数失败")
+                    if isinstance(response_body, dict)
+                    else "更新参数失败"
+                )
                 return status_code, {"msg_show": msg_show}
 
         except Exception as e:
@@ -1751,14 +1791,25 @@ class KubeBlocksService(object):
         try:
             records = list(kubeblocks_backup_repo_repo.list_by_team(tenant.tenant_id, region_name))
             live_repos = {}
+            live_loaded = False
             res, body = region_api.get_kubeblocks_backup_repos(region_name)
             if res.get("status", 500) == 200 and isinstance(body, dict):
+                live_loaded = True
                 for item in body.get("list", []):
                     name = item.get("name")
                     if name:
                         live_repos[name] = item
 
-            return 200, {"list": [self._backup_repo_to_dict(record, live_repos.get(record.repo_name)) for record in records]}
+            return 200, {
+                "list": [
+                    self._backup_repo_to_dict(
+                        record,
+                        live_repos.get(record.repo_name),
+                        live_loaded=live_loaded
+                    )
+                    for record in records
+                ]
+            }
         except Exception as e:
             logger.exception(f"获取团队备份仓库列表异常: {str(e)}")
             return 500, {"msg_show": f"获取备份仓库列表异常: {str(e)}", "list": []}
@@ -1787,7 +1838,7 @@ class KubeBlocksService(object):
                 return status_code, {"msg_show": msg_show}
 
             bean = body.get("bean", {}) if isinstance(body, dict) else {}
-            record.status = bean.get("phase", "") or bean.get("status", "")
+            record.status = bean.get("phase", "") or bean.get("status", "") or BACKUP_REPO_PENDING_PHASE
             record.save()
             return 200, {"msg_show": "创建备份仓库成功", "bean": self._backup_repo_to_dict(record, bean)}
         except ServiceHandleException as e:
@@ -1869,6 +1920,55 @@ class KubeBlocksService(object):
             )
         return record
 
+    def ensure_backup_repo_ready_for_use(self, tenant, region_name, repo_name):
+        record = self.ensure_backup_repo_belongs_to_team(tenant, region_name, repo_name)
+        if not record:
+            return None
+
+        live, live_loaded = self._get_live_backup_repo(region_name, record.repo_name)
+        phase = self._get_backup_repo_phase(record, live, live_loaded)
+        if phase != BACKUP_REPO_READY_PHASE:
+            raise ServiceHandleException(
+                msg="backup repo is not ready",
+                msg_show=self._backup_repo_not_ready_message(phase),
+                status_code=400
+            )
+        return record
+
+    def _get_live_backup_repo(self, region_name, repo_name):
+        try:
+            res, body = region_api.get_kubeblocks_backup_repos(region_name)
+            if res.get("status", 500) != 200 or not isinstance(body, dict):
+                return {}, False
+            for item in body.get("list", []):
+                if item.get("name") == repo_name:
+                    return item, True
+            return {}, True
+        except Exception as e:
+            logger.warning("获取 BackupRepo 实时状态失败: region=%s, repo=%s, error=%s",
+                           region_name, repo_name, str(e))
+        return {}, False
+
+    def _get_backup_repo_phase(self, record, live=None, live_loaded=False):
+        live = live or {}
+        live_phase = live.get("phase") or live.get("status")
+        if live_phase:
+            return live_phase
+        if live_loaded:
+            if record.status and record.status in BACKUP_REPO_CHECKING_PHASES:
+                return record.status
+            return "Missing"
+        return record.status or "Missing"
+
+    def _backup_repo_not_ready_message(self, phase):
+        if phase in BACKUP_REPO_CHECKING_PHASES:
+            return "备份仓库正在检测中，请检测通过后再使用"
+        if phase == "Failed":
+            return "备份仓库检测失败，请修复后再使用"
+        if phase == "Missing":
+            return "备份仓库资源不存在或暂不可用，请刷新后重试"
+        return "备份仓库未就绪，请检测通过后再使用"
+
     def _build_backup_repo_record(self, tenant, user, region_name, data, require_secret=False):
         if not isinstance(data, dict):
             raise ServiceHandleException(msg="invalid backup repo payload", msg_show="参数必须为 JSON 对象")
@@ -1899,14 +1999,20 @@ class KubeBlocksService(object):
             repo_name=repo_name,
             secret_name=secret_name,
             secret_namespace=BACKUP_REPO_SECRET_NAMESPACE,
-            storage_provider=(data.get("storage_provider") or data.get("storageProviderRef") or BACKUP_REPO_DEFAULT_PROVIDER).strip(),
+            storage_provider=(
+                data.get("storage_provider") or data.get("storageProviderRef") or BACKUP_REPO_DEFAULT_PROVIDER
+            ).strip(),
             access_method=(data.get("access_method") or data.get("accessMethod") or BACKUP_REPO_DEFAULT_ACCESS_METHOD).strip(),
             bucket=(data.get("bucket") or "").strip(),
             endpoint=(data.get("endpoint") or "").strip(),
             region=(data.get("region") or "").strip(),
             force_path_style=self._parse_backup_repo_force_path_style(data),
-            volume_capacity=(data.get("volume_capacity") or data.get("volumeCapacity") or BACKUP_REPO_DEFAULT_VOLUME_CAPACITY).strip(),
-            pv_reclaim_policy=(data.get("pv_reclaim_policy") or data.get("pvReclaimPolicy") or BACKUP_REPO_DEFAULT_RECLAIM_POLICY).strip(),
+            volume_capacity=(
+                data.get("volume_capacity") or data.get("volumeCapacity") or BACKUP_REPO_DEFAULT_VOLUME_CAPACITY
+            ).strip(),
+            pv_reclaim_policy=(
+                data.get("pv_reclaim_policy") or data.get("pvReclaimPolicy") or BACKUP_REPO_DEFAULT_RECLAIM_POLICY
+            ).strip(),
             path_prefix=(data.get("path_prefix") or data.get("pathPrefix") or "").strip(),
             creator=getattr(user, "nick_name", "") or getattr(user, "username", ""),
         )
@@ -1986,9 +2092,9 @@ class KubeBlocksService(object):
             payload["secrets"] = secrets
         return payload
 
-    def _backup_repo_to_dict(self, record, live=None):
+    def _backup_repo_to_dict(self, record, live=None, live_loaded=False):
         live = live or {}
-        phase = live.get("phase") or record.status or "Missing"
+        phase = self._get_backup_repo_phase(record, live, live_loaded)
         return {
             "name": record.repo_name,
             "repoName": record.repo_name,

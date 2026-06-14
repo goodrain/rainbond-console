@@ -125,16 +125,30 @@ class AppExportService(object):
         }
         return json.dumps(app_template, cls=MyEncoder)
 
+    @staticmethod
+    def __is_vm_template_component(component):
+        return bool(
+            isinstance(component, dict) and (
+                component.get("vm")
+                or component.get("extend_method") == "vm"
+                or component.get("service_source") == "vm_run"
+            )
+        )
+
     def __normalize_export_item(self, item):
         export_item = dict(item or {})
-        if export_item.get("extend_method") == "vm":
+        is_vm_component = self.__is_vm_template_component(export_item)
+        if is_vm_component:
             export_item["service_type"] = "vm"
+        elif export_item.get("service_type") == "vm":
+            export_item["service_type"] = "application"
         if not export_item.get("share_image") and export_item.get("image"):
             export_item["share_image"] = export_item["image"]
-        vm_payload = export_item.get("vm") or {}
-        disk_layout = vm_payload.get("disk_layout") or []
+        vm_payload = export_item.get("vm")
+        disk_layout = []
+        if isinstance(vm_payload, dict):
+            disk_layout = vm_payload.get("disk_layout") or []
         if isinstance(vm_payload, dict) and isinstance(disk_layout, list):
-            export_item["service_type"] = "vm"
             root_image = export_item.get("share_image") or export_item.get("image") or ""
             normalized_layout = []
             for disk in disk_layout:
@@ -159,12 +173,12 @@ class AppExportService(object):
             export_item["extend_method_map"] = extend_method_map
         return export_item
 
-    @staticmethod
-    def __resolve_export_template_version(template):
+    @classmethod
+    def __resolve_export_template_version(cls, template):
         for component in template.get("apps", []):
-            if component.get("vm") or component.get("extend_method") == "vm" or component.get("service_type") == "vm":
+            if cls.__is_vm_template_component(component):
                 return "v3"
-        return template.get("template_version", "v2") or "v2"
+        return "v2"
 
     def __normalize_export_template(self, app_template):
         template = dict(app_template or {})
@@ -380,6 +394,34 @@ class AppImportService(object):
         _, body = region_api.yaml_resource_detailed(enterprise_id, region_id, yaml_resource_detailed_data)
         return body["bean"]
 
+    def __get_next_import_record_status(self, current_status, status, apps_status):
+        next_status = None
+        if current_status != "success":
+            next_status = status
+
+        failed_num = 0
+        success_num = 0
+        for item in apps_status:
+            if item.get("status") == "success":
+                success_num += 1
+            elif item.get("status") == "failed":
+                failed_num += 1
+
+        if success_num == len(apps_status):
+            next_status = "success"
+        elif failed_num == len(apps_status):
+            next_status = "failed"
+        elif success_num > 0:
+            next_status = "partial_success"
+        if status == "uploading":
+            next_status = status
+        return next_status
+
+    def __save_import_record_status(self, import_record, status):
+        if status and import_record.status != status:
+            import_record.status = status
+            import_record.save()
+
     def get_and_update_import_by_event_id(self, event_id, arch):
         import_record = app_import_record_repo.get_import_record_by_event_id(event_id)
         if not import_record:
@@ -400,29 +442,10 @@ class AppImportService(object):
                     region_api.delete_enterprise_import_file_dir(import_record.region, import_record.enterprise_id, event_id)
                 except Exception as e:
                     logger.exception(e)
-            else:
-                import_record.status = status
-                import_record.save()
         apps_status = self.__wrapp_app_import_status(body["bean"]["apps"])
 
-        failed_num = 0
-        success_num = 0
-        for i in apps_status:
-            if i.get("status") == "success":
-                success_num += 1
-                import_record.status = "partial_success"
-                import_record.save()
-            elif i.get("status") == "failed":
-                failed_num += 1
-        if success_num == len(apps_status):
-            import_record.status = "success"
-            import_record.save()
-        elif failed_num == len(apps_status):
-            import_record.status = "failed"
-            import_record.save()
-        if status == "uploading":
-            import_record.status = status
-            import_record.save()
+        next_status = self.__get_next_import_record_status(import_record.status, status, apps_status)
+        self.__save_import_record_status(import_record, next_status)
 
         return import_record, apps_status
 
@@ -450,8 +473,7 @@ class AppImportService(object):
                 except Exception as e:
                     logger.exception(e)
             else:
-                import_record.status = status
-                import_record.save()
+                self.__save_import_record_status(import_record, status)
         return import_record, metadata
 
     def get_and_update_import_status(self, tenant, region, event_id):
@@ -475,29 +497,10 @@ class AppImportService(object):
                     region_api.delete_import_file_dir(region, tenant.tenant_name, event_id)
                 except Exception as e:
                     logger.exception(e)
-            else:
-                import_record.status = status
-                import_record.save()
         apps_status = self.__wrapp_app_import_status(body["bean"]["apps"])
 
-        failed_num = 0
-        success_num = 0
-        for i in apps_status:
-            if i.get("status") == "success":
-                success_num += 1
-                import_record.status = "partial_success"
-                import_record.save()
-            elif i.get("status") == "failed":
-                failed_num += 1
-        if success_num == len(apps_status):
-            import_record.status = "success"
-            import_record.save()
-        elif failed_num == len(apps_status):
-            import_record.status = "failed"
-            import_record.save()
-        if status == "uploading":
-            import_record.status = status
-            import_record.save()
+        next_status = self.__get_next_import_record_status(import_record.status, status, apps_status)
+        self.__save_import_record_status(import_record, next_status)
 
         return import_record, apps_status
 

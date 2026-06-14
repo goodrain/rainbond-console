@@ -58,6 +58,7 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.service.RUNTIME_OBSERVE_WINDOW = 30
         self.service.READINESS_FINAL_OBSERVE_WINDOW = 90
         self.service.BUILD_FAILURE_LOG_WAIT_WINDOW = 10
+        self.service.COMPILE_FAILURE_LOG_WAIT_WINDOW = 10
         self.service.BUILD_FAILURE_LOG_RETRY_INTERVAL = 1
         self.service.report_async = False
 
@@ -204,6 +205,241 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         report_payload = mock_post.call_args[1]["json"]
         self.assertEqual(report_payload["failure_logs"][0]["lines"][0]["message"], "npm ERR! build failed")
 
+    def test_compile_failure_uses_compile_log_wait_window(self):
+        self.service.BUILD_FAILURE_LOG_WAIT_WINDOW = 10
+        self.service.COMPILE_FAILURE_LOG_WAIT_WINDOW = 30
+        self.service.BUILD_FAILURE_LOG_RETRY_INTERVAL = 5
+
+        compile_attempts = self.service._failure_log_collect_attempts(
+            self.service.FAILURE_STAGE_BUILD,
+            self.service.FAILURE_CATEGORY_COMPILE_FAILED)
+        image_push_attempts = self.service._failure_log_collect_attempts(
+            self.service.FAILURE_STAGE_BUILD,
+            self.service.FAILURE_CATEGORY_IMAGE_PUSH_FAILED)
+
+        self.assertEqual(compile_attempts, 7)
+        self.assertEqual(image_push_attempts, 3)
+
+    def test_sync_record_reports_build_diagnostic_when_event_log_stays_empty(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "source_language": "Node.js",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STAGE_STATUS_PENDING,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-build-1"],
+            "service_ids": ["service-1"],
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{
+                               "event_id": "event-build-1",
+                               "service_id": "service-1",
+                               "opt_type": "build-service",
+                               "status": "failure",
+                               "final_status": "complete",
+                               "message": "编译失败，请查看构建日志",
+                               "reason": "",
+                               "start_time": "2026-05-06 10:00:00",
+                               "end_time": "2026-05-06 10:03:00",
+                           }]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                           return_value=(Obj(status=200), {"list": []})), \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["failure_category"], "compile_failed")
+        self.assertEqual(report_payload["log_collect_status"], "event_log_empty_after_retry")
+        self.assertEqual(report_payload["failure_events"][0]["failure_category"], "compile_failed")
+        self.assertEqual(report_payload["failure_logs"][0]["source"], "diagnostic_summary")
+        self.assertIn("event_log_empty_after_retry", report_payload["failure_logs"][0]["lines"][0]["message"])
+
+    def test_sync_record_reports_build_image_pull_event_details(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_SOURCE_CODE,
+            "source_language": "Dockerfile",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STAGE_STATUS_PENDING,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-build-1"],
+            "service_ids": ["service-1"],
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{
+                               "event_id": "event-build-1",
+                               "service_id": "service-1",
+                               "opt_type": "build-service",
+                               "status": "failure",
+                               "final_status": "complete",
+                               "message": "拉取镜像失败，请排查镜像是否可以访问: goodrain.me/demo:v1",
+                               "reason": "x509: certificate signed by unknown authority",
+                           }]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                           return_value=(Obj(status=200), {"list": []})), \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["failure_stage"], self.service.FAILURE_STAGE_BUILD)
+        self.assertEqual(report_payload["failure_category"], "image_pull_failed")
+        self.assertIn("goodrain.me/demo:v1", report_payload["failure_events"][0]["message"])
+        self.assertIn("x509", report_payload["failure_events"][0]["reason"])
+        self.assertIn("x509", report_payload["failure_logs"][0]["lines"][0]["message"])
+
+    def test_sync_record_reports_build_image_push_failure(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_APP_MARKET,
+            "source_language": "",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STAGE_STATUS_PENDING,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-build-1"],
+            "service_ids": ["service-1"],
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{
+                               "event_id": "event-build-1",
+                               "service_id": "service-1",
+                               "opt_type": "build-service",
+                               "status": "failure",
+                               "final_status": "complete",
+                               "message": "推送镜像至镜像仓库失败",
+                               "reason": "denied: requested access to the resource is denied",
+                           }]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                           return_value=(Obj(status=200), {"list": []})), \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["failure_stage"], self.service.FAILURE_STAGE_BUILD)
+        self.assertEqual(report_payload["failure_category"], "image_push_failed")
+        self.assertIn("denied", report_payload["failure_logs"][0]["lines"][0]["message"])
+
+    def test_sync_record_reports_version_info_failure_reason(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_APP_MARKET,
+            "source_language": "",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STAGE_STATUS_PENDING,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-build-1"],
+            "service_ids": ["service-1"],
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{
+                               "event_id": "event-build-1",
+                               "service_id": "service-1",
+                               "opt_type": "create-app-version",
+                               "status": "failure",
+                               "final_status": "complete",
+                               "message": "应用版本信息异常: helm render failed",
+                               "reason": "missing values.yaml",
+                           }]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log",
+                           return_value=(Obj(status=200), {"list": []})), \
+                mock.patch("console.services.enterprise_first_deploy_service.time.sleep"), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["failure_category"], "version_info_failed")
+        self.assertEqual(report_payload["failure_reason"], "应用版本信息异常: helm render failed")
+        self.assertIn("missing values.yaml", report_payload["failure_events"][0]["reason"])
+
+    def test_sync_record_reports_no_event_id_diagnostic_for_build_failure(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_APP_MARKET,
+            "source_language": "",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STAGE_STATUS_PENDING,
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["event-build-1"],
+            "service_ids": ["service-1"],
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{
+                               "event_id": "",
+                               "service_id": "service-1",
+                               "opt_type": "",
+                               "status": "failure",
+                               "final_status": "complete",
+                               "message": "",
+                               "reason": "",
+                               "start_time": "2026-05-06 10:00:00",
+                               "end_time": "2026-05-06 10:03:00",
+                           }]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_events_log") as mock_get_logs, \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        self.assertFalse(mock_get_logs.called)
+        report_payload = mock_post.call_args[1]["json"]
+        self.assertEqual(report_payload["failure_category"], "unknown")
+        self.assertEqual(report_payload["log_collect_status"], "no_event_id")
+        self.assertEqual(report_payload["failure_reason"], "build failure: no failure reason reported")
+        self.assertEqual(report_payload["failure_logs"][0]["source"], "diagnostic_summary")
+        self.assertIn("build failure: no failure reason reported", report_payload["failure_logs"][0]["lines"][0]["message"])
+        self.assertIn("no_event_id", report_payload["failure_logs"][0]["lines"][0]["message"])
+
     def test_redact_log_message_masks_quoted_and_bare_secrets(self):
         message = 'PASSWORD="plain text" token=abc123 https://user:pass@example.com'
 
@@ -273,7 +509,9 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_stage"], self.service.FAILURE_STAGE_RUNTIME)
         self.assertEqual(report_payload["failure_reason"], "start service failed")
         self.assertEqual(report_payload["failure_events"][0]["opt_type"], "ContainerExitError")
-        self.assertEqual(report_payload["failure_logs"], [])
+        self.assertEqual(report_payload["log_collect_status"], "event_log_empty_after_retry")
+        self.assertEqual(report_payload["failure_logs"][0]["source"], "diagnostic_summary")
+        self.assertIn("event-runtime-1", report_payload["failure_logs"][0]["lines"][0]["message"])
         self.assertTrue(mock_get_logs.called)
 
     def test_mark_failure_reports_explicit_reason_without_events(self):
@@ -307,7 +545,9 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_stage"], self.service.FAILURE_STAGE_BUILD)
         self.assertEqual(report_payload["failure_reason"], "install request failed")
         self.assertEqual(report_payload["failure_events"], [])
-        self.assertEqual(report_payload["failure_logs"], [])
+        self.assertEqual(report_payload["failure_category"], "unknown")
+        self.assertEqual(report_payload["log_collect_status"], "no_event_id")
+        self.assertEqual(report_payload["failure_logs"][0]["source"], "diagnostic_summary")
 
     def test_sync_record_enters_runtime_observe_window_after_deploy_success(self):
         payload = {
@@ -494,6 +734,76 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(report_payload["failure_stage"], self.service.FAILURE_STAGE_RUNTIME)
         self.assertEqual(report_payload["failure_events"][0]["opt_type"], "ImagePullBackOff")
         self.assertIn("goodrain.me", report_payload["failure_logs"][0]["lines"][0]["message"])
+
+    def test_sync_record_reports_runtime_pod_failed_event_lines_when_status_is_generic(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "enterprise_name": "demo-enterprise",
+            "deploy_type": self.service.DEPLOY_TYPE_APP_MARKET,
+            "source_language": "",
+            "status": self.service.STATUS_PENDING,
+            "build_status": self.service.STATUS_SUCCESS,
+            "build_started_at": "2026-05-06 10:00:00",
+            "build_finished_at": "2026-05-06 10:03:00",
+            "build_event_id": "deploy-event-1",
+            "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "reported": False,
+            "tenant_name": "demo-team",
+            "region_name": "demo-region",
+            "event_ids": ["deploy-event-1"],
+            "service_ids": ["service-1"],
+            "service_alias": "demo-service",
+            "runtime_started_at": "2026-05-06 10:03:00",
+            "runtime_watch_started_at": "2026-05-06 10:03:00",
+        }
+        repo = FirstDeployRepoStub(payload)
+        report_response = Obj(status_code=200)
+
+        with mock.patch("console.services.enterprise_first_deploy_service.enterprise_first_deploy_repo", repo), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                           return_value={"list": [{
+                               "event_id": "deploy-event-1",
+                               "service_id": "service-1",
+                               "opt_type": "start-service",
+                               "status": "success",
+                               "final_status": "complete",
+                               "message": "deploy success",
+                               "reason": "",
+                           }]}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.get_service_pods",
+                           return_value={"bean": {"new_pods": [{
+                               "pod_name": "pod-1",
+                               "pod_status": "FAILED",
+                           }], "old_pods": []}}), \
+                mock.patch("console.services.enterprise_first_deploy_service.region_api.pod_detail",
+                           return_value={"bean": {
+                               "name": "pod-1",
+                               "status": {"type_str": "FAILED", "reason": "PodFailed", "message": "容器启动失败，请查看日志"},
+                               "events": [
+                                   {"reason": "Started", "message": "Started container app", "age": "2s ago"},
+                                   {"reason": "Killing", "message": "Stopping container app", "age": "1s ago"},
+                               ],
+                               "containers": [{
+                                   "container_name": "app",
+                                   "image": "goodrain.me/default-demo:v1",
+                                   "state": "Terminated",
+                                   "reason": "Error",
+                                   "exit_code": 1,
+                                   "message": "process exited with status 1",
+                               }],
+                               "init_containers": [],
+                           }}), \
+                mock.patch("console.services.enterprise_first_deploy_service.requests.post",
+                           return_value=report_response) as mock_post:
+            status = self.service._sync_record(repo.record, payload, "demo-team", "demo-region")
+
+        self.assertEqual(status, self.service.STATUS_FAILURE)
+        lines = mock_post.call_args[1]["json"]["failure_logs"][0]["lines"]
+        messages = [line["message"] for line in lines]
+        self.assertTrue(any("Started container app" in message for message in messages))
+        self.assertTrue(any("Stopping container app" in message for message in messages))
+        self.assertTrue(any("image=goodrain.me/default-demo:v1" in message for message in messages))
+        self.assertTrue(any("exit_code=1" in message for message in messages))
 
     def test_sync_record_marks_runtime_timeout_when_pod_never_reaches_running(self):
         payload = {

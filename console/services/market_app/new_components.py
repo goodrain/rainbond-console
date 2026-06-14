@@ -187,7 +187,9 @@ class NewComponents(object):
         component.deploy_version = template.get("deploy_version")
         arch = template.get("arch", "amd64")
         component.arch = arch if arch else "amd64"
-        component.service_type = "vm" if template.get("service_type") == "vm" or template.get("vm") else "application"
+        is_vm_component = template.get("vm") or template.get("extend_method") == "vm" or template.get(
+            "service_source") == "vm_run"
+        component.service_type = "vm" if is_vm_component else "application"
         component.service_source = AppConstants.MARKET
         component.create_status = "complete"
         component.tenant_service_group_id = self.original_app.upgrade_group_id
