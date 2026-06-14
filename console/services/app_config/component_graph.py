@@ -2,8 +2,10 @@
 import json
 import logging
 import os
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.db import transaction
+from django.db.models import QuerySet
 
 from console.models.main import ComponentGraph
 from console.exception.main import AbortRequest
@@ -18,11 +20,11 @@ logger = logging.getLogger("default")
 
 class ComponentGraphService(object):
     @staticmethod
-    def select_component_graphs(component_id, graph_ids):
+    def select_component_graphs(component_id: str, graph_ids: List[str]) -> QuerySet[ComponentGraph]:
         graphs = component_graph_repo.gets(component_id, graph_ids)
         return graphs
 
-    def json_component_graphs(self, graphs):
+    def json_component_graphs(self, graphs: QuerySet[ComponentGraph]) -> str:
         component_graph_list = list()
         for graph in graphs:
             component_graph_dict = dict()
@@ -31,9 +33,8 @@ class ComponentGraphService(object):
             component_graph_list.append(component_graph_dict)
         return json.dumps(component_graph_list, ensure_ascii=False)
 
-
     @staticmethod
-    def _load_internal_graphs():
+    def _load_internal_graphs() -> Tuple[List[str], Dict[str, Any]]:
         filenames = []
         internal_graphs = {}
         path_to_graphs = BASE_DIR + "/hack/component-graphs"
@@ -53,18 +54,19 @@ class ComponentGraphService(object):
             logger.warning(e)
         return filenames, internal_graphs
 
-    def list_internal_graphs(self):
+    def list_internal_graphs(self) -> List[str]:
         graphs, _ = self._load_internal_graphs()
         return graphs
 
-    def create_internal_graphs(self, component_id, graph_name, component_arch):
+    def create_internal_graphs(self, component_id: str, graph_name: str,
+                               component_arch: str) -> List[ComponentGraph]:
         _, internal_graphs = self._load_internal_graphs()
         if not internal_graphs or not internal_graphs.get(graph_name):
             raise ErrInternalGraphsNotFound
 
         graphs = []
         seq = self._next_sequence(component_id)
-        for graph in internal_graphs.get(graph_name):
+        for graph in internal_graphs.get(graph_name):  # type: ignore[union-attr]  # NOTE: caller already guards not-None via `if not internal_graphs.get(graph_name)` above
             try:
                 _ = component_graph_repo.get_by_title(component_id, graph.get("title"))
                 continue
@@ -90,7 +92,8 @@ class ComponentGraphService(object):
         return graphs
 
     @transaction.atomic
-    def create_component_graph(self, component_id, title, promql, component_arch):
+    def create_component_graph(self, component_id: str, title: str, promql: str,
+                               component_arch: str) -> dict:
         promql = promql_service.add_or_update_label(component_id, promql, component_arch)
         graph_id = make_uuid()
         sequence = self._next_sequence(component_id)
@@ -102,7 +105,7 @@ class ComponentGraphService(object):
         return component_graph_repo.get(component_id, graph_id).to_dict()
 
     @staticmethod
-    def rearrange(component_id):
+    def rearrange(component_id: str) -> None:
         graphs = component_graph_repo.list(component_id)
         sequence = 0
         for graph in graphs:
@@ -111,22 +114,21 @@ class ComponentGraphService(object):
             sequence += 1
 
     @staticmethod
-    def list_component_graphs(component_id):
+    def list_component_graphs(component_id: str) -> List[dict]:
         graphs = component_graph_repo.list(component_id)
         return [graph.to_dict() for graph in graphs]
 
-
-
     @transaction.atomic()
-    def delete_component_graph(self, graph):
+    def delete_component_graph(self, graph: ComponentGraph) -> None:
         component_graph_repo.delete(graph.component_id, graph.graph_id)
         self._sequence_move_forward(graph.component_id, graph.sequence)
 
-    def delete_by_component_id(self, component_id):
+    def delete_by_component_id(self, component_id: str) -> None:
         return component_graph_repo.delete_by_component_id(component_id)
 
     @transaction.atomic()
-    def update_component_graph(self, graph, title, promql, sequence, arch):
+    def update_component_graph(self, graph: ComponentGraph, title: str, promql: str, sequence: int,
+                               arch: str) -> dict:
         data = {
             "title": title,
             "promql": promql_service.add_or_update_label(graph.component_id, promql, arch),
@@ -137,13 +139,13 @@ class ComponentGraphService(object):
         component_graph_repo.update(graph.component_id, graph.graph_id, **data)
         return component_graph_repo.get(graph.component_id, graph.graph_id).to_dict()
 
-    def bulk_create(self, component_id, graphs, arch):
+    def bulk_create(self, component_id: str, graphs: List[Dict[str, Any]], arch: str) -> None:
         if not graphs:
             return
         cgs = []
         for graph in graphs:
             try:
-                _ = component_graph_repo.get_by_title(component_id, graph.get("title"))
+                _ = component_graph_repo.get_by_title(component_id, graph.get("title"))  # type: ignore[arg-type]  # NOTE: dict key "title" is str at runtime; .get() returns Any|None but actual value is always str
                 continue
             except ErrComponentGraphNotFound:
                 pass
@@ -158,18 +160,18 @@ class ComponentGraphService(object):
                 ComponentGraph(
                     component_id=component_id,
                     graph_id=make_uuid(),
-                    title=graph.get("title"),
+                    title=graph.get("title"),  # type: ignore[misc]  # NOTE: dict value is str at runtime; .get() returns Any|None
                     promql=promql,
-                    sequence=graph.get("sequence"),
+                    sequence=graph.get("sequence"),  # type: ignore[misc]  # NOTE: dict value is int at runtime; .get() returns Any|None
                 ))
         ComponentGraph.objects.bulk_create(cgs)
 
     @transaction.atomic
-    def batch_delete(self, component_id, graph_ids):
+    def batch_delete(self, component_id: str, graph_ids: List[str]) -> None:
         component_graph_repo.batch_delete(component_id, graph_ids)
 
     @staticmethod
-    def _next_sequence(component_id):
+    def _next_sequence(component_id: str) -> int:
         graphs = component_graph_repo.list(component_id=component_id)
         if not graphs:
             return 0
@@ -178,21 +180,21 @@ class ComponentGraphService(object):
         return sequences[len(sequences) - 1] + 1
 
     @staticmethod
-    def _sequence_move_forward(component_id, sequence):
+    def _sequence_move_forward(component_id: str, sequence: int) -> None:
         graphs = component_graph_repo.list_gt_sequence(component_id=component_id, sequence=sequence)
         for graph in graphs:
             graph.sequence -= 1
             graph.save()
 
     @staticmethod
-    def _sequence_move_back(component_id, left_sequence, right_sequence):
+    def _sequence_move_back(component_id: str, left_sequence: int, right_sequence: int) -> None:
         graphs = component_graph_repo.list_between_sequence(
             component_id=component_id, left_sequence=left_sequence, right_sequence=right_sequence)
         for graph in graphs:
             graph.sequence += 1
             graph.save()
 
-    def exchange_graphs(self, component_id, graph_ids):
+    def exchange_graphs(self, component_id: str, graph_ids: List[str]) -> None:
         sequence = 0
         graph_id_map = dict()
         # Mapping graph ID to graph

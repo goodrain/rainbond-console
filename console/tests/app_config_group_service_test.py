@@ -71,7 +71,7 @@ class AppConfigGroupServiceWorkflowTests(TestCase):
         )
         install_stub("console.repositories.app", service_repo=self.service_repo)
         install_stub("console.repositories.region_app", region_app_repo=self.region_app_repo)
-        install_stub("console.models.main", ApplicationConfigGroup=DummyApplicationConfigGroup)
+        install_stub("console.models.main", ApplicationConfigGroup=DummyApplicationConfigGroup, ConfigGroupItem=object, ConfigGroupService=object)
         install_stub(
             "console.exception.bcode",
             ErrAppConfigGroupExists=DummyErrAppConfigGroupExists,

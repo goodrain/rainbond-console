@@ -787,7 +787,7 @@ class GroupappsMigrateService(object):
                 except KeyError:
                     continue
 
-            app_config_group_service.create_config_group(app_id, cgroup["config_group_name"], cgroup["config_items"],
+            app_config_group_service.create_config_group(app_id, cgroup["config_group_name"], cgroup["config_items"],  # type: ignore[arg-type]  # NOTE: app_id int vs str (systemic)
                                                          cgroup["deploy_type"], cgroup["enable"], service_ids, region_name,
                                                          tenant.tenant_name)
 
@@ -800,7 +800,7 @@ class GroupappsMigrateService(object):
     def __save_component_graphs(self, service: TenantServiceInfo, component_graphs: Optional[List[Dict[str, Any]]]) -> None:
         if not component_graphs:
             return
-        component_graph_service.bulk_create(service.service_id, component_graphs, service.arch)
+        component_graph_service.bulk_create(service.service_id, component_graphs, service.arch)  # type: ignore[arg-type]  # NOTE: service.arch Optional (latent)
 
 
 migrate_service = GroupappsMigrateService()

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import datetime
 import logging
+from typing import Any, Dict, List, Tuple
 
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 
 from console.repositories.app import service_repo
 from console.repositories.event_repo import event_repo
@@ -11,7 +12,7 @@ from console.services.app_actions.app_log import AppEventService
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
 from www.db.base import BaseConnection
-from www.models.main import ServiceEvent
+from www.models.main import ServiceEvent, Tenants
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -19,7 +20,8 @@ e_s = AppEventService()
 
 
 class ServiceEventDynamic(object):
-    def get_team_current_region_service_events(self, region, team, page, page_size):
+    def get_team_current_region_service_events(
+            self, region: str, team: Tenants, page: int, page_size: int) -> QuerySet[ServiceEvent]:
         dsn = BaseConnection()
         start = (int(page) - 1) * int(page_size)
         end = page_size
@@ -50,18 +52,18 @@ class ServiceEventDynamic(object):
         for event in events:
             bean = event_id_service_info_map.get(event.event_id, None)
             if bean:
-                event.service_alias = bean["service_alias"]
-                event.service_cname = bean["service_cname"]
+                event.service_alias = bean["service_alias"]  # type: ignore[attr-defined]  # NOTE: dynamic attr set at runtime
+                event.service_cname = bean["service_cname"]  # type: ignore[attr-defined]  # NOTE: dynamic attr set at runtime
         return events
 
-    def get_current_region_service_events(self, region, team):
+    def get_current_region_service_events(self, region: str, team: Tenants) -> List[Dict[str, Any]]:
         events = event_repo.get_specified_region_events(team.tenant_id, region)
         # paginator = JuncheePaginator(events, int(page_size))
         # show_events = paginator.page(int(page))
         service_ids = [e.service_id for e in events]
         services = service_repo.get_services_by_service_ids(service_ids)
         id_service_map = {s.service_id: s for s in services}
-        event_list = []
+        event_list: List[Dict[str, Any]] = []
         try:
             self.__sync_region_service_event_status(region, team.tenant_name, events, False)
         except Exception as e:
@@ -83,7 +85,8 @@ class ServiceEventDynamic(object):
 
         return event_list
 
-    def get_services_events(self, page, page_size, create_time, status, team):
+    def get_services_events(self, page: int, page_size: int, create_time: Any, status: str,
+                            team: Any) -> Tuple[Any, int]:
 
         query = Q()
         status = "success" if status == "complete" else status
@@ -106,15 +109,15 @@ class ServiceEventDynamic(object):
         id_service_map = {s.service_id: s for s in services}
         id_team_map = {t.tenant_id: t for t in teams}
         # 数据中心对应的event
-        region_events_map = {}
+        region_events_map: Dict[str, List[ServiceEvent]] = {}
         for event in show_events:
             service = id_service_map.get(event.service_id, None)
             t = id_team_map.get(event.tenant_id, None)
             if service:
-                event.service_cname = service.service_cname
-                event.service_alias = service.service_alias
-                event.team_name = t.tenant_name if t else None
-                event.service_region = service.service_region
+                event.service_cname = service.service_cname  # type: ignore[attr-defined]  # NOTE: dynamic attr set at runtime
+                event.service_alias = service.service_alias  # type: ignore[attr-defined]  # NOTE: dynamic attr set at runtime
+                event.team_name = t.tenant_name if t else None  # type: ignore[attr-defined]  # NOTE: dynamic attr set at runtime
+                event.service_region = service.service_region  # type: ignore[attr-defined]  # NOTE: dynamic attr set at runtime
                 # 处理数据中心对应的event
                 if event.final_status == "" and not status:
                     region_events = region_events_map.get(service.service_region, [])
@@ -123,27 +126,27 @@ class ServiceEventDynamic(object):
                     else:
                         region_events_map[service.service_region] = [event]
             else:
-                event.service_cname = None
-                event.service_alias = None
-                event.team_name = None
-                event.service_region = None
+                event.service_cname = None  # type: ignore[attr-defined]  # NOTE: dynamic attr set at runtime
+                event.service_alias = None  # type: ignore[attr-defined]  # NOTE: dynamic attr set at runtime
+                event.team_name = None  # type: ignore[attr-defined]  # NOTE: dynamic attr set at runtime
+                event.service_region = None  # type: ignore[attr-defined]  # NOTE: dynamic attr set at runtime
         if not status:
             # 从数据中心更新信息
-            for region, events in list(region_events_map.items()):
+            for region, region_event_list in list(region_events_map.items()):
                 # 同步数据中心信息
-                self.__sync_events(region, events)
+                self.__sync_events(region, region_event_list)
 
         return show_events, total
 
-    def __sync_events(self, region, events, timeout=False):
+    def __sync_events(self, region: str, events: List[ServiceEvent], timeout: bool = False) -> None:
         local_events_not_complete = {event.event_id: event for event in events}
         try:
             body = region_api.get_events_by_event_ids(region, list(local_events_not_complete.keys()))
         except Exception as e:
             logger.exception(e)
             return
-        region_events = body.get('list')
-        for region_event in region_events:
+        region_events = body.get('list')  # type: ignore[union-attr]
+        for region_event in region_events:  # type: ignore[union-attr]  # NOTE: body may be None if region API returns None
             local_event = local_events_not_complete.get(region_event.get('EventID'))
             if not local_event:
                 continue
@@ -163,8 +166,9 @@ class ServiceEventDynamic(object):
                     local_event.end_time = datetime.datetime.now()
                 local_event.save()
 
-    def __sync_region_service_event_status(self, region, tenant_name, events, timeout=False):
-        local_events_not_complete = dict()
+    def __sync_region_service_event_status(
+            self, region: str, tenant_name: str, events: QuerySet[ServiceEvent], timeout: bool = False) -> None:
+        local_events_not_complete: Dict[str, ServiceEvent] = dict()
         for event in events:
             if event.final_status == '':
                 local_events_not_complete[event.event_id] = event
@@ -178,8 +182,8 @@ class ServiceEventDynamic(object):
             logger.exception(e)
             return
 
-        region_events = body.get('list')
-        for region_event in region_events:
+        region_events = body.get('list')  # type: ignore[union-attr]
+        for region_event in region_events:  # type: ignore[union-attr]  # NOTE: body may be None if region API returns None
             local_event = local_events_not_complete.get(region_event.get('EventID'))
             if not local_event:
                 continue
