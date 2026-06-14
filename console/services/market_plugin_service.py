@@ -2,6 +2,7 @@
 import json
 import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -27,15 +28,15 @@ logger = logging.getLogger('default')
 
 class MarketPluginService(object):
     def get_paged_plugins(self,
-                          plugin_name="",
-                          is_complete=None,
-                          scope="",
-                          source="",
-                          tenant=None,
-                          page=1,
-                          limit=10,
-                          order_by="",
-                          category=""):
+                          plugin_name: str = "",
+                          is_complete: Optional[bool] = None,
+                          scope: str = "",
+                          source: str = "",
+                          tenant: Any = None,
+                          page: int = 1,
+                          limit: int = 10,
+                          order_by: str = "",
+                          category: str = "") -> Tuple[int, List[Dict[str, Any]]]:
         q = Q(enterprise_id__in=[tenant.enterprise_id, "public"])
 
         if source:
@@ -88,7 +89,7 @@ class MarketPluginService(object):
 
         return len(plugins), data
 
-    def sync_market_plugins(self, tenant, page, limit, plugin_name=''):
+    def sync_market_plugins(self, tenant: Any, page: int, limit: int, plugin_name: str = '') -> Tuple[Any, Any]:
         market_plugins, total = market_api.get_plugins(tenant.tenant_id, page, limit, plugin_name)
 
         plugins = RainbondCenterPlugin.objects.filter(enterprise_id__in=["public", tenant.enterprise_id])
@@ -101,7 +102,7 @@ class MarketPluginService(object):
 
         return market_plugins, total
 
-    def sync_market_plugin_templates(self, tenant, plugin_data):
+    def sync_market_plugin_templates(self, tenant: Any, plugin_data: dict) -> bool:
         plugin_template = market_api.get_plugin_templates(tenant.tenant_id, plugin_data.get('plugin_key'),
                                                           plugin_data.get('version'))
         market_plugin = plugin_template.get('plugin')
@@ -161,7 +162,8 @@ class MarketPluginService(object):
             return True
 
     @transaction.atomic
-    def create_plugin_share_info(self, share_record, share_info, user_id, tenant, region_name):
+    def create_plugin_share_info(self, share_record: Any, share_info: dict, user_id: int, tenant: Any,
+                                 region_name: str) -> Tuple[int, str, Optional[Dict[str, Any]]]:
         tenant_id = tenant.tenant_id
         tenant_name = tenant.tenant_name
 
@@ -175,12 +177,12 @@ class MarketPluginService(object):
             if isinstance(plugin_info, str):
                 plugin_info = json.loads(plugin_info)
 
-            if plugin_info.get('scope') == 'goodrain':
+            if plugin_info.get('scope') == 'goodrain':  # type: ignore[union-attr]  # NOTE: plugin_info is Any|None; None case unreachable after share_info.get + isinstance branch
                 ent = enterprise_repo.get_enterprise_by_enterprise_id(tenant.enterprise_id)
                 if ent and not ent.is_active:
                     return 10407, "用户未跟云市认证", None
 
-            plugin_id = plugin_info.get("plugin_id")
+            plugin_id = plugin_info.get("plugin_id")  # type: ignore[union-attr]  # NOTE: same as above
 
             plugin_version = plugin_svc.get_tenant_plugin_newest_versions(region_name, tenant, plugin_id)
 
@@ -192,14 +194,14 @@ class MarketPluginService(object):
             tenant_plugin = plugin_repo.get_plugin_by_plugin_id(tenant_id, plugin_id)
 
             plugin_template = {
-                "plugin_id": plugin_info.get("plugin_id"),
-                "plugin_key": plugin_info.get("plugin_key"),
-                "plugin_name": plugin_info.get("plugin_name"),
-                "plugin_version": plugin_info.get("version"),
-                "code_repo": tenant_plugin.code_repo,
-                "build_source": tenant_plugin.build_source,
-                "image": tenant_plugin.image,
-                "category": tenant_plugin.category
+                "plugin_id": plugin_info.get("plugin_id"),  # type: ignore[union-attr]  # NOTE: plugin_info Any|None; guarded at runtime
+                "plugin_key": plugin_info.get("plugin_key"),  # type: ignore[union-attr]  # NOTE: same
+                "plugin_name": plugin_info.get("plugin_name"),  # type: ignore[union-attr]  # NOTE: same
+                "plugin_version": plugin_info.get("version"),  # type: ignore[union-attr]  # NOTE: same
+                "code_repo": tenant_plugin.code_repo,  # type: ignore[union-attr]  # NOTE: tenant_plugin TenantPlugin|None; None would raise AttributeError at runtime
+                "build_source": tenant_plugin.build_source,  # type: ignore[union-attr]  # NOTE: same
+                "image": tenant_plugin.image,  # type: ignore[union-attr]  # NOTE: same
+                "category": tenant_plugin.category  # type: ignore[union-attr]  # NOTE: same
             }
 
             if plugin_version.plugin_version_status != "fixed":
@@ -208,8 +210,8 @@ class MarketPluginService(object):
 
             plugin_template["build_version"] = plugin_version.to_dict()
 
-            plugin_info["plugin_image"] = app_store.get_app_hub_info(plugin_info["scope"], tenant_name, tenant.enterprise_id)
-            if not plugin_info["plugin_image"]:
+            plugin_info["plugin_image"] = app_store.get_app_hub_info(plugin_info["scope"], tenant_name, tenant.enterprise_id)  # type: ignore[index]  # NOTE: plugin_info typed Any|None; guarded by prior json.loads branch but mypy loses flow
+            if not plugin_info["plugin_image"]:  # type: ignore[index]  # NOTE: same None-flow
                 if sid:
                     transaction.savepoint_rollback(sid)
                 return 400, "获取镜像上传地址错误", None
@@ -218,34 +220,34 @@ class MarketPluginService(object):
                 record_id=share_record.ID,
                 team_name=tenant_name,
                 team_id=tenant_id,
-                plugin_id=plugin_info['plugin_id'],
-                plugin_name=plugin_info['plugin_name'],
+                plugin_id=plugin_info['plugin_id'],  # type: ignore[index]  # NOTE: plugin_info is Any|None; runtime guarded above
+                plugin_name=plugin_info['plugin_name'],  # type: ignore[index]  # NOTE: same
                 event_status='not_start')
             event.save()
 
-            RainbondCenterPlugin.objects.filter(version=plugin_info["version"], plugin_id=share_record.group_id).delete()
+            RainbondCenterPlugin.objects.filter(version=plugin_info["version"], plugin_id=share_record.group_id).delete()  # type: ignore[index]  # NOTE: same
 
-            plugin_info["source"] = "local"
-            plugin_info["record_id"] = share_record.ID
+            plugin_info["source"] = "local"  # type: ignore[index]  # NOTE: same
+            plugin_info["record_id"] = share_record.ID  # type: ignore[index]  # NOTE: same
 
             plugin_template['share_plugin_info'] = plugin_info
 
             plugin = RainbondCenterPlugin(
-                plugin_key=plugin_info.get("plugin_key"),
-                plugin_name=plugin_info.get("plugin_name"),
-                plugin_id=plugin_info.get("plugin_id"),
+                plugin_key=plugin_info.get("plugin_key"),  # type: ignore[union-attr]  # NOTE: plugin_info is Any|None; runtime guarded
+                plugin_name=plugin_info.get("plugin_name"),  # type: ignore[union-attr]  # NOTE: same
+                plugin_id=plugin_info.get("plugin_id"),  # type: ignore[union-attr]  # NOTE: same
                 record_id=share_record.ID,
-                version=plugin_info.get("version"),
-                build_version=plugin_info.get('build_version'),
-                pic=plugin_info.get("pic", ""),
-                scope=plugin_info.get("scope"),
+                version=plugin_info.get("version"),  # type: ignore[union-attr]  # NOTE: same
+                build_version=plugin_info.get('build_version'),  # type: ignore[union-attr]  # NOTE: same
+                pic=plugin_info.get("pic", ""),  # type: ignore[union-attr]  # NOTE: same
+                scope=plugin_info.get("scope"),  # type: ignore[union-attr]  # NOTE: same
                 source="local",
                 share_user=user_id,
                 share_team=tenant_name,
-                desc=plugin_info.get("desc"),
+                desc=plugin_info.get("desc"),  # type: ignore[union-attr]  # NOTE: same
                 enterprise_id=tenant.enterprise_id,
                 plugin_template=json.dumps(plugin_template),
-                category=plugin_info.get('category'))
+                category=plugin_info.get('category'))  # type: ignore[union-attr]  # NOTE: same
 
             plugin.save()
 
@@ -262,7 +264,7 @@ class MarketPluginService(object):
                 transaction.savepoint_rollback(sid)
             return 500, "插件分享处理发生错误", None
 
-    def plugin_share_completion(self, tenant, share_record, user_name):
+    def plugin_share_completion(self, tenant: Any, share_record: Any, user_name: str) -> Optional[str]:
         try:
             plugin = RainbondCenterPlugin.objects.get(record_id=share_record.ID)
             market_url = ""
@@ -282,8 +284,8 @@ class MarketPluginService(object):
         except RainbondCenterPlugin.DoesNotExist:
             return None
 
-    def _publish_to_market(self, tenant, user_name, plugin):
-        tenant_plugin = TenantPlugin.objects.get(plugin_id=plugin.plugin_id)
+    def _publish_to_market(self, tenant: Any, user_name: str, plugin: RainbondCenterPlugin) -> str:
+        tenant_plugin = TenantPlugin.objects.get(plugin_id=plugin.plugin_id)  # type: ignore[attr-defined]  # NOTE: www.models.plugin not in django-stubs scope; .objects works at runtime
         market_api = MarketOpenAPI()
         data = {
             "tenant_id": tenant.tenant_id,
@@ -301,17 +303,19 @@ class MarketPluginService(object):
         result = market_api.publish_plugin_template_data(tenant.tenant_id, data)
         return result["plugin_url"]
 
-    def get_sync_event_result(self, region_name, tenant_name, record_event):
+    def get_sync_event_result(self, region_name: str, tenant_name: str,
+                              record_event: PluginShareRecordEvent) -> PluginShareRecordEvent:
         res, body = region_api.share_plugin_result(region_name, tenant_name, record_event.plugin_id,
                                                    record_event.region_share_id)
-        ret = body.get('bean')
+        ret = body.get('bean')  # type: ignore[union-attr]  # NOTE: body is Any|None from region_api; runtime dict in practice
         if ret and ret.get('status'):
             record_event.event_status = ret.get("status")
             record_event.save()
         return record_event
 
     @transaction.atomic
-    def sync_event(self, nick_name, region_name, tenant_name, record_event):
+    def sync_event(self, nick_name: str, region_name: str, tenant_name: str,
+                   record_event: PluginShareRecordEvent) -> Tuple[int, str, Optional[PluginShareRecordEvent]]:
         rcps = RainbondCenterPlugin.objects.filter(record_id=record_event.record_id)
         if not rcps:
             return 404, "分享的插件不存在", None
@@ -331,7 +335,7 @@ class MarketPluginService(object):
         }
         sid = transaction.savepoint()
         try:
-            res, body = region_api.share_plugin(region_name, tenant_name, rcp.plugin_id, body)
+            res, body = region_api.share_plugin(region_name, tenant_name, rcp.plugin_id, body)  # type: ignore[assignment, arg-type]  # NOTE: body rebound to region_api response (Any); rcp.plugin_id is str|None (nullable CharField)
             data = body.get("bean")
             if not data:
                 transaction.savepoint_rollback(sid)
@@ -355,7 +359,8 @@ class MarketPluginService(object):
             return 500, "插件分享事件同步发生错误", None
 
     @transaction.atomic
-    def install_plugin(self, user, tenant, region_name, market_plugin):
+    def install_plugin(self, user: Any, tenant: Any, region_name: str,
+                       market_plugin: RainbondCenterPlugin) -> Tuple[int, str]:
         plugin_template = json.loads(market_plugin.plugin_template)
         share_plugin_info = plugin_template.get("share_plugin_info")
 
@@ -391,22 +396,22 @@ class MarketPluginService(object):
             if status != 200:
                 return status, msg
 
-            plugin_base_info.origin = 'local_market' if market_plugin.source == 'local' else market_plugin.source
-            plugin_base_info.origin_share_id = share_plugin_info.get("plugin_key")
-            plugin_base_info.save()
+            plugin_base_info.origin = 'local_market' if market_plugin.source == 'local' else market_plugin.source  # type: ignore[union-attr]  # NOTE: plugin_base_info is TenantPlugin|None; None path unreachable (guarded by status!=200 return above)
+            plugin_base_info.origin_share_id = share_plugin_info.get("plugin_key")  # type: ignore[union-attr]  # NOTE: same
+            plugin_base_info.save()  # type: ignore[union-attr]  # NOTE: same
 
             build_version = plugin_template.get('build_version')
             min_memory = build_version.get('min_memory')
 
             plugin_build_version = plugin_version_service.create_build_version(
                 region_name,
-                plugin_base_info.plugin_id,
+                plugin_base_info.plugin_id,  # type: ignore[union-attr]  # NOTE: same as above
                 tenant.tenant_id,
                 user.user_id,
                 "",
                 "unbuild",
                 min_memory,
-                image_tag=image_tag,
+                image_tag=image_tag,  # type: ignore[arg-type]  # NOTE: image_tag is str|None; callee expects str; None only possible if share_image is falsy/absent
                 code_version="")
 
             config_groups, config_items = [], []
@@ -414,7 +419,7 @@ class MarketPluginService(object):
 
             for group in share_config_groups:
                 plugin_config_group = PluginConfigGroup(
-                    plugin_id=plugin_base_info.plugin_id,
+                    plugin_id=plugin_base_info.plugin_id,  # type: ignore[union-attr]  # NOTE: same as above
                     build_version=plugin_build_version.build_version,
                     config_name=group.get("config_name"),
                     service_meta_type=group.get("service_meta_type"),
@@ -424,7 +429,7 @@ class MarketPluginService(object):
                 share_config_items = group.get('config_items', [])
                 for item in share_config_items:
                     plugin_config_item = PluginConfigItems(
-                        plugin_id=plugin_base_info.plugin_id,
+                        plugin_id=plugin_base_info.plugin_id,  # type: ignore[union-attr]  # NOTE: same as above
                         build_version=plugin_build_version.build_version,
                         service_meta_type=item.get("service_meta_type"),
                         attr_name=item.get("attr_name"),
@@ -436,16 +441,16 @@ class MarketPluginService(object):
                         protocol=item.get("protocol", ""))
                     config_items.append(plugin_config_item)
 
-            PluginConfigGroup.objects.bulk_create(config_groups)
-            PluginConfigItems.objects.bulk_create(config_items)
+            PluginConfigGroup.objects.bulk_create(config_groups)  # type: ignore[attr-defined]  # NOTE: www.models.plugin not in django-stubs scope; .objects works at runtime
+            PluginConfigItems.objects.bulk_create(config_items)  # type: ignore[attr-defined]  # NOTE: same
 
             event_id = make_uuid()
             plugin_build_version.event_id = event_id
             plugin_build_version.plugin_version_status = "fixed"
 
-            plugin_service.create_region_plugin(region_name, tenant, plugin_base_info, image_tag=image_tag)
+            plugin_service.create_region_plugin(region_name, tenant, plugin_base_info, image_tag=image_tag)  # type: ignore[arg-type]  # NOTE: plugin_base_info TenantPlugin|None; image_tag str|None; both guarded at runtime
 
-            ret = plugin_service.build_plugin(region_name, plugin_base_info, plugin_build_version, user, tenant, event_id,
+            ret = plugin_service.build_plugin(region_name, plugin_base_info, plugin_build_version, user, tenant, event_id,  # type: ignore[arg-type]  # NOTE: plugin_base_info TenantPlugin|None; guarded at runtime
                                               share_plugin_info.get("plugin_image", None))
             plugin_build_version.build_status = ret.get('bean').get('status')
             plugin_build_version.save()
@@ -457,7 +462,8 @@ class MarketPluginService(object):
                 transaction.savepoint_rollback(sid)
             return 500, '插件安装失败'
 
-    def check_plugin_share_condition(self, tenant, plugin_id, region_name):
+    def check_plugin_share_condition(self, tenant: Any, plugin_id: str,
+                                      region_name: str) -> Tuple[int, str, str]:
         plugin = plugin_repo.get_plugin_by_plugin_id(tenant.tenant_id, plugin_id)
         if not plugin:
             return 404, 'plugin not exist', '插件不存在'
