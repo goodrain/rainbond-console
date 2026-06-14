@@ -45,6 +45,7 @@ from console.services.market_app.component_group import ComponentGroup
 from console.services.plugin import (app_plugin_service, plugin_config_service, plugin_service, plugin_version_service)
 from console.services.region_services import region_services
 from console.services.share_services import share_service
+from console.services.telemetry import telemetry_service
 from console.services.upgrade_services import upgrade_service
 from console.services.virtual_machine import vms
 from console.utils.offline import is_cloud_market_disabled
@@ -74,6 +75,29 @@ class MarketAppService(object):
         from console.services.app_version_service import AppVersionService
         if AppVersionService._template_has_vm_component(app_template):
             vms.ensure_vm_platform_running(tenant.enterprise_id, region_name)
+
+    @staticmethod
+    def _is_true(value):
+        if isinstance(value, str):
+            return value.lower() in ("true", "1", "yes", "on")
+        return bool(value)
+
+    def _get_market_install_type(self, market_app, install_from_cloud):
+        source = getattr(market_app, "source", "") or ""
+        if source:
+            return source
+        return "cloud" if self._is_true(install_from_cloud) else "local"
+
+    def _track_market_app_installed(self, tenant, region_name, app_model_version, market_app, install_from_cloud):
+        try:
+            telemetry_service.track_market_app_installed(
+                tenant=tenant,
+                region_name=region_name,
+                app_model_version=app_model_version or "",
+                market_type=self._get_market_install_type(market_app, install_from_cloud),
+            )
+        except Exception as exc:
+            logger.debug("posthog telemetry market install event failed: %s", exc)
 
     def install_app(self,
                     tenant,
@@ -162,6 +186,8 @@ class MarketAppService(object):
             service_aliases=component_service_aliases)
         # If the app template contains platform_plugin info, create RBDPlugin CR
         self._create_rbdplugin_if_needed(tenant, region, app_template, app.app_id)
+        if not dry_run:
+            self._track_market_app_installed(tenant, region.region_name, version, market_app, install_from_cloud)
         return market_app.app_name
 
     def get_app_template(self, app_model_key, install_from_cloud, market_name, region, tenant, user, version):
@@ -424,6 +450,9 @@ class MarketAppService(object):
                 start = datetime.datetime.now()
                 events = self.__deploy_services(tenant, user, new_service_list, app_templates)
                 logger.debug("deploy component success, take time {}".format(datetime.datetime.now() - start))
+            if not skip_create_domain:
+                self._track_market_app_installed(
+                    tenant, region_name, getattr(market_app_version, "version", ""), market_app, install_from_cloud)
             return tenant_service_group, events
         except Exception as e:
             logger.exception(e)
