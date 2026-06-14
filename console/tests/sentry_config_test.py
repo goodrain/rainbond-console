@@ -91,6 +91,12 @@ def test_get_path_pattern_removes_dynamic_segments_and_query():
         )
         == "/console/teams/:id/apps/:id/overview?[Filtered]"
     )
+    assert (
+        sentry_config.get_path_pattern(
+            "/console/team/team-a/region/bj/apps/app-1/overview?token=abc"
+        )
+        == "/console/team/:id/region/:id/apps/:id/overview?[Filtered]"
+    )
 
 
 def test_frontend_config_only_exposes_dsn_when_enabled():

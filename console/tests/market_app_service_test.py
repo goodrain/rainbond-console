@@ -3,6 +3,7 @@ import collections
 import os
 import sys
 import importlib
+import json
 from types import ModuleType
 from unittest import mock
 from unittest.mock import patch
@@ -13,6 +14,28 @@ for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src", "openapi-client")))
 sys.modules.setdefault("MySQLdb", ModuleType("MySQLdb"))
+openapi_client = ModuleType("openapi_client")
+openapi_client.MarketOpenapiApi = type("MarketOpenapiApi", (), {})
+openapi_client.ApiClient = type("ApiClient", (), {"__init__": lambda self, configuration=None: None})
+sys.modules.setdefault("openapi_client", openapi_client)
+openapi_client_configuration = ModuleType("openapi_client.configuration")
+
+
+class StubConfiguration(object):
+    def __init__(self):
+        self.api_key = {}
+        self.client_side_validation = False
+        self.host = ""
+
+
+openapi_client_configuration.Configuration = StubConfiguration
+sys.modules.setdefault("openapi_client.configuration", openapi_client_configuration)
+openapi_client_rest = ModuleType("openapi_client.rest")
+openapi_client_rest.ApiException = type("ApiException", (Exception,), {})
+sys.modules.setdefault("openapi_client.rest", openapi_client_rest)
+market_openapi_api = ModuleType("openapi_client.api.market_openapi_api")
+market_openapi_api.MarketOpenapiApi = type("MarketOpenapiApi", (), {})
+sys.modules.setdefault("openapi_client.api.market_openapi_api", market_openapi_api)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
@@ -25,6 +48,80 @@ django.setup()
 class Obj(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+
+
+class MarketAppServiceTelemetryTests(SimpleTestCase):
+    def test_install_app_tracks_market_install_after_successful_ui_install(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
+        region = Obj(region_name="region-a")
+        user = Obj(enterprise_id="eid-1", nick_name="tester")
+        app = Obj(ID=7, governance_mode="KUBERNETES_NATIVE_SERVICE", app_id="app-7")
+        market_app = Obj(app_id="model-1", app_name="Demo App", source="")
+        app_template = {"apps": [], "arch": "amd64"}
+        app_upgrade = mock.Mock()
+        app_upgrade.install.return_value = []
+        app_upgrade.new_app.components.return_value = []
+
+        with patch("console.services.market_app_service.group_repo.get_group_by_id", return_value=app), \
+                patch.object(market_app_service, "get_app_template", return_value=(app_template, market_app)), \
+                patch("console.services.market_app_service.region_api.get_cluster_nodes_arch",
+                      return_value=(None, {"list": ["amd64"]})), \
+                patch.object(market_app_service, "_create_tenant_service_group", return_value=Obj()), \
+                patch("console.services.market_app_service.AppUpgrade", return_value=app_upgrade), \
+                patch("console.services.market_app_service.enterprise_first_deploy_service.bind_events"), \
+                patch.object(market_app_service, "_create_rbdplugin_if_needed"), \
+                patch("console.services.market_app_service.telemetry_service", create=True) as telemetry:
+            app_name = market_app_service.install_app(
+                tenant, region, user, 7, "model-1", "1.2.3", "localApplication", False, is_deploy=False)
+
+        self.assertEqual("Demo App", app_name)
+        telemetry.track_market_app_installed.assert_called_once_with(
+            tenant=tenant,
+            region_name="region-a",
+            app_model_version="1.2.3",
+            market_type="local",
+        )
+
+    def test_install_service_tracks_market_install_after_successful_service_install(self):
+        from console.services.market_app_service import market_app_service
+
+        tenant = Obj(tenant_id="tenant-1", tenant_name="team-a", enterprise_id="eid-1")
+        user = Obj(enterprise_id="eid-1", nick_name="tester")
+        region = Obj(region_name="region-a")
+        tenant_service_group = Obj(ID=9)
+        market_app = Obj(app_id="model-1", app_name="Demo App", source="")
+        market_app_version = Obj(
+            version="1.2.3",
+            update_time=None,
+            app_template=json.dumps({
+                "apps": [{"service_id": "old-service", "service_key": "component-a"}],
+                "app_config_groups": [],
+            }),
+        )
+        service = Obj(service_id="new-service", service_key="component-a")
+
+        with patch("console.services.market_app_service.region_services.get_enterprise_region_by_region_name",
+                   return_value=region), \
+                patch.object(market_app_service, "_ensure_vm_template_allowed"), \
+                patch.object(market_app_service, "_create_tenant_service_group", return_value=tenant_service_group), \
+                patch.object(market_app_service, "_MarketAppService__save_component_meta", return_value=service), \
+                patch.object(market_app_service, "_MarketAppService__save_service_deps"), \
+                patch.object(market_app_service, "_MarketAppService__create_region_services", return_value=[service]), \
+                patch.object(market_app_service, "_MarketAppService__create_service_plugins"), \
+                patch.object(market_app_service, "_MarketAppService__create_dep_mnt"), \
+                patch("console.services.market_app_service.telemetry_service", create=True) as telemetry:
+            install_info = market_app_service.install_service(
+                tenant, "region-a", user, 7, market_app, market_app_version, False, True, market_name="goodrain")
+
+        self.assertEqual((tenant_service_group, []), install_info)
+        telemetry.track_market_app_installed.assert_called_once_with(
+            tenant=tenant,
+            region_name="region-a",
+            app_model_version="1.2.3",
+            market_type="cloud",
+        )
 
 
 class MarketAppServiceCreateRainbondAppTests(SimpleTestCase):
