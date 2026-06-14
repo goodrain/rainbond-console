@@ -78,7 +78,7 @@ class EnvServiceRegionIdempotencyTests(TestCase):
             dep_relation_repo=MagicMock(),
             env_var_repo=MagicMock(),
         )
-        install_stub("www.models.main", TenantServicesPort=object, TenantServiceEnvVar=object)
+        install_stub("www.models.main", TenantServicesPort=object, TenantServiceEnvVar=object, TenantServiceEnv=object)
         install_stub("www.apiclient.regionapi", RegionInvokeApi=MagicMock)
         install_stub(
             "www.apiclient.regionapibaseclient",
