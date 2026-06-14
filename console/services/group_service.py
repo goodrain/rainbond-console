@@ -30,6 +30,7 @@ from console.repositories.user_repo import user_repo
 from console.repositories.migration_repo import migrate_repo
 from console.services.app_config_group import app_config_group_service
 from console.services.service_services import base_service
+from console.services.telemetry import telemetry_service
 from console.services.topological_services import topological_service
 from console.utils.shortcuts import get_object_or_404
 from django.db import transaction
@@ -118,6 +119,12 @@ class GroupService(object):
         res['app_id'] = app.ID
         res['app_name'] = app.group_name
         res['k8s_app'] = app.k8s_app
+        telemetry_service.track_app_created(
+            tenant=tenant,
+            region_name=region_name,
+            app=app,
+            source="helm" if app_type == AppType.helm.name else "rainbond",
+        )
         return res
 
     def json_app(self, app_name, k8s_app, logo, note):

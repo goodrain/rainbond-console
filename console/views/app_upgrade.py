@@ -9,6 +9,7 @@ from console.services.app_actions import app_manage_service
 from console.cloud.services import check_account_quota
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
+from console.services.telemetry import telemetry_service
 from console.services.upgrade_services import upgrade_service
 from console.utils.offline import is_cloud_market_disabled
 from console.utils.reqparse import parse_argument, parse_item
@@ -140,6 +141,13 @@ class AppUpgradeView(AppUpgradeRecordView):
             version,
             self.app_upgrade_record,
             component_keys,
+        )
+        telemetry_service.track_version_upgraded(
+            tenant=self.tenant,
+            region_name=self.region_name,
+            to_version=version,
+            upgrade_type="market_app",
+            upgrade_count=len(component_keys) or 1,
         )
         return MessageResponse(msg="success", msg_show="升级成功", bean=record)
 

@@ -7,6 +7,7 @@ from console.exception.main import ServiceHandleException
 from console.services.app import app_market_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
+from console.services.telemetry import telemetry_service
 from console.services.upgrade_services import upgrade_service
 from django.forms.models import model_to_dict
 from drf_yasg import openapi
@@ -69,6 +70,12 @@ class AppInstallView(TeamAppAPIView):
             raise ServiceHandleException(status_code=404, msg="not found", msg_show="云端应用版本不存在")
         market_app_service.install_service(
             self.team, self.region_name, self.user, app_id, app, app_version_info, is_deploy, True, market_name=market_name)
+        telemetry_service.track_market_app_installed(
+            tenant=self.team,
+            region_name=self.region_name,
+            app_model_version=app_model_version,
+            market_type=market_type,
+        )
         services = group_service.get_group_services(app_id)
         app_info = model_to_dict(self.app)
         app_info["app_name"] = app_info["group_name"]
@@ -110,6 +117,14 @@ class AppUpgradeView(TeamAppAPIView, EnterpriseServiceOauthView):
         serializer.is_valid(raise_exception=True)
         upgrade_service.openapi_upgrade_app_models(self.user, self.team, self.region_name, self.oauth_instance, self.app.ID,
                                                    serializer.data)
+        update_versions = serializer.data.get("update_versions") or []
+        telemetry_service.track_version_upgraded(
+            tenant=self.team,
+            region_name=self.region_name,
+            to_version=",".join([item.get("version", "") for item in update_versions if item.get("version")])[:128],
+            upgrade_type="market_app",
+            upgrade_count=len(update_versions),
+        )
         app_models = market_app_service.get_market_apps_in_app(self.region_name, self.team, self.app)
         serializer = ListUpgradeSerializer(data=app_models, many=True)
         serializer.is_valid(raise_exception=True)

@@ -8,10 +8,12 @@ from django.http import FileResponse, Http404
 from django.template.response import TemplateResponse
 from django.views.generic import View
 from goodrain_web.sentry_config import get_frontend_posthog_config_json, get_frontend_sentry_config_json
+from console.services.telemetry import telemetry_service
 
 
 class IndexTemplateView(View):
     def get(self, request, *args, **kwargs):
+        telemetry_service.boot()
         return TemplateResponse(self.request, "index.html", {
             "sentry_config_json": get_frontend_sentry_config_json(),
             "posthog_config_json": get_frontend_posthog_config_json(),
