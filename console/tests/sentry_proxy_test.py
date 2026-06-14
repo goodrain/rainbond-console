@@ -45,6 +45,29 @@ class SentryProxyViewTests(SimpleTestCase):
 
         self.assertEqual(target_url, "https://sentry.example.com/base/prefix/api/2/envelope/?sentry_key=public")
 
+    def test_proxy_target_can_reuse_absolute_frontend_tunnel(self):
+        with mock.patch.dict(os.environ, {"RAINBOND_ERROR_REPORTING_FRONTEND_TUNNEL": "https://sentry.example.com"}, clear=True):
+            target_url = _build_target_url("api/2/envelope/", "sentry_key=public")
+
+        self.assertEqual(target_url, "https://sentry.example.com/api/2/envelope/?sentry_key=public")
+
+    def test_proxy_target_falls_back_to_dsn_origin_when_tunnel_is_same_origin(self):
+        with mock.patch.dict(os.environ, {
+            "RAINBOND_ERROR_REPORTING_FRONTEND_TUNNEL": "/console/sentry",
+            "RAINBOND_ERROR_REPORTING_DSN": "https://public@sentry.example.com/2",
+        }, clear=True):
+            target_url = _build_target_url("api/2/envelope/", "sentry_key=public")
+
+        self.assertEqual(target_url, "https://sentry.example.com/api/2/envelope/?sentry_key=public")
+
+    def test_proxy_target_derives_base_path_from_dsn(self):
+        with mock.patch.dict(os.environ, {
+            "RAINBOND_ERROR_REPORTING_DSN": "https://public@sentry.example.com/prefix/2",
+        }, clear=True):
+            target_url = _build_target_url("api/2/envelope/", "sentry_key=public")
+
+        self.assertEqual(target_url, "https://sentry.example.com/prefix/api/2/envelope/?sentry_key=public")
+
     def test_rejects_non_envelope_paths(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             with self.assertRaises(ValueError):
