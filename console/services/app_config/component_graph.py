@@ -129,7 +129,7 @@ class ComponentGraphService(object):
     @transaction.atomic()
     def update_component_graph(self, graph: ComponentGraph, title: str, promql: str, sequence: int,
                                arch: str) -> dict:
-        data = {
+        data: Dict[str, Any] = {
             "title": title,
             "promql": promql_service.add_or_update_label(graph.component_id, promql, arch),
         }
@@ -151,7 +151,7 @@ class ComponentGraphService(object):
                 pass
 
             try:
-                promql = promql_service.add_or_update_label(component_id, graph.get("promql"), arch)
+                promql = promql_service.add_or_update_label(component_id, graph.get("promql"), arch)  # type: ignore[arg-type]  # NOTE: promql from dict.get may be None (latent)
             except AbortRequest as e:
                 logger.warning("promql: {}, {}".format(graph.get("promql"), e))
                 continue
