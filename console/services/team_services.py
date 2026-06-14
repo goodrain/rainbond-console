@@ -149,7 +149,7 @@ class TeamService(object):
             tenant = self.get_team_by_team_id(tenant_name)
             if tenant is None:
                 raise Tenants.DoesNotExist()
-        user_roles = user_kind_role_service.get_user_roles(kind_id=tenant.ID, kind="team", user=user)
+        user_roles = user_kind_role_service.get_user_roles(kind_id=tenant.ID, kind="team", user=user)  # type: ignore[arg-type]  # NOTE: tenant.ID int vs str kind_id (systemic)
         if tenant.creater == user_id:
             user_roles["roles"].append("owner")
         return user_roles
@@ -345,7 +345,7 @@ class TeamService(object):
         # init default roles
         role_kind_services.init_default_roles(kind="team", kind_id=team.tenant_id)
         admin_role = role_kind_services.get_role_by_name(kind="team", kind_id=team.tenant_id, name="管理员")
-        user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin_role.ID])
+        user_kind_role_service.update_user_roles(kind="team", kind_id=team.tenant_id, user=user, role_ids=[admin_role.ID])  # type: ignore[union-attr]  # NOTE: admin_role Optional (latent)
         return team
 
     def delete_team_region(self, team_id: str, region_name: str) -> None:

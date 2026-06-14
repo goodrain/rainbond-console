@@ -3,6 +3,7 @@
 """
 import logging
 from functools import reduce
+from typing import Any, Dict, List, Tuple
 
 from console.repositories.app import service_repo
 from console.services.region_services import region_services
@@ -14,16 +15,16 @@ logger = logging.getLogger("default")
 
 
 class Global_resource_processing(object):
-    def __init__(self):
-        self.region_list = list()
-        self.tenant_list = list()
-        self.app_dict = dict()
-        self.host_list = list()
+    def __init__(self) -> None:
+        self.region_list: List[Dict[str, Any]] = list()
+        self.tenant_list: List[Dict[str, Any]] = list()
+        self.app_dict: Dict[Any, Dict[str, Any]] = dict()
+        self.host_list: List[Dict[str, Any]] = list()
 
-    def monitor_handle(self, *args):
+    def monitor_handle(self, *args: Any) -> Dict[str, Any]:
         """
         构建资源监控数据结构
-        
+
         参数:
         resource_type ：args[0] 资源类型级别
         resource_name ：args[1] 资源名称
@@ -41,7 +42,7 @@ class Global_resource_processing(object):
             "resource_namespace": args[5]
         }
 
-    def region_obtain_handle(self, enterprise_id):
+    def region_obtain_handle(self, enterprise_id: str) -> None:
         """
         从数据库获取集群信息
         """
@@ -52,7 +53,7 @@ class Global_resource_processing(object):
             self.region_list.append(
                 self.monitor_handle(0, [region["region_name"], region["region_alias"]], region["region_id"], 200, "nil", "nil"))
 
-    def tenant_obtain_handle(self, enterprise_id):
+    def tenant_obtain_handle(self, enterprise_id: str) -> None:
         """
         从数据库获取团队信息及其对应的父级
         """
@@ -72,7 +73,7 @@ class Global_resource_processing(object):
                 total_tenants += 1
         logger.info(f"共获取到 {total_tenants} 个团队")
 
-    def app_obtain_handle(self):
+    def app_obtain_handle(self) -> None:
         """
         从数据库获取应用信息及其对应的父级
         """
@@ -90,7 +91,7 @@ class Global_resource_processing(object):
                 total_apps += 1
         logger.info(f"共获取到 {total_apps} 个应用")
 
-    def host_obtain_handle(self):
+    def host_obtain_handle(self) -> None:
         """
         通过请求区域端的代理接口，获取APISIX网关信息和请求流量，并将网关绑定到其父应用
         """
@@ -240,7 +241,7 @@ class Global_resource_processing(object):
         
         logger.info(f"流量数据获取完成: 处理了 {total_processed_tenants} 个租户, 找到 {total_domains_found} 个域名记录, 有效路由 {total_valid_routes} 个")
 
-    def template_handle(self):
+    def template_handle(self) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         按照指定格式对数据进行排序并返回给前端
         """
@@ -259,8 +260,8 @@ class Global_resource_processing(object):
         links = []
         
         # 用于存储应用到租户和租户到区域的关系及值
-        app_tenant_relations = {}
-        tenant_region_relations = {}
+        app_tenant_relations: Dict[Tuple[str, str], int] = {}
+        tenant_region_relations: Dict[Tuple[str, str], int] = {}
         
         # 遍历主机列表，构建节点和链接数据
         for host in self.host_list:

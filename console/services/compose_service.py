@@ -5,11 +5,13 @@
 import datetime
 import logging
 from io import StringIO
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 from django.db import transaction
 
 from console.constants import AppConstants
+from console.models.main import ComposeGroup
 from console.repositories.app import service_repo
 from console.repositories.compose_repo import compose_relation_repo
 from console.repositories.compose_repo import compose_repo
@@ -21,7 +23,7 @@ from console.services.app_config.app_relation_service import AppServiceRelationS
 from console.services.group_service import group_service
 from console.utils.timeutil import current_time_str
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import TenantServiceInfo
+from www.models.main import TenantServiceInfo, Tenants
 from www.tenantservice.baseservice import BaseTenantService
 from www.utils.crypt import make_uuid
 from console.enum.component_enum import ComponentType
@@ -34,7 +36,7 @@ app_relation_service = AppServiceRelationService()
 
 
 class ComposeService(object):
-    def yaml_to_json(self, compose_tontent):
+    def yaml_to_json(self, compose_tontent: str) -> Tuple[int, str, Any]:
         try:
             buf = StringIO(compose_tontent)
             res = yaml.safe_load(buf)
@@ -42,7 +44,8 @@ class ComposeService(object):
         except yaml.YAMLError:
             return 400, "yaml内容格式不正确", {}
 
-    def create_group_compose(self, tenant, region, group_id, event_id, compose_file_path, hub_user="", hub_pass=""):
+    def create_group_compose(self, tenant: Tenants, region: str, group_id: int, event_id: str,
+                             compose_file_path: str, hub_user: str = "", hub_pass: str = "") -> Tuple[int, str, ComposeGroup]:
         # 存储上传事件ID和compose文件路径
         group_compose_data = {
             "hub_user": hub_user,
@@ -63,44 +66,44 @@ class ComposeService(object):
             group_compose.save()
         return 200, "创建groupcompose成功", group_compose
 
-    def check_compose(self, region, tenant, compose_id):
+    def check_compose(self, region: str, tenant: Tenants, compose_id: str) -> Tuple[int, str, Any]:
         group_compose = compose_repo.get_group_compose_by_compose_id(compose_id)
         if not group_compose:
             return 404, "未找到对应的compose内容", None
         body = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = "docker-compose"
-        body["event_id"] = group_compose.compose_content  # compose_content字段临时存储的是event_id
+        body["event_id"] = group_compose.compose_content  # type: ignore[assignment]  # NOTE: compose_content is Optional[str] but dict value is Any
         body["compose_file_path"] = getattr(group_compose, 'compose_file_path', 'docker-compose.yml')
-        body["username"] = group_compose.hub_user
-        body["password"] = group_compose.hub_pass
+        body["username"] = group_compose.hub_user  # type: ignore[assignment]  # NOTE: hub_user is Optional[str] but dict value is Any
+        body["password"] = group_compose.hub_pass  # type: ignore[assignment]  # NOTE: hub_pass is Optional[str] but dict value is Any
         body["namespace"] = tenant.namespace
         res, body = region_api.service_source_check(region, tenant.tenant_name, body)
-        bean = body["bean"]
+        bean = body["bean"]  # type: ignore[index]  # NOTE: region_api returns untyped dict, body may be dict|None at mypy level
         group_compose.check_uuid = bean["check_uuid"]
         group_compose.check_event_id = bean["event_id"]
         group_compose.create_status = "checking"
         group_compose.save()
-        group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_compose.group_id)
+        group = group_repo.get_group_by_pk(tenant.tenant_id, region, group_compose.group_id)  # type: ignore[arg-type]  # NOTE: group_id is IntegerField(int) but get_group_by_pk expects str
         compose_bean = group_compose.to_dict()
         if group:
             compose_bean["group_name"] = group.group_name
         return 200, "success", compose_bean
 
-    def get_group_compose_by_compose_id(self, compose_id):
+    def get_group_compose_by_compose_id(self, compose_id: str) -> Optional[ComposeGroup]:
         return compose_repo.get_group_compose_by_compose_id(compose_id)
 
-    def get_group_compose_by_group_id(self, group_id):
-        return compose_repo.get_group_compose_by_group_id(group_id)
+    def get_group_compose_by_group_id(self, group_id: int) -> Optional[ComposeGroup]:
+        return compose_repo.get_group_compose_by_group_id(group_id)  # type: ignore[arg-type]  # NOTE: repo signature uses str but model field is IntegerField(int)
 
-    def _resolve_compose_arch(self, region, arch=None):
+    def _resolve_compose_arch(self, region: str, arch: Optional[str] = None) -> str:
         arch = (arch or "").strip()
         if arch:
             return arch
 
         try:
             _, body = region_api.get_cluster_nodes_arch(region)
-            arches = [item for item in set(body.get("list", [])) if item]
+            arches = [item for item in set(body.get("list", [])) if item]  # type: ignore[union-attr]  # NOTE: region_api returns untyped; body typed as dict|None by stubs
             if len(arches) == 1:
                 return arches[0]
         except Exception as e:
@@ -108,10 +111,11 @@ class ComposeService(object):
         return "amd64"
 
     @transaction.atomic
-    def save_compose_services(self, tenant, user, region, group_compose, data, arch=None):
+    def save_compose_services(self, tenant: Tenants, user: Any, region: str, group_compose: ComposeGroup,
+                              data: dict, arch: Optional[str] = None) -> Tuple[int, str, List[TenantServiceInfo]]:
         # 开启保存点
         sid = transaction.savepoint()
-        service_list = []
+        service_list: List[TenantServiceInfo] = []
         arch = self._resolve_compose_arch(region, arch)
         try:
             if data["check_status"] == "success":
@@ -125,9 +129,9 @@ class ComposeService(object):
                 # 保存compose检测结果
                 if data["check_status"] == "success":
                     service_info_list = data["service_info"]
-                    service_dep_map = {}
+                    service_dep_map: Dict[str, Any] = {}
                     # 组件列表
-                    name_service_map = {}
+                    name_service_map: Dict[str, TenantServiceInfo] = {}
 
                     for service_info in service_info_list:
                         service_cname = service_info.get("cname", service_info["image_alias"])
@@ -165,7 +169,7 @@ class ComposeService(object):
                                 hub_user = env.get("value")
                             if env.get("name", "") == "HUB_PASSWORD":
                                 hub_password = env.get("value")
-                        app_service.create_service_source_info(tenant, service, hub_user, hub_password)
+                        app_service.create_service_source_info(tenant, service, hub_user, hub_password)  # type: ignore[arg-type]  # NOTE: hub_user/hub_password may be str|None after env.get("value") which returns Optional[str]
 
                         dependencies = service_info.get("depends", None)
                         if dependencies:
@@ -185,7 +189,8 @@ class ComposeService(object):
             return 500, "{0}".format(e), service_list
         return 200, "success", service_list
 
-    def __save_service_dep_relation(self, tenant, service_dep_map, name_service_map):
+    def __save_service_dep_relation(self, tenant: Tenants, service_dep_map: Dict[str, Any],
+                                    name_service_map: Dict[str, TenantServiceInfo]) -> None:
         if service_dep_map:
             for key in list(service_dep_map.keys()):
                 dep_services_names = service_dep_map[key]
@@ -203,11 +208,12 @@ class ComposeService(object):
                     if code != 200:
                         logger.error("compose add service error {0}".format(msg))
 
-    def __save_compose_relation(self, services, team_id, compose_id):
+    def __save_compose_relation(self, services: List[TenantServiceInfo], team_id: str, compose_id: str) -> None:
         service_id_list = [s.service_id for s in services]
         compose_relation_repo.bulk_create_compose_service_relation(service_id_list, team_id, compose_id)
 
-    def __init_compose_service(self, tenant, user, service_cname, image, region):
+    def __init_compose_service(self, tenant: Tenants, user: Any, service_cname: str, image: str,
+                               region: str) -> TenantServiceInfo:
         """
         初始化docker compose创建的组件默认数据
         """
@@ -247,7 +253,7 @@ class ComposeService(object):
         tenant_service.create_status = "checked"
         return tenant_service
 
-    def update_compose(self, group_id, compose_content):
+    def update_compose(self, group_id: int, compose_content: str) -> Tuple[int, str, Optional[ComposeGroup]]:
         group_compose = self.get_group_compose_by_group_id(group_id)
         if not group_compose:
             return 404, "需要修改的对象不存在", None
@@ -255,17 +261,17 @@ class ComposeService(object):
         group_compose.save()
         return 200, "success", group_compose
 
-    def get_compose_services(self, compose_id):
+    def get_compose_services(self, compose_id: str) -> Any:
         compse_service_relations = compose_relation_repo.get_compose_service_relation_by_compose_id(compose_id)
         service_ids = [csr.service_id for csr in compse_service_relations]
         service_ids = list(service_ids)
         return service_repo.get_services_by_service_ids(service_ids)
 
-    def give_up_compose_create(self, tenant, compose_id):
+    def give_up_compose_create(self, tenant: Tenants, compose_id: str) -> None:
         self.__delete_created_compose_info(tenant, compose_id)
         compose_repo.delete_group_compose_by_compose_id(compose_id)
 
-    def __delete_created_compose_info(self, tenant, compose_id):
+    def __delete_created_compose_info(self, tenant: Tenants, compose_id: str) -> None:
         services = self.get_compose_services(compose_id)
         for s in services:
             # 彻底删除组件
@@ -275,7 +281,7 @@ class ComposeService(object):
 
         compose_relation_repo.delete_compose_service_relation_by_compose_id(compose_id)
 
-    def wrap_compose_check_info(self, data):
+    def wrap_compose_check_info(self, data: dict) -> Dict[str, Any]:
         rt_info = dict()
         rt_info["check_status"] = data["check_status"]
         rt_info["error_infos"] = data["error_infos"]
@@ -323,7 +329,7 @@ class ComposeService(object):
         rt_info["service_info"] = compose_service_wrap_list
         return rt_info
 
-    def get_service_compose_id(self, service):
+    def get_service_compose_id(self, service: TenantServiceInfo) -> Any:
         return compose_relation_repo.get_compose_id_by_service_id(service.service_id)
 
 
