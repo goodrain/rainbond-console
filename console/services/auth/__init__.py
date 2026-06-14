@@ -2,6 +2,7 @@
 # creater by: barnett
 
 from datetime import datetime
+from typing import Any, Optional
 
 from django.conf import settings
 from django.middleware.csrf import rotate_token
@@ -20,7 +21,7 @@ HASH_SESSION_KEY = '_auth_user_hash'
 REDIRECT_FIELD_NAME = 'next'
 
 
-def login(request, user):
+def login(request: Any, user: Any) -> None:
     """
     Persist a user id and a backend in the request. This way a user doesn't
     have to reauthenticate on every request. Note that data set during
@@ -50,7 +51,7 @@ def login(request, user):
     # user_logged_in.send(sender=user.__class__, request=request, user=user)
 
 
-def jwtlogin(request, user):
+def jwtlogin(request: Any, user: Any) -> None:
     from console.utils import jwt_issuer
     """
     Persist a user id and a backend in the request. This way a user doesn't
@@ -85,7 +86,7 @@ def jwtlogin(request, user):
         response_data.set_cookie(jwt_issuer.JWT_AUTH_COOKIE, rotate_token, expires=expiration, httponly=True)
 
 
-def logout(request):
+def logout(request: Any) -> None:
     """
     Removes the authenticated user's ID from the request and flushes their
     session data.
@@ -93,7 +94,7 @@ def logout(request):
     # Dispatch the signal before the user is logged out so the receivers have a
     # chance to find out *who* logged out.
     user = getattr(request, 'user', None)
-    if hasattr(user, 'is_authenticated') and not user.is_authenticated():
+    if hasattr(user, 'is_authenticated') and not user.is_authenticated():  # type: ignore[union-attr]  # NOTE: user may be None if request.user not set
         user = None
     # user_logged_out.send(sender=user.__class__, request=request, user=user)
 
@@ -111,7 +112,7 @@ def logout(request):
         request.user = AnonymousUser()
 
 
-def get_user(request):
+def get_user(request: Any) -> Any:
     """
     Returns the user model instance associated with the given request session.
     If no user is retrieved an instance of `AnonymousUser` is returned.
@@ -128,10 +129,10 @@ def get_user(request):
             backend = load_backend(backend_path)
             user = backend.get_user(user_id)
             # Verify the session
-            if ('django.contrib.auth.middleware.SessionAuthenticationMiddleware' in settings.MIDDLEWARE_CLASSES
+            if ('django.contrib.auth.middleware.SessionAuthenticationMiddleware' in settings.MIDDLEWARE_CLASSES  # type: ignore[misc]  # NOTE: MIDDLEWARE_CLASSES is a Django 1.x setting; not present in django-stubs for 4.x
                     and hasattr(user, 'get_session_auth_hash')):
                 session_hash = request.session.get(HASH_SESSION_KEY)
-                session_hash_verified = session_hash and constant_time_compare(session_hash, user.get_session_auth_hash())
+                session_hash_verified = session_hash and constant_time_compare(session_hash, user.get_session_auth_hash())  # type: ignore[union-attr]  # NOTE: user may be None; guarded by hasattr above but mypy doesn't narrow
                 if not session_hash_verified:
                     request.session.flush()
                     user = None
