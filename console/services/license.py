@@ -3,6 +3,7 @@ import base64
 import json
 import os
 import logging
+from typing import Any, Dict, List, Optional, Tuple
 
 from console.services.config_service import EnterpriseConfigService
 from console.models.main import ConsoleSysConfig
@@ -14,7 +15,7 @@ logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
 
 
-def _decode_authz_code(authz_code):
+def _decode_authz_code(authz_code: str) -> dict:
     """Decode base64 authz_code to extract plugin info locally (no verification)."""
     try:
         data = base64.b64decode(authz_code)
@@ -23,7 +24,7 @@ def _decode_authz_code(authz_code):
         return {}
 
 
-def _build_plugins_list(plugin_mapping, plugin_names):
+def _build_plugins_list(plugin_mapping: dict, plugin_names: dict) -> List[dict]:
     """Build plugins list from plugin_mapping + plugin_names."""
     plugins = []
     for pid, app_key in plugin_mapping.items():
@@ -36,7 +37,7 @@ def _build_plugins_list(plugin_mapping, plugin_names):
 
 
 class LicenseService(object):
-    def get_licenses(self, enterprise_id):
+    def get_licenses(self, enterprise_id: str) -> Tuple[str, Optional[dict]]:
         authz = ConsoleSysConfig.objects.filter(key="AUTHZ_CODE").first()
         if not authz or not authz.value:
             return "", None
@@ -53,7 +54,7 @@ class LicenseService(object):
                 "reason": "no_region",
                 "plugins": _build_plugins_list(pm, pn),
             }
-        bean = {}
+        bean: dict = {}
         try:
             body = region_api.get_license_status(enterprise_id, region.region_name)
             bean = body.get("bean", {}) if body else {}
@@ -95,7 +96,7 @@ class LicenseService(object):
         }
         return authz.value, resp
 
-    def update_license(self, enterprise_id, authz_code):
+    def update_license(self, enterprise_id: str, authz_code: str) -> dict:
         # Try to activate on all available regions first
         regions = region_repo.get_usable_regions(enterprise_id)
         for region in regions:
@@ -121,15 +122,15 @@ class LicenseService(object):
         }
         return config_dict
 
-    def get_cluster_id(self, enterprise_id, region_name):
+    def get_cluster_id(self, enterprise_id: str, region_name: str) -> Optional[Dict[str, Any]]:
         body = region_api.get_license_cluster_id(enterprise_id, region_name)
         return body
 
-    def activate_license(self, enterprise_id, region_name, license_code):
+    def activate_license(self, enterprise_id: str, region_name: str, license_code: str) -> Optional[Dict[str, Any]]:
         body = region_api.activate_license(enterprise_id, region_name, license_code)
         return body
 
-    def get_license_status(self, enterprise_id, region_name):
+    def get_license_status(self, enterprise_id: str, region_name: str) -> Optional[Dict[str, Any]]:
         body = region_api.get_license_status(enterprise_id, region_name)
         return body
 
