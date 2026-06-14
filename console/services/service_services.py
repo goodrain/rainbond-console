@@ -52,7 +52,7 @@ class BaseService(object):
         records: list = []
         try:
             response = region_lang_version.show_long_version(
-                tenant.enterprise_id, service.service_region, definition["lang_key"], "cnb")
+                tenant.enterprise_id, service.service_region, definition["lang_key"], "cnb")  # type: ignore[arg-type]  # NOTE: Optional region_name (latent)
             records = response.get("list", []) if isinstance(response, dict) else []
         except Exception as err:
             logger.debug("load enterprise cnb version policy failed: %s", err)

@@ -3,6 +3,8 @@
   Created on 18/1/17.
 """
 
+from typing import Any, List, Tuple
+
 from console.repositories.base import BaseConnection
 import logging
 
@@ -12,7 +14,9 @@ logger = logging.getLogger("default")
 class AppPluginService(object):
     # 获取指定组件可用插件列表
     # 返回数据包含是否已安装信息
-    def get_plugins_by_service_id(self, region, tenant_id, service_id, category):
+    def get_plugins_by_service_id(
+        self, region: str, tenant_id: str, service_id: str, category: str
+    ) -> Tuple[List[Any], List[Any]]:
 
         QUERY_INSTALLED_SQL = """
         SELECT tp.plugin_id as plugin_id,tp.desc as "desc",tp.plugin_alias as plugin_alias,
@@ -58,23 +62,23 @@ class AppPluginService(object):
         return installed_plugins, uninstalled_plugins
 
     # 安装指定插件，如果指定版本，根据版本安装，未指定版本，安装最新版本
-    def install_plugin(self, service_id, plugin_id, version):
+    def install_plugin(self, service_id: str, plugin_id: str, version: str) -> None:
         pass
 
     # 卸载插件
-    def uninstall_plugin(self, service_id, plugin_id):
+    def uninstall_plugin(self, service_id: str, plugin_id: str) -> None:
         pass
 
-    def open_plugin(self, service_id, plugin_id):
+    def open_plugin(self, service_id: str, plugin_id: str) -> None:
         pass
 
-    def close_plugin(self, service_id, plugin_id):
+    def close_plugin(self, service_id: str, plugin_id: str) -> None:
         pass
 
-    def get_app_plugin_configs(self, service_id, plugin_id):
+    def get_app_plugin_configs(self, service_id: str, plugin_id: str) -> None:
         pass
 
-    def put_app_plugin_configs(self, service_id, plugin_id):
+    def put_app_plugin_configs(self, service_id: str, plugin_id: str) -> None:
         pass
 
 
