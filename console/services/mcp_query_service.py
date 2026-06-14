@@ -3807,7 +3807,7 @@ class MCPQueryService(object):
         helm_center_app = rainbond_app_repo.get_rainbond_app_by_app_id(app_model_id)
         chart = repo_name + "/" + chart_name
         helm_app_service.generate_template(
-            cvdata, helm_center_app, version, team, chart, app.region_name, team.enterprise_id, user.user_id,
+            cvdata, helm_center_app, version, team, chart, app.region_name, team.enterprise_id, user.user_id,  # type: ignore[arg-type]  # NOTE: helm_center_app Optional, latent None (backlog)
             overrides_list, app.ID
         )
         return {

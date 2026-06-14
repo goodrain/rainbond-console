@@ -4,6 +4,7 @@ import logging
 import os
 import time
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 from console.repositories.group import group_repo
 from console.repositories.operation_log import operation_log_repo
@@ -14,7 +15,8 @@ from console.repositories.team_repo import team_repo
 from console.views.app_config.base import AppBaseView
 from deprecated import deprecated
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, QuerySet
+from www.models.main import ServiceGroup, TenantServiceInfo
 
 logger = logging.getLogger("default")
 
@@ -132,19 +134,19 @@ class OperationViewType(Enum):
 
 class OperationLogService(object):
     def create_log(self,
-                   user,
-                   operation_type,
-                   comment,
-                   enterprise_id='',
-                   team_name='',
-                   app_id=0,
-                   service_alias='',
-                   is_openapi=False,
-                   service_cname='',
-                   app_name='',
-                   old_information='',
-                   new_information='',
-                   information_type=''):
+                   user: Any,
+                   operation_type: OperationType,
+                   comment: str,
+                   enterprise_id: str = '',
+                   team_name: str = '',
+                   app_id: int = 0,
+                   service_alias: str = '',
+                   is_openapi: bool = False,
+                   service_cname: str = '',
+                   app_name: str = '',
+                   old_information: str = '',
+                   new_information: str = '',
+                   information_type: str = '') -> None:
         try:
             if service_alias != '':
                 service = service_repo.get_service_by_service_alias(service_alias)
@@ -171,7 +173,7 @@ class OperationLogService(object):
         except Exception as e:
             logger.error(e)
 
-    def list(self, enterprise_id, query_params):
+    def list(self, enterprise_id: str, query_params: dict) -> Tuple[Any, int]:
         q = Q(enterprise_id=enterprise_id) & self.handle_query_condition(query_params)
         logs = operation_log_repo.list().filter(q).order_by("-create_time")
 
@@ -179,7 +181,7 @@ class OperationLogService(object):
         total = p.count
         return p.page(query_params["page"]).object_list, total
 
-    def list_team_logs(self, enterprise_id, tenant, query_params):
+    def list_team_logs(self, enterprise_id: str, tenant: Any, query_params: dict) -> Tuple[Any, int]:
         q = Q(enterprise_id=enterprise_id) & Q(team_name=tenant.tenant_name)
         q &= self.handle_query_condition(query_params)
         logs = operation_log_repo.list().filter(q).order_by("-create_time")
@@ -188,7 +190,7 @@ class OperationLogService(object):
         total = p.count
         return p.page(query_params["page"]).object_list, total
 
-    def list_app_logs(self, enterprise_id, tenant, app, query_params):
+    def list_app_logs(self, enterprise_id: str, tenant: Any, app: Any, query_params: dict) -> Tuple[Any, int]:
         q = Q(enterprise_id=enterprise_id, team_name=tenant.tenant_name, app_id=app.ID)
         q &= self.handle_query_condition(query_params)
         logs = operation_log_repo.list().filter(q).order_by("-create_time")
@@ -197,7 +199,7 @@ class OperationLogService(object):
         total = p.count
         return p.page(query_params["page"]).object_list, total
 
-    def handle_query_condition(self, params):
+    def handle_query_condition(self, params: dict) -> Q:
         q = Q()
         if params.get("start_time", None):
             q &= Q(create_time__gte=params["start_time"])
@@ -216,7 +218,14 @@ class OperationLogService(object):
         return q
 
     # Processing names as jump parameters
-    def process_name(self, region, name, view_type, team_name='', app_id=0, service_alias='', plugin_id=''):
+    def process_name(self,
+                     region: str,
+                     name: Any,
+                     view_type: Any,
+                     team_name: str = '',
+                     app_id: int = 0,
+                     service_alias: str = '',
+                     plugin_id: str = '') -> str:
         body = None
         name = name.value if isinstance(name, Enum) else name
         name = name.replace("<<", "").replace(">>", "")
@@ -242,12 +251,18 @@ class OperationLogService(object):
         return "<<" + data + ">>"
 
     # Generate some formatted text
-    def generate_generic_comment(self, operation, module, module_name, suffix=''):
+    def generate_generic_comment(self, operation: Any, module: Any, module_name: str, suffix: str = '') -> str:
         operation = operation.value if isinstance(operation, Enum) else operation
         module = module.value if isinstance(module, Enum) else module
         return operation + module + ' ' + module_name + suffix
 
-    def create_enterprise_log(self, user, comment, enterprise_id, is_openapi=False, old_information="", new_information=""):
+    def create_enterprise_log(self,
+                              user: Any,
+                              comment: str,
+                              enterprise_id: str,
+                              is_openapi: bool = False,
+                              old_information: str = "",
+                              new_information: str = "") -> None:
         information_type = self.type_log(old_information=old_information, new_information=new_information)
         self.create_log(
             user,
@@ -260,12 +275,12 @@ class OperationLogService(object):
             information_type=information_type.value)
 
     def create_component_library_log(self,
-                                     user,
-                                     comment,
-                                     enterprise_id,
-                                     is_openapi=False,
-                                     old_information="",
-                                     new_information=""):
+                                     user: Any,
+                                     comment: str,
+                                     enterprise_id: str,
+                                     is_openapi: bool = False,
+                                     old_information: str = "",
+                                     new_information: str = "") -> None:
         information_type = self.type_log(old_information=old_information, new_information=new_information)
         self.create_log(
             user,
@@ -277,7 +292,13 @@ class OperationLogService(object):
             old_information=old_information,
             information_type=information_type.value)
 
-    def create_cluster_log(self, user, comment, enterprise_id, is_openapi=False, new_information="", old_information=""):
+    def create_cluster_log(self,
+                           user: Any,
+                           comment: str,
+                           enterprise_id: str,
+                           is_openapi: bool = False,
+                           new_information: str = "",
+                           old_information: str = "") -> None:
         information_type = self.type_log(old_information=old_information, new_information=new_information)
         self.create_log(
             user,
@@ -288,8 +309,14 @@ class OperationLogService(object):
             new_information=new_information,
             information_type=information_type.value)
 
-    def create_team_log(self, user, comment, enterprise_id, team_name, is_openapi=False, old_information="",
-                        new_information=""):
+    def create_team_log(self,
+                        user: Any,
+                        comment: str,
+                        enterprise_id: str,
+                        team_name: str,
+                        is_openapi: bool = False,
+                        old_information: str = "",
+                        new_information: str = "") -> None:
         information_type = self.type_log(old_information=old_information, new_information=new_information)
         self.create_log(
             user,
@@ -302,7 +329,13 @@ class OperationLogService(object):
             old_information=old_information,
             information_type=information_type.value)
 
-    def create_app_log(self, ctx, comment, is_openapi=False, format_app=True, old_information="", new_information=""):
+    def create_app_log(self,
+                       ctx: Any,
+                       comment: str,
+                       is_openapi: bool = False,
+                       format_app: bool = True,
+                       old_information: str = "",
+                       new_information: str = "") -> None:
         information_type = self.type_log(old_information=old_information, new_information=new_information)
         try:
             ctx.app
@@ -328,18 +361,18 @@ class OperationLogService(object):
 
     @deprecated
     def create_component_log(self,
-                             user,
-                             comment,
-                             enterprise_id,
-                             team_name,
-                             app_id,
-                             service_alias,
-                             is_openapi=False,
-                             service_cname='',
-                             new_information='',
-                             old_information=''):
-        app = group_repo.get_app_by_pk(app_id)
-        app_name = self.process_app_name(app.app_name, app.region_name, team_name, app_id)
+                             user: Any,
+                             comment: str,
+                             enterprise_id: str,
+                             team_name: str,
+                             app_id: int,
+                             service_alias: str,
+                             is_openapi: bool = False,
+                             service_cname: str = '',
+                             new_information: str = '',
+                             old_information: str = '') -> None:
+        app = group_repo.get_app_by_pk(app_id)  # type: ignore[arg-type]  # NOTE: app_id is int but repo signature expects str; existing callers pass int
+        app_name = self.process_app_name(app.app_name, app.region_name, team_name, app_id)  # type: ignore[union-attr]  # NOTE: app could be None if app_id not found; existing callers assume it exists
         information_type = self.type_log(old_information=old_information, new_information=new_information)
         self.create_log(
             user,
@@ -351,33 +384,41 @@ class OperationLogService(object):
             service_alias=service_alias,
             is_openapi=is_openapi,
             service_cname=service_cname,
-            app_name=app.app_name,
+            app_name=app.app_name,  # type: ignore[union-attr]  # NOTE: same potential None as above
             new_information=new_information,
             old_information=old_information,
             information_type=information_type.value)
 
-    def create_component_log_v2(self, ctx, comment, is_openapi=False, new_information="", old_information=""):
+    def create_component_log_v2(self,
+                                ctx: AppBaseView,
+                                comment: str,
+                                is_openapi: bool = False,
+                                new_information: str = "",
+                                old_information: str = "") -> None:
         if not isinstance(ctx, AppBaseView):
             logger.warning("ctx is not instance of AppBaseView: {}".format(ctx))
             return
         information_type = self.type_log(new_information=new_information, old_information=old_information)
         comment = comment.format(
-            component=self.process_component_name(ctx.component.service_cname, ctx.region_name, ctx.team_name,
-                                                  ctx.component.service_alias))
+            component=self.process_component_name(
+                ctx.component.service_cname,  # type: ignore[union-attr]  # NOTE: component is None until initial() runs; runtime guarantees non-None here
+                ctx.region_name,  # type: ignore[arg-type]  # NOTE: region_name may be None before initial(); runtime guarantees str here
+                ctx.team_name,  # type: ignore[arg-type]  # NOTE: team_name may be None before initial(); runtime guarantees str here
+                ctx.component.service_alias))  # type: ignore[union-attr]  # NOTE: same as above for component
         self.create_log(
             ctx.user,
             operation_type=OperationType.COMPONENT_MANAGE,
             comment=comment,
-            enterprise_id=ctx.user.enterprise_id,
-            team_name=ctx.team_name,
-            app_id=ctx.app.app_id,
-            service_alias=ctx.component.service_alias,
+            enterprise_id=ctx.user.enterprise_id,  # type: ignore[union-attr]  # NOTE: user may be None before auth; runtime guarantees non-None here
+            team_name=ctx.team_name,  # type: ignore[arg-type]  # NOTE: team_name may be None before initial(); runtime guarantees str here
+            app_id=ctx.app.app_id,  # type: ignore[union-attr]  # NOTE: app is None until initial() runs; runtime guarantees non-None here
+            service_alias=ctx.component.service_alias,  # type: ignore[union-attr]  # NOTE: same as above for component
             is_openapi=is_openapi,
             new_information=new_information,
             old_information=old_information,
             information_type=information_type.value)
 
-    def type_log(self, new_information, old_information):
+    def type_log(self, new_information: str, old_information: str) -> InformationType:
         information_type = InformationType.NO_DETAILS
         if new_information and old_information:
             information_type = InformationType.INFORMATION_EDIT
@@ -391,21 +432,26 @@ class OperationLogService(object):
             information_type = InformationType.INFORMATION_DELETE
         return information_type
 
-    def process_team_name(self, name, region, team_name):
+    def process_team_name(self, name: Any, region: str, team_name: str) -> str:
         return self.process_name(region=region, name=name, view_type=OperationViewType.TEAM, team_name=team_name)
 
-    def process_app_name(self, name, region, team_name, app_id):
+    def process_app_name(self, name: Any, region: str, team_name: str, app_id: int) -> str:
         return self.process_name(region=region, name=name, view_type=OperationViewType.APP, team_name=team_name, app_id=app_id)
 
-    def process_component_name(self, name, region, team_name, service_alias):
+    def process_component_name(self, name: Any, region: str, team_name: str, service_alias: str) -> str:
         return self.process_name(
             region=region, name=name, view_type=OperationViewType.COMPONENT, team_name=team_name, service_alias=service_alias)
 
-    def process_plugin_name(self, name, region, team_name, plugin_id):
+    def process_plugin_name(self, name: Any, region: str, team_name: str, plugin_id: str) -> str:
         return self.process_name(
             region=region, name=name, view_type=OperationViewType.PLUGIN, team_name=team_name, plugin_id=plugin_id)
 
-    def generate_team_comment(self, operation, module_name, suffix='', region='', team_name=''):
+    def generate_team_comment(self,
+                              operation: Any,
+                              module_name: str,
+                              suffix: str = '',
+                              region: str = '',
+                              team_name: str = '') -> str:
         if region == '' and team_name != '':
             tenant_regions = region_repo.get_region_by_tenant_name(team_name)
             region = tenant_regions[0].region_name if tenant_regions else ''
@@ -413,12 +459,18 @@ class OperationLogService(object):
             module_name = self.process_team_name(module_name, region, team_name)
         return self.generate_generic_comment(operation, OperationModule.TEAM, module_name, suffix)
 
-    def generate_component_comment(self, operation, module_name, suffix='', region='', team_name='', service_alias=''):
+    def generate_component_comment(self,
+                                   operation: Any,
+                                   module_name: str,
+                                   suffix: str = '',
+                                   region: str = '',
+                                   team_name: str = '',
+                                   service_alias: str = '') -> str:
         if region != '' and team_name != '' and service_alias != '':
             module_name = self.process_component_name(module_name, region, team_name, service_alias)
         return self.generate_generic_comment(operation, OperationModule.COMPONENT, module_name, suffix)
 
-    def port_action_to_zh(self, action):
+    def port_action_to_zh(self, action: str) -> Optional[str]:
         if action == "open_outer" or action == "close_outer":
             return "对外服务"
         if action == "open_inner" or action == "close_inner":
@@ -427,8 +479,9 @@ class OperationLogService(object):
             return "协议"
         if action == "change_port_alias":
             return "端口别名"
+        return None
 
-    def handle_logs(self, enterprise_id, logs):
+    def handle_logs(self, enterprise_id: str, logs: Any) -> List[Dict[str, Any]]:
         allusers = user_repo.get_all_users()
         users = {user.username: user for user in allusers}
         allteams = team_repo.get_team_by_enterprise_id(enterprise_id).all()
