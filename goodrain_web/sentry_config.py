@@ -3,6 +3,10 @@ import json
 import logging
 import os
 import re
+try:
+    from urllib.parse import urlparse
+except ImportError:  # pragma: no cover - Python 2 compatibility guard
+    from urlparse import urlparse
 
 
 SENSITIVE_KEY_RE = re.compile(r"(token|password|secret|authorization|cookie|key|dsn)", re.I)
@@ -18,6 +22,40 @@ DEFAULT_POSTHOG_API_HOST = "/console/posthog"
 DEFAULT_POSTHOG_UI_HOST = "https://posthog.goodrain.com"
 DEFAULT_POSTHOG_CONFIG_DATE = "2026-05-30"
 DEFAULT_POSTHOG_PERSON_PROFILES = "identified_only"
+DYNAMIC_SEGMENT_MARKERS = set([
+    "teams",
+    "tenants",
+    "apps",
+    "services",
+    "components",
+    "groups",
+    "regions",
+    "clusters",
+    "nodes",
+    "namespaces",
+    "plugins",
+    "users",
+    "roles",
+    "certificates",
+    "ports",
+    "envs",
+    "volumes",
+    "domains",
+    "domain",
+    "dependency",
+    "dependencies",
+    "mnt",
+    "enterprise",
+    "enterprises",
+    "registries",
+    "registry",
+    "auth",
+    "access-token",
+    "events",
+    "logs",
+    "backups",
+    "versions",
+])
 
 # Official release images inject the public Sentry ingest DSN at build time.
 # Source builds stay disabled until a DSN is provided.
@@ -202,13 +240,70 @@ def sanitize_value(value, depth=0):
     return value
 
 
+def sanitize_url(value):
+    if not value or not isinstance(value, str):
+        return value
+    index = len(value)
+    for marker in ("?", "#"):
+        marker_index = value.find(marker)
+        if marker_index >= 0:
+            index = min(index, marker_index)
+    if index == len(value):
+        return value
+    return value[:index] + "?[Filtered]"
+
+
+def normalize_path(value):
+    if not value or not isinstance(value, str):
+        return value
+    try:
+        parsed = urlparse(value)
+        if parsed.scheme and parsed.netloc:
+            suffix = "?[Filtered]" if parsed.query or parsed.fragment else ""
+            return parsed.path + suffix
+    except Exception:
+        return sanitize_url(value)
+    return sanitize_url(value)
+
+
+def is_dynamic_segment(segment):
+    return bool(
+        re.match(r"^[0-9]+$", segment)
+        or re.match(r"^[0-9a-f]{8,}(-[0-9a-f]{4,})*$", segment, re.I)
+    )
+
+
+def get_path_pattern(value):
+    sanitized = normalize_path(value)
+    if not sanitized or not isinstance(sanitized, str):
+        return sanitized
+    suffix = "?[Filtered]" if sanitized.endswith("?[Filtered]") else ""
+    path_only = sanitized[:-len(suffix)] if suffix else sanitized
+    segments = path_only.split("/")
+    result = []
+    for index, segment in enumerate(segments):
+        previous = segments[index - 1] if index > 0 else ""
+        if not segment:
+            result.append(segment)
+        elif previous and previous.lower() in DYNAMIC_SEGMENT_MARKERS:
+            result.append(":id")
+        elif is_dynamic_segment(segment):
+            result.append(":id")
+        else:
+            result.append(segment)
+    return "/".join(result) + suffix
+
+
 def before_send(event, hint):
     event.pop("user", None)
     request = event.get("request")
     if request:
+        route = get_path_pattern(request.get("url") or request.get("path"))
         event["request"] = {
             "method": request.get("method"),
         }
+        if route:
+            event["request"]["url"] = route
     return sanitize_value(event)
 
 
@@ -226,7 +321,10 @@ def init_sentry():
 
     sentry_sdk.init(
         dsn=config["dsn"],
-        integrations=[DjangoIntegration(), LoggingIntegration(event_level=logging.ERROR)],
+        integrations=[
+            DjangoIntegration(),
+            LoggingIntegration(event_level=logging.ERROR),
+        ],
         environment=config["environment"],
         release=config["release"] or None,
         traces_sample_rate=config["traces_sample_rate"],
