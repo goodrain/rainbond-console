@@ -690,8 +690,8 @@ class AppPluginService(object):
                 dep_service_key = component_id_key_map.get(config["dest_service_id"])
                 dest_service = app_service.get_service_by_service_key(service, dep_service_key)  # type: ignore[arg-type]  # NOTE: dep_service_key may be None if key missing from map
                 if dest_service:
-                    dest_service_id = dest_service.get("service_id", "")  # type: ignore[attr-defined]  # NOTE: legacy code treats TenantServiceInfo as dict here
-                    dest_service_alias = dest_service.get("service_alias", "")  # type: ignore[attr-defined]
+                    dest_service_id = dest_service.service_id
+                    dest_service_alias = dest_service.service_alias
 
             config_list.append(
                 ServicePluginConfigVar(

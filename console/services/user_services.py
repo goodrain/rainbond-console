@@ -80,9 +80,7 @@ class UserService(object):
         user.delete()
 
     def get_users_by_user_ids(self, user_ids: List[str]) -> QuerySet[Users]:
-        # NOTE: user_repo has no get_users_by_user_ids (only get_by_user_ids) -> AttributeError
-        # at runtime; live path via role_prems view. HIGH-priority bug, behavior left unchanged.
-        return user_repo.get_users_by_user_ids(user_ids)  # type: ignore[attr-defined]
+        return user_repo.get_by_user_ids(user_ids)
 
     def get_user_tenants(self, user_id: str) -> QuerySet:
         tenant_id_list = PermRelTenant.objects.filter(user_id=user_id).values_list("tenant_id", flat=True)

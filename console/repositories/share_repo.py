@@ -87,13 +87,6 @@ class ShareRepo(object):
         result = conn.query(sql)
         return result
 
-    def create_service(self, **kwargs: Any) -> Any:
-        # NOTE: ServiceInfo is undefined in this module (pre-existing latent
-        # NameError if this method is ever called); flagged, not fixed here.
-        service = ServiceInfo(**kwargs)  # type: ignore[name-defined]
-        service.save()
-        return service
-
     def create_tenant_service(self, **kwargs: Any) -> TenantServiceInfo:
         tenant_service = TenantServiceInfo(**kwargs)
         tenant_service.save()

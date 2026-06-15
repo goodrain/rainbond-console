@@ -53,7 +53,7 @@ class PlatformDataBackupServices(object):
             f.write(settings.VERSION)
 
     def version_than(self, backup_path: str) -> None:
-        with open(os.path.join(backup_path, 'version'), 'w') as f:
+        with open(os.path.join(backup_path, 'version'), 'r') as f:
             if f.read() != settings.VERSION:
                 raise ServiceHandleException(
                     msg="The data version is inconsistent with the code version.", msg_show="数据版本不同，不能导入")
