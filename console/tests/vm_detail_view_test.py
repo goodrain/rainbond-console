@@ -49,7 +49,7 @@ from rest_framework.test import APIRequestFactory  # noqa: E402
 django.setup()
 
 from console.views import app_overview  # noqa: E402
-from console.views.app_overview import AppDetailView  # noqa: E402
+from console.views.app_overview import AppDetailView, AppVMFixedIPView  # noqa: E402
 
 
 class AppVMDetailViewTests(TestCase):
@@ -113,6 +113,56 @@ class AppVMDetailViewTests(TestCase):
             },
             runtime_status=mock.ANY,
         )
+
+    def test_put_vm_fixed_ip_returns_region_result(self):
+        fixed_ip_view = AppVMFixedIPView()
+        fixed_ip_view.tenant = self.view.tenant
+        fixed_ip_view.service = self.view.service
+        request = fixed_ip_view.initialize_request(
+            self.factory.put(
+                "/console/teams/demo-team/apps/demo-vm/vm-network/fixed-ip",
+                {"enabled": True},
+                format="json",
+            )
+        )
+        fixed_ip_view.request = request
+
+        with mock.patch("console.views.app_overview.vms.set_vm_fixed_pod_ip", return_value={
+            "fixed_ip_enabled": True,
+            "fixed_ip": "10.0.0.9",
+            "restarted": True,
+        }) as set_fixed_ip:
+            response = fixed_ip_view.put(request)
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("10.0.0.9", response.data["data"]["bean"]["fixed_ip"])
+        self.assertTrue(response.data["data"]["bean"]["fixed_ip_enabled"])
+        self.assertTrue(response.data["data"]["bean"]["restarted"])
+        set_fixed_ip.assert_called_once_with(self.view.tenant, self.view.service, True)
+
+    def test_put_vm_fixed_ip_parses_string_false(self):
+        fixed_ip_view = AppVMFixedIPView()
+        fixed_ip_view.tenant = self.view.tenant
+        fixed_ip_view.service = self.view.service
+        request = fixed_ip_view.initialize_request(
+            self.factory.put(
+                "/console/teams/demo-team/apps/demo-vm/vm-network/fixed-ip",
+                {"enabled": "false"},
+                format="json",
+            )
+        )
+        fixed_ip_view.request = request
+
+        with mock.patch("console.views.app_overview.vms.set_vm_fixed_pod_ip", return_value={
+            "fixed_ip_enabled": False,
+            "fixed_ip": "",
+            "restarted": True,
+        }) as set_fixed_ip:
+            response = fixed_ip_view.put(request)
+
+        self.assertEqual(200, response.status_code)
+        self.assertFalse(response.data["data"]["bean"]["fixed_ip_enabled"])
+        set_fixed_ip.assert_called_once_with(self.view.tenant, self.view.service, False)
 
     def test_get_hides_vm_url_until_current_vm_pod_ip_is_ready(self):
         request = self.view.initialize_request(

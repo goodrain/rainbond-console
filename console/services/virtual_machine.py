@@ -98,6 +98,15 @@ class VirtualMachineService(object):
         )
         return body.get("bean", {}) if isinstance(body, dict) else {}
 
+    def set_vm_fixed_pod_ip(self, tenant, service, enabled):
+        _, body = region_api.set_vm_fixed_pod_ip(
+            service.service_region,
+            tenant.tenant_name,
+            service.service_alias,
+            {"enabled": bool(enabled)}
+        )
+        return body.get("bean", {}) if isinstance(body, dict) else {}
+
     def list_vm_image(self, tenant_id, region_name=None, tenant_name=None):
         vm_images = list(vm_repo.get_vm_images_by_tenant_id(tenant_id))
         source_ids = [vm_image.source_asset_id for vm_image in vm_images if vm_image.source_asset_id]
@@ -204,7 +213,25 @@ class VirtualMachineService(object):
             "runtime": runtime,
             "runtime_status": runtime_status or {},
             "current_pod_ip": current_pod_ip or "",
+            "network": self.get_vm_network_profile(service.service_id, current_pod_ip=current_pod_ip),
             "connections": vm_connections
+        }
+
+    def get_vm_network_profile(self, service_id, current_pod_ip=""):
+        attrs = {
+            attr.name: attr.attribute_value
+            for attr in k8s_attribute_repo.get_by_component_id(service_id)
+            if attr.name in ("vm_fixed_ip_enabled", "vm_fixed_ip")
+        }
+        fixed_ip_enabled = self._as_bool(attrs.get("vm_fixed_ip_enabled"))
+        fixed_ip = str(attrs.get("vm_fixed_ip") or "").strip()
+        return {
+            "mode": "pod",
+            "fixed_ip_enabled": fixed_ip_enabled,
+            "fixed_ip": fixed_ip if fixed_ip_enabled else "",
+            "current_pod_ip": current_pod_ip or "",
+            "hot_update_supported": not fixed_ip_enabled,
+            "live_migration_supported": not fixed_ip_enabled,
         }
 
     def list_vm_disks(self, service, volumes=None):

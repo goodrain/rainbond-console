@@ -57,6 +57,14 @@ def build_vm_vnc_url(tenant, service, app_k8s_name, vm_url):
     return base_vm_url + path
 
 
+def parse_request_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes", "on")
+    return bool(value)
+
+
 class AppDetailView(AppBaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
@@ -211,6 +219,23 @@ class AppVMProfileView(AppBaseView):
                 "console_url": ""
             })
         result = general_message(200, "success", "查询成功", bean=profile)
+        return Response(result, status=result["code"])
+
+
+class AppVMFixedIPView(AppBaseView):
+    @never_cache
+    def put(self, request, *args, **kwargs):
+        enabled = parse_request_bool(request.data.get("enabled", False))
+        try:
+            bean = vms.set_vm_fixed_pod_ip(self.tenant, self.service, enabled)
+        except ServiceHandleException as err:
+            result = general_message(err.error_code, err.msg, err.msg_show, bean=err.bean)
+            return Response(result, status=err.status_code)
+        except Exception as err:
+            logger.exception(err)
+            result = general_message(500, "set vm fixed ip failed", "设置固定 IP 失败")
+            return Response(result, status=result["code"])
+        result = general_message(200, "success", "设置成功", bean=bean)
         return Response(result, status=result["code"])
 
 
