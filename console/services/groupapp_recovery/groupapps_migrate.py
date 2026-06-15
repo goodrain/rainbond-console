@@ -244,6 +244,9 @@ class GroupappsMigrateService(object):
         old_new_service_id_map = dict()
         service_relations_list: List[Dict[str, Any]] = []
         service_mnt_list: List[Dict[str, Any]] = []
+        # Best-effort: aggregate per-component gateway-bind failures so the
+        # migration result is not silently reported as fully successful.
+        failed_gateway_ports: List[Dict[str, Any]] = []
         # restore component
         for app in apps:
             service_base_info = app["service_base"]
@@ -256,8 +259,11 @@ class GroupappsMigrateService(object):
                                  migrate_region, migrate_tenant, app["service_base"].get("arch"))
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             group_service.add_service_to_group(migrate_tenant, migrate_region, group.ID, ts.service_id)  # type: ignore[union-attr]  # NOTE: group may be None if group not found
-            self.__save_port(migrate_region, migrate_tenant, ts, app["service_ports"], group.governance_mode,  # type: ignore[union-attr, arg-type]  # NOTE: group may be None; governance_mode is Optional
-                             app["service_env_vars"], sync_flag)
+            governance_mode = group.governance_mode  # type: ignore[union-attr]  # NOTE: group may be None
+            port_failures = self.__save_port(migrate_region, migrate_tenant, ts, app["service_ports"],
+                                             governance_mode, app["service_env_vars"], sync_flag)  # type: ignore[arg-type]
+            if port_failures:
+                failed_gateway_ports.extend(port_failures)
             self.__save_env(migrate_tenant, ts, app["service_env_vars"])
             self.__save_volume(migrate_tenant, ts, app["service_volumes"],
                                app["service_config_file"] if 'service_config_file' in app else None)
@@ -334,6 +340,12 @@ class GroupappsMigrateService(object):
         # restore application config group
         self.__save_app_config_groups(
             metadata.get("app_config_group_info"), migrate_tenant, migrate_region, group_id, changed_service_map)
+        # Surface any gateway-bind failures encountered during port restore.
+        # Migration stays best-effort and is NOT marked failed for these.
+        if failed_gateway_ports:
+            summary = ", ".join("{service_alias}:{port}({protocol})".format(**f) for f in failed_gateway_ports)
+            logger.warning("migrate: %d port(s) failed to bind gateway entry during restore "
+                           "(group_id=%s): %s", len(failed_gateway_ports), group_id, summary)
 
     def __init_app(self, service_base_info: Dict[str, Any], new_service_id: str, new_servie_alias: str,
                    new_k8s_component_name: str, user: Any, region: str, tenant: Any,
@@ -427,7 +439,11 @@ class GroupappsMigrateService(object):
                     tenant_service_ports: List[Dict[str, Any]],
                     governance_mode: str,
                     tenant_service_env_vars: List[Dict[str, Any]],
-                    sync_flag: bool = False) -> None:
+                    sync_flag: bool = False) -> List[Dict[str, Any]]:
+        # Best-effort gateway rebuild: collect ports whose data-center bind
+        # failed instead of aborting the whole component's port loop. The
+        # caller aggregates and surfaces these so the failure is not silent.
+        failed_ports: List[Dict[str, Any]] = []
         port_2_envs: Dict[Any, List[Dict[str, Any]]] = dict()
         for env in tenant_service_env_vars:
             container_port = env.get("container_port")
@@ -515,7 +531,17 @@ class GroupappsMigrateService(object):
                             except Exception as e:
                                 logger.exception(e)
                                 domain_repo.delete_http_domains(http_rule_id)
-                                return 412, "数据中心添加策略失败"  # type: ignore[return-value]  # NOTE: function is typed as -> None but returns a tuple on error path
+                                logger.warning("migrate: bind http gateway failed, service_id=%s service_alias=%s "
+                                               "container_port=%s domain=%s", service.service_id,
+                                               service.service_alias, container_port, domain_name)
+                                failed_ports.append({
+                                    "service_id": service.service_id,
+                                    "service_alias": service.service_alias,
+                                    "port": container_port,
+                                    "protocol": "http",
+                                    "reason": "数据中心添加策略失败",
+                                })
+                                continue
                     else:
                         service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
                             service.service_id, port.container_port)  # type: ignore[attr-defined]  # NOTE: same loop var narrowing issue
@@ -555,7 +581,18 @@ class GroupappsMigrateService(object):
                             except Exception as e:
                                 logger.exception(e)
                                 tcp_domain.delete_tcp_domain(tcp_rule_id)
-                                return 412, "数据中心添加策略失败"  # type: ignore[return-value]  # NOTE: function is typed as -> None but returns a tuple on error path
+                                logger.warning("migrate: bind tcp gateway failed, service_id=%s service_alias=%s "
+                                               "container_port=%s end_point=%s", service.service_id,
+                                               service.service_alias, container_port, end_point)
+                                failed_ports.append({
+                                    "service_id": service.service_id,
+                                    "service_alias": service.service_alias,
+                                    "port": container_port,
+                                    "protocol": protocol,
+                                    "reason": "数据中心添加策略失败",
+                                })
+                                continue
+        return failed_ports
 
     def __save_compile_env(self, service: TenantServiceInfo, compile_env: Optional[Dict[str, Any]]) -> None:
         if compile_env:

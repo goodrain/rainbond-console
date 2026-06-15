@@ -887,6 +887,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-migrate.port-bind-failure-visible",
+      "title": "Report per-port bind failures without skipping remaining ports",
+      "title_zh": "端口绑定失败时记录并返回，且不跳过后续端口",
+      "interface_type": "service_method",
+      "interface": "console.services.groupapp_recovery.groupapps_migrate.GroupappsMigrateService.__save_port",
+      "code_paths": [
+        "console/services/groupapp_recovery/groupapps_migrate.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/groupapps_migrate_save_port_test.py",
+          "selector": "SavePortHttpFailureVisibleTest.test_first_port_failure_does_not_skip_second_and_is_reported"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-migration.cleanup-group-missing",
       "title": "Reject cleanup when original backup group is missing",
       "title_zh": "清理旧应用时拦截已删除的原组",
@@ -2773,6 +2791,28 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_upgrade_app_calls_upgrade_service_and_returns_latest_items"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.auth.get-user-no-legacy-middleware",
+      "title": "Resolve session user without legacy MIDDLEWARE_CLASSES access",
+      "title_zh": "解析会话用户时不访问已废弃的 MIDDLEWARE_CLASSES",
+      "interface_type": "service_method",
+      "interface": "console.services.auth.get_user",
+      "code_paths": [
+        "console/services/auth/__init__.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/auth_get_user_test.py",
+          "selector": "GetUserNoLegacyMiddlewareTests.test_returns_user_without_touching_middleware_classes"
+        },
+        {
+          "path": "console/tests/auth_get_user_test.py",
+          "selector": "GetUserNoLegacyMiddlewareTests.test_returns_anonymous_user_when_no_session"
         }
       ],
       "test_type": "regression",
@@ -6751,6 +6791,28 @@
         {
           "path": "console/tests/utils/randomutil_test.py",
           "selector": "RandomUtilTests.test_make_default_version"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.region.update-region-config",
+      "title": "Persist region config via update or add based on existing key",
+      "title_zh": "依据配置项是否存在选择更新或新增数据中心配置",
+      "interface_type": "service_method",
+      "interface": "console.services.region_services.RegionService.update_region_config",
+      "code_paths": [
+        "console/services/region_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/region_config_update_test.py",
+          "selector": "UpdateRegionConfigTest.test_update_when_config_exists_passes_dict_value"
+        },
+        {
+          "path": "console/tests/region_config_update_test.py",
+          "selector": "UpdateRegionConfigTest.test_add_when_config_missing_passes_json_string_and_desc"
         }
       ],
       "test_type": "regression",

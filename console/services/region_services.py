@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from console.enum.region_enum import RegionStatusEnum
 from console.exception.exceptions import RegionUnreachableError
 from console.exception.main import ServiceHandleException
-from console.models.main import ConsoleSysConfig, RegionConfig
+from console.models.main import RegionConfig
 from console.repositories.app import service_repo
 from console.repositories.group import group_repo
 from console.repositories.init_cluster import rke_cluster
@@ -541,16 +541,12 @@ class RegionService(object):
 
     def update_region_config(self) -> None:
         region_data = self.generate_region_config()
-        # TODO 修改 REGION_SERVICE_API 配置方式
-        try:
-            platform_config_service.get_config_by_key("REGION_SERVICE_API")
-            # NOTE: region_data is a JSON string but update_config expects a dict (it does data["enable"]);
-            # this raises TypeError at runtime when REGION_SERVICE_API exists -- pre-existing latent bug.
-            platform_config_service.update_config("REGION_SERVICE_API", region_data)  # type: ignore[arg-type]
-        except ConsoleSysConfig.DoesNotExist:
-            # NOTE: "数据中心配置" is passed positionally as enable (bool); it was likely meant as desc=
-            # -- pre-existing positional-arg bug, left as-is.
-            platform_config_service.add_config("REGION_SERVICE_API", region_data, 'json', "数据中心配置")  # type: ignore[arg-type]
+        if platform_config_service.get_config_by_key("REGION_SERVICE_API"):
+            platform_config_service.update_config(
+                "REGION_SERVICE_API", {"enable": True, "value": region_data})
+        else:
+            platform_config_service.add_config(
+                "REGION_SERVICE_API", region_data, 'json', desc="数据中心配置")
 
     def generate_region_config(self) -> str:
         # 查询已上线的数据中心配置

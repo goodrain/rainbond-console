@@ -7,7 +7,6 @@ from typing import Any, Optional
 from django.conf import settings
 from django.middleware.csrf import rotate_token
 from django.contrib.auth import load_backend
-from django.utils.crypto import constant_time_compare
 
 
 # Django removed django.utils.translation.LANGUAGE_SESSION_KEY in 4.0
@@ -128,13 +127,5 @@ def get_user(request: Any) -> Any:
         if backend_path in settings.AUTHENTICATION_BACKENDS:
             backend = load_backend(backend_path)
             user = backend.get_user(user_id)
-            # Verify the session
-            if ('django.contrib.auth.middleware.SessionAuthenticationMiddleware' in settings.MIDDLEWARE_CLASSES  # type: ignore[misc]  # NOTE: MIDDLEWARE_CLASSES is a Django 1.x setting; not present in django-stubs for 4.x
-                    and hasattr(user, 'get_session_auth_hash')):
-                session_hash = request.session.get(HASH_SESSION_KEY)
-                session_hash_verified = session_hash and constant_time_compare(session_hash, user.get_session_auth_hash())  # type: ignore[union-attr]  # NOTE: user may be None; guarded by hasattr above but mypy doesn't narrow
-                if not session_hash_verified:
-                    request.session.flush()
-                    user = None
 
     return user or AnonymousUser()
