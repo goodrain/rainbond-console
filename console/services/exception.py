@@ -1,9 +1,11 @@
 # -*- coding: utf8 -*-
+from typing import Optional
+
 from console.exception.main import ServiceHandleException
 
 
 class ErrDepServiceNotFound(Exception):
-    def __init__(self, sid=None):
+    def __init__(self, sid: Optional[str] = None) -> None:
         msg = "dep service not found"
         if sid:
             msg = "dep service not found(service_id={})".format(sid)
@@ -11,17 +13,17 @@ class ErrDepServiceNotFound(Exception):
 
 
 class ErrAdminUserDoesNotExist(Exception):
-    def __init__(self, msg=""):
+    def __init__(self, msg: str = "") -> None:
         super(ErrAdminUserDoesNotExist, self).__init__(msg)
 
 
 class ErrCannotDelLastAdminUser(Exception):
-    def __init__(self, msg=""):
+    def __init__(self, msg: str = "") -> None:
         super(ErrCannotDelLastAdminUser, self).__init__(msg)
 
 
 class ErrTenantRegionNotFound(Exception):
-    def __init__(self):
+    def __init__(self) -> None:
         msg = "tenant region not found"
         super(ErrTenantRegionNotFound, self).__init__(msg)
 

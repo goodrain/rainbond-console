@@ -1,30 +1,32 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any, Dict, List, Optional
 
 from django.db import transaction
+from django.db.models import QuerySet
 
 from console.exception.main import ServiceHandleException
-from console.models.main import RolePerms
+from console.models.main import RoleInfo, RolePerms
 from console.repositories.perm_repo import perms_repo
 from console.repositories.perm_repo import role_kind_repo
 from console.repositories.perm_repo import role_perm_relation_repo
 from console.repositories.perm_repo import user_kind_role_repo
 from console.utils.perms import get_perms_structure, get_perms_model, get_team_perms_model, \
     get_perms_name_code_kv, DEFAULT_TEAM_ROLE_PERMS, get_app_perms_model
-from www.models.main import ServiceGroup
+from www.models.main import PermRelTenant, ServiceGroup
 
 logger = logging.getLogger("default")
 
 
 class PermService(object):
-    def get_all_perms(self, tenant_id):
+    def get_all_perms(self, tenant_id: str) -> Any:
         perms_structure = get_perms_structure(tenant_id)
         return perms_structure
 
-    def add_user_tenant_perm(self, perm_info):
+    def add_user_tenant_perm(self, perm_info: dict) -> PermRelTenant:
         return perms_repo.add_user_tenant_perm(perm_info=perm_info)
 
-    def get_user_tenant_perm(self, tenant_pk, user_id):
+    def get_user_tenant_perm(self, tenant_pk: str, user_id: str) -> Optional[PermRelTenant]:
         return perms_repo.get_user_tenant_perm(tenant_pk, user_id)
 
 
@@ -33,26 +35,26 @@ class RoleService(object):
 
 
 class RoleKindService(object):
-    def get_roles(self, kind, kind_id, with_default=False):
+    def get_roles(self, kind: str, kind_id: str, with_default: bool = False) -> QuerySet[RoleInfo]:
         return role_kind_repo.get_roles(kind, kind_id, with_default)
 
-    def get_role_by_id(self, kind, kind_id, id, with_default=False):
+    def get_role_by_id(self, kind: str, kind_id: str, id: str, with_default: bool = False) -> Optional[RoleInfo]:
         role = role_kind_repo.get_role_by_id(kind, kind_id, id, with_default)
         if not role:
             raise ServiceHandleException(msg="role no found", msg_show="角色不存在", status_code=404)
         return role
 
-    def get_role_by_name(self, kind, kind_id, name, with_default=False):
+    def get_role_by_name(self, kind: str, kind_id: str, name: str, with_default: bool = False) -> Optional[RoleInfo]:
         return role_kind_repo.get_role_by_name(kind, kind_id, name, with_default)
 
-    def create_role(self, kind, kind_id, name):
+    def create_role(self, kind: str, kind_id: str, name: str) -> RoleInfo:
         if not name:
             raise ServiceHandleException(msg="role name exit", msg_show="角色名称不能为空")
         if self.get_role_by_name(kind, kind_id, name, with_default=True):
             raise ServiceHandleException(msg="role name exit", msg_show="角色名称已存在")
         return role_kind_repo.create_role(kind, kind_id, name)
 
-    def update_role(self, kind, kind_id, id, name):
+    def update_role(self, kind: str, kind_id: str, id: str, name: str) -> RoleInfo:
         if not name:
             raise ServiceHandleException(msg="role name exit", msg_show="角色名称不能为空")
         exit_role = self.get_role_by_name(kind, kind_id, name, with_default=True)
@@ -69,20 +71,20 @@ class RoleKindService(object):
         return role
 
     @transaction.atomic()
-    def delete_role(self, kind, kind_id, id):
+    def delete_role(self, kind: str, kind_id: str, id: str) -> None:
         role = self.get_role_by_id(kind, kind_id, id)
         if not role:
             raise ServiceHandleException(msg="role no found or is default", msg_show="角色不存在或为默认角色")
-        role_perm_relation_repo.delete_role_perm_relation(role.ID)
-        user_kind_role_repo.delete_users_role(kind, kind_id, role.ID)
+        role_perm_relation_repo.delete_role_perm_relation(role.ID)  # type: ignore[arg-type]  # NOTE: role.ID is int but repo expects str; long-standing runtime mismatch, not changing behaviour
+        user_kind_role_repo.delete_users_role(kind, kind_id, role.ID)  # type: ignore[arg-type]  # NOTE: same int/str mismatch as above
         role.delete()
 
-    def init_default_role_perms(self, role):
+    def init_default_role_perms(self, role: RoleInfo) -> None:
         if role.name in list(DEFAULT_TEAM_ROLE_PERMS.keys()):
-            role_perm_relation_repo.delete_role_perm_relation(role.ID)
-            role_perm_relation_repo.create_role_perm_relation(role.ID, DEFAULT_TEAM_ROLE_PERMS[role.name])
+            role_perm_relation_repo.delete_role_perm_relation(role.ID)  # type: ignore[arg-type]  # NOTE: role.ID is int but repo expects str
+            role_perm_relation_repo.create_role_perm_relation(role.ID, DEFAULT_TEAM_ROLE_PERMS[role.name])  # type: ignore[arg-type]  # NOTE: role.ID int/str + DEFAULT_TEAM_ROLE_PERMS values List[int] vs List[str]
 
-    def init_default_roles(self, kind, kind_id):
+    def init_default_roles(self, kind: str, kind_id: str) -> None:
         if kind == "team":
             DEFAULT_ROLES = list(DEFAULT_TEAM_ROLE_PERMS.keys())
         else:
@@ -97,8 +99,8 @@ class RoleKindService(object):
 
 
 class RolePermService(object):
-    def get_roles_perms(self, roles, kind=None):
-        roles_perms = {}
+    def get_roles_perms(self, roles: Any, kind: Optional[str] = None) -> Any:
+        roles_perms: Dict[str, List[Any]] = {}
         if not roles:
             return []
         role_ids = roles.values_list("ID", flat=True)
@@ -120,9 +122,10 @@ class RolePermService(object):
             data.append(role_perms_info)
         return data
 
-    def get_roles_union_perms(self, roles, kind=None, is_owner=False, tenant_id=""):
-        union_role_perms = []
-        app_perms = dict()
+    def get_roles_union_perms(self, roles: Any, kind: Optional[str] = None, is_owner: bool = False,
+                              tenant_id: str = "") -> Dict[str, Any]:
+        union_role_perms: List[Any] = []
+        app_perms: Dict[str, List[Any]] = dict()
         if roles:
             role_ids = roles.values_list("role_id", flat=True)
             roles_perm_relation_mode = role_perm_relation_repo.get_roles_perm_relation(role_ids)
@@ -140,23 +143,23 @@ class RolePermService(object):
         else:
             permissions = self.pack_role_perms_tree(get_perms_model(), union_role_perms, is_owner)
         app_ids = ServiceGroup.objects.filter(tenant_id=tenant_id).values_list("ID", flat=True)
-        app = {"sub_models": [], "perms": {}}
+        app: Dict[str, Any] = {"sub_models": [], "perms": {}}
         for app_id in app_ids:
             if str(app_id) not in app_perms:
                 app_permissions = permissions.get("team").get("sub_models")[2].get("team_app_manage")
             else:
                 models = self.pack_role_perms_tree(get_app_perms_model(), app_perms.get(str(app_id)))
                 app_permissions = models.get("app")
-            app["sub_models"].append({"app_" + str(app_id): app_permissions})
+            app["sub_models"].append({"app_" + str(app_id): app_permissions})  # type: ignore[union-attr]  # NOTE: sub_models is List at runtime despite Dict[str,Any] annotation; append is valid
         permissions.get("team").get("sub_models")[2]["team_app_manage"] = app
         return {"permissions": permissions}
 
-    def get_role_perms(self, role, kind=None, tenant_id=""):
+    def get_role_perms(self, role: Optional[RoleInfo], kind: Optional[str] = None, tenant_id: str = "") -> Any:
         if not role:
             return None
-        roles_perms = {str(role.ID): []}
-        app_perms = dict()
-        role_perm_relation_mode = role_perm_relation_repo.get_role_perm_relation(role.ID)
+        roles_perms: Dict[str, List[Any]] = {str(role.ID): []}
+        app_perms: Dict[str, List[Any]] = dict()
+        role_perm_relation_mode = role_perm_relation_repo.get_role_perm_relation(role.ID)  # type: ignore[arg-type]  # NOTE: role.ID is int but repo expects str
         if role_perm_relation_mode:
             roles_perm_relations = role_perm_relation_mode.values("role_id", "perm_code", "app_id")
             for roles_perm_relation in roles_perm_relations:
@@ -174,21 +177,21 @@ class RolePermService(object):
                 permissions = self.pack_role_perms_tree(get_team_perms_model(), rule_perms)
             else:
                 permissions = self.pack_role_perms_tree(get_perms_model(), rule_perms)
-            app = {"sub_models": [], "perms": {}}
+            app: Dict[str, Any] = {"sub_models": [], "perms": {}}
             for app_id in app_ids:
                 if str(app_id) not in app_perms:
                     app_permissions = permissions.get("team").get("sub_models")[2].get("team_app_manage")
                 else:
                     models = self.pack_role_perms_tree(get_app_perms_model(), app_perms.get(str(app_id)))
                     app_permissions = models.get("app")
-                app["sub_models"].append({"app_" + str(app_id): app_permissions})
+                app["sub_models"].append({"app_" + str(app_id): app_permissions})  # type: ignore[union-attr]  # NOTE: sub_models is List at runtime despite Dict[str,Any] annotation; append is valid
             permissions.get("team").get("sub_models")[2]["team_app_manage"] = app
             role_perms_info.update({"permissions": permissions})
             data.append(role_perms_info)
         return data[0]
 
     # 已有一维角色权限列表变更权限模型权限的默认值
-    def __build_perms_list(self, model_perms, role_codes, is_owner):
+    def __build_perms_list(self, model_perms: List[Any], role_codes: List[Any], is_owner: bool) -> List[Any]:
         perms_list = []
         for model_perm in model_perms:
             model_perm_key = list(model_perm.keys())
@@ -203,7 +206,7 @@ class RolePermService(object):
         return perms_list
 
     # 角色权限树打包
-    def pack_role_perms_tree(self, models, role_codes, is_owner=False):
+    def pack_role_perms_tree(self, models: Any, role_codes: Any, is_owner: bool = False) -> Any:
         items_list = list(models.items())
         sub_models = []
         for items in items_list:
@@ -215,8 +218,9 @@ class RolePermService(object):
             models[kind_name]["perms"] = self.__build_perms_list(body["perms"], role_codes, is_owner)
         return models
 
-    def __unpack_to_build_perms_list(self, perms_model, role_id, perms_name_code_kv, app_id=-1):
-        role_perms_list = []
+    def __unpack_to_build_perms_list(self, perms_model: Any, role_id: str, perms_name_code_kv: Dict[str, Any],
+                                     app_id: int = -1) -> List[RolePerms]:
+        role_perms_list: List[RolePerms] = []
         items_list = list(perms_model.items())
         for items in items_list:
             kind_name, body = items
@@ -237,41 +241,42 @@ class RolePermService(object):
         return role_perms_list
 
     # 角色的权限树降维
-    def unpack_role_perms_tree(self, perms_model, role_id, perms_name_code_kv):
+    def unpack_role_perms_tree(self, perms_model: Any, role_id: str, perms_name_code_kv: Dict[str, Any]) -> None:
         role_perms_list = self.__unpack_to_build_perms_list(perms_model, role_id, perms_name_code_kv)
         RolePerms.objects.bulk_create(role_perms_list)
 
     @transaction.atomic()
-    def update_role_perms(self, role_id, perms_model, kind=None):
+    def update_role_perms(self, role_id: str, perms_model: Any, kind: Optional[str] = None) -> None:
         self.delete_role_perms(role_id)
         self.unpack_role_perms_tree(perms_model, role_id, get_perms_name_code_kv())
 
-    def delete_role_perms(self, role_id):
+    def delete_role_perms(self, role_id: str) -> None:
         return role_perm_relation_repo.delete_role_perm_relation(role_id)
 
 
 class UserKindRoleService(object):
-    def get_users_roles(self, kind, kind_id, users, creater_id=0):
+    def get_users_roles(self, kind: str, kind_id: str, users: Any, creater_id: int = 0) -> List[dict]:
         return user_kind_role_repo.get_users_roles(kind, kind_id, users, creater_id=creater_id)
 
-    def get_user_roles(self, kind, kind_id, user):
+    def get_user_roles(self, kind: str, kind_id: str, user: Any) -> dict:
         return user_kind_role_repo.get_user_roles(kind, kind_id, user)
 
-    def update_user_roles(self, kind, kind_id, user, role_ids):
+    def update_user_roles(self, kind: str, kind_id: str, user: Any, role_ids: List[int]) -> None:
         self.delete_user_roles(kind, kind_id, user)
         user_kind_role_repo.update_user_roles(kind, kind_id, user, role_ids)
 
-    def delete_user_roles(self, kind, kind_id, user):
+    def delete_user_roles(self, kind: str, kind_id: str, user: Any) -> None:
         user_kind_role_repo.delete_user_roles(kind, kind_id, user)
 
 
 class UserKindPermService(object):
-    def get_user_perms(self, kind, kind_id, user, is_owner=False, is_ent_admin=False):
+    def get_user_perms(self, kind: str, kind_id: str, user: Any, is_owner: bool = False,
+                       is_ent_admin: bool = False) -> Dict[str, Any]:
         if is_owner or is_ent_admin:
             is_owner = True
         user_roles = user_kind_role_repo.get_user_roles_model(kind, kind_id, user)
         perms = role_perm_service.get_roles_union_perms(user_roles, kind, is_owner, tenant_id=kind_id)
-        data = {"user_id": user.user_id}
+        data: Dict[str, Any] = {"user_id": user.user_id}
         data.update(perms)
         return data
 

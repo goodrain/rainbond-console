@@ -3,6 +3,7 @@ import logging
 import os
 import platform
 import subprocess
+from typing import Optional
 
 from console.exception.main import AbortRequest
 from goodrain_web.settings import BASE_DIR
@@ -12,7 +13,7 @@ logger = logging.getLogger("default")
 
 class PromQLService(object):
     @staticmethod
-    def add_or_update_label(component_id, promql, component_arch=""):
+    def add_or_update_label(component_id: str, promql: str, component_arch: Optional[str] = "") -> str:
         """
         Add service_id label, or replace illegal service_id label
         """
@@ -26,7 +27,7 @@ class PromQLService(object):
                              env={'PROMQL': promql})
         new_promql, err = c.communicate()
         if not new_promql:
-            logger.warning("ensure service id for promql({}): {}".format(promql, err))
+            logger.warning("ensure service id for promql({}): {}".format(promql, err))  # type: ignore[str-bytes-safe]  # NOTE: err is bytes from stderr; pre-existing format, no runtime change
             raise AbortRequest("invalid promql", "非法的 prometheus 查询语句")
         return new_promql.decode('UTF-8')
 

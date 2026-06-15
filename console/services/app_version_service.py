@@ -4,12 +4,16 @@ import hashlib
 import json
 import logging
 import time
+from typing import Any, Dict, List, Optional, Tuple
+
+from django.db.models import QuerySet
 
 from console.enum.app import GovernanceModeEnum
 from console.models.main import (
     RainbondCenterAppVersion,
     AppUpgradeSnapshot,
     AppUpgradeRecord,
+    RegionConfig,
     UpgradeStatus,
     AppUpgradeRecordType,
 )
@@ -26,9 +30,17 @@ from console.services.backup_service import groupapp_backup_service
 from console.services.market_app.app_restore import AppRestore
 from console.services.share_services import share_service
 from console.services.upgrade_services import upgrade_service
+from console.services.market_app.component import Component
 from django.db import transaction
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.main import make_uuid, TenantServiceGroup, ServiceGroupRelation
+from www.models.main import (
+    make_uuid,
+    ServiceGroup,
+    TenantServiceGroup,
+    ServiceGroupRelation,
+    Tenants,
+    Users,
+)
 
 logger = logging.getLogger("default")
 region_api = RegionInvokeApi()
@@ -37,29 +49,29 @@ region_api = RegionInvokeApi()
 class AppVersionRollbackRestore(AppRestore):
     def __init__(
             self,
-            tenant,
-            region,
-            user,
-            app,
-            component_group,
-            app_upgrade_record,
-            current_version,
-            target_version,
-            changed_component_identities=None,
-            restored_component_identities=None):
+            tenant: Tenants,
+            region: RegionConfig,
+            user: Users,
+            app: ServiceGroup,
+            component_group: TenantServiceGroup,
+            app_upgrade_record: AppUpgradeRecord,
+            current_version: str,
+            target_version: str,
+            changed_component_identities: Optional[set] = None,
+            restored_component_identities: Optional[set] = None) -> None:
         self.current_snapshot_version = current_version
         self.target_snapshot_version = target_version
         self.changed_component_identities = changed_component_identities or set()
         self.restored_component_identities = restored_component_identities or set()
         super(AppVersionRollbackRestore, self).__init__(tenant, region, user, app, component_group, app_upgrade_record)
 
-    def _create_component(self, snap, now_volumes):
+    def _create_component(self, snap: dict, now_volumes: dict) -> Component:
         component = super(AppVersionRollbackRestore, self)._create_component(snap, now_volumes)
         if component.action_type in (None, "", "nothing"):
             component.action_type = ActionType.NOTHING.value
         return component
 
-    def create_rollback_record(self):
+    def create_rollback_record(self) -> None:
         rollback_record = self.upgrade_record.to_dict()
         rollback_record.pop("ID")
         rollback_record.pop("can_rollback", None)
@@ -69,13 +81,17 @@ class AppVersionRollbackRestore(AppRestore):
         rollback_record["parent_id"] = 0
         rollback_record["version"] = self.target_snapshot_version
         rollback_record["old_version"] = self.current_snapshot_version
-        self.rollback_record = AppUpgradeRecord.objects.create(**rollback_record)
+        # NOTE: parent AppRestore.__init__ sets self.rollback_record = None, so mypy
+        # infers the attr as None; this reassignment to AppUpgradeRecord is intended.
+        self.rollback_record = AppUpgradeRecord.objects.create(**rollback_record)  # type: ignore[assignment]
 
-    def _get_snapshot(self):
-        snap = app_snapshot_repo.get_by_snapshot_id(self.upgrade_record.snapshot_id)
+    def _get_snapshot(self) -> Any:
+        # NOTE: AppUpgradeRecord.snapshot_id is Optional; get_by_snapshot_id expects str.
+        # Rollback records always carry a snapshot_id here, so this is invariant-safe.
+        snap = app_snapshot_repo.get_by_snapshot_id(self.upgrade_record.snapshot_id)  # type: ignore[arg-type]
         return json.loads(snap.snapshot)
 
-    def _build_service_group_relation(self, component_id):
+    def _build_service_group_relation(self, component_id: str) -> ServiceGroupRelation:
         return ServiceGroupRelation(
             service_id=component_id,
             group_id=self.app.ID,
@@ -84,7 +100,7 @@ class AppVersionRollbackRestore(AppRestore):
         )
 
     @staticmethod
-    def _snapshot_component_identity(snap):
+    def _snapshot_component_identity(snap: dict) -> Any:
         service_base = snap.get("service_base") or {}
         return (
             service_base.get("service_alias") or
@@ -93,7 +109,7 @@ class AppVersionRollbackRestore(AppRestore):
             service_base.get("service_id")
         )
 
-    def _create_new_app(self):
+    def _create_new_app(self) -> NewApp:
         current_components = self.original_app.components()
         current_component_ids = {component.component.component_id for component in current_components}
         now_volumes = {}
@@ -176,37 +192,39 @@ class AppVersionService(object):
     }
 
     @staticmethod
-    def _build_hidden_template_name(app):
+    def _build_hidden_template_name(app: ServiceGroup) -> str:
         return app.group_name
 
     @classmethod
-    def is_snapshot_version(cls, version_obj):
+    def is_snapshot_version(cls, version_obj: Any) -> bool:
         return bool(version_obj and getattr(version_obj, "template_type", None) == cls.SNAPSHOT_TEMPLATE_TYPE)
 
     @staticmethod
-    def _build_hidden_template_id_by_app_id(app_id):
+    def _build_hidden_template_id_by_app_id(app_id: str) -> str:
         return hashlib.md5("app-version:{0}".format(app_id).encode("utf-8")).hexdigest()
 
     @classmethod
-    def _build_hidden_template_id(cls, app):
-        return cls._build_hidden_template_id_by_app_id(app.ID)
+    def _build_hidden_template_id(cls, app: ServiceGroup) -> str:
+        # NOTE: ServiceGroup.ID is an int AutoField; downstream id params are typed str.
+        # The value is formatted/used as an identifier, so int is accepted at runtime.
+        return cls._build_hidden_template_id_by_app_id(app.ID)  # type: ignore[arg-type]
 
     @staticmethod
-    def _normalize_template_image(item):
+    def _normalize_template_image(item: dict) -> dict:
         data = dict(item or {})
         if not data.get("share_image") and data.get("image"):
             data["share_image"] = data["image"]
         return data
 
     @classmethod
-    def _normalize_template_images(cls, app_template):
+    def _normalize_template_images(cls, app_template: dict) -> dict:
         template = copy.deepcopy(app_template or {})
         template["apps"] = [cls._normalize_template_image(component) for component in template.get("apps", [])]
         template["plugins"] = [cls._normalize_template_image(plugin) for plugin in template.get("plugins", [])]
         return template
 
     @classmethod
-    def _is_vm_template_component(cls, component):
+    def _is_vm_template_component(cls, component: Any) -> bool:
         if not isinstance(component, dict):
             return False
         return bool(
@@ -217,10 +235,10 @@ class AppVersionService(object):
         )
 
     @classmethod
-    def _template_has_vm_component(cls, app_template):
+    def _template_has_vm_component(cls, app_template: Optional[dict]) -> bool:
         return any(cls._is_vm_template_component(component) for component in (app_template or {}).get("apps", []))
 
-    def _rollback_support_info(self, app_template):
+    def _rollback_support_info(self, app_template: dict) -> dict:
         if self._template_has_vm_component(app_template):
             return {
                 "can_rollback": False,
@@ -232,7 +250,7 @@ class AppVersionService(object):
         }
 
     @staticmethod
-    def _split_version(version):
+    def _split_version(version: Optional[str]) -> List[int]:
         if not version:
             return [1, 0, 0]
         parts = str(version).split(".")
@@ -240,21 +258,22 @@ class AppVersionService(object):
             return [1, 0, 0]
         return [int(p) for p in parts]
 
-    def _next_version(self, latest_version):
+    def _next_version(self, latest_version: Optional[str]) -> str:
         major, minor, patch = self._split_version(latest_version)
         return "{0}.{1}.{2}".format(major, minor, patch + 1)
 
-    def get_relation(self, app_id):
+    def get_relation(self, app_id: str) -> Any:
         return app_version_template_relation_repo.get_by_group_id(app_id)
 
-    def get_hidden_template(self, app_id):
+    def get_hidden_template(self, app_id: str) -> Tuple[Any, Any]:
         relation = self.get_relation(app_id)
         if not relation:
             return None, None
         return relation, rainbond_app_repo.get_rainbond_app_by_app_id(relation.app_model_id)
 
-    def get_or_create_hidden_template(self, tenant, user, app):
-        relation, hidden_app = self.get_hidden_template(app.ID)
+    def get_or_create_hidden_template(self, tenant: Tenants, user: Users, app: ServiceGroup) -> Tuple[Any, Any]:
+        # NOTE: ServiceGroup.ID is int AutoField; get_hidden_template expects a str id.
+        relation, hidden_app = self.get_hidden_template(app.ID)  # type: ignore[arg-type]
         if relation and hidden_app:
             return relation, hidden_app
 
@@ -285,7 +304,7 @@ class AppVersionService(object):
             hidden_app.save()
 
         relation = app_version_template_relation_repo.get_or_create(
-            app.ID,
+            app.ID,  # type: ignore[arg-type]  # NOTE: int AutoField id vs str param
             defaults={
                 "tenant_id": tenant.tenant_id,
                 "app_model_id": hidden_app_id,
@@ -296,7 +315,7 @@ class AppVersionService(object):
         return relation, hidden_app
 
     @transaction.atomic
-    def delete_hidden_template(self, app_id):
+    def delete_hidden_template(self, app_id: str) -> None:
         relation, _ = self.get_hidden_template(app_id)
         hidden_app_id = relation.app_model_id if relation else self._build_hidden_template_id_by_app_id(app_id)
         rainbond_app_repo.delete_app_version_by_id(hidden_app_id)
@@ -304,7 +323,8 @@ class AppVersionService(object):
         if relation:
             app_version_template_relation_repo.delete_by_group_id(app_id)
 
-    def _build_app_template(self, tenant, region, user, app, hidden_app_id, version):
+    def _build_app_template(self, tenant: Tenants, region: RegionConfig, user: Users, app: ServiceGroup,
+                            hidden_app_id: str, version: str) -> dict:
         services = share_service.query_share_service_info(team=tenant, group_id=app.ID, scope="team")
         plugins = share_service.get_group_services_used_plugins(group_id=app.ID)
         plugins = share_service.get_plugins_group_items(plugins) if plugins else []
@@ -319,7 +339,9 @@ class AppVersionService(object):
             list(share_service.get_k8s_resources(app.ID)),
         )
 
-    def _build_app_template_from_share_info(self, tenant, region, user, app, hidden_app_id, version, share_info):
+    def _build_app_template_from_share_info(self, tenant: Tenants, region: RegionConfig, user: Users,
+                                            app: ServiceGroup, hidden_app_id: str, version: str,
+                                            share_info: dict) -> dict:
         services = share_info.get("share_service_list") or share_service.query_share_service_info(
             team=tenant, group_id=app.ID, scope="team"
         )
@@ -330,7 +352,8 @@ class AppVersionService(object):
             k8s_resources = list(share_service.get_k8s_resources(app.ID))
         return self._assemble_app_template(tenant, region, app, hidden_app_id, version, services, plugins, k8s_resources)
 
-    def _assemble_app_template(self, tenant, region, app, hidden_app_id, version, services, plugins, k8s_resources):
+    def _assemble_app_template(self, tenant: Tenants, region: RegionConfig, app: ServiceGroup, hidden_app_id: str,
+                               version: str, services: list, plugins: list, k8s_resources: Any) -> dict:
         services = self._hydrate_snapshot_delivery_info(tenant, services)
         service_ids_keys_map = {svc["service_id"]: svc["service_key"] for svc in services}
         app_template = {
@@ -352,10 +375,10 @@ class AppVersionService(object):
         return self._normalize_template_images(app_template)
 
     @staticmethod
-    def _build_snapshot_image_info(delivered_path):
+    def _build_snapshot_image_info(delivered_path: str) -> dict:
         return {"image_url": delivered_path}
 
-    def _hydrate_snapshot_delivery_info(self, tenant, services):
+    def _hydrate_snapshot_delivery_info(self, tenant: Tenants, services: list) -> list:
         hydrated = []
         for service in services or []:
             current = copy.deepcopy(service)
@@ -377,7 +400,7 @@ class AppVersionService(object):
             hydrated.append(current)
         return hydrated
 
-    def _get_snapshot_delivery_artifact(self, tenant, service):
+    def _get_snapshot_delivery_artifact(self, tenant: Tenants, service: dict) -> Tuple[Any, Any]:
         region_name = service.get("service_region")
         service_alias = service.get("service_alias")
         deploy_version = service.get("deploy_version")
@@ -389,7 +412,9 @@ class AppVersionService(object):
             logger.warning("failed to query build versions for snapshot service %s: %s", service.get("service_id"), e)
             return None, None
 
-        bean = body.get("bean") or {}
+        # NOTE: region_api.get_service_build_versions returns Optional[dict]; on a
+        # None body this .get would raise AttributeError (potential latent None-bug).
+        bean = body.get("bean") or {}  # type: ignore[union-attr]
         versions = bean.get("list") or []
         current_version = deploy_version or bean.get("deploy_version")
         if not current_version:
@@ -406,7 +431,7 @@ class AppVersionService(object):
         return None, None
 
     @classmethod
-    def _strip_runtime_fields(cls, value):
+    def _strip_runtime_fields(cls, value: Any) -> Any:
         ignored = {"ID", "create_time", "update_time", "upgrade_time", "is_change"}
         if isinstance(value, dict):
             data = {}
@@ -420,19 +445,19 @@ class AppVersionService(object):
             return sorted(stripped, key=lambda item: json.dumps(item, sort_keys=True, ensure_ascii=False))
         return value
 
-    def _normalize_template(self, app_template):
+    def _normalize_template(self, app_template: dict) -> Any:
         normalized = copy.deepcopy(app_template)
         normalized.pop("group_version", None)
         normalized.pop("update_time", None)
         normalized.pop("snapshot_id", None)
         return self._strip_runtime_fields(normalized)
 
-    def _content_hash(self, app_template):
+    def _content_hash(self, app_template: dict) -> str:
         normalized = self._normalize_template(app_template)
         payload = json.dumps(normalized, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-    def _build_rollback_component_plan(self, current_template, target_template):
+    def _build_rollback_component_plan(self, current_template: dict, target_template: dict) -> dict:
         current_map = self._component_map(current_template)
         target_map = self._component_map(target_template)
         changed = {
@@ -448,7 +473,7 @@ class AppVersionService(object):
             "restored": restored,
         }
 
-    def _component_map(self, app_template):
+    def _component_map(self, app_template: dict) -> dict:
         apps = app_template.get("apps", [])
         result = {}
         for app in apps:
@@ -458,7 +483,7 @@ class AppVersionService(object):
             result[identity] = self._strip_runtime_fields(copy.deepcopy(app))
         return result
 
-    def _summarize_diff(self, current_template, target_template):
+    def _summarize_diff(self, current_template: dict, target_template: dict) -> dict:
         current_map = self._component_map(current_template)
         target_map = self._component_map(target_template)
         added = [name for name in current_map.keys() if name not in target_map]
@@ -478,7 +503,7 @@ class AppVersionService(object):
         }
 
     @staticmethod
-    def _empty_diff_summary():
+    def _empty_diff_summary() -> dict:
         return {
             "has_changes": False,
             "added_count": 0,
@@ -490,7 +515,7 @@ class AppVersionService(object):
         }
 
     @staticmethod
-    def _empty_component_diff_details():
+    def _empty_component_diff_details() -> dict:
         return {
             "added_components": [],
             "removed_components": [],
@@ -498,10 +523,10 @@ class AppVersionService(object):
         }
 
     @staticmethod
-    def _format_component_name(component):
+    def _format_component_name(component: dict) -> str:
         return component.get("service_cname") or component.get("service_alias") or component.get("service_id") or "unknown"
 
-    def _format_field_item_identity(self, field_key, item):
+    def _format_field_item_identity(self, field_key: str, item: dict) -> str:
         if field_key == "service_env_map_list":
             return item.get("attr_name") or "unknown"
         if field_key == "service_connect_info_map_list":
@@ -523,7 +548,7 @@ class AppVersionService(object):
             )
         return json.dumps(item, sort_keys=True, ensure_ascii=False)
 
-    def _field_item_map(self, field_key, items):
+    def _field_item_map(self, field_key: str, items: Optional[list]) -> dict:
         result = {}
         for item in items or []:
             normalized = self._strip_runtime_fields(copy.deepcopy(item))
@@ -531,7 +556,8 @@ class AppVersionService(object):
             result[identity] = normalized
         return result
 
-    def _build_component_field_change(self, field_key, field_label, current_component, previous_component):
+    def _build_component_field_change(self, field_key: str, field_label: str, current_component: dict,
+                                      previous_component: dict) -> Optional[dict]:
         current_map = self._field_item_map(field_key, current_component.get(field_key, []))
         previous_map = self._field_item_map(field_key, previous_component.get(field_key, []))
         added_keys = [key for key in current_map.keys() if key not in previous_map]
@@ -554,13 +580,13 @@ class AppVersionService(object):
             } for key in updated_keys],
         }
 
-    def _strip_tracked_component_fields(self, component):
+    def _strip_tracked_component_fields(self, component: dict) -> Any:
         stripped = self._strip_runtime_fields(copy.deepcopy(component))
         for field_key, _ in self.TRACKED_COMPONENT_FIELDS:
             stripped.pop(field_key, None)
         return stripped
 
-    def _build_component_other_changes(self, current_component, previous_component):
+    def _build_component_other_changes(self, current_component: dict, previous_component: dict) -> list:
         current_component_base = self._strip_tracked_component_fields(current_component)
         previous_component_base = self._strip_tracked_component_fields(previous_component)
         changed_keys = sorted(set(current_component_base.keys()) | set(previous_component_base.keys()))
@@ -578,7 +604,7 @@ class AppVersionService(object):
             })
         return other_changes
 
-    def _build_component_diff_details(self, current_template, previous_template):
+    def _build_component_diff_details(self, current_template: dict, previous_template: dict) -> dict:
         current_map = self._component_map(current_template)
         previous_map = self._component_map(previous_template)
         added_components = [
@@ -616,7 +642,8 @@ class AppVersionService(object):
             "updated_components": updated_components,
         }
 
-    def _serialize_version(self, version_obj, previous_version=None):
+    def _serialize_version(self, version_obj: RainbondCenterAppVersion,
+                           previous_version: Optional[RainbondCenterAppVersion] = None) -> dict:
         app_template = json.loads(version_obj.app_template)
         diff_summary = None
         if previous_version:
@@ -638,7 +665,7 @@ class AppVersionService(object):
         result.update(self._rollback_support_info(app_template))
         return result
 
-    def _list_snapshot_version_objects(self, app_model_id):
+    def _list_snapshot_version_objects(self, app_model_id: str) -> List[RainbondCenterAppVersion]:
         return list(
             rainbond_app_repo.get_rainbond_app_versions(app_model_id).filter(
                 template_type=self.SNAPSHOT_TEMPLATE_TYPE
@@ -646,7 +673,7 @@ class AppVersionService(object):
         )
 
     @staticmethod
-    def _latest_successful_rollback_record(app_id):
+    def _latest_successful_rollback_record(app_id: str) -> Optional[AppUpgradeRecord]:
         return AppUpgradeRecord.objects.filter(
             group_id=app_id,
             record_type=AppUpgradeRecordType.ROLLBACK.value,
@@ -657,7 +684,8 @@ class AppVersionService(object):
         ).order_by("-update_time").first()
 
     @staticmethod
-    def _find_snapshot_version_by_version(versions, version):
+    def _find_snapshot_version_by_version(versions: List[RainbondCenterAppVersion],
+                                          version: str) -> Optional[RainbondCenterAppVersion]:
         if not version:
             return None
         for snapshot_version in versions:
@@ -665,7 +693,8 @@ class AppVersionService(object):
                 return snapshot_version
         return None
 
-    def _select_current_baseline_version(self, app_id, versions):
+    def _select_current_baseline_version(self, app_id: str, versions: List[RainbondCenterAppVersion]
+                                         ) -> Optional[RainbondCenterAppVersion]:
         if not versions:
             return None
         latest_snapshot = versions[0]
@@ -678,7 +707,7 @@ class AppVersionService(object):
         rollback_target = self._find_snapshot_version_by_version(versions, rollback_record.version)
         return rollback_target or latest_snapshot
 
-    def _rollback_records_query(self, app_id):
+    def _rollback_records_query(self, app_id: str) -> Optional[QuerySet]:
         relation, _ = self.get_hidden_template(app_id)
         if not relation:
             return None
@@ -689,7 +718,7 @@ class AppVersionService(object):
             parent_id=0,
         ).order_by("-create_time")
 
-    def list_rollback_records(self, tenant_name, region_name, app_id):
+    def list_rollback_records(self, tenant_name: str, region_name: str, app_id: str) -> list:
         records = self._rollback_records_query(app_id)
         if records is None:
             return []
@@ -700,7 +729,8 @@ class AppVersionService(object):
                 break
         return [record.to_dict() for record in records]
 
-    def get_rollback_record(self, tenant_name, region_name, app_id, record_id):
+    def get_rollback_record(self, tenant_name: str, region_name: str, app_id: str,
+                            record_id: str) -> Optional[dict]:
         records = self._rollback_records_query(app_id)
         if records is None:
             return None
@@ -711,7 +741,7 @@ class AppVersionService(object):
             upgrade_service.sync_record(tenant_name, region_name, record)
         return upgrade_service.serialized_upgrade_record(record)
 
-    def delete_rollback_record(self, app_id, record_id):
+    def delete_rollback_record(self, app_id: str, record_id: str) -> bool:
         records = self._rollback_records_query(app_id)
         if records is None:
             raise ServiceHandleException("rollback record not found", "回滚记录不存在", status_code=404)
@@ -723,7 +753,7 @@ class AppVersionService(object):
         record.delete()
         return True
 
-    def list_snapshot_versions(self, app_id):
+    def list_snapshot_versions(self, app_id: str) -> list:
         relation, _ = self.get_hidden_template(app_id)
         if not relation:
             return []
@@ -734,9 +764,11 @@ class AppVersionService(object):
             result.append(self._serialize_version(version, previous_version))
         return result
 
-    def get_overview(self, tenant, region, user, app):
-        relation, hidden_app = self.get_hidden_template(app.ID)
-        latest_publish = share_repo.get_last_shared_app_version_by_group_id(app.ID, tenant.tenant_name)
+    def get_overview(self, tenant: Tenants, region: RegionConfig, user: Users, app: ServiceGroup) -> dict:
+        # NOTE: ServiceGroup.ID is int AutoField; these id params are typed str.
+        relation, hidden_app = self.get_hidden_template(app.ID)  # type: ignore[arg-type]
+        latest_publish = share_repo.get_last_shared_app_version_by_group_id(
+            app.ID, tenant.tenant_name)  # type: ignore[arg-type]
         upgradeable_sources = []
         try:
             apps = market_app_service.get_market_apps_in_app(region, tenant, app)
@@ -807,18 +839,23 @@ class AppVersionService(object):
                 "component_diff_details": self._empty_component_diff_details(),
             }
 
-        baseline_version = self._select_current_baseline_version(app.ID, versions)
+        # NOTE: app.ID is int AutoField vs str param; _select_current_baseline_version
+        # only returns None when versions is empty, already handled above, so
+        # baseline_version is non-None here (invariant).
+        baseline_version = self._select_current_baseline_version(app.ID, versions)  # type: ignore[arg-type]
         current_template = self._build_app_template(
-            tenant, region, user, app, relation.app_model_id, baseline_version.version
+            tenant, region, user, app, relation.app_model_id,
+            baseline_version.version  # type: ignore[union-attr]
         )
-        snapshot_template = json.loads(baseline_version.app_template)
+        snapshot_template = json.loads(baseline_version.app_template)  # type: ignore[union-attr]
         change_summary = self._summarize_diff(current_template, snapshot_template)
         component_diff_details = self._build_component_diff_details(current_template, snapshot_template)
         return {
             "has_template": True,
             "template_id": relation.app_model_id,
-            "current_version": baseline_version.version,
-            "current_version_id": baseline_version.ID,
+            # NOTE: baseline_version is non-None here (empty-versions case handled above).
+            "current_version": baseline_version.version,  # type: ignore[union-attr]
+            "current_version_id": baseline_version.ID,  # type: ignore[union-attr]
             "latest_snapshot_version": latest_version.version,
             "latest_snapshot_version_id": latest_version.ID,
             "latest_publish_time": latest_publish.create_time.strftime('%Y-%m-%d %H:%M:%S') if latest_publish else None,
@@ -830,7 +867,9 @@ class AppVersionService(object):
             "component_diff_details": component_diff_details,
         }
 
-    def create_snapshot(self, tenant, region, user, app, version="", version_alias="", app_version_info="", share_info=None):
+    def create_snapshot(self, tenant: Tenants, region: RegionConfig, user: Users, app: ServiceGroup,
+                        version: str = "", version_alias: str = "", app_version_info: str = "",
+                        share_info: Optional[dict] = None) -> dict:
         relation, hidden_app = self.get_or_create_hidden_template(tenant, user, app)
         latest_version = rainbond_app_repo.get_rainbond_app_versions(relation.app_model_id).filter(
             template_type=self.SNAPSHOT_TEMPLATE_TYPE
@@ -856,7 +895,9 @@ class AppVersionService(object):
         snapshot = self._take_restore_snapshot(tenant, app, next_version)
         app_template["snapshot_id"] = snapshot.snapshot_id if snapshot else None
         version = RainbondCenterAppVersion.objects.create(
-            enterprise_id=tenant.enterprise_id,
+            # NOTE: Tenants.enterprise_id is Optional[str]; the model field is non-null.
+            # Tenants always carry an enterprise_id in this flow (invariant).
+            enterprise_id=tenant.enterprise_id,  # type: ignore[misc]
             app_id=relation.app_model_id,
             version=next_version,
             version_alias=version_alias or "",
@@ -889,8 +930,10 @@ class AppVersionService(object):
         result["created"] = True
         return result
 
-    def _take_restore_snapshot(self, tenant, app, version):
-        services = group_service.get_group_services(app.ID)
+    def _take_restore_snapshot(self, tenant: Tenants, app: ServiceGroup,
+                               version: str) -> Optional[AppUpgradeSnapshot]:
+        # NOTE: app.ID is int AutoField; get_group_services expects a str id.
+        services = group_service.get_group_services(app.ID)  # type: ignore[arg-type]
         components = []
         for service in services:
             if service.create_status != "complete":
@@ -915,7 +958,7 @@ class AppVersionService(object):
         )
         return snapshot
 
-    def get_snapshot_detail(self, app_id, version_id):
+    def get_snapshot_detail(self, app_id: str, version_id: str) -> Optional[dict]:
         relation, _ = self.get_hidden_template(app_id)
         if not relation:
             return None
@@ -960,7 +1003,7 @@ class AppVersionService(object):
         detail.update(self._rollback_support_info(app_template))
         return detail
 
-    def delete_snapshot(self, app_id, version_id):
+    def delete_snapshot(self, app_id: str, version_id: str) -> bool:
         relation, _ = self.get_hidden_template(app_id)
         if not relation:
             raise ServiceHandleException("snapshot not found", "快照不存在", status_code=404)
@@ -981,8 +1024,10 @@ class AppVersionService(object):
         target_version.delete()
         return True
 
-    def rollback_snapshot(self, tenant, region, user, app, version_id):
-        relation, _ = self.get_hidden_template(app.ID)
+    def rollback_snapshot(self, tenant: Tenants, region: RegionConfig, user: Users, app: ServiceGroup,
+                          version_id: str) -> Optional[dict]:
+        # NOTE: app.ID is int AutoField; get_hidden_template expects a str id.
+        relation, _ = self.get_hidden_template(app.ID)  # type: ignore[arg-type]
         if not relation:
             return None
         target_version = RainbondCenterAppVersion.objects.filter(
@@ -1059,7 +1104,7 @@ class AppVersionService(object):
             restored_component_identities=rollback_plan["restored"],
         )
         rollback_record, _ = app_restore.restore()
-        return rollback_record.to_dict()
+        return rollback_record.to_dict()  # type: ignore[union-attr]  # NOTE: rollback_record set in _save_new_app
 
 
 app_version_service = AppVersionService()

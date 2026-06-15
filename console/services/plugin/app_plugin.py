@@ -6,8 +6,9 @@ import copy
 import json
 import logging
 import os
+from typing import Any, Dict, List, Optional, Tuple
 
-from addict import Dict
+from addict import Dict as ADict
 from console.constants import (DefaultPluginConstants, PluginCategoryConstants, PluginImage, PluginInjection, PluginMetaType)
 from console.exception.bcode import (ErrInternalGraphsNotFound, ErrPluginIsUsed, ErrRepeatMonitoringTarget,
                                      ErrServiceMonitorExists)
@@ -30,11 +31,14 @@ from goodrain_web import settings
 from goodrain_web.settings import IMAGE_REPO
 from goodrain_web.tools import JuncheePaginator
 from www.apiclient.regionapi import RegionInvokeApi
-from www.models.plugin import (PluginConfigGroup, PluginConfigItems, ServicePluginConfigVar)
+from www.models.main import Tenants
+from www.models.plugin import (PluginConfigGroup, PluginConfigItems, ServicePluginConfigVar, TenantPlugin,
+                                TenantServicePluginRelation)
 from www.utils.crypt import make_uuid
 
 from .plugin_config_service import PluginConfigService
 from .plugin_version import PluginBuildVersionService
+from console.models.main import TenantServiceInfo
 
 region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
@@ -57,14 +61,15 @@ default_plugins = [
 
 
 class AppPluginService(object):
-    def get_service_abled_plugin(self, service):
+    def get_service_abled_plugin(self, service: TenantServiceInfo) -> Any:
         plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
             service.service_id).filter(plugin_status=True)
         plugin_ids = [p.plugin_id for p in plugins]
         base_plugins = plugin_repo.get_plugin_by_plugin_ids(plugin_ids)
         return base_plugins
 
-    def get_plugin_used_services(self, plugin_id, tenant_id, page, page_size):
+    def get_plugin_used_services(self, plugin_id: str, tenant_id: str, page: int,
+                                 page_size: int) -> Tuple[List[Dict[str, Any]], int]:
         aprr = app_plugin_relation_repo.get_used_plugin_services(plugin_id)
         service_ids = [r.service_id for r in aprr]
         service_plugin_version_map = {r.service_id: r.build_version for r in aprr}
@@ -72,9 +77,9 @@ class AppPluginService(object):
         paginator = JuncheePaginator(services, int(page_size))
         total = paginator.count
         show_apps = paginator.page(int(page))
-        result_list = []
+        result_list: List[Dict[str, Any]] = []
         for s in show_apps:
-            data = dict()
+            data: Dict[str, Any] = dict()
             data["service_id"] = s.service_id
             data["service_alias"] = s.service_alias
             data["service_cname"] = s.service_cname
@@ -83,18 +88,18 @@ class AppPluginService(object):
         return result_list, total
 
     def create_service_plugin_relation(self,
-                                       tenant_id,
-                                       service_id,
-                                       plugin_id,
-                                       build_version,
-                                       service_meta_type="",
-                                       plugin_status=True):
+                                       tenant_id: str,
+                                       service_id: str,
+                                       plugin_id: str,
+                                       build_version: str,
+                                       service_meta_type: str = "",
+                                       plugin_status: bool = True) -> TenantServicePluginRelation:
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)
         if sprs:
             raise ServiceHandleException(msg="plugin has installed", status_code=409, msg_show="组件已安装该插件")
         plugin_version_info = plugin_version_repo.get_by_id_and_version(tenant_id, plugin_id, build_version)
-        min_memory = plugin_version_info.min_memory
-        min_cpu = plugin_version_info.min_cpu
+        min_memory = plugin_version_info.min_memory  # type: ignore[union-attr]  # NOTE: plugin_version_info may be None if version missing
+        min_cpu = plugin_version_info.min_cpu  # type: ignore[union-attr]
         params = {
             "service_id": service_id,
             "build_version": build_version,
@@ -106,7 +111,8 @@ class AppPluginService(object):
         }
         return app_plugin_relation_repo.create_service_plugin_relation(**params)
 
-    def get_plugins_by_service_id(self, region, tenant_id, service_id, category):
+    def get_plugins_by_service_id(self, region: str, tenant_id: str, service_id: str,
+                                  category: str) -> Tuple[Any, Any]:
         """获取组件已开通和未开通的插件"""
 
         QUERY_INSTALLED_SQL = """
@@ -168,21 +174,23 @@ class AppPluginService(object):
         uninstalled_plugins = dsn.query(query_uninstalled_plugin)
         return installed_plugins, uninstalled_plugins
 
-    def get_service_plugin_relation(self, service_id, plugin_id):
+    def get_service_plugin_relation(self, service_id: str, plugin_id: str) -> Optional[TenantServicePluginRelation]:
         relations = app_plugin_relation_repo.get_relation_by_service_and_plugin(service_id, plugin_id)
         if relations:
             return relations[0]
         return None
 
-    def start_stop_service_plugin(self, service_id, plugin_id, is_active, cpu, memory):
+    def start_stop_service_plugin(self, service_id: str, plugin_id: str, is_active: Any, cpu: Optional[int],
+                                  memory: Optional[int]) -> None:
         """启用停用插件"""
         app_plugin_relation_repo.update_service_plugin_status(service_id, plugin_id, is_active, cpu, memory)
 
     @transaction.atomic
-    def install_new_plugin(self, region, tenant, service, plugin_id, plugin_version=None, user=None):
+    def install_new_plugin(self, region: str, tenant: Tenants, service: TenantServiceInfo, plugin_id: str,
+                           plugin_version: Optional[str] = None, user: Any = None) -> None:
         if not plugin_version:
-            plugin_version = plugin_version_service.get_newest_usable_plugin_version(tenant.tenant_id, plugin_id)
-            plugin_version = plugin_version.build_version
+            _pv_obj = plugin_version_service.get_newest_usable_plugin_version(tenant.tenant_id, plugin_id)
+            plugin_version = _pv_obj.build_version  # type: ignore[union-attr]  # NOTE: _pv_obj may be None if no usable version exists
         logger.debug("start install plugin ! plugin_id {0}  plugin_version {1}".format(plugin_id, plugin_version))
         # 1.生成console数据，存储
         self.save_default_plugin_config(tenant, service, plugin_id, plugin_version)
@@ -191,9 +199,9 @@ class AppPluginService(object):
 
         # 3. create monitor resources, such as: service monitor, component graphs
         plugin = plugin_repo.get_by_plugin_id(tenant.tenant_id, plugin_id)
-        self.create_monitor_resources(tenant, service, plugin.origin_share_id, user)
+        self.create_monitor_resources(tenant, service, plugin.origin_share_id, user)  # type: ignore[union-attr]  # NOTE: plugin may be None if not found
 
-        data = dict()
+        data: dict = dict()
         data["plugin_id"] = plugin_id
         data["switch"] = True
         data["version_id"] = plugin_version
@@ -209,10 +217,11 @@ class AppPluginService(object):
                     and "a same kind plugin has been linked" in e.message["body"]["msg"]:
                 raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
 
-    def save_default_plugin_config(self, tenant, service, plugin_id, build_version):
+    def save_default_plugin_config(self, tenant: Tenants, service: TenantServiceInfo, plugin_id: str,
+                                   build_version: str) -> None:
         """console层保存默认的数据"""
         config_groups = plugin_config_service.get_config_group(plugin_id, build_version)
-        service_plugin_var = []
+        service_plugin_var: List[ServicePluginConfigVar] = []
         for config_group in config_groups:
             items = plugin_config_service.get_config_items(plugin_id, build_version, config_group.service_meta_type)
             if config_group.service_meta_type == PluginMetaType.UNDEFINE:
@@ -295,9 +304,9 @@ class AppPluginService(object):
                         protocol=""))
 
         # 保存数据
-        ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
+        ServicePluginConfigVar.objects.bulk_create(service_plugin_var)  # type: ignore[attr-defined]
 
-    def __check_ports_for_config_items(self, ports, items):
+    def __check_ports_for_config_items(self, ports: Any, items: Any) -> bool:
         for item in items:
             if item.protocol == "":
                 return True
@@ -308,15 +317,16 @@ class AppPluginService(object):
                         return True
         return False
 
-    def get_region_config_from_db(self, service, plugin_id, build_version, user=None):
+    def get_region_config_from_db(self, service: TenantServiceInfo, plugin_id: str, build_version: str,
+                                  user: Any = None) -> dict:
         attrs = service_plugin_config_repo.get_service_plugin_config_var(service.service_id, plugin_id, build_version)
-        normal_envs = []
-        base_normal = dict()
+        normal_envs: List[dict] = []
+        base_normal: dict = dict()
         # 上游组件
-        base_ports = []
+        base_ports: List[dict] = []
         # 下游组件
-        base_services = []
-        region_env_config = dict()
+        base_services: List[dict] = []
+        region_env_config: dict = dict()
         for attr in attrs:
             if attr.service_meta_type == PluginMetaType.UNDEFINE:
                 if attr.injection == PluginInjection.EVN:
@@ -347,8 +357,8 @@ class AppPluginService(object):
             if attr.service_meta_type == PluginMetaType.PLUGINSTORAGE:
                 option_json = json.loads(attr.attrs)
                 base_normal["options"] = {**base_normal.get("options", {}), **option_json}
-        config_envs = dict()
-        complex_envs = dict()
+        config_envs: dict = dict()
+        complex_envs: dict = dict()
         config_envs["normal_envs"] = normal_envs
         complex_envs["base_ports"] = base_ports
         complex_envs["base_services"] = base_services
@@ -360,7 +370,8 @@ class AppPluginService(object):
         region_env_config["operator"] = user.nick_name if user else None
         return region_env_config
 
-    def create_monitor_resources(self, tenant, service, plugin_name, user=None):
+    def create_monitor_resources(self, tenant: Tenants, service: TenantServiceInfo, plugin_name: str,
+                                 user: Any = None) -> None:
         # service monitor
         try:
             self.__create_service_monitor(tenant, service, plugin_name, user)
@@ -369,10 +380,11 @@ class AppPluginService(object):
             self.__create_service_monitor(tenant, service, plugin_name, user)
 
         # component graphs
-        self.__create_component_graphs(service.service_id, plugin_name, service.arch)
+        self.__create_component_graphs(service.service_id, plugin_name, service.arch)  # type: ignore[arg-type]  # NOTE: service.arch may be None
 
     @staticmethod
-    def __create_service_monitor(tenant, service, plugin_name, user=None):
+    def __create_service_monitor(tenant: Tenants, service: TenantServiceInfo, plugin_name: str,
+                                 user: Any = None) -> None:
         user_name = user.nick_name if user else ''
         path = "/metrics"
         if plugin_name == "mysqld_exporter":
@@ -389,33 +401,34 @@ class AppPluginService(object):
             logger.debug(e)
 
     @staticmethod
-    def __create_component_graphs(component_id, plugin_name, arch):
+    def __create_component_graphs(component_id: str, plugin_name: str, arch: str) -> None:
         try:
             component_graph_service.create_internal_graphs(component_id, plugin_name, arch)
         except ErrInternalGraphsNotFound as e:
             logger.warning("plugin name '{}': {}", plugin_name, e)
 
-    def delete_service_plugin_config(self, service, plugin_id):
+    def delete_service_plugin_config(self, service: TenantServiceInfo, plugin_id: str) -> None:
         service_plugin_config_repo.delete_service_plugin_config_var(service.service_id, plugin_id)
 
-    def delete_service_plugin_relation(self, service, plugin_id):
+    def delete_service_plugin_relation(self, service: TenantServiceInfo, plugin_id: str) -> None:
         app_plugin_relation_repo.delete_service_plugin(service.service_id, plugin_id)
 
-    def get_service_plugin_config(self, tenant, service, plugin_id, build_version):
+    def get_service_plugin_config(self, tenant: Tenants, service: TenantServiceInfo, plugin_id: str,
+                                  build_version: str) -> dict:
         config_groups = plugin_config_service.get_config_group(plugin_id, build_version)
         service_plugin_vars = service_plugin_config_repo.get_service_plugin_config_var(service.service_id, plugin_id,
                                                                                        build_version)
-        result_bean = dict()
+        result_bean: dict = dict()
 
-        undefine_env = dict()
-        storage_env = dict()
-        upstream_env_list = []
-        downstream_env_list = []
+        undefine_env: dict = dict()
+        storage_env: dict = dict()
+        upstream_env_list: List[dict] = []
+        downstream_env_list: List[dict] = []
 
         for config_group in config_groups:
             items = plugin_config_service.get_config_items(plugin_id, build_version, config_group.service_meta_type)
             if config_group.service_meta_type == PluginMetaType.UNDEFINE:
-                options = []
+                options: List[dict] = []
                 normal_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.UNDEFINE)
                 undefine_options = None
                 if normal_envs:
@@ -552,7 +565,8 @@ class AppPluginService(object):
         return result_bean
 
     @transaction.atomic
-    def update_service_plugin_config(self, tenant, service, plugin_id, build_version, config, response_region):
+    def update_service_plugin_config(self, tenant: Tenants, service: TenantServiceInfo, plugin_id: str,
+                                     build_version: str, config: Any, response_region: str) -> None:
         # delete old config
         self.delete_service_plugin_config(service, plugin_id)
         # 全量插入新配置
@@ -562,10 +576,11 @@ class AppPluginService(object):
         region_api.update_service_plugin_config(response_region, tenant.tenant_name, service.service_alias, plugin_id,
                                                 region_config)
 
-    def __update_service_plugin_config(self, service, plugin_id, build_version, config_bean):
-        config_bean = Dict(config_bean)
-        service_plugin_var = []
-        undefine_env = config_bean.undefine_env
+    def __update_service_plugin_config(self, service: TenantServiceInfo, plugin_id: str, build_version: str,
+                                       config_bean: Any) -> None:
+        config_bean = ADict(config_bean)
+        service_plugin_var: List[ServicePluginConfigVar] = []
+        undefine_env = config_bean.undefine_env  # type: ignore[attr-defined]  # NOTE: addict.Dict supports attribute access at runtime
         if undefine_env:
             attrs_map = {c.attr_name: c.attr_value for c in undefine_env.config}
             service_plugin_var.append(
@@ -580,7 +595,7 @@ class AppPluginService(object):
                     container_port=0,
                     attrs=json.dumps(attrs_map),
                     protocol=""))
-        upstream_config_list = config_bean.upstream_env
+        upstream_config_list = config_bean.upstream_env  # type: ignore[attr-defined]  # NOTE: addict.Dict supports attribute access at runtime
         for upstream_config in upstream_config_list:
             attrs_map = {c.attr_name: c.attr_value for c in upstream_config.config}
             service_plugin_var.append(
@@ -595,7 +610,7 @@ class AppPluginService(object):
                     container_port=upstream_config.port,
                     attrs=json.dumps(attrs_map),
                     protocol=upstream_config.protocol))
-        dowstream_config_list = config_bean.downstream_env
+        dowstream_config_list = config_bean.downstream_env  # type: ignore[attr-defined]  # NOTE: addict.Dict supports attribute access at runtime
         for dowstream_config in dowstream_config_list:
             attrs_map = {c.attr_name: c.attr_value for c in dowstream_config.config}
             service_plugin_var.append(
@@ -610,7 +625,7 @@ class AppPluginService(object):
                     container_port=dowstream_config.port,
                     attrs=json.dumps(attrs_map),
                     protocol=dowstream_config.protocol))
-        storage_dict = [config_bean.storage_env]
+        storage_dict = [config_bean.storage_env]  # type: ignore[attr-defined]  # NOTE: addict.Dict supports attribute access at runtime
         for storage in storage_dict:
             if storage:
                 attrs_map = {c.attr_name: c.attr_value for c in storage.config}
@@ -626,9 +641,10 @@ class AppPluginService(object):
                         container_port=0,
                         attrs=json.dumps(attrs_map),
                         protocol=""))
-        ServicePluginConfigVar.objects.bulk_create(service_plugin_var)
+        ServicePluginConfigVar.objects.bulk_create(service_plugin_var)  # type: ignore[attr-defined]
 
-    def create_plugin_4marketsvc(self, region_name, tenant, service, version, components, plugins):
+    def create_plugin_4marketsvc(self, region_name: str, tenant: Tenants, service: TenantServiceInfo, version: str,
+                                 components: Any, plugins: Any) -> None:
         plugin_version_service.update_plugin_build_status(region_name, tenant)
         plugins = plugins if plugins is not None else []
         for plugin in plugins:
@@ -639,31 +655,31 @@ class AppPluginService(object):
                                                   service_plugin_config_vars)
                 self.create_service_plugin_relation(tenant.tenant_id, service.service_id, data["plugin_id"], data["version_id"])
 
-    def build_plugin_data_4marketsvc(self, tenant, service, plugin):
+    def build_plugin_data_4marketsvc(self, tenant: Tenants, service: TenantServiceInfo, plugin: Any) -> Optional[dict]:
         plugin_key = plugin["plugin_key"]
         p = plugin_repo.get_plugin_by_origin_share_id(tenant.tenant_id, plugin_key)
         if not p:
             logger.warning("open plugin failure , plugin {} not found in tenant {}".format(plugin_key, tenant.tenant_id))
-            return
+            return None
         plugin_id = p[0].plugin_id
         plugin_version = plugin_version_service.get_newest_plugin_version(tenant.tenant_id, plugin_id)
         if not plugin_version:
             logger.warning("open plugin failure , plugin {} not build in tenant {}".format(plugin_key, tenant.tenant_id))
-            return
+            return None
         build_version = plugin_version.build_version
 
         region_config = self.get_region_config_from_db(service, plugin_id, build_version)
-        data = dict()
+        data: dict = dict()
         data["plugin_id"] = plugin_id
         data["switch"] = True
         data["version_id"] = build_version
         data.update(region_config)
         return data
 
-    def create_plugin_cfg_4marketsvc(self, tenant, service, version, plugin_id, build_version, components,
-                                     service_plugin_config_vars):
-        config_list = []
-        component_id_key_map = {}
+    def create_plugin_cfg_4marketsvc(self, tenant: Tenants, service: TenantServiceInfo, version: str, plugin_id: str,
+                                     build_version: str, components: Any, service_plugin_config_vars: Any) -> None:
+        config_list: List[ServicePluginConfigVar] = []
+        component_id_key_map: dict = {}
         for com in components:
             if type(com) == dict:
                 component_id_key_map[com["service_id"]] = com["service_share_uuid"]
@@ -672,10 +688,10 @@ class AppPluginService(object):
             if config["service_meta_type"] == "downstream_port":
                 # step1: get dep component key
                 dep_service_key = component_id_key_map.get(config["dest_service_id"])
-                dest_service = app_service.get_service_by_service_key(service, dep_service_key)
+                dest_service = app_service.get_service_by_service_key(service, dep_service_key)  # type: ignore[arg-type]  # NOTE: dep_service_key may be None if key missing from map
                 if dest_service:
-                    dest_service_id = dest_service.get("service_id", "")
-                    dest_service_alias = dest_service.get("service_alias", "")
+                    dest_service_id = dest_service.get("service_id", "")  # type: ignore[attr-defined]  # NOTE: legacy code treats TenantServiceInfo as dict here
+                    dest_service_alias = dest_service.get("service_alias", "")  # type: ignore[attr-defined]
 
             config_list.append(
                 ServicePluginConfigVar(
@@ -690,11 +706,11 @@ class AppPluginService(object):
                     attrs=config["attrs"],
                     protocol=config["protocol"]))
         if config_list and len(config_list) > 0:
-            ServicePluginConfigVar.objects.bulk_create(config_list)
+            ServicePluginConfigVar.objects.bulk_create(config_list)  # type: ignore[attr-defined]
 
-    def check_the_same_plugin(self, plugin_id, tenant_id, service_id):
-        plugin_ids = []
-        categories = []
+    def check_the_same_plugin(self, plugin_id: str, tenant_id: str, service_id: str) -> None:
+        plugin_ids: List[str] = []
+        categories: List[str] = []
         service_plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(service_id)
         if not service_plugins:
             """ component has not installed plugin"""
@@ -709,15 +725,15 @@ class AppPluginService(object):
         # the trend to install plugin
         plugin_info = plugin_repo.get_plugin_by_plugin_id(tenant_id, plugin_id)
 
-        category_info = plugin_info.category.split(":")
+        category_info = plugin_info.category.split(":")  # type: ignore[union-attr]  # NOTE: plugin_info may be None if not found
         if category_info[0] == "net-plugin":
-            if plugin_info.category in categories:
+            if plugin_info.category in categories:  # type: ignore[union-attr]
                 raise has_the_same_category_plugin
             if category_info[1] == "in-and-out" and ("net-plugin:up" in categories or "net-plugin:down" in categories):
                 raise has_the_same_category_plugin
 
     # if have export network plugin, will change config
-    def update_config_if_have_export_plugin(self, tenant, service):
+    def update_config_if_have_export_plugin(self, tenant: Tenants, service: TenantServiceInfo) -> None:
         plugins = self.get_service_abled_plugin(service)
         for plugin in plugins:
             if PluginCategoryConstants.OUTPUT_NET == plugin.category or \
@@ -729,7 +745,7 @@ class AppPluginService(object):
                                                       service.service_region)
 
     # if have entrance network plugin, will change config
-    def update_config_if_have_entrance_plugin(self, tenant, service):
+    def update_config_if_have_entrance_plugin(self, tenant: Tenants, service: TenantServiceInfo) -> None:
         plugins = self.get_service_abled_plugin(service)
         for plugin in plugins:
             if PluginCategoryConstants.INPUT_NET == plugin.category:
@@ -741,13 +757,13 @@ class AppPluginService(object):
 
 
 class PluginService(object):
-    def get_plugins_by_service_ids(self, service_ids):
+    def get_plugins_by_service_ids(self, service_ids: Any) -> Any:
         return plugin_repo.get_plugins_by_service_ids(service_ids)
 
-    def get_plugin_by_plugin_id(self, tenant, plugin_id):
+    def get_plugin_by_plugin_id(self, tenant: Tenants, plugin_id: str) -> Optional[TenantPlugin]:
         return plugin_repo.get_plugin_by_plugin_id(tenant.tenant_id, plugin_id)
 
-    def create_tenant_plugin(self, plugin_params):
+    def create_tenant_plugin(self, plugin_params: dict) -> Tuple[int, str, Optional[TenantPlugin]]:
         plugin_id = make_uuid()
         plugin_params["plugin_id"] = plugin_id
         plugin_params["plugin_name"] = "gr" + plugin_id[:6]
@@ -760,9 +776,10 @@ class PluginService(object):
         tenant_plugin = plugin_repo.create_plugin(**plugin_params)
         return 200, "success", tenant_plugin
 
-    def create_region_plugin(self, region, tenant, tenant_plugin, image_tag="latest"):
+    def create_region_plugin(self, region: str, tenant: Tenants, tenant_plugin: TenantPlugin,
+                             image_tag: str = "latest") -> Tuple[int, str]:
         """创建region端插件信息"""
-        plugin_data = dict()
+        plugin_data: dict = dict()
         plugin_data["build_model"] = tenant_plugin.build_source
         plugin_data["git_url"] = tenant_plugin.code_repo
         plugin_data["image_url"] = "{0}:{1}".format(tenant_plugin.image, image_tag)
@@ -774,20 +791,21 @@ class PluginService(object):
         region_api.create_plugin(region, tenant.tenant_name, plugin_data)
         return 200, "success"
 
-    def delete_console_tenant_plugin(self, tenant_id, plugin_id):
+    def delete_console_tenant_plugin(self, tenant_id: str, plugin_id: str) -> None:
         plugin_repo.delete_by_plugin_id(tenant_id, plugin_id)
 
-    def get_plugin_event_log(self, region, tenant, event_id, level):
+    def get_plugin_event_log(self, region: str, tenant: Tenants, event_id: str, level: str) -> Any:
         data = {"event_id": event_id, "level": level}
         body = region_api.get_plugin_event_log(region, tenant.tenant_name, data)
-        return body["list"]
+        return body["list"]  # type: ignore[index]  # NOTE: body may be None if region API returns unexpected format
 
-    def get_tenant_plugins(self, region, tenant):
+    def get_tenant_plugins(self, region: str, tenant: Tenants) -> Any:
         return plugin_repo.get_tenant_plugins(tenant.tenant_id, region)
 
-    def build_plugin(self, region, plugin, plugin_version, user, tenant, event_id, image_info=None, arch="amd64"):
+    def build_plugin(self, region: str, plugin: TenantPlugin, plugin_version: Any, user: Any, tenant: Tenants,
+                     event_id: str, image_info: Any = None, arch: str = "amd64") -> Any:
 
-        build_data = dict()
+        build_data: dict = dict()
 
         build_data["build_version"] = plugin_version.build_version
         build_data["event_id"] = event_id
@@ -822,8 +840,9 @@ class PluginService(object):
     with open(file_path) as f:
         all_default_config = json.load(f)
 
-    def add_default_plugin(self, user, tenant, region, plugin_type="perf_analyze_plugin"):
-        plugin_base_info = None
+    def add_default_plugin(self, user: Any, tenant: Tenants, region: str,
+                           plugin_type: str = "perf_analyze_plugin") -> Optional[TenantPlugin]:
+        plugin_base_info: Optional[TenantPlugin] = None
         try:
             if not self.all_default_config:
                 raise Exception("no config was found")
@@ -854,15 +873,15 @@ class PluginService(object):
                 "password": ""
             }
             code, msg, plugin_base_info = self.create_tenant_plugin(plugin_params)
-            plugin_base_info.origin = "local_market"
-            plugin_base_info.origin_share_id = plugin_type
-            plugin_base_info.save()
+            plugin_base_info.origin = "local_market"  # type: ignore[union-attr]  # NOTE: plugin_base_info may be None if create_tenant_plugin failed
+            plugin_base_info.origin_share_id = plugin_type  # type: ignore[union-attr]
+            plugin_base_info.save()  # type: ignore[union-attr]
 
             plugin_build_version = plugin_version_service.create_build_version(
-                region, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 256, image_tag=image_tag)
+                region, plugin_base_info.plugin_id, tenant.tenant_id, user.user_id, "", "unbuild", 256, image_tag=image_tag)  # type: ignore[union-attr]
 
-            plugin_config_meta_list = []
-            config_items_list = []
+            plugin_config_meta_list: List[PluginConfigGroup] = []
+            config_items_list: List[PluginConfigItems] = []
             config_group = needed_plugin_config.get("config_group")
             if config_group:
                 for config in config_group:
@@ -896,8 +915,8 @@ class PluginService(object):
             plugin_build_version.event_id = event_id
             plugin_build_version.plugin_version_status = "fixed"
 
-            self.create_region_plugin(region, tenant, plugin_base_info, image_tag)
-            self.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant, event_id)
+            self.create_region_plugin(region, tenant, plugin_base_info, image_tag)  # type: ignore[arg-type]  # NOTE: plugin_base_info may be None
+            self.build_plugin(region, plugin_base_info, plugin_build_version, user, tenant, event_id)  # type: ignore[arg-type]
             plugin_build_version.build_status = "build_success"
             plugin_build_version.save()
             return plugin_base_info
@@ -907,8 +926,9 @@ class PluginService(object):
                 self.delete_plugin(region, tenant, plugin_base_info.plugin_id, is_force=True)
             raise e
 
-    def update_region_plugin_info(self, region, tenant, tenant_plugin, plugin_build_version):
-        data = dict()
+    def update_region_plugin_info(self, region: str, tenant: Tenants, tenant_plugin: TenantPlugin,
+                                  plugin_build_version: Any) -> None:
+        data: dict = dict()
         data["build_model"] = tenant_plugin.build_source
         data["git_url"] = tenant_plugin.code_repo
         data["image_url"] = "{0}:{1}".format(tenant_plugin.image, plugin_build_version.image_tag)
@@ -918,7 +938,8 @@ class PluginService(object):
         region_api.update_plugin_info(region, tenant.tenant_name, tenant_plugin.plugin_id, data)
 
     @transaction.atomic
-    def delete_plugin(self, region, team, plugin_id, ignore_cluster_resource=False, is_force=False):
+    def delete_plugin(self, region: str, team: Tenants, plugin_id: str, ignore_cluster_resource: bool = False,
+                      is_force: bool = False) -> None:
         services = app_plugin_relation_repo.get_used_plugin_services(plugin_id)
         if services and not is_force:
             raise ErrPluginIsUsed
@@ -935,7 +956,7 @@ class PluginService(object):
         config_item_repo.delete_config_items_by_plugin_id(plugin_id)
         config_group_repo.delete_config_group_by_plugin_id(plugin_id)
 
-    def get_default_plugin(self, region, tenant):
+    def get_default_plugin(self, region: str, tenant: Tenants) -> Any:
         # 兼容3.5版本升级
         plugins = plugin_repo.get_tenant_plugins(tenant.tenant_id,
                                                  region).filter(origin_share_id__in=[plugin for plugin in default_plugins])
@@ -946,11 +967,11 @@ class PluginService(object):
             q |= Q(category="analyst-plugin:perf", image=IMAGE_REPO)
             return plugin_repo.get_tenant_plugins(tenant.tenant_id, region).filter(q)
 
-    def get_default_plugin_from_cache(self, region, tenant):
+    def get_default_plugin_from_cache(self, region: str, tenant: Tenants) -> List[dict]:
         if not self.all_default_config:
             return []
 
-        default_plugin_list = []
+        default_plugin_list: List[dict] = []
         for plugin in self.all_default_config:
             default_plugin_list.append({
                 "category": plugin,

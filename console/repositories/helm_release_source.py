@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
+from typing import Any, Optional
+
 from console.models.main import TeamHelmReleaseSource
 
 
 class TeamHelmReleaseSourceRepository(object):
-    def save_or_update(self, **params):
+    def save_or_update(self, **params: Any) -> TeamHelmReleaseSource:
         defaults = dict(params)
         region_name = defaults.pop("region_name")
         namespace = defaults.pop("namespace")
@@ -17,7 +19,7 @@ class TeamHelmReleaseSourceRepository(object):
         )
         return obj
 
-    def get_by_release(self, region_name, namespace, release_name):
+    def get_by_release(self, region_name: str, namespace: str, release_name: str) -> Optional[dict]:
         record = TeamHelmReleaseSource.objects.filter(
             region_name=region_name,
             namespace=namespace,
@@ -27,7 +29,7 @@ class TeamHelmReleaseSourceRepository(object):
             return None
         return record.to_dict()
 
-    def list_by_releases(self, region_name, namespace, release_names):
+    def list_by_releases(self, region_name: str, namespace: str, release_names: Any) -> dict:
         names = [name for name in (release_names or []) if name]
         if not names:
             return {}
@@ -41,7 +43,8 @@ class TeamHelmReleaseSourceRepository(object):
             for record in records
         }
 
-    def delete_by_release(self, region_name, namespace, release_name):
+    def delete_by_release(self, region_name: str, namespace: str,
+                          release_name: str) -> tuple[int, dict[str, int]]:
         return TeamHelmReleaseSource.objects.filter(
             region_name=region_name,
             namespace=namespace,

@@ -88,8 +88,8 @@ class PortServiceDeleteTests(TestCase):
         install_stub("console.services.app_config.env_service", AppEnvVarService=MagicMock)
         install_stub("console.services.app_config.probe_service", ProbeService=MagicMock)
         install_stub("console.services.region_services", region_services=MagicMock())
-        install_stub("console.models.main", TenantServiceInfo=object)
-        install_stub("www.models.main", ServiceGroup=object, TenantServiceEnvVar=object, TenantServicesPort=object)
+        install_stub("console.models.main", TenantServiceInfo=object, RegionConfig=object)
+        install_stub("www.models.main", ServiceGroup=object, TenantServiceEnvVar=object, TenantServicesPort=object, Tenants=object)
         install_stub("www.apiclient.regionapi", RegionInvokeApi=MagicMock)
         install_stub("www.apiclient.regionapibaseclient",
                      RegionApiBaseHttpClient=types.SimpleNamespace(CallApiError=Exception))

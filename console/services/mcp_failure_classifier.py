@@ -10,6 +10,7 @@ blocker branch instead of blindly retrying a failed operation.
 Discipline: when no rule matches, return ``"unknown"``. Never guess.
 """
 import re
+from typing import Any, List, Optional, Set, Tuple
 
 # classified_reason enum values, highest match priority first.
 CONFIG_FILE_CONFIGMAP_MISSING = "config_file_configmap_missing"
@@ -39,8 +40,8 @@ _K8S_API_REJECTED_RE = re.compile(
     r"(patch|apply).*(failure|failed|forbidden|denied)|namespace\s+failure", re.IGNORECASE)
 
 
-def _normalize_warnings(pod_warnings):
-    normalized = []
+def _normalize_warnings(pod_warnings: Any) -> List[Tuple[str, str]]:
+    normalized: List[Tuple[str, str]] = []
     for warning in pod_warnings or []:
         if not isinstance(warning, dict):
             continue
@@ -50,8 +51,8 @@ def _normalize_warnings(pod_warnings):
     return normalized
 
 
-def _normalize_log_lines(log_tail):
-    lines = []
+def _normalize_log_lines(log_tail: Any) -> List[str]:
+    lines: List[str] = []
     for entry in log_tail or []:
         if isinstance(entry, dict):
             message = entry.get("message")
@@ -63,7 +64,7 @@ def _normalize_log_lines(log_tail):
     return lines
 
 
-def _classify_one_warning(reason_lower, haystack):
+def _classify_one_warning(reason_lower: str, haystack: str) -> Optional[str]:
     """Classify a single warning. Returns an enum or None if no rule matches."""
     is_mount = any(token in reason_lower for token in _FAILED_MOUNT_REASONS)
     if is_mount or "failedmount" in haystack.lower():
@@ -100,14 +101,14 @@ _PRIORITY = (
 )
 
 
-def classify_failure(pod_warnings, log_tail):
+def classify_failure(pod_warnings: Any, log_tail: Any) -> str:
     """Map pod warnings + event-log tail to a stable classified_reason enum.
 
     Pod-warning evidence is authoritative and always outranks the event-log
     fallback. Among multiple pod warnings the highest-priority match wins,
     independent of list order. Returns ``"unknown"`` when nothing matches.
     """
-    matches = set()
+    matches: Set[str] = set()
     for reason_lower, haystack in _normalize_warnings(pod_warnings):
         result = _classify_one_warning(reason_lower, haystack)
         if result is not None:

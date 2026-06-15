@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import datetime
 from enum import Enum
 from json.decoder import JSONDecodeError
+from typing import Any, Optional, Tuple
 
 from console.exception.bcode import (ErrAppUpgradeDeployFailed, ErrAppUpgradeRecordCanNotDeploy, ErrLastRecordUnfinished)
 from console.exception.bcode import ErrAppUpgradeRecordCanNotRollback
@@ -14,7 +15,7 @@ from console.exception.bcode import ErrAppUpgradeWrongStatus
 from console.exception.main import (AbortRequest, AccountOverdueException, RbdAppNotFound, RecordNotFound,
                                     ResourceNotEnoughException, ServiceHandleException)
 # model
-from console.models.main import (AppUpgradeRecord, AppUpgradeRecordType, ServiceUpgradeRecord, UpgradeStatus)
+from console.models.main import (AppUpgradeRecord, AppUpgradeRecordType, RegionConfig, ServiceUpgradeRecord, UpgradeStatus)
 from www.models.main import TenantServiceInfo
 # repository
 from console.repositories.app import service_repo
@@ -50,7 +51,7 @@ class UpgradeType(Enum):
 
 
 class UpgradeService(object):
-    def __init__(self):
+    def __init__(self) -> None:
         self.status_tables = {
             UpgradeStatus.UPGRADING.value: {
                 "success": UpgradeStatus.UPGRADED.value,
@@ -64,19 +65,32 @@ class UpgradeService(object):
             },
         }
 
-    def upgrade(self, tenant, region, user, app, version, record: AppUpgradeRecord, component_keys=None):
+    def upgrade(self,
+                tenant: Tenants,
+                region: RegionConfig,
+                user: Any,
+                app: ServiceGroup,
+                version: str,
+                record: AppUpgradeRecord,
+                component_keys: Any = None) -> Tuple[dict, str]:
         """
         Upgrade application market applications
         """
         if not record.can_upgrade():
             raise ErrAppUpgradeWrongStatus
-        component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
+        # NOTE: upgrade_group_id is an int FK column passed to a str-typed repo
+        # param (runtime-safe; repo coerces to lookup value).
+        component_group = tenant_service_group_repo.get_component_group(
+            record.upgrade_group_id)  # type: ignore[arg-type]
 
-        app_template_source = self._app_template_source(record.group_id, record.group_key, record.upgrade_group_id)
+        # NOTE: group_id / upgrade_group_id are int FK columns used as str
+        # identifiers (runtime-safe).
+        app_template_source = self._app_template_source(
+            record.group_id, record.group_key, record.upgrade_group_id)  # type: ignore[arg-type]
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
 
         app_upgrade = AppUpgrade(
-            tenant.enterprise_id,
+            tenant.enterprise_id,  # type: ignore[arg-type]  # NOTE: nullable enterprise_id model field, runtime-safe
             tenant,
             region,
             user,
@@ -93,13 +107,22 @@ class UpgradeService(object):
         app_template_name = component_group.group_alias
         return self.serialized_upgrade_record(record), app_template_name
 
-    def upgrade_component(self, tenant, region, user, app, component: TenantServiceInfo, version):
-        component_group = tenant_service_group_repo.get_component_group(component.upgrade_group_id)
+    def upgrade_component(self,
+                          tenant: Tenants,
+                          region: RegionConfig,
+                          user: Any,
+                          app: ServiceGroup,
+                          component: TenantServiceInfo,
+                          version: str) -> None:
+        # NOTE: upgrade_group_id is an int FK column passed to a str-typed repo
+        # param (runtime-safe).
+        component_group = tenant_service_group_repo.get_component_group(
+            component.upgrade_group_id)  # type: ignore[arg-type]
         app_template_source = service_source_repo.get_service_source(component.tenant_id, component.component_id)
         app_template = self._app_template(user.enterprise_id, component_group.group_key, version, app_template_source)
 
         app_upgrade = AppUpgrade(
-            tenant.enterprise_id,
+            tenant.enterprise_id,  # type: ignore[arg-type]  # NOTE: nullable enterprise_id model field, runtime-safe
             tenant,
             region,
             user,
@@ -107,24 +130,34 @@ class UpgradeService(object):
             version,
             component_group,
             app_template,
-            app_template_source.is_install_from_cloud(),
-            app_template_source.get_market_name(),
+            # NOTE: get_service_source may return None; accessed unguarded here
+            # (potential latent None-bug — see report).
+            app_template_source.is_install_from_cloud(),  # type: ignore[union-attr]
+            app_template_source.get_market_name(),  # type: ignore[union-attr]
             component_keys=[component.service_key],
             is_deploy=True,
             is_upgrade_one=True)
         app_upgrade.upgrade()
 
-    def restore(self, tenant, region, user, app, record: AppUpgradeRecord):
+    def restore(self,
+                tenant: Tenants,
+                region: RegionConfig,
+                user: Any,
+                app: ServiceGroup,
+                record: AppUpgradeRecord) -> Tuple[dict, str]:
         if not record.can_rollback():
             raise ErrAppUpgradeRecordCanNotRollback
 
-        component_group = tenant_service_group_repo.get_component_group(record.upgrade_group_id)
+        # NOTE: upgrade_group_id is an int FK column passed to a str-typed repo
+        # param (runtime-safe).
+        component_group = tenant_service_group_repo.get_component_group(
+            record.upgrade_group_id)  # type: ignore[arg-type]
         app_restore = AppRestore(tenant, region, user, app, component_group, record)
         record, component_group = app_restore.restore()
-        return self.serialized_upgrade_record(record), component_group.group_alias
+        return self.serialized_upgrade_record(record), component_group.group_alias  # type: ignore[arg-type]
 
     @staticmethod
-    def _app_template_source(app_id, app_model_key, upgrade_group_id):
+    def _app_template_source(app_id: str, app_model_key: str, upgrade_group_id: str) -> Any:
         components = group_service.get_rainbond_services(app_id, app_model_key, upgrade_group_id)
         if not components:
             raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
@@ -133,13 +166,15 @@ class UpgradeService(object):
         return component_source
 
     @staticmethod
-    def _app_template(enterprise_id, app_model_key, version, app_template_source):
+    def _app_template(enterprise_id: str, app_model_key: str, version: str, app_template_source: Any) -> dict:
         if not app_template_source.is_install_from_cloud():
             _, app_version = rainbond_app_repo.get_rainbond_app_and_version(enterprise_id, app_model_key, version)
         else:
             market = app_market_repo.get_app_market_by_name(
                 enterprise_id, app_template_source.get_market_name(), raise_exception=True)
-            _, app_version = app_market_service.cloud_app_model_to_db_model(market, app_model_key, version)
+            # NOTE: market is non-None here (raise_exception=True); invariant.
+            _, app_version = app_market_service.cloud_app_model_to_db_model(
+                market, app_model_key, version)  # type: ignore[arg-type]
 
         if not app_version:
             raise AbortRequest("app template not found", "找不到应用模板", status_code=404, error_code=404)
@@ -151,7 +186,13 @@ class UpgradeService(object):
         except JSONDecodeError:
             raise AbortRequest("invalid app template", "该版本应用模板已损坏, 无法升级")
 
-    def get_property_changes(self, tenant, region, user, app, upgrade_group_id, version):
+    def get_property_changes(self,
+                             tenant: Tenants,
+                             region: RegionConfig,
+                             user: Any,
+                             app: ServiceGroup,
+                             upgrade_group_id: str,
+                             version: str) -> Tuple[Any, Any]:
         component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
 
         app_template_source = self._app_template_source(app.app_id, component_group.group_key, upgrade_group_id)
@@ -163,19 +204,28 @@ class UpgradeService(object):
         return app_upgrade.app_property_changes, app_upgrade.changes()
 
     @staticmethod
-    def get_latest_upgrade_record(tenant: Tenants, app: ServiceGroup, upgrade_group_id=None, record_type=None):
+    def get_latest_upgrade_record(tenant: Tenants,
+                                  app: ServiceGroup,
+                                  upgrade_group_id: Optional[str] = None,
+                                  record_type: Optional[str] = None) -> Optional[dict]:
         if upgrade_group_id:
             # check upgrade_group_id
             tenant_service_group_repo.get_component_group(upgrade_group_id)
-        record = upgrade_repo.get_last_upgrade_record(tenant.tenant_id, app.app_id, upgrade_group_id, record_type)
+        # NOTE: upgrade_group_id is a str identifier passed to an int-typed repo
+        # param (runtime-safe; ORM coerces the lookup value).
+        record = upgrade_repo.get_last_upgrade_record(
+            tenant.tenant_id, app.app_id, upgrade_group_id, record_type)  # type: ignore[arg-type]
         return record.to_dict() if record else None
 
     @transaction.atomic
-    def create_upgrade_record(self, enterprise_id, tenant: Tenants, app: ServiceGroup, upgrade_group_id):
+    def create_upgrade_record(self, enterprise_id: str, tenant: Tenants, app: ServiceGroup,
+                              upgrade_group_id: str) -> dict:
         component_group = tenant_service_group_repo.get_component_group(upgrade_group_id)
 
         # If there are unfinished record, it is not allowed to create new record
-        last_record = upgrade_repo.get_last_upgrade_record(tenant.tenant_id, app.ID, upgrade_group_id)
+        # NOTE: .ID is an int AutoField used as a str identifier (runtime-safe).
+        last_record = upgrade_repo.get_last_upgrade_record(
+            tenant.tenant_id, app.ID, upgrade_group_id)  # type: ignore[arg-type]
         if last_record and not last_record.is_finished():
             raise ErrLastRecordUnfinished
 
@@ -198,7 +248,13 @@ class UpgradeService(object):
         record = upgrade_repo.create_app_upgrade_record(**record)
         return record.to_dict()
 
-    def list_records(self, tenant_name, region_name, app_id, record_type=None, page=1, page_size=10):
+    def list_records(self,
+                     tenant_name: str,
+                     region_name: str,
+                     app_id: str,
+                     record_type: Optional[str] = None,
+                     page: int = 1,
+                     page_size: int = 10) -> Tuple[list, int]:
         # list records and pagination
         records = upgrade_repo.list_records_by_app_id(app_id, record_type)
         records = records.exclude(Q(status=1))
@@ -209,7 +265,7 @@ class UpgradeService(object):
 
         return [record.to_dict() for record in records], paginator.count
 
-    def sync_unfinished_records(self, tenant_name, region_name, records):
+    def sync_unfinished_records(self, tenant_name: str, region_name: str, records: Any) -> None:
         for record in records:
             if record.is_finished:
                 continue
@@ -217,7 +273,7 @@ class UpgradeService(object):
             self.sync_record(tenant_name, region_name, record)
             break
 
-    def sync_record(self, tenant_name, region_name, record: AppUpgradeRecord):
+    def sync_record(self, tenant_name: str, region_name: str, record: AppUpgradeRecord) -> None:
         # list component records
         component_records = component_upgrade_record_repo.list_by_app_record_id(record.ID)
         # filter out the finished records
@@ -225,7 +281,9 @@ class UpgradeService(object):
         # list events
         event_ids = [event_id for event_id in unfinished.keys()]
         body = region_api.get_tenant_events(region_name, tenant_name, event_ids)
-        events = body.get("list", [])
+        # NOTE: get_tenant_events may return None; accessed unguarded
+        # (potential latent None-bug — see report).
+        events = body.get("list", [])  # type: ignore[union-attr]
 
         for event in events:
             component_record = unfinished.get(event["event_id"])
@@ -238,7 +296,7 @@ class UpgradeService(object):
         # save app record and component records
         self.save_upgrade_record(record, component_records)
 
-    def deploy(self, tenant, region_name, user, record: AppUpgradeRecord):
+    def deploy(self, tenant: Tenants, region_name: str, user: Any, record: AppUpgradeRecord) -> None:
         if not record.can_deploy():
             raise ErrAppUpgradeRecordCanNotDeploy
 
@@ -267,23 +325,25 @@ class UpgradeService(object):
         self._update_component_records(record, failed_component_records.values(), events)
 
     @staticmethod
-    def save_upgrade_record(app_upgrade_record, component_upgrade_records):
+    def save_upgrade_record(app_upgrade_record: AppUpgradeRecord, component_upgrade_records: Any) -> None:
         app_upgrade_record.save()
         component_upgrade_record_repo.bulk_update(component_upgrade_records)
 
-    def get_app_upgrade_record(self, tenant_name, region_name, record_id):
-        record = upgrade_repo.get_by_record_id(record_id)
+    def get_app_upgrade_record(self, tenant_name: str, region_name: str, record_id: str) -> dict:
+        # NOTE: record_id is a str identifier passed to an int-typed repo param
+        # (runtime-safe; ORM coerces the lookup value).
+        record = upgrade_repo.get_by_record_id(record_id)  # type: ignore[arg-type]
         if not record.is_finished():
             self.sync_record(tenant_name, region_name, record)
         return self.serialized_upgrade_record(record)
 
     @staticmethod
-    def list_rollback_record(upgrade_record: AppUpgradeRecord):
+    def list_rollback_record(upgrade_record: AppUpgradeRecord) -> list:
         records = upgrade_repo.list_by_rollback_records(upgrade_record.ID)
         return [record.to_dict() for record in records]
 
     @staticmethod
-    def _update_component_records(app_record: AppUpgradeRecord, component_records, events):
+    def _update_component_records(app_record: AppUpgradeRecord, component_records: Any, events: Any) -> None:
         if not events:
             return
         event_ids = {event["service_id"]: event["event_id"] for event in events}
@@ -297,7 +357,7 @@ class UpgradeService(object):
             component_record.event_id = event_id
         component_upgrade_record_repo.bulk_update(component_records)
 
-    def _update_component_record_status(self, record: ServiceUpgradeRecord, event_status):
+    def _update_component_record_status(self, record: ServiceUpgradeRecord, event_status: str) -> None:
         if event_status == "":
             return
         status_table = self.status_tables.get(record.status, {})
@@ -310,7 +370,7 @@ class UpgradeService(object):
             return
         record.status = status
 
-    def _update_app_record_status(self, app_record, component_records):
+    def _update_app_record_status(self, app_record: AppUpgradeRecord, component_records: Any) -> None:
         if self._is_upgrade_status_unfinished(component_records):
             return
         if self._is_upgrade_status_failed(component_records):
@@ -332,12 +392,12 @@ class UpgradeService(object):
             app_record.status = UpgradeStatus.PARTIAL_ROLLBACK.value
 
     @staticmethod
-    def _is_upgrade_status_unfinished(component_records):
+    def _is_upgrade_status_unfinished(component_records: Any) -> bool:
         unfinished_statuses = [UpgradeStatus.NOT.value, UpgradeStatus.UPGRADING.value, UpgradeStatus.ROLLING.value]
         return any(component_record.status in unfinished_statuses for component_record in component_records)
 
     @staticmethod
-    def _is_upgrade_status_failed(component_records):
+    def _is_upgrade_status_failed(component_records: Any) -> bool:
         component_records = list(component_records)
         failed_statuses = [UpgradeStatus.ROLLBACK_FAILED.value, UpgradeStatus.UPGRADE_FAILED.value]
         return bool(component_records) and all(
@@ -345,14 +405,20 @@ class UpgradeService(object):
         )
 
     @staticmethod
-    def _is_upgrade_status_success(component_records):
+    def _is_upgrade_status_success(component_records: Any) -> bool:
         component_records = list(component_records)
         success_statuses = [UpgradeStatus.UPGRADED.value, UpgradeStatus.ROLLBACK.value]
         return bool(component_records) and all(
             component_record.status in success_statuses for component_record in component_records
         )
 
-    def get_or_create_upgrade_record(self, tenant_id, group_id, group_key, upgrade_group_id, is_from_cloud, market_name):
+    def get_or_create_upgrade_record(self,
+                                     tenant_id: str,
+                                     group_id: str,
+                                     group_key: str,
+                                     upgrade_group_id: str,
+                                     is_from_cloud: bool,
+                                     market_name: str) -> AppUpgradeRecord:
         """获取或创建升级记录"""
         recode_kwargs = {
             "tenant_id": tenant_id,
@@ -377,7 +443,10 @@ class UpgradeService(object):
                             msg="the rainbond app is not in the group", msg_show="该应用中没有这个云市组件", status_code=404)
                     app_name = app.app_name
                 else:
-                    market = app_market_service.get_app_market_by_name(tenant.enterprise_id, market_name, raise_exception=True)
+                    # NOTE: enterprise_id is a nullable model field typed str |
+                    # None by django-stubs; non-None in this flow (invariant).
+                    market = app_market_service.get_app_market_by_name(
+                        tenant.enterprise_id, market_name, raise_exception=True)  # type: ignore[arg-type]
                     app = app_market_service.get_market_app_model(market, group_key)
                     app_name = app.app_name
                 app_record = upgrade_repo.create_app_upgrade_record(group_name=app_name, **recode_kwargs)
@@ -385,7 +454,7 @@ class UpgradeService(object):
             else:
                 raise AbortRequest(msg="the app model is not in the group", msg_show="该应用中没有这个应用模型", status_code=404)
 
-    def get_app_not_upgrade_record(self, tenant_id, group_id, group_key):
+    def get_app_not_upgrade_record(self, tenant_id: str, group_id: str, group_key: str) -> AppUpgradeRecord:
         """获取未完成升级记录"""
         recode_kwargs = {
             "tenant_id": tenant_id,
@@ -398,7 +467,7 @@ class UpgradeService(object):
             return AppUpgradeRecord()
 
     @staticmethod
-    def get_new_services(parse_app_template, service_keys):
+    def get_new_services(parse_app_template: dict, service_keys: Any) -> dict:
         """获取新添加的组件信息
         :type parse_app_template: dict
         :type service_keys: set
@@ -408,12 +477,13 @@ class UpgradeService(object):
         return {key: parse_app_template[key] for key in new_service_keys}
 
     @staticmethod
-    def parse_app_template(app_template):
+    def parse_app_template(app_template: str) -> dict:
         """解析app_template， 返回service_key与service_info映射"""
         return {app['service_key']: app for app in json.loads(app_template)['apps']}
 
     @staticmethod
-    def get_service_changes(service, tenant, version, services):
+    def get_service_changes(service: TenantServiceInfo, tenant: Tenants, version: str,
+                            services: Any) -> Optional[Tuple[Any, Any, Any]]:
         """获取组件更新信息"""
         from console.services.app_actions.properties_changes import \
             PropertiesChanges
@@ -423,11 +493,21 @@ class UpgradeService(object):
             model_component, changes = pc.get_property_changes(template=upgrade_template, level="app")
             return pc.current_version, model_component, changes
         except (RecordNotFound, ErrServiceSourceNotFound) as e:
+            # NOTE: AbortRequest is constructed but NOT raised here, so the method
+            # falls through and returns None (latent bug — see report).
             AbortRequest(msg=str(e))
+            return None
         except RbdAppNotFound as e:
+            # NOTE: same latent bug — AbortRequest constructed but not raised.
             AbortRequest(msg=str(e))
+            return None
 
-    def get_add_services(self, enterprise_id, services, group_key, version, market_name=None):
+    def get_add_services(self,
+                         enterprise_id: str,
+                         services: Any,
+                         group_key: str,
+                         version: str,
+                         market_name: Optional[str] = None) -> Optional[list]:
         """获取新增组件"""
         app_template = None
         if services:
@@ -444,10 +524,12 @@ class UpgradeService(object):
                     app_template = app.template
             if app_template:
                 return list(self.get_new_services(self.parse_app_template(app_template), service_keys).values())
+            # NOTE: no app_template resolved -> implicit None (preserved behavior).
+            return None
         else:
             return []
 
-    def synchronous_upgrade_status(self, tenant, region_name, record):
+    def synchronous_upgrade_status(self, tenant: Tenants, region_name: str, record: AppUpgradeRecord) -> None:
         """ 同步升级状态
         :type tenant: www.models.main.Tenants
         :type record: AppUpgradeRecord
@@ -470,7 +552,9 @@ class UpgradeService(object):
         }
         event_ids = list(event_service_mapping.keys())
         body = region_api.get_tenant_events(region_name, tenant.tenant_name, event_ids)
-        events = body.get("list", [])
+        # NOTE: get_tenant_events may return None; accessed unguarded
+        # (potential latent None-bug — see report).
+        events = body.get("list", [])  # type: ignore[union-attr]
         for event in events:
             service_record = event_service_mapping[event["EventID"]]
             self._change_service_record_status(event["Status"], service_record)
@@ -488,7 +572,7 @@ class UpgradeService(object):
             upgrade_repo.change_app_record_status(record, status)
 
     @staticmethod
-    def create_add_service_record(app_record, events, add_service_infos):
+    def create_add_service_record(app_record: AppUpgradeRecord, events: dict, add_service_infos: dict) -> None:
         """创建新增组件升级记录"""
         service_id_event_mapping = {events[key]: key for key in events}
         services = service_repo.get_services_by_service_ids_and_group_key(app_record.group_key,
@@ -502,12 +586,12 @@ class UpgradeService(object):
                 upgrade_type=ServiceUpgradeRecord.UpgradeType.ADD.value)
 
     @staticmethod
-    def market_service_and_create_backup(tenant,
-                                         service,
-                                         version,
-                                         all_component_one_model=None,
-                                         component_change_info=None,
-                                         app_version=None):
+    def market_service_and_create_backup(tenant: Tenants,
+                                         service: TenantServiceInfo,
+                                         version: str,
+                                         all_component_one_model: Any = None,
+                                         component_change_info: Optional[dict] = None,
+                                         app_version: Any = None) -> Any:
         """创建组件升级接口并创建备份"""
         from console.services.app_actions.app_deploy import MarketService
 
@@ -516,7 +600,7 @@ class UpgradeService(object):
         return market_service
 
     @staticmethod
-    def upgrade_database(market_services):
+    def upgrade_database(market_services: Any) -> None:
         """升级数据库数据"""
         from console.services.app_actions.app_deploy import PropertyType
         try:
@@ -553,7 +637,13 @@ class UpgradeService(object):
                 market_service.restore_backup()
             raise ServiceHandleException(msg="upgrade app failure", msg_show="升级时发送错误, 已升级组件已自动回滚，但新增组件不会进行删除，请手动处理")
 
-    def send_upgrade_request(self, market_services, tenant, user, app_record, service_infos, oauth_instance):
+    def send_upgrade_request(self,
+                             market_services: Any,
+                             tenant: Tenants,
+                             user: Any,
+                             app_record: AppUpgradeRecord,
+                             service_infos: dict,
+                             oauth_instance: Any) -> None:
         """向数据中心发送更新请求"""
         from console.services.app_actions.app_deploy import AppDeployService
 
@@ -572,7 +662,7 @@ class UpgradeService(object):
                                                        self._get_sync_upgrade_status(code, event_id))
 
     @staticmethod
-    def _get_sync_upgrade_status(code, event):
+    def _get_sync_upgrade_status(code: int, event: Any) -> int:
         """通过异步请求状态判断升级状态"""
         if code == 200 and event:
             status = UpgradeStatus.UPGRADING.value
@@ -583,7 +673,7 @@ class UpgradeService(object):
         return status
 
     @staticmethod
-    def _change_service_record_status(event_status, service_record):
+    def _change_service_record_status(event_status: str, service_record: ServiceUpgradeRecord) -> None:
         """变更组件升级记录状态"""
         operation = {
             # 升级中
@@ -604,11 +694,11 @@ class UpgradeService(object):
             upgrade_repo.change_service_record_status(service_record, status)
 
     @staticmethod
-    def _judging_status_upgrading(service_status):
+    def _judging_status_upgrading(service_status: Any) -> Optional[int]:
         """判断升级状态"""
         status = None
         if UpgradeStatus.UPGRADING.value in service_status:
-            return
+            return None
         elif service_status == {UpgradeStatus.UPGRADE_FAILED.value, UpgradeStatus.UPGRADED.value}:
             status = UpgradeStatus.PARTIAL_UPGRADED.value
         elif service_status == {UpgradeStatus.UPGRADED.value}:
@@ -620,11 +710,11 @@ class UpgradeService(object):
         return status
 
     @staticmethod
-    def _judging_status_rolling(service_status):
+    def _judging_status_rolling(service_status: Any) -> Optional[int]:
         """判断回滚状态"""
         status = None
         if UpgradeStatus.ROLLING.value in service_status:
-            return
+            return None
         elif len(service_status) > 1 and service_status <= {
                 UpgradeStatus.ROLLBACK_FAILED.value,
                 UpgradeStatus.ROLLBACK.value,
@@ -640,7 +730,7 @@ class UpgradeService(object):
         return status
 
     @staticmethod
-    def market_service_and_restore_backup(tenant, service, version):
+    def market_service_and_restore_backup(tenant: Tenants, service: TenantServiceInfo, version: str) -> Any:
         """创建组件回滚接口并回滚数据库"""
         from console.services.app_actions.app_deploy import MarketService
 
@@ -650,7 +740,12 @@ class UpgradeService(object):
         market_service.restore_backup()
         return market_service
 
-    def send_rolling_request(self, market_services, tenant, user, app_record, service_records):
+    def send_rolling_request(self,
+                             market_services: Any,
+                             tenant: Tenants,
+                             user: Any,
+                             app_record: AppUpgradeRecord,
+                             service_records: Any) -> None:
         """向数据中心发送回滚请求"""
         from console.services.app_actions.app_deploy import AppDeployService
 
@@ -666,7 +761,7 @@ class UpgradeService(object):
                 service_record.save()
 
     @staticmethod
-    def _get_sync_rolling_status(code, event_id):
+    def _get_sync_rolling_status(code: int, event_id: Any) -> int:
         """通过异步请求状态判断回滚状态"""
         if code == 200 and event_id:
             status = UpgradeStatus.ROLLING.value
@@ -677,7 +772,7 @@ class UpgradeService(object):
         return status
 
     @staticmethod
-    def serialized_upgrade_record(app_record):
+    def serialized_upgrade_record(app_record: AppUpgradeRecord) -> dict:
         """序列化升级记录
         :type : AppUpgradeRecord
         """
@@ -697,24 +792,42 @@ class UpgradeService(object):
             } for service_record in app_record.service_upgrade_records.all()],
             **app_record.to_dict())
 
-    def get_upgrade_info(self, team, services, app_model_id, app_model_version, market_name):
+    def get_upgrade_info(self,
+                         team: Tenants,
+                         services: Any,
+                         app_model_id: str,
+                         app_model_version: str,
+                         market_name: str) -> Tuple[dict, dict]:
         # 查询某一个云市应用下的所有组件
         upgrade_info = {}
         for service in services:
-            _, _, changes = upgrade_service.get_service_changes(service, team, app_model_version, services)
+            # NOTE: get_service_changes returns None on caught exceptions; the
+            # tuple-unpack would then fail (potential latent None-bug — see report).
+            _, _, changes = upgrade_service.get_service_changes(  # type: ignore[misc]
+                service, team, app_model_version, services)
             if not changes:
                 continue
             upgrade_info[service.service_id] = changes
 
+        # NOTE: get_add_services may return None (iterated unguarded -> latent
+        # None-bug); enterprise_id is a nullable str | None model field, non-None
+        # in this flow (invariant). See report.
+        add_services = upgrade_service.get_add_services(
+            team.enterprise_id, services, app_model_id, app_model_version, market_name)  # type: ignore[arg-type]
         add_info = {
             service_info['service_key']: service_info
-            for service_info in upgrade_service.get_add_services(team.enterprise_id, services, app_model_id, app_model_version,
-                                                                 market_name)
+            for service_info in add_services  # type: ignore[union-attr]
         }
         return upgrade_info, add_info
 
     @transaction.atomic()
-    def openapi_upgrade_app_models(self, user, team, region_name, oauth_instance, app_id, data):
+    def openapi_upgrade_app_models(self,
+                                   user: Any,
+                                   team: Tenants,
+                                   region_name: str,
+                                   oauth_instance: Any,
+                                   app_id: str,
+                                   data: dict) -> list:
         from console.services.market_app_service import market_app_service
         update_versions = data["update_versions"]
         app_records = []
@@ -724,7 +837,10 @@ class UpgradeService(object):
             market_name = update_version["market_name"]
             # TODO: get upgrade component will set upgrade_group_id.
             # Otherwise, there is a problem with multiple installs and upgrades of an application.
-            services = group_service.get_rainbond_services(int(app_id), app_model_id)
+            # NOTE: app_id is coerced to int then used as a str identifier param
+            # (runtime-safe; ORM coerces the lookup value).
+            services = group_service.get_rainbond_services(
+                int(app_id), app_model_id)  # type: ignore[arg-type]
             if not services:
                 continue
             exist_component = services.first()
@@ -748,8 +864,10 @@ class UpgradeService(object):
             # 处理新增的组件
             install_info = {}
             if add_info:
+                # NOTE: pc.market is typed Optional[AppMarket]; non-None for a
+                # cloud-sourced app in this branch (invariant).
                 old_app = app_market_service.get_market_app_model_version(
-                    pc.market, app_model_id, app_model_version, get_template=True)
+                    pc.market, app_model_id, app_model_version, get_template=True)  # type: ignore[arg-type]
                 new_app = deepcopy(old_app)
                 # mock app信息
                 template = json.loads(new_app.template)
@@ -758,19 +876,32 @@ class UpgradeService(object):
 
                 # 查询某一个云市应用下的所有组件
                 try:
-                    install_info = market_app_service.install_service_when_upgrade_app(
-                        team, region_name, user, app_id, new_app, old_app, services, True,
+                    # NOTE: install_service_when_upgrade_app accepts 10 positional
+                    # args (after self) but is called with 11 — both new_app and
+                    # old_app are passed where a single market_app_version slot
+                    # exists (wrong-arg-count bug — see report).
+                    install_info = market_app_service.install_service_when_upgrade_app(  # type: ignore[call-arg]
+                        # arg slots misaligned by the wrong-arg-count bug above -> True lands on a str param
+                        team, region_name, user, app_id, new_app, old_app, services, True,  # type: ignore[arg-type]
                         exist_component.tenant_service_group_id, pc.install_from_cloud, pc.market_name)
                 except ResourceNotEnoughException as re:
                     raise re
                 except AccountOverdueException as re:
                     logger.exception(re)
+                    # NOTE: AccountOverdueException has no `message` attr (uses
+                    # `msg`/`msg_show`); accessing .message raises AttributeError
+                    # at runtime (latent bug — see report).
                     raise ServiceHandleException(
-                        msg="resource is not enough", msg_show=re.message, status_code=412, error_code=10406)
+                        msg="resource is not enough",
+                        msg_show=re.message,  # type: ignore[attr-defined]
+                        status_code=412,
+                        error_code=10406)
                 upgrade_service.create_add_service_record(app_record, install_info['events'], add_info)
 
             app_record.version = app_model_version
-            app_record.old_version = pc.current_version
+            # NOTE: pc.current_version may be None; the CharField is non-null
+            # typed by django-stubs (assignment is runtime-safe).
+            app_record.old_version = pc.current_version  # type: ignore[assignment]
             app_record.save()
             # 处理升级组件
             upgrade_services = service_repo.get_services_by_service_ids_and_group_key(app_model_id, list(upgrade_info.keys()))

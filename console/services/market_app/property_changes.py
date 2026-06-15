@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Any, Dict, List, Optional
 
 from .new_app import NewApp
 from .original_app import OriginalApp
@@ -22,32 +23,36 @@ logger = logging.getLogger("default")
 
 
 class PropertyChanges(object):
-    def __init__(self, components: [Component], plugins: [TenantPlugin], app_template, support_labels):
+    def __init__(self,
+                 components: List[Component],
+                 plugins: List[TenantPlugin],
+                 app_template: dict,
+                 support_labels: Any) -> None:
         self.components = components
         self.plugins = plugins
         self.app_template = app_template
         self.support_labels = support_labels
         self.changes = self._get_component_changes(components, app_template)
 
-    def need_change(self):
+    def need_change(self) -> List[Any]:
         return self.changes
 
-    def ensure_dep_changes(self, new_app: NewApp, original_app: OriginalApp):
+    def ensure_dep_changes(self, new_app: NewApp, original_app: OriginalApp) -> None:
         update_components = {component.component.component_id: component for component in new_app.list_update_components()}
         # get origin component dependency
-        original_components_deps = {}
+        original_components_deps: Dict[str, List[Any]] = {}
         for dep in original_app.component_deps:
             if not original_components_deps.get(dep.service_id):
                 original_components_deps[dep.service_id] = [dep]
                 continue
             original_components_deps[dep.service_id].append(dep)
-        original_components_volume_deps = {}
+        original_components_volume_deps: Dict[str, List[Any]] = {}
         for vol_dep in original_app.volume_deps:
             if not original_components_volume_deps.get(vol_dep.service_id):
                 original_components_volume_deps[vol_dep.service_id] = [vol_dep]
                 continue
             original_components_volume_deps[vol_dep.service_id].append(vol_dep)
-        original_components_config_groups = {}
+        original_components_config_groups: Dict[str, List[Any]] = {}
         for config_group in original_app.config_group_components:
             if not original_components_config_groups.get(config_group.service_id):
                 original_components_config_groups[config_group.service_id] = [config_group]
@@ -76,7 +81,7 @@ class PropertyChanges(object):
                 update_component.update_action_type(ActionType.UPDATE.value)
 
     @staticmethod
-    def _is_dep_equal(old_deps, new_deps):
+    def _is_dep_equal(old_deps: Any, new_deps: Any) -> bool:
         old_deps = old_deps if old_deps else []
         new_deps = new_deps if new_deps else []
         if len(old_deps) != len(new_deps):
@@ -90,7 +95,7 @@ class PropertyChanges(object):
 
         return True
 
-    def _get_component_changes(self, components, app_template):
+    def _get_component_changes(self, components: List[Component], app_template: dict) -> List[Dict[str, Any]]:
         cpt_changes = []
         for cpt in components:
             # get component template
@@ -101,7 +106,7 @@ class PropertyChanges(object):
 
         return cpt_changes
 
-    def _get_component_change(self, component: Component, component_tmpl: map):
+    def _get_component_change(self, component: Component, component_tmpl: Any) -> Dict[str, Any]:
         result = {"component_id": component.component.service_id}
         deploy_version = self._deploy_version(component.component.deploy_version, component_tmpl.get("deploy_version"))
         if deploy_version:
@@ -146,7 +151,7 @@ class PropertyChanges(object):
         return result
 
     @staticmethod
-    def _deploy_version(old, new):
+    def _deploy_version(old: Any, new: Any) -> Optional[Dict[str, Any]]:
         """
         compare the old and new deploy versions to determine if there is any change
         """
@@ -159,7 +164,7 @@ class PropertyChanges(object):
         return {"old": old, "new": new, "is_change": is_change}
 
     @staticmethod
-    def _envs(exist_envs, new_envs):
+    def _envs(exist_envs: Any, new_envs: Any) -> Optional[Dict[str, Any]]:
         """
         Environment variables are only allowed to increase, not allowed to
         update and delete. Compare existing environment variables and input
@@ -172,14 +177,14 @@ class PropertyChanges(object):
         return {"add": add_env}
 
     @staticmethod
-    def _ports(old_ports, new_ports):
+    def _ports(old_ports: Any, new_ports: Any) -> Optional[Dict[str, Any]]:
         """
         Support for adding and updating.
         Allow to update is_inner_service, is_inner_service, protocol and port alias.
         The port can be opened, but the port cannot be closed.
         """
         if not new_ports:
-            return
+            return None
         old_container_ports = {port.container_port: port for port in old_ports}
         create_ports = [port for port in new_ports if port["container_port"] not in old_container_ports]
 
@@ -197,7 +202,7 @@ class PropertyChanges(object):
         if not create_ports and not update_ports:
             return None
 
-        result = {}
+        result: Dict[str, Any] = {}
         if create_ports:
             result["add"] = create_ports
         if update_ports:
@@ -205,12 +210,12 @@ class PropertyChanges(object):
         return result
 
     @staticmethod
-    def _volumes(old_volumes, new_volumes, config_files):
+    def _volumes(old_volumes: Any, new_volumes: Any, config_files: Any) -> Optional[Dict[str, Any]]:
         """
         Support for adding volume and updating config file.
         """
         if not new_volumes:
-            return
+            return None
         old_volume_paths = {volume.volume_path: volume for volume in old_volumes}
         old_volume_names = {volume.volume_name: volume for volume in old_volumes}
         config_files = {config_file.volume_name: config_file for config_file in config_files}
@@ -232,8 +237,9 @@ class PropertyChanges(object):
                 continue
             # configuration file
             config_file = config_files.get(new_volume["volume_name"])
-            if config_file and config_file.file_content != new_volume["file_content"] or old_volume.mode != new_volume.get(
+            if config_file and config_file.file_content != new_volume["file_content"] or old_volume.mode != new_volume.get(  # type: ignore[union-attr]
                     "mode"):
+                # NOTE: old_volume can be None when old_volume_name matched; old_volume.mode would AttributeError at runtime
                 update.append(new_volume)
         if not add and not update:
             return None
@@ -243,7 +249,7 @@ class PropertyChanges(object):
         }
 
     @staticmethod
-    def _probe(old_probes, new_probes):
+    def _probe(old_probes: Any, new_probes: Any) -> Optional[Dict[str, Any]]:
         """
         Support adding and updating all attributes
         """
@@ -281,7 +287,7 @@ class PropertyChanges(object):
             probe = old_probes[mode]
             delete.append(probe.to_dict())
 
-        result = {}
+        result: Dict[str, Any] = {}
         if add:
             result["add"] = add
         if upd:
@@ -291,7 +297,7 @@ class PropertyChanges(object):
         return result
 
     @staticmethod
-    def _graphs(component_id, old_graphs, graphs, arch):
+    def _graphs(component_id: str, old_graphs: Any, graphs: Any, arch: str) -> Optional[Dict[str, Any]]:
         """
         Support adding and updating promql
         """
@@ -321,7 +327,7 @@ class PropertyChanges(object):
         }
 
     @staticmethod
-    def _monitors(tenant_id, old_monitors, monitors):
+    def _monitors(tenant_id: str, old_monitors: Any, monitors: Any) -> Optional[Dict[str, Any]]:
         """
         Support adding and updating
         """
@@ -345,7 +351,7 @@ class PropertyChanges(object):
             return None
         return {"add": add}
 
-    def _plugin_deps(self, old_plugin_deps: [TenantServicePluginRelation], plugin_deps):
+    def _plugin_deps(self, old_plugin_deps: List[TenantServicePluginRelation], plugin_deps: Any) -> Optional[Dict[str, Any]]:
         if not plugin_deps:
             return None
         add = []
@@ -365,7 +371,7 @@ class PropertyChanges(object):
             return {}
         return {"add": add}
 
-    def _labels(self, old_labels, new_labels):
+    def _labels(self, old_labels: Any, new_labels: Any) -> Optional[Dict[str, Any]]:
         """
         Support adding.
         """
@@ -385,7 +391,7 @@ class PropertyChanges(object):
         return {"add": add}
 
     @staticmethod
-    def _k8s_attrs(old_k8s_attrs, new_k8s_attrs):
+    def _k8s_attrs(old_k8s_attrs: Any, new_k8s_attrs: Any) -> Optional[Dict[str, Any]]:
         """
         Support adding and updating component k8s attributes
         """
@@ -402,7 +408,7 @@ class PropertyChanges(object):
                 continue
             if old_attr.attribute_value != new_attr.get("attribute_value"):
                 update.append(new_attr)
-        result = {}
+        result: Dict[str, Any] = {}
         if add:
             result["add"] = add
         if update:
