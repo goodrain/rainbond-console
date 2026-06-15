@@ -333,6 +333,16 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
+    def set_vm_fixed_pod_ip(self, region, tenant_name, service_alias, body):
+        url, token = self.__get_region_access_info(tenant_name, region)
+        tenant_region = self.__get_tenant_region_info(tenant_name, region)
+        url = url + "/v2/tenants/{}/services/{}/vm-network/fixed-ip".format(
+            tenant_region.region_tenant_name, service_alias)
+
+        self._set_headers(token, resource_validation="true")
+        res, body = self._put(url, self.default_headers, region=region, body=json.dumps(body))
+        return res, body
+
     def change_memory(self, region, tenant_name, service_alias, body):
         """根据组件语言设置内存"""
 

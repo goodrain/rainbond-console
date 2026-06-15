@@ -137,6 +137,30 @@ class VirtualMachineServiceTests(TestCase):
         self.assertEqual({"export_name": "osdisk-export", "phase": "Ready"}, bean)
         get_export.assert_called_once_with("demo-region", "demo-team", "demo-vm", "osdisk-export")
 
+    def test_set_vm_fixed_pod_ip_calls_region_api(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+        service = SimpleNamespace(service_alias="demo-vm", service_region="demo-region")
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.set_vm_fixed_pod_ip",
+            return_value=(None, {"bean": {
+                "fixed_ip_enabled": True,
+                "fixed_ip": "10.42.0.15",
+                "restarted": True,
+            }}),
+        ) as set_fixed_ip:
+            bean = vms.set_vm_fixed_pod_ip(tenant, service, True)
+
+        self.assertEqual("10.42.0.15", bean["fixed_ip"])
+        self.assertTrue(bean["fixed_ip_enabled"])
+        self.assertTrue(bean["restarted"])
+        set_fixed_ip.assert_called_once_with(
+            "demo-region",
+            "demo-team",
+            "demo-vm",
+            {"enabled": True},
+        )
+
     def test_get_vm_capabilities_defaults_to_empty_payload(self):
         with mock.patch("console.services.virtual_machine.region_api.get_vm_capabilities",
                         return_value=(None, {})):
@@ -639,6 +663,8 @@ class VirtualMachineServiceTests(TestCase):
             ("vm_gpu_resources", json.dumps(["gpu.example.com/A10"])),
             ("vm_usb_enabled", "true"),
             ("vm_usb_resources", json.dumps(["kubevirt.io/usb-a"])),
+            ("vm_fixed_ip_enabled", "true"),
+            ("vm_fixed_ip", "10.42.0.15"),
         ):
             ComponentK8sAttributes.objects.create(
                 tenant_id="tenant-a",
@@ -667,6 +693,12 @@ class VirtualMachineServiceTests(TestCase):
         self.assertNotIn("network_mode", profile["runtime"])
         self.assertNotIn("network_name", profile["runtime"])
         self.assertNotIn("fixed_ip", profile["runtime"])
+        self.assertEqual("pod", profile["network"]["mode"])
+        self.assertTrue(profile["network"]["fixed_ip_enabled"])
+        self.assertEqual("10.42.0.15", profile["network"]["fixed_ip"])
+        self.assertEqual("10.42.0.15", profile["network"]["current_pod_ip"])
+        self.assertFalse(profile["network"]["hot_update_supported"])
+        self.assertFalse(profile["network"]["live_migration_supported"])
         self.assertTrue(profile["runtime"]["gpu_enabled"])
         self.assertEqual(["gpu.example.com/A10"], profile["runtime"]["gpu_resources"])
         self.assertTrue(profile["runtime"]["usb_enabled"])

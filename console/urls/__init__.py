@@ -60,7 +60,7 @@ from console.views.app_monitor import (AppMonitorQueryRangeView, AppMonitorQuery
                                        AppTraceView,
                                        BatchAppMonitorQueryView, MonitorQueryOverConsoleView, MonitorQueryView)
 from console.views.app_overview import (AppAnalyzePluginView, AppBriefView, AppDetailView, AppGroupView,
-                                        AppVMDiskView, AppVMProfileView,
+                                        AppVMFixedIPView, AppVMDiskView, AppVMProfileView,
                                         AppGroupVisitView,
                                         AppKeywordView, AppPluginsBriefView, AppStatusView, AppVisitView,
                                         BuildSourceinfo,
@@ -565,6 +565,8 @@ urlpatterns = [
         perms.APP_OVERVIEW_CREATE),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-profile$', AppVMProfileView.as_view(),
         perms.APP_OVERVIEW_CREATE),
+    url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-network/fixed-ip$',
+        AppVMFixedIPView.as_view(), perms.APP_OVERVIEW_CREATE),
     url(r'^teams/(?P<tenantName>[\w\-]+)/apps/(?P<serviceAlias>[\w\-]+)/vm-disks$', AppVMDiskView.as_view(),
         perms.APP_OVERVIEW_CREATE),
     # 是否安装性能分析插件
