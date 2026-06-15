@@ -605,6 +605,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-backup.delete-in-progress",
+      "title": "Reject deleting a group backup while it is still in progress",
+      "title_zh": "备份进行中时阻止删除该备份记录",
+      "interface_type": "service_method",
+      "interface": "console.services.backup_service.GroupAppBackupService.delete_group_backup_by_backup_id",
+      "code_paths": [
+        "console/services/backup_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/backup_service_test.py",
+          "selector": "GroupAppBackupServiceDeleteInProgressTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-backup.state-service-guard",
       "title": "Reject backup while stateful services are still running",
       "title_zh": "有状态组件未关闭时阻止备份",
@@ -635,6 +653,24 @@
         {
           "path": "console/tests/groupapp_backup_migration_test.py",
           "selector": "GroupAppsBackupStatusViewWorkflowTests.test_get_returns_backup_status_list_without_internal_server_info"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-backup.version-check",
+      "title": "Reject restoring a backup whose version does not match the platform",
+      "title_zh": "备份版本与平台版本不一致时阻止恢复",
+      "interface_type": "service_method",
+      "interface": "console.services.backup_data_service.PlatformDataBackupServices.version_than",
+      "code_paths": [
+        "console/services/backup_data_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/backup_data_service_version_than_test.py",
+          "selector": "VersionThanTests"
         }
       ],
       "test_type": "regression",
@@ -6677,6 +6713,42 @@
       "status": "active"
     },
     {
+      "id": "console.plugin.delete-by-sid",
+      "title": "Delete all plugin relations for a service by service id",
+      "title_zh": "按组件 ID 删除其全部插件关联",
+      "interface_type": "dao_method",
+      "interface": "console.repositories.plugin.service_plugin_repo.AppPluginRelationRepo.delete_by_sid",
+      "code_paths": [
+        "console/repositories/plugin/service_plugin_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/service_plugin_repo_delete_by_sid_test.py",
+          "selector": "DeleteBySidTest.test_delete_by_sid_deletes_matching_relations"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.plugin.downstream-port-config",
+      "title": "Read downstream port dest service attributes from ORM model not dict",
+      "title_zh": "下游端口配置从 ORM 模型对象读取目标组件属性",
+      "interface_type": "service_method",
+      "interface": "console.services.plugin.app_plugin.AppPluginService.create_plugin_cfg_4marketsvc",
+      "code_paths": [
+        "console/services/plugin/app_plugin.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_plugin_downstream_port_test.py",
+          "selector": "CreatePluginCfg4MarketsvcDownstreamPortTest.test_downstream_port_reads_dest_service_attributes"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.pod.detail",
       "title": "Pod Detail",
       "title_zh": "Pod Detail",
@@ -8059,6 +8131,25 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceToolVisibilityTests.test_get_current_user_returns_identity_and_enterprise_admin_flag"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.user.get-users-by-ids",
+      "title": "Fetch users by a list of user ids via the user repository",
+      "title_zh": "通过用户仓储按用户 ID 列表批量查询用户",
+      "interface_type": "service_method",
+      "interface": "console.services.user_services.UserService.get_users_by_user_ids",
+      "code_paths": [
+        "console/services/user_services.py",
+        "console/repositories/user_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_services_get_by_ids_test.py",
+          "selector": "GetUsersByUserIdsTest.test_delegates_to_repo_get_by_user_ids"
         }
       ],
       "test_type": "regression",

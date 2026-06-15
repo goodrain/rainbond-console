@@ -202,7 +202,7 @@ class GroupAppBackupService(object):
         if not backup_record:
             raise ErrBackupRecordNotFound
         if backup_record.status == "starting":
-            return ErrBackupInProgress  # type: ignore[return-value]  # NOTE: original code returns exception class instead of raising; preserving runtime behavior
+            raise ErrBackupInProgress
 
         try:
             region_api.delete_backup_by_backup_id(region, tenant.tenant_name, backup_id)

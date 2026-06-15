@@ -73,7 +73,7 @@ class AppPluginRelationRepo(object):
 
     def delete_by_sid(self, sid: str) -> None:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
-        TenantServicePluginRelation.objects.filter(service_id=sid)  # type: ignore[attr-defined]
+        TenantServicePluginRelation.objects.filter(service_id=sid).delete()  # type: ignore[attr-defined]
 
     def bulk_create(self, plugin_relations: List[TenantServicePluginRelation]) -> None:
         # .objects exists at runtime via ModelBase metaclass; stub gap (model not in app registry)
