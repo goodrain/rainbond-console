@@ -3,6 +3,7 @@
   Created on 18/5/15.
 """
 import base64
+import hashlib
 import json
 import logging
 import os
@@ -584,6 +585,88 @@ class AppImportService(object):
 
         app_import_record_repo.delete_by_event_id(event_id)
 
+    @staticmethod
+    def __normalize_import_identity_name(name):
+        return (name or "").strip()
+
+    @classmethod
+    def __same_import_app_identity(cls, app, app_template):
+        if not app:
+            return False
+        existing_name = cls.__normalize_import_identity_name(
+            getattr(app, "app_name", "") or getattr(app, "group_name", "")
+        )
+        imported_name = cls.__normalize_import_identity_name(app_template.get("group_name", ""))
+        return bool(getattr(app, "source", None) == "import" and existing_name == imported_name)
+
+    @staticmethod
+    def __canonical_import_template_for_fingerprint(app_template):
+        template = json.loads(json.dumps(app_template, sort_keys=True))
+        template.pop("group_key", None)
+        return template
+
+    @classmethod
+    def __build_import_template_fingerprint(cls, app_template):
+        template = cls.__canonical_import_template_for_fingerprint(app_template)
+        return hashlib.md5(json.dumps(template, sort_keys=True).encode("utf-8")).hexdigest()
+
+    @classmethod
+    def __is_same_import_version_content(cls, app_version, app_template):
+        if not app_version:
+            return True
+        try:
+            existing_template = json.loads(app_version.app_template)
+        except Exception:
+            return False
+        return cls.__build_import_template_fingerprint(existing_template) == cls.__build_import_template_fingerprint(
+            app_template
+        )
+
+    @staticmethod
+    def __build_import_collision_app_id(group_key, group_name, fingerprint="", index=0):
+        seed = "import:{0}:{1}".format(group_key, group_name)
+        if fingerprint:
+            seed = "{0}:{1}".format(seed, fingerprint)
+        if index:
+            seed = "{0}:{1}".format(seed, index)
+        return hashlib.md5(seed.encode("utf-8")).hexdigest()
+
+    def __resolve_import_app(self, app_template):
+        group_key = app_template["group_key"]
+        group_name = self.__normalize_import_identity_name(app_template.get("group_name", ""))
+        fingerprint = self.__build_import_template_fingerprint(app_template)
+        candidate_ids = [
+            group_key,
+            self.__build_import_collision_app_id(group_key, group_name),
+            self.__build_import_collision_app_id(group_key, group_name, fingerprint),
+        ]
+
+        for candidate_id in candidate_ids:
+            app = rainbond_app_repo.get_rainbond_app_by_app_id(candidate_id)
+            if not app:
+                return candidate_id, None
+            if not self.__same_import_app_identity(app, app_template):
+                continue
+            app_version = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(
+                candidate_id, app_template["group_version"]
+            )
+            if self.__is_same_import_version_content(app_version, app_template):
+                return candidate_id, app
+
+        for index in range(1, 100):
+            candidate_id = self.__build_import_collision_app_id(group_key, group_name, fingerprint, index)
+            app = rainbond_app_repo.get_rainbond_app_by_app_id(candidate_id)
+            if not app:
+                return candidate_id, None
+            if not self.__same_import_app_identity(app, app_template):
+                continue
+            app_version = rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version(
+                candidate_id, app_template["group_version"]
+            )
+            if self.__is_same_import_version_content(app_version, app_template):
+                return candidate_id, app
+        raise ExportAppError(msg="import app id collision", mes_show="导入应用模板 ID 冲突", status_code=500)
+
     def __save_enterprise_import_info(self, import_record, metadata, arch):
         rainbond_apps = []
         rainbond_app_versions = []
@@ -598,7 +681,8 @@ class AppImportService(object):
             apps = app_template.get("apps")
             if annotations.get("describe", ""):
                 app_describe = annotations.pop("describe", "")
-            app = rainbond_app_repo.get_rainbond_app_by_app_id(app_template["group_key"])
+            resolved_app_id, app = self.__resolve_import_app(app_template)
+            app_template["group_key"] = resolved_app_id
             if not arch:
                 arch_map = {a.get("arch", "amd64"): 1 for a in apps}
                 arch = "&".join(list(arch_map.keys()))
@@ -686,7 +770,8 @@ class AppImportService(object):
         key_and_version_list = []
         for app_template in metadata:
             app_template = self.__normalize_import_app_template(app_template)
-            app = rainbond_app_repo.get_rainbond_app_by_app_id(app_template["group_key"])
+            resolved_app_id, app = self.__resolve_import_app(app_template)
+            app_template["group_key"] = resolved_app_id
             if app:
                 # 覆盖原有应用数据
                 app.share_team = tenant.tenant_name  # 分享团队名暂时为那个团队将应用导入进来的
