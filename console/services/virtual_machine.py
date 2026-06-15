@@ -105,7 +105,9 @@ class VirtualMachineService(object):
             service.service_alias,
             {"enabled": bool(enabled)}
         )
-        return body.get("bean", {}) if isinstance(body, dict) else {}
+        bean = body.get("bean", {}) if isinstance(body, dict) else {}
+        self._persist_vm_fixed_pod_ip_state(service, bean, enabled)
+        return bean
 
     def list_vm_image(self, tenant_id, region_name=None, tenant_name=None):
         vm_images = list(vm_repo.get_vm_images_by_tenant_id(tenant_id))
@@ -1214,6 +1216,34 @@ class VirtualMachineService(object):
                     sync_context["service_alias"],
                     payload
                 )
+
+    def _persist_vm_fixed_pod_ip_state(self, service, bean, requested_enabled):
+        tenant_id = getattr(service, "tenant_id", "")
+        service_id = getattr(service, "service_id", "")
+        if not tenant_id or not service_id:
+            return
+
+        fixed_ip_enabled = bool(requested_enabled)
+        fixed_ip = ""
+        if isinstance(bean, dict):
+            if "fixed_ip_enabled" in bean:
+                fixed_ip_enabled = self._as_bool(bean.get("fixed_ip_enabled"))
+            fixed_ip = str(bean.get("fixed_ip") or "").strip()
+
+        self._persist_managed_k8s_attribute(
+            tenant_id,
+            service_id,
+            "vm_fixed_ip_enabled",
+            "string",
+            "true" if fixed_ip_enabled else "false",
+        )
+        self._persist_managed_k8s_attribute(
+            tenant_id,
+            service_id,
+            "vm_fixed_ip",
+            "string",
+            fixed_ip if fixed_ip_enabled and fixed_ip else None,
+        )
 
     def _normalize_asset_payload(self, payload):
         normalized = dict(payload)

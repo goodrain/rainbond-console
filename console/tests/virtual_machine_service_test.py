@@ -139,7 +139,12 @@ class VirtualMachineServiceTests(TestCase):
 
     def test_set_vm_fixed_pod_ip_calls_region_api(self):
         tenant = SimpleNamespace(tenant_name="demo-team")
-        service = SimpleNamespace(service_alias="demo-vm", service_region="demo-region")
+        service = SimpleNamespace(
+            service_alias="demo-vm",
+            service_region="demo-region",
+            service_id="service-vm",
+            tenant_id="tenant-a",
+        )
 
         with mock.patch(
             "console.services.virtual_machine.region_api.set_vm_fixed_pod_ip",
@@ -154,12 +159,59 @@ class VirtualMachineServiceTests(TestCase):
         self.assertEqual("10.42.0.15", bean["fixed_ip"])
         self.assertTrue(bean["fixed_ip_enabled"])
         self.assertTrue(bean["restarted"])
+        fixed_attrs = {
+            item.name: item.attribute_value
+            for item in ComponentK8sAttributes.objects.filter(component_id="service-vm")
+        }
+        self.assertEqual("true", fixed_attrs["vm_fixed_ip_enabled"])
+        self.assertEqual("10.42.0.15", fixed_attrs["vm_fixed_ip"])
         set_fixed_ip.assert_called_once_with(
             "demo-region",
             "demo-team",
             "demo-vm",
             {"enabled": True},
         )
+
+    def test_set_vm_fixed_pod_ip_disables_console_state(self):
+        tenant = SimpleNamespace(tenant_name="demo-team")
+        service = SimpleNamespace(
+            service_alias="demo-vm",
+            service_region="demo-region",
+            service_id="service-vm",
+            tenant_id="tenant-a",
+        )
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id="service-vm",
+            name="vm_fixed_ip_enabled",
+            save_type="string",
+            attribute_value="true",
+        )
+        ComponentK8sAttributes.objects.create(
+            tenant_id="tenant-a",
+            component_id="service-vm",
+            name="vm_fixed_ip",
+            save_type="string",
+            attribute_value="10.42.0.15",
+        )
+
+        with mock.patch(
+            "console.services.virtual_machine.region_api.set_vm_fixed_pod_ip",
+            return_value=(None, {"bean": {
+                "fixed_ip_enabled": False,
+                "fixed_ip": "",
+                "restarted": True,
+            }}),
+        ):
+            bean = vms.set_vm_fixed_pod_ip(tenant, service, False)
+
+        self.assertFalse(bean["fixed_ip_enabled"])
+        fixed_attrs = {
+            item.name: item.attribute_value
+            for item in ComponentK8sAttributes.objects.filter(component_id="service-vm")
+        }
+        self.assertEqual("false", fixed_attrs["vm_fixed_ip_enabled"])
+        self.assertNotIn("vm_fixed_ip", fixed_attrs)
 
     def test_get_vm_capabilities_defaults_to_empty_payload(self):
         with mock.patch("console.services.virtual_machine.region_api.get_vm_capabilities",
