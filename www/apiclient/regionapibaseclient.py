@@ -239,6 +239,7 @@ class RegionApiBaseHttpClient(object):
         region_name = kwargs.get("region")
         retries = kwargs.get("retries", 2)
         d_connect, d_red = self.get_default_timeout_conifg()
+        d_connect = kwargs.get("connect_timeout", d_connect)
         timeout = kwargs.get("timeout", d_red)
         preload_content = kwargs.get("preload_content")
         if kwargs.get("for_test"):

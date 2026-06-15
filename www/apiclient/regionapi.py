@@ -2804,6 +2804,23 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name, timeout=10)
         return res, body
 
+    def cluster_plugin_exists(self, enterprise_id, region_name, plugin_name):
+        """Lightweight probe for whether an official plugin exists in a cluster.
+
+        Uses short timeouts and no retries so an unreachable cluster fails fast
+        instead of stacking the default connect/read timeouts. Raises on
+        transport errors or a missing endpoint (404 on older regions); callers
+        decide how to react.
+        """
+        region_info = self.get_enterprise_region_info(enterprise_id, region_name)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url + "/v2/cluster/plugins/exists?name={0}".format(plugin_name)
+        _, body = self._get(
+            url, self.default_headers, region=region_name, timeout=3, connect_timeout=2, retries=0)
+        bean = (body or {}).get("bean") or {}
+        return bool(bean.get("exist"))
+
     def create_rbdplugin(self, enterprise_id, region_name, plugin_data):
         region_info = self.get_enterprise_region_info(enterprise_id, region_name)
         if not region_info:
