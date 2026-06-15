@@ -830,6 +830,32 @@
       "status": "active"
     },
     {
+      "id": "console.app-import.identity-collision",
+      "title": "Resolve imported application identity collisions",
+      "title_zh": "处理导入应用模板身份冲突",
+      "interface_type": "service_method",
+      "interface": "console.services.app_import_and_export_service.AppImportService.__save_enterprise_import_info",
+      "code_paths": [
+        "console/services/app_import_and_export_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_import_and_export_service_test.py",
+          "selector": "AppImportServiceMetadataTestCase.test_save_enterprise_import_info_splits_same_key_when_name_differs"
+        },
+        {
+          "path": "console/tests/app_import_and_export_service_test.py",
+          "selector": "AppImportServiceMetadataTestCase.test_save_enterprise_import_info_keeps_same_key_and_name_as_multiple_versions"
+        },
+        {
+          "path": "console/tests/app_import_and_export_service_test.py",
+          "selector": "AppImportServiceMetadataTestCase.test_save_enterprise_import_info_splits_same_key_name_version_when_content_differs"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-import.list-dir",
       "title": "List imported application packages",
       "title_zh": "查询导入目录中的应用包",

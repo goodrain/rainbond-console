@@ -566,6 +566,154 @@ class AppImportServiceMetadataTestCase(TestCase):
         self.assertEqual(extend_method_map["container_cpu"], 600)
         self.assertEqual(extend_method_map["init_memory"], 1024)
 
+    # capability_id: console.app-import.identity-collision
+    def test_save_enterprise_import_info_splits_same_key_when_name_differs(self):
+        import_record = mock.Mock(
+            enterprise_id="eid-1",
+            team_name="demo-team",
+            scope="team",
+            ID=11,
+            region="demo-region",
+        )
+        metadata = json.dumps(self.build_import_metadata())
+        existing_app = mock.Mock(
+            app_id="demo-app",
+            app_name="Other App",
+            source="import",
+            arch="amd64",
+        )
+
+        def get_app(app_id):
+            if app_id == "demo-app":
+                return existing_app
+            return None
+
+        with mock.patch(
+            "{}.rainbond_app_repo.get_rainbond_app_by_app_id".format(self.service_module),
+            side_effect=get_app,
+        ), mock.patch(
+            "{}.rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version".format(self.service_module),
+            return_value=None,
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_apps".format(self.service_module),
+        ) as bulk_apps, mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_app_versions".format(self.service_module),
+        ) as bulk_versions, mock.patch(
+            "{}.app_store.is_no_multiple_region_hub".format(self.service_module),
+            return_value=False,
+        ):
+            import_service._AppImportService__save_enterprise_import_info(import_record, metadata, "amd64")
+
+        created_app = bulk_apps.call_args[0][0][0]
+        created_version = bulk_versions.call_args[0][0][0]
+        saved_template = json.loads(created_version.app_template)
+        self.assertNotEqual(created_app.app_id, "demo-app")
+        self.assertEqual(created_app.app_name, "Demo App")
+        self.assertEqual(created_version.app_id, created_app.app_id)
+        self.assertEqual(saved_template["group_key"], created_app.app_id)
+        existing_app.save.assert_not_called()
+
+    # capability_id: console.app-import.identity-collision
+    def test_save_enterprise_import_info_keeps_same_key_and_name_as_multiple_versions(self):
+        import_record = mock.Mock(
+            enterprise_id="eid-1",
+            team_name="demo-team",
+            scope="team",
+            ID=11,
+            region="demo-region",
+        )
+        metadata = self.build_import_metadata()
+        metadata[0]["group_version"] = "2.0.0"
+        existing_app = mock.Mock(
+            app_id="demo-app",
+            app_name="Demo App",
+            source="import",
+            arch="amd64",
+        )
+
+        with mock.patch(
+            "{}.rainbond_app_repo.get_rainbond_app_by_app_id".format(self.service_module),
+            return_value=existing_app,
+        ), mock.patch(
+            "{}.rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version".format(self.service_module),
+            return_value=None,
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_apps".format(self.service_module),
+        ) as bulk_apps, mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_app_versions".format(self.service_module),
+        ) as bulk_versions, mock.patch(
+            "{}.app_store.is_no_multiple_region_hub".format(self.service_module),
+            return_value=False,
+        ):
+            import_service._AppImportService__save_enterprise_import_info(
+                import_record, json.dumps(metadata), "amd64"
+            )
+
+        self.assertEqual(bulk_apps.call_args[0][0], [])
+        created_version = bulk_versions.call_args[0][0][0]
+        saved_template = json.loads(created_version.app_template)
+        self.assertEqual(created_version.app_id, "demo-app")
+        self.assertEqual(saved_template["group_key"], "demo-app")
+        existing_app.save.assert_called_once_with()
+
+    # capability_id: console.app-import.identity-collision
+    def test_save_enterprise_import_info_splits_same_key_name_version_when_content_differs(self):
+        import_record = mock.Mock(
+            enterprise_id="eid-1",
+            team_name="demo-team",
+            scope="team",
+            ID=11,
+            region="demo-region",
+        )
+        metadata = self.build_import_metadata()
+        metadata[0]["apps"][0]["service_cname"] = "web-new"
+        existing_app = mock.Mock(
+            app_id="demo-app",
+            app_name="Demo App",
+            source="import",
+            arch="amd64",
+        )
+        existing_version = mock.Mock(app_template=json.dumps(self.build_import_metadata()[0]))
+
+        def get_app(app_id):
+            if app_id == "demo-app":
+                return existing_app
+            return None
+
+        def get_version(app_id, version):
+            if app_id == "demo-app":
+                return existing_version
+            return None
+
+        with mock.patch(
+            "{}.rainbond_app_repo.get_rainbond_app_by_app_id".format(self.service_module),
+            side_effect=get_app,
+        ), mock.patch(
+            "{}.rainbond_app_repo.get_rainbond_app_version_by_app_id_and_version".format(self.service_module),
+            side_effect=get_version,
+        ), mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_apps".format(self.service_module),
+        ) as bulk_apps, mock.patch(
+            "{}.rainbond_app_repo.bulk_create_rainbond_app_versions".format(self.service_module),
+        ) as bulk_versions, mock.patch(
+            "{}.app_store.is_no_multiple_region_hub".format(self.service_module),
+            return_value=False,
+        ):
+            import_service._AppImportService__save_enterprise_import_info(
+                import_record, json.dumps(metadata), "amd64"
+            )
+
+        created_app = bulk_apps.call_args[0][0][0]
+        created_version = bulk_versions.call_args[0][0][0]
+        saved_template = json.loads(created_version.app_template)
+        self.assertNotEqual(created_app.app_id, "demo-app")
+        self.assertEqual(created_app.app_name, "Demo App")
+        self.assertEqual(created_version.app_id, created_app.app_id)
+        self.assertEqual(saved_template["group_key"], created_app.app_id)
+        self.assertEqual(saved_template["apps"][0]["service_cname"], "web-new")
+        existing_app.save.assert_not_called()
+        existing_version.save.assert_not_called()
+
 
 class AppImportPreparationWorkflowTestCase(TestCase):
     def setUp(self):
