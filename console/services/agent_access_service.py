@@ -1,17 +1,21 @@
 # -*- coding: utf8 -*-
 import logging
 import os
+import time
 
 from console.enum.enterprise_enum import EnterpriseRolesEnum
+from console.exception.main import ServiceHandleException
 from console.models.main import EnterpriseUserPerm
 from console.repositories.enterprise_repo import enterprise_user_perm_repo
 from console.repositories.region_repo import region_repo
-from console.services.plugin_service import rbd_plugin_service
 from console.services.user_services import user_services
 from django.db import transaction
+from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Users
 
 logger = logging.getLogger("default")
+
+region_api = RegionInvokeApi()
 
 ENTERPRISE_BASE_PLUGIN = "rainbond-enterprise-base"
 EDITION_OPEN_SOURCE = "open_source"
@@ -19,8 +23,16 @@ EDITION_ENTERPRISE = "enterprise"
 EDITION_SAAS = "saas"
 EDITION_ENTERPRISE_SAAS = "enterprise_saas"
 
+# Short in-process cache so the high-frequency agent access poll does not probe
+# every cluster on every request. TTL is configurable for slow environments.
+PLUGIN_CACHE_TTL = int(os.getenv("AGENT_ACCESS_PLUGIN_CACHE_TTL", "60"))
+
 
 class AgentAccessService(object):
+    def __init__(self):
+        # enterprise_id -> (expire_ts, has_enterprise_base)
+        self._enterprise_base_cache = {}
+
     def get_agent_access(self, user):
         if not user:
             return self._build_access(False, EDITION_OPEN_SOURCE, False, False, False, "not_authenticated")
@@ -60,6 +72,16 @@ class AgentAccessService(object):
         return EDITION_OPEN_SOURCE
 
     def has_enterprise_base_plugin(self, enterprise_id):
+        now = time.time()
+        cached = self._enterprise_base_cache.get(enterprise_id)
+        if cached and cached[0] > now:
+            return cached[1]
+
+        result = self._compute_has_enterprise_base_plugin(enterprise_id)
+        self._enterprise_base_cache[enterprise_id] = (now + PLUGIN_CACHE_TTL, result)
+        return result
+
+    def _compute_has_enterprise_base_plugin(self, enterprise_id):
         try:
             regions = region_repo.get_usable_regions(enterprise_id)
         except Exception as exc:
@@ -67,14 +89,32 @@ class AgentAccessService(object):
             return False
 
         for region in regions or []:
-            try:
-                plugins, _ = rbd_plugin_service.list_plugins(enterprise_id, region.region_name, official=True)
-            except Exception as exc:
-                logger.warning("failed to list plugins for agent access: region=%s error=%s", region.region_name, exc)
-                continue
-            for plugin in plugins or []:
-                if plugin.get("name") == ENTERPRISE_BASE_PLUGIN:
-                    return True
+            if self._region_has_enterprise_base(enterprise_id, region.region_name):
+                return True
+        return False
+
+    def _region_has_enterprise_base(self, enterprise_id, region_name):
+        try:
+            return region_api.cluster_plugin_exists(enterprise_id, region_name, ENTERPRISE_BASE_PLUGIN)
+        except ServiceHandleException as exc:
+            if exc.status_code == 404:
+                # Older region without the probe endpoint: fall back to listing.
+                return self._region_has_enterprise_base_fallback(enterprise_id, region_name)
+            logger.warning("failed to probe enterprise base plugin: region=%s error=%s", region_name, exc)
+            return False
+        except Exception as exc:
+            logger.warning("failed to probe enterprise base plugin: region=%s error=%s", region_name, exc)
+            return False
+
+    def _region_has_enterprise_base_fallback(self, enterprise_id, region_name):
+        try:
+            _, body = region_api.list_plugins(enterprise_id, region_name, True)
+        except Exception as exc:
+            logger.warning("failed to list plugins for agent access: region=%s error=%s", region_name, exc)
+            return False
+        for plugin in (body or {}).get("list") or []:
+            if plugin.get("name") == ENTERPRISE_BASE_PLUGIN:
+                return True
         return False
 
     def get_initial_enterprise_admin_marker(self, enterprise_id):

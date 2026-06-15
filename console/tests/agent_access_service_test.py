@@ -1,6 +1,7 @@
 from unittest import TestCase, mock
 
-from console.services.agent_access_service import agent_access_service
+from console.exception.main import ServiceHandleException
+from console.services.agent_access_service import AgentAccessService, agent_access_service
 
 
 class AgentAccessServiceTests(TestCase):
@@ -109,3 +110,45 @@ class AgentAccessServiceTests(TestCase):
         with mock.patch.dict("os.environ", {"USE_SAAS": "true"}, clear=True), \
                 mock.patch.object(agent_access_service, "has_enterprise_base_plugin", return_value=True):
             self.assertEqual("enterprise_saas", agent_access_service.get_platform_edition("eid"))
+
+
+class HasEnterpriseBasePluginTests(TestCase):
+    def setUp(self):
+        self.service = AgentAccessService()
+        self.region = mock.Mock()
+        self.region.region_name = "rg"
+
+    def test_region_probe_true_short_circuits(self):
+        with mock.patch("console.services.agent_access_service.region_repo.get_usable_regions",
+                        return_value=[self.region]), \
+                mock.patch("console.services.agent_access_service.region_api.cluster_plugin_exists",
+                           return_value=True) as probe:
+            self.assertTrue(self.service.has_enterprise_base_plugin("eid"))
+        probe.assert_called_once_with("eid", "rg", "rainbond-enterprise-base")
+
+    def test_region_probe_404_falls_back_to_listing(self):
+        body = {"list": [{"name": "rainbond-enterprise-base"}]}
+        with mock.patch("console.services.agent_access_service.region_repo.get_usable_regions",
+                        return_value=[self.region]), \
+                mock.patch("console.services.agent_access_service.region_api.cluster_plugin_exists",
+                           side_effect=ServiceHandleException(msg="not found", status_code=404)), \
+                mock.patch("console.services.agent_access_service.region_api.list_plugins",
+                           return_value=(None, body)) as list_plugins:
+            self.assertTrue(self.service.has_enterprise_base_plugin("eid"))
+        list_plugins.assert_called_once_with("eid", "rg", True)
+
+    def test_region_probe_transport_error_returns_false(self):
+        with mock.patch("console.services.agent_access_service.region_repo.get_usable_regions",
+                        return_value=[self.region]), \
+                mock.patch("console.services.agent_access_service.region_api.cluster_plugin_exists",
+                           side_effect=ServiceHandleException(msg="unreachable", status_code=400)):
+            self.assertFalse(self.service.has_enterprise_base_plugin("eid"))
+
+    def test_result_is_cached_within_ttl(self):
+        with mock.patch("console.services.agent_access_service.region_repo.get_usable_regions",
+                        return_value=[self.region]), \
+                mock.patch("console.services.agent_access_service.region_api.cluster_plugin_exists",
+                           return_value=True) as probe:
+            self.assertTrue(self.service.has_enterprise_base_plugin("eid"))
+            self.assertTrue(self.service.has_enterprise_base_plugin("eid"))
+        probe.assert_called_once()
