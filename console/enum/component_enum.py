@@ -9,6 +9,7 @@ class ComponentType(Enum):
     state_multiple = "state_multiple"
     job = "job"
     cronjob = "cronjob"
+    daemonset = "daemonset"
     vm = "vm"
     kubeblocks = "kubeblocks_component"
 
@@ -22,6 +23,8 @@ class ComponentType(Enum):
             return "有状态单实例"
         if key == "state_multiple":
             return "有状态多实例"
+        if key == "daemonset":
+            return "守护进程组件"
         if key == "kubeblocks_component":
             return "KubeBlocks 组件"
 
@@ -49,6 +52,7 @@ def is_support(component_type):
             or component_type == ComponentType.state_multiple.value \
             or component_type == ComponentType.job.value \
             or component_type == ComponentType.cronjob.value \
+            or component_type == ComponentType.daemonset.value \
             or component_type == ComponentType.kubeblocks.value:
         return True
 

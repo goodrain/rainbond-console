@@ -811,25 +811,6 @@
       "status": "active"
     },
     {
-      "id": "console.app-import.init",
-      "title": "Initialize application import",
-      "title_zh": "初始化应用导入",
-      "interface_type": "workflow",
-      "interface": "console.views.center_pool.app_import.EnterpriseAppImportInitView.post",
-      "code_paths": [
-        "console/views/center_pool/app_import.py",
-        "console/services/app_import_and_export_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/app_import_and_export_service_test.py",
-          "selector": "AppImportPreparationWorkflowTestCase.test_enterprise_import_init_creates_record_when_none_exists"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
       "id": "console.app-import.identity-collision",
       "title": "Resolve imported application identity collisions",
       "title_zh": "处理导入应用模板身份冲突",
@@ -850,6 +831,25 @@
         {
           "path": "console/tests/app_import_and_export_service_test.py",
           "selector": "AppImportServiceMetadataTestCase.test_save_enterprise_import_info_splits_same_key_name_version_when_content_differs"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app-import.init",
+      "title": "Initialize application import",
+      "title_zh": "初始化应用导入",
+      "interface_type": "workflow",
+      "interface": "console.views.center_pool.app_import.EnterpriseAppImportInitView.post",
+      "code_paths": [
+        "console/views/center_pool/app_import.py",
+        "console/services/app_import_and_export_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_import_and_export_service_test.py",
+          "selector": "AppImportPreparationWorkflowTestCase.test_enterprise_import_init_creates_record_when_none_exists"
         }
       ],
       "test_type": "regression",
@@ -1818,6 +1818,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-version.create-app-from-snapshot-invalid-name",
+      "title": "create_app_from_snapshot_version rejects illegal target app name",
+      "title_zh": "从快照版本创建应用时拒绝非法目标应用名",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app-version.create-app-from-snapshot-invalid-name]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_from_snapshot_version_returns_structured_details_for_illegal_target_app_name"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-version.create-snapshot",
       "title": "Create app version snapshot",
       "title_zh": "创建应用版本快照",
@@ -2405,6 +2423,24 @@
       "status": "active"
     },
     {
+      "id": "console.app-version.target-app-name-schema",
+      "title": "create_app_from_snapshot_version tool exposes target app name constraints",
+      "title_zh": "create_app_from_snapshot_version 工具暴露目标应用名约束",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.list_tools[console.app-version.target-app-name-schema]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_create_app_from_snapshot_version_tool_exposes_target_app_name_constraints"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-version.view-diff",
       "title": "View app version diff details",
       "title_zh": "查看应用版本差异详情",
@@ -2651,6 +2687,24 @@
       "status": "active"
     },
     {
+      "id": "console.app.delete-with-resources",
+      "title": "Delete application along with components and attached resources",
+      "title_zh": "删除应用及其组件与关联资源",
+      "interface_type": "service_method",
+      "interface": "console.services.group_service.GroupService.delete_app_with_resources",
+      "code_paths": [
+        "console/services/group_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/group_service_test.py",
+          "selector": "GroupServiceDeleteAppWithResourcesTestCase"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
       "id": "console.app.detail",
       "title": "View app detail",
       "title_zh": "查看应用详情",
@@ -2810,6 +2864,24 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_query_app_monitor_filters_to_outer_services_when_requested"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.app.restart-component-operation",
+      "title": "operate_app restart maps to batch action",
+      "title_zh": "operate_app 重启映射到批量操作",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.app.restart-component-operation]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_operate_app_restart_calls_batch_action"
         }
       ],
       "test_type": "regression",
@@ -3351,6 +3423,51 @@
       "status": "active"
     },
     {
+      "id": "console.component-type.daemonset",
+      "title": "DaemonSet component type support",
+      "title_zh": "DaemonSet 组件类型支持",
+      "interface_type": "service_method",
+      "interface": "console.enum.component_enum.ComponentType",
+      "code_paths": [
+        "console/enum/component_enum.py",
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "ComponentDaemonSetSupportTests.test_daemonset_component_type_is_supported"
+        },
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "ComponentDaemonSetSupportTests.test_extend_method_name_supports_daemonset"
+        },
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "ComponentDaemonSetSupportTests.test_change_service_type_blocks_daemonset_transition"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.autoscaler-invalid-metrics",
+      "title": "manage_component_autoscaler rejects incomplete metric before service call",
+      "title_zh": "manage_component_autoscaler 在调用服务前拒绝不完整指标",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.autoscaler-invalid-metrics]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_autoscaler_create_rejects_incomplete_metric_before_service_call"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.autoscaler-summary",
       "title": "View component autoscaler summary",
       "title_zh": "查看组件伸缩概览",
@@ -3741,6 +3858,24 @@
       "status": "active"
     },
     {
+      "id": "console.component.default-resource-spec",
+      "title": "Component creation tools expose default resource guidance",
+      "title_zh": "组件创建工具暴露默认资源规格指引",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.list_tools[console.component.default-resource-spec]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_component_creation_tools_expose_default_resource_guidance"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.delete",
       "title": "Delete component",
       "title_zh": "删除组件",
@@ -3754,6 +3889,29 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceApplicationToolTests.test_delete_component_calls_app_manage_delete"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.delete-dependency-conflict",
+      "title": "Delete component returns structured dependency conflict reason",
+      "title_zh": "删除组件返回结构化依赖冲突原因",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[rainbond_delete_component#conflict]",
+      "code_paths": [
+        "console/services/mcp_query_service.py",
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_error_contract_test.py",
+          "selector": "MCPComponentContextErrorTests.test_delete_component_dependency_conflict_returns_structured_reason"
+        },
+        {
+          "path": "console/tests/mcp_query_error_contract_test.py",
+          "selector": "MCPComponentContextErrorTests.test_delete_component_running_conflict_is_non_retryable"
         }
       ],
       "test_type": "regression",
@@ -4026,6 +4184,32 @@
       "status": "active"
     },
     {
+      "id": "console.component.extend-method-upsert",
+      "title": "Upsert component extend method by service version",
+      "title_zh": "按组件版本覆盖保存伸缩规则配置",
+      "interface_type": "workflow",
+      "interface": "console.repositories.app_config.ServiceExtendRepository",
+      "code_paths": [
+        "console/repositories/app_config.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_config_test.py",
+          "selector": "ServiceExtendRepositoryTests.test_create_extend_method_replaces_existing_version_record"
+        },
+        {
+          "path": "console/tests/app_config_test.py",
+          "selector": "ServiceExtendRepositoryTests.test_get_extend_method_by_service_uses_latest_record"
+        },
+        {
+          "path": "console/tests/app_config_test.py",
+          "selector": "ServiceExtendRepositoryTests.test_bulk_create_or_update_replaces_existing_version_records_by_business_key"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.horizontal-scale",
       "title": "Horizontally scale component",
       "title_zh": "水平伸缩组件",
@@ -4225,6 +4409,60 @@
       "status": "active"
     },
     {
+      "id": "console.component.port-batch-add",
+      "title": "manage_component_ports batch add delegates to batch service",
+      "title_zh": "manage_component_ports 批量新增委托给批量服务",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.port-batch-add]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_add_delegates_to_batch_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.port-batch-enable-inner",
+      "title": "manage_component_ports batch enable inner loads context once",
+      "title_zh": "manage_component_ports 批量开启内网端口只加载一次上下文",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.port-batch-enable-inner]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_enable_inner_loads_context_once"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.component.port-batch-enable-outer",
+      "title": "manage_component_ports batch enable outer accepts integer items",
+      "title_zh": "manage_component_ports 批量开启外网端口接受整数项",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.component.port-batch-enable-outer]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_enable_outer_accepts_integer_items"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.component.port-list",
       "title": "List component ports",
       "title_zh": "查询组件端口列表",
@@ -4390,32 +4628,6 @@
         {
           "path": "console/tests/app_config_test.py",
           "selector": "TenantServiceVolumnRepositoryTests.test_list_custom_volumes_treats_local_path_as_builtin_volume_type"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.component.extend-method-upsert",
-      "title": "Upsert component extend method by service version",
-      "title_zh": "按组件版本覆盖保存伸缩规则配置",
-      "interface_type": "workflow",
-      "interface": "console.repositories.app_config.ServiceExtendRepository",
-      "code_paths": [
-        "console/repositories/app_config.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/app_config_test.py",
-          "selector": "ServiceExtendRepositoryTests.test_create_extend_method_replaces_existing_version_record"
-        },
-        {
-          "path": "console/tests/app_config_test.py",
-          "selector": "ServiceExtendRepositoryTests.test_get_extend_method_by_service_uses_latest_record"
-        },
-        {
-          "path": "console/tests/app_config_test.py",
-          "selector": "ServiceExtendRepositoryTests.test_bulk_create_or_update_replaces_existing_version_records_by_business_key"
         }
       ],
       "test_type": "regression",
@@ -4627,6 +4839,24 @@
         {
           "path": "console/tests/utils/validation_test.py",
           "selector": "EndpointValidationTests.test_validate_endpoints_info_rejects_duplicate_addresses"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.enterprise-config.custom-fields-disabled-bool",
+      "title": "get_custom_fields includes disabled bool fields",
+      "title_zh": "get_custom_fields 包含被禁用的布尔字段",
+      "interface_type": "service_method",
+      "interface": "console.services.config_service.EnterpriseConfigService.get_custom_fields",
+      "code_paths": [
+        "console/services/config_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/config_service_test.py",
+          "selector": "EnterpriseConfigServiceTests.test_get_custom_fields_includes_disabled_bool_fields"
         }
       ],
       "test_type": "regression",
@@ -4878,6 +5108,24 @@
         {
           "path": "console/tests/mcp_query_service_test.py",
           "selector": "MCPQueryServiceToolVisibilityTests.test_manage_component_envs_schema_exposes_single_item_upsert_guidance"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.gateway.create-app-invalid-display-name",
+      "title": "create_app returns structured details for illegal app name",
+      "title_zh": "create_app 对非法应用名返回结构化错误详情",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.gateway.create-app-invalid-display-name]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_returns_structured_details_for_illegal_app_name"
         }
       ],
       "test_type": "regression",
@@ -5467,6 +5715,24 @@
       "status": "active"
     },
     {
+      "id": "console.helm.daemonset-template",
+      "title": "Map Helm DaemonSet resource to component template",
+      "title_zh": "Helm DaemonSet 资源映射为组件模板",
+      "interface_type": "service_method",
+      "interface": "console.services.helm_app_yaml.HelmAppService.generate_template",
+      "code_paths": [
+        "console/services/helm_app_yaml.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "ComponentDaemonSetSupportTests.test_helm_template_maps_daemonset_resource_type"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.image.runner-detect",
       "title": "Detect runner images by their repository prefix",
       "title_zh": "根据仓库前缀识别 runner 镜像",
@@ -5557,6 +5823,36 @@
       "status": "active"
     },
     {
+      "id": "console.kubeblocks.backup-repo.ready-guard",
+      "title": "Guard KubeBlocks backup repo readiness before use",
+      "title_zh": "使用 KubeBlocks 备份仓库前校验就绪状态",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService.ensure_backup_repo_ready_for_use",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_prechecking_repo"
+        },
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_accepts_ready_repo"
+        },
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_missing_live_repo"
+        },
+        {
+          "path": "console/tests/kubeblocks_cluster_validation_test.py",
+          "selector": "KubeBlocksCreateFlowTests.test_create_cluster_returns_backup_repo_not_ready_message"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.kubeblocks.backup-repo.team-create",
       "title": "Create team KubeBlocks backup repo",
       "title_zh": "创建团队 KubeBlocks 备份仓库",
@@ -5577,6 +5873,24 @@
         {
           "path": "console/tests/kubeblocks_backup_repo_test.py",
           "selector": "KubeBlocksBackupRepoServiceTests.test_create_backup_repo_rejects_existing_region_repo_name_even_if_deleted"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.kubeblocks.backup-repo.team-delete",
+      "title": "Delete team KubeBlocks backup repo",
+      "title_zh": "删除团队 KubeBlocks 备份仓库",
+      "interface_type": "service_method",
+      "interface": "console.services.kubeblocks_service.KubeBlocksService.delete_backup_repo",
+      "code_paths": [
+        "console/services/kubeblocks_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/kubeblocks_backup_repo_test.py",
+          "selector": "KubeBlocksBackupRepoServiceTests.test_delete_backup_repo_shows_clear_message_when_in_use"
         }
       ],
       "test_type": "regression",
@@ -5621,54 +5935,6 @@
         {
           "path": "console/tests/kubeblocks_backup_repo_test.py",
           "selector": "KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_belongs_to_team_rejects_other_team_repo"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.kubeblocks.backup-repo.ready-guard",
-      "title": "Guard KubeBlocks backup repo readiness before use",
-      "title_zh": "使用 KubeBlocks 备份仓库前校验就绪状态",
-      "interface_type": "service_method",
-      "interface": "console.services.kubeblocks_service.KubeBlocksService.ensure_backup_repo_ready_for_use",
-      "code_paths": [
-        "console/services/kubeblocks_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/kubeblocks_backup_repo_test.py",
-          "selector": "KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_prechecking_repo"
-        },
-        {
-          "path": "console/tests/kubeblocks_backup_repo_test.py",
-          "selector": "KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_accepts_ready_repo"
-        },
-        {
-          "path": "console/tests/kubeblocks_backup_repo_test.py",
-          "selector": "KubeBlocksBackupRepoServiceTests.test_ensure_backup_repo_ready_for_use_rejects_missing_live_repo"
-        },
-        {
-          "path": "console/tests/kubeblocks_cluster_validation_test.py",
-          "selector": "KubeBlocksCreateFlowTests.test_create_cluster_returns_backup_repo_not_ready_message"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.kubeblocks.backup-repo.team-delete",
-      "title": "Delete team KubeBlocks backup repo",
-      "title_zh": "删除团队 KubeBlocks 备份仓库",
-      "interface_type": "service_method",
-      "interface": "console.services.kubeblocks_service.KubeBlocksService.delete_backup_repo",
-      "code_paths": [
-        "console/services/kubeblocks_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/kubeblocks_backup_repo_test.py",
-          "selector": "KubeBlocksBackupRepoServiceTests.test_delete_backup_repo_shows_clear_message_when_in_use"
         }
       ],
       "test_type": "regression",
@@ -5730,6 +5996,24 @@
       "status": "active"
     },
     {
+      "id": "console.market-app.create-template-scope-name",
+      "title": "Scope market app template name duplicate checks",
+      "title_zh": "按发布范围和团队检查应用市场模板重名",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app_service.MarketAppService.create_rainbond_app",
+      "code_paths": [
+        "console/services/market_app_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_service_test.py",
+          "selector": "MarketAppServiceCreateRainbondAppTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.market-app.install-default-storage-class",
       "title": "Use platform default storage class for marketplace installs",
       "title_zh": "应用市场安装使用平台默认存储类",
@@ -5748,6 +6032,43 @@
         {
           "path": "console/tests/market_app_storage_test.py",
           "selector": "MarketAppDefaultStorageClassTests.test_template_to_volumes_uses_configured_default_storage_class"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.restore-preserves-volume-capacity-on-storage-fallback",
+      "title": "Market restore preserves volume capacity when storage type falls back",
+      "title_zh": "市场恢复在存储类型回退时保留卷容量",
+      "interface_type": "service_method",
+      "interface": "console.services.market_app.new_components.NewComponents._template_to_volumes",
+      "code_paths": [
+        "console/services/market_app/new_components.py",
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_storage_test.py",
+          "selector": "MarketAppDefaultStorageClassTests.test_template_to_volumes_preserves_capacity_when_storage_type_changes"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.market-app.restore-volume-capacity-helper",
+      "title": "resolve_market_restore_volume_settings preserves capacity when storage type changes",
+      "title_zh": "resolve_market_restore_volume_settings 在存储类型变化时保留容量",
+      "interface_type": "service_method",
+      "interface": "console.services.app_config.volume_service.AppVolumeService.resolve_market_restore_volume_settings",
+      "code_paths": [
+        "console/services/app_config/volume_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/market_app_storage_test.py",
+          "selector": "MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes"
         }
       ],
       "test_type": "regression",
@@ -5803,24 +6124,6 @@
         {
           "path": "console/tests/market_app_service_test.py",
           "selector": "MarketAppServiceVMGuardTests"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.market-app.create-template-scope-name",
-      "title": "Scope market app template name duplicate checks",
-      "title_zh": "按发布范围和团队检查应用市场模板重名",
-      "interface_type": "service_method",
-      "interface": "console.services.market_app_service.MarketAppService.create_rainbond_app",
-      "code_paths": [
-        "console/services/market_app_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/market_app_service_test.py",
-          "selector": "MarketAppServiceCreateRainbondAppTests"
         }
       ],
       "test_type": "regression",
@@ -6079,6 +6382,24 @@
       "status": "active"
     },
     {
+      "id": "console.mcp.http-expired-jwt",
+      "title": "MCP HTTP endpoint returns 401 for expired JWT",
+      "title_zh": "MCP HTTP 接口对过期 JWT 返回 401",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.mcp_query.MCPQueryHTTPView.post",
+      "code_paths": [
+        "console/views/mcp_query.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_view_test.py",
+          "selector": "MCPQuerySSEViewTests.test_http_post_returns_401_for_expired_jwt"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.mcp.http-initialize",
       "title": "Initialize MCP session over HTTP",
       "title_zh": "通过 HTTP 初始化 MCP 会话",
@@ -6133,6 +6454,28 @@
       "status": "active"
     },
     {
+      "id": "console.mcp.input-validation-contract",
+      "title": "MCP tools return clear invalid_input/not_found reasons",
+      "title_zh": "MCP 工具对缺参/查无组件返回清晰原因",
+      "interface_type": "service_method",
+      "interface": "console.services.mcp_query_service.call_tool",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_error_contract_test.py",
+          "selector": "MCPComponentContextErrorTests.test_missing_service_id_returns_invalid_input"
+        },
+        {
+          "path": "console/tests/mcp_query_error_contract_test.py",
+          "selector": "MCPComponentContextErrorTests.test_unknown_component_returns_not_found"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.mcp.legacy-sse-endpoint",
       "title": "Open legacy SSE MCP endpoint",
       "title_zh": "打开兼容模式的 SSE MCP 端点",
@@ -6148,6 +6491,58 @@
         }
       ],
       "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.operation-event-ids",
+      "title": "MCP operate_app/upgrade_app return operation event ids",
+      "title_zh": "MCP operate_app/upgrade_app 返回操作事件 ID",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.mcp.operation-event-ids]",
+      "code_paths": [
+        "console/services/mcp_query_service.py",
+        "console/services/upgrade_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_operation_event_ids_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.operation-failure-classifier",
+      "title": "MCP operation failure classifier",
+      "title_zh": "MCP 操作失败分类器",
+      "interface_type": "package_function",
+      "interface": "console.services.mcp_failure_classifier.classify_failure",
+      "code_paths": [
+        "console/services/mcp_failure_classifier.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_failure_classifier_test.py"
+        }
+      ],
+      "test_type": "unit",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.operation-failure-context",
+      "title": "MCP get_operation_failure_context tool",
+      "title_zh": "MCP 操作失败上下文工具",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.call_tool[console.mcp.operation-failure-context]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_failure_context_test.py"
+        }
+      ],
+      "test_type": "unit",
       "status": "active"
     },
     {
@@ -6203,6 +6598,28 @@
         {
           "path": "console/tests/mcp_query_view_test.py",
           "selector": "MCPQuerySSEViewTests.test_http_tool_error_includes_structured_validation_details"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.mcp.tool-error-fallback",
+      "title": "Return parseable error for any MCP tool failure",
+      "title_zh": "任意 MCP 工具失败均返回可解析错误",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.mcp_query.MCPQueryRPCMixin._dispatch_rpc",
+      "code_paths": [
+        "console/views/mcp_query.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_error_contract_test.py",
+          "selector": "MCPToolErrorDispatchTests.test_generic_tool_exception_is_returned_as_parseable_error"
+        },
+        {
+          "path": "console/tests/mcp_query_error_contract_test.py",
+          "selector": "MCPToolErrorDispatchTests.test_region_style_exception_maps_status_and_extracts_message"
         }
       ],
       "test_type": "regression",
@@ -6664,6 +7081,60 @@
       "status": "active"
     },
     {
+      "id": "console.package-upload.local-path-create-schema",
+      "title": "create_component_from_local_package tool schema exposes server-side local path guidance",
+      "title_zh": "create_component_from_local_package 工具 schema 暴露服务端本地路径指引",
+      "interface_type": "workflow",
+      "interface": "console.services.mcp_query_service.list_tools[console.package-upload.local-path-create-schema]",
+      "code_paths": [
+        "console/services/mcp_query_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/mcp_query_service_test.py",
+          "selector": "MCPQueryServiceToolVisibilityTests.test_create_component_from_local_package_tool_schema_exposes_server_side_local_path_guidance"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.local-path-missing-details",
+      "title": "_normalize_local_path raises structured details when path missing",
+      "title_zh": "_normalize_local_path 在路径缺失时抛出结构化详情",
+      "interface_type": "service_method",
+      "interface": "console.services.package_upload_tool_service.PackageUploadToolService._normalize_local_path",
+      "code_paths": [
+        "console/services/package_upload_tool_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_tool_service_test.py",
+          "selector": "PackageUploadToolServiceTests.test_normalize_local_path_raises_structured_details_when_path_missing"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.package-upload.local-path-required-details",
+      "title": "_normalize_local_path raises structured details when path empty",
+      "title_zh": "_normalize_local_path 在路径为空时抛出结构化详情",
+      "interface_type": "service_method",
+      "interface": "console.services.package_upload_tool_service.PackageUploadToolService._normalize_local_path",
+      "code_paths": [
+        "console/services/package_upload_tool_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/package_upload_tool_service_test.py",
+          "selector": "PackageUploadToolServiceTests.test_normalize_local_path_raises_structured_details_when_path_empty"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.package-upload.local-path-schema",
       "title": "Package Upload Local Path Schema",
       "title_zh": "Package Upload Local Path Schema",
@@ -6918,6 +7389,24 @@
         {
           "path": "console/tests/regionapibaseclient_test.py",
           "selector": "RegionApiBaseHttpClientTestCase.test_check_status_keeps_original_message_for_non_helm_conflicts"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.region-api.vm-snapshot-feature-gate-msg",
+      "title": "_check_status translates VM snapshot feature gate error to actionable msg_show",
+      "title_zh": "_check_status 将虚拟机快照功能门禁错误翻译为可操作提示",
+      "interface_type": "service_method",
+      "interface": "www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status",
+      "code_paths": [
+        "www/apiclient/regionapibaseclient.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/regionapibaseclient_test.py",
+          "selector": "RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show"
         }
       ],
       "test_type": "regression",
@@ -7962,6 +8451,24 @@
       "status": "active"
     },
     {
+      "id": "console.test-manifest.ignore-worktrees",
+      "title": "Ignore nested worktree tests during manifest validation",
+      "title_zh": "测试清单校验忽略嵌套 worktree 测试",
+      "interface_type": "package_function",
+      "interface": "scripts.validate_test_manifest.collect_marked_tests",
+      "code_paths": [
+        "scripts/validate_test_manifest.py"
+      ],
+      "tests": [
+        {
+          "path": "scripts/validate_test_manifest_test.py",
+          "selector": "ValidateTestManifestTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.timeutil.current-date-str",
       "title": "Return the current date formatted with the default date format",
       "title_zh": "返回默认格式的当前日期字符串",
@@ -8366,6 +8873,24 @@
       "status": "active"
     },
     {
+      "id": "console.vm-root-disk-selected-storage-type",
+      "title": "update_check_app uses selected storage type for new VM root disk",
+      "title_zh": "update_check_app 为新建虚拟机根盘使用所选存储类型",
+      "interface_type": "service_method",
+      "interface": "console.services.app.AppService.update_check_app",
+      "code_paths": [
+        "console/services/app.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/vm_live_migration_storage_test.py",
+          "selector": "VMLiveMigrationStorageTests.test_update_check_app_uses_selected_storage_type_for_new_vm_root_disk"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-run.platform-runtime-guard",
       "title": "Reject VM create when VM platform is unhealthy",
       "title_zh": "虚拟机平台异常时禁止创建虚拟机组件",
@@ -8396,6 +8921,24 @@
         {
           "path": "console/tests/vm_live_migration_storage_test.py",
           "selector": "VMLiveMigrationStorageTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.vm-template-import.delete-abnormal-vm",
+      "title": "delete allows abnormal VM to skip the running guard",
+      "title_zh": "delete 允许异常状态虚拟机跳过运行中校验",
+      "interface_type": "workflow",
+      "interface": "console.services.app_actions.app_manage.AppManageService.delete",
+      "code_paths": [
+        "console/services/app_actions/app_manage.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/app_manage_test.py",
+          "selector": "AppManageVMRestoreDeleteTests.test_delete_allows_abnormal_vm_to_skip_running_guard"
         }
       ],
       "test_type": "regression",
@@ -8488,302 +9031,17 @@
       "status": "active"
     },
     {
-      "id": "rainbond-console.vm-run.disk-asset-create",
-      "title": "Reuse ready runtime image when creating vm from existing disk asset",
-      "title_zh": "从现有磁盘资产创建虚拟机时复用已就绪运行时镜像",
-      "interface_type": "view_endpoint",
-      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
-      "code_paths": [
-        "console/views/app_create/vm_run.py",
-        "console/services/vm_boot_source.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/vm_asset_instantiation_test.py",
-          "selector": "VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.mcp.tool-error-fallback",
-      "title": "Return parseable error for any MCP tool failure",
-      "title_zh": "任意 MCP 工具失败均返回可解析错误",
-      "interface_type": "view_endpoint",
-      "interface": "console.views.mcp_query.MCPQueryRPCMixin._dispatch_rpc",
-      "code_paths": [
-        "console/views/mcp_query.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_error_contract_test.py",
-          "selector": "MCPToolErrorDispatchTests.test_generic_tool_exception_is_returned_as_parseable_error"
-        },
-        {
-          "path": "console/tests/mcp_query_error_contract_test.py",
-          "selector": "MCPToolErrorDispatchTests.test_region_style_exception_maps_status_and_extracts_message"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.component.delete-dependency-conflict",
-      "title": "Delete component returns structured dependency conflict reason",
-      "title_zh": "删除组件返回结构化依赖冲突原因",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.call_tool[rainbond_delete_component#conflict]",
-      "code_paths": [
-        "console/services/mcp_query_service.py",
-        "console/services/app_actions/app_manage.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_error_contract_test.py",
-          "selector": "MCPComponentContextErrorTests.test_delete_component_dependency_conflict_returns_structured_reason"
-        },
-        {
-          "path": "console/tests/mcp_query_error_contract_test.py",
-          "selector": "MCPComponentContextErrorTests.test_delete_component_running_conflict_is_non_retryable"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.mcp.input-validation-contract",
-      "title": "MCP tools return clear invalid_input/not_found reasons",
-      "title_zh": "MCP 工具对缺参/查无组件返回清晰原因",
+      "id": "rainbond-console.vm-export.asset-ready-storage-status",
+      "title": "VM asset readiness requires ready status and image url",
+      "title_zh": "虚拟机资产就绪需要 ready 状态与镜像地址",
       "interface_type": "service_method",
-      "interface": "console.services.mcp_query_service.call_tool",
+      "interface": "console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready",
       "code_paths": [
-        "console/services/mcp_query_service.py"
+        "console/services/virtual_machine.py"
       ],
       "tests": [
         {
-          "path": "console/tests/mcp_query_error_contract_test.py",
-          "selector": "MCPComponentContextErrorTests.test_missing_service_id_returns_invalid_input"
-        },
-        {
-          "path": "console/tests/mcp_query_error_contract_test.py",
-          "selector": "MCPComponentContextErrorTests.test_unknown_component_returns_not_found"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.app-version.create-app-from-snapshot-invalid-name",
-      "title": "create_app_from_snapshot_version rejects illegal target app name",
-      "title_zh": "从快照版本创建应用时拒绝非法目标应用名",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.call_tool[console.app-version.create-app-from-snapshot-invalid-name]",
-      "code_paths": [
-        "console/services/mcp_query_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_service_test.py",
-          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_from_snapshot_version_returns_structured_details_for_illegal_target_app_name"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.app-version.target-app-name-schema",
-      "title": "create_app_from_snapshot_version tool exposes target app name constraints",
-      "title_zh": "create_app_from_snapshot_version 工具暴露目标应用名约束",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.list_tools[console.app-version.target-app-name-schema]",
-      "code_paths": [
-        "console/services/mcp_query_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_service_test.py",
-          "selector": "MCPQueryServiceToolVisibilityTests.test_create_app_from_snapshot_version_tool_exposes_target_app_name_constraints"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.app.restart-component-operation",
-      "title": "operate_app restart maps to batch action",
-      "title_zh": "operate_app 重启映射到批量操作",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.call_tool[console.app.restart-component-operation]",
-      "code_paths": [
-        "console/services/mcp_query_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_service_test.py",
-          "selector": "MCPQueryServiceApplicationToolTests.test_operate_app_restart_calls_batch_action"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.component.autoscaler-invalid-metrics",
-      "title": "manage_component_autoscaler rejects incomplete metric before service call",
-      "title_zh": "manage_component_autoscaler 在调用服务前拒绝不完整指标",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.call_tool[console.component.autoscaler-invalid-metrics]",
-      "code_paths": [
-        "console/services/mcp_query_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_service_test.py",
-          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_autoscaler_create_rejects_incomplete_metric_before_service_call"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.component.default-resource-spec",
-      "title": "Component creation tools expose default resource guidance",
-      "title_zh": "组件创建工具暴露默认资源规格指引",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.list_tools[console.component.default-resource-spec]",
-      "code_paths": [
-        "console/services/mcp_query_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_service_test.py",
-          "selector": "MCPQueryServiceToolVisibilityTests.test_component_creation_tools_expose_default_resource_guidance"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.component.port-batch-add",
-      "title": "manage_component_ports batch add delegates to batch service",
-      "title_zh": "manage_component_ports 批量新增委托给批量服务",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.call_tool[console.component.port-batch-add]",
-      "code_paths": [
-        "console/services/mcp_query_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_service_test.py",
-          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_add_delegates_to_batch_service"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.component.port-batch-enable-inner",
-      "title": "manage_component_ports batch enable inner loads context once",
-      "title_zh": "manage_component_ports 批量开启内网端口只加载一次上下文",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.call_tool[console.component.port-batch-enable-inner]",
-      "code_paths": [
-        "console/services/mcp_query_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_service_test.py",
-          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_enable_inner_loads_context_once"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.component.port-batch-enable-outer",
-      "title": "manage_component_ports batch enable outer accepts integer items",
-      "title_zh": "manage_component_ports 批量开启外网端口接受整数项",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.call_tool[console.component.port-batch-enable-outer]",
-      "code_paths": [
-        "console/services/mcp_query_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_service_test.py",
-          "selector": "MCPQueryServiceApplicationToolTests.test_manage_component_ports_batch_enable_outer_accepts_integer_items"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.gateway.create-app-invalid-display-name",
-      "title": "create_app returns structured details for illegal app name",
-      "title_zh": "create_app 对非法应用名返回结构化错误详情",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.call_tool[console.gateway.create-app-invalid-display-name]",
-      "code_paths": [
-        "console/services/mcp_query_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_service_test.py",
-          "selector": "MCPQueryServiceApplicationToolTests.test_create_app_returns_structured_details_for_illegal_app_name"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.package-upload.local-path-create-schema",
-      "title": "create_component_from_local_package tool schema exposes server-side local path guidance",
-      "title_zh": "create_component_from_local_package 工具 schema 暴露服务端本地路径指引",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.list_tools[console.package-upload.local-path-create-schema]",
-      "code_paths": [
-        "console/services/mcp_query_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_service_test.py",
-          "selector": "MCPQueryServiceToolVisibilityTests.test_create_component_from_local_package_tool_schema_exposes_server_side_local_path_guidance"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.mcp.http-expired-jwt",
-      "title": "MCP HTTP endpoint returns 401 for expired JWT",
-      "title_zh": "MCP HTTP 接口对过期 JWT 返回 401",
-      "interface_type": "view_endpoint",
-      "interface": "console.views.mcp_query.MCPQueryHTTPView.post",
-      "code_paths": [
-        "console/views/mcp_query.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_view_test.py",
-          "selector": "MCPQuerySSEViewTests.test_http_post_returns_401_for_expired_jwt"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.vm-root-disk-selected-storage-type",
-      "title": "update_check_app uses selected storage type for new VM root disk",
-      "title_zh": "update_check_app 为新建虚拟机根盘使用所选存储类型",
-      "interface_type": "service_method",
-      "interface": "console.services.app.AppService.update_check_app",
-      "code_paths": [
-        "console/services/app.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/vm_live_migration_storage_test.py",
-          "selector": "VMLiveMigrationStorageTests.test_update_check_app_uses_selected_storage_type_for_new_vm_root_disk"
+          "path": "console/tests/vm_create_flow_regression_test.py"
         }
       ],
       "test_type": "regression",
@@ -8812,17 +9070,19 @@
       "status": "active"
     },
     {
-      "id": "rainbond-console.vm-export.asset-ready-storage-status",
-      "title": "VM asset readiness requires ready status and image url",
-      "title_zh": "虚拟机资产就绪需要 ready 状态与镜像地址",
-      "interface_type": "service_method",
-      "interface": "console.services.virtual_machine.VirtualMachineService.is_vm_asset_ready",
+      "id": "rainbond-console.vm-run.disk-asset-create",
+      "title": "Reuse ready runtime image when creating vm from existing disk asset",
+      "title_zh": "从现有磁盘资产创建虚拟机时复用已就绪运行时镜像",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.app_create.vm_run.VMRunCreateView.post",
       "code_paths": [
-        "console/services/virtual_machine.py"
+        "console/views/app_create/vm_run.py",
+        "console/services/vm_boot_source.py"
       ],
       "tests": [
         {
-          "path": "console/tests/vm_create_flow_regression_test.py"
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests::test_vm_run_create_from_existing_disk_asset_reuses_ready_runtime_image"
         }
       ],
       "test_type": "regression",
@@ -8857,221 +9117,6 @@
       "tests": [
         {
           "path": "console/tests/vm_asset_instantiation_test.py"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.market-app.restore-preserves-volume-capacity-on-storage-fallback",
-      "title": "Market restore preserves volume capacity when storage type falls back",
-      "title_zh": "市场恢复在存储类型回退时保留卷容量",
-      "interface_type": "service_method",
-      "interface": "console.services.market_app.new_components.NewComponents._template_to_volumes",
-      "code_paths": [
-        "console/services/market_app/new_components.py",
-        "console/services/app_config/volume_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/market_app_storage_test.py",
-          "selector": "MarketAppDefaultStorageClassTests.test_template_to_volumes_preserves_capacity_when_storage_type_changes"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.market-app.restore-volume-capacity-helper",
-      "title": "resolve_market_restore_volume_settings preserves capacity when storage type changes",
-      "title_zh": "resolve_market_restore_volume_settings 在存储类型变化时保留容量",
-      "interface_type": "service_method",
-      "interface": "console.services.app_config.volume_service.AppVolumeService.resolve_market_restore_volume_settings",
-      "code_paths": [
-        "console/services/app_config/volume_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/market_app_storage_test.py",
-          "selector": "MarketAppDefaultStorageClassTests.test_resolve_market_restore_volume_settings_preserves_capacity_when_storage_type_changes"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.package-upload.local-path-missing-details",
-      "title": "_normalize_local_path raises structured details when path missing",
-      "title_zh": "_normalize_local_path 在路径缺失时抛出结构化详情",
-      "interface_type": "service_method",
-      "interface": "console.services.package_upload_tool_service.PackageUploadToolService._normalize_local_path",
-      "code_paths": [
-        "console/services/package_upload_tool_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/package_upload_tool_service_test.py",
-          "selector": "PackageUploadToolServiceTests.test_normalize_local_path_raises_structured_details_when_path_missing"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.package-upload.local-path-required-details",
-      "title": "_normalize_local_path raises structured details when path empty",
-      "title_zh": "_normalize_local_path 在路径为空时抛出结构化详情",
-      "interface_type": "service_method",
-      "interface": "console.services.package_upload_tool_service.PackageUploadToolService._normalize_local_path",
-      "code_paths": [
-        "console/services/package_upload_tool_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/package_upload_tool_service_test.py",
-          "selector": "PackageUploadToolServiceTests.test_normalize_local_path_raises_structured_details_when_path_empty"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.enterprise-config.custom-fields-disabled-bool",
-      "title": "get_custom_fields includes disabled bool fields",
-      "title_zh": "get_custom_fields 包含被禁用的布尔字段",
-      "interface_type": "service_method",
-      "interface": "console.services.config_service.EnterpriseConfigService.get_custom_fields",
-      "code_paths": [
-        "console/services/config_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/config_service_test.py",
-          "selector": "EnterpriseConfigServiceTests.test_get_custom_fields_includes_disabled_bool_fields"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.region-api.vm-snapshot-feature-gate-msg",
-      "title": "_check_status translates VM snapshot feature gate error to actionable msg_show",
-      "title_zh": "_check_status 将虚拟机快照功能门禁错误翻译为可操作提示",
-      "interface_type": "service_method",
-      "interface": "www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status",
-      "code_paths": [
-        "www/apiclient/regionapibaseclient.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/regionapibaseclient_test.py",
-          "selector": "RegionApiBaseHttpClientTestCase.test_check_status_translates_snapshot_feature_gate_error_to_actionable_msg_show"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.vm-template-import.delete-abnormal-vm",
-      "title": "delete allows abnormal VM to skip the running guard",
-      "title_zh": "delete 允许异常状态虚拟机跳过运行中校验",
-      "interface_type": "workflow",
-      "interface": "console.services.app_actions.app_manage.AppManageService.delete",
-      "code_paths": [
-        "console/services/app_actions/app_manage.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/app_manage_test.py",
-          "selector": "AppManageVMRestoreDeleteTests.test_delete_allows_abnormal_vm_to_skip_running_guard"
-        }
-      ],
-      "test_type": "regression",
-      "status": "active"
-    },
-    {
-      "id": "console.mcp.operation-failure-classifier",
-      "title": "MCP operation failure classifier",
-      "title_zh": "MCP 操作失败分类器",
-      "interface_type": "package_function",
-      "interface": "console.services.mcp_failure_classifier.classify_failure",
-      "code_paths": [
-        "console/services/mcp_failure_classifier.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_failure_classifier_test.py"
-        }
-      ],
-      "test_type": "unit",
-      "status": "active"
-    },
-    {
-      "id": "console.mcp.operation-failure-context",
-      "title": "MCP get_operation_failure_context tool",
-      "title_zh": "MCP 操作失败上下文工具",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.call_tool[console.mcp.operation-failure-context]",
-      "code_paths": [
-        "console/services/mcp_query_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_failure_context_test.py"
-        }
-      ],
-      "test_type": "unit",
-      "status": "active"
-    },
-    {
-      "id": "console.mcp.operation-event-ids",
-      "title": "MCP operate_app/upgrade_app return operation event ids",
-      "title_zh": "MCP operate_app/upgrade_app 返回操作事件 ID",
-      "interface_type": "workflow",
-      "interface": "console.services.mcp_query_service.call_tool[console.mcp.operation-event-ids]",
-      "code_paths": [
-        "console/services/mcp_query_service.py",
-        "console/services/upgrade_services.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/mcp_query_operation_event_ids_test.py"
-        }
-      ],
-      "test_type": "unit",
-      "status": "active"
-    },
-    {
-      "id": "console.app.delete-with-resources",
-      "title": "Delete application along with components and attached resources",
-      "title_zh": "删除应用及其组件与关联资源",
-      "interface_type": "service_method",
-      "interface": "console.services.group_service.GroupService.delete_app_with_resources",
-      "code_paths": [
-        "console/services/group_service.py"
-      ],
-      "tests": [
-        {
-          "path": "console/tests/group_service_test.py",
-          "selector": "GroupServiceDeleteAppWithResourcesTestCase"
-        }
-      ],
-      "test_type": "unit",
-      "status": "active"
-    },
-    {
-      "id": "console.test-manifest.ignore-worktrees",
-      "title": "Ignore nested worktree tests during manifest validation",
-      "title_zh": "测试清单校验忽略嵌套 worktree 测试",
-      "interface_type": "package_function",
-      "interface": "scripts.validate_test_manifest.collect_marked_tests",
-      "code_paths": [
-        "scripts/validate_test_manifest.py"
-      ],
-      "tests": [
-        {
-          "path": "scripts/validate_test_manifest_test.py",
-          "selector": "ValidateTestManifestTests"
         }
       ],
       "test_type": "regression",

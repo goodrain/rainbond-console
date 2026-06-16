@@ -1396,14 +1396,21 @@ class AppManageService(AppManageBase):
             return "无状态单实例"
         elif extend_method == "stateless_multiple":
             return "无状态多实例"
+        elif extend_method == "daemonset":
+            return "守护进程组件"
         else:
             return None
 
     def change_service_type(self, tenant, service, extend_method, user_name=''):
+        old_extend_method = service.extend_method
+        if old_extend_method != extend_method and (
+                old_extend_method == ComponentType.daemonset.value or extend_method == ComponentType.daemonset.value):
+            raise ServiceHandleException(
+                msg="daemonset component type cannot be changed",
+                msg_show="DaemonSet 组件类型暂不支持在线切换")
         # 存储限制
         tenant_service_volumes = volume_service.get_service_volumes(tenant, service)
         if tenant_service_volumes:
-            old_extend_method = service.extend_method
             for tenant_service_volume in tenant_service_volumes:
                 if tenant_service_volume["volume_type"] == "share-file" or tenant_service_volume["volume_type"] == "memoryfs":
                     continue
