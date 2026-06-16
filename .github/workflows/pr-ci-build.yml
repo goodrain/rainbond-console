@@ -74,6 +74,54 @@ jobs:
       - name: Run mypy (advisory)
         run: make typecheck
 
+  coverage-gate:
+    # Advisory for now (continue-on-error): reports diff coverage of new/changed
+    # code against the PR base branch. Flip to blocking by removing
+    # continue-on-error once the team has settled into the 80% standard.
+    runs-on: ubuntu-latest
+    container: python:3.11-bookworm
+    continue-on-error: true
+    env:
+      PIP_SRC: /tmp/pip-src
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install native dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends gcc git make default-libmysqlclient-dev sqlite3 curl
+
+      - name: Install Python dependencies
+        run: |
+          mkdir -p "$PIP_SRC"
+          python -m pip install --upgrade pip 'setuptools<70'
+          pip install -r requirements.txt
+          pip install diff-cover
+
+      - name: Install openapi-client
+        run: |
+          curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz
+          mkdir -p /tmp/openapi-client
+          tar xzf /tmp/openapi-client.tar.gz -C /tmp/openapi-client --strip-components=1
+          pip install /tmp/openapi-client
+          rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz
+
+      - name: Run tests with coverage
+        run: |
+          coverage erase || true
+          python scripts/run_pytest.py . -- -q --cov=console --cov=www --cov=openapi --cov-append --cov-report= \
+            || echo "::warning::some tests failed; diff coverage may be partial"
+          coverage xml -o coverage.xml
+
+      - name: Diff coverage gate (new/changed code >= 80%)
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git fetch --no-tags --depth=0 origin "$GITHUB_BASE_REF" || git fetch --no-tags origin "$GITHUB_BASE_REF"
+          diff-cover coverage.xml --compare-branch="origin/${GITHUB_BASE_REF}" --fail-under=80
+
   rainbond-allinone:
     needs: unit-test
     runs-on: ubuntu-latest
