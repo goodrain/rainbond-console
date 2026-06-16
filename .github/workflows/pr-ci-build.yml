@@ -89,12 +89,30 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Coverage collection runs the whole suite with per-file subprocess
+      # instrumentation, which is intrinsically slow (~10min). Skip the heavy
+      # steps entirely when the PR changes no Python files (docs/CI/yaml-only
+      # PRs), so they don't burn ~10min for nothing.
+      - name: Detect Python changes
+        id: detect
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git fetch --no-tags origin "$GITHUB_BASE_REF"
+          if git diff --name-only "origin/${GITHUB_BASE_REF}...HEAD" | grep -qE '\.py$'; then
+            echo "py_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "py_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No Python files changed in this PR; skipping coverage gate."
+          fi
+
       - name: Install native dependencies
+        if: steps.detect.outputs.py_changed == 'true'
         run: |
           apt-get update
           apt-get install -y --no-install-recommends gcc git make default-libmysqlclient-dev sqlite3 curl
 
       - name: Install Python dependencies
+        if: steps.detect.outputs.py_changed == 'true'
         run: |
           mkdir -p "$PIP_SRC"
           python -m pip install --upgrade pip 'setuptools<70'
@@ -102,6 +120,7 @@ jobs:
           pip install diff-cover
 
       - name: Install openapi-client
+        if: steps.detect.outputs.py_changed == 'true'
         run: |
           curl -fsSL https://gitee.com/zhangsetsail/appstore-sdk-python/repository/archive/python3.tar.gz -o /tmp/openapi-client.tar.gz
           mkdir -p /tmp/openapi-client
@@ -110,6 +129,7 @@ jobs:
           rm -rf /tmp/openapi-client /tmp/openapi-client.tar.gz
 
       - name: Run tests with coverage
+        if: steps.detect.outputs.py_changed == 'true'
         run: |
           coverage erase || true
           python scripts/run_pytest.py . -- -q --cov=console --cov=www --cov=openapi --cov-append --cov-report= \
@@ -117,9 +137,8 @@ jobs:
           coverage xml -o coverage.xml
 
       - name: Diff coverage gate (new/changed code >= 80%)
+        if: steps.detect.outputs.py_changed == 'true'
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git fetch --no-tags --depth=0 origin "$GITHUB_BASE_REF" || git fetch --no-tags origin "$GITHUB_BASE_REF"
           diff-cover coverage.xml --compare-branch="origin/${GITHUB_BASE_REF}" --fail-under=80
 
   rainbond-allinone:
