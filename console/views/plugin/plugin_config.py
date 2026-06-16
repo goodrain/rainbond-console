@@ -3,8 +3,10 @@
   Created on 18/3/5.
 """
 import logging
+from typing import Any
 
 from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.operation_log import operation_log_service, Operation
@@ -19,7 +21,7 @@ logger = logging.getLogger("default")
 
 class ConfigPluginManageView(PluginBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取某个插件的配置信息
         ---
@@ -50,7 +52,7 @@ class ConfigPluginManageView(PluginBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改插件配置信息
         ---
@@ -83,50 +85,57 @@ class ConfigPluginManageView(PluginBaseView):
         config_name = config.get("config_name")
         config_group_pk = config.get("ID")
         modify_type = config.get("modify_type", False)
-        old_config = plugin_config_service.get_config_group_by_pk(config_group_pk)
-        old_information = plugin_config_service.json_config_group(old_config)
+        old_config = plugin_config_service.get_config_group_by_pk(config_group_pk)  # type: ignore[arg-type]
+        old_information = plugin_config_service.json_config_group(old_config)  # type: ignore[arg-type]
         config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id,
                                                                self.plugin_version.build_version).exclude(pk=config_group_pk)
-        is_pass, msg = plugin_config_service.check_group_config(service_meta_type, injection, config_groups)
+        is_pass, msg = plugin_config_service.check_group_config(
+            service_meta_type, injection, config_groups)  # type: ignore[arg-type]
 
         if not is_pass:
             return Response(general_message(400, "param error", msg), status=400)
-        config_group = plugin_config_service.get_config_group_by_pk(config_group_pk)
-        old_meta_type = config_group.service_meta_type
-        plugin_config_service.update_config_group_by_pk(config_group_pk, config_name, service_meta_type, injection)
+        config_group = plugin_config_service.get_config_group_by_pk(config_group_pk)  # type: ignore[arg-type]
+        # NOTE: config.get / get_config_group_by_pk may yield None; backlog
+        old_meta_type = config_group.service_meta_type  # type: ignore[union-attr]
+        plugin_config_service.update_config_group_by_pk(
+            config_group_pk, config_name, service_meta_type, injection)  # type: ignore[arg-type]
 
         # 删除原有配置项
         plugin_config_service.delet_config_items(self.plugin_version.plugin_id, self.plugin_version.build_version,
                                                  old_meta_type)
         options = config.get("options")
         if modify_type and injection == "plugin_storage":
-            plugin_config_service.delete_config_group_by_meta_type(config_group.plugin_id, config_group.build_version,
-                                                                   config_group.service_meta_type)
+            plugin_config_service.delete_config_group_by_meta_type(
+                config_group.plugin_id,  # type: ignore[union-attr]
+                config_group.build_version,  # type: ignore[union-attr]
+                config_group.service_meta_type)  # type: ignore[union-attr]
         else:
-            plugin_config_service.create_config_items(self.plugin_version.plugin_id, self.plugin_version.build_version,
-                                                      service_meta_type, *options)
+            plugin_config_service.create_config_items(
+                self.plugin_version.plugin_id, self.plugin_version.build_version,
+                service_meta_type,  # type: ignore[arg-type]
+                *options)  # type: ignore[misc]
         result = general_message(200, "success", "修改成功")
         plugin_name = operation_log_service.process_plugin_name(self.plugin.plugin_alias, self.response_region,
                                                                 self.tenant.tenant_name, self.plugin.plugin_id)
-        new_config = plugin_config_service.get_config_group_by_pk(config_group_pk)
-        new_information = plugin_config_service.json_config_group(new_config)
+        new_config = plugin_config_service.get_config_group_by_pk(config_group_pk)  # type: ignore[arg-type]
+        new_information = plugin_config_service.json_config_group(new_config)  # type: ignore[arg-type]
         comment = operation_log_service.generate_team_comment(
             operation=Operation.IN,
-            module_name=self.tenant.tenant_alias,
+            module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
             region=self.response_region,
             team_name=self.tenant.tenant_name,
             suffix=" 中编辑了插件 {} 的配置组 {}".format(plugin_name, config.get("config_name", "")))
         operation_log_service.create_team_log(
             user=self.user,
             comment=comment,
-            enterprise_id=self.user.enterprise_id,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=self.tenant.tenant_name,
             old_information=old_information,
             new_information=new_information)
         return Response(result, status=result["code"])
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         添加插件配置信息
         ---
@@ -157,15 +166,17 @@ class ConfigPluginManageView(PluginBaseView):
         injection = config.get("injection")
         service_meta_type = config.get("service_meta_type")
         config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id, self.plugin_version.build_version)
-        is_pass, msg = plugin_config_service.check_group_config(service_meta_type, injection, config_groups)
+        is_pass, msg = plugin_config_service.check_group_config(
+            service_meta_type, injection, config_groups)  # type: ignore[arg-type]
 
         if not is_pass:
             return Response(general_message(400, "param error", msg), status=400)
         create_data = [config]
         new_information = ""
         if modify_type and injection == "plugin_storage":
-            plugin_config_service.create_config_items(self.plugin_version.plugin_id, self.plugin_version.build_version,
-                                                      service_meta_type, config["options"][0])
+            plugin_config_service.create_config_items(
+                self.plugin_version.plugin_id, self.plugin_version.build_version,
+                service_meta_type, config["options"][0])  # type: ignore[arg-type]
         else:
             new_config = plugin_config_service.create_config_groups(self.plugin_version.plugin_id, self.plugin_version.build_version,
                                                        create_data)
@@ -176,20 +187,20 @@ class ConfigPluginManageView(PluginBaseView):
                                                                 self.tenant.tenant_name, self.plugin.plugin_id)
         comment = operation_log_service.generate_team_comment(
             operation=Operation.IN,
-            module_name=self.tenant.tenant_alias,
+            module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
             region=self.response_region,
             team_name=self.tenant.tenant_name,
             suffix=" 中添加了插件 {} 的配置组 {}".format(plugin_name, config.get("config_name", "")))
         operation_log_service.create_team_log(
             user=self.user,
             comment=comment,
-            enterprise_id=self.user.enterprise_id,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=self.tenant.tenant_name,
             new_information=new_information)
         return Response(result, status=result["code"])
 
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除插件配置信息
         ---
@@ -224,9 +235,11 @@ class ConfigPluginManageView(PluginBaseView):
             return Response(general_message(404, "config group not exist", "配置组不存在"), status=404)
         plugin_config_service.delete_config_group_by_meta_type(config_group.plugin_id, config_group.build_version,
                                                                config_group.service_meta_type)
-        old_config = plugin_config_service.delete_config_group_by_meta_type(config_group.plugin_id, config_group.build_version,
-                                                                            config_group.service_meta_type)
-        old_information = plugin_config_service.json_config_group(old_config)
+        # NOTE: delete_config_group_by_meta_type returns None; old_config is always None (latent bug)
+        old_config = plugin_config_service.delete_config_group_by_meta_type(
+            config_group.plugin_id, config_group.build_version,
+            config_group.service_meta_type)  # type: ignore[func-returns-value]
+        old_information = plugin_config_service.json_config_group(old_config)  # type: ignore[arg-type]
 
         result = general_message(200, "success", "删除成功")
 
@@ -234,14 +247,14 @@ class ConfigPluginManageView(PluginBaseView):
                                                                 self.tenant.tenant_name, self.plugin.plugin_id)
         comment = operation_log_service.generate_team_comment(
             operation=Operation.IN,
-            module_name=self.tenant.tenant_alias,
+            module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
             region=self.response_region,
             team_name=self.tenant.tenant_name,
             suffix=" 中删除了插件 {} 的配置组 {}".format(plugin_name, config_group.config_name))
         operation_log_service.create_team_log(
             user=self.user,
             comment=comment,
-            enterprise_id=self.user.enterprise_id,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=self.tenant.tenant_name,
             old_information=old_information)
         return Response(result, status=result["code"])
@@ -249,7 +262,7 @@ class ConfigPluginManageView(PluginBaseView):
 
 class ConfigPreviewView(PluginBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取某个插件某个版本的预览信息
         ---
@@ -278,7 +291,7 @@ class ConfigPreviewView(PluginBaseView):
         mysql_id = "mysql_service_id"
 
         config_groups = plugin_config_service.get_config_group(self.plugin_version.plugin_id, self.plugin_version.build_version)
-        all_config_group = []
+        all_config_group: list = []
         base_ports = []
         base_services = []
         base_normal = {}
@@ -293,7 +306,7 @@ class ConfigPreviewView(PluginBaseView):
 
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 for port in wp_ports:
-                    base_port = {}
+                    base_port: dict = {}
                     base_port["service_alias"] = wordpress_alias
                     base_port["service_id"] = wp_id
                     base_port["port"] = port
@@ -302,7 +315,7 @@ class ConfigPreviewView(PluginBaseView):
                     base_ports.append(base_port)
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
                 for port in mysql_port:
-                    base_service = {}
+                    base_service: dict = {}
                     base_service["service_alias"] = wordpress_alias
                     base_service["service_id"] = wp_id
                     base_service["port"] = port

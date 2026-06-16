@@ -3,6 +3,9 @@
   Created on 18/5/23.
 """
 import logging
+from typing import Any
+
+from rest_framework.request import Request
 
 from console.exception.main import ServiceHandleException
 from console.services.groupcopy_service import groupapp_copy_service
@@ -18,13 +21,13 @@ logger = logging.getLogger('default')
 
 class GroupAppsCopyView(ApplicationView):
     @never_cache
-    def get(self, request, tenantName, group_id, **kwargs):
+    def get(self, request: Request, tenantName: str, group_id: str, **kwargs: Any) -> Response:
         group_services = groupapp_copy_service.get_group_services_with_build_source(self.tenant, self.region_name, group_id)
         result = general_message(200, "success", "获取成功", list=group_services)
         return Response(result, status=200)
 
     @never_cache
-    def post(self, request, tenantName, group_id, *args, **kwargs):
+    def post(self, request: Request, tenantName: str, group_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         应用复制
         ---
@@ -65,9 +68,11 @@ class GroupAppsCopyView(ApplicationView):
             status = 200
             comment = groupapp_copy_service.generate_comment(self.app, self.region_name, self.tenant_name, tar_group,
                                                              tar_region_name, tar_team_name, services)
-            operation_log_service.create_log(self.user, OperationType.APPLICATION_MANAGE, comment,
-                                             self.user.enterprise_id,
-                                             self.tenant_name, self.app.app_id)
+            operation_log_service.create_log(
+                self.user, OperationType.APPLICATION_MANAGE, comment,
+                self.user.enterprise_id,  # type: ignore[arg-type] # NOTE: enterprise_id is str|None
+                self.tenant_name,
+                self.app.app_id)
         except HttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
