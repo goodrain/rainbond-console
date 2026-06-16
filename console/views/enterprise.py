@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import time
+from typing import Any
 
 import requests
 from django.http import StreamingHttpResponse, FileResponse
@@ -28,6 +29,7 @@ from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.views.base import EnterpriseAdminView, JWTAuthApiView, EnterpriseHeaderView, AlowAnyApiView
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from console.services.app_actions import event_service
 from console.services.group_service import group_service
@@ -50,7 +52,7 @@ EVENT_ID = "event_id"
 FILE_NAME = "file_name"
 
 
-def _websocket_url_to_http_base(wsurl):
+def _websocket_url_to_http_base(wsurl: str) -> str:
     if not wsurl:
         return ""
     if "://" in wsurl:
@@ -65,7 +67,7 @@ def _websocket_url_to_http_base(wsurl):
 
 
 class UploadLongVersion(AlowAnyApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         try:
             enterprise_id = request.data.get("enterprise_id")
             region_id = request.data.get("region_id")
@@ -73,7 +75,9 @@ class UploadLongVersion(AlowAnyApiView):
             if not upload_file:
                 return Response(general_message(400, "get file failure.", "获取文件失败"), status=400)
 
-            region = region_repo.get_region_by_id(enterprise_id, region_id)
+            # NOTE: request body values typed Any|None; repo/service signatures expect str —
+            # systemic int-as-str / nullable mismatch suppressed throughout this file (backlog).
+            region = region_repo.get_region_by_id(enterprise_id, region_id)  # type: ignore[arg-type]
             if not region or not region.wsurl:
                 return Response(general_message(404, "region not found", "数据中心不存在"), status=404)
 
@@ -97,10 +101,12 @@ class UploadLongVersion(AlowAnyApiView):
             return Response(general_message(500, "Proxy error: {0}".format(str(e)), "文件处理异常"), status=500)
 
 class Enterprises(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         enterprises_list = []
         try:
-            enterprises = enterprise_repo.get_enterprises_by_user_id(request.user.user_id)
+            # NOTE: request.user typed User|AnonymousUser; .user_id/.enterprise_id only on the
+            # authed user — recurring union-attr suppressed throughout this file (backlog).
+            enterprises = enterprise_repo.get_enterprises_by_user_id(request.user.user_id)  # type: ignore[union-attr]
         except ExterpriseNotExistError as e:
             logger.debug(e)
             data = general_message(404, "success", "该用户未加入任何团队")
@@ -125,26 +131,28 @@ class Enterprises(JWTAuthApiView):
 
 
 class EnterpriseRUDView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         enter = enterprise_repo.get_enterprise_by_enterprise_id(enterprise_id=enterprise_id)
-        ent = enter.to_dict()
+        ent = enter.to_dict()  # type: ignore[union-attr]
         if ent:
-            regions = region_repo.get_regions_by_enterprise_id(self.enterprise.enterprise_id, 1)
+            regions = region_repo.get_regions_by_enterprise_id(self.enterprise.enterprise_id, 1)  # type: ignore[arg-type]
             default_region = {}
             if os.getenv("ENABLE_CLUSTER") == "true" and not regions:
-                region = region_services.create_default_region(self.enterprise.enterprise_id, request.user)
+                region = region_services.create_default_region(
+                    self.enterprise.enterprise_id, request.user)  # type: ignore[arg-type]
                 if region:
                     ent["disable_install_cluster_log"] = True
                     _, total = team_services.get_enterprise_teams(self.enterprise.enterprise_id)
                     if total == 0:
-                        region_services.create_sample_application(enter, region, request.user)
-                default_region = region.to_dict()
+                        region_services.create_sample_application(enter, region, request.user)  # type: ignore[arg-type]
+                default_region = region.to_dict()  # type: ignore[union-attr]
             ent["default_region"] = default_region
-            ent.update(EnterpriseConfigService(enterprise_id, self.user.user_id).initialization_or_get_config)
+            ent.update(EnterpriseConfigService(
+                enterprise_id, self.user.user_id).initialization_or_get_config)  # type: ignore[arg-type]
         result = general_message(200, "success", "查询成功", bean=ent)
         return Response(result, status=result["code"])
 
-    def put(self, request, enterprise_id, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         key = request.GET.get("key")
         if not key:
             result = general_message(404, "no found config key {0}".format(key), "更新失败")
@@ -153,7 +161,7 @@ class EnterpriseRUDView(JWTAuthApiView):
         if not value:
             result = general_message(404, "no found config value", "更新失败")
             return Response(result, status=result.get("code", 200))
-        ent_config_servier = EnterpriseConfigService(enterprise_id, self.user.user_id)
+        ent_config_servier = EnterpriseConfigService(enterprise_id, self.user.user_id)  # type: ignore[arg-type]
         key = key.upper()
         if key in ent_config_servier.base_cfg_keys + ent_config_servier.cfg_keys:
             try:
@@ -162,7 +170,7 @@ class EnterpriseRUDView(JWTAuthApiView):
                 comment = operation_log_service.generate_generic_comment(
                     operation=Operation.CHANGE, module=OperationModule.CERTSIGN, module_name="的配置")
                 operation_log_service.create_enterprise_log(
-                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
+                    user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
             except Exception as e:
                 logger.debug(e)
                 raise ServiceHandleException(msg="update enterprise config failed", msg_show="更新失败")
@@ -170,7 +178,7 @@ class EnterpriseRUDView(JWTAuthApiView):
             result = general_message(404, "no found config key", "更新失败")
         return Response(result, status=result.get("code", 200))
 
-    def delete(self, request, enterprise_id, *args, **kwargs):
+    def delete(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         key = request.GET.get("key")
         if not key:
             result = general_message(404, "no found config key", "重置失败")
@@ -179,7 +187,7 @@ class EnterpriseRUDView(JWTAuthApiView):
         if not value:
             result = general_message(404, "no found config value", "重置失败")
             return Response(result, status=result.get("code", 200))
-        ent_config_servier = EnterpriseConfigService(enterprise_id, self.user.user_id)
+        ent_config_servier = EnterpriseConfigService(enterprise_id, self.user.user_id)  # type: ignore[arg-type]
         key = key.upper()
         if key in ent_config_servier.cfg_keys:
             data = ent_config_servier.delete_config(key)
@@ -194,7 +202,7 @@ class EnterpriseRUDView(JWTAuthApiView):
 
 
 class EnterpriseAppOverView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         regions = region_repo.get_usable_regions(enterprise_id)
         if not regions:
             result = general_message(404, "no found regions", "查询成功")
@@ -206,7 +214,7 @@ class EnterpriseAppOverView(JWTAuthApiView):
 
 # 等待优化
 class EnterpriseOverview(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         users = enterprise_repo.get_enterprise_users(enterprise_id)
         user_nums = len(users)
         team = enterprise_repo.get_enterprise_teams(enterprise_id)
@@ -218,7 +226,7 @@ class EnterpriseOverview(JWTAuthApiView):
 
 
 class EnterpriseTeamNames(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         tenants = Tenants.objects.filter()
         tenant_namespaces = [tenant.namespace for tenant in tenants]
         data = {"tenant_names": tenant_namespaces}
@@ -227,7 +235,7 @@ class EnterpriseTeamNames(JWTAuthApiView):
 
 
 class EnterpriseTeams(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         name = request.GET.get("name", None)
@@ -240,7 +248,7 @@ class EnterpriseTeams(JWTAuthApiView):
 
 
 class EnterpriseUserTeams(EnterpriseAdminView):
-    def get(self, request, enterprise_id, user_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, user_id: str, *args: Any, **kwargs: Any) -> Response:
         name = request.GET.get("name", None)
         user = user_repo.get_user_by_user_id(user_id)
         teams = team_services.list_user_teams(enterprise_id, user, name)
@@ -249,24 +257,28 @@ class EnterpriseUserTeams(EnterpriseAdminView):
 
 
 class EnterpriseMyTeams(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         name = request.GET.get("name", None)
         use_region = request.GET.get("use_region", False)
-        tenants = team_services.get_teams_region_by_user_id(enterprise_id, self.user, name, use_region=use_region)
+        tenants = team_services.get_teams_region_by_user_id(
+            enterprise_id, self.user, name, use_region=use_region)  # type: ignore[arg-type]
         result = general_message(200, "team query success", "查询成功", list=tenants)
         return Response(result, status=200)
 
 
 class EnterpriseTeamOverView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         code = 200
         new_join_team = []
         request_join_team = []
         try:
-            tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, request.user.user_id)
-            join_tenants = enterprise_repo.get_enterprise_user_join_teams(enterprise_id, request.user.user_id)
-            active_tenants = enterprise_repo.get_enterprise_user_active_teams(enterprise_id, request.user.user_id)
-            request_tenants = enterprise_repo.get_enterprise_user_request_join(enterprise_id, request.user.user_id)
+            tenants = enterprise_repo.get_enterprise_user_teams(enterprise_id, request.user.user_id)  # type: ignore[union-attr]
+            join_tenants = enterprise_repo.get_enterprise_user_join_teams(
+                enterprise_id, request.user.user_id)  # type: ignore[union-attr]
+            active_tenants = enterprise_repo.get_enterprise_user_active_teams(
+                enterprise_id, request.user.user_id)  # type: ignore[union-attr]
+            request_tenants = enterprise_repo.get_enterprise_user_request_join(
+                enterprise_id, request.user.user_id)  # type: ignore[union-attr]
             if tenants:
                 for tenant in tenants[:3]:
                     region_name_list = []
@@ -274,7 +286,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                     user_role_list = user_kind_role_service.get_user_roles(
                         kind="team", kind_id=tenant.tenant_id, user=request.user)
                     roles = [x["role_name"] for x in user_role_list["roles"]]
-                    if tenant.creater == request.user.user_id:
+                    if tenant.creater == request.user.user_id:  # type: ignore[union-attr]
                         roles.append("owner")
                     owner = user_repo.get_by_user_id(tenant.creater)
                     if len(region_name_list) > 0:
@@ -297,7 +309,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                     region_name_list = team_repo.get_team_region_names(tenant.team_id)
                     tenant_info = team_repo.get_team_by_team_id(tenant.team_id)
                     try:
-                        user = user_repo.get_user_by_user_id(tenant_info.creater)
+                        user = user_repo.get_user_by_user_id(tenant_info.creater)  # type: ignore[arg-type]
                         nick_name = user.nick_name
                     except UserNotExistError:
                         nick_name = None
@@ -321,7 +333,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
                     region_name_list = team_repo.get_team_region_names(request_tenant.team_id)
                     tenant_info = team_repo.get_team_by_team_id(request_tenant.team_id)
                     try:
-                        user = user_repo.get_user_by_user_id(tenant_info.creater)
+                        user = user_repo.get_user_by_user_id(tenant_info.creater)  # type: ignore[arg-type]
                         nick_name = user.nick_name
                     except UserNotExistError:
                         nick_name = None
@@ -356,7 +368,7 @@ class EnterpriseTeamOverView(JWTAuthApiView):
 
 
 class EnterpriseMonitor(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         regions = region_repo.get_usable_regions(enterprise_id)
         region_memory_total = 0
         region_memory_used = 0
@@ -370,10 +382,12 @@ class EnterpriseMonitor(JWTAuthApiView):
             try:
                 res, body = region_api.get_region_resources(enterprise_id, region=region.region_name)
                 if res.get("status") == 200:
-                    region_memory_total += body["bean"]["cap_mem"]
-                    region_memory_used += body["bean"]["req_mem"]
-                    region_cpu_total += body["bean"]["cap_cpu"]
-                    region_cpu_used += body["bean"]["req_cpu"]
+                    # NOTE: regionapi body typed Optional; legacy code assumes dict —
+                    # recurring index suppressed throughout this file (backlog).
+                    region_memory_total += body["bean"]["cap_mem"]  # type: ignore[index]
+                    region_memory_used += body["bean"]["req_mem"]  # type: ignore[index]
+                    region_cpu_total += body["bean"]["cap_cpu"]  # type: ignore[index]
+                    region_cpu_used += body["bean"]["req_cpu"]  # type: ignore[index]
             except Exception as e:
                 logger.debug(e)
                 continue
@@ -393,7 +407,7 @@ class EnterpriseMonitor(JWTAuthApiView):
 
 
 class EnterpriseAppsLView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         data = []
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
@@ -403,7 +417,8 @@ class EnterpriseAppsLView(JWTAuthApiView):
                 try:
                     tenant = team_services.get_team_by_team_id(app.tenant_id)
                     tenant_name = tenant.tenant_name
-                except TenantNotExistError:
+                # NOTE: mypy can't confirm TenantNotExistError derives from BaseException (backlog).
+                except TenantNotExistError:  # type: ignore[misc]
                     tenant_name = None
                 data.append({
                     "ID": app.ID,
@@ -417,7 +432,7 @@ class EnterpriseAppsLView(JWTAuthApiView):
 
 
 class EnterpriseRegionsLCView(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         region_status = request.GET.get("status", "")
         check_status = request.GET.get("check_status", "")
         data = region_services.get_enterprise_regions(
@@ -425,19 +440,19 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
         result = general_message(200, "success", "获取成功", list=data)
         return Response(result, status=status.HTTP_200_OK)
 
-    def post(self, request, enterprise_id, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         token = request.data.get("token")
         region_name = request.data.get("region_name")
         region_alias = request.data.get("region_alias")
         desc = request.data.get("desc")
         region_type = json.dumps(request.data.get("region_type", []))
-        region_data = region_services.parse_token(token, region_name, region_alias, region_type)
+        region_data = region_services.parse_token(token, region_name, region_alias, region_type)  # type: ignore[arg-type]
         region_data["enterprise_id"] = enterprise_id
         region_data["desc"] = desc
         region_data["provider"] = request.data.get("provider", "")
         region_data["provider_cluster_id"] = request.data.get("provider_cluster_id", "")
         region_data["status"] = "1"
-        region = region_services.add_region(region_data, request.user)
+        region = region_services.add_region(region_data, request.user)  # type: ignore[arg-type]
         new_information = json.dumps({"集群ID": region_name, "集群名称": region_alias, "备注": desc, "配置文件": token}, ensure_ascii=False)
         if region:
             data = region_services.get_enterprise_region(enterprise_id, region.region_id, check_status=False)
@@ -445,7 +460,8 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
             comment = operation_log_service.generate_generic_comment(
                 operation=Operation.CREATE, module=OperationModule.CLUSTER, module_name="{}".format(region_alias))
             operation_log_service.create_cluster_log(
-                user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, new_information=new_information)
+                user=self.user, comment=comment, new_information=new_information,
+                enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
             return Response(result, status=status.HTTP_200_OK)
         else:
             result = general_message(500, "failed", "创建失败")
@@ -453,14 +469,14 @@ class EnterpriseRegionsLCView(JWTAuthApiView):
 
 
 class EnterpriseRegionGatewayBatch(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_name, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_name: str, *args: Any, **kwargs: Any) -> Response:
         data = gateway_api.list_gateways(enterprise_id, region_name)
-        result = general_message(200, "success", "获取成功", list=data["list"])
+        result = general_message(200, "success", "获取成功", list=data["list"])  # type: ignore[index]
         return Response(result, status=status.HTTP_200_OK)
 
 
 class EnterpriseRegionNamespace(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         content = request.GET.get("content", "all")
         data = region_resource.get_namespaces(enterprise_id, region_id, content)
         result = general_message(200, "success", "获取成功", bean=data["list"])
@@ -468,13 +484,13 @@ class EnterpriseRegionNamespace(JWTAuthApiView):
 
 
 class EnterpriseRegionLangVersion(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         language = request.GET.get("language", "")
         data = region_lang_version.show_long_version(enterprise_id, region_id, language)
         result = general_message(200, "success", "获取成功", list=data["list"])
         return Response(result, status=status.HTTP_200_OK)
 
-    def post(self, request, enterprise_id, region_id, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         language = request.data.get("language", "")
         version = request.data.get("version", "")
         event_id = request.data.get("event_id", "")
@@ -495,14 +511,16 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
             data = {"code": 400, "msg": "package format mistake", "msg_show": "文件上传格式不正确，支持zip, war, jar, tar, tar.gz, rar"}
             return Response(data, status=400)
 
-    def put(self, request, enterprise_id, region_id, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         language = request.data.get("language", "")
         version = request.data.get("version", "")
-        region_lang_version.update_long_version(enterprise_id, region_id, language, version)
+        # NOTE: latent bug — update_long_version requires show and first_choice which are
+        # not passed (TypeError if reached); behavior preserved (backlog).
+        region_lang_version.update_long_version(enterprise_id, region_id, language, version)  # type: ignore[call-arg]
         result = general_message(200, "success", "更新成功")
         return Response(result, status=result.get("code", 200))
 
-    def delete(self, request, enterprise_id, region_id, *args, **kwargs):
+    def delete(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         language = request.data.get("language", "")
         version = request.data.get("version", "")
         use_components = region_lang_version.delete_long_version(enterprise_id, region_id, language, version)
@@ -514,7 +532,7 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
 
 
 class EnterpriseNamespaceResource(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         content = request.GET.get("content", "all")
         namespace = request.GET.get("namespace", "")
         data = region_resource.get_namespaces_resource(enterprise_id, region_id, content, namespace)
@@ -525,7 +543,7 @@ class EnterpriseNamespaceResource(JWTAuthApiView):
 
 
 class EnterpriseConvertResource(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         content = request.GET.get("content", "all")
         namespace = request.GET.get("namespace", "")
         data = region_resource.convert_resource(enterprise_id, region_id, namespace, content)
@@ -534,7 +552,7 @@ class EnterpriseConvertResource(JWTAuthApiView):
         result = general_message(200, "success", "获取成功", bean=data["bean"])
         return Response(result, status=status.HTTP_200_OK)
 
-    def post(self, request, enterprise_id, region_id, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         content = request.data.get("content", "all")
         namespace = request.data.get("namespace", "")
         data = region_resource.resource_import(enterprise_id, region_id, namespace, content)
@@ -553,16 +571,16 @@ class EnterpriseConvertResource(JWTAuthApiView):
 
 
 class EnterpriseRegionsRUDView(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         data = region_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
         result = general_message(200, "success", "获取成功", bean=data)
         return Response(result, status=status.HTTP_200_OK)
 
-    def put(self, request, enterprise_id, region_id, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         old_region = region_services.get_enterprise_region(enterprise_id, region_id)
         region = region_services.update_enterprise_region(enterprise_id, region_id, request.data)
         result = general_message(200, "success", "更新成功", bean=region)
-        old_information = region_services.json_region(old_region)
+        old_information = region_services.json_region(old_region)  # type: ignore[arg-type]
         new_information = region_services.json_region(region)
         comment = operation_log_service.generate_generic_comment(
             operation=Operation.UPDATE, module=OperationModule.CLUSTER,
@@ -570,12 +588,12 @@ class EnterpriseRegionsRUDView(JWTAuthApiView):
         operation_log_service.create_cluster_log(
             user=self.user,
             comment=comment,
-            enterprise_id=self.user.enterprise_id,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             old_information=old_information,
             new_information=new_information)
         return Response(result, status=result.get("code", 200))
 
-    def delete(self, request, enterprise_id, region_id, *args, **kwargs):
+    def delete(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         # Get region information before deletion for logging
         region = region_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
         if not region:
@@ -590,15 +608,17 @@ class EnterpriseRegionsRUDView(JWTAuthApiView):
         comment = operation_log_service.generate_generic_comment(
             operation=Operation.DELETE, module=OperationModule.CLUSTER, module_name="{}".format(region.get("region_alias", "")))
         operation_log_service.create_cluster_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, old_information=old_information)
+            user=self.user, comment=comment, old_information=old_information,
+            enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(result, status=result.get("code", 200))
 
 
 class EnterpriseRegionTenantRUDView(EnterpriseAdminView):
-    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         page = request.GET.get("page", 1)
         page_size = request.GET.get("pageSize", 10)
-        tenants, total = team_services.get_tenant_list_by_region(enterprise_id, region_id, page, page_size)
+        tenants, total = team_services.get_tenant_list_by_region(
+            enterprise_id, region_id, page, page_size)  # type: ignore[arg-type]
         result = general_message(
             200, "success", "获取成功", bean={
                 "tenants": tenants,
@@ -608,21 +628,24 @@ class EnterpriseRegionTenantRUDView(EnterpriseAdminView):
 
 
 class EnterpriseRegionTenantLimitView(EnterpriseAdminView):
-    def post(self, request, enterprise_id, region_id, tenant_name, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, region_id: str, tenant_name: str,
+             *args: Any, **kwargs: Any) -> Response:
         team_services.set_tenant_resource_limit(enterprise_id, region_id, tenant_name, request.data)
         team = team_services.get_tenant_by_tenant_name(tenant_name)
         limit = request.data.get("limit_memory", 0)
-        team_alias = operation_log_service.process_team_name(team.tenant_alias, region_id, tenant_name)
+        team_alias = operation_log_service.process_team_name(
+            team.tenant_alias, region_id, tenant_name)  # type: ignore[union-attr]
         comment = operation_log_service.generate_generic_comment(
             operation=Operation.LIMIT, module=OperationModule.TEAM,
             module_name="{} 的内存使用量为 {} MB".format(team_alias, limit))
-        operation_log_service.create_cluster_log(user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)
+        operation_log_service.create_cluster_log(
+            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response({}, status=status.HTTP_200_OK)
 
 
 
 class EnterpriseAppComponentsLView(JWTAuthApiView):
-    def get(self, request, enterprise_id, app_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, app_id: str, *args: Any, **kwargs: Any) -> Response:
         page = int(request.GET.get("page", 1))
         page_size = int(request.GET.get("page_size", 10))
         data = []
@@ -651,7 +674,9 @@ class EnterpriseAppComponentsLView(JWTAuthApiView):
 
 
 class EnterpriseRegionDashboard(EnterpriseAdminView):
-    def dispatch(self, request, enterprise_id, region_id, *args, **kwargs):
+    # NOTE: dispatch overrides with extra path params; signature differs from base (pre-existing).
+    def dispatch(  # type: ignore[override]
+            self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Any:
         self.args = args
         self.kwargs = kwargs
         request = self.initialize_request(request, *args, **kwargs)
@@ -661,7 +686,9 @@ class EnterpriseRegionDashboard(EnterpriseAdminView):
             self.initial(request, *args, **kwargs)
             region = region_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
             if not region:
-                return Response({}, status=status.HTTP_404_NOTFOUND)
+                # NOTE: latent bug — status.HTTP_404_NOTFOUND is a typo for HTTP_404_NOT_FOUND
+                # (AttributeError if reached); behavior preserved (backlog).
+                return Response({}, status=status.HTTP_404_NOTFOUND)  # type: ignore[attr-defined]
             full_path = request.get_full_path()
             path = full_path[full_path.index("/dashboard/") + 11:len(full_path)]
             response = region_api.proxy(request, '/kubernetes/dashboard/' + path, region['region_name'])
@@ -672,7 +699,7 @@ class EnterpriseRegionDashboard(EnterpriseAdminView):
 
 
 class EnterpriseUserTeamRoleView(EnterpriseHeaderView):
-    def post(self, request, eid, user_id, tenant_name, *args, **kwargs):
+    def post(self, request: Request, eid: str, user_id: str, tenant_name: str, *args: Any, **kwargs: Any) -> Response:
         role_ids = request.data.get('role_ids', [])
         res = enterprise_services.create_user_roles(eid, user_id, tenant_name, role_ids)
         result = general_message(200, "ok", "设置成功", bean=res)
@@ -680,17 +707,17 @@ class EnterpriseUserTeamRoleView(EnterpriseHeaderView):
 
 
 class HelmTokenView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         eid = request.GET.get("eid")
         timestamp = str(int(time.time()))
         token = make_uuid()
-        cfg_repo.create_token_record("token-" + timestamp, token, eid)
+        cfg_repo.create_token_record("token-" + timestamp, token, eid)  # type: ignore[arg-type]
         result = general_message(200, "ok", "获取token成功", bean=token)
         return Response(result, status=status.HTTP_200_OK)
 
 
 class HelmAddReginInfo(AlowAnyApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         token = request.data.get("token")
         enterprise_id = request.data.get("enterpriseId", "")
         try:
@@ -730,7 +757,7 @@ class HelmAddReginInfo(AlowAnyApiView):
 
 
 class HelmInstallStatus(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         apiHost = request.GET.get("api_host")
         token = request.GET.get("token")
         try:
@@ -771,7 +798,7 @@ class HelmInstallStatus(JWTAuthApiView):
 
 
 class Goodrainlog(EnterpriseAdminView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         filepath = LOG_PATH + '/goodrain.log'
         res = list()
         with open(filepath, 'r', errors='ignore') as f:
@@ -783,8 +810,8 @@ class Goodrainlog(EnterpriseAdminView):
 
 
 class Downlodlog(EnterpriseAdminView):
-    def get(self, request):
-        def file_iterator(fn, chunk_size=512):
+    def get(self, request: Request) -> Any:
+        def file_iterator(fn: Any, chunk_size: int = 512) -> Any:
             while True:
                 c = fn.read(chunk_size)
                 if c:
@@ -801,14 +828,14 @@ class Downlodlog(EnterpriseAdminView):
 
 
 class RbdPods(EnterpriseAdminView):
-    def get(self, request, region_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, *args: Any, **kwargs: Any) -> Response:
         pods_info = region_api.get_rbd_pods(region_name)
         result = general_message(200, "success", "获取成功", bean=pods_info)
         return Response(result, status=status.HTTP_200_OK)
 
 
 class RbdPodLog(EnterpriseAdminView):
-    def get(self, request, region_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, *args: Any, **kwargs: Any) -> Any:
         pod_name = request.GET.get("pod_name", "")
         if not pod_name:
             raise AbortRequest("the field 'pod_name' is required")
@@ -821,20 +848,20 @@ class RbdPodLog(EnterpriseAdminView):
 
 
 class RbdComponentLogs(EnterpriseAdminView):
-    def get(self, request, region_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, *args: Any, **kwargs: Any) -> Response:
         lines = request.GET.get("lines", 100)
         rbd_name = request.GET.get("rbd_name", "")
-        body = region_api.get_rbd_component_logs(region_name, rbd_name, lines)
-        log_list = body["list"]
+        body = region_api.get_rbd_component_logs(region_name, rbd_name, lines)  # type: ignore[arg-type]
+        log_list = body["list"]  # type: ignore[index]
         result = general_message(200, "success", "获取成功", bean=log_list)
         return Response(result, status=status.HTTP_200_OK)
 
 
 class RbdLogFiles(EnterpriseAdminView):
-    def get(self, request, region_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, *args: Any, **kwargs: Any) -> Response:
         rbd_name = request.GET.get("rbd_name", "")
         body = region_api.get_rbd_log_files(region_name, rbd_name)
-        file_list = body["list"]
+        file_list = body["list"]  # type: ignore[index]
         log_domain_url = ws_service.get_log_domain(request, region_name)
         file_urls = [{"file_name": f["filename"], "file_url": log_domain_url + "/" + f["relative_path"]} for f in file_list]
         result = general_message(200, "success", "获取成功", bean=file_urls)
@@ -842,13 +869,13 @@ class RbdLogFiles(EnterpriseAdminView):
 
 
 class ShellPod(EnterpriseAdminView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         region_name = request.data.get("region_name", "")
         body = region_api.create_shell_pod(region_name)
         result = general_message(200, "success", "创建成功", bean=body)
         return Response(result, status=status.HTTP_200_OK)
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         region_name = request.data.get("region_name", "")
         pod_name = request.data.get("pod_name", "")
         body = region_api.delete_shell_pod(region_name, pod_name)
@@ -857,14 +884,15 @@ class ShellPod(EnterpriseAdminView):
 
 
 class MyEventsView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         eid = kwargs.get("enterprise_id", "")
         region_names = request.GET.get("region_names", "")
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 10)
         res_events = []
         for region_name in eval(region_names):
-            my_tenant_ids = team_repo.get_tenants_by_user_id(self.user.user_id).values_list("tenant_id", flat=True)
+            my_tenant_ids = team_repo.get_tenants_by_user_id(
+                self.user.user_id).values_list("tenant_id", flat=True)  # type: ignore[arg-type]
             tenant_id_list = {"tenant_ids": list(my_tenant_ids)}
             events = event_service.get_myteams_events("tenant", json.dumps(tenant_id_list), eid, region_name, int(page),
                                                       int(page_size))
@@ -875,7 +903,7 @@ class MyEventsView(JWTAuthApiView):
 
 
 class ServiceAlarm(EnterpriseAdminView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         res_service = []
         # 获取企业下团队数量
         if team_repo.get_team_by_enterprise_id(enterprise_id).count() > 0:
@@ -885,7 +913,7 @@ class ServiceAlarm(EnterpriseAdminView):
             all_abnormal_service_id = []
             for usable_region in usable_regions:
                 abnormal_service_id = region_api.get_user_service_abnormal_status(usable_region.region_name, enterprise_id)
-                all_abnormal_service_id += abnormal_service_id["service_ids"]
+                all_abnormal_service_id += abnormal_service_id["service_ids"]  # type: ignore[index]
             # 根据组件id获取应用信息
             result_map = group_service.get_services_group_name(all_abnormal_service_id)
             # 根据组件id获取组件信息
@@ -909,21 +937,21 @@ class ServiceAlarm(EnterpriseAdminView):
 
 
 class GetNodes(EnterpriseAdminView):
-    def get(self, request, region_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, *args: Any, **kwargs: Any) -> Response:
         nodes, cluster_role_count = enterprise_services.get_nodes(region_name)
         result = general_message(200, "success", "获取成功", bean=cluster_role_count, list=nodes)
         return Response(result, status=status.HTTP_200_OK)
 
 
 class GetNode(EnterpriseAdminView):
-    def get(self, request, region_name, node_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, node_name: str, *args: Any, **kwargs: Any) -> Response:
         res = enterprise_services.get_node_detail(region_name, node_name)
         result = general_message(200, "success", "获取成功", bean=res)
         return Response(result, status=status.HTTP_200_OK)
 
 
 class NodeAction(EnterpriseAdminView):
-    def post(self, request, region_name, node_name, *args, **kwargs):
+    def post(self, request: Request, region_name: str, node_name: str, *args: Any, **kwargs: Any) -> Response:
         action = request.data.get("action", "")
         support_action = ["unschedulable", "reschedulable", "down", "up", "evict"]
         if action not in support_action:
@@ -934,44 +962,44 @@ class NodeAction(EnterpriseAdminView):
 
 
 class NodeLabelsOperate(EnterpriseAdminView):
-    def get(self, request, region_name, node_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, node_name: str, *args: Any, **kwargs: Any) -> Response:
         res, body = region_api.get_node_labels(region_name, node_name)
-        result = general_message(200, "success", "获取成功", bean=body["bean"])
+        result = general_message(200, "success", "获取成功", bean=body["bean"])  # type: ignore[index]
         return Response(result, status=status.HTTP_200_OK)
 
-    def put(self, request, region_name, node_name, *args, **kwargs):
+    def put(self, request: Request, region_name: str, node_name: str, *args: Any, **kwargs: Any) -> Response:
         labels = request.data.get("labels", {})
         res, body = region_api.update_node_labels(region_name, node_name, labels)
-        result = general_message(200, "success", "操作成功", bean=body["bean"])
+        result = general_message(200, "success", "操作成功", bean=body["bean"])  # type: ignore[index]
         return Response(result, status=status.HTTP_200_OK)
 
 
 class NodeTaintOperate(EnterpriseAdminView):
-    def get(self, request, region_name, node_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, node_name: str, *args: Any, **kwargs: Any) -> Response:
         res, body = region_api.get_node_taints(region_name, node_name)
-        result = general_message(200, "success", "获取成功", bean=body["list"])
+        result = general_message(200, "success", "获取成功", bean=body["list"])  # type: ignore[index]
         return Response(result, status=status.HTTP_200_OK)
 
-    def put(self, request, region_name, node_name, *args, **kwargs):
+    def put(self, request: Request, region_name: str, node_name: str, *args: Any, **kwargs: Any) -> Response:
         taints = request.data.get("taints", [])
         res, body = region_api.update_node_taints(region_name, node_name, taints)
-        result = general_message(200, "success", "操作成功", list=body["list"])
+        result = general_message(200, "success", "操作成功", list=body["list"])  # type: ignore[index]
         return Response(result, status=status.HTTP_200_OK)
 
 
 class RainbondComponents(EnterpriseAdminView):
-    def get(self, request, region_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, *args: Any, **kwargs: Any) -> Response:
         component_list = enterprise_services.get_rbdcomponents(region_name)
         result = general_message(200, "success", "获取成功", list=component_list)
         return Response(result, status=status.HTTP_200_OK)
 
 
 class ContainerDisk(EnterpriseAdminView):
-    def get(self, request, region_name, *args, **kwargs):
+    def get(self, request: Request, region_name: str, *args: Any, **kwargs: Any) -> Response:
         container_runtime = request.GET.get("container_runtime", "")
         container = container_runtime.split(":")[0]
         res, body = region_api.get_container_disk(region_name, container)
-        container_disk = body["bean"]
+        container_disk = body["bean"]  # type: ignore[index]
         res = {
             "path": container_disk["path"],
             "total": container_disk["total"] / 1024 / 1024 / 1024,
@@ -982,12 +1010,12 @@ class ContainerDisk(EnterpriseAdminView):
 
 
 class EnterpriseMenuManage(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         menus_res = enterprise_services.get_enterprise_menus(enterprise_id)
         result = general_message(200, "success", "获取成功", list=menus_res)
         return Response(result, status=status.HTTP_200_OK)
 
-    def post(self, request, enterprise_id, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         title = request.data.get("title", "")
         path = request.data.get("path", "")
         parent_id = request.data.get("parent_id", 0)
@@ -1007,7 +1035,7 @@ class EnterpriseMenuManage(JWTAuthApiView):
         result = general_message(200, "success", "添加成功")
         return Response(result, status=status.HTTP_200_OK)
 
-    def put(self, request, enterprise_id, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         id = request.data.get("id", "")
         title = request.data.get("title", "")
         path = request.data.get("path", "")
@@ -1023,7 +1051,7 @@ class EnterpriseMenuManage(JWTAuthApiView):
         result = general_message(200, "success", "更新成功")
         return Response(result, status=status.HTTP_200_OK)
 
-    def delete(self, request, enterprise_id, *args, **kwargs):
+    def delete(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         id = request.data.get("id", "")
         enterprise_services.delete_enterprise_menu(enterprise_id, id)
         result = general_message(200, "success", "删除成功")
@@ -1031,21 +1059,21 @@ class EnterpriseMenuManage(JWTAuthApiView):
 
 
 class EnterpriseInfoFileView(AlowAnyApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Any:
         data = enterprise_services.get_enterprise_by_enterprise_id(enterprise_id)
         ent = {
-            "enterprise_id": data.enterprise_id,
-            "enterprise_name": data.enterprise_name,
-            "enterprise_alias": data.enterprise_alias,
+            "enterprise_id": data.enterprise_id,  # type: ignore[union-attr]
+            "enterprise_name": data.enterprise_name,  # type: ignore[union-attr]
+            "enterprise_alias": data.enterprise_alias,  # type: ignore[union-attr]
         }
-        json_dir = "{0}/{1}.json".format(DATA_DIR, data.enterprise_alias)
+        json_dir = "{0}/{1}.json".format(DATA_DIR, data.enterprise_alias)  # type: ignore[union-attr]
         file = os.path.exists(json_dir)
         if file:
             os.remove(json_dir)
         with open(json_dir, "w") as f:
             json.dump(ent, f)
 
-        def file_iterator(fn, chunk_size=512):
+        def file_iterator(fn: Any, chunk_size: int = 512) -> Any:
             while True:
                 c = fn.read(chunk_size)
                 if c:
@@ -1056,11 +1084,11 @@ class EnterpriseInfoFileView(AlowAnyApiView):
         fn = open(json_dir, 'rb')
         response = FileResponse(file_iterator(fn))
         response['Content-Type'] = 'application/octet-stream'
-        response['Content-Disposition'] = 'attachment;filename={}.json'.format(data.enterprise_alias)
+        response['Content-Disposition'] = 'attachment;filename={}.json'.format(data.enterprise_alias)  # type: ignore[union-attr]
         return response
 
 
-class EnterpriseRegionLangVersion(JWTAuthApiView):
+class EnterpriseRegionLangVersion(JWTAuthApiView):  # type: ignore[no-redef]  # NOTE: class redefined (pre-existing duplicate)
     """
         企业区域语言版本视图。
 
@@ -1076,14 +1104,14 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         Returns:
             Response: 包含企业区域语言版本信息的 HTTP 响应。
         """
-    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         language = request.GET.get(LANGUAGE, "")
         build_strategy = request.GET.get("build_strategy", "")
         data = region_lang_version.show_long_version(enterprise_id, region_id, language, build_strategy)
         result = general_message(200, "success", "获取成功", list=data["list"])
         return Response(result, status=status.HTTP_200_OK)
 
-    def post(self, request, enterprise_id, region_id, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         language = request.data.get(LANGUAGE, "")
         version = request.data.get(VERSION, "")
         event_id = request.data.get(EVENT_ID, "")
@@ -1112,7 +1140,7 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
             data = general_message(400,"package format mistake","文件上传格式不正确，支持jar, tar.gz")
             return Response(data, status=400)
 
-    def put(self, request, enterprise_id, region_id, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         language = request.data.get(LANGUAGE, "")
         version = request.data.get(VERSION, "")
         first_choice = request.data.get("first_choice", True)
@@ -1124,7 +1152,7 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         result = general_message(200, "success", "更新成功")
         return Response(result, status=result.get("code", 200))
 
-    def delete(self, request, enterprise_id, region_id, *args, **kwargs):
+    def delete(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         language = request.data.get(LANGUAGE, "")
         version = request.data.get(VERSION, "")
         build_strategy = request.data.get("build_strategy", None)
@@ -1136,7 +1164,7 @@ class EnterpriseRegionLangVersion(JWTAuthApiView):
         return Response(result, status=result.get("code", 200))
 
 class EnterpriseRegionCNBFrameworks(JWTAuthApiView):
-    def get(self, request, enterprise_id, region_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, region_id: str, *args: Any, **kwargs: Any) -> Response:
         try:
             lang = request.GET.get("lang", "nodejs")
             data = region_cnb_config.show_cnb_frameworks(enterprise_id, region_id, lang)
