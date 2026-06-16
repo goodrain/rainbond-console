@@ -2,6 +2,7 @@
 import os
 import json
 import logging
+from typing import Any
 from urllib.parse import urlsplit
 
 from console.exception.main import ServiceHandleException, AbortRequest
@@ -14,6 +15,7 @@ from console.views.base import (AlowAnyApiView, EnterpriseAdminView, JWTAuthApiV
 from console.models.main import OAuthServices
 from django.http import HttpResponseRedirect
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import Tenants
@@ -26,7 +28,7 @@ logger = logging.getLogger("default")
 
 
 class OauthType(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         try:
             data = list(support_oauth_type.keys())
         except Exception as e:
@@ -37,27 +39,32 @@ class OauthType(JWTAuthApiView):
 
 
 class OauthConfig(EnterpriseAdminView):
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         data = request.data.get("oauth_services")
-        enable = data.get("enable")
-        EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).update_config_enable_status(key="OAUTH_SERVICES", enable=enable)
+        # NOTE: request.data.get may return None; legacy assumes present (backlog).
+        enable = data.get("enable")  # type: ignore[union-attr]
+        # NOTE: user_id int AutoField (systemic str); request.user is User|AnonymousUser, auth guarantees user (backlog).
+        EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).update_config_enable_status(key="OAUTH_SERVICES", enable=enable)  # type: ignore[arg-type, union-attr]
         rst = {"data": {"bean": {"oauth_services": data}}}
         op = Operation.ENABLE if enable else Operation.DISABLE
         comment = operation_log_service.generate_generic_comment(
             operation=op, module=OperationModule.OAUTHCONNECT, module_name="")
+        # NOTE: enterprise_id nullable; create_enterprise_log takes str (systemic, backlog).
         operation_log_service.create_enterprise_log(user=self.user, comment=comment,
-                                                    enterprise_id=self.user.enterprise_id)
+                                                    enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(rst, status=status.HTTP_200_OK)
 
 
 class OauthService(EnterpriseAdminView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         all_services_list = []
-        eid = request.user.enterprise_id
-        service = oauth_repo.get_conosle_oauth_service(eid, self.user.user_id)
-        all_services = oauth_repo.get_all_oauth_services(eid, self.user.user_id)
+        # NOTE: request.user is User|AnonymousUser; auth guarantees authenticated user (backlog).
+        eid = request.user.enterprise_id  # type: ignore[union-attr]
+        # NOTE: user_id is int AutoField; repo signatures take str (systemic int-as-str, backlog).
+        service = oauth_repo.get_conosle_oauth_service(eid, self.user.user_id)  # type: ignore[arg-type]
+        all_services = oauth_repo.get_all_oauth_services(eid, self.user.user_id)  # type: ignore[arg-type]
         svc_ids = [svc.ID for svc in all_services]
-        user_oauth_list = oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user.user_id)
+        user_oauth_list = oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user.user_id)  # type: ignore[arg-type]
         user_oauth_dict = {uol.service_id: uol for uol in user_oauth_list}
         if all_services is not None:
             for l_service in all_services:
@@ -80,26 +87,30 @@ class OauthService(EnterpriseAdminView):
                     "is_git": l_service.is_git,
                     "authorize_url": authorize_url,
                     "enterprise_id": l_service.eid,
-                    "is_authenticated": user_oauth_dict.get(l_service.ID).is_authenticated if user_oauth_dict.get(l_service.ID) else False,
-                    "is_expired": user_oauth_dict.get(l_service.ID).is_expired if user_oauth_dict.get(l_service.ID) else False,
+                    # NOTE: dict.get may return None; ternary guards it but mypy can't narrow (backlog).
+                    "is_authenticated": user_oauth_dict.get(l_service.ID).is_authenticated if user_oauth_dict.get(l_service.ID) else False,  # type: ignore[union-attr]
+                    "is_expired": user_oauth_dict.get(l_service.ID).is_expired if user_oauth_dict.get(l_service.ID) else False,  # type: ignore[union-attr]
                 })
         rst = {"data": {"list": all_services_list}}
         return Response(rst, status=status.HTTP_200_OK)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         values = request.data.get("oauth_services")
         system = request.data.get("system")
-        eid = request.user.enterprise_id
+        eid = request.user.enterprise_id  # type: ignore[union-attr]
         try:
-            services = oauth_repo.create_or_update_console_oauth_services(values, eid, self.user.user_id, system)
+            services = oauth_repo.create_or_update_console_oauth_services(values, eid, self.user.user_id, system)  # type: ignore[arg-type]
         except Exception as e:
             logger.exception(e)
-            return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)
-        service = oauth_repo.get_conosle_oauth_service(eid, self.user.user_id)
-        api = get_oauth_instance(service.oauth_type, service, None)
+            # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
+            return Response({"msg": e.message}, status=status.HTTP_400_BAD_REQUEST)  # type: ignore[attr-defined]
+        # NOTE: get_conosle_oauth_service may return None; legacy assumes present (backlog).
+        service = oauth_repo.get_conosle_oauth_service(eid, self.user.user_id)  # type: ignore[arg-type]
+        api = get_oauth_instance(service.oauth_type, service, None)  # type: ignore[union-attr]
         authorize_url = api.get_authorize_url()
         data = []
-        for service in services:
+        # NOTE: services may be None; legacy assumes iterable result (backlog).
+        for service in services:  # type: ignore[union-attr]
             data.append({
                 "service_id": service.ID,
                 "name": service.name,
@@ -121,12 +132,12 @@ class OauthService(EnterpriseAdminView):
         comment = operation_log_service.generate_generic_comment(
             operation=Operation.UPDATE, module=OperationModule.OAUTHCONFIG, module_name="")
         operation_log_service.create_enterprise_log(user=self.user, comment=comment,
-                                                    enterprise_id=self.user.enterprise_id)
+                                                    enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(rst, status=status.HTTP_200_OK)
 
 
 class EnterpriseOauthService(EnterpriseAdminView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         all_services_list = []
         public_only = request.GET.get('system', 'false').lower() == 'true'
         if public_only:
@@ -135,13 +146,13 @@ class EnterpriseOauthService(EnterpriseAdminView):
         else:
             # Get both public services and user's private services
             public_services = oauth_repo.get_all_oauth_services_by_system(enterprise_id, True)
-            private_services = oauth_repo.get_all_oauth_services(enterprise_id, self.user.user_id)
+            private_services = oauth_repo.get_all_oauth_services(enterprise_id, self.user.user_id)  # type: ignore[arg-type]
             # Combine both querysets
             all_services = public_services | private_services
         
         if all_services is not None:
             svc_ids = [svc.ID for svc in all_services]
-            user_oauth_list = [] if public_only else oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user.user_id)
+            user_oauth_list = [] if public_only else oauth_user_repo.get_by_oauths_user_id(svc_ids, self.user.user_id)  # type: ignore[arg-type]
             user_oauth_dict = {uol.service_id: uol for uol in user_oauth_list}
             
             for l_service in all_services:
@@ -150,8 +161,9 @@ class EnterpriseOauthService(EnterpriseAdminView):
                 is_authenticated = False
                 is_expired = False
                 if not public_only and user_oauth_dict.get(l_service.ID):
-                    is_authenticated = user_oauth_dict.get(l_service.ID).is_authenticated
-                    is_expired = user_oauth_dict.get(l_service.ID).is_expired
+                    # NOTE: dict.get may return None; guard above, mypy can't narrow (backlog).
+                    is_authenticated = user_oauth_dict.get(l_service.ID).is_authenticated  # type: ignore[union-attr, assignment]
+                    is_expired = user_oauth_dict.get(l_service.ID).is_expired  # type: ignore[union-attr, assignment]
                 
                 all_services_list.append({
                     "service_id": l_service.ID,
@@ -177,9 +189,9 @@ class EnterpriseOauthService(EnterpriseAdminView):
         rst = {"data": {"list": all_services_list}}
         return Response(rst, status=status.HTTP_200_OK)
 
-    def post(self, request, enterprise_id, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         values = request.data.get("oauth_services")
-        services = oauth_repo.create_or_update_oauth_services(values, enterprise_id, self.user.user_id)
+        services = oauth_repo.create_or_update_oauth_services(values, enterprise_id, self.user.user_id)  # type: ignore[arg-type]
 
         data = []
         for service in services:
@@ -206,12 +218,12 @@ class EnterpriseOauthService(EnterpriseAdminView):
         comment = operation_log_service.generate_generic_comment(
             operation=Operation.UPDATE, module=OperationModule.OAUTHCONFIG, module_name="")
         operation_log_service.create_enterprise_log(user=self.user, comment=comment,
-                                                    enterprise_id=self.user.enterprise_id)
+                                                    enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(rst, status=status.HTTP_200_OK)
 
 
 class OauthServiceInfo(EnterpriseAdminView):
-    def delete(self, request, service_id, *args, **kwargs):
+    def delete(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
         try:
             oauth_repo.delete_oauth_service(service_id)
             oauth_user_repo.delete_users_by_services_id(service_id)
@@ -224,7 +236,7 @@ class OauthServiceInfo(EnterpriseAdminView):
 
 
 class OAuthServiceRedirect(AlowAnyApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Any:
         code = request.GET.get("code")
         state = request.GET.get("state")
         service_id = request.GET.get("service_id")
@@ -248,7 +260,8 @@ class OAuthServiceRedirect(AlowAnyApiView):
             return HttpResponseRedirect("/")
 
         try:
-            service = OAuthServices.objects.get(ID=service_id)
+            # NOTE: service_id from query params is str|None; ORM lookup expects str|int (backlog).
+            service = OAuthServices.objects.get(ID=service_id)  # type: ignore[misc]
         except OAuthServices.DoesNotExist:
             logger.error(f"OAuth service not found: {service_id}")
             return HttpResponseRedirect("/")
@@ -271,7 +284,7 @@ class OAuthServiceRedirect(AlowAnyApiView):
 
 
 class OAuthServerAuthorize(AlowAnyApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Any:
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
         domain = request.GET.get("domain")
@@ -297,12 +310,13 @@ class OAuthServerAuthorize(AlowAnyApiView):
 
         home_split_url = None
         try:
-            oauth_service = OAuthServices.objects.get(ID=service_id)
+            oauth_service = OAuthServices.objects.get(ID=service_id)  # type: ignore[misc]
             if not oauth_service.enable:
                  raise ServiceHandleException(msg="OAuth service disabled", msg_show="该 OAuth 服务已被禁用")
             if oauth_service.oauth_type == "enterprisecenter" and domain:
                 home_split_url = urlsplit(oauth_service.home_url)
-                oauth_service.proxy_home_url = home_split_url.scheme + "://" + domain + home_split_url.path
+                # NOTE: proxy_home_url is a dynamic attr; urlsplit may yield bytes (legacy, backlog).
+                oauth_service.proxy_home_url = home_split_url.scheme + "://" + domain + home_split_url.path  # type: ignore[attr-defined, operator]
         except OAuthServices.DoesNotExist:
             logger.debug(f"OAuth service with ID {service_id} not found.")
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
@@ -329,17 +343,20 @@ class OAuthServerAuthorize(AlowAnyApiView):
             return Response(rst, status=status.HTTP_200_OK)
         if api.is_communication_oauth():
             logger.debug(oauth_user.enterprise_domain)
-            logger.debug(domain.split(".")[0])
-            logger.debug(home_split_url.netloc.split("."))
-            if oauth_user.enterprise_domain != domain.split(".")[0] and \
-                    domain.split(".")[0] != home_split_url.netloc.split(".")[0]:
+            # NOTE: domain from query params may be None; legacy assumes str (backlog).
+            logger.debug(domain.split(".")[0])  # type: ignore[union-attr]
+            # NOTE: home_split_url may be None / netloc may be bytes; legacy assumes str (backlog).
+            logger.debug(home_split_url.netloc.split("."))  # type: ignore[union-attr, arg-type]
+            if (oauth_user.enterprise_domain != domain.split(".")[0]  # type: ignore[union-attr]
+                    and domain.split(".")[0] != home_split_url.netloc.split(".")[0]):  # type: ignore[union-attr, arg-type]
                 raise ServiceHandleException(msg="Domain Inconsistent", msg_show="登录失败", status_code=401, error_code=10405)
             oauth_sev_user_service.get_or_create_user_and_enterprise(oauth_user)
-        return oauth_sev_user_service.set_oauth_user_relation(api, oauth_service, oauth_user, access_token, refresh_token, code)
+        # NOTE: code from query params may be None; set_oauth_user_relation takes str (backlog).
+        return oauth_sev_user_service.set_oauth_user_relation(api, oauth_service, oauth_user, access_token, refresh_token, code)  # type: ignore[arg-type]
 
 
 class OauthUserLogoutView(AlowAnyApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         client_id = parse_item(request, "client_id", required=True)
         client_secret = parse_item(request, "client_secret", required=True)
         user_id = parse_item(request, "user_id", required=True)
@@ -350,7 +367,8 @@ class OauthUserLogoutView(AlowAnyApiView):
         if oauth_service.client_secret != client_secret:
             raise AbortRequest("the requested client key does not match")
 
-        oauth_user = oauth_user_repo.get_by_oauth_user_id(oauth_service.ID, user_id)
+        # NOTE: ID is int AutoField; get_by_oauth_user_id takes str (systemic int-as-str, backlog).
+        oauth_user = oauth_user_repo.get_by_oauth_user_id(oauth_service.ID, user_id)  # type: ignore[arg-type]
 
         # Go to Oauth2 Server to check if the user has logged out
         api = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
@@ -362,14 +380,15 @@ class OauthUserLogoutView(AlowAnyApiView):
 
 
 class OAuthUserInfo(AlowAnyApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         id = request.GET.get("id")
         code = request.GET.get("code")
         service_id = request.GET.get("service_id")
         if code is not None:
-            user_info = oauth_user_repo.get_user_oauth_by_code(code=code, service_id=service_id)
+            # NOTE: service_id from query params is str|None; repo expects str (backlog).
+            user_info = oauth_user_repo.get_user_oauth_by_code(code=code, service_id=service_id)  # type: ignore[arg-type]
         elif id is not None:
-            user_info = oauth_user_repo.get_user_oauth_by_id(id=id, service_id=service_id)
+            user_info = oauth_user_repo.get_user_oauth_by_id(id=id, service_id=service_id)  # type: ignore[arg-type]
         else:
             user_info = None
         if user_info:
@@ -388,12 +407,13 @@ class OAuthUserInfo(AlowAnyApiView):
             }
             rst = {"data": {"bean": {"user_info": data}}}
             return Response(rst, status=status.HTTP_200_OK)
-        rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
+        # NOTE: rst reused with a differently-shaped dict literal; legacy value-type inference (backlog).
+        rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}  # type: ignore[dict-item]
         return Response(rst, status=status.HTTP_404_NOT_FOUND)
 
 
 class OAuthServerUserAuthorize(JWTAuthApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         login_user = request.user
         code = request.data.get("code")
         service_id = request.data.get("service_id")
@@ -421,27 +441,30 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
-            api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
+            # NOTE: get_oauth_services_by_service_id may return None; legacy assumes present (backlog).
+            api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)  # type: ignore[union-attr]
         except NoSupportOAuthType as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             # 只有 Gitea 需要 PKCE 的 code_verifier 参数
-            if oauth_service.oauth_type == 'gitea':
+            if oauth_service.oauth_type == 'gitea':  # type: ignore[union-attr]
                 user, access_token, refresh_token = api.get_user_info(code=code, code_verifier=code_verifier)
             else:
                 user, access_token, refresh_token = api.get_user_info(code=code)
         except Exception as e:
             logger.exception(e)
-            rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
+            # NOTE: py2-era Exception.message; preserved for behavior compat (backlog).
+            rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}  # type: ignore[attr-defined]
             return Response(rst, status=status.HTTP_200_OK)
 
         user_name = user.name
         user_id = str(user.id)
         user_email = user.email
-        authenticated_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=user_id)
-        link_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=login_user.user_id)
+        # NOTE: service_id is str|None & login_user is User|AnonymousUser; legacy assumes str/user (backlog).
+        authenticated_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=user_id)  # type: ignore[arg-type]
+        link_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=login_user.user_id)  # type: ignore[arg-type, union-attr]
         if link_user is not None and link_user.oauth_user_id != user_id:
             rst = {"data": {"bean": None}, "status": 400, "msg_show": "该用户已绑定其他账号"}
             return Response(rst, status=status.HTTP_200_OK)
@@ -455,7 +478,7 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
             authenticated_user.code = code
             authenticated_user.is_authenticated = True
             authenticated_user.is_expired = True
-            authenticated_user.user_id = login_user.user_id
+            authenticated_user.user_id = login_user.user_id  # type: ignore[union-attr]
             authenticated_user.save()
             return Response(None, status=status.HTTP_200_OK)
         else:
@@ -463,7 +486,7 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
                 oauth_user_id=user_id,
                 oauth_user_name=user_name,
                 oauth_user_email=user_email,
-                user_id=login_user.user_id,
+                user_id=login_user.user_id,  # type: ignore[union-attr]
                 code=code,
                 service_id=service_id,
                 access_token=access_token,
@@ -476,7 +499,7 @@ class OAuthServerUserAuthorize(JWTAuthApiView):
 
 
 class UserOAuthLink(JWTAuthApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         oauth_user_id = str(request.data.get("oauth_user_id"))
         service_id = request.data.get("service_id")
         try:
@@ -485,9 +508,11 @@ class UserOAuthLink(JWTAuthApiView):
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
             return Response(rst, status=status.HTTP_200_OK)
-        user_id = request.user.user_id
-        oauth_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=oauth_user_id)
-        link_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
+        # NOTE: request.user is User|AnonymousUser; auth guarantees authenticated user (backlog).
+        user_id = request.user.user_id  # type: ignore[union-attr]
+        # NOTE: service_id is str|None; repo expects str (backlog).
+        oauth_user = oauth_user_repo.user_oauth_exists(service_id=service_id, oauth_user_id=oauth_user_id)  # type: ignore[arg-type]
+        link_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)  # type: ignore[arg-type]
         if link_user is not None and link_user.oauth_user_id != oauth_user_id:
             rst = {"data": {"bean": None}, "status": 400, "msg_show": "绑定失败， 该用户已绑定其他账号"}
             return Response(rst, status=status.HTTP_200_OK)
@@ -502,7 +527,8 @@ class UserOAuthLink(JWTAuthApiView):
                 "is_expired": oauth_user.is_expired,
                 "is_link": True,
                 "service_id": service_id,
-                "oauth_type": oauth_service.oauth_type,
+                # NOTE: oauth_service may be None; legacy assumes present (backlog).
+                "oauth_type": oauth_service.oauth_type,  # type: ignore[union-attr]
             }
             rst = {"data": {"bean": data}, "status": 200, "msg_show": "绑定成功"}
             return Response(rst, status=status.HTTP_200_OK)
@@ -512,8 +538,8 @@ class UserOAuthLink(JWTAuthApiView):
 
 
 class OAuthGitUserRepositories(JWTAuthApiView):
-    def get(self, request, service_id, *args, **kwargs):
-        user_id = request.user.user_id
+    def get(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
+        user_id = request.user.user_id  # type: ignore[union-attr]
         page = request.GET.get("page", 1)
         search = request.GET.get("search", '')
         try:
@@ -526,13 +552,15 @@ class OAuthGitUserRepositories(JWTAuthApiView):
         if oauth_user is None:
             rst = {"data": {"bean": {"repositories": []}}, "status": 400, "msg_show": "未成功获取第三方用户信息"}
             return Response(rst, status=status.HTTP_200_OK)
-        service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+        # NOTE: oauth_service may be None; legacy assumes present (backlog).
+        service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)  # type: ignore[union-attr]
         if not service.is_git_oauth():
             rst = {"data": {"bean": {"repositories": []}}, "status": 400, "msg_show": "该OAuth服务不是代码仓库类型"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
             if len(search) > 0 and search is not None:
-                true_search = oauth_user.oauth_user_name + '/' + search.split("/")[-1]
+                # NOTE: oauth_user_name may be None; legacy assumes str (backlog).
+                true_search = oauth_user.oauth_user_name + '/' + search.split("/")[-1]  # type: ignore[operator]
                 data, total = service.search_repos(true_search, page=page)
             else:
                 data, total = service.get_repos(page=page)
@@ -542,8 +570,8 @@ class OAuthGitUserRepositories(JWTAuthApiView):
                         "repositories": data,
                         "user_id": user_id,
                         "service_id": service_id,
-                        "service_type": oauth_service.oauth_type,
-                        "service_name": oauth_service.name,
+                        "service_type": oauth_service.oauth_type,  # type: ignore[union-attr]
+                        "service_name": oauth_service.name,  # type: ignore[union-attr]
                         "total": total
                     }
                 }
@@ -556,9 +584,9 @@ class OAuthGitUserRepositories(JWTAuthApiView):
 
 
 class OAuthGitUserRepository(JWTAuthApiView):
-    def get(self, request, service_id, path, name, *args, **kwargs):
+    def get(self, request: Request, service_id: str, path: str, name: str, *args: Any, **kwargs: Any) -> Response:
         full_name = '/'.join([path, name])
-        user_id = request.user.user_id
+        user_id = request.user.user_id  # type: ignore[union-attr]
         try:
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id=service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
@@ -570,7 +598,8 @@ class OAuthGitUserRepository(JWTAuthApiView):
             rst = {"data": {"bean": None}, "status": 400, "msg_show": "未成功获取第三方用户信息"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
-            service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+            # NOTE: oauth_service may be None; legacy assumes present (backlog).
+            service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)  # type: ignore[union-attr]
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务"}
@@ -590,8 +619,8 @@ class OAuthGitUserRepository(JWTAuthApiView):
                         "repositories": repo_list,
                         "user_id": user_id,
                         "service_id": service_id,
-                        "service_type": oauth_service.oauth_type,
-                        "service_name": oauth_service.name,
+                        "service_type": oauth_service.oauth_type,  # type: ignore[union-attr]
+                        "service_name": oauth_service.name,  # type: ignore[union-attr]
                         "total": 10
                     }
                 }
@@ -604,8 +633,8 @@ class OAuthGitUserRepository(JWTAuthApiView):
 
 
 class OAuthGitUserRepositoryBranches(JWTAuthApiView):
-    def get(self, request, service_id, *args, **kwargs):
-        user_id = request.user.user_id
+    def get(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
+        user_id = request.user.user_id  # type: ignore[union-attr]
         type = request.GET.get("type")
         full_name = request.GET.get("full_name")
         try:
@@ -619,7 +648,8 @@ class OAuthGitUserRepositoryBranches(JWTAuthApiView):
             rst = {"data": {"bean": None}, "status": 400, "msg_show": "未成功获取第三方用户信息"}
             return Response(rst, status=status.HTTP_200_OK)
         try:
-            service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+            # NOTE: oauth_service may be None; legacy assumes present (backlog).
+            service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)  # type: ignore[union-attr]
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务"}
@@ -638,12 +668,12 @@ class OAuthGitUserRepositoryBranches(JWTAuthApiView):
 
 
 class OAuthGitCodeDetection(JWTAuthApiView):
-    def post(self, request, service_id, *args, **kwargs):
+    def post(self, request: Request, service_id: str, *args: Any, **kwargs: Any) -> Response:
         region = request.data.get("region_name")
         tenant_name = request.data.get("tenant_name", None)
         git_url = request.data.get("project_url")
         version = request.data.get("version")
-        user_id = request.user.user_id
+        user_id = request.user.user_id  # type: ignore[union-attr]
         try:
             oauth_service = oauth_repo.get_oauth_services_by_service_id(service_id)
             oauth_user = oauth_user_repo.get_user_oauth_by_user_id(service_id=service_id, user_id=user_id)
@@ -656,7 +686,8 @@ class OAuthGitCodeDetection(JWTAuthApiView):
             return Response(rst, status=status.HTTP_200_OK)
 
         try:
-            service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+            # NOTE: oauth_service may be None; legacy assumes present (backlog).
+            service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)  # type: ignore[union-attr]
         except Exception as e:
             logger.debug(e)
             rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务"}
@@ -680,7 +711,7 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         }
 
         source_body = json.dumps(sb)
-        body = dict()
+        body: dict = dict()
         body["tenant_id"] = tenant.tenant_id
         body["source_type"] = "sourcecode"
         body["namespace"] = tenant.namespace
@@ -688,18 +719,20 @@ class OAuthGitCodeDetection(JWTAuthApiView):
         body["password"] = None
         body["source_body"] = source_body
         try:
-            res, body = region_api.service_source_check(region, tenant.tenant_name, body)
+            # NOTE: region from request.data may be None & region result may be None; legacy assumes present (backlog).
+            res, body = region_api.service_source_check(region, tenant.tenant_name, body)  # type: ignore[arg-type, assignment]
             return Response({"data": {"data": body}}, status=status.HTTP_200_OK)
         except (region_api.CallApiError, ServiceHandleException) as e:
             logger.debug(e)
             raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")
 
-    def get(self, request, service_id):
+    def get(self, request: Request, service_id: str) -> Response:
         region = request.GET.get("region")
         tenant_name = request.GET.get("tenant_name")
         check_uuid = request.GET.get("check_uuid")
         try:
-            res, body = region_api.get_service_check_info(region, tenant_name, check_uuid)
+            # NOTE: query params are str|None; region client expects str (backlog).
+            res, body = region_api.get_service_check_info(region, tenant_name, check_uuid)  # type: ignore[arg-type]
             return Response({"data": body}, status=status.HTTP_200_OK)
         except (region_api.CallApiError, ServiceHandleException) as e:
             logger.debug(e)
@@ -707,15 +740,16 @@ class OAuthGitCodeDetection(JWTAuthApiView):
 
 
 class OverScore(EnterpriseAdminView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         # 获取超分比例配置
-        ss_config = EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).get_config_by_key(
+        # NOTE: user_id int AutoField; EnterpriseConfigService takes str (systemic int-as-str, backlog).
+        ss_config = EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).get_config_by_key(  # type: ignore[arg-type, union-attr]
             key="OVER_SCORE")
         over_score_rate = {"CPU": 1.0, "MEMORY": 1.0}
 
         # 如果配置不存在，则初始化
         if not ss_config:
-            EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).add_config(
+            EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).add_config(  # type: ignore[arg-type, union-attr]
                 key="OVER_SCORE",
                 default_value=json.dumps({"CPU": 1.0, "MEMORY": 1.0}),
                 type="json",
@@ -724,7 +758,8 @@ class OverScore(EnterpriseAdminView):
             )
             region_api.set_over_score_rate({"over_score_rate": json.dumps(over_score_rate)})
         else:
-            over_score_rate = json.loads(ss_config.value)
+            # NOTE: ss_config.value may be None; legacy assumes str (backlog).
+            over_score_rate = json.loads(ss_config.value)  # type: ignore[arg-type]
 
         # 返回规范化结构
         rst = {
@@ -739,12 +774,12 @@ class OverScore(EnterpriseAdminView):
         }
         return Response(rst, status=status.HTTP_200_OK)
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         # 获取用户提交的新超分比例
         over_score_rate = request.data.get("over_score_rate")
 
         # 更新超分比例配置
-        EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).update_config_value(
+        EnterpriseConfigService(request.user.enterprise_id, self.user.user_id).update_config_value(  # type: ignore[arg-type, union-attr]
             key="OVER_SCORE",
             value=over_score_rate
         )
@@ -756,7 +791,7 @@ class OverScore(EnterpriseAdminView):
             "msg_show": "更新超分比例成功",
             "data": {
                 "bean": {
-                    "over_score_rate": json.loads(over_score_rate)
+                    "over_score_rate": json.loads(over_score_rate)  # type: ignore[arg-type]
                 }
             }
         }
