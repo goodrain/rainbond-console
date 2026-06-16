@@ -294,7 +294,7 @@ class AppExportServiceMetadataTestCase(TestCase):
 
         self.assertTrue(result["rainbond_app"]["is_export_before"])
         self.assertEqual(result["rainbond_app"]["status"], "success")
-        self.assertEqual(result["rainbond_app"]["file_path"], "http://console.example.com/download/app.tgz")
+        self.assertEqual(result["rainbond_app"]["file_path"], "/console/regions/demo-region/websocket/download/app.tgz")
         self.assertTrue(result["helm_chart"]["is_export_before"] is False)
         self.assertTrue(result["slug"]["is_export_before"] is False)
         export_record.save.assert_called_once_with()

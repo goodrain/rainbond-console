@@ -28,12 +28,12 @@ from console.services.market_app_service import market_app_service
 from console.services.operation_log import operation_log_service, Operation
 from console.services.plugin import app_plugin_service
 from console.services.plugin_service import rbd_plugin_service
-from console.services.region_services import region_services
 from console.services.team_services import team_services
 from console.services.kubeblocks_service import kubeblocks_service
 from console.services.virtual_machine import vms
 from console.utils.cnb_build import summarize_build_env
 from console.utils.oauth.oauth_types import get_oauth_instance
+from console.utils.realtime_proxy import build_console_realtime_proxy_url
 from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from django.db import transaction
@@ -938,13 +938,12 @@ class ManageFile(AppBaseView):
         try:
             res = group_service.get_file_and_dir(region_name, self.tenant_name, self.service.service_alias, host_path, pod_name,
                                                  container_name, self.tenant.namespace)
-            region = region_services.get_region_by_region_name(region_name)
         except Exception as e:
             logger.exception(e)
             raise e
         bean = {
             "host_path": host_path,
-            "ws_url": region.wsurl,
+            "ws_url": build_console_realtime_proxy_url(request, region_name, scheme_type="ws"),
             "namespace": self.tenant.namespace,
             "container_name": container_name or self.service.k8s_component_name
         }

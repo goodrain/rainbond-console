@@ -5,13 +5,12 @@
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.views.decorators.cache import never_cache
-from console.services.region_services import region_services
+from console.utils.realtime_proxy import build_console_realtime_proxy_url
 from www.utils.md5Util import md5fun
 from www.utils.url import get_redirect_url
 from console.repositories.team_repo import team_repo
 from console.repositories.app import service_repo
 import logging
-from django.conf import settings
 from django.views.generic import View
 from django import http
 
@@ -48,12 +47,10 @@ class DockerContainerView(View):
             context["ctn_id"] = docker_c_id
             context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
 
-            main_url = region_services.get_region_wsurl(self.service.service_region)
-            if main_url == "auto":
-                context["ws_uri"] = '{}://{}:6060/docker_console?nodename={}'.format(
-                    settings.DOCKER_WSS_URL["type"], settings.DOCKER_WSS_URL[self.service.service_region], t_docker_h_id)
-            else:
-                context["ws_uri"] = "{0}/docker_console?nodename={1}".format(main_url, t_docker_h_id)
+            context["ws_uri"] = "{0}?nodename={1}".format(
+                build_console_realtime_proxy_url(request, self.service.service_region, "docker_console", scheme_type="ws"),
+                t_docker_h_id,
+            )
 
             response = TemplateResponse(self.request, "www/console.html", context)
         response.delete_cookie('docker_c_id')

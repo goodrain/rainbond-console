@@ -19,6 +19,7 @@ from console.repositories.region_repo import region_repo
 from console.services.app_config.app_relation_service import \
     AppServiceRelationService
 from console.services.region_services import region_services
+from console.utils.realtime_proxy import build_console_realtime_proxy_path, build_region_realtime_proxy_url
 from goodrain_web import settings
 from www.apiclient.regionapi import RegionInvokeApi
 from www.tenantservice.baseservice import BaseTenantService
@@ -304,13 +305,7 @@ class AppExportService(object):
             return raw_url
 
     def _wrapper_director_download_url(self, region_name, raw_url):
-        region = region_repo.get_region_by_region_name(region_name)
-        if region:
-            splits_texts = region.wsurl.split("://")
-            if splits_texts[0] == "wss":
-                return "https://" + splits_texts[1] + raw_url
-            else:
-                return "http://" + splits_texts[1] + raw_url
+        return build_console_realtime_proxy_path(region_name, raw_url)
 
     def get_export_record(self, export_format, app):
         return app_export_record_repo.get_export_record_by_unique_key(app.group_key, app.version, export_format)
@@ -862,29 +857,17 @@ class AppImportService(object):
         }
         return app_import_record_repo.create_app_import_record(**import_record_params)
 
-    def get_upload_url(self, region, event_id):
-        region = region_repo.get_region_by_region_name(region)
-        raw_url = "/app/upload"
-        upload_url = ""
-        if region:
-            splits_texts = region.wsurl.split("://")
-            if splits_texts[0] == "wss":
-                upload_url = "https://" + splits_texts[1] + raw_url
-            else:
-                upload_url = "http://" + splits_texts[1] + raw_url
-        return upload_url + "/" + event_id
+    def get_upload_url(self, region, event_id, proxy=True):
+        raw_url = "/app/upload/{0}".format(event_id)
+        if proxy:
+            return build_console_realtime_proxy_path(region, raw_url)
+        return build_region_realtime_proxy_url(region, raw_url, scheme_type="http")
 
-    def get_upload_package_url(self, region, event_id):
-        region = region_repo.get_region_by_region_name(region)
-        raw_url = "/package_build/component/events"
-        get_upload_package_url = ""
-        if region:
-            splits_texts = region.wsurl.split("://")
-            if splits_texts[0] == "wss":
-                get_upload_package_url = "https://" + splits_texts[1] + raw_url
-            else:
-                get_upload_package_url = "http://" + splits_texts[1] + raw_url
-        return get_upload_package_url + "/" + event_id
+    def get_upload_package_url(self, region, event_id, proxy=True):
+        raw_url = "/package_build/component/events/{0}".format(event_id)
+        if proxy:
+            return build_console_realtime_proxy_path(region, raw_url)
+        return build_region_realtime_proxy_url(region, raw_url, scheme_type="http")
 
 
 class MyEncoder(json.JSONEncoder):

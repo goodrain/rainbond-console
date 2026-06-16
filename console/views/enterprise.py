@@ -26,6 +26,7 @@ from console.services.region_lang_version import region_lang_version, region_cnb
 from console.services.region_resource_processing import region_resource
 from console.services.region_services import region_services
 from console.services.team_services import team_services
+from console.utils.realtime_proxy import build_region_status_probe_url
 from console.views.base import EnterpriseAdminView, JWTAuthApiView, EnterpriseHeaderView, AlowAnyApiView
 from rest_framework import status
 from rest_framework.response import Response
@@ -734,7 +735,7 @@ class HelmInstallStatus(JWTAuthApiView):
         apiHost = request.GET.get("api_host")
         token = request.GET.get("token")
         try:
-            response = requests.get("http://{}:6060/helm_install/region_status/{}".format(apiHost, token), timeout=5)
+            response = requests.get(build_region_status_probe_url(apiHost, token), timeout=5)
             data = response.json()
             region_info = data.get("bean")
             enterprise_id = self.enterprise.enterprise_id
