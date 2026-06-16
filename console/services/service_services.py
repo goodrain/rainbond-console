@@ -306,7 +306,8 @@ class BaseService(object):
                 "language": service.language,
                 "build_strategy": build_strategy,
                 "oauth_service_id": service.oauth_service_id,
-                "full_name": service.git_full_name
+                "full_name": service.git_full_name,
+                "dockerfile": service.dockerfile or ""
             }
             bean["build_env_dict"] = build_env_dict
             if service_source:
