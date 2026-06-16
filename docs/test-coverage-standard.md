@@ -27,10 +27,13 @@
 
 `.github/workflows/pr-ci-build.yml` 的 `coverage-gate` job：
 1. `actions/checkout` 用 `fetch-depth: 0`（diff-cover 需要 base 历史）。
-2. 跑测试并收集覆盖率：`python scripts/run_pytest.py . -- -q --cov=console --cov=www --cov=openapi --cov-append --cov-report=`。
+2. **Detect Python changes**：diff PR base，若本次 PR **没有改动任何 `.py` 文件**（纯 doc/CI/yaml PR），后续所有重活步骤（装依赖 + 跑覆盖率 + diff-cover）全部 `if` 跳过，job 秒过。
+3. 跑测试并收集覆盖率：`python scripts/run_pytest.py . -- -q --cov=console --cov=www --cov=openapi --cov-append --cov-report=`。
    - 注意：`run_pytest.py` 每个测试文件起独立子进程（隔离手写 stub 测试），靠 `--cov-append` 把各文件覆盖率累加进单个 `.coverage`。
-3. `coverage xml -o coverage.xml`。
-4. `diff-cover coverage.xml --compare-branch=origin/${GITHUB_BASE_REF} --fail-under=80`。
+4. `coverage xml -o coverage.xml`。
+5. `diff-cover coverage.xml --compare-branch=origin/${GITHUB_BASE_REF} --fail-under=80`。
+
+> **关于耗时**：覆盖率收集对 ~190 个测试文件逐个子进程插桩，**固有耗时 ~10min**（C-tracer 逐行插桩是地板成本；实测避开 `--cov-append` 的 merge 也救不了，且 py3.11 无 py3.12 的 `sys.monitoring` 快速路径）。因此 coverage-gate 设计为 **advisory + 与 required check 并行**，不延长 PR 合并的关键路径；并对非 Python PR 直接跳过（见第 2 步）。未来升级到 py3.12+ 可借 `sys.monitoring` 显著提速。
 
 ## 4. 本地自查
 
