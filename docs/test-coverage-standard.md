@@ -47,9 +47,10 @@ diff-cover coverage.xml --compare-branch=origin/staging/console-optimize --fail-
 
 ## 5. 全局行覆盖率基线（仅供参考，非门禁）
 
-> 截至 2026-06-16，全量 `console/tests` 套件对 `console/`+`www/`+`openapi/` 的全局行覆盖率基线：**<待补：基线测量完成后填入>%**。
+> 截至 2026-06-16，全量 `console/tests` 套件对 `console/`+`www/`+`openapi/` 的全局行覆盖率基线：**37%**
+> （84861 条语句，未覆盖 49982；含 19952 个分支、1404 个部分覆盖；另有 147 个小文件因 import 期完全执行被 skip_covered 隐藏，仍计入 TOTAL）。
 >
-> 该数字仅作趋势参考，**不作为门禁**（原因见 §1）。门禁只卡新代码 diff 覆盖率。
+> 该 37% 正是"能力定向测试"模型的真实写照（stub 单测只覆盖高频核心路径），**恰恰说明全局行覆盖不适合做门禁**——所以门禁只卡新代码 diff 覆盖率（见 §1/§2），该基线仅作趋势参考。
 
 ## 6. 翻为强制（blocking）的步骤
 
