@@ -5477,6 +5477,24 @@
       "status": "active"
     },
     {
+      "id": "console.groupcopy.package-build-guard",
+      "title": "Reject quick copy for package upload components",
+      "title_zh": "上传软件包组件禁止快速复制",
+      "interface_type": "service_method",
+      "interface": "console.services.groupcopy_service.GroupAppCopyService.get_modify_group_metadata",
+      "code_paths": [
+        "console/services/groupcopy_service.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/groupcopy_service_test.py",
+          "selector": "GroupAppCopyServiceTests.test_get_modify_group_metadata_rejects_package_build"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.helm-release.delete",
       "title": "Delete helm release and cleanup saved source",
       "title_zh": "删除 Helm 发布并清理来源记录",

@@ -295,6 +295,7 @@
 | console.gateway.tcp-third-party-guard | 第三方组件不支持 TCP 网关策略时拦截创建 | active | regression | console.services.mcp_query_service.create_gateway_rules[tcp] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_create_gateway_rules_tcp_rejects_invalid_third_party_component |
 | console.gray-release.update-route-query-params | Gray Release Update Route Query Params | active | regression | console.services.gray_release_service.GrayReleaseService.update_route | console/tests/gray_release_service_test.py::GrayReleaseRouteUpdateTests.test_update_apisix_route_weights_keeps_service_alias_and_port_in_query |
 | console.gray-release.update-route-query-uses-original-port | Gray Release Update Route Query Uses Original Port | active | regression | console.services.gray_release_service.GrayReleaseService.update_route | console/tests/gray_release_service_light_test.py::GrayReleaseRouteUpdateLightTests.test_update_route_query_uses_original_service_port_when_ports_differ |
+| console.groupcopy.package-build-guard | 上传软件包组件禁止快速复制 | active | regression | console.services.groupcopy_service.GroupAppCopyService.get_modify_group_metadata | console/tests/groupcopy_service_test.py::GroupAppCopyServiceTests.test_get_modify_group_metadata_rejects_package_build |
 | console.helm-release.delete | 删除 Helm 发布并清理来源记录 | active | regression | console.views.team_resources.HelmReleaseDetailView.delete | console/tests/team_resources_test.py::HelmReleasesViewTestCase |
 | console.helm-release.detail | 查看 Helm 发布详情 | active | regression | console.views.team_resources.HelmReleaseDetailView.get | console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_get_enriches_helm_release_detail_with_source_info |
 | console.helm-release.history | 查看 Helm 发布历史 | active | regression | console.views.team_resources.HelmReleaseHistoryView.get | console/tests/team_resources_test.py::HelmReleasesViewTestCase.test_get_uses_team_namespace_for_helm_release_history |
@@ -3402,6 +3403,16 @@
 - 业务入口: `console.services.gray_release_service.GrayReleaseService.update_route`
 - 代码路径: `console/services/gray_release_service.py`
 - 测试路径: `console/tests/gray_release_service_light_test.py::GrayReleaseRouteUpdateLightTests.test_update_route_query_uses_original_service_port_when_ports_differ`
+
+### 上传软件包组件禁止快速复制
+
+- Capability ID: `console.groupcopy.package-build-guard`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.groupcopy_service.GroupAppCopyService.get_modify_group_metadata`
+- 代码路径: `console/services/groupcopy_service.py`
+- 测试路径: `console/tests/groupcopy_service_test.py::GroupAppCopyServiceTests.test_get_modify_group_metadata_rejects_package_build`
 
 ### 删除 Helm 发布并清理来源记录
 
