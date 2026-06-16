@@ -4,8 +4,10 @@
 """
 import re
 import logging
+from typing import Any
 
 from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.repositories.app_config import volume_repo
@@ -22,7 +24,7 @@ region_api = RegionInvokeApi()
 logger = logging.getLogger("default")
 
 
-def ensure_volume_mode(mode):
+def ensure_volume_mode(mode: Any) -> Any:
     if type(mode) != int:
         raise AbortRequest("mode be a number between 0 and 777 (octal)", msg_show="权限必须是在0和777之间的八进制数")
     regex = re.compile(r"^[0-7]{1,3}$")
@@ -33,7 +35,7 @@ def ensure_volume_mode(mode):
 
 class AppVolumeOptionsView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件可用的存储列表
         ---
@@ -46,7 +48,7 @@ class AppVolumeOptionsView(AppBaseView):
 
 class AppVolumeView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件的持久化路径
         ---
@@ -69,13 +71,14 @@ class AppVolumeView(AppBaseView):
         if is_config:
             for tenant_service_volume in volumes:
                 volume = volume_repo.get_service_volume_by_pk(tenant_service_volume["ID"])
-                cf_file = volume_repo.get_service_config_file(volume)
+                # NOTE: get_service_volume_by_pk may return None (backlog)
+                cf_file = volume_repo.get_service_config_file(volume)  # type: ignore[arg-type]
                 if cf_file:
                     tenant_service_volume["file_content"] = cf_file.file_content
                 volumes_list.append(tenant_service_volume)
         else:
             dependents = mnt_service.get_volume_dependent(self.tenant, self.service)
-            name2deps = {}
+            name2deps: dict = {}
             if dependents:
                 for dep in dependents:
                     if name2deps.get(dep["volume_name"], None) is None:
@@ -90,7 +93,7 @@ class AppVolumeView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         为组件添加持久化目录
         ---
@@ -124,7 +127,7 @@ class AppVolumeView(AppBaseView):
         """
         volume_name = request.data.get("volume_name", None)
         r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')
-        if not r.match(volume_name):
+        if not r.match(volume_name):  # type: ignore[arg-type] # NOTE: volume_name from request.data is Any|None (backlog)
             raise AbortRequest(msg="volume name illegal", msg_show="持久化名称只支持数字字母下划线")
         volume_type = request.data.get("volume_type", None)
         volume_path = request.data.get("volume_path", None)
@@ -150,24 +153,25 @@ class AppVolumeView(AppBaseView):
         settings['allow_expansion'] = allow_expansion
         if self.service.extend_method == "vm" and volume_type != "config-file":
             settings, _ = volume_service.build_vm_live_migration_volume_settings(
-                self.tenant, self.service, volume_type, settings)
-            volume_path = volume_service.resolve_vm_volume_path(self.service, volume_path)
+                self.tenant, self.service, volume_type, settings)  # type: ignore[arg-type]
+            volume_path = volume_service.resolve_vm_volume_path(self.service, volume_path)  # type: ignore[arg-type]
+        # NOTE: request.data.get values are Any|None / nick_name str|None (backlog)
         new_information = volume_service.json_service_volume(
-            volume_type=volume_type,
-            volume_name=volume_name,
-            volume_path=volume_path,
+            volume_type=volume_type,  # type: ignore[arg-type]
+            volume_name=volume_name,  # type: ignore[arg-type]
+            volume_path=volume_path,  # type: ignore[arg-type]
             volume_cap=volume_capacity,
             mode=mode,
             file_content=file_content)
         data = volume_service.add_service_volume(
             self.tenant,
             self.service,
-            volume_path,
-            volume_type,
-            volume_name,
+            volume_path,  # type: ignore[arg-type]
+            volume_type,  # type: ignore[arg-type]
+            volume_name,  # type: ignore[arg-type]
             file_content,
             settings,
-            self.user.nick_name,
+            self.user.nick_name,  # type: ignore[arg-type]
             mode=mode)
         result = general_message(200, "success", "持久化路径添加成功", bean=data.to_dict())
         src_suffix = " 下的配置文件 {}".format(volume_name) if volume_type == "config-file" else " 下的存储 {}".format(volume_name)
@@ -192,7 +196,7 @@ class AppVolumeView(AppBaseView):
 
 class AppVolumeFileUploadView(AppBaseView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         通过上传文件的方式更新配置文件内容
         ---
@@ -320,7 +324,7 @@ class AppVolumeFileUploadView(AppBaseView):
 
 class AppVolumeManageView(AppBaseView):
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除组件的某个持久化路径
         ---
@@ -348,17 +352,19 @@ class AppVolumeManageView(AppBaseView):
             return Response(general_message(400, "attr_name not specify", "未指定需要删除的持久化路径"), status=400)
         volume = volume_repo.get_service_volume_by_pk(volume_id)
         file_content = ""
-        if volume.volume_type == "config-file":
-            file_content = volume_repo.get_service_config_file(volume).file_content
+        # NOTE: get_service_volume_by_pk / get_service_config_file may return None (backlog)
+        if volume.volume_type == "config-file":  # type: ignore[union-attr]
+            file_content = volume_repo.get_service_config_file(volume).file_content  # type: ignore[arg-type,union-attr]
         old_information = volume_service.json_service_volume(
-            volume_name=volume.volume_name,
-            volume_path=volume.volume_path,
-            mode=volume.mode,
+            volume_name=volume.volume_name,  # type: ignore[union-attr]
+            volume_path=volume.volume_path,  # type: ignore[union-attr]
+            mode=volume.mode,  # type: ignore[union-attr]
             file_content=file_content,
-            volume_cap=volume.volume_capacity,
-            volume_type=volume.volume_type)
-        code, msg, volume = volume_service.delete_service_volume_by_id(self.tenant, self.service, int(volume_id),
-                                                                       self.user.nick_name, force)
+            volume_cap=volume.volume_capacity,  # type: ignore[union-attr]
+            volume_type=volume.volume_type)  # type: ignore[union-attr]
+        # NOTE: nick_name is str|None (backlog)
+        code, msg, volume = volume_service.delete_service_volume_by_id(
+            self.tenant, self.service, int(volume_id), self.user.nick_name, force)  # type: ignore[arg-type]
         if code != 200:
             result = general_message(code=code, msg="delete volume error", msg_show=msg, list=volume)
             return Response(result, status=result["code"])
@@ -384,7 +390,7 @@ class AppVolumeManageView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改存储设置
         :param request:
@@ -405,10 +411,11 @@ class AppVolumeManageView(AppBaseView):
         if volume_capacity in ("", None):
             volume_capacity = None
         else:
-            volume_capacity = int(volume_capacity)
+            volume_capacity = int(volume_capacity)  # type: ignore[arg-type] # NOTE: volume_capacity is Any|None (backlog)
         target_volume_capacity = volume.volume_capacity if volume_capacity is None else volume_capacity
         if self.service.extend_method == "vm" and volume.volume_type != "config-file":
-            new_volume_path = volume_service.resolve_vm_volume_path(self.service, new_volume_path, current_volume=volume)
+            new_volume_path = volume_service.resolve_vm_volume_path(
+                self.service, new_volume_path, current_volume=volume)  # type: ignore[arg-type]
         mode = request.data.get("mode")
         if mode is not None:
             mode = ensure_volume_mode(mode)
@@ -426,7 +433,7 @@ class AppVolumeManageView(AppBaseView):
 
         new_information = volume_service.json_service_volume(
             volume_name=volume.volume_name,
-            volume_path=new_volume_path,
+            volume_path=new_volume_path,  # type: ignore[arg-type] # NOTE: new_volume_path is Any|None (backlog)
             mode=mode,
             file_content=new_file_content,
             volume_type=volume.volume_type,
@@ -457,16 +464,17 @@ class AppVolumeManageView(AppBaseView):
                 return Response(general_message(405, "update failed", "修改失败"), status=405)
 
         # 更新数据库
-        volume.volume_path = new_volume_path
+        volume.volume_path = new_volume_path  # type: ignore[assignment] # NOTE: new_volume_path is Any|None (backlog)
         if volume_capacity is not None:
             volume.volume_capacity = volume_capacity
         if mode is not None:
             volume.mode = mode
         volume.save()
+        # NOTE: service_config may be None here for non config-file paths (backlog)
         if volume.volume_type == 'config-file':
-            service_config.volume_name = volume.volume_name
-            service_config.file_content = new_file_content
-            service_config.save()
+            service_config.volume_name = volume.volume_name  # type: ignore[union-attr]
+            service_config.file_content = new_file_content  # type: ignore[union-attr]
+            service_config.save()  # type: ignore[union-attr]
 
         result = general_message(200, "success", "修改成功")
         src_suffix = " 下的配置文件 {}".format(

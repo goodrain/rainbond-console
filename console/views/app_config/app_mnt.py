@@ -4,8 +4,10 @@
 """
 import json
 import logging
+from typing import Any
 
 from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.repositories.app_config import volume_repo, mnt_repo
@@ -21,7 +23,7 @@ logger = logging.getLogger("default")
 
 class AppMntView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件挂载的组件
         ---
@@ -74,8 +76,10 @@ class AppMntView(AppBaseView):
         elif query_type == "unmnt":
             services = app_service.get_app_list(self.tenant.tenant_id, self.service.service_region, dep_app_name)
             services_ids = [s.service_id for s in services]
-            mnt_list, total = mnt_service.get_service_unmount_volume_list(self.tenant, self.service, services_ids, page,
-                                                                          page_size, is_config, dep_app_group, config_name)
+            # NOTE: page/page_size from GET are str|int (backlog)
+            mnt_list, total = mnt_service.get_service_unmount_volume_list(
+                self.tenant, self.service, services_ids, page,  # type: ignore[arg-type]
+                page_size, is_config, dep_app_group, config_name)  # type: ignore[arg-type]
         else:
             return Response(general_message(400, "param error", "参数错误"), status=400)
         result = general_message(200, "success", "查询成功", list=mnt_list, total=total)
@@ -83,7 +87,7 @@ class AppMntView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         为组件添加挂载依赖
         ---
@@ -107,7 +111,8 @@ class AppMntView(AppBaseView):
         """
         dep_vol_data = request.data["body"]
         dep_vol_data = json.loads(dep_vol_data)
-        mnt_service.batch_mnt_serivce_volume(self.tenant, self.service, dep_vol_data, self.user.nick_name)
+        mnt_service.batch_mnt_serivce_volume(
+            self.tenant, self.service, dep_vol_data, self.user.nick_name)  # type: ignore[arg-type]
         result = general_message(200, "success", "操作成功")
         volume_a, mnt_type = handle_mnt_info(dep_vol_data[0]["id"])
         suffix = " 挂载了{0} {1}".format(mnt_type, volume_a.volume_name)
@@ -136,7 +141,7 @@ class AppMntView(AppBaseView):
 
 class AppMntManageView(AppBaseView):
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         为组件取消挂载依赖
         ---
@@ -159,13 +164,16 @@ class AppMntManageView(AppBaseView):
 
         """
         dep_vol_id = kwargs.get("dep_vol_id", None)
-        mnt = volume_repo.get_service_volume_by_id(id=dep_vol_id)
+        mnt = volume_repo.get_service_volume_by_id(id=dep_vol_id)  # type: ignore[arg-type] # NOTE: dep_vol_id Any|None (backlog)
+        # NOTE: get_service_volume_by_id may return None (backlog)
         path = mnt_repo.get_mnt_relation_by_id(
-            service_id=self.service.service_id, dep_service_id=mnt.service_id, mnt_name=mnt.volume_name).mnt_dir
+            service_id=self.service.service_id, dep_service_id=mnt.service_id,  # type: ignore[union-attr]
+            mnt_name=mnt.volume_name).mnt_dir  # type: ignore[union-attr]
 
         old_mnt_list = mnt_service.get_service_mnt_details_byid([{"path": path, "id": dep_vol_id}])
 
-        code, msg = mnt_service.delete_service_mnt_relation(self.tenant, self.service, dep_vol_id, self.user.nick_name)
+        code, msg = mnt_service.delete_service_mnt_relation(
+            self.tenant, self.service, dep_vol_id, self.user.nick_name)  # type: ignore[arg-type]
 
         if code != 200:
             return Response(general_message(code, "add error", msg), status=code)
@@ -194,7 +202,7 @@ class AppMntManageView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-def handle_mnt_info(dependency_volume_id):
+def handle_mnt_info(dependency_volume_id: Any) -> Any:
     volume = volume_repo.get_service_volume_by_pk(dependency_volume_id)
     if not volume:
         return
