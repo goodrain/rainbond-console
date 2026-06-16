@@ -14,8 +14,6 @@ EMAIL_HOST_USER = 'xxx@xxx.com'
 EMAIL_HOST_PASSWORD = 'xxxx'
 EMAIL_USE_SSL = True
 
-DISCOURSE_SECRET_KEY = 'xxxxx'
-
 REGION_TOKEN = ""
 
 WILD_DOMAIN = ".<domain>"

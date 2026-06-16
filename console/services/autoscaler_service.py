@@ -145,14 +145,6 @@ class AutoscalerService(object):
 
         return autoscaler_rule
 
-    @transaction.atomic
-    def delete_autoscaler_rule(self, region_name: str, tenant_name: str, service_alias: str, rule_id: str) -> None:
-        try:
-            autoscaler_rule = autoscaler_rules_repo.delete(rule_id)  # type: ignore[attr-defined]  # NOTE: potential bug — AutoscalerRulesRepository has no `delete` method; this will raise AttributeError at runtime
-        except AutoscalerRules.DoesNotExist:
-            raise ErrAutoscalerRuleNotFound
-        autoscaler_rule = autoscaler_rule.to_dict()  # type: ignore[union-attr]  # NOTE: autoscaler_rule may be None if delete() (undefined) returns None; chained from the missing-method bug above
-
 
 class ScalingRecordsService(object):
     def list_scaling_records(
