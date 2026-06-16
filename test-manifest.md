@@ -44,6 +44,7 @@
 | console.app-config-group.get | 查看应用配置组详情 | active | regression | console.services.app_config_group.AppConfigGroupService.get_config_group | console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_get_config_group_returns_built_response |
 | console.app-config-group.list | 查询应用配置组列表 | active | regression | console.services.app_config_group.AppConfigGroupService.list_config_groups | console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_list_config_groups_returns_items_and_total |
 | console.app-config-group.update | 更新应用配置组 | active | regression | console.services.app_config_group.AppConfigGroupService.update_config_group | console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_update_config_group_updates_remote_and_local_records |
+| console.app-creator.full-permissions | App creator full permissions | active | regression | console.services.perm_services.UserKindPermService.get_user_perms | console/tests/perm_services_test.py |
 | console.app-export.query-status | 查询应用导出状态 | active | regression | console.services.app_import_and_export_service.AppExportService.get_export_status | console/tests/app_import_and_export_service_test.py::AppExportServiceMetadataTestCase.test_get_export_status_updates_exporting_record_and_wraps_download_url |
 | console.app-import.abandon | 放弃应用导入 | active | regression | console.views.center_pool.app_import.CenterAppImportView.delete | console/tests/app_import_and_export_service_test.py::CenterAppImportViewWorkflowTestCase.test_delete_abandons_import |
 | console.app-import.create-dir | 创建导入目录 | active | regression | console.views.center_pool.app_import.CenterAppTarballDirView.post | console/tests/app_import_and_export_service_test.py::AppImportPreparationWorkflowTestCase.test_tarball_dir_post_creates_import_dir |
@@ -893,6 +894,16 @@
 - 业务入口: `console.services.app_config_group.AppConfigGroupService.update_config_group`
 - 代码路径: `console/services/app_config_group.py`, `console/views/app_config_group.py`
 - 测试路径: `console/tests/app_config_group_service_test.py::AppConfigGroupServiceWorkflowTests.test_update_config_group_updates_remote_and_local_records`
+
+### App creator full permissions
+
+- Capability ID: `console.app-creator.full-permissions`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.perm_services.UserKindPermService.get_user_perms`
+- 代码路径: `console/services/perm_services.py`
+- 测试路径: `console/tests/perm_services_test.py`
 
 ### 查询应用导出状态
 

@@ -736,6 +736,23 @@
       "status": "active"
     },
     {
+      "id": "console.app-creator.full-permissions",
+      "title": "App creator full permissions",
+      "title_zh": "App creator full permissions",
+      "interface_type": "service_method",
+      "interface": "console.services.perm_services.UserKindPermService.get_user_perms",
+      "code_paths": [
+        "console/services/perm_services.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/perm_services_test.py"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.app-export.query-status",
       "title": "Query application export status",
       "title_zh": "查询应用导出状态",

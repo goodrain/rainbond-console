@@ -120,7 +120,7 @@ class RolePermService(object):
             data.append(role_perms_info)
         return data
 
-    def get_roles_union_perms(self, roles, kind=None, is_owner=False, tenant_id=""):
+    def get_roles_union_perms(self, roles, kind=None, is_owner=False, tenant_id="", user=None):
         union_role_perms = []
         app_perms = dict()
         if roles:
@@ -140,9 +140,16 @@ class RolePermService(object):
         else:
             permissions = self.pack_role_perms_tree(get_perms_model(), union_role_perms, is_owner)
         app_ids = ServiceGroup.objects.filter(tenant_id=tenant_id).values_list("ID", flat=True)
+        creator_app_ids = set()
+        if user and tenant_id:
+            creator_app_ids = set(
+                ServiceGroup.objects.filter(tenant_id=tenant_id, username=user.nick_name).values_list("ID", flat=True))
         app = {"sub_models": [], "perms": {}}
         for app_id in app_ids:
-            if str(app_id) not in app_perms:
+            if app_id in creator_app_ids:
+                models = self.pack_role_perms_tree(get_app_perms_model(), [], True)
+                app_permissions = models.get("app")
+            elif str(app_id) not in app_perms:
                 app_permissions = permissions.get("team").get("sub_models")[2].get("team_app_manage")
             else:
                 models = self.pack_role_perms_tree(get_app_perms_model(), app_perms.get(str(app_id)))
@@ -270,7 +277,7 @@ class UserKindPermService(object):
         if is_owner or is_ent_admin:
             is_owner = True
         user_roles = user_kind_role_repo.get_user_roles_model(kind, kind_id, user)
-        perms = role_perm_service.get_roles_union_perms(user_roles, kind, is_owner, tenant_id=kind_id)
+        perms = role_perm_service.get_roles_union_perms(user_roles, kind, is_owner, tenant_id=kind_id, user=user)
         data = {"user_id": user.user_id}
         data.update(perms)
         return data
