@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import json
+from typing import Any
 
 from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
@@ -15,7 +16,7 @@ class HTTPGatewayRuleSerializer(serializers.ModelSerializer):
         exclude = ["create_time"]
 
     @swagger_serializer_method(serializer_or_field=serializers.ListField)
-    def get_rule_extensions(self, instance):
+    def get_rule_extensions(self, instance: Any) -> Any:
         try:
             return json.loads(instance.rule_extensions)
         except Exception:

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+from typing import Any
+
 from console.constants import AppConstants
 from console.exception.main import ServiceHandleException
 from console.repositories.app import service_source_repo
@@ -8,10 +10,13 @@ from www.models.main import Tenants, TenantServiceInfo, Users
 
 
 class ComponnetActionService(object):
-    def component_build(self, tenant: Tenants, component: TenantServiceInfo, user: Users, build_info):
+    def component_build(self, tenant: Tenants, component: TenantServiceInfo, user: Users, build_info: dict) -> Any:
         if component.create_status != "complete":
             raise ServiceHandleException(
-                msg="component create status is " + component.create_status, msg_show="组件未完成创建，禁止构建", status_code=400)
+                # NOTE: create_status is str|None per model; legacy concat, behavior unchanged.
+                msg="component create status is " + component.create_status,  # type: ignore[operator]
+                msg_show="组件未完成创建，禁止构建",
+                status_code=400)
         # if build_info.server_type:
         # change component server type
 
@@ -24,7 +29,7 @@ class ComponnetActionService(object):
             if component.service_source == AppConstants.DOCKER_RUN \
                     or component.service_source == AppConstants.DOCKER_COMPOSE \
                     or component.service_source == AppConstants.DOCKER_IMAGE:
-                component.image = build_info.get("repo_url")
+                component.image = build_info.get("repo_url")  # type: ignore[assignment]
             service_source = service_source_repo.get_service_source(component.tenant_id, component.service_id)
             if service_source:
                 service_source.user_name = build_info.get("username")

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: abe
+from typing import Any
+
 from rest_framework import serializers
 
 from openapi.serializer.utils import urlregex
@@ -21,7 +23,7 @@ class ListAppStoreInfosRespSerializer(serializers.Serializer):
 class UpdAppStoreInfoReqSerializer(serializers.Serializer):
     access_url = serializers.CharField(help_text="应用市场API地址")
 
-    def validate_access_url(self, access_url):
+    def validate_access_url(self, access_url: Any) -> Any:
         if not urlregex.match(access_url):
             raise serializers.ValidationError("应用市场API地址非法")
         return access_url

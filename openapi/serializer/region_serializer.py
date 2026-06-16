@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+from typing import Any
+
 from rest_framework import serializers
 
 from console.enum.region_enum import RegionStatusEnum
@@ -9,27 +11,27 @@ from openapi.serializer.utils import urlregex
 
 
 class RegionReqValidate(object):
-    def validate_url(self, url):
+    def validate_url(self, url: Any) -> Any:
         if not urlregex.match(url):
             raise serializers.ValidationError("集群API地址非法")
         return url
 
-    def validate_wsurl(self, wsurl):
+    def validate_wsurl(self, wsurl: Any) -> Any:
         if not urlregex.match(wsurl):
             raise serializers.ValidationError("集群Websocket地址非法")
         return wsurl
 
-    def validate_tcpdomain(self, tcpdomain):
+    def validate_tcpdomain(self, tcpdomain: Any) -> Any:
         if not ipregex.match(tcpdomain):
             raise serializers.ValidationError("TCP访问地址非法")
         return tcpdomain
 
-    def validate_status(self, status):
+    def validate_status(self, status: Any) -> Any:
         if status not in ['0', '1', '2', '3']:
             raise serializers.ValidationError("集群状态值不正确")
         return status
 
-    def validate_scope(self, scope):
+    def validate_scope(self, scope: Any) -> Any:
         if scope not in ["private", "public"]:
             raise serializers.ValidationError("集群开放类型不正确")
         return scope
@@ -105,7 +107,7 @@ class ListRegionsRespSerializer(serializers.Serializer):
 class UpdateRegionStatusReqSerializer(serializers.Serializer):
     status = serializers.CharField(help_text="需要设置的集群状态, 可选值为: 'ONLINE', 'OFFLINE', 'MAINTAIN'(大小写不敏感)")
 
-    def validate_status(self, status):
+    def validate_status(self, status: Any) -> Any:
         status = status.upper()
         names = RegionStatusEnum.names()
         if status not in names:

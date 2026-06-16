@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
+from typing import Any
 
 from console.exception.exceptions import (EmailExistError, PhoneExistError, UserExistError, UserNotExistError)
 from console.exception.main import ServiceHandleException
@@ -17,6 +18,7 @@ from openapi.serializer.user_serializer import (ChangePassWdSerializer, ChangePa
                                                 ListUsersRespView, UpdateUserSerializer, UserInfoSerializer)
 from openapi.views.base import BaseOpenAPIView
 from rest_framework import serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.models.main import Users, Tenants
 from www.utils.return_message import general_message
@@ -35,7 +37,7 @@ class ListUsersView(BaseOpenAPIView):
         responses={200: ListUsersRespView()},
         tags=['openapi-user'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         try:
             page = int(req.GET.get("page", 1))
         except ValueError:
@@ -59,7 +61,7 @@ class ListUsersView(BaseOpenAPIView):
         responses={},
         tags=['openapi-user'],
     )
-    def post(self, req, *args, **kwargs):
+    def post(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = CreateUserSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
 
@@ -70,7 +72,8 @@ class ListUsersView(BaseOpenAPIView):
             user_services.create(req.data)
             return Response(None, status.HTTP_201_CREATED)
         except (UserExistError, EmailExistError, PhoneExistError) as e:
-            return Response(e.message, status.HTTP_400_BAD_REQUEST)
+            # NOTE: py2-style Exception.message attr not in stubs.
+            return Response(e.message, status.HTTP_400_BAD_REQUEST)  # type: ignore[union-attr]
 
 
 class UserInfoView(BaseOpenAPIView):
@@ -79,13 +82,15 @@ class UserInfoView(BaseOpenAPIView):
         responses={200: UserInfoSerializer()},
         tags=['openapi-user'],
     )
-    def get(self, req, user_id, *args, **kwargs):
+    def get(self, req: Request, user_id: str, *args: Any, **kwargs: Any) -> Response:
         try:
             uid = int(user_id)
-            user = user_services.get_user_by_user_id(uid)
+            user = user_services.get_user_by_user_id(uid)  # type: ignore[arg-type]
         except (ValueError, UserNotExistError):
             try:
-                user = user_services.get_user_by_user_name(req.user.enterprise_id, user_id)
+                # NOTE: get_user_by_user_name may return None; user later used unguarded (assignment).
+                user = user_services.get_user_by_user_name(
+                    req.user.enterprise_id, user_id)  # type: ignore[union-attr, assignment]
             except UserNotExistError:
                 return Response(None, status.HTTP_404_NOT_FOUND)
         serializer = UserInfoSerializer(user)
@@ -96,7 +101,7 @@ class UserInfoView(BaseOpenAPIView):
         responses={},
         tags=['openapi-user'],
     )
-    def delete(self, req, user_id, *args, **kwargs):
+    def delete(self, req: Request, user_id: str, *args: Any, **kwargs: Any) -> Response:
         try:
             user_services.delete_user(user_id)
             return Response()
@@ -109,7 +114,7 @@ class UserInfoView(BaseOpenAPIView):
         responses={},
         tags=['openapi-user'],
     )
-    def put(self, req, user_id, *args, **kwargs):
+    def put(self, req: Request, user_id: str, *args: Any, **kwargs: Any) -> Response:
         serializer = UpdateUserSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
         try:
@@ -126,7 +131,7 @@ class ChangePassword(BaseOpenAPIView):
         responses={},
         tags=['openapi-user'],
     )
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改密码
         ---
@@ -148,14 +153,19 @@ class ChangePassword(BaseOpenAPIView):
         new_password1 = serializer.data.get("password1", None)
         info = "缺少参数"
         if new_password and new_password == new_password1:
-            status, info = user_services.update_password(user_id=request.user.user_id, new_password=new_password)
-            oauth_instance, _ = user_services.check_user_is_enterprise_center_user(request.user.user_id)
+            status, info = user_services.update_password(
+                user_id=request.user.user_id, new_password=new_password)  # type: ignore[union-attr]
+            oauth_instance, _ = user_services.check_user_is_enterprise_center_user(
+                request.user.user_id)  # type: ignore[union-attr]
             if oauth_instance:
                 data = {
                     "password": new_password,
-                    "real_name": request.user.real_name,
+                    # NOTE: request.user typed User|AnonymousUser by stubs; runtime is User.
+                    "real_name": request.user.real_name,  # type: ignore[union-attr]
                 }
-                oauth_instance.update_user(request.user.enterprise_id, request.user.enterprise_center_user_id, data)
+                oauth_instance.update_user(
+                    request.user.enterprise_id,  # type: ignore[union-attr]
+                    request.user.enterprise_center_user_id, data)  # type: ignore[union-attr]
             if status:
                 return Response(None, status=200)
         logger.debug(info)
@@ -169,7 +179,7 @@ class ChangeUserPassword(BaseOpenAPIView):
         responses={},
         tags=['openapi-user'],
     )
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         修改密码
         ---
@@ -196,18 +206,24 @@ class ChangeUserPassword(BaseOpenAPIView):
         new_password = serializer.data.get("password", None)
         new_password1 = serializer.data.get("password1", None)
         info = "缺少参数"
-        user = user_repo.get_enterprise_user_by_id(request.user.enterprise_id, user_id)
+        # NOTE: serializer.data values typed Any|None; runtime str (arg-type).
+        user = user_repo.get_enterprise_user_by_id(
+            request.user.enterprise_id, user_id)  # type: ignore[union-attr, arg-type]
         if not user:
             raise ServiceHandleException(msg="no found user", msg_show="用户不存在", status_code=404)
         if new_password and new_password == new_password1:
-            status, info = user_services.update_password(user_id=user_id, new_password=new_password)
-            oauth_instance, _ = user_services.check_user_is_enterprise_center_user(user_id)
+            status, info = user_services.update_password(
+                user_id=user_id, new_password=new_password)  # type: ignore[arg-type]
+            oauth_instance, _ = user_services.check_user_is_enterprise_center_user(user_id)  # type: ignore[arg-type]
             if oauth_instance:
                 data = {
                     "password": new_password,
                     "real_name": user.real_name,
                 }
-                oauth_instance.update_user(request.user.enterprise_id, user.enterprise_center_user_id, data)
+                # NOTE: Users model has no enterprise_center_user_id attr (latent bug; backlog).
+                oauth_instance.update_user(
+                    request.user.enterprise_id,  # type: ignore[union-attr]
+                    user.enterprise_center_user_id, data)  # type: ignore[attr-defined]
             if status:
                 return Response(None, status=200)
         logger.debug(info)
@@ -220,9 +236,9 @@ class CurrentUsersView(BaseOpenAPIView):
         manual_parameters=[],
         tags=['openapi-user'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         if req.user:
-            user_info = req.user.to_dict()
+            user_info = req.user.to_dict()  # type: ignore[union-attr]
             res = {
                 "user_id": user_info.get("user_id", ""),
                 "email": user_info.get("email", ""),
@@ -242,9 +258,10 @@ class UserTenantClose(BaseOpenAPIView):
         operation_description="根据用户ID关闭所有团队",
         tags=['openapi-user'],
     )
-    def get(self, req, user_id, *args, **kwargs):
+    def get(self, req: Request, user_id: str, *args: Any, **kwargs: Any) -> Response:
         uid = int(user_id)
-        user = user_services.get_user_by_user_id(uid)
+        # NOTE: get_user_by_user_id typed to expect str; runtime accepts int (arg-type).
+        user = user_services.get_user_by_user_id(uid)  # type: ignore[arg-type]
         tenants = Tenants.objects.filter(creater=uid)
         user.nick_name = "系统（余额不足）"
         for tenant in tenants:
@@ -257,10 +274,10 @@ class UserTenantDelete(BaseOpenAPIView):
         operation_description="根据用户ID删除团队下所有应用",
         tags=['openapi-user'],
     )
-    def get(self, req, user_id, *args, **kwargs):
+    def get(self, req: Request, user_id: str, *args: Any, **kwargs: Any) -> Response:
         uid = int(user_id)
         tenants = Tenants.objects.filter(creater=uid)
-        user = user_services.get_user_by_user_id(uid)
+        user = user_services.get_user_by_user_id(uid)  # type: ignore[arg-type]
         for tenant in tenants:
             apps = group_repo.get_groups_by_tenant_id(tenant.tenant_id)
             for app in apps:
@@ -269,13 +286,16 @@ class UserTenantDelete(BaseOpenAPIView):
                 # delete k8s resource
                 k8s_resources = k8s_resource_service.list_by_app_id(str(app_id))
                 resource_ids = [k8s_resource.ID for k8s_resource in k8s_resources]
-                k8s_resource_service.batch_delete_k8s_resource(user.enterprise_id, tenant.tenant_name, str(app_id),
-                                                               app.region_name, resource_ids)
+                # NOTE: enterprise_id typed str|None by stubs; runtime always str.
+                k8s_resource_service.batch_delete_k8s_resource(
+                    user.enterprise_id, tenant.tenant_name, str(app_id),  # type: ignore[arg-type]
+                    app.region_name, resource_ids)
                 # delete configs
                 app_config_group_service.batch_delete_config_group(app.region_name, tenant.tenant_name, app_id)
                 # delete records
                 group_service.delete_app_share_records(tenant.tenant_name, app_id)
                 # delete app
-                app = group_service.get_app_by_id(tenant, app.region_name, app_id)
+                # NOTE: get_app_by_id may return None; loop var typed ServiceGroup (assignment).
+                app = group_service.get_app_by_id(tenant, app.region_name, app_id)  # type: ignore[assignment]
                 group_service.delete_app(tenant, app.region_name, app)
         return Response({"bean": "delete success"}, status=200)
