@@ -4,9 +4,11 @@
 """
 
 import logging
+from typing import Any
 
 from console.views.base import RegionTenantHeaderView
 from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 # -*- coding: utf8 -*-
 from www.apiclient.regionapi import RegionInvokeApi
@@ -18,7 +20,7 @@ region_api = RegionInvokeApi()
 
 class RegionProtocolView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取数据中心支持的协议
         ---
@@ -37,7 +39,8 @@ class RegionProtocolView(RegionTenantHeaderView):
         try:
             region_name = request.GET.get("region_name", self.response_region)
             protocols_info = region_api.get_protocols(region_name, self.team.tenant_name)
-            protocols = protocols_info["list"]
+            # NOTE: region API result may be None; indexing it is a latent risk (backlog).
+            protocols = protocols_info["list"]  # type: ignore[index]
             p_list = []
             for p in protocols:
                 p_list.append(p["protocol_child"])

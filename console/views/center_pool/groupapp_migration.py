@@ -3,7 +3,7 @@
   Created on 18/5/23.
 """
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from rest_framework.request import Request
 

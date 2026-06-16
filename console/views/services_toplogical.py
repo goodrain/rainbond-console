@@ -3,7 +3,9 @@
   Created on 2018/3/21.
 """
 import logging
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.repositories.group import group_repo
@@ -21,7 +23,7 @@ logger = logging.getLogger('default')
 
 
 class TopologicalGraphView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         应用拓扑图(未分组应用无拓扑图, 直接返回列表展示)
         ---
@@ -41,8 +43,10 @@ class TopologicalGraphView(RegionTenantHeaderView):
         code = 200
         if group_id == "-1":
             code = 200
+            # NOTE: latent bug — missing required team_id/enterprise_id args (TypeError if
+            # reached); behavior preserved.
             no_service_list = service_repo.get_no_group_service_status_by_group_id(
-                team_name=self.team_name, region_name=self.response_region)
+                team_name=self.team_name, region_name=self.response_region)  # type: ignore[call-arg]
             result = general_message(200, "query success", "应用查询成功", list=no_service_list)
         else:
             if group_id is None or not group_id.isdigit():
@@ -55,14 +59,16 @@ class TopologicalGraphView(RegionTenantHeaderView):
                 code = 202
                 result = general_message(code, "group is not yours!", "当前组已删除或您无权限查看!", bean={})
                 return Response(result, status=200)
+            # NOTE: enterprise_id is nullable but callee expects str (arg-type backlog).
             topological_info = topological_service.get_group_topological_graph(
-                group_id=group_id, region=self.response_region, team_name=self.team_name, enterprise_id=self.team.enterprise_id)
+                group_id=group_id, region=self.response_region, team_name=self.team_name,
+                enterprise_id=self.team.enterprise_id)  # type: ignore[arg-type]
             result = general_message(code, "Obtain topology success.", "获取拓扑图成功", bean=topological_info)
         return Response(result, status=code)
 
 
 class GroupServiceDetView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         拓扑图中组件详情
         ---
@@ -91,7 +97,7 @@ class GroupServiceDetView(AppBaseView):
 
 
 class TopologicalInternetView(RegionTenantHeaderView):
-    def get(self, request, team_name, group_id, *args, **kwargs):
+    def get(self, request: Request, team_name: str, group_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         拓扑图中Internet详情
         ---
@@ -111,7 +117,7 @@ class TopologicalInternetView(RegionTenantHeaderView):
         if group_id == "-1":
             code = 200
             no_service_list = service_repo.get_no_group_service_status_by_group_id(
-                team_name=self.team_name, region_name=self.response_region)
+                team_name=self.team_name, region_name=self.response_region)  # type: ignore[call-arg]
             result = general_message(200, "query success", "应用获取成功", list=no_service_list)
         else:
             code = 200

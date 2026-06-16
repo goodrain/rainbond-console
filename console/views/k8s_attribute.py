@@ -1,5 +1,8 @@
 # -*- coding: utf8 -*-
 
+from typing import Any
+
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.main import AbortRequest
@@ -9,11 +12,11 @@ from www.utils.return_message import general_message
 
 
 class ComponentK8sAttributeView(AppBaseView):
-    def get(self, request, name, *args, **kwargs):
+    def get(self, request: Request, name: str, *args: Any, **kwargs: Any) -> Response:
         attributes = k8s_attribute_service.get_by_component_ids_and_name(self.service.service_id, name)
         return Response(general_message(200, "success", "查询成功", list=attributes))
 
-    def put(self, request, name, *args, **kwargs):
+    def put(self, request: Request, name: str, *args: Any, **kwargs: Any) -> Response:
         attribute = request.data.get("attribute", {})
         if name != attribute.get("name", ""):
             raise AbortRequest(400, "参数错误")
@@ -21,17 +24,20 @@ class ComponentK8sAttributeView(AppBaseView):
         k8s_attribute_service.update_k8s_attribute(self.tenant, self.service, self.region_name, attribute)
         return Response(general_message(200, "success", "修改成功"))
 
-    def delete(self, request, name, *args, **kwargs):
-        k8s_attribute_service.delete_k8s_attribute(self.tenant, self.service, self.region_name, name, self.user.nick_name)
+    def delete(self, request: Request, name: str, *args: Any, **kwargs: Any) -> Response:
+        # NOTE: nick_name is Optional; service expects str (legacy mismatch, backlog).
+        k8s_attribute_service.delete_k8s_attribute(
+            self.tenant, self.service, self.region_name, name, self.user.nick_name)  # type: ignore[arg-type]
         return Response(general_message(200, "success", "删除成功"))
 
 
 class ComponentK8sAttributeListView(AppBaseView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         attributes = k8s_attribute_service.list_by_component_ids([self.service.service_id])
         return Response(general_message(200, "success", "查询成功", list=attributes))
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         attribute = request.data.get("attribute", {})
-        k8s_attribute_service.create_k8s_attribute(self.tenant, self.service, self.region_name, attribute, self.user.nick_name)
+        k8s_attribute_service.create_k8s_attribute(
+            self.tenant, self.service, self.region_name, attribute, self.user.nick_name)  # type: ignore[arg-type]
         return Response(general_message(200, "success", "创建成功"))

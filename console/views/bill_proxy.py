@@ -1,6 +1,9 @@
 import os
+from typing import Any
+
 import requests
 from django.http import HttpResponse
+from django.http import HttpRequest
 from django.views import View
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
@@ -8,11 +11,11 @@ from django.utils.decorators import method_decorator
 
 @method_decorator(csrf_exempt, name='dispatch')
 class BillProxyView(View):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super(BillProxyView, self).__init__(**kwargs)
         self.bill_service_url = os.getenv('BILL_SERVICE_URL', '')
 
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         # 获取原始请求路径
         path = request.get_full_path()
         # 构建目标URL
@@ -37,8 +40,8 @@ class BillProxyView(View):
         try:
             # 检查是否是文件上传请求
             content_type = request.META.get('CONTENT_TYPE', '')
-            request_data = None
-            request_files = None
+            request_data: Any = None
+            request_files: Any = None
 
             if request.method in ('POST', 'PUT', 'PATCH'):
                 if content_type.startswith('multipart/form-data'):
@@ -56,7 +59,8 @@ class BillProxyView(View):
 
                     # 添加文件字段
                     for key, file_obj in request.FILES.items():
-                        request_files[key] = (file_obj.name, file_obj.read(), file_obj.content_type)
+                        # NOTE: MultiValueDict.items() typed as UploadedFile|list; runtime is UploadedFile (backlog).
+                        request_files[key] = (file_obj.name, file_obj.read(), file_obj.content_type)  # type: ignore[union-attr]
                 else:
                     # 非文件上传请求，使用原始body
                     request_data = request.body

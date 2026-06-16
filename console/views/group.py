@@ -4,6 +4,7 @@
 """
 import json
 import logging
+from typing import Any
 
 from console.enum.app import GovernanceModeEnum
 from console.exception.main import AbortRequest, ServiceHandleException
@@ -22,6 +23,7 @@ from console.utils.reqparse import parse_item
 from console.utils.validation import is_qualified_name
 from console.views.base import (ApplicationView, RegionTenantHeaderCloudEnterpriseCenterView, RegionTenantHeaderView,
                                 ApplicationViewCloudEnterpriseCenterView)
+from rest_framework.request import Request
 from rest_framework.response import Response
 from urllib3.exceptions import MaxRetryError
 from www.apiclient.regionapi import RegionInvokeApi
@@ -32,7 +34,7 @@ region_api = RegionInvokeApi()
 
 
 class TenantGroupView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查询租户在指定数据中心下的应用
         ---
@@ -44,7 +46,7 @@ class TenantGroupView(RegionTenantHeaderView):
         result = general_message(200, "success", "查询成功", list=data)
         return Response(result, status=result["code"])
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         添加应用信息
         ---
@@ -81,39 +83,42 @@ class TenantGroupView(RegionTenantHeaderView):
             k8s_app = app_template_name
         if not is_qualified_name(k8s_app):
             raise ErrQualifiedName(msg_show="应用英文名称只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
+        # NOTE: request.data.get / nullable model fields yield Any|None|str|None where
+        # service expects str (systemic arg-type backlog).
         data = group_service.create_app(
             self.tenant,
             region_name,
-            app_name,
+            app_name,  # type: ignore[arg-type]
             note,
             self.user.get_username(),
-            app_store_name,
-            app_store_url,
-            app_template_name,
-            version,
-            self.user.enterprise_id,
+            app_store_name,  # type: ignore[arg-type]
+            app_store_url,  # type: ignore[arg-type]
+            app_template_name,  # type: ignore[arg-type]
+            version,  # type: ignore[arg-type]
+            self.user.enterprise_id,  # type: ignore[arg-type]
             logo,
             k8s_app=k8s_app)
-        new_information = group_service.json_app(app_name=app_name, k8s_app=k8s_app, logo=logo, note=note)
+        new_information = group_service.json_app(
+            app_name=app_name, k8s_app=k8s_app, logo=logo, note=note)  # type: ignore[arg-type]
         result = general_message(200, "success", "创建成功", bean=data)
         app_name = operation_log_service.process_app_name(app_name, region_name, self.tenant.tenant_name, data["app_id"])
         comment = operation_log_service.generate_team_comment(
             operation=Operation.IN,
-            module_name=self.tenant.tenant_alias,
+            module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
             region=region_name,
             team_name=self.tenant.tenant_name,
             suffix=" 中创建了应用 {}".format(app_name))
         operation_log_service.create_team_log(
             user=self.user,
             comment=comment,
-            enterprise_id=self.user.enterprise_id,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
             team_name=self.tenant.tenant_name,
             new_information=new_information)
         return Response(result, status=result["code"])
 
 
 class TenantGroupOperationView(ApplicationView):
-    def put(self, request, app_id, *args, **kwargs):
+    def put(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         """
             修改组信息
             ---
@@ -148,14 +153,18 @@ class TenantGroupOperationView(ApplicationView):
         version = request.data.get("version", "")
         revision = request.data.get("revision", 0)
         old_app = group_repo.get_tenant_group_on_region(app_id)
+        # NOTE: nullable model fields / request.data.get yield str|None|Any|None where
+        # service expects str (systemic arg-type backlog).
         old_information = group_service.json_app(
-            app_name=self.app.app_name, k8s_app=k8s_app, logo=old_app.logo, note=old_app.note)
-        new_information = group_service.json_app(app_name=app_name, k8s_app=k8s_app, logo=logo, note=note)
+            app_name=self.app.app_name, k8s_app=k8s_app,
+            logo=old_app.logo, note=old_app.note)  # type: ignore[arg-type]
+        new_information = group_service.json_app(
+            app_name=app_name, k8s_app=k8s_app, logo=logo, note=note)  # type: ignore[arg-type]
         group_service.update_group(
             self.tenant,
             self.response_region,
             app_id,
-            app_name,
+            app_name,  # type: ignore[arg-type]
             note,
             username,
             overrides=overrides,
@@ -175,7 +184,7 @@ class TenantGroupOperationView(ApplicationView):
             self, comment, format_app=False, old_information=old_information, new_information=new_information)
         return Response(result, status=result["code"])
 
-    def delete(self, request, app_id, *args, **kwargs):
+    def delete(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         """
             删除应用
             ---
@@ -193,15 +202,17 @@ class TenantGroupOperationView(ApplicationView):
 
         """
         old_app = group_repo.get_tenant_group_on_region(app_id)
+        # NOTE: nullable model fields where service expects str (arg-type backlog).
         old_information = group_service.json_app(
-            app_name=self.app.app_name, k8s_app=old_app.k8s_app, logo=old_app.logo, note=old_app.note)
+            app_name=self.app.app_name, k8s_app=old_app.k8s_app,
+            logo=old_app.logo, note=old_app.note)  # type: ignore[arg-type]
         group_service.delete_app(self.tenant, self.region_name, self.app)
         result = general_message(200, "success", "删除成功")
         operation_log_service.create_app_log(
             self, "删除了应用 {app}".format(app=self.app.group_name), format_app=False, old_information=old_information)
         return Response(result, status=result["code"])
 
-    def get(self, request, app_id, *args, **kwargs):
+    def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         查询组信息
         ---
@@ -223,7 +234,7 @@ class TenantGroupOperationView(ApplicationView):
 
 
 class TenantGroupHandleView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
+    def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         '''
         获取应用下资源信息
         '''
@@ -231,7 +242,7 @@ class TenantGroupHandleView(ApplicationView):
         result = general_message(200, "success", "success", bean=res)
         return Response(result, status=result["code"])
 
-    def delete(self, request, app_id, *args, **kwargs):
+    def delete(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         删除应用及所有资源
         """
@@ -248,10 +259,11 @@ class TenantGroupHandleView(ApplicationView):
                     component_names.append(svc.service_cname)
                     old_information.append({"组件名": svc.service_cname, "操作": "删除"})
                 if len(component_names) > 2:
-                    component_names = ",".join(component_names[0:2]) + "等"
+                    component_names_text = ",".join(component_names[0:2]) + "等"
                 else:
-                    component_names = ",".join(component_names)
-                comment = "删除了应用 {app}, 以及应用下的组件 {component_names}".format(app=app_name, component_names=component_names)
+                    component_names_text = ",".join(component_names)
+                comment = "删除了应用 {app}, 以及应用下的组件 {component_names}".format(
+                    app=app_name, component_names=component_names_text)
 
         old_information = json.dumps(old_information, ensure_ascii=False)
         operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False, old_information=old_information)
@@ -261,7 +273,7 @@ class TenantGroupHandleView(ApplicationView):
 
 
 class TenantAppUpgradableNumView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
+    def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         data = dict()
         data['upgradable_num'] = 0
         try:
@@ -279,7 +291,7 @@ class TenantAppUpgradableNumView(ApplicationView):
 
 # 应用（组）常见操作【停止，重启， 启动， 重新构建】
 class TenantGroupCommonOperationView(ApplicationViewCloudEnterpriseCenterView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         ---
         parameters:
@@ -301,8 +313,9 @@ class TenantGroupCommonOperationView(ApplicationViewCloudEnterpriseCenterView):
 
         """
         action = request.data.get("action", None)
-        group_id = int(kwargs.get("group_id", None))
-        services = group_service_relation_repo.list_service_groups(group_id)
+        # NOTE: kwargs.get may be None for int(); repo expects str group_id (arg-type backlog).
+        group_id = int(kwargs.get("group_id", None))  # type: ignore[arg-type]
+        services = group_service_relation_repo.list_service_groups(group_id)  # type: ignore[arg-type]
         if not services:
             result = general_message(400, "not service", "当前组内无组件，无法操作")
             return Response(result)
@@ -332,7 +345,7 @@ class TenantGroupCommonOperationView(ApplicationViewCloudEnterpriseCenterView):
 
 # 应用（组）状态
 class GroupStatusView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         group_id = request.GET.get("group_id", None)
         region_name = request.GET.get("region_name", None)
         if not group_id or not region_name:
@@ -356,12 +369,12 @@ class GroupStatusView(RegionTenantHeaderView):
 
 
 class AppGovernanceModeView(ApplicationView):
-    def get(self, *args, **kwargs):
+    def get(self, *args: Any, **kwargs: Any) -> Response:
         data = region_api.list_governance_mode(self.response_region, self.tenant_name)
         result = general_message(200, "success", "获取成功", list=data)
         return Response(result, status=result["code"])
 
-    def put(self, request, app_id, *args, **kwargs):
+    def put(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         governance_mode = parse_item(request, "governance_mode", required=True)
         action = parse_item(request, "action")
         bean = {"governance_mode": governance_mode}
@@ -377,25 +390,25 @@ class AppGovernanceModeView(ApplicationView):
 
 
 class AppGovernanceModeCRView(ApplicationView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         governance_cr = request.data.get("governance_cr", {})
         k8s_resource_service.create_governance_resource(self.app, governance_cr)
         return Response(general_message(200, "success", "创建成功", bean=governance_cr))
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         governance_cr = request.data.get("governance_cr", {})
         k8s_resource_service.update_governance_resource(self.app, governance_cr)
         result = general_message(200, "success", "更新成功", bean=governance_cr)
         return Response(result)
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         k8s_resource_service.delete_governance_resource(self.app)
         result = general_message(200, "success", "删除成功")
         return Response(result)
 
 
 class AppGovernanceModeCheckView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
+    def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         governance_mode = request.GET.get("governance_mode", "")
         if governance_mode not in GovernanceModeEnum.names():
             raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.names()))
@@ -406,11 +419,12 @@ class AppGovernanceModeCheckView(ApplicationView):
 
 
 class AppComponentNameView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
+    def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(self.tenant.tenant_id, self.region_name, app_id)
-        services = list()
+        services: list = list()
         if service_ids:
-            services = service_repo.list_by_ids(service_ids)
+            # NOTE: list_by_ids returns a QuerySet; reused list var (assignment backlog).
+            services = service_repo.list_by_ids(service_ids)  # type: ignore[assignment]
         component_names = [service.k8s_component_name for service in services]
         data = {"component_names": component_names}
         result = general_message(200, "success", "查询成功", bean=data)
@@ -418,13 +432,14 @@ class AppComponentNameView(ApplicationView):
 
 
 class AppKubernetesServiceView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
+    def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         res = group_service.list_kubernetes_services(self.tenant.tenant_id, self.region_name, app_id)
         result = general_message(200, "success", "查询成功", list=res)
         return Response(result)
 
-    def put(self, request, app_id, *args, **kwargs):
-        k8s_services = request.data
+    def put(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
+        # NOTE: request.data is a polymorphic body; treated as a list of dicts here (legacy).
+        k8s_services: Any = request.data
         port_aliases = {}
         # data validation
         for k8s_service in k8s_services:
@@ -444,21 +459,21 @@ class AppKubernetesServiceView(ApplicationView):
 
 
 class ApplicationStatusView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
+    def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         status = group_service.get_app_status(self.tenant, self.region_name, app_id)
         result = general_message(200, "success", "查询成功", list=status)
         return Response(result)
 
 
 class ApplicationDetectPrecessView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
+    def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         processes = group_service.get_detect_process(self.tenant, self.region_name, app_id)
         result = general_message(200, "success", "查询成功", list=processes)
         return Response(result)
 
 
 class ApplicationInstallView(ApplicationView):
-    def post(self, request, app_id, *args, **kwargs):
+    def post(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         overrides = request.data.get("overrides")
         group_service.install_app(self.tenant, self.region_name, app_id, overrides)
         result = general_message(200, "success", "安装成功")
@@ -466,39 +481,42 @@ class ApplicationInstallView(ApplicationView):
 
 
 class ApplicationPodView(ApplicationView):
-    def get(self, request, app_id, pod_name, *args, **kwargs):
+    def get(self, request: Request, app_id: str, pod_name: str, *args: Any, **kwargs: Any) -> Response:
         pod = group_service.get_pod(self.tenant, self.region_name, pod_name)
         result = general_message(200, "success", "安装成功", bean=pod)
         return Response(result)
 
 
 class ApplicationHelmAppComponentView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
+    def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         components, err = helm_app_service.list_components(self.tenant, self.region_name, self.user, self.app)
         return Response(general_message(err.get("code", 200), err.get("msg", "success"), "查询成功", list=components))
 
 
 class ApplicationParseServicesView(ApplicationView):
-    def post(self, request, app_id, *args, **kwargs):
+    def post(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         values = parse_item(request, "values", required=True)
-        services = application_service.parse_services(self.region_name, self.tenant, app_id, values)
+        # NOTE: service signature expects (tenant_name: str, app_id: int) but callers pass a
+        # Tenants model and str app_id (systemic arg-type backlog).
+        services = application_service.parse_services(
+            self.region_name, self.tenant, app_id, values)  # type: ignore[arg-type]
         return Response(general_message(200, "success", "查询成功", list=services))
 
 
 class ApplicationReleasesView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
-        releases = application_service.list_releases(self.region_name, self.tenant, app_id)
+    def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
+        releases = application_service.list_releases(self.region_name, self.tenant, app_id)  # type: ignore[arg-type]
         return Response(general_message(200, "success", "查询成功", list=releases))
 
 
 class ApplicationIngressesView(ApplicationView):
-    def get(self, request, app_id, *args, **kwargs):
-        result = application_service.list_access_info(self.tenant, app_id)
+    def get(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
+        result = application_service.list_access_info(self.tenant, app_id)  # type: ignore[arg-type]
         return Response(general_message(200, "success", "查询成功", list=result))
 
 
 class ApplicationVolumesView(ApplicationView):
-    def put(self, request, app_id, *args, **kwargs):
+    def put(self, request: Request, app_id: str, *args: Any, **kwargs: Any) -> Response:
         region_app_id = region_app_repo.get_region_app_id(self.region_name, app_id)
         region_api.change_application_volumes(self.tenant.tenant_name, self.region_name, region_app_id)
         result = general_message(200, "success", "存储路径修改成功")

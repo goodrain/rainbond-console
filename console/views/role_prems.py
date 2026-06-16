@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+from typing import Any
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.exceptions import ParamsError
@@ -20,7 +22,7 @@ logger = logging.getLogger("default")
 
 
 class TeamAddUserView(RegionTenantHeaderView):
-    def post(self, request, team_name, *args, **kwargs):
+    def post(self, request: Request, team_name: str, *args: Any, **kwargs: Any) -> Response:
         """
         团队中添加新用户给用户分配一个角色
         ---
@@ -80,24 +82,26 @@ class TeamAddUserView(RegionTenantHeaderView):
             new_information = json.dumps(user_list, ensure_ascii=False)
             comment = operation_log_service.generate_team_comment(
                 operation=Operation.IN,
-                module_name=self.tenant.tenant_alias,
+                # NOTE: tenant_alias/enterprise_id nullable but callees expect str (arg-type backlog).
+                module_name=self.tenant.tenant_alias,  # type: ignore[arg-type]
                 region=self.response_region,
                 team_name=self.tenant.tenant_name,
                 suffix=suffix)
             operation_log_service.create_team_log(
                 user=self.user,
                 comment=comment,
-                enterprise_id=self.user.enterprise_id,
+                enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
                 team_name=self.tenant.tenant_name,
                 new_information=new_information)
 
         except ParamsError as e:
             logging.exception(e)
             code = 400
-            result = general_message(code, "params is empty", e.message)
+            # NOTE: py2-style Exception.message attribute (attr-defined backlog).
+            result = general_message(code, "params is empty", e.message)  # type: ignore[attr-defined]
         except UserNotExistError as e:
             code = 400
-            result = general_message(code, "user not exist", e.message)
+            result = general_message(code, "user not exist", e.message)  # type: ignore[attr-defined]
         except Tenants.DoesNotExist as e:
             code = 400
             logger.exception(e)

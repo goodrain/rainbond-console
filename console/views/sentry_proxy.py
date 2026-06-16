@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import re
+from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 from django.http import HttpResponse
@@ -39,7 +40,7 @@ class SentryProxyRequestError(Exception):
     pass
 
 
-def _get_proxy_target():
+def _get_proxy_target() -> str:
     return (
         os.environ.get("RAINBOND_SENTRY_PROXY_TARGET")
         or os.environ.get("RAINBOND_ERROR_REPORTING_PROXY_TARGET")
@@ -48,14 +49,14 @@ def _get_proxy_target():
     ).rstrip("/")
 
 
-def _validate_envelope_path(path):
+def _validate_envelope_path(path: str) -> str:
     request_path = (path or "").lstrip("/")
     if not ENVELOPE_PATH_RE.match(request_path):
         raise ValueError("invalid sentry envelope path")
     return request_path
 
 
-def _build_target_url(path, query_string):
+def _build_target_url(path: str, query_string: str) -> str:
     request_path = _validate_envelope_path(path)
     target = urlsplit(_get_proxy_target())
     if not target.scheme or not target.netloc:
@@ -66,7 +67,7 @@ def _build_target_url(path, query_string):
     return urlunsplit((target.scheme, target.netloc, target_path, query_string, ""))
 
 
-def _build_upstream_headers(request):
+def _build_upstream_headers(request: Any) -> dict:
     headers = {}
     for meta_key, header_name in REQUEST_HEADER_MAP.items():
         value = request.META.get(meta_key)
@@ -79,7 +80,7 @@ def _build_upstream_headers(request):
     return headers
 
 
-def _send_upstream_request(**kwargs):
+def _send_upstream_request(**kwargs: Any) -> Any:
     import requests
     try:
         return requests.request(**kwargs)
@@ -87,7 +88,7 @@ def _send_upstream_request(**kwargs):
         raise SentryProxyRequestError(str(exc))
 
 
-def _add_cors_headers(response, request):
+def _add_cors_headers(response: HttpResponse, request: Any) -> HttpResponse:
     origin = request.META.get("HTTP_ORIGIN")
     response["Access-Control-Allow-Origin"] = origin or "*"
     response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
@@ -102,10 +103,10 @@ def _add_cors_headers(response, request):
 class SentryProxyView(View):
     http_method_names = ["post", "options"]
 
-    def options(self, request, path=""):
+    def options(self, request: Any, path: str = "") -> HttpResponse:
         return _add_cors_headers(HttpResponse(status=204), request)
 
-    def post(self, request, path=""):
+    def post(self, request: Any, path: str = "") -> HttpResponse:
         try:
             target_url = _build_target_url(path, request.META.get("QUERY_STRING", ""))
         except ValueError:

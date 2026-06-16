@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 import logging
+from typing import Any
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.exception.main import ServiceHandleException
@@ -12,7 +14,7 @@ from www.utils.return_message import general_message
 logger = logging.getLogger("default")
 
 class SMSVerificationView(BaseApiView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         发送短信验证码
         ---
