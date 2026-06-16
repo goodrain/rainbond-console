@@ -5,6 +5,7 @@
 import json
 import logging
 from re import split as re_spilt
+from typing import Any
 
 from console.serializer import TenantServiceUpdateSerilizer
 from console.services.app_config import env_var_service
@@ -15,6 +16,7 @@ from console.services.source_build_state_service import source_build_state_servi
 from console.utils.oauth.oauth_types import support_oauth_type
 from console.views.app_config.base import AppBaseView
 from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.utils.return_message import general_message
 
@@ -23,11 +25,11 @@ logger = logging.getLogger("default")
 
 class LangUpdate(AppBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         lang = request.GET.get('lang', None)
         dockerfile_path = request.data.get('dockerfile_path', '')
         if lang:
-            source_build_state_service.save_user_snapshot(self.service, self.service.language)
+            source_build_state_service.save_user_snapshot(self.service, self.service.language)  # type: ignore[arg-type]
             restored = source_build_state_service.restore_language(self.service, lang)
             self.service.language = lang
             self.service.build_strategy = restored.get("build_strategy") or resolve_lang_update_build_strategy(
@@ -57,7 +59,7 @@ class LangUpdate(AppBaseView):
 
 class AppCheck(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件检测信息
         ---
@@ -111,7 +113,7 @@ class AppCheck(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件信息检测
         ---
@@ -131,7 +133,8 @@ class AppCheck(AppBaseView):
         user = request.user
         is_again = request.data.get("is_again", False)
         event_id = request.data.get("event_id", "")
-        code, msg, service_info = app_check_service.check_service(self.tenant, self.service, is_again, event_id, user)
+        code, msg, service_info = app_check_service.check_service(
+            self.tenant, self.service, is_again, event_id, user)  # type: ignore[arg-type]
         if code != 200:
             result = general_message(code, "check service error", msg)
         else:
@@ -141,14 +144,14 @@ class AppCheck(AppBaseView):
 
 class GetCheckUUID(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         result = general_message(200, "success", "获取成功", bean={"check_uuid": self.service.check_uuid})
         return Response(result, status=200)
 
 
 class AppCheckUpdate(AppBaseView):
     @never_cache
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         组件检测信息修改
         ---
