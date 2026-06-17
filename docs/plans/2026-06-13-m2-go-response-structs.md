@@ -1,6 +1,6 @@
 # M2 — Go Backend HTTP Response Structs (for console TypedDicts)
 
-READ-ONLY extraction from `/Users/yangk/code/rainbond` (Go core). Goal: capture the
+READ-ONLY extraction from the `rainbond` core repo (Go). Goal: capture the
 exact JSON shape of the response `data` (`bean` / `list`) for the highest-frequency
 `/v2/tenants/...` endpoints that `rainbond-console`'s `www/apiclient/regionapi.py` calls,
 so they can be turned into Python `TypedDict`s.
