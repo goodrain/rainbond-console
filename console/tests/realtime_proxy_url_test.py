@@ -38,6 +38,7 @@ if "openapi_client" not in sys.modules:
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "goodrain_web.settings")
 
 import django  # noqa: E402
+from django.core.files.uploadedfile import SimpleUploadedFile  # noqa: E402
 from django.test import RequestFactory, SimpleTestCase  # noqa: E402
 
 django.setup()
@@ -148,3 +149,39 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response["Content-Type"], "application/json")
         self.assertEqual(b"".join(response.streaming_content), b'{"ok":true}')
+
+    # capability_id: console.realtime-proxy.multipart-upload-forward
+    def test_http_proxy_rebuilds_multipart_upload_for_app_import(self):
+        upload_file = SimpleUploadedFile(
+            "app.tar.gz",
+            b"app package content",
+            content_type="application/gzip",
+        )
+        request = self.factory.post(
+            "/console/regions/rainbond/websocket/app/upload/evt-1",
+            data={"appTarFile": upload_file},
+            HTTP_AUTHORIZATION="JWT token",
+        )
+        backend_response = mock.Mock()
+        backend_response.status_code = 200
+        backend_response.headers = {"Content-Type": "application/json"}
+        backend_response.iter_content.return_value = iter([b'{"ok":true}'])
+
+        with mock.patch(
+            "console.utils.realtime_proxy.region_repo.get_region_by_region_name",
+            return_value=mock.Mock(wsurl="ws://region.example.com:6060"),
+        ), mock.patch("console.utils.realtime_proxy.requests.request", return_value=backend_response) as request_mock:
+            response = proxy_http_request(request, "rainbond", "app/upload/evt-1")
+
+        _, kwargs = request_mock.call_args
+        self.assertEqual(request_mock.call_args[0][1], "http://region.example.com:6060/app/upload/evt-1")
+        self.assertEqual(kwargs["headers"]["Authorization"], "JWT token")
+        self.assertNotIn("Content-Type", kwargs["headers"])
+        self.assertNotIn("Content-Length", kwargs["headers"])
+        self.assertIn("appTarFile", kwargs["files"])
+        file_name, file_obj, content_type = kwargs["files"]["appTarFile"]
+        self.assertEqual(file_name, "app.tar.gz")
+        self.assertEqual(file_obj.read(), b"app package content")
+        self.assertEqual(content_type, "application/gzip")
+        self.assertEqual(kwargs["data"], {})
+        self.assertEqual(response.status_code, 200)

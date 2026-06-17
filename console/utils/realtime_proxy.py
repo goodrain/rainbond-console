@@ -121,6 +121,27 @@ def build_forward_headers(request):
     return headers
 
 
+def _is_multipart_request(request):
+    return request.META.get("CONTENT_TYPE", "").lower().startswith("multipart/form-data")
+
+
+def build_multipart_payload(request):
+    data = {}
+    files = {}
+    for key, values in request.POST.lists():
+        data[key] = values if len(values) > 1 else values[0]
+    for key, uploaded_files in request.FILES.lists():
+        file_items = []
+        for uploaded_file in uploaded_files:
+            file_items.append((
+                uploaded_file.name,
+                uploaded_file,
+                uploaded_file.content_type or "application/octet-stream",
+            ))
+        files[key] = file_items if len(file_items) > 1 else file_items[0]
+    return data, files
+
+
 def _request_body_stream(request):
     content_length = request.META.get("CONTENT_LENGTH")
     if request.method in ("GET", "HEAD", "OPTIONS") or content_length in (None, "", "0"):
@@ -136,11 +157,20 @@ def proxy_http_request(request, region_name, proxy_path):
         request=request,
         scheme_type="http",
     )
+    headers = build_forward_headers(request)
+    data = _request_body_stream(request)
+    files = None
+    if request.method in ("POST", "PUT", "PATCH") and _is_multipart_request(request):
+        headers.pop("Content-Type", None)
+        headers.pop("Content-Length", None)
+        data, files = build_multipart_payload(request)
+
     response = requests.request(
         request.method,
         target_url,
-        headers=build_forward_headers(request),
-        data=_request_body_stream(request),
+        headers=headers,
+        data=data,
+        files=files,
         stream=True,
         timeout=(10, 3600),
         allow_redirects=False,
