@@ -288,7 +288,7 @@ class GroupService(object):
             app.save()  # type: ignore[union-attr]
         if not app.k8s_app:  # type: ignore[union-attr]
             status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
-            app.k8s_app = status["k8s_app"] if status.get("k8s_app") else ""  # type: ignore[union-attr]
+            app.k8s_app = status["k8s_app"] if status and status.get("k8s_app") else ""  # type: ignore[union-attr]
             app.save()  # type: ignore[union-attr]
         return region_app_id
 
@@ -989,9 +989,12 @@ class GroupService(object):
         port_service.update_by_k8s_services(tenant, region_name, app, k8s_services)
 
     @staticmethod
-    def get_app_status(tenant: Tenants, region_name: str, app_id: str) -> Any:
+    def get_app_status(tenant: Tenants, region_name: str, app_id: str) -> Dict[str, Any]:
         region_app_id = region_app_repo.get_region_app_id(region_name, app_id)
-        status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
+        region_status = region_api.get_app_status(region_name, tenant.tenant_name, region_app_id)
+        # Copy the region AppStatus payload into a plain dict before reshaping it for the
+        # response (status NIL -> None, overrides "k=v" -> [{k: v}]); guards a null payload.
+        status: Dict[str, Any] = dict(region_status) if region_status else {}
         if status.get("status") == "NIL":
             status["status"] = None
         overrides = status.get("overrides", [])
