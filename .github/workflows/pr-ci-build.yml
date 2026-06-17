@@ -42,7 +42,6 @@ jobs:
   typecheck:
     runs-on: ubuntu-latest
     container: python:3.11-bookworm
-    continue-on-error: true
     env:
       PIP_SRC: /tmp/pip-src
     steps:
@@ -71,8 +70,8 @@ jobs:
       - name: Install typing dependencies
         run: pip install -r requirements-typing.txt
 
-      - name: Run mypy (advisory)
-        run: make typecheck
+      - name: Run mypy strict gate (whitelisted modules must stay error-free)
+        run: make typecheck-gate
 
   coverage-gate:
     # Advisory for now (continue-on-error): reports diff coverage of new/changed
