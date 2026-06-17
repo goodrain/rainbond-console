@@ -15,7 +15,7 @@ from django.db import transaction
 from console.constants import PluginCategoryConstants
 from console.exception.bcode import ErrK8sComponentNameExists, ErrComponentBuildFailed
 from console.exception.main import ServiceHandleException, AccountOverdueException, RegionNotFound, AbortRequest
-from console.repositories import deploy_repo
+from console.repositories.deploy_repo import deploy_repo
 from console.repositories.app import service_repo
 from console.repositories.app_config import port_repo
 from console.repositories.group import group_service_relation_repo
@@ -383,8 +383,7 @@ class CreateThirdComponentView(TeamAppAPIView):
         bean = new_component.to_dict()
         if endpoints_type == "api":
             # 生成秘钥
-            # NOTE: BUG—deploy_repo imported as module; singleton method on deploy_repo.deploy_repo.
-            deploy = deploy_repo.get_deploy_relation_by_service_id(  # type: ignore[attr-defined]
+            deploy = deploy_repo.get_deploy_relation_by_service_id(
                 service_id=new_component.service_id)
             api_secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
             # 从环境变量中获取域名，没有在从请求中获取
@@ -534,9 +533,8 @@ class TeamAppsCloseView(TeamAPIView, EnterpriseServiceOauthView):
         service_ids: Any = services.values_list("service_id", flat=True)
         if service_id_list:
             service_ids = list(set(service_ids) & set(service_id_list))
-        # NOTE: BUG—batch_action returns 3 values (code, msg, services); only 2 unpacked here.
-        code, msg = app_manage_service.batch_action(self.region_name, self.team, self.user, "stop",  # type: ignore[misc]
-                                                    service_ids, None, self.oauth_instance)
+        code, msg, _ = app_manage_service.batch_action(self.region_name, self.team, self.user, "stop",
+                                                       service_ids, None, self.oauth_instance)
         if code != 200:
             raise ServiceHandleException(status_code=code, msg="batch manage error", msg_show=msg)
         return Response(None, status=200)

@@ -9224,6 +9224,80 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "openapi.app.create-third-component-deploy-key",
+      "title": "Generate API key for a third-party component via OpenAPI",
+      "title_zh": "OpenAPI 创建第三方 api 组件时生成密钥",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.apps.apps.CreateThirdComponentView.post",
+      "code_paths": [
+        "openapi/views/apps/apps.py",
+        "console/repositories/deploy_repo.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_third_component_deploy_repo_test.py",
+          "selector": "ThirdComponentDeployRepoTest.test_deploy_repo_is_the_singleton_not_the_module"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.app.team-apps-close",
+      "title": "Close all team apps via OpenAPI",
+      "title_zh": "OpenAPI 关闭团队全部应用",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.apps.apps.TeamAppsCloseView.post",
+      "code_paths": [
+        "openapi/views/apps/apps.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_team_apps_close_test.py",
+          "selector": "TeamAppsCloseTest.test_post_unpacks_three_return_values_from_batch_action"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.enterprise.service-overview",
+      "title": "Enterprise component status overview via OpenAPI",
+      "title_zh": "OpenAPI 企业组件状态总览",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.enterprise_view.ServiceOverview.get",
+      "code_paths": [
+        "openapi/views/enterprise_view.py",
+        "console/services/service_overview.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_service_overview_import_test.py",
+          "selector": "ServiceOverviewImportTest.test_service_overview_singleton_is_resolvable"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "openapi.team.delete-error-propagation",
+      "title": "Surface team-deletion service errors via OpenAPI",
+      "title_zh": "OpenAPI 删除团队时正确透出业务异常",
+      "interface_type": "view_endpoint",
+      "interface": "openapi.views.team_view.TeamInfo.delete",
+      "code_paths": [
+        "openapi/views/team_view.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/openapi_team_delete_except_test.py",
+          "selector": "TeamDeleteExceptTest.test_service_error_propagates_instead_of_typeerror"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
