@@ -12,6 +12,18 @@ import logging
 logger = logging.getLogger('default')
 
 
+def _parse_registry_credentials(request, hub_type):
+    hub_type = team_services.normalize_registry_hub_type(hub_type)
+    if hub_type in team_services.CLOUD_REGISTRY_HUB_TYPES:
+        username = parse_item(request, "access_key", default=None) or parse_item(request, "username", required=True)
+        password = parse_item(request, "access_secret", default=None) or parse_item(request, "password", required=True)
+        return username, password
+    return (
+        parse_item(request, "username", required=True),
+        parse_item(request, "password", required=True),
+    )
+
+
 class HubRegistryView(JWTAuthApiView):
     @never_cache
     def get(self, request, *args, **kwargs):
@@ -22,9 +34,9 @@ class HubRegistryView(JWTAuthApiView):
 
     def post(self, request, *args, **kwargs):
         domain = parse_item(request, "domain", required=True)
-        username = parse_item(request, "username", required=True)
-        password = parse_item(request, "password", required=True)
         hub_type = parse_item(request, "hub_type", required=True)
+        hub_type = team_services.normalize_registry_hub_type(hub_type)
+        username, password = _parse_registry_credentials(request, hub_type)
         secret_id = parse_item(request, "secret_id", required=True)
         ra = team_registry_auth_repo.check_exist_registry_auth(secret_id, self.user.user_id)
         if ra.exists():
@@ -63,10 +75,10 @@ class HubRegistryView(JWTAuthApiView):
             result = general_message(400, "bad request", "您要更新的镜像仓库不存在")
             return Response(result, status=result["code"])
         data = {
-            "username": parse_item(request, "username", required=True),
-            "password": parse_item(request, "password", required=True),
             "hub_type": parse_item(request, "hub_type", required=True),
         }
+        data["hub_type"] = team_services.normalize_registry_hub_type(data["hub_type"])
+        data["username"], data["password"] = _parse_registry_credentials(request, data["hub_type"])
         try:
             team_services.validate_registry_hub_type(data["hub_type"])
         except ServiceHandleException as e:
@@ -106,9 +118,9 @@ class EnterpriseHubRegistryView(EnterpriseAdminView):
         if denied:
             return denied
         domain = parse_item(request, "domain", required=True)
-        username = parse_item(request, "username", required=True)
-        password = parse_item(request, "password", required=True)
         hub_type = parse_item(request, "hub_type", required=True)
+        hub_type = team_services.normalize_registry_hub_type(hub_type)
+        username, password = _parse_registry_credentials(request, hub_type)
         secret_id = parse_item(request, "secret_id", required=True)
         if team_registry_auth_repo.check_exist_enterprise_registry_auth(enterprise_id, secret_id).exists():
             result = general_message(400, "error", "资源已存在")
@@ -148,10 +160,10 @@ class EnterpriseHubRegistryView(EnterpriseAdminView):
             return Response(result, status=result["code"])
         data = {
             "domain": request.data.get("domain") or auth.domain,
-            "username": parse_item(request, "username", required=True),
-            "password": parse_item(request, "password", required=True),
             "hub_type": parse_item(request, "hub_type", required=True),
         }
+        data["hub_type"] = team_services.normalize_registry_hub_type(data["hub_type"])
+        data["username"], data["password"] = _parse_registry_credentials(request, data["hub_type"])
         try:
             team_services.check_registry_connection(data["domain"], data["username"], data["password"], data["hub_type"])
         except ServiceHandleException as e:

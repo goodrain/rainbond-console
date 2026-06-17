@@ -44,8 +44,15 @@ region_api = RegionInvokeApi()
 class TeamService(object):
     USER_REGISTRY_SCOPE = "user"
     ENTERPRISE_REGISTRY_SCOPE = "enterprise"
-    SUPPORTED_REGISTRY_HUB_TYPES = ("Docker", "Harbor", "Aliyun", "Tencent", "Huawei", "Volcano")
-    CLOUD_REGISTRY_HUB_TYPES = ("Aliyun", "Tencent", "Huawei", "Volcano")
+    SUPPORTED_REGISTRY_HUB_TYPES = (
+        "Docker", "Harbor", "AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoTOS")
+    LEGACY_REGISTRY_HUB_TYPE_ALIASES = {
+        "Aliyun": "AliyunACR",
+        "Tencent": "TencentTCR",
+        "Huawei": "HuaweiSWR",
+        "Volcano": "VolcanoTOS",
+    }
+    CLOUD_REGISTRY_HUB_TYPES = ("AliyunACR", "TencentTCR", "HuaweiSWR", "VolcanoTOS")
 
     def get_tenant_by_tenant_name(self, tenant_name, exception=True):
         return team_repo.get_tenant_by_tenant_name(tenant_name=tenant_name, exception=exception)
@@ -675,8 +682,14 @@ class TeamService(object):
         data = auth.to_dict() if hasattr(auth, "to_dict") else dict(auth.__dict__)
         scope = data.get("scope") or self.USER_REGISTRY_SCOPE
         data["scope"] = scope
+        data["hub_type"] = self.normalize_registry_hub_type(data.get("hub_type", "Docker"))
+        if data["hub_type"] in self.CLOUD_REGISTRY_HUB_TYPES:
+            data["access_key"] = data.get("username", "")
+            if include_password:
+                data["access_secret"] = data.get("password", "")
         if scope == self.ENTERPRISE_REGISTRY_SCOPE and not include_password:
             data.pop("password", None)
+            data.pop("access_secret", None)
         return data
 
     def list_accessible_registry_auths(self, user):
@@ -699,8 +712,11 @@ class TeamService(object):
                 return auth
         raise ServiceHandleException(msg="registry auth not found", msg_show="镜像仓库不存在", status_code=404)
 
+    def normalize_registry_hub_type(self, hub_type):
+        return self.LEGACY_REGISTRY_HUB_TYPE_ALIASES.get(hub_type, hub_type)
+
     def validate_registry_hub_type(self, hub_type):
-        if hub_type not in self.SUPPORTED_REGISTRY_HUB_TYPES:
+        if self.normalize_registry_hub_type(hub_type) not in self.SUPPORTED_REGISTRY_HUB_TYPES:
             raise ServiceHandleException(msg="unsupported registry hub type", msg_show="不支持的镜像仓库类型", status_code=400)
 
     def _registry_v2_headers(self, username, password):
@@ -722,11 +738,12 @@ class TeamService(object):
             "username": data.get("username", ""),
             "password": data.get("password", ""),
             "region_name": data.get("region_name", ""),
-            "hub_type": data.get("hub_type", "Docker"),
+            "hub_type": self.normalize_registry_hub_type(data.get("hub_type", "Docker")),
         }
 
     def check_registry_connection(self, domain, username, password, hub_type):
         self.validate_registry_hub_type(hub_type)
+        hub_type = self.normalize_registry_hub_type(hub_type)
         if hub_type in ("Docker", "Harbor"):
             self.get_registry_namespaces(domain, username, password, hub_type)
             return True
@@ -839,6 +856,7 @@ class TeamService(object):
 
     @transaction.atomic()
     def create_registry_auth(self, tenant, region_name, domain, username, password, hub_type="Docker", user_id=0):
+        hub_type = self.normalize_registry_hub_type(hub_type)
         auth = team_registry_auth_repo.get_by_team_id_domain(tenant.tenant_id, region_name, domain)
         if auth:
             raise ServiceHandleException(
@@ -863,6 +881,8 @@ class TeamService(object):
         auth = team_registry_auth_repo.get_by_secret_id(secret_id)
         if not auth:
             return
+        if "hub_type" in data:
+            data["hub_type"] = self.normalize_registry_hub_type(data["hub_type"])
         team_registry_auth_repo.update_team_registry_auth(tenant.tenant_id, region_name, secret_id, **data)
         region_api.update_registry_auth(tenant.tenant_name, region_name, self._region_registry_auth_payload(auth[0]))
 
@@ -876,6 +896,7 @@ class TeamService(object):
 
     def get_registry_namespaces(self, domain, username, password, hub_type):
         self.validate_registry_hub_type(hub_type)
+        hub_type = self.normalize_registry_hub_type(hub_type)
         try:
             base_url = self._registry_base_url(domain)
             parsed_url = urlparse(domain)
@@ -996,6 +1017,7 @@ class TeamService(object):
             dict: 包含镜像详细信息的字典
         """
         self.validate_registry_hub_type(hub_type)
+        hub_type = self.normalize_registry_hub_type(hub_type)
         try:
             base_url = self._registry_base_url(domain)
             if hub_type in self.CLOUD_REGISTRY_HUB_TYPES:
@@ -1169,6 +1191,7 @@ class TeamService(object):
             dict: 包含标签详细信息的字典
         """
         self.validate_registry_hub_type(hub_type)
+        hub_type = self.normalize_registry_hub_type(hub_type)
         try:
             base_url = self._registry_base_url(domain)
             if hub_type in self.CLOUD_REGISTRY_HUB_TYPES:
