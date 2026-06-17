@@ -686,9 +686,7 @@ class EnterpriseRegionDashboard(EnterpriseAdminView):
             self.initial(request, *args, **kwargs)
             region = region_services.get_enterprise_region(enterprise_id, region_id, check_status=False)
             if not region:
-                # NOTE: latent bug — status.HTTP_404_NOTFOUND is a typo for HTTP_404_NOT_FOUND
-                # (AttributeError if reached); behavior preserved (backlog).
-                return Response({}, status=status.HTTP_404_NOTFOUND)  # type: ignore[attr-defined]
+                return Response({}, status=status.HTTP_404_NOT_FOUND)
             full_path = request.get_full_path()
             path = full_path[full_path.index("/dashboard/") + 11:len(full_path)]
             response = region_api.proxy(request, '/kubernetes/dashboard/' + path, region['region_name'])

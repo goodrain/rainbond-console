@@ -572,10 +572,10 @@ class UserFavoriteUDView(JWTAuthApiView):
     def delete(self, request: Request, enterprise_id: str, favorite_id: str) -> Response:
         result = general_message(200, "success", "删除成功")
         try:
+            favorite = user_repo.get_user_favorite_by_ID(request.user.user_id, favorite_id)  # type: ignore[union-attr]
             user_repo.delete_user_favorite_by_id(request.user.user_id, favorite_id)  # type: ignore[union-attr]
-            # NOTE: `favorite` is undefined here — latent NameError on the happy path (real bug, backlog).
             comment = operation_log_service.generate_generic_comment(
-                operation=Operation.DELETE, module=OperationModule.FAVORITE, module_name=" {}".format(favorite.name))  # type: ignore[name-defined]
+                operation=Operation.DELETE, module=OperationModule.FAVORITE, module_name=" {}".format(favorite.name))
             operation_log_service.create_enterprise_log(user=self.user, comment=comment,
                                                         enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         except UserFavoriteNotExistError as e:

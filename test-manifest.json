@@ -9134,6 +9134,96 @@
       ],
       "test_type": "regression",
       "status": "active"
+    },
+    {
+      "id": "console.team.create-invalid-namespace",
+      "title": "Reject team creation with an invalid namespace name",
+      "title_zh": "创建团队时拒绝非法命名空间",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.team.AddTeamView.post",
+      "code_paths": [
+        "console/views/team.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/add_team_namespace_validation_test.py",
+          "selector": "AddTeamInvalidNamespaceTest.test_invalid_namespace_raises_qualified_name_error_not_typeerror"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.enterprise.bind-market-token-decode",
+      "title": "Decode the cloud-market bind token payload",
+      "title_zh": "解码云市绑定企业的认证信息",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.enterprise_active.BindMarketEnterpriseOptimizAccessTokenView.post",
+      "code_paths": [
+        "console/views/enterprise_active.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/bind_market_token_decode_test.py",
+          "selector": "BindMarketTokenDecodeTest.test_market_info_is_base64_decoded"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.enterprise.region-dashboard-not-found",
+      "title": "Return 404 when the region dashboard target is missing",
+      "title_zh": "集群仪表盘目标缺失时返回 404",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.enterprise.EnterpriseRegionDashboard.dispatch",
+      "code_paths": [
+        "console/views/enterprise.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/enterprise_region_dashboard_notfound_test.py",
+          "selector": "EnterpriseRegionDashboardNotFoundTest.test_missing_region_returns_clean_404"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.user.access-token-delete-log",
+      "title": "Log the access token note when deleting a token",
+      "title_zh": "删除访问令牌时记录令牌备注",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.user_accesstoken.UserAccessTokenRUDView.delete",
+      "code_paths": [
+        "console/views/user_accesstoken.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_accesstoken_delete_log_test.py",
+          "selector": "UserAccessTokenDeleteLogTest.test_delete_logs_token_note_without_nameerror"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.user.favorite-delete-log",
+      "title": "Log the favorite name when deleting a favorite view",
+      "title_zh": "删除收藏视图时记录收藏名称",
+      "interface_type": "view_endpoint",
+      "interface": "console.views.user_operation.UserFavoriteUDView.delete",
+      "code_paths": [
+        "console/views/user_operation.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/user_favorite_delete_log_test.py",
+          "selector": "UserFavoriteDeleteLogTest"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
     }
   ]
 }
