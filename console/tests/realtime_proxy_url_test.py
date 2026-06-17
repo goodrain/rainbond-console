@@ -46,6 +46,8 @@ django.setup()
 from console.services.app_actions.app_log import AppWebSocketService  # noqa: E402
 from console.services.app_import_and_export_service import import_service  # noqa: E402
 from console.utils.realtime_proxy import (  # noqa: E402
+    DockerConsoleActivityTracker,
+    WEBSOCKET_PROXY_READ_TIMEOUT_SECONDS,
     _backend_websocket_subprotocols,
     build_console_realtime_proxy_url,
     build_region_realtime_proxy_url,
@@ -208,7 +210,7 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         self.assertEqual(protocols, ["webtty", "other"])
 
     # capability_id: console.realtime-proxy.websocket-idle-timeout
-    def test_backend_websocket_disables_read_timeout_after_connect(self):
+    def test_backend_websocket_uses_short_read_timeout_for_idle_checks(self):
         request = self.factory.get("/console/regions/rainbond/websocket/docker_console")
         backend_ws = mock.Mock()
         create_connection = mock.Mock(return_value=backend_ws)
@@ -219,4 +221,30 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         _, kwargs = create_connection.call_args
         self.assertEqual(kwargs["timeout"], 10)
         self.assertEqual(kwargs["subprotocols"], ["webtty"])
-        backend_ws.settimeout.assert_called_once_with(None)
+        backend_ws.settimeout.assert_called_once_with(WEBSOCKET_PROXY_READ_TIMEOUT_SECONDS)
+
+    # capability_id: console.realtime-proxy.docker-console-user-idle-timeout
+    def test_docker_console_activity_tracker_ignores_webtty_ping(self):
+        tracker = DockerConsoleActivityTracker("docker_console", idle_timeout_seconds=1800, now=lambda: 1000)
+
+        tracker.mark_client_message("2")
+
+        self.assertFalse(tracker.is_idle_expired(now=2799))
+        self.assertTrue(tracker.is_idle_expired(now=2801))
+
+    # capability_id: console.realtime-proxy.docker-console-user-activity
+    def test_docker_console_activity_tracker_refreshes_on_user_input(self):
+        current_time = [1000]
+        tracker = DockerConsoleActivityTracker("docker_console", idle_timeout_seconds=1800, now=lambda: current_time[0])
+
+        current_time[0] = 2700
+        tracker.mark_client_message("1ls")
+
+        self.assertFalse(tracker.is_idle_expired(now=4400))
+        self.assertTrue(tracker.is_idle_expired(now=4501))
+
+    # capability_id: console.realtime-proxy.non-terminal-no-user-idle-timeout
+    def test_non_docker_console_activity_tracker_never_user_idle_expires(self):
+        tracker = DockerConsoleActivityTracker("event_log", idle_timeout_seconds=1800, now=lambda: 1000)
+
+        self.assertFalse(tracker.is_idle_expired(now=999999))

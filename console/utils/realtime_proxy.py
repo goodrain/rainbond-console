@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
+import time
 
 import requests
 from django.http import HttpResponse, HttpResponseBadRequest, StreamingHttpResponse
@@ -10,6 +11,9 @@ from console.repositories.region_repo import region_repo
 logger = logging.getLogger("default")
 
 REALTIME_PROXY_PATH = "/console/regions/{region_name}/websocket"
+DOCKER_CONSOLE_IDLE_TIMEOUT_SECONDS = 30 * 60
+WEBSOCKET_PROXY_READ_TIMEOUT_SECONDS = 30
+WEBTTY_PING_MESSAGE = "2"
 
 HOP_BY_HOP_HEADERS = {
     "connection",
@@ -227,6 +231,27 @@ def _websocket_headers(request):
     return headers
 
 
+class DockerConsoleActivityTracker(object):
+    def __init__(self, proxy_path, idle_timeout_seconds=DOCKER_CONSOLE_IDLE_TIMEOUT_SECONDS, now=None):
+        self.enabled = normalize_proxy_path(proxy_path) == "/docker_console"
+        self.idle_timeout_seconds = idle_timeout_seconds
+        self.now = now or time.time
+        self.last_user_activity_at = self.now()
+
+    def mark_client_message(self, message):
+        if not self.enabled:
+            return
+        if message == WEBTTY_PING_MESSAGE:
+            return
+        self.last_user_activity_at = self.now()
+
+    def is_idle_expired(self, now=None):
+        if not self.enabled:
+            return False
+        current_time = self.now() if now is None else now
+        return current_time - self.last_user_activity_at > self.idle_timeout_seconds
+
+
 def open_backend_websocket(create_connection, target_url, request, proxy_path):
     backend_ws = create_connection(
         target_url,
@@ -234,7 +259,7 @@ def open_backend_websocket(create_connection, target_url, request, proxy_path):
         header=_websocket_headers(request),
         subprotocols=_backend_websocket_subprotocols(request, proxy_path),
     )
-    backend_ws.settimeout(None)
+    backend_ws.settimeout(WEBSOCKET_PROXY_READ_TIMEOUT_SECONDS)
     return backend_ws
 
 
@@ -248,7 +273,7 @@ def proxy_websocket_request(request, region_name, proxy_path):
     try:
         import gevent
         from geventwebsocket.exceptions import WebSocketError
-        from websocket import ABNF, WebSocketConnectionClosedException, create_connection
+        from websocket import ABNF, WebSocketConnectionClosedException, WebSocketTimeoutException, create_connection
     except ImportError:
         logger.exception("websocket proxy dependencies are missing")
         return HttpResponse("websocket proxy dependencies are missing", status=500)
@@ -266,6 +291,7 @@ def proxy_websocket_request(request, region_name, proxy_path):
         request,
         proxy_path,
     )
+    activity_tracker = DockerConsoleActivityTracker(proxy_path)
 
     def client_to_backend():
         while True:
@@ -273,6 +299,7 @@ def proxy_websocket_request(request, region_name, proxy_path):
                 message = client_ws.receive()
                 if message is None:
                     break
+                activity_tracker.mark_client_message(message)
                 if isinstance(message, bytes):
                     backend_ws.send_binary(message)
                 else:
@@ -286,6 +313,9 @@ def proxy_websocket_request(request, region_name, proxy_path):
     def backend_to_client():
         while True:
             try:
+                if activity_tracker.is_idle_expired():
+                    logger.info("docker console websocket idle timeout reached")
+                    break
                 opcode, data = backend_ws.recv_data()
                 if opcode == ABNF.OPCODE_CLOSE:
                     break
@@ -297,6 +327,8 @@ def proxy_websocket_request(request, region_name, proxy_path):
                     client_ws.send(data)
                 elif opcode == ABNF.OPCODE_PING:
                     backend_ws.pong(data)
+            except WebSocketTimeoutException:
+                continue
             except (WebSocketError, WebSocketConnectionClosedException):
                 break
             except Exception:
