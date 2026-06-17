@@ -32,7 +32,7 @@ from openapi.views.exceptions import ErrRegionNotFound, ErrTeamNotFound
 from rest_framework import exceptions, serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from www.models.main import PermRelTenant, TenantRegionInfo, Tenants
+from www.models.main import TenantRegionInfo, Tenants
 from www.utils.crypt import make_uuid, make_uuid3
 
 logger = logging.getLogger("default")
@@ -226,11 +226,6 @@ class TeamInfo(TeamNoRegionAPIView):
             return Response(None, status.HTTP_200_OK)
         except Tenants.DoesNotExist as e:
             # NOTE: py2-style Exception.message attribute, absent in py3.
-            logger.exception("failed to delete tenant: {}".format(e.message))  # type: ignore[attr-defined]
-            return Response(None, status=status.HTTP_404_NOT_FOUND)
-        # NOTE: legacy bug — PermRelTenant is a Django model, not an exception class;
-        # this except clause can never match. Behavior preserved.
-        except PermRelTenant as e:  # type: ignore[misc]
             logger.exception("failed to delete tenant: {}".format(e.message))  # type: ignore[attr-defined]
             return Response(None, status=status.HTTP_404_NOT_FOUND)
 

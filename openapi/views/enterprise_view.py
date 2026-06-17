@@ -13,6 +13,7 @@ from console.services.config_service import EnterpriseConfigService
 from console.services.enterprise_services import enterprise_services
 from console.services.performance_overview import performance_overview
 from console.services.region_services import region_services
+from console.services.service_overview import service_overview
 from console.services.global_resource_processing import Global_resource_processing
 from console.services.region_services import region_services
 from console.utils.timeutil import time_to_str
@@ -288,10 +289,9 @@ class ServiceOverview(BaseOpenAPIView):
     )
     def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         region_name = req.GET.get("region_name")
-        # NOTE: BUG—service_overview is not imported/defined; runtime NameError.
-        run_count, abnormal_count, closed_count = service_overview.get_service_overview(  # type: ignore[name-defined]
+        run_count, abnormal_count, closed_count = service_overview.get_service_overview(
             enterprise_id=self.enterprise.enterprise_id,
-            region_name=region_name)
+            region_name=region_name)  # type: ignore[arg-type]
         result = {"abnormal_service_num": abnormal_count, "closed_service_num": closed_count,
                   "started_service_num": run_count}
         serializer = ServieOveriewSeralizer(data=result)
