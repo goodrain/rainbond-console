@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
+from typing import Any
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.permissions import BasePermission
+from rest_framework.request import Request
 from openapi.services.api_user_service import apiUserService
 
 logger = logging.getLogger("default")
 
 
 class OpenAPIPermissions(BasePermission):
-    def has_perms(self, user, perms):
+    def has_perms(self, user: Any, perms: Any) -> bool:
         if isinstance(user, AnonymousUser):
             return False
         user_perms = apiUserService.get_permissions_by_user(user, user.enterprise_id)
@@ -20,7 +22,7 @@ class OpenAPIPermissions(BasePermission):
                 return True
         return False
 
-    def has_permission(self, request, view):
+    def has_permission(self, request: Request, view: Any) -> bool:
         '''
         check permission
         '''

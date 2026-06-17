@@ -2,6 +2,8 @@
 # creater by: barnett
 import logging
 import os
+from typing import Any
+
 from drf_yasg import openapi
 
 from console.exception.main import ServiceHandleException
@@ -24,6 +26,7 @@ from openapi.serializer.ent_serializers import (EnterpriseInfoSerializer, Enterp
                                                 UpdEntReqSerializer)
 from openapi.views.base import BaseOpenAPIView
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
 from console.services.team_services import team_services
@@ -41,7 +44,7 @@ class EnterpriseInfoView(BaseOpenAPIView):
         responses={},
         tags=['openapi-entreprise'],
     )
-    def put(self, req, eid):
+    def put(self, req: Request, eid: str) -> Response:
         enterprise_services.update(eid, req.data)
         return Response(None, status=status.HTTP_200_OK)
 
@@ -50,7 +53,7 @@ class EnterpriseInfoView(BaseOpenAPIView):
         responses={200: EnterpriseInfoSerializer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, eid):
+    def get(self, req: Request, eid: str) -> Response:
         ent = enterprise_services.get_enterprise_by_id(eid)
         if ent is None:
             return Response({"msg": "企业不存在"}, status=status.HTTP_404_NOT_FOUND)
@@ -65,9 +68,10 @@ class EnterpriseSourceView(BaseOpenAPIView):
         responses={200: EnterpriseSourceSerializer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, eid):
+    def get(self, req: Request, eid: str) -> Response:
         data = {"enterprise_id": eid, "used_cpu": 0, "used_memory": 0, "used_disk": 0}
-        if not req.user.is_administrator:
+        # NOTE: request.user is User|AnonymousUser per stubs; runtime carries these attrs.
+        if not req.user.is_administrator:  # type: ignore[union-attr]
             raise ServiceHandleException(status_code=401, error_code=401, msg="Permission denied")
         ent = enterprise_services.get_enterprise_by_id(eid)
         if ent is None:
@@ -76,11 +80,13 @@ class EnterpriseSourceView(BaseOpenAPIView):
         for region in regions:
             try:
                 # Exclude development clusters
-                if "development" in region.region_type:
+                # NOTE: region_type is str|None per model; legacy membership test (backlog).
+                if "development" in region.region_type:  # type: ignore[operator]
                     logger.debug("{0} region type is development in enterprise {1}".format(region.region_name, eid))
                     continue
                 res, body = region_api.get_region_resources(eid, region=region.region_name)
-                rst = body.get("bean")
+                # NOTE: regionapi result may be None; legacy assumes dict (backlog).
+                rst = body.get("bean")  # type: ignore[union-attr]
                 if res.get("status") == 200 and rst:
                     data["used_cpu"] += rst.get("req_cpu", 0)
                     data["used_memory"] += rst.get("req_mem", 0)
@@ -94,7 +100,7 @@ class EnterpriseSourceView(BaseOpenAPIView):
 
 
 class EntUserInfoView(BaseOpenAPIView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         page = int(request.GET.get("page_num", 1))
         page_size = int(request.GET.get("page_size", 10))
         enterprise_id = request.GET.get("eid", None)
@@ -114,7 +120,7 @@ class EntUserInfoView(BaseOpenAPIView):
         admin_tuples = cursor.fetchall()
         for admin in admin_tuples:
             user = user_repo.get_by_user_id(user_id=admin[0])
-            bean = dict()
+            bean: dict = dict()
             if user:
                 bean["nick_name"] = user.nick_name
                 bean["phone"] = user.phone
@@ -133,12 +139,14 @@ class EnterpriseConfigView(BaseOpenAPIView):
         responses={200: EnterpriseConfigSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         key = req.GET.get("key", None)
         ent = enterprise_services.get_enterprise_by_id(self.enterprise.enterprise_id)
         if ent is None:
             return Response({"msg": "企业不存在"}, status=status.HTTP_404_NOT_FOUND)
-        ent_config = EnterpriseConfigService(self.enterprise.enterprise_id, self.user.user_id).initialization_or_get_config
+        # NOTE: user_id is int AutoField; service expects str|None (backlog).
+        ent_config = EnterpriseConfigService(
+            self.enterprise.enterprise_id, self.user.user_id).initialization_or_get_config  # type: ignore[arg-type]
         if key is None:
             serializer = EnterpriseConfigSeralizer(data=ent_config)
         elif key in list(ent_config.keys()):
@@ -156,7 +164,7 @@ class ResourceOverview(BaseOpenAPIView):
         responses={200: ResourceOverviewSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         handle = Global_resource_processing()
         handle.region_obtain_handle(self.enterprise.enterprise_id)
         handle.tenant_obtain_handle(self.enterprise.enterprise_id)
@@ -174,8 +182,9 @@ class EnterpriseOverview(BaseOpenAPIView):
         responses={200: EnterpriseOverviewSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
-        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="")
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
+        # NOTE: enterprise_id is str|None per model; service expects str (backlog).
+        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="")  # type: ignore[arg-type]
         nodes = 0
         instances = 0
         for region in regions:
@@ -187,11 +196,11 @@ class EnterpriseOverview(BaseOpenAPIView):
                 instances += region.get("run_pod_number", 0)
             elif isinstance(pods_data, (int, float)):
                 # 如果pods是数字，直接相加
-                instances += pods_data
+                instances += pods_data  # type: ignore[assignment]
             else:
                 # 其他情况使用run_pod_number作为备选
                 instances += region.get("run_pod_number", 0)
-        teams = team_services.count_teams(self.user.enterprise_id)
+        teams = team_services.count_teams(self.user.enterprise_id)  # type: ignore[arg-type]
         apps = group_repo.count_apps()
         components = service_repo.count_components()
         visual_monitor = {
@@ -225,11 +234,14 @@ class AppRankOverview(BaseOpenAPIView):
         responses={200: AppRankOverviewSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         team_name = req.GET.get("team_name", "")
-        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="", check_status="no")
-        tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)
-        result = enterprise_services.get_app_ranking(regions, tenants, team_name)
+        # NOTE: enterprise_id is str|None; service expects str (backlog).
+        regions = region_services.get_enterprise_regions(
+            self.user.enterprise_id, level="", check_status="no")  # type: ignore[arg-type]
+        tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)  # type: ignore[arg-type]
+        # NOTE: BUG—EnterpriseServices has no get_app_ranking; runtime AttributeError.
+        result = enterprise_services.get_app_ranking(regions, tenants, team_name)  # type: ignore[attr-defined]
         serializer = AppRankOverviewSeralizer(data=result, many=True)
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -241,12 +253,15 @@ class MonitorMessageOverview(BaseOpenAPIView):
         responses={200: MonitorMessageOverviewSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         team_name = req.GET.get("team_name", "")
         interval = req.GET.get("interval", 60)
-        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="", check_status="no")
-        tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)
-        result = enterprise_services.get_monitor_message(regions, tenants, team_name, interval)
+        regions = region_services.get_enterprise_regions(
+            self.user.enterprise_id, level="", check_status="no")  # type: ignore[arg-type]
+        tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)  # type: ignore[arg-type]
+        # NOTE: BUG—EnterpriseServices has no get_monitor_message; runtime AttributeError.
+        result = enterprise_services.get_monitor_message(regions, tenants, team_name,  # type: ignore[attr-defined]
+                                                         interval)
         serializer = MonitorMessageOverviewSeralizer(data=result, many=True)
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -258,7 +273,7 @@ class Performance_overview(BaseOpenAPIView):
         responses={200: PerformanceOverviewSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         result = performance_overview.get_performance_overview(self.enterprise.enterprise_id)
         serializer = PerformanceOverviewSeralizer(data=result)
         serializer.is_valid()
@@ -271,9 +286,10 @@ class ServiceOverview(BaseOpenAPIView):
         responses={200: ServieOveriewSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         region_name = req.GET.get("region_name")
-        run_count, abnormal_count, closed_count = service_overview.get_service_overview(
+        # NOTE: BUG—service_overview is not imported/defined; runtime NameError.
+        run_count, abnormal_count, closed_count = service_overview.get_service_overview(  # type: ignore[name-defined]
             enterprise_id=self.enterprise.enterprise_id,
             region_name=region_name)
         result = {"abnormal_service_num": abnormal_count, "closed_service_num": closed_count,
@@ -283,13 +299,14 @@ class ServiceOverview(BaseOpenAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class ResourceOverview(BaseOpenAPIView):
+# NOTE: BUG—ResourceOverview is defined twice; this redefinition shadows the earlier one.
+class ResourceOverview(BaseOpenAPIView):  # type: ignore[no-redef]
     @swagger_auto_schema(
         operation_description="资源信息总览",
         responses={200: ResourceOverviewSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         handle = Global_resource_processing()
         handle.region_obtain_handle(self.enterprise.enterprise_id)
         handle.tenant_obtain_handle(self.enterprise.enterprise_id)
@@ -312,7 +329,7 @@ class MonitorQueryOverview(BaseOpenAPIView):
         responses={200: MonitorQueryOverviewSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         region_name = req.GET.get("region_name", "")
         query = req.GET.get("query", "")
         _, body = region_api.get_query_data(region_name, "", "?query={}".format(query))
@@ -334,7 +351,7 @@ class MonitorQueryRangeOverview(BaseOpenAPIView):
         responses={200: MonitorQueryOverviewSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         region_name = req.GET.get("region_name", "")
         query = req.GET.get("query", "")
         start = req.GET.get("start")
@@ -359,7 +376,7 @@ class MonitorSeriesOverview(BaseOpenAPIView):
         responses={200: MonitorQueryOverviewSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         region_name = req.GET.get("region_name", "")
         match = req.GET.get("match[]")
         start = req.GET.get("start")
@@ -369,7 +386,8 @@ class MonitorSeriesOverview(BaseOpenAPIView):
             query = "{}&start={}".format(query, start)
         if end:
             query = "{}&end={}".format(query, end)
-        _, body = region_api.get_query_series(region_name, "", query)
+        # NOTE: BUG—RegionInvokeApi has no get_query_series; runtime AttributeError.
+        _, body = region_api.get_query_series(region_name, "", query)  # type: ignore[attr-defined]
         serializer = MonitorQueryOverviewSeralizer(data=body)
         serializer.is_valid()
         return Response(body, status=status.HTTP_200_OK)
@@ -381,9 +399,11 @@ class RegionsMonitorOverview(BaseOpenAPIView):
         responses={200: RegionMonitorOverviewSeralizer(many=True)},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
-        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="", check_status="no")
-        data = enterprise_services.get_exception_nodes_info(regions)
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
+        regions = region_services.get_enterprise_regions(
+            self.user.enterprise_id, level="", check_status="no")  # type: ignore[arg-type]
+        # NOTE: BUG—EnterpriseServices has no get_exception_nodes_info; runtime AttributeError.
+        data = enterprise_services.get_exception_nodes_info(regions)  # type: ignore[attr-defined]
         serializer = RegionMonitorOverviewSeralizer(data=data, many=True)
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -401,13 +421,16 @@ class InstancesMonitorOverview(BaseOpenAPIView):
         responses={200: InstancesMonitorOverviewSeralizer(many=True)},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         region_name = req.GET.get("region_name", "")
         node_name = req.GET.get("node_name", "")
         query = req.GET.get("query", "")
-        regions = region_services.get_enterprise_regions(self.user.enterprise_id, level="", check_status="no")
-        tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)
-        result = enterprise_services.get_instances_monitor(regions, tenants, region_name, node_name, query)
+        regions = region_services.get_enterprise_regions(
+            self.user.enterprise_id, level="", check_status="no")  # type: ignore[arg-type]
+        tenants, _ = team_services.get_enterprise_teams(self.user.enterprise_id)  # type: ignore[arg-type]
+        # NOTE: BUG—EnterpriseServices has no get_instances_monitor; runtime AttributeError.
+        result = enterprise_services.get_instances_monitor(regions, tenants,  # type: ignore[attr-defined]
+                                                           region_name, node_name, query)
         serializer = InstancesMonitorOverviewSeralizer(data=result, many=True)
         serializer.is_valid()
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -419,7 +442,7 @@ class ComponentMemoryOverview(BaseOpenAPIView):
         responses={200: ComponentMemoryOverviewSeralizer},
         tags=['openapi-entreprise'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         from console.services.component_memory_processing import Component_memory_processing
         handle = Component_memory_processing()
         handle.region_obtain_handle(self.enterprise.enterprise_id)

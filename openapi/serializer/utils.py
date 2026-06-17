@@ -3,6 +3,7 @@
 import re
 import six
 import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 from django.conf import settings
 from rest_framework.fields import CharField
@@ -18,7 +19,7 @@ urlregex = re.compile(
 ipregex = re.compile(r'((2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})(\.((2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})){3}', re.IGNORECASE)
 
 
-def pagination(data, total, page=1, page_size=10):
+def pagination(data: Any, total: int, page: int = 1, page_size: int = 10) -> dict:
     return {"list": data, "total": total, "page": page, "page_size": page_size}
 
 
@@ -27,7 +28,7 @@ utc_tz = ZoneInfo('UTC')
 
 
 class DateCharField(CharField):
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Any) -> Any:
         if isinstance(data, bool) or not isinstance(data, six.string_types + six.integer_types + (float, datetime.datetime)):
             self.fail('invalid')
         if isinstance(data, datetime.datetime):

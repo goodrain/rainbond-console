@@ -16,7 +16,8 @@ class EnterpriseListInfoSerializer(serializers.Serializer):
 
 class ListEntsRespSerializer(serializers.Serializer):
     total = serializers.IntegerField(help_text="总数")
-    data = EnterpriseListInfoSerializer(many=True)
+    # NOTE: `data` shadows Serializer.data property; legacy field name, behavior unchanged.
+    data = EnterpriseListInfoSerializer(many=True)  # type: ignore[assignment]
 
 
 class UpdEntReqSerializer(serializers.Serializer):

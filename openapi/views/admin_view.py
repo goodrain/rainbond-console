@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
+from typing import Any
 
 from console.enum.enterprise_enum import EnterpriseRolesEnum
 from console.exception.exceptions import UserNotExistError
@@ -13,6 +14,7 @@ from openapi.serializer.base_serializer import FailSerializer
 from openapi.serializer.user_serializer import (CreateAdminUserReqSerializer, ListUsersRespView, UserInfoSerializer)
 from openapi.views.base import BaseOpenAPIView
 from rest_framework import exceptions, serializers, status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 logger = logging.getLogger("default")
@@ -29,7 +31,7 @@ class ListAdminsView(BaseOpenAPIView):
         responses={200: ListUsersRespView()},
         tags=['openapi-user'],
     )
-    def get(self, req, *args, **kwargs):
+    def get(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         try:
             page = int(req.GET.get("page", 1))
         except ValueError:
@@ -54,7 +56,7 @@ class ListAdminsView(BaseOpenAPIView):
         responses={},
         tags=['openapi-user'],
     )
-    def post(self, req, *args, **kwargs):
+    def post(self, req: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = CreateAdminUserReqSerializer(data=req.data)
         serializer.is_valid(raise_exception=True)
 
@@ -64,7 +66,10 @@ class ListAdminsView(BaseOpenAPIView):
             raise exceptions.NotFound("用户'{}'不存在".format(req.data["user_id"]))
         ent = enterprise_services.get_enterprise_by_enterprise_id(req.data["eid"])
         if ent is None:
-            raise serializers.ValidationError("企业'{}'不存在".format(req.data["eid"]), status.HTTP_404_NOT_FOUND)
+            # NOTE: legacy bug — ValidationError 2nd arg is `code` (str), not HTTP status;
+            # passing an int status here does not set the response status code.
+            raise serializers.ValidationError(
+                "企业'{}'不存在".format(req.data["eid"]), status.HTTP_404_NOT_FOUND)  # type: ignore[arg-type]
 
         user_services.create_admin_user(user, ent, [EnterpriseRolesEnum.admin.name])
 
@@ -80,13 +85,18 @@ class AdminInfoView(BaseOpenAPIView):
         },
         tags=['openapi-user'],
     )
-    def delete(self, req, user_id, *args, **kwargs):
-        if str(req.user.user_id) == user_id:
-            raise serializers.ValidationError({"msg": "不能删除自己"}, status.HTTP_400_BAD_REQUEST)
+    def delete(self, req: Request, user_id: str, *args: Any, **kwargs: Any) -> Response:
+        # NOTE: request.user typed as User|AnonymousUser per stubs; user_id present at runtime.
+        if str(req.user.user_id) == user_id:  # type: ignore[union-attr]
+            raise serializers.ValidationError(
+                {"msg": "不能删除自己"}, status.HTTP_400_BAD_REQUEST)  # type: ignore[arg-type]
         try:
             user_services.delete_admin_user(user_id)
             return Response(None, status.HTTP_200_OK)
         except ErrAdminUserDoesNotExist:
             raise exceptions.NotFound(detail="用户'{}'不是企业管理员".format(user_id))
         except ErrCannotDelLastAdminUser as e:
-            raise serializers.ValidationError({"msg": e.message}, status.HTTP_400_BAD_REQUEST)
+            # NOTE: py2-style Exception.message attribute, absent in py3.
+            raise serializers.ValidationError(
+                {"msg": e.message},  # type: ignore[attr-defined]
+                status.HTTP_400_BAD_REQUEST)  # type: ignore[arg-type]
