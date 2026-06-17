@@ -2,7 +2,7 @@
 import json
 import logging
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import httplib2
 import urllib3
@@ -17,6 +17,7 @@ from console.repositories.app import service_repo
 from console.repositories.app_config import configuration_repo, domain_repo
 from www.apiclient.baseclient import client_auth_service
 from www.apiclient.exception import err_region_not_found
+from www.apiclient.region_types import PodDetail, TenantServices
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient
 from www.models.main import TenantRegionInfo, Tenants, ServiceGroup
 from console.exception.bcode import ErrNamespaceExists
@@ -2385,7 +2386,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region_name)
         return body["list"]
 
-    def get_pod(self, region_name: str, tenant_name: str, pod_name: str) -> Any:
+    def get_pod(self, region_name: str, tenant_name: str, pod_name: str) -> Optional[PodDetail]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/pods/" + pod_name
@@ -2402,7 +2403,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         _, _ = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
 
-    def list_app_services(self, region_name: str, tenant_name: str, region_app_id: str) -> Any:
+    def list_app_services(self, region_name: str, tenant_name: str, region_app_id: str) -> Optional[List[TenantServices]]:
         url, token = self.__get_region_access_info(tenant_name, region_name)
         tenant_region = self.__get_tenant_region_info(tenant_name, region_name)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/services"
