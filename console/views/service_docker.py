@@ -2,9 +2,11 @@
 """
   Created on 18/2/7.
 """
+from typing import Any
+
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from console.services.region_services import region_services
 from www.utils.md5Util import md5fun
 from www.utils.url import get_redirect_url
@@ -12,18 +14,26 @@ from console.repositories.team_repo import team_repo
 from console.repositories.app import service_repo
 import logging
 from django.conf import settings
+from django.http import HttpRequest, HttpResponseBase
 from django.views.generic import View
 from django import http
+from www.models.main import Tenants, TenantServiceInfo
 
 logger = logging.getLogger("default")
 
 
 class DockerContainerView(View):
-    @never_cache
-    def get(self, request, *args, **kwargs):
+    tenantName: str
+    serviceAlias: str
+    tenant: Tenants
+    service: TenantServiceInfo
 
-        self.tenantName = kwargs.get('tenantName', None)
-        self.serviceAlias = kwargs.get('serviceAlias', None)
+    @never_cache
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
+
+        # NOTE: kwargs.get returns Any|None for str-typed context attrs (backlog).
+        self.tenantName = kwargs.get('tenantName', None)  # type: ignore[assignment]
+        self.serviceAlias = kwargs.get('serviceAlias', None)  # type: ignore[assignment]
         tenant = team_repo.get_team_by_team_name(self.tenantName)
         if tenant:
             self.tenant = tenant
@@ -37,7 +47,8 @@ class DockerContainerView(View):
             raise http.Http404
 
         context = dict()
-        response = redirect(get_redirect_url("/#/app/{0}/overview".format(self.service.service_alias), request))
+        response: HttpResponseBase = redirect(
+            get_redirect_url("/#/app/{0}/overview".format(self.service.service_alias), request))
         docker_c_id = request.COOKIES.get('docker_c_id', '')
         docker_h_id = request.COOKIES.get('docker_h_id', '')
         docker_s_id = request.COOKIES.get('docker_s_id', '')
@@ -50,8 +61,11 @@ class DockerContainerView(View):
 
             main_url = region_services.get_region_wsurl(self.service.service_region)
             if main_url == "auto":
+                # NOTE: DOCKER_WSS_URL is a dynamic Django setting not on Settings stub (backlog).
                 context["ws_uri"] = '{}://{}:6060/docker_console?nodename={}'.format(
-                    settings.DOCKER_WSS_URL["type"], settings.DOCKER_WSS_URL[self.service.service_region], t_docker_h_id)
+                    settings.DOCKER_WSS_URL["type"],  # type: ignore[misc]
+                    settings.DOCKER_WSS_URL[self.service.service_region],  # type: ignore[misc]
+                    t_docker_h_id)
             else:
                 context["ws_uri"] = "{0}/docker_console?nodename={1}".format(main_url, t_docker_h_id)
 

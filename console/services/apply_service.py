@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+from typing import Any, Dict, Tuple
 
 from console.exception.main import ServiceHandleException
 from console.repositories.apply_repo import apply_repo
@@ -8,17 +9,17 @@ from console.repositories.user_repo import user_repo
 
 
 class ApplyService(object):
-    def create_applicants(self, user_id, team_name):
+    def create_applicants(self, user_id: str, team_name: str) -> Any:
         applicant = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
         if not applicant:
             team = team_repo.get_team_by_team_name(team_name=team_name)
             user = user_repo.get_by_user_id(user_id=user_id)
             info = {
                 "user_id": user_id,
-                "user_name": user.get_username(),
-                "team_id": team.tenant_id,
+                "user_name": user.get_username(),  # type: ignore[union-attr]  # NOTE: caller must ensure user exists
+                "team_id": team.tenant_id,  # type: ignore[union-attr]  # NOTE: caller must ensure team exists
                 "team_name": team_name,
-                "team_alias": team.tenant_alias,
+                "team_alias": team.tenant_alias,  # type: ignore[union-attr]  # NOTE: caller must ensure team exists
                 "apply_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             return apply_repo.create_apply_info(**info)
@@ -34,7 +35,7 @@ class ApplyService(object):
         applicant[0].save()
         return applicant
 
-    def delete_applicants(self, user_id, team_name):
+    def delete_applicants(self, user_id: str, team_name: str) -> Tuple[int, Dict[str, int]]:
         applicant = apply_repo.get_applicants_by_id_team_name(user_id=user_id, team_name=team_name)
         return applicant.delete()
 

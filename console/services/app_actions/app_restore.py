@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Any, List, Optional
 
 from console.repositories.app import service_repo
 from console.repositories.app import service_source_repo
@@ -20,11 +21,11 @@ logger = logging.getLogger("default")
 
 
 class AppRestore(object):
-    def __init__(self, tenant, service):
+    def __init__(self, tenant: Any, service: Any) -> None:
         self.tenant = tenant
         self.service = service
 
-    def svc(self, service_base):
+    def svc(self, service_base: Optional[dict]) -> None:
         if not service_base:
             logger.warning("service id: {}; service base not found while \
                 restoring service".format(self.service.service_id))
@@ -33,7 +34,7 @@ class AppRestore(object):
         service_base.pop("ID")
         service_repo.create(service_base)
 
-    def svc_source(self, service_source):
+    def svc_source(self, service_source: Optional[dict]) -> None:
         if not service_source:
             logger.warning("service id: {}; service source data not found while \
                 restoring service source".format(self.service.service_id))
@@ -45,7 +46,7 @@ class AppRestore(object):
         logger.debug("service_source: {}".format(json.dumps(service_source)))
         service_source_repo.create_service_source(**service_source)
 
-    def envs(self, service_env_vars):
+    def envs(self, service_env_vars: Optional[List[dict]]) -> None:
         env_var_repo.delete_service_env(self.tenant.tenant_id, self.service.service_id)
         if service_env_vars:
             envs = []
@@ -54,7 +55,7 @@ class AppRestore(object):
                 envs.append(TenantServiceEnvVar(**item))
             env_var_repo.bulk_create(envs)
 
-    def ports(self, service_ports):
+    def ports(self, service_ports: Optional[List[dict]]) -> None:
         port_repo.delete_service_port(self.tenant.tenant_id, self.service.service_id)
         if service_ports:
             ports = []
@@ -63,7 +64,7 @@ class AppRestore(object):
                 ports.append(TenantServicesPort(**item))
             port_repo.bulk_create(ports)
 
-    def volumes(self, service_volumes, service_config_file):
+    def volumes(self, service_volumes: List[Any], service_config_file: List[dict]) -> None:
         volume_repo.delete_service_volumes(self.service.service_id)
         volume_repo.delete_config_files(self.service.service_id)
         id_cfg = {item["volume_id"]: item for item in service_config_file}
@@ -84,14 +85,14 @@ class AppRestore(object):
             cfg.pop("ID")
             _ = volume_repo.add_service_config_file(**cfg)
 
-    def probe(self, probe):
+    def probe(self, probe: Optional[dict]) -> None:
         probe_repo.delete_service_probe(self.service.service_id)
         if not probe:
             return
         probe.pop("ID")
         probe_repo.add_service_probe(**probe)
 
-    def dep_services(self, service_relation):
+    def dep_services(self, service_relation: Optional[List[dict]]) -> None:
         dep_relation_repo.delete_service_relation(self.tenant.tenant_id, self.service.service_id)
         if not service_relation:
             return
@@ -102,7 +103,7 @@ class AppRestore(object):
             relations.append(new_service_relation)
         TenantServiceRelation.objects.bulk_create(relations)
 
-    def dep_volumes(self, service_mnts):
+    def dep_volumes(self, service_mnts: Optional[List[dict]]) -> None:
         mnt_repo.delete_mnt(self.service.service_id)
         if not service_mnts:
             return
@@ -113,7 +114,7 @@ class AppRestore(object):
             mnts.append(mnt)
         mnt_repo.bulk_create(mnts)
 
-    def plugins(self, service_plugin_relation):
+    def plugins(self, service_plugin_relation: List[dict]) -> None:
         app_plugin_relation_repo.delete_by_sid(self.service.service_id)
         plugin_relations = []
         for item in service_plugin_relation:

@@ -4,24 +4,27 @@
 """
 import json
 import logging
+from typing import Any
 
 from console.repositories.app import service_repo
 from console.services.app_config import dependency_service, port_service
 from console.services.group_service import group_service
 from console.services.operation_log import operation_log_service, Operation
 from console.views.app_config.base import AppBaseView
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 from www.utils.return_message import general_message
 from console.exception.main import AbortRequest
 from console.repositories.group import group_service_relation_repo
+from www.models.main import Tenants
 
 logger = logging.getLogger("default")
 
 
 class AppDependencyReverseView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件可以被依赖但未依赖的组件
         ---
@@ -113,7 +116,7 @@ class AppDependencyReverseView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         反向依赖，让其他的组件来依赖自己
         ---
@@ -145,7 +148,8 @@ class AppDependencyReverseView(AppBaseView):
         # 这一步真的去添加依赖
         try:
             data = dependency_service.patch_add_service_reverse_dependency(
-                self.tenant, self.service, be_dep_service_ids=be_dep_service_ids, user_name=self.user.nick_name)
+                self.tenant, self.service, be_dep_service_ids=be_dep_service_ids,
+                user_name=self.user.nick_name)  # type: ignore[arg-type] # NOTE: nick_name str|None (backlog)
             result = general_message(200, "success", "依赖添加成功", list=data)
             return Response(result, status=result["code"])
         except Exception as e:
@@ -156,7 +160,7 @@ class AppDependencyReverseView(AppBaseView):
 
 class AppDependencyViewList(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         page_num = int(request.GET.get("page", 1))
         if page_num < 1:
             page_num = 1
@@ -217,7 +221,7 @@ class AppDependencyViewList(AppBaseView):
 
 class AppDependencyView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件依赖的组件
         ---
@@ -301,7 +305,7 @@ class AppDependencyView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         为组件添加依赖组件
         ---
@@ -333,8 +337,9 @@ class AppDependencyView(AppBaseView):
             raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖组件")
         if dep_service_id == self.service.service_id:
             raise AbortRequest(msg="components cannot rely on themselves", msg_show="组件不能依赖自己")
-        code, msg, data = dependency_service.add_service_dependency(self.tenant, self.service, dep_service_id, open_inner,
-                                                                    container_port, self.user.nick_name)
+        code, msg, data = dependency_service.add_service_dependency(
+            self.tenant, self.service, dep_service_id, open_inner,
+            container_port, self.user.nick_name)  # type: ignore[arg-type]
         if code == 201:
             result = general_message(code, "add dependency success", msg, list=data, bean={"is_inner": False})
             return Response(result, status=code)
@@ -343,7 +348,10 @@ class AppDependencyView(AppBaseView):
             return Response(result, status=code)
         dependency = dependency_service.get_service_dependencies_part([dep_service_id])
         service_group = group_service.get_service_group_info(dep_service_id)
-        new_information = json.dumps({"所属应用": service_group.group_name, "组件名": dependency[0].service_cname}, ensure_ascii=False)
+        # NOTE: get_service_group_info may return None (backlog)
+        new_information = json.dumps(
+            {"所属应用": service_group.group_name, "组件名": dependency[0].service_cname},  # type: ignore[union-attr]
+            ensure_ascii=False)
 
         result = general_message(code, msg, "依赖添加成功", bean=data.to_dict())
         dep_component_name = handle_dep_component_info(self.tenant, dep_service_id)
@@ -365,7 +373,7 @@ class AppDependencyView(AppBaseView):
         return Response(result, status=result["code"])
 
     @never_cache
-    def patch(self, request, *args, **kwargs):
+    def patch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         为组件添加依赖组件
         ---
@@ -394,7 +402,8 @@ class AppDependencyView(AppBaseView):
             raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖组件")
         dep_service_list = dep_service_ids.split(",")
         code, msg = dependency_service.patch_add_dependency(
-            self.tenant, self.service, dep_service_list, user_name=self.user.nick_name)
+            self.tenant, self.service, dep_service_list,
+            user_name=self.user.nick_name)  # type: ignore[arg-type]
         if code != 200:
             result = general_message(code, "add dependency error", msg)
             return Response(result, status=code)
@@ -426,7 +435,7 @@ class AppDependencyView(AppBaseView):
 
 class AppNotDependencyView(AppBaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取组件可以依赖但未依赖的组件
         ---
@@ -524,7 +533,7 @@ class AppNotDependencyView(AppBaseView):
 
 class AppDependencyManageView(AppBaseView):
     @never_cache
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除组件的某个依赖
         ---
@@ -551,9 +560,12 @@ class AppDependencyManageView(AppBaseView):
             return Response(general_message(400, "attr_name not specify", "未指定需要删除的依赖组件"))
         dependency = dependency_service.get_service_dependencies_part([dep_service_id])
         service_group = group_service.get_service_group_info(dep_service_id)
-        old_information = json.dumps({"所属应用": service_group.group_name, "组件名": dependency[0].service_cname}, ensure_ascii=False)
-        code, msg, dependency = dependency_service.delete_service_dependency(self.tenant, self.service, dep_service_id,
-                                                                             self.user.nick_name)
+        # NOTE: get_service_group_info may return None (backlog)
+        old_information = json.dumps(
+            {"所属应用": service_group.group_name, "组件名": dependency[0].service_cname},  # type: ignore[union-attr]
+            ensure_ascii=False)
+        code, msg, dependency = dependency_service.delete_service_dependency(
+            self.tenant, self.service, dep_service_id, self.user.nick_name)  # type: ignore[arg-type]
         if code != 200:
             return Response(general_message(code, "delete dependency error", msg))
 
@@ -578,12 +590,13 @@ class AppDependencyManageView(AppBaseView):
         return Response(result, status=result["code"])
 
 
-def handle_dep_component_info(tenant, dep_service_id):
+def handle_dep_component_info(tenant: Tenants, dep_service_id: str) -> Any:
     dep_component = service_repo.get_service_by_service_id(dep_service_id)
+    # NOTE: get_service_by_service_id may return None (backlog)
     dep_component_name = operation_log_service.process_component_name(
-        name=dep_component.service_cname,
-        region=dep_component.service_region,
+        name=dep_component.service_cname,  # type: ignore[union-attr]
+        region=dep_component.service_region,  # type: ignore[union-attr]
         team_name=tenant.tenant_name,
-        service_alias=dep_component.service_alias,
+        service_alias=dep_component.service_alias,  # type: ignore[union-attr]
     )
     return dep_component_name

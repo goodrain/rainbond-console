@@ -1,11 +1,14 @@
+from typing import Any
+
 from console.views.base import JWTAuthApiView
+from rest_framework.request import Request
 from rest_framework.response import Response
 from console.services.team_services import TeamService
 from www.utils.return_message import general_message
 
 
 class UserTeamDetailsView(JWTAuthApiView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取用户创建的团队详情
         ---

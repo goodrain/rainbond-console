@@ -1,4 +1,7 @@
-def resolve_vm_boot_source(tenant, image_name, image_url, source_uri=""):
+from www.models.main import Tenants
+
+
+def resolve_vm_boot_source(tenant: Tenants, image_name: str, image_url: str, source_uri: str = "") -> dict:
     image_url = str(image_url or "").strip()
     source_uri = str(source_uri or "").strip()
 
@@ -20,12 +23,12 @@ def resolve_vm_boot_source(tenant, image_name, image_url, source_uri=""):
     }
 
 
-def requires_vm_source_build(image_url):
+def requires_vm_source_build(image_url: str) -> bool:
     value = str(image_url or "").strip().lower()
     return value.startswith("http://") or value.startswith("https://") or value.startswith("/grdata/")
 
 
-def build_vm_runtime_image_name(tenant, image_name):
+def build_vm_runtime_image_name(tenant: Tenants, image_name: str) -> str:
     namespace = (
         getattr(tenant, "namespace", "") or
         getattr(tenant, "tenant_name", "") or

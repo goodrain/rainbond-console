@@ -15,13 +15,15 @@ from pathlib import Path
 from urllib.parse import urljoin
 from urllib.parse import urlparse
 import re
+from typing import Any, Optional
 
 from console.repositories.helm import helm_repo, region_event
 from console.utils.offline import is_cloud_market_disabled
 from console.views.base import JWTAuthApiView
+from rest_framework.request import Request
 from rest_framework.response import Response
 from console.utils.cache import cache
-def _dockerhub_get_bearer_token(repository, username=None, password=None):
+def _dockerhub_get_bearer_token(repository: str, username: Optional[str] = None, password: Optional[str] = None) -> Any:
     """获取 Docker Hub 的匿名/Basic 授权 token。"""
     auth_url = "https://auth.docker.io/token"
     params = {
@@ -36,7 +38,7 @@ def _dockerhub_get_bearer_token(repository, username=None, password=None):
     return resp.json().get("token")
 
 
-def _oci_pull_chart_to_tempfile(oci_url, username=None, password=None):
+def _oci_pull_chart_to_tempfile(oci_url: str, username: Optional[str] = None, password: Optional[str] = None) -> str:
     """支持从 Docker Hub 拉取 Helm OCI chart，返回临时文件路径。"""
     # 解析 oci://host/repo[:tag]
     parsed = urlparse(oci_url)
@@ -66,7 +68,7 @@ def _oci_pull_chart_to_tempfile(oci_url, username=None, password=None):
             "User-Agent": "Rainbond-Console/1.0",
         }
         # 拉取 manifest 或 manifest list
-        def fetch_manifest(ref_or_digest):
+        def fetch_manifest(ref_or_digest: str) -> Any:
             murl = f"https://registry-1.docker.io/v2/{repository}/manifests/{ref_or_digest}"
             r = requests.get(murl, headers=headers, timeout=20)
             r.raise_for_status()
@@ -114,7 +116,7 @@ def _oci_pull_chart_to_tempfile(oci_url, username=None, password=None):
         # 兜底：如果未找到，尝试逐层探测
         try_layers = [] if chart_digest else layers
         # 下载 blob 层
-        def download_blob(digest):
+        def download_blob(digest: str) -> str:
             burl = f"https://registry-1.docker.io/v2/{repository}/blobs/{digest}"
             r = requests.get(burl, headers=headers, stream=True, timeout=60)
             r.raise_for_status()
@@ -150,10 +152,11 @@ def _oci_pull_chart_to_tempfile(oci_url, username=None, password=None):
 
 
 class Appstores(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         if is_cloud_market_disabled():
             result = {"code": 200, "msg": "success", "msg_show": "查询成功", "data": []}
-            return Response(result, status=result["code"])
+            # NOTE: status comes from a heterogeneous dict literal; mypy widens it to object (legacy).
+            return Response(result, status=result["code"])  # type: ignore[arg-type]
         appstores = helm_repo.get_all_repo()
         data = list()
         for appstore in appstores:
@@ -164,21 +167,21 @@ class Appstores(JWTAuthApiView):
                 "password": appstore.password,
             })
         result = {"code": 200, "msg": "success", "msg_show": "查询成功", "data": data}
-        return Response(result, status=result["code"])
+        return Response(result, status=result["code"])  # type: ignore[arg-type]
 
 
 class Appstore(JWTAuthApiView):
-    def get(self, request, enterprise_id, name, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, name: str, *args: Any, **kwargs: Any) -> Response:
         app_store = helm_repo.get_helm_repo_by_name(name)
         if not app_store:
             result = {"code": 400, "msg": "success", "msg_show": "查询成功"}
-            return Response(result, status=result["code"])
+            return Response(result, status=result["code"])  # type: ignore[arg-type]
         result = {"code": 200, "msg": "success", "msg_show": "查询成功"}
-        return Response(result, status=result["code"])
+        return Response(result, status=result["code"])  # type: ignore[arg-type]
 
 
 class AppstoreCharts(JWTAuthApiView):
-    def get(self, request, enterprise_id, name, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, name: str, *args: Any, **kwargs: Any) -> Response:
         logger = logging.getLogger('default')
         if is_cloud_market_disabled():
             try:
@@ -190,7 +193,7 @@ class AppstoreCharts(JWTAuthApiView):
             except Exception:
                 page_size = 50
             query_kw = (request.query_params.get('query', '') or '').strip()
-            result = {
+            result: dict = {
                 "code": 200,
                 "msg": "success",
                 "msg_show": "查询成功",
@@ -200,11 +203,12 @@ class AppstoreCharts(JWTAuthApiView):
                 "total": 0,
                 "query": query_kw
             }
-            return Response(result, status=result["code"])
+            return Response(result, status=result["code"])  # type: ignore[arg-type]
         app_store = helm_repo.get_helm_repo_by_name(name)
         if app_store:
             helm_repo_url = app_store.get("repo_url")
-            repo_index_url = f"{helm_repo_url.rstrip('/')}/index.yaml"
+            # NOTE: app_store.get may return None; legacy assumes present (backlog).
+            repo_index_url = f"{helm_repo_url.rstrip('/')}/index.yaml"  # type: ignore[union-attr]
             # 读取查询参数：分页与版本限制
             try:
                 page = int(request.query_params.get('page', 1))
@@ -279,9 +283,10 @@ class AppstoreCharts(JWTAuthApiView):
                 from yaml import CSafeLoader as _SafeLoader
             except Exception:
                 try:
-                    from yaml import CLoader as _SafeLoader  # 兼容别名
+                    # NOTE: yaml loader fallbacks share one alias; mypy flags the rebind (legacy).
+                    from yaml import CLoader as _SafeLoader  # type: ignore[assignment]  # 兼容别名
                 except Exception:
-                    from yaml import SafeLoader as _SafeLoader
+                    from yaml import SafeLoader as _SafeLoader  # type: ignore[assignment]
             try:
                 index_data = yaml.load(index_text, Loader=_SafeLoader) or {}
             except Exception:
@@ -347,7 +352,8 @@ class AppstoreCharts(JWTAuthApiView):
 
 
 class AppstoreChart(JWTAuthApiView):
-    def get(self, request, enterprise_id, name, chart_name, version, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, name: str, chart_name: str, version: str, *args: Any,
+            **kwargs: Any) -> Response:
         if is_cloud_market_disabled():
             data = {"readme": "", "questions": "", "values": {}}
             return Response({"code": 200, "msg": "success", "msg_show": "操作成功", "data": data})
@@ -435,9 +441,9 @@ class AppstoreChart(JWTAuthApiView):
                         from yaml import CSafeLoader as _SafeLoader
                     except Exception:
                         try:
-                            from yaml import CLoader as _SafeLoader
+                            from yaml import CLoader as _SafeLoader  # type: ignore[assignment]
                         except Exception:
-                            from yaml import SafeLoader as _SafeLoader
+                            from yaml import SafeLoader as _SafeLoader  # type: ignore[assignment]
                     try:
                         index_data = yaml.load(index_text, Loader=_SafeLoader) or {}
                     except Exception:
@@ -537,7 +543,7 @@ class AppstoreChart(JWTAuthApiView):
 
 
 class HelmRegionInstall(JWTAuthApiView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取 Helm 安装区域事件信息
         """
@@ -549,7 +555,8 @@ class HelmRegionInstall(JWTAuthApiView):
                 event = events.first()
                 try:
                     # 反序列化事件消息
-                    event_data = json.loads(event.message)
+                    # NOTE: events.first() may return None; legacy assumes present (backlog).
+                    event_data = json.loads(event.message)  # type: ignore[union-attr]
                     response_data = {
                         "create_status": True,
                         "token": event_data.get("token"),
@@ -564,7 +571,7 @@ class HelmRegionInstall(JWTAuthApiView):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def post(self, request, enterprise_id, *args, **kwargs):
+    def post(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         初始化 Helm 安装区域事件
         """
@@ -590,7 +597,7 @@ class HelmRegionInstall(JWTAuthApiView):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def delete(self, request, enterprise_id, *args, **kwargs):
+    def delete(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         删除 Helm 安装区域事件
         """

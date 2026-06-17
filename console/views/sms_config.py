@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 import logging
+from typing import Any
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 from console.views.base import EnterpriseAdminView
 from console.services.config_service import EnterpriseConfigService
@@ -9,7 +11,7 @@ from www.utils.return_message import general_message
 logger = logging.getLogger("default")
 
 class SMSConfigView(EnterpriseAdminView):
-    def get(self, request, enterprise_id, *args, **kwargs):
+    def get(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         获取短信配置
         ---
@@ -21,7 +23,8 @@ class SMSConfigView(EnterpriseAdminView):
               paramType: path
         """
         try:
-            config_service = EnterpriseConfigService(enterprise_id, self.user.user_id)
+            # NOTE: Users.user_id is an int AutoField but service expects str (systemic int-as-str; backlog).
+            config_service = EnterpriseConfigService(enterprise_id, self.user.user_id)  # type: ignore[arg-type]
             sms_config = config_service.get_config_by_key("SMS_CONFIG")
             
             if not sms_config:
@@ -41,8 +44,10 @@ class SMSConfigView(EnterpriseAdminView):
                 "获取成功",
                 bean={
                     "sms_config": {
-                        "enable": sms_config.enable,
-                        "value": eval(sms_config.value) if sms_config.type == "json" else sms_config.value
+                        # NOTE: get_config_by_key may return None; attribute access is a latent risk (backlog).
+                        "enable": sms_config.enable,  # type: ignore[union-attr]
+                        "value": eval(sms_config.value) if sms_config.type == "json"  # type: ignore[union-attr,arg-type]
+                        else sms_config.value  # type: ignore[union-attr]
                     }
                 }
             )
@@ -53,7 +58,7 @@ class SMSConfigView(EnterpriseAdminView):
             result = general_message(500, "获取短信配置失败", "{}".format(e))
             return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def put(self, request, enterprise_id, *args, **kwargs):
+    def put(self, request: Request, enterprise_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         更新短信配置
         ---
@@ -82,7 +87,7 @@ class SMSConfigView(EnterpriseAdminView):
                     result = general_message(400, "参数错误", "缺少必要的配置字段: {}".format(field))
                     return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
-            config_service = EnterpriseConfigService(enterprise_id, self.user.user_id)
+            config_service = EnterpriseConfigService(enterprise_id, self.user.user_id)  # type: ignore[arg-type]
             # 更新配置
             config = config_service.update_config_by_key("SMS_CONFIG", sms_config)
 

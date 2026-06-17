@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
+from typing import Any
+
 from openapi.serializer.role_serializer import RoleInfoSerializer
 from openapi.serializer.utils import DateCharField
 from rest_framework import serializers
@@ -66,7 +68,7 @@ class RoleInfoRespSerializer(serializers.Serializer):
 class CreateTeamUserReqSerializer(serializers.Serializer):
     role_ids = serializers.CharField(max_length=255, help_text="角色ID列表")
 
-    def validate_role_ids(self, role_ids):
+    def validate_role_ids(self, role_ids: Any) -> Any:
         role_ids = role_ids.replace(" ", "")
         for role_id in role_ids.split(","):
             try:

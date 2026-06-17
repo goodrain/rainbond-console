@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import logging
+from typing import Any
 
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.services.announcement_service import announcement_service
@@ -26,7 +28,7 @@ class ListAnnouncementView(BaseOpenAPIView):
         responses={200: ListAnnouncementRespSerializer()},
         tags=['openapi-announcement'],
     )
-    def get(self, req):
+    def get(self, req: Request) -> Response:
         try:
             page = int(req.GET.get("page", 1))
         except ValueError:
@@ -45,7 +47,7 @@ class ListAnnouncementView(BaseOpenAPIView):
         responses={},
         tags=['openapi-announcement'],
     )
-    def post(self, request, **kwargs):
+    def post(self, request: Request, **kwargs: Any) -> Response:
         announcement_service.create(request.data)
         return Response(None, status.HTTP_201_CREATED)
 
@@ -57,7 +59,7 @@ class AnnouncementView(BaseOpenAPIView):
         responses={},
         tags=['openapi-announcement'],
     )
-    def put(self, req, aid, *args, **kwargs):
+    def put(self, req: Request, aid: str, *args: Any, **kwargs: Any) -> Response:
         serializer = UpdateAncmReqSerilizer(data=req.data)
         serializer.is_valid(raise_exception=True)
         announcement_service.update(aid, req.data)
@@ -68,6 +70,6 @@ class AnnouncementView(BaseOpenAPIView):
         responses={},
         tags=['openapi-announcement'],
     )
-    def delete(self, request, aid, *args, **kwargs):
+    def delete(self, request: Request, aid: str, *args: Any, **kwargs: Any) -> Response:
         announcement_service.delete(aid)
         return Response(None, status.HTTP_200_OK)

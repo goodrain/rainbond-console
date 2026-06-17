@@ -3,6 +3,7 @@ import json
 import logging
 import copy
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 from .enum import ActionType
 from .market_app import MarketApp
@@ -10,6 +11,7 @@ from .original_app import OriginalApp
 from .new_app import NewApp
 from .component import Component
 from .component_group import ComponentGroup
+from .plugin import Plugin
 # service
 from console.services.app_config import label_service
 # repository
@@ -55,8 +57,13 @@ class AppRestore(MarketApp):
     4. AppRestore will not be rolled back that k8s resources under the application
     """
 
-    def __init__(self, tenant, region: RegionConfig, user, app: ServiceGroup, component_group: TenantServiceGroup,
-                 app_upgrade_record: AppUpgradeRecord):
+    def __init__(self,
+                 tenant: Any,
+                 region: RegionConfig,
+                 user: Any,
+                 app: ServiceGroup,
+                 component_group: TenantServiceGroup,
+                 app_upgrade_record: AppUpgradeRecord) -> None:
         self.tenant = tenant
         self.region = region
         self.region_name = region.region_name
@@ -64,7 +71,7 @@ class AppRestore(MarketApp):
         self.app = app
         self.upgrade_group_id = component_group.ID
         self.upgrade_record = app_upgrade_record
-        self.rollback_record = None
+        self.rollback_record: Optional[AppUpgradeRecord] = None
         self.component_group = component_group
 
         self.support_labels = label_service.list_available_labels(tenant, region.region_name)
@@ -74,7 +81,7 @@ class AppRestore(MarketApp):
         self.new_app = self._create_new_app()
         super(AppRestore, self).__init__(self.original_app, self.new_app, self.user)
 
-    def restore(self):
+    def restore(self) -> Tuple[Optional[AppUpgradeRecord], TenantServiceGroup]:
         # Sync the new application to the data center first
         # TODO(huangrh): rollback on api timeout
         self.sync_new_app()
@@ -91,13 +98,13 @@ class AppRestore(MarketApp):
 
         return self.rollback_record, self.component_group
 
-    def _save_new_app(self):
+    def _save_new_app(self) -> None:
         # save new app
         self.save_new_app()
         # update record
         self.create_rollback_record()
 
-    def create_rollback_record(self):
+    def create_rollback_record(self) -> None:
         rollback_record = self.upgrade_record.to_dict()
         rollback_record.pop("ID")
         rollback_record.pop("can_rollback")
@@ -109,17 +116,17 @@ class AppRestore(MarketApp):
         rollback_record["old_version"] = self.upgrade_record.version
         self.rollback_record = upgrade_repo.create_app_upgrade_record(**rollback_record)
 
-    def _update_upgrade_record(self, status):
+    def _update_upgrade_record(self, status: int) -> None:
         self.upgrade_record.status = status
         self.upgrade_record.save()
 
-    def _update_rollback_record(self, status):
+    def _update_rollback_record(self, status: int) -> None:
         if not self.rollback_record:
             return
         self.rollback_record.status = status
         self.rollback_record.save()
 
-    def _deploy(self):
+    def _deploy(self) -> None:
         try:
             events = self.deploy()
         except ServiceHandleException as e:
@@ -130,7 +137,7 @@ class AppRestore(MarketApp):
             raise e
         self._create_component_record(events)
 
-    def _create_component_record(self, events=list):
+    def _create_component_record(self, events: Any) -> None:
         event_ids = {event["service_id"]: event["event_id"] for event in events}
         records = []
         for cpt in self.new_app.components():
@@ -153,21 +160,22 @@ class AppRestore(MarketApp):
             records.append(record)
         component_upgrade_record_repo.bulk_create(records)
 
-    def _get_snapshot(self):
-        snap = app_snapshot_repo.get_by_snapshot_id(self.upgrade_record.snapshot_id)
+    def _get_snapshot(self) -> Dict[str, Any]:
+        snap = app_snapshot_repo.get_by_snapshot_id(self.upgrade_record.snapshot_id)  # type: ignore[arg-type]
+        # NOTE: snapshot_id is nullable; get_by_snapshot_id would likely raise if None
         snap = json.loads(snap.snapshot)
         # filter out components that are in the snapshot but not in the application
         component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
         snap["components"] = [snap for snap in snap["components"] if snap["component_id"] in component_ids]
         return snap
 
-    def _create_new_app(self):
+    def _create_new_app(self) -> NewApp:
         """
         create new app from the snapshot
         """
         components = []
         now_components = self.original_app.components()
-        now_volumes = {}
+        now_volumes: Dict[str, List[Any]] = {}
         for now in now_components:
             volumes = []
             for volume in now.volumes:
@@ -205,7 +213,7 @@ class AppRestore(MarketApp):
             config_group_components=self.original_app.config_group_components,
             config_group_items=self.original_app.config_group_items)
 
-    def _create_component(self, snap, now_volumes):
+    def _create_component(self, snap: Dict[str, Any], now_volumes: Dict[str, List[Any]]) -> Component:
         # component
         component = TenantServiceInfo(**snap["service_base"])
         # component source
@@ -218,7 +226,7 @@ class AppRestore(MarketApp):
         # service_extend_method
         extend_info = None
         if snap.get("service_extend_method"):
-            extend_info = ServiceExtendMethod(**snap.get("service_extend_method"))
+            extend_info = ServiceExtendMethod(**snap.get("service_extend_method"))  # type: ignore[arg-type]
         # volumes
         volumes = [TenantServiceVolume(**volume) for volume in snap["service_volumes"]]
         if now_volumes.get(component.service_id):
@@ -253,35 +261,35 @@ class AppRestore(MarketApp):
         cpt.action_type = snap.get("action_type", ActionType.BUILD.value)
         return cpt
 
-    def _create_component_deps(self, component_ids):
+    def _create_component_deps(self, component_ids: List[str]) -> List[TenantServiceRelation]:
         component_deps = []
         for snap in self.snapshot["components"]:
             component_deps.extend([TenantServiceRelation(**dep) for dep in snap["service_relation"]])
         # filter out the component dependencies which dep_service_id does not belong to the components
         return [dep for dep in component_deps if dep.dep_service_id in component_ids]
 
-    def _create_volume_deps(self, component_ids):
+    def _create_volume_deps(self, component_ids: List[str]) -> List[TenantServiceMountRelation]:
         volume_deps = []
         for snap in self.snapshot["components"]:
             volume_deps.extend([TenantServiceMountRelation(**dep) for dep in snap["service_mnts"]])
         # filter out the component dependencies which dep_service_id does not belong to the components
         return [dep for dep in volume_deps if dep.dep_service_id in component_ids]
 
-    def _create_component_group(self):
+    def _create_component_group(self) -> ComponentGroup:
         component_group = self.snapshot["component_group"]
         version = component_group["group_version"]
         component_group = copy.deepcopy(self.component_group)
         component_group.group_version = version
         return ComponentGroup(self.user.enterprise_id, component_group, need_save=bool(getattr(component_group, "ID", None)))
 
-    def _create_plugins_deps(self):
+    def _create_plugins_deps(self) -> List[TenantServicePluginRelation]:
         plugin_deps = []
         for component in self.snapshot["components"]:
             for plugin_dep in component["service_plugin_relation"]:
                 plugin_deps.append(TenantServicePluginRelation(**plugin_dep))
         return plugin_deps
 
-    def _create_plugins_configs(self):
+    def _create_plugins_configs(self) -> List[ServicePluginConfigVar]:
         plugin_configs = []
         for component in self.snapshot["components"]:
             for plugin_config in component["service_plugin_config"]:

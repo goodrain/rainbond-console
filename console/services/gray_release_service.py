@@ -4,10 +4,10 @@ Gray release service for application-level canary deployments
 """
 import logging
 import traceback
+from typing import Any, Dict, List, Optional, Tuple
 
 from console.exception.main import ServiceHandleException
-from console.models.main import GrayReleaseStatus
-from console.repositories.app_config import domain_repo
+from console.models.main import GrayReleaseRecord, GrayReleaseStatus, RegionConfig
 from console.repositories.gray_release_repo import gray_release_repo
 from console.services.app_actions import app_manage_service
 from console.services.app_config.domain_service import DomainService
@@ -15,9 +15,7 @@ from console.services.app import app_market_service
 from console.services.group_service import group_service
 from console.services.market_app_service import market_app_service
 from django.db import transaction
-from django.forms.models import model_to_dict
-from www.models.main import ServiceDomain, TenantServiceInfo
-from www.utils.crypt import make_uuid
+from www.models.main import ServiceDomain, ServiceGroup, Tenants, TenantServiceInfo, Users
 
 logger = logging.getLogger("default")
 
@@ -25,11 +23,11 @@ logger = logging.getLogger("default")
 class GrayReleaseService(object):
     """Service for managing application-level gray releases"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.domain_service = DomainService()
         self.app_manage = app_manage_service
 
-    def validate_gray_ratio(self, gray_ratio):
+    def validate_gray_ratio(self, gray_ratio: int) -> None:
         """Validate gray ratio is between 0 and 100"""
         if not isinstance(gray_ratio, int):
             raise ServiceHandleException(
@@ -44,7 +42,8 @@ class GrayReleaseService(object):
                 status_code=400
             )
 
-    def _delete_new_service_domains(self, team, region_name, new_service_ids):
+    def _delete_new_service_domains(self, team: Tenants, region_name: str,
+                                    new_service_ids: List[str]) -> None:
         """
         Delete domains (ApisixRoutes) automatically created for new services during gray release
         删除灰度发布时为新服务自动创建的域名
@@ -74,8 +73,10 @@ class GrayReleaseService(object):
 
             # 获取所有路由
             try:
-                response = region_api.get_api_gateway(region, team, None)  # 获取全部路由
-                routes = response.get("list", [])
+                # NOTE: app_id=None fetches all routes (callee str typing is loose);
+                # response Optional deref guarded by enclosing try/except.
+                response = region_api.get_api_gateway(region, team, None)  # type: ignore[arg-type]  # 获取全部路由
+                routes = response.get("list", [])  # type: ignore[union-attr]
                 logger.info(f"[GrayRelease] Found {len(routes)} total routes")
 
                 # 查找新服务的路由
@@ -116,8 +117,10 @@ class GrayReleaseService(object):
 
                                 try:
                                     logger.info(f"[GrayRelease] Deleting route: {route_name}")
+                                    # NOTE: callee region param typed str; RegionConfig
+                                    # passed here (region helpers accept either at runtime).
                                     region_api.delete_gateway_http_route(
-                                        region,
+                                        region,  # type: ignore[arg-type]
                                         team.tenant_name,
                                         team.namespace,
                                         route_name,
@@ -143,9 +146,12 @@ class GrayReleaseService(object):
             logger.error(f"[GrayRelease] Traceback: {traceback.format_exc()}")
             # 不抛出异常，因为这不是关键步骤
 
-    def _update_apisix_route_weights(self, team, region, app, domain,
-                                     original_service, new_service,
-                                     original_weight, new_weight, is_full_release=False):
+    def _update_apisix_route_weights(self, team: Tenants, region: RegionConfig,
+                                     app: ServiceGroup, domain: dict,
+                                     original_service: TenantServiceInfo,
+                                     new_service: TenantServiceInfo,
+                                     original_weight: int, new_weight: int,
+                                     is_full_release: bool = False) -> None:
         """
         Update ApisixRoute to configure weighted backends for gray release
         更新 ApisixRoute 配置，为灰度发布设置权重后端
@@ -353,7 +359,8 @@ class GrayReleaseService(object):
                 status_code=500
             )
 
-    def get_domain_by_name(self, team, region, app_id, route_name):
+    def get_domain_by_name(self, team: Tenants, region: RegionConfig, app_id: str,
+                           route_name: str) -> dict:
         """
         Get domain from API Gateway by route name
         通过路由名称查找（而不是域名）
@@ -373,7 +380,8 @@ class GrayReleaseService(object):
 
             # 调用 API 网关获取路由列表
             response = region_api.get_api_gateway(region, team, app_id)
-            domains = response.get("list", [])
+            # NOTE: response Optional deref guarded by enclosing try/except.
+            domains = response.get("list", [])  # type: ignore[union-attr]
 
             logger.info(f"[GrayRelease] API Gateway returned {len(domains)} routes")
 
@@ -417,7 +425,7 @@ class GrayReleaseService(object):
                 status_code=500
             )
 
-    def validate_app(self, team, region_name, app):
+    def validate_app(self, team: Tenants, region_name: str, app: ServiceGroup) -> None:
         """Validate application exists and belongs to team"""
         if not app:
             raise ServiceHandleException(
@@ -433,7 +441,10 @@ class GrayReleaseService(object):
             )
         logger.info("Validated app {0} with ID {1}".format(app.group_name, app.ID))
 
-    def install_template_to_app(self, team, region_name, user, app, template_id, market_name, install_from_cloud):
+    def install_template_to_app(self, team: Tenants, region_name: str, user: Users,
+                                app: ServiceGroup, template_id: str,
+                                market_name: Optional[str],
+                                install_from_cloud: bool) -> Tuple[Any, Any]:
         """
         Install application template to the original app (for gray release, skip domain creation)
 
@@ -453,7 +464,9 @@ class GrayReleaseService(object):
                     )
 
                 # Get market and app version info
-                market = app_market_service.get_app_market_by_name(team.enterprise_id, market_name)
+                # NOTE: invariant — market_name guarded non-None above (line ~459).
+                market = app_market_service.get_app_market_by_name(
+                    team.enterprise_id, market_name)  # type: ignore[arg-type]
                 if not market:
                     raise ServiceHandleException(
                         msg="market not found",
@@ -475,8 +488,9 @@ class GrayReleaseService(object):
                 # Install the template to the original app
                 # For gray release: skip_create_domain=True to avoid creating duplicate domains
                 logger.info("[GrayRelease] Calling install_service with is_deploy=True for cloud installation")
+                # NOTE: install_service group_id typed str; app.ID is model int PK.
                 tenant_service_group, events = market_app_service.install_service(
-                    team, region_name, user, app.ID, app_model, app_version_info,
+                    team, region_name, user, app.ID, app_model, app_version_info,  # type: ignore[arg-type]
                     is_deploy=True, install_from_cloud=True, market_name=market_name,
                     skip_create_domain=True  # Gray release: don't create new domains
                 )
@@ -486,7 +500,9 @@ class GrayReleaseService(object):
                 from console.repositories.market_app_repo import rainbond_app_repo
 
                 # Get app model by template_id (which is app_model_key in local storage)
-                app_model = rainbond_app_repo.get_rainbond_app_by_app_id(template_id)
+                # NOTE: Optional result; guarded by the `if not app_model` check below.
+                app_model = rainbond_app_repo.get_rainbond_app_by_app_id(  # type: ignore[assignment]
+                    template_id)
                 if not app_model:
                     raise ServiceHandleException(
                         msg="template not found",
@@ -507,8 +523,9 @@ class GrayReleaseService(object):
                 # Install from local template to the original app
                 # For gray release: skip_create_domain=True to avoid creating duplicate domains
                 logger.info("[GrayRelease] Calling install_service with is_deploy=True for local installation")
+                # NOTE: install_service group_id typed str; app.ID is model int PK.
                 tenant_service_group, events = market_app_service.install_service(
-                    team, region_name, user, app.ID, app_model, app_version_info,
+                    team, region_name, user, app.ID, app_model, app_version_info,  # type: ignore[arg-type]
                     is_deploy=True, install_from_cloud=False,
                     skip_create_domain=True  # Gray release: don't create new domains
                 )
@@ -529,14 +546,16 @@ class GrayReleaseService(object):
                 status_code=500
             )
 
-    def setup_domain_weights(self, team, region, app, domain_name, gray_ratio):
+    def setup_domain_weights(self, team: Tenants, region: RegionConfig, app: ServiceGroup,
+                             domain_name: str, gray_ratio: int) -> dict:
         """Setup domain weights for gray release - all services in the same app"""
         try:
             logger.info("[GrayRelease] Starting setup_domain_weights: app_id={0}, domain={1}, gray_ratio={2}%".format(
                 app.ID, domain_name, gray_ratio))
 
             # Get domain from API Gateway
-            domain = self.get_domain_by_name(team, region, app.ID, domain_name)
+            # NOTE: app.ID is model int PK; get_domain_by_name app_id typed str.
+            domain = self.get_domain_by_name(team, region, app.ID, domain_name)  # type: ignore[arg-type]
 
             # Get service from backend configuration
             backends = domain.get("backends", [])
@@ -599,7 +618,8 @@ class GrayReleaseService(object):
             logger.info(f"[GrayRelease] Found original service: {original_service.service_cname} ({original_service.service_alias})")
 
             # Verify the service belongs to the app
-            service_group_relations = group_service.get_group_services(app.ID)
+            # NOTE: app.ID is model int PK; get_group_services group_id typed str.
+            service_group_relations = group_service.get_group_services(app.ID)  # type: ignore[arg-type]
             service_ids = [s.service_id for s in service_group_relations]
             logger.info(f"[GrayRelease] App has {len(service_ids)} services")
             if original_service.service_id not in service_ids:
@@ -682,7 +702,8 @@ class GrayReleaseService(object):
                 status_code=500
             )
 
-    def start_new_services(self, team, region_name, app, user, service_ids):
+    def start_new_services(self, team: Tenants, region_name: str, app: ServiceGroup,
+                           user: Users, service_ids: List[str]) -> None:
         """Start newly installed services in app"""
         try:
             for service_id in service_ids:
@@ -700,8 +721,10 @@ class GrayReleaseService(object):
             # The services will be started eventually
 
     @transaction.atomic
-    def create_gray_release(self, team, region_name, user, app, template_id, domain_name, gray_ratio,
-                           market_name=None, install_from_cloud=False):
+    def create_gray_release(self, team: Tenants, region_name: str, user: Users,
+                            app: ServiceGroup, template_id: str, domain_name: str,
+                            gray_ratio: int, market_name: Optional[str] = None,
+                            install_from_cloud: bool = False) -> dict:
         """
         Create a gray release for an application
 
@@ -728,7 +751,8 @@ class GrayReleaseService(object):
             self.validate_app(team, region_name, app)
 
             # Get existing service IDs before installation
-            existing_services = group_service.get_group_services(app.ID)
+            # NOTE: app.ID is model int PK; get_group_services group_id typed str.
+            existing_services = group_service.get_group_services(app.ID)  # type: ignore[arg-type]
             existing_service_ids = set(s.service_id for s in existing_services)
 
             # Step 2: Install template to the app
@@ -744,7 +768,8 @@ class GrayReleaseService(object):
             logger.info(f"[GrayRelease] Number of deployment events created: {len(events) if events else 0}")
 
             # Get newly installed service IDs
-            all_services = group_service.get_group_services(app.ID)
+            # NOTE: app.ID is model int PK; get_group_services group_id typed str.
+            all_services = group_service.get_group_services(app.ID)  # type: ignore[arg-type]
             new_service_ids = [s.service_id for s in all_services if s.service_id not in existing_service_ids]
 
             logger.info(f"[GrayRelease] Installed {len(new_service_ids)} new services: {new_service_ids}")
@@ -805,8 +830,9 @@ class GrayReleaseService(object):
 
             # Build service mappings: collect all services from both groups and match by service_cname
             logger.info("Building service mappings between original and gray groups")
-            original_group_services = group_service.get_group_services(original_group_id)
-            gray_group_services = group_service.get_group_services(gray_group_id)
+            # NOTE: group ids are model int PKs (or None); group_id typed str.
+            original_group_services = group_service.get_group_services(original_group_id)  # type: ignore[arg-type]
+            gray_group_services = group_service.get_group_services(gray_group_id)  # type: ignore[arg-type]
 
             # Create a map of service_cname to service for both groups
             original_services_map = {}
@@ -859,16 +885,20 @@ class GrayReleaseService(object):
             template_name = None
             try:
                 from console.repositories.app import service_source_repo
+                # NOTE: potential latent None-bug — gray_service is Optional[.first()]
+                # and unguarded here; the enclosing try swallows AttributeError.
                 source = service_source_repo.get_service_source(
                     team.tenant_id,
-                    gray_service.service_id
+                    gray_service.service_id  # type: ignore[union-attr]
                 )
                 if source:
                     template_version = source.version
                     # Get template name from rainbond_app
                     from console.repositories.market_app_repo import rainbond_app_repo
+                    # NOTE: enterprise_id / template_version are nullable model fields;
+                    # template_version set from source.version inside this `if source` block.
                     app_model, _ = rainbond_app_repo.get_rainbond_app_and_version(
-                        team.enterprise_id, template_id, template_version
+                        team.enterprise_id, template_id, template_version  # type: ignore[arg-type]
                     )
                     if app_model:
                         template_name = app_model.app_name
@@ -924,7 +954,10 @@ class GrayReleaseService(object):
                 status_code=500
             )
 
-    def update_gray_ratio_by_record(self, team, region_name, user, app, record, new_gray_ratio, is_full_release=False):
+    def update_gray_ratio_by_record(self, team: Tenants, region_name: str, user: Users,
+                                    app: ServiceGroup, record: GrayReleaseRecord,
+                                    new_gray_ratio: int,
+                                    is_full_release: bool = False) -> dict:
         """
         Update gray ratio using gray release record
 
@@ -983,7 +1016,8 @@ class GrayReleaseService(object):
 
             # Get domain configuration from API Gateway
             # Domain configuration is not stored in database, need to get from API Gateway
-            domain = self.get_domain_by_name(team, region, app.ID, record.domain_name)
+            # NOTE: app.ID is model int PK; get_domain_by_name app_id typed str.
+            domain = self.get_domain_by_name(team, region, app.ID, record.domain_name)  # type: ignore[arg-type]
 
             logger.info(f"[GrayRelease] Got domain configuration: {domain.get('name')}")
 
@@ -1022,7 +1056,8 @@ class GrayReleaseService(object):
                 status_code=500
             )
 
-    def update_gray_ratio(self, team, region_name, user, app, domain_name, gray_ratio):
+    def update_gray_ratio(self, team: Tenants, region_name: str, user: Users,
+                          app: ServiceGroup, domain_name: str, gray_ratio: int) -> dict:
         """
         Update gray ratio for an existing gray release
 
@@ -1048,7 +1083,8 @@ class GrayReleaseService(object):
             )
 
             # Get all services in the app
-            app_services = group_service.get_group_services(app.ID)
+            # NOTE: app.ID is model int PK; get_group_services group_id typed str.
+            app_services = group_service.get_group_services(app.ID)  # type: ignore[arg-type]
             app_service_ids = [s.service_id for s in app_services]
 
             # Filter domains belonging to this app
@@ -1062,7 +1098,7 @@ class GrayReleaseService(object):
                 )
 
             # Find the two services with the same service_cname (original and new version)
-            service_cname_map = {}
+            service_cname_map: Dict[Any, list] = {}
             for domain in app_domains:
                 service = TenantServiceInfo.objects.filter(
                     tenant_id=team.tenant_id,
@@ -1155,8 +1191,9 @@ class GrayReleaseService(object):
                 )
 
             # Update gray release record
+            # NOTE: app.ID is model int PK; repo app_id typed str.
             record = gray_release_repo.get_active_record_by_domain(
-                team.tenant_id, app.ID, domain_name
+                team.tenant_id, app.ID, domain_name  # type: ignore[arg-type]
             )
             if record:
                 gray_release_repo.update_gray_ratio(record, gray_ratio)
@@ -1188,7 +1225,8 @@ class GrayReleaseService(object):
             )
 
 
-    def rollback_gray_release(self, team, region_name, user, app, template_id):
+    def rollback_gray_release(self, team: Tenants, region_name: str, user: Users,
+                              app: ServiceGroup, template_id: str) -> dict:
         """
         Rollback gray release: switch all traffic to original services and delete new services
 
@@ -1204,8 +1242,9 @@ class GrayReleaseService(object):
         """
         try:
             # Find active gray release record
+            # NOTE: app.ID is model int PK; repo app_id typed str.
             record = gray_release_repo.get_active_record_by_app_and_template(
-                team.tenant_id, app.ID, template_id
+                team.tenant_id, app.ID, template_id  # type: ignore[arg-type]
             )
 
             if not record:
@@ -1250,7 +1289,8 @@ class GrayReleaseService(object):
             logger.info("[GrayRollback] Switching all traffic back to original service")
 
             # Get domain configuration from API Gateway
-            domain = self.get_domain_by_name(team, region, app.ID, record.domain_name)
+            # NOTE: app.ID is model int PK; get_domain_by_name app_id typed str.
+            domain = self.get_domain_by_name(team, region, app.ID, record.domain_name)  # type: ignore[arg-type]
 
             if new_service:
                 # Update route to remove new service backend (only keep original)

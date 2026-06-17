@@ -4,12 +4,14 @@
 """
 import json
 import logging
+from typing import Any, List, Optional, Tuple
 
 from console.constants import AppConstants
 from console.repositories.team_repo import team_gitlab_repo
 from django.conf import settings
 from goodrain_web.custom_config import custom_config
 from www.gitlab_http import GitlabApi
+from www.models.main import Tenants
 from www.tenantservice.baseservice import CodeRepositoriesService
 from www.utils.giturlparse import parse as git_url_parse
 
@@ -19,21 +21,21 @@ gitClient = GitlabApi()
 
 
 class GitCodeService(object):
-    def get_gitlab_repo(self, tenant):
+    def get_gitlab_repo(self, tenant: Tenants) -> Tuple[int, str, List[dict]]:
         sql_repos = team_gitlab_repo.get_team_gitlab_by_team_id(tenant.tenant_id)
-        arr = []
+        arr: List[dict] = []
         if sql_repos:
             for sqlobj in sql_repos:
                 d = {}
                 d["code_repos"] = sqlobj.respo_url
-                d["code_user"] = sqlobj.respo_url.split(":")[1].split("/")[0]
+                d["code_user"] = sqlobj.respo_url.split(":")[1].split("/")[0]  # type: ignore[union-attr]  # NOTE: respo_url typed Optional[str] by stubs but runtime always str here
                 d["code_project_name"] = sqlobj.repo_name
-                d["code_id"] = sqlobj.git_project_id
+                d["code_id"] = sqlobj.git_project_id  # type: ignore[assignment]  # NOTE: git_project_id is int but d is untyped dict; harmless
                 d["code_version"] = sqlobj.code_version
                 arr.append(d)
         return 200, "success", arr
 
-    def __get_gitlab_branchs(self, project_id):
+    def __get_gitlab_branchs(self, project_id: int) -> List[str]:
         if project_id > 0:
             branchlist = codeRepositoriesService.getProjectBranches(project_id)
             branchs = [e['name'] for e in branchlist]
@@ -41,11 +43,11 @@ class GitCodeService(object):
         else:
             return ["master"]
 
-    def __get_github_branchs(self, user, parsed_git_url):
+    def __get_github_branchs(self, user: Any, parsed_git_url: Any) -> List[str]:
         token = user.github_token
         owner = parsed_git_url.owner
         repo = parsed_git_url.repo
-        branchs = []
+        branchs: List[str] = []
         try:
             repos = codeRepositoriesService.gitHub_ReposRefs(owner, repo, token)
             reposList = json.loads(repos)
@@ -56,7 +58,7 @@ class GitCodeService(object):
             logger.error('client_error', e)
         return branchs
 
-    def get_service_code_branch(self, user, service):
+    def get_service_code_branch(self, user: Any, service: Any) -> List[str]:
         if service.service_source == AppConstants.SOURCE_CODE:
             code_type = ""
             parsed_git_url = git_url_parse(service.git_url, False)
@@ -66,10 +68,15 @@ class GitCodeService(object):
                 user, code_type, service.git_url, service.git_project_id, current_branch=service.code_version)
             if code != 200:
                 return []
-            return branchs
+            return branchs  # type: ignore[return-value]  # NOTE: branchs is Optional[List[str]] but success path guarantees List
         return []
 
-    def get_code_branch(self, user, code_type, git_url, git_project_id, current_branch="master"):
+    def get_code_branch(self,
+                        user: Any,
+                        code_type: str,
+                        git_url: str,
+                        git_project_id: Any,
+                        current_branch: str = "master") -> Tuple[int, str, Optional[List[str]]]:
         parsed_git_url = git_url_parse(git_url)
         host = parsed_git_url.host
         if host:
@@ -84,7 +91,7 @@ class GitCodeService(object):
             branches = []
         return 200, "success", branches
 
-    def is_gitlab_project_exist(self, namespace, tenant, project_name):
+    def is_gitlab_project_exist(self, namespace: str, tenant: Tenants, project_name: str) -> bool:
         """判断项目是否存在"""
         http_code = gitClient.getPorjectByNamespaceAndPorjectName(namespace, tenant.tenant_name + "_" + project_name)
         http_code = int(http_code)

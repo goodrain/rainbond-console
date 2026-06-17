@@ -2,6 +2,6 @@
 
 
 class UserRoleNotFoundException(Exception):
-    def __init__(self, msg=""):
+    def __init__(self, msg: str = "") -> None:
         msg = msg if msg else "user role not found"
         super(UserRoleNotFoundException, self).__init__(msg)

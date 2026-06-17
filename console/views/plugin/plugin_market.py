@@ -1,7 +1,9 @@
 # -*- coding:utf8 -*-
 import logging
+from typing import Any
 
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
+from rest_framework.request import Request
 from rest_framework.response import Response
 from console.models.main import RainbondCenterPlugin
 from console.repositories.enterprise_repo import enterprise_repo
@@ -15,7 +17,7 @@ logger = logging.getLogger('default')
 
 class MarketPluginsView(RegionTenantHeaderView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取云市插件分页列表
         :param request:
@@ -30,13 +32,16 @@ class MarketPluginsView(RegionTenantHeaderView):
 
         # market_plugin_service.sync_market_plugins(self.tenant.tenant_id)
         total, plugins = market_plugin_service.get_paged_plugins(
-            plugin_name, page=page, limit=limit, order_by='is_complete', source='market', scope='goodrain', tenant=self.tenant)
+            plugin_name,  # type: ignore[arg-type]
+            page=page,  # type: ignore[arg-type]
+            limit=limit,  # type: ignore[arg-type]
+            order_by='is_complete', source='market', scope='goodrain', tenant=self.tenant)
         result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
         return Response(data=result, status=200)
 
 
 class SyncMarketPluginsView(RegionTenantHeaderView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         同步云市插件分享
         :param request:
@@ -57,13 +62,14 @@ class SyncMarketPluginsView(RegionTenantHeaderView):
         limit = request.GET.get('limit', 10)
         plugin_name = request.GET.get('plugin_name', '')
 
-        plugins, total = market_plugin_service.sync_market_plugins(self.tenant, page, limit, plugin_name)
+        plugins, total = market_plugin_service.sync_market_plugins(
+            self.tenant, page, limit, plugin_name)  # type: ignore[arg-type]
         result = general_message(200, "success", "同步成功", list=plugins, total=total)
         return Response(result, 200)
 
 
 class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         同步插件模板
         :param request:
@@ -89,7 +95,7 @@ class SyncMarketPluginTemplatesView(RegionTenantHeaderView):
 
 
 class InstallMarketPlugin(RegionTenantHeaderView):
-    def post(self, requset, *args, **kwargs):
+    def post(self, requset: Request, *args: Any, **kwargs: Any) -> Response:
         """
         安装插件
         :param requset:
@@ -100,7 +106,8 @@ class InstallMarketPlugin(RegionTenantHeaderView):
         plugin_id = requset.data.get('plugin_id')
 
         try:
-            plugin = RainbondCenterPlugin.objects.get(ID=plugin_id)
+            # NOTE: request.data.get returns Any|None for ID lookup
+            plugin = RainbondCenterPlugin.objects.get(ID=plugin_id)  # type: ignore[misc]
             status, msg = market_plugin_service.install_plugin(self.user, self.team, self.response_region, plugin)
             if status != 200:
                 return Response(general_message(500, 'install plugin failed', msg), 500)
@@ -110,7 +117,7 @@ class InstallMarketPlugin(RegionTenantHeaderView):
 
 
 class InternalMarketPluginsView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         内部插件市场接口
         :param request:
@@ -123,14 +130,20 @@ class InternalMarketPluginsView(RegionTenantHeaderView):
         limit = request.GET.get('limit', 10)
         scope = request.GET.get('scope')
 
+        # NOTE: request.GET.get yields str|None and str|int for typed params
         total, plugins = market_plugin_service.get_paged_plugins(
-            plugin_name, is_complete=True, scope=scope, tenant=self.tenant, page=page, limit=limit)
+            plugin_name,  # type: ignore[arg-type]
+            is_complete=True,
+            scope=scope,  # type: ignore[arg-type]
+            tenant=self.tenant,
+            page=page,  # type: ignore[arg-type]
+            limit=limit)  # type: ignore[arg-type]
         result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
         return Response(data=result, status=200)
 
 
 class InstallableInteralPluginsView(RegionTenantHeaderView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         获取可安装的内部插件列表接口
         :param request:
@@ -143,7 +156,11 @@ class InstallableInteralPluginsView(RegionTenantHeaderView):
         limit = request.GET.get('limit', 10)
 
         total, plugins = market_plugin_service.get_paged_plugins(
-            plugin_name, is_complete=True, tenant=self.tenant, page=page, limit=limit)
+            plugin_name,  # type: ignore[arg-type]
+            is_complete=True,
+            tenant=self.tenant,
+            page=page,  # type: ignore[arg-type]
+            limit=limit)  # type: ignore[arg-type]
 
         installed = plugin_repo.get_tenant_plugins(self.tenant.tenant_id, self.response_region). \
             filter(origin__in=['local_market', 'market'])
@@ -160,7 +177,7 @@ class InstallableInteralPluginsView(RegionTenantHeaderView):
 
 
 class UninstallPluginTemplateView(RegionTenantHeaderView):
-    def post(self, requset, *args, **kwargs):
+    def post(self, requset: Request, *args: Any, **kwargs: Any) -> Response:
         """
         卸载插件模板
         :param requset:
@@ -174,7 +191,7 @@ class UninstallPluginTemplateView(RegionTenantHeaderView):
         plugin_id = requset.data.get('plugin_id')
 
         try:
-            plugin = RainbondCenterPlugin.objects.get(ID=plugin_id)
+            plugin = RainbondCenterPlugin.objects.get(ID=plugin_id)  # type: ignore[misc]
             plugin.delete()
             return Response(general_message(200, '', ''), 200)
         except RainbondCenterPlugin.DoesNotExist:

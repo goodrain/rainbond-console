@@ -1,4 +1,5 @@
 import datetime
+from typing import Any, Dict, List, Optional
 
 from console.enum.app import GovernanceModeEnum
 from console.models.main import AutoscalerRuleMetrics, ComponentK8sAttributes, K8sResource
@@ -19,21 +20,22 @@ region_api = RegionInvokeApi()
 
 
 class RegionResource(object):
-    def get_namespaces(self, eid, region_id, content):
+    def get_namespaces(self, eid: str, region_id: str, content: Any) -> Any:
         res, body = region_api.list_namespaces(eid, region_id, content)
         return body
 
-    def get_namespaces_resource(self, eid, region_id, content, namespace):
+    def get_namespaces_resource(self, eid: str, region_id: str, content: Any, namespace: str) -> Any:
         res, body = region_api.list_namespace_resources(eid, region_id, content, namespace)
         return body
 
-    def convert_resource(self, eid, region_id, namespace, content):
+    def convert_resource(self, eid: str, region_id: str, namespace: str, content: Any) -> Any:
         res, body = region_api.list_convert_resource(eid, region_id, namespace, content)
         return body
 
-    def create_tenant(self, tenant, enterprise_id, namespace, user_id, region_name):
+    def create_tenant(self, tenant: Dict[str, Any], enterprise_id: str, namespace: str,
+                      user_id: Any, region_name: str) -> Optional[Tenants]:
         if Tenants.objects.filter(tenant_alias=tenant["Namespace"], enterprise_id=enterprise_id).exists():
-            return
+            return None
         params = {
             "tenant_name": tenant["Name"],
             "creater": user_id,
@@ -62,7 +64,7 @@ class RegionResource(object):
         team_services.add_user_role_to_team(tenant=t, user_ids=[user_id], role_ids=[])
         return t
 
-    def create_app(self, tenant, apps, region, user):
+    def create_app(self, tenant: Any, apps: Any, region: Any, user: Any) -> None:
         if apps:
             for app in apps:
                 application = ServiceGroup(
@@ -96,8 +98,8 @@ class RegionResource(object):
                 service_ids = self.create_components(application, components, tenant, region.region_name, user.user_id)
                 app_manage_service.batch_action(region.region_name, tenant, user, "deploy", service_ids, None, None)
 
-    def create_k8s_resources(self, k8s_resources, app_id):
-        app_k8s_resource_list = list()
+    def create_k8s_resources(self, k8s_resources: Any, app_id: Any) -> None:
+        app_k8s_resource_list: List[K8sResource] = list()
         if not k8s_resources:
             return
         for k8s_resource in k8s_resources:
@@ -111,13 +113,14 @@ class RegionResource(object):
                     error_overview=k8s_resource["error_overview"]))
         k8s_resources_repo.bulk_create(app_k8s_resource_list)
 
-    def create_components(self, application, components, tenant, region_name, user_id):
+    def create_components(self, application: Any, components: Any, tenant: Any,
+                          region_name: str, user_id: Any) -> List[str]:
         res, body = region_api.get_cluster_nodes_arch(region_name)
-        chaos_arch = list(set(body.get("list")))
+        chaos_arch = list(set(body.get("list")))  # type: ignore[union-attr,arg-type]  # NOTE: body may be None if region API fails; get("list") may also be None
         arch = chaos_arch[0] if chaos_arch else "amd64"
         if not components:
             return []
-        service_ids = list()
+        service_ids: List[str] = list()
         for component in components:
             new_service = TenantServiceInfo()
             new_service.arch = arch
@@ -172,10 +175,10 @@ class RegionResource(object):
             service_ids.append(new_service.service_id)
         return service_ids
 
-    def create_component_env(self, envs, tenant_id, service):
+    def create_component_env(self, envs: Any, tenant_id: str, service: TenantServiceInfo) -> None:
         if not envs:
             return
-        env_data = list()
+        env_data: List[TenantServiceEnvVar] = list()
         for env in envs:
             tenantServiceEnvVar = TenantServiceEnvVar(
                 tenant_id=tenant_id,
@@ -184,13 +187,13 @@ class RegionResource(object):
                 name=env["env_explain"],
                 attr_name=env["env_key"],
                 attr_value=env["env_value"],
-                is_change=1,
+                is_change=1,  # type: ignore[misc]  # NOTE: model field expects bool but int(1) is valid Django truthy value
                 scope="inner")
             env_data.append(tenantServiceEnvVar)
         if len(env_data) > 0:
             env_var_repo.bulk_create_component_env(env_data)
 
-    def create_component_config(self, configs, tenant_id, service):
+    def create_component_config(self, configs: Any, tenant_id: str, service: TenantServiceInfo) -> None:
         if not configs:
             return
         for config in configs:
@@ -209,7 +212,7 @@ class RegionResource(object):
                 share_policy="exclusive",
                 backup_policy="exclusive",
                 reclaim_policy="exclusive",
-                allow_expansion=0,
+                allow_expansion=0,  # type: ignore[misc]  # NOTE: model field expects bool but int(0) is valid Django falsy value
             )
             volume_data.save()
             file_data = {
@@ -220,10 +223,10 @@ class RegionResource(object):
             }
             volume_repo.add_service_config_file(**file_data)
 
-    def create_component_port(self, ports, tenant_id, service):
+    def create_component_port(self, ports: Any, tenant_id: str, service: TenantServiceInfo) -> None:
         if not ports:
             return
-        port_data = list()
+        port_data: List[TenantServicesPort] = list()
         for port in ports:
             service_port = TenantServicesPort(
                 tenant_id=tenant_id,
@@ -239,7 +242,7 @@ class RegionResource(object):
         if len(port_data):
             port_repo.bulk_create(port_data)
 
-    def create_component_telescopic(self, telescopic, service):
+    def create_component_telescopic(self, telescopic: Any, service: TenantServiceInfo) -> None:
         if not telescopic["enable"]:
             return
         autoscaler_rule = {
@@ -251,7 +254,7 @@ class RegionResource(object):
             "max_replicas": telescopic["max_replicas"],
         }
         autoscaler_rules_repo.create(**autoscaler_rule)
-        metrics = list()
+        metrics: List[AutoscalerRuleMetrics] = list()
         if telescopic["cpu_or_memory"]:
             for metric in telescopic["cpu_or_memory"]:
                 metrics.append(
@@ -265,7 +268,7 @@ class RegionResource(object):
         if len(metrics):
             AutoscalerRuleMetrics.objects.bulk_create(metrics)
 
-    def create_healthy_check(self, healthy_check, service):
+    def create_healthy_check(self, healthy_check: Any, service: TenantServiceInfo) -> None:
         if not healthy_check["status"]:
             return
         ServiceProbe(
@@ -282,10 +285,10 @@ class RegionResource(object):
             timeout_second=healthy_check["timeout_second"],
             success_threshold=healthy_check["success_threshold"],
             failure_threshold=healthy_check["failure_threshold"],
-            is_used=1).save()
+            is_used=1).save()  # type: ignore[misc]  # NOTE: model field expects bool but int(1) is valid Django truthy value
 
-    def create_component_special(self, specials, tenant_id, service):
-        componentK8sAttributes = list()
+    def create_component_special(self, specials: Any, tenant_id: str, service: TenantServiceInfo) -> None:
+        componentK8sAttributes: List[ComponentK8sAttributes] = list()
         if not specials:
             return
         for special in specials:
@@ -298,7 +301,7 @@ class RegionResource(object):
                     attribute_value=special["attribute_value"]))
         k8s_attribute_repo.bulk_create(componentK8sAttributes)
 
-    def resource_import(self, eid, region_id, namespace, content):
+    def resource_import(self, eid: str, region_id: str, namespace: str, content: Any) -> Any:
         res, body = region_api.resource_import(eid, region_id, namespace, content)
         return body
 

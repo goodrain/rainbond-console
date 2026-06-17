@@ -4,6 +4,9 @@
 """
 import json
 import logging
+from typing import Any
+
+from rest_framework.request import Request
 
 from console.exception.main import AbortRequest, RegionNotFound
 from console.services.app_import_and_export_service import import_service
@@ -11,7 +14,7 @@ from console.services.operation_log import operation_log_service, Operation, Ope
 from console.services.region_services import region_services
 from console.views.base import JWTAuthApiView
 from django.db import transaction
-from django.views.decorators.cache import never_cache
+from console.utils.cache_decorators import never_cache
 from rest_framework.response import Response
 from www.utils.return_message import error_message, general_message
 
@@ -20,7 +23,7 @@ logger = logging.getLogger('default')
 
 class EnterpriseAppImportInitView(JWTAuthApiView):
     @never_cache
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查询导入记录，如果有未完成的记录返回未完成的记录，如果没有，创建新的导入记录
         ---
@@ -45,7 +48,8 @@ class EnterpriseAppImportInitView(JWTAuthApiView):
             new = True
         if new:
             try:
-                r = import_service.create_app_import_record_2_enterprise(eid, self.user.nick_name)
+                r = import_service.create_app_import_record_2_enterprise(
+                    eid, self.user.nick_name)  # type: ignore[arg-type]
             except RegionNotFound:
                 return Response(general_message(200, "success", "查询成功", bean={"region_name": ''}), status=200)
         upload_url = import_service.get_upload_url(r.region, r.event_id)
@@ -62,7 +66,7 @@ class EnterpriseAppImportInitView(JWTAuthApiView):
 
 class CenterAppImportView(JWTAuthApiView):
     @never_cache
-    def post(self, request, event_id, *args, **kwargs):
+    def post(self, request: Request, event_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         导入应用包
         ---
@@ -107,12 +111,14 @@ class CenterAppImportView(JWTAuthApiView):
             operation=Operation.IMPORT, module=OperationModule.APPMODEL, module_name="")
         new_information = json.dumps({"导入团队": team_name, "导入文件": file_name, "可见范围": scope}, ensure_ascii=False)
         operation_log_service.create_component_library_log(
-            user=self.user, comment=comment, enterprise_id=self.user.enterprise_id, new_information=new_information)
+            user=self.user, comment=comment,
+            enterprise_id=self.user.enterprise_id,  # type: ignore[arg-type]
+            new_information=new_information)
         return Response(result, status=result["code"])
 
     @never_cache
     @transaction.atomic
-    def get(self, request, event_id, *args, **kwargs):
+    def get(self, request: Request, event_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         查询应用包导入状态
         ---
@@ -128,12 +134,24 @@ class CenterAppImportView(JWTAuthApiView):
               type: string
               paramType: path
         """
+        sid = None
         arch = request.GET.get("arch")
-        record, apps_status = import_service.get_and_update_import_by_event_id(event_id, arch)
-        result = general_message(200, 'success', "查询成功", bean=record.to_dict(), list=apps_status)
+        try:
+            sid = transaction.savepoint()
+            record, apps_status = import_service.get_and_update_import_by_event_id(
+                event_id, arch)  # type: ignore[arg-type]
+            transaction.savepoint_commit(sid)
+            result = general_message(200, 'success', "查询成功", bean=record.to_dict(), list=apps_status)
+        except Exception as e:
+            if sid is not None:
+                try:
+                    transaction.savepoint_rollback(sid)
+                except Exception:
+                    logger.warning("savepoint rollback failed; preserving original import error")
+            raise e
         return Response(result, status=result["code"])
 
-    def delete(self, request, event_id, *args, **kwargs):
+    def delete(self, request: Request, event_id: str, *args: Any, **kwargs: Any) -> Response:
         """
         放弃导入
         ---
@@ -154,13 +172,13 @@ class CenterAppImportView(JWTAuthApiView):
             result = general_message(200, "success", "操作成功")
         except Exception as e:
             logger.exception(e)
-            result = error_message(e.message)
+            result = error_message(e.message)  # type: ignore[attr-defined]
         return Response(result, status=result["code"])
 
 
 class CenterAppTarballDirView(JWTAuthApiView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         查询应用包目录
         ---
@@ -184,7 +202,7 @@ class CenterAppTarballDirView(JWTAuthApiView):
         result = general_message(200, "success", "查询成功", list=apps)
         return Response(result, status=result["code"])
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         批量导入时创建一个目录
         ---
@@ -195,12 +213,14 @@ class CenterAppTarballDirView(JWTAuthApiView):
               type: string
               paramType: path
         """
-        import_record = import_service.create_import_app_dir(self.tenant, self.user, self.response_region)
+        # NOTE: view extends JWTAuthApiView which lacks tenant/response_region (latent bug)
+        import_record = import_service.create_import_app_dir(
+            self.tenant, self.user, self.response_region)  # type: ignore[attr-defined]
 
         result = general_message(200, "success", "查询成功", bean=import_record.to_dict())
         return Response(result, status=result["code"])
 
-    def delete(self, request, *args, **kwargs):
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         删除导入
         ---
@@ -220,7 +240,9 @@ class CenterAppTarballDirView(JWTAuthApiView):
         if not event_id:
             return Response(general_message(400, "event id is null", "请指明需要查询的event id"), status=400)
 
-        import_record = import_service.delete_import_app_dir(self.tenant, self.response_region, event_id)
+        # NOTE: response_region missing on JWTAuthApiView; delete_import_app_dir returns None (latent bugs)
+        import_record = import_service.delete_import_app_dir(
+            self.tenant, self.response_region, event_id)  # type: ignore[attr-defined,func-returns-value]
 
-        result = general_message(200, "success", "查询成功", bean=import_record.to_dict())
+        result = general_message(200, "success", "查询成功", bean=import_record.to_dict())  # type: ignore[union-attr]
         return Response(result, status=result["code"])

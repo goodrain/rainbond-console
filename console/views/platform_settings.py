@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Any
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from console.views.base import EnterpriseAdminView, JWTAuthApiView
@@ -7,7 +9,7 @@ from www.models.main import TenantEnterprise
 
 
 class PlatformSettingsView(JWTAuthApiView):
-    def get(self, request, eid, *args, **kwargs):
+    def get(self, request: Request, eid: str, *args: Any, **kwargs: Any) -> Response:
         try:
             enterprise = TenantEnterprise.objects.get(enterprise_id=eid)
         except TenantEnterprise.DoesNotExist:
@@ -19,7 +21,7 @@ class PlatformSettingsView(JWTAuthApiView):
 
 
 class PlatformSettingsUpdateView(EnterpriseAdminView):
-    def put(self, request, eid, *args, **kwargs):
+    def put(self, request: Request, eid: str, *args: Any, **kwargs: Any) -> Response:
         try:
             enterprise = TenantEnterprise.objects.get(enterprise_id=eid)
         except TenantEnterprise.DoesNotExist:

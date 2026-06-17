@@ -2,8 +2,11 @@
 
 import datetime
 import logging
+from typing import Any
+
 from rest_framework.response import Response
-from rest_framework_jwt.settings import api_settings
+from console.utils import jwt_issuer
+from console.utils.jwt_issuer import issue_jwt
 from django.db.transaction import atomic
 from console.repositories.user_repo import user_repo
 from console.repositories.oauth_repo import oauth_user_repo
@@ -14,8 +17,6 @@ from console.login.jwt_manager import JwtManager
 
 from www.models.main import Users
 
-jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
-jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 
 logger = logging.getLogger("default")
 
@@ -26,7 +27,7 @@ class OAuthService(object):
 
 class OAuthUserService(object):
     @atomic
-    def get_or_create_user_and_enterprise(self, oauth_user):
+    def get_or_create_user_and_enterprise(self, oauth_user: Any) -> Users:
         try:
             user = user_repo.get_enterprise_user_by_username(oauth_user.enterprise_id, oauth_user.name)
         except Users.DoesNotExist:
@@ -45,12 +46,21 @@ class OAuthUserService(object):
         if not enterprise:
             enterprise = enterprise_services.create_oauth_enterprise(oauth_user.enterprise_domain, oauth_user.enterprise_name,
                                                                      oauth_user.enterprise_id)
-            user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)
+            user_services.make_user_as_admin_for_enterprise(user.user_id, enterprise.enterprise_id)  # type: ignore[arg-type]  # NOTE: user.user_id is int on Users model, signature expects str
         user.enterprise_id = enterprise.enterprise_id
         user.save()
         return user
 
-    def set_oauth_user_relation(self, api, oauth_service, oauth_user, access_token, refresh_token, code, user=None):
+    def set_oauth_user_relation(
+        self,
+        api: Any,
+        oauth_service: Any,
+        oauth_user: Any,
+        access_token: str,
+        refresh_token: str,
+        code: str,
+        user: Any = None,
+    ) -> Response:
         oauth_user.id = str(oauth_user.id)
         local_user_by_email = None
         if oauth_user.email:
@@ -79,9 +89,9 @@ class OAuthUserService(object):
             login_user_to_use = None
             if authenticated_user.user_id is not None:
                 try:
-                    login_user_to_use = user_repo.get_by_user_id(authenticated_user.user_id)
+                    login_user_to_use = user_repo.get_by_user_id(authenticated_user.user_id)  # type: ignore[arg-type]  # NOTE: authenticated_user.user_id is int on model, get_by_user_id expects str
                 except Users.DoesNotExist:
-                    logger.error(f"OAuth record {authenticated_user.id} linked to non-existent user_id {authenticated_user.user_id}")
+                    logger.error(f"OAuth record {authenticated_user.id} linked to non-existent user_id {authenticated_user.user_id}")  # type: ignore[attr-defined]  # NOTE: UserOAuthServices.id not declared (auto PK); runtime attr exists via Django
             elif effective_user:
                  logger.info(f"Linking existing OAuth record {authenticated_user.ID} to user {effective_user.user_id} found by email/passed.") # 将 .id 修改为 .ID
                  authenticated_user.user_id = effective_user.user_id
@@ -90,13 +100,12 @@ class OAuthUserService(object):
             authenticated_user.save()
 
             if login_user_to_use:
-                payload = jwt_payload_handler(login_user_to_use)
-                token = jwt_encode_handler(payload)
+                token = issue_jwt(login_user_to_use)
                 response = Response({"data": {"bean": {"token": token}}}, status=200)
-                if api_settings.JWT_AUTH_COOKIE:
+                if jwt_issuer.JWT_AUTH_COOKIE:
                     # 设置10年过期时间，相当于永久
                     expiration = (datetime.datetime.now() + datetime.timedelta(days=3650))
-                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
+                    response.set_cookie(jwt_issuer.JWT_AUTH_COOKIE, token, expires=expiration)
                 jwt_manager = JwtManager()
                 jwt_manager.set(token, login_user_to_use.user_id)
                 return response
@@ -130,25 +139,24 @@ class OAuthUserService(object):
             )
             if effective_user:
                 # 如果关联了用户 (传入或通过邮箱找到)，执行登录
-                payload = jwt_payload_handler(effective_user)
-                token = jwt_encode_handler(payload)
+                token = issue_jwt(effective_user)
                 response = Response({"data": {"bean": {"token": token}}}, status=200)
-                if api_settings.JWT_AUTH_COOKIE:
+                if jwt_issuer.JWT_AUTH_COOKIE:
                     # 设置10年过期时间，相当于永久，并添加 httponly
                     expiration = (datetime.datetime.now() + datetime.timedelta(days=3650))
-                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
+                    response.set_cookie(jwt_issuer.JWT_AUTH_COOKIE, token, expires=expiration, httponly=True)
                 jwt_manager = JwtManager()
                 jwt_manager.set(token, effective_user.user_id)
                 return response
             else:
                 # 未找到匹配用户，返回未认证（引导绑定/注册）
                 rst = {
-                    "oauth_user_name": usr.oauth_user_name,
-                    "oauth_user_id": usr.oauth_user_id,
-                    "oauth_user_email": usr.oauth_user_email,
-                    "service_id": usr.service_id,
+                    "oauth_user_name": usr.oauth_user_name,  # type: ignore[union-attr]  # NOTE: save_oauth returns Optional but caller logic guarantees non-None here
+                    "oauth_user_id": usr.oauth_user_id,  # type: ignore[union-attr]  # NOTE: same — usr is non-None in this branch
+                    "oauth_user_email": usr.oauth_user_email,  # type: ignore[union-attr]  # NOTE: same — usr is non-None in this branch
+                    "service_id": usr.service_id,  # type: ignore[union-attr]  # NOTE: same — usr is non-None in this branch
                     "oauth_type": oauth_service.oauth_type,
-                    "is_authenticated": usr.is_authenticated,
+                    "is_authenticated": usr.is_authenticated,  # type: ignore[union-attr]  # NOTE: same — usr is non-None in this branch
                     "code": code,
                 }
                 msg = "user is not authenticated"

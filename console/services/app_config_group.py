@@ -2,15 +2,17 @@
 import json
 import time
 import logging
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.db import transaction
+from django.db.models import QuerySet
 from django.core.paginator import Paginator
 
 from console.repositories.app_config_group import app_config_group_repo
 from console.repositories.app_config_group import app_config_group_service_repo
 from console.repositories.app_config_group import app_config_group_item_repo
 from console.repositories.app import service_repo
-from console.models.main import ApplicationConfigGroup
+from console.models.main import ApplicationConfigGroup, ConfigGroupItem, ConfigGroupService
 from console.exception.bcode import ErrAppConfigGroupNotFound, ErrAppConfigGroupExists
 from www.apiclient.regionapi import RegionInvokeApi
 from console.repositories.region_app import region_app_repo
@@ -22,8 +24,17 @@ region_api = RegionInvokeApi()
 
 class AppConfigGroupService(object):
     @transaction.atomic
-    def create_config_group(self, app_id, config_group_name, config_items, deploy_type, enable, service_ids, region_name,
-                            team_name):
+    def create_config_group(
+        self,
+        app_id: str,
+        config_group_name: str,
+        config_items: List[Dict[str, Any]],
+        deploy_type: str,
+        enable: bool,
+        service_ids: List[str],
+        region_name: str,
+        team_name: str,
+    ) -> Dict[str, Any]:
         # create application config group
         group_req = {
             "app_id": app_id,
@@ -53,15 +64,21 @@ class AppConfigGroupService(object):
             raise ErrAppConfigGroupExists
         return self.get_config_group(region_name, app_id, config_group_name)
 
-    def json_config_groups(self, config_group_name, config_items, enable, services_names):
-        config_groups_dict = dict()
+    def json_config_groups(
+        self,
+        config_group_name: str,
+        config_items: List[Dict[str, Any]],
+        enable: bool,
+        services_names: List[str],
+    ) -> str:
+        config_groups_dict: Dict[str, Any] = dict()
         config_groups_dict["配置组名称"] = config_group_name
         config_groups_dict["生效状态"] = "开启" if enable else "关闭"
         config_groups_dict["配置项"] = config_items
         config_groups_dict["生效组件"] = ','.join(services_names)
         return json.dumps(config_groups_dict, ensure_ascii=False)
 
-    def get_config_group(self, region_name, app_id, config_group_name):
+    def get_config_group(self, region_name: str, app_id: str, config_group_name: str) -> Dict[str, Any]:
         try:
             cgroup = app_config_group_repo.get(region_name, app_id, config_group_name)
         except ApplicationConfigGroup.DoesNotExist:
@@ -70,7 +87,16 @@ class AppConfigGroupService(object):
         return config_group_info
 
     @transaction.atomic
-    def update_config_group(self, region_name, app_id, config_group_name, config_items, enable, service_ids, team_name):
+    def update_config_group(
+        self,
+        region_name: str,
+        app_id: str,
+        config_group_name: str,
+        config_items: List[Dict[str, Any]],
+        enable: bool,
+        service_ids: List[str],
+        team_name: str,
+    ) -> Dict[str, Any]:
         group_req = {
             "enable": enable,
             "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
@@ -92,9 +118,16 @@ class AppConfigGroupService(object):
             })
         return self.get_config_group(region_name, app_id, config_group_name)
 
-    def list_config_groups(self, region_name, app_id, page, page_size, query=None):
-        cgroup_info = []
-        config_groups = app_config_group_repo.list(region_name, app_id)
+    def list_config_groups(
+        self,
+        region_name: str,
+        app_id: str,
+        page: int,
+        page_size: int,
+        query: Optional[str] = None,
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        cgroup_info: List[Dict[str, Any]] = []
+        config_groups: QuerySet[ApplicationConfigGroup] = app_config_group_repo.list(region_name, app_id)
         if query:
             config_groups = config_groups.filter(config_group_name__contains=query)
         p = Paginator(config_groups, page_size)
@@ -105,8 +138,8 @@ class AppConfigGroupService(object):
 
         return cgroup_info, total
 
-    def list(self, region_name, app_id):
-        cgroup_info = {}
+    def list(self, region_name: str, app_id: str) -> Dict[str, Any]:
+        cgroup_info: Dict[str, Any] = {}
         config_groups = app_config_group_repo.list(region_name, app_id)
         for cgroup in config_groups:
             items = app_config_group_item_repo.list(cgroup.config_group_id)
@@ -117,7 +150,7 @@ class AppConfigGroupService(object):
         return cgroup_info
 
     @transaction.atomic
-    def delete_config_group(self, region_name, team_name, app_id, config_group_name):
+    def delete_config_group(self, region_name: str, team_name: str, app_id: str, config_group_name: str) -> None:
         cgroup = app_config_group_repo.get(region_name, app_id, config_group_name)
         region_app_id = region_app_repo.get_region_app_id(cgroup.region_name, app_id)
         try:
@@ -131,7 +164,7 @@ class AppConfigGroupService(object):
         app_config_group_repo.delete(cgroup.region_name, app_id, config_group_name)
 
     @transaction.atomic
-    def batch_delete_config_group(self, region_name, team_name, app_id):
+    def batch_delete_config_group(self, region_name: str, team_name: str, app_id: str) -> None:
         config_groups = app_config_group_repo.list(region_name, app_id)
         names = [config_group.config_group_name for config_group in config_groups]
         config_group_ids = [config_group.config_group_id for config_group in config_groups]
@@ -146,19 +179,22 @@ class AppConfigGroupService(object):
         app_config_group_service_repo.batch_delete(config_group_ids)
         app_config_group_repo.batch_delete(region_name, app_id, names)
 
-    def count_by_app_id(self, region_name, app_id):
+    def count_by_app_id(self, region_name: str, app_id: str) -> int:
         return app_config_group_repo.count(region_name, app_id)
 
 
-def convert_todict(cgroup_items, cgroup_services):
+def convert_todict(
+    cgroup_items: QuerySet[ConfigGroupItem],
+    cgroup_services: QuerySet[ConfigGroupService],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     # Convert application config group items to dict
-    config_group_items = []
+    config_group_items: List[Dict[str, Any]] = []
     if cgroup_items:
         for i in cgroup_items:
             cgi = i.to_dict()
             config_group_items.append(cgi)
     # Convert application config group services to dict
-    config_group_services = []
+    config_group_services: List[Dict[str, Any]] = []
     if cgroup_services:
         for s in cgroup_services:
             service = service_repo.get_service_by_service_id(s.service_id)
@@ -172,19 +208,23 @@ def convert_todict(cgroup_items, cgroup_services):
     return config_group_items, config_group_services
 
 
-def build_response(cgroup):
+def build_response(cgroup: ApplicationConfigGroup) -> Dict[str, Any]:
     cgroup_services = app_config_group_service_repo.list(cgroup.config_group_id)
     cgroup_items = app_config_group_item_repo.list(cgroup.config_group_id)
     config_group_items, config_group_services = convert_todict(cgroup_items, cgroup_services)
 
-    config_group_info = cgroup.to_dict()
+    config_group_info: Dict[str, Any] = cgroup.to_dict()
     config_group_info["services"] = config_group_services
     config_group_info["config_items"] = config_group_items
     config_group_info["services_num"] = len(config_group_services)
     return config_group_info
 
 
-def create_items_and_services(app_config_group, config_items, service_ids):
+def create_items_and_services(
+    app_config_group: ApplicationConfigGroup,
+    config_items: List[Dict[str, Any]],
+    service_ids: Optional[List[str]],
+) -> None:
     # create application config group items
     if config_items:
         for item in config_items:
@@ -206,7 +246,7 @@ def create_items_and_services(app_config_group, config_items, service_ids):
                 "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
                 "app_id": app_config_group.app_id,
                 "config_group_name": app_config_group.config_group_name,
-                "service_id": s.service_id,
+                "service_id": s.service_id,  # type: ignore[union-attr]  # NOTE: s could be None if service not found; runtime relies on caller ensuring service_ids are valid
                 "config_group_id": app_config_group.config_group_id,
             }
             app_config_group_service_repo.create(**group_service)

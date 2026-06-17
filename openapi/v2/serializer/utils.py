@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # creater by: barnett
 import re
+from typing import Any
 
 urlregex = re.compile(
     r'^(?:http|ftp|ws)s?://'  # http:// or https://
@@ -13,5 +14,5 @@ urlregex = re.compile(
 ipregex = re.compile(r'((2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})(\.((2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})){3}', re.IGNORECASE)
 
 
-def pagination(data, total, page=1, page_size=10):
+def pagination(data: Any, total: int, page: int = 1, page_size: int = 10) -> dict:
     return {"list": data, "total": total, "page": page, "page_size": page_size}

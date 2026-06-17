@@ -21,6 +21,7 @@ django.setup()
 
 from console.services import backup_service as backup_service_module  # noqa: E402
 from console.services.backup_service import GroupAppBackupService  # noqa: E402
+from console.services.exception import ErrBackupInProgress  # noqa: E402
 
 
 class Obj(object):
@@ -120,3 +121,16 @@ class GroupAppBackupServiceScopeTests(TestCase):
             )
 
         self.assertIs(result, backup_record)
+
+
+# capability_id: console.app-backup.delete-in-progress
+class GroupAppBackupServiceDeleteInProgressTests(TestCase):
+    def test_delete_group_backup_raises_when_backup_in_progress(self):
+        tenant = Obj(tenant_id="team-1", tenant_name="demo-team")
+        with mock.patch.object(
+                backup_service_module.backup_record_repo,
+                "get_record_by_backup_id",
+                return_value=Obj(status="starting"),
+        ):
+            with self.assertRaises(ErrBackupInProgress.__class__):
+                GroupAppBackupService().delete_group_backup_by_backup_id(tenant, "region", "bid")

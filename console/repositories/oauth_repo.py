@@ -1,28 +1,30 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
+from typing import Any, List, Optional, Tuple
 
 from console.exception.bcode import ErrOauthServiceExists, ErrOauthUserNotFound, ErrOauthServiceNotFound
 from console.models.main import OAuthServices, UserOAuthServices
 from console.utils.oauth.oauth_types import (get_oauth_instance, support_oauth_type)
+from django.db.models import QuerySet
 
 logger = logging.getLogger('default')
 
 
 class OAuthRepo(object):
-    def get_conosle_oauth_service(self, eid, user_id):
+    def get_conosle_oauth_service(self, eid: str, user_id: str) -> Optional[OAuthServices]:
         return OAuthServices.objects.filter(eid=eid, is_deleted=False, is_console=True, user_id=user_id).first()
 
-    def get_all_oauth_services(self, eid, user_id):
+    def get_all_oauth_services(self, eid: str, user_id: str) -> "QuerySet[OAuthServices]":
         return OAuthServices.objects.filter(eid=eid, is_deleted=False, user_id=user_id)
 
-    def get_oauth_services(self, eid, user_id):
+    def get_oauth_services(self, eid: str, user_id: str) -> "QuerySet[OAuthServices]":
         return OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True, user_id=user_id)
 
-    def get_oauth_services_by_type(self, oauth_type, eid, user_id):
+    def get_oauth_services_by_type(self, oauth_type: str, eid: str, user_id: str) -> "QuerySet[OAuthServices]":
         return OAuthServices.objects.filter(oauth_type=oauth_type, eid=eid, enable=True, is_deleted=False, user_id=user_id)
 
-    def get_all_oauth_services_by_system(self, eid, is_system=True):
+    def get_all_oauth_services_by_system(self, eid: str, is_system: bool = True) -> "QuerySet[OAuthServices]":
         """
         Get all OAuth services filtered by system status
         :param eid: enterprise ID
@@ -31,7 +33,7 @@ class OAuthRepo(object):
         """
         return OAuthServices.objects.filter(eid=eid, is_deleted=False, system=is_system)
 
-    def get_oauth_services_by_service_id(self, service_id=None):
+    def get_oauth_services_by_service_id(self, service_id: Optional[str] = None) -> Optional[OAuthServices]:
         if not service_id:
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
             if pre_enterprise_center:
@@ -40,20 +42,21 @@ class OAuthRepo(object):
         return OAuthServices.objects.get(ID=service_id, enable=True, is_deleted=False)
 
     @staticmethod
-    def get_by_client_id(client_id, user_id):
+    def get_by_client_id(client_id: str, user_id: str) -> OAuthServices:
         try:
             return OAuthServices.objects.get(client_id=client_id, enable=True, is_deleted=False, user_id=user_id)
         except OAuthServices.DoesNotExist:
             raise ErrOauthServiceNotFound
 
-    def open_get_oauth_services_by_service_id(self, service_id):
+    def open_get_oauth_services_by_service_id(self, service_id: str) -> Optional[OAuthServices]:
         return OAuthServices.objects.filter(ID=service_id, is_deleted=False).first()
 
     @staticmethod
-    def get_by_name(name, user_id):
+    def get_by_name(name: str, user_id: str) -> OAuthServices:
         return OAuthServices.objects.get(name=name, user_id=user_id)
 
-    def create_or_update_oauth_services(self, values, eid=None, user_id=""):
+    def create_or_update_oauth_services(self, values: Any, eid: Optional[str] = None,
+                                        user_id: str = "") -> "QuerySet[OAuthServices]":
         querysetlist = []
         for value in values:
             instance = get_oauth_instance(value["oauth_type"])
@@ -95,7 +98,7 @@ class OAuthRepo(object):
                     self.delete_oauth_service(service_id=value.get("service_id"))
                 else:
                     old_service = self.open_get_oauth_services_by_service_id(service_id=value.get("service_id"))
-                    if old_service.home_url != value["home_url"]:
+                    if old_service.home_url != value["home_url"]:  # type: ignore[union-attr]  # may be None
                         UserOAuthServices.objects.filter(service_id=value.get("service_id")).delete()
                     OAuthServices.objects.filter(ID=value["service_id"]).update(
                         name=value["name"],
@@ -114,7 +117,8 @@ class OAuthRepo(object):
         rst = OAuthServices.objects.filter(eid=eid, user_id=user_id)
         return rst
 
-    def create_or_update_console_oauth_services(self, values, eid, user_id, system):
+    def create_or_update_console_oauth_services(self, values: Any, eid: str, user_id: str,
+                                                 system: bool) -> Optional["QuerySet[OAuthServices]"]:
         old_oauth_service = OAuthServices.objects.filter(eid=eid, is_console=True, user_id=user_id).first()
         for value in values[:1]:
             if value["oauth_type"] in list(support_oauth_type.keys()):
@@ -158,13 +162,14 @@ class OAuthRepo(object):
                 raise Exception("未找到该OAuth类型")
             rst = OAuthServices.objects.filter(eid=eid, is_console=True, user_id=user_id)
             return rst
+        return None
 
-    def delete_oauth_service(self, service_id):
+    def delete_oauth_service(self, service_id: str) -> None:
         OAuthServices.objects.filter(ID=service_id).delete()
 
 
 class UserOAuthRepo(object):
-    def save_oauth(self, *args, **kwargs):
+    def save_oauth(self, *args: Any, **kwargs: Any) -> Optional[UserOAuthServices]:
         try:
             user = UserOAuthServices.objects.get(
                 oauth_user_id=kwargs.get("oauth_user_id"), service_id=kwargs.get("service_id"), user_id=kwargs.get("user_id"))
@@ -185,8 +190,9 @@ class UserOAuthRepo(object):
             logger.exception(e)
         return user
 
-    def update_oauth(self, *args, **kwargs):
-        user = self.get_user_by_oauth_user_id(service_id=kwargs.get("service_id"), oauth_user_id=kwargs.get("oauth_user_id"))
+    def update_oauth(self, *args: Any, **kwargs: Any) -> Optional[UserOAuthServices]:
+        user = self.get_user_by_oauth_user_id(
+            service_id=kwargs.get("service_id"), oauth_user_id=kwargs.get("oauth_user_id"))  # type: ignore[arg-type]
         if user is not None:
             user.oauth_user_id = kwargs.get("oauth_user_id")
             user.oauth_user_name = kwargs.get("oauth_user_name")
@@ -196,41 +202,42 @@ class UserOAuthRepo(object):
             user.save()
         return user
 
-    def get_user_by_oauth_user_id(self, service_id, oauth_user_id):
+    def get_user_by_oauth_user_id(self, service_id: str, oauth_user_id: str) -> Optional[UserOAuthServices]:
         try:
             oauth_user = UserOAuthServices.objects.get(service_id=service_id, oauth_user_id=oauth_user_id)
             return oauth_user
         except UserOAuthServices.DoesNotExist:
             return None
 
-    def get_by_oauth_user_id(selfself, service_id, oauth_user_id):
+    def get_by_oauth_user_id(selfself, service_id: str, oauth_user_id: str) -> UserOAuthServices:
         try:
             return UserOAuthServices.objects.get(service_id=service_id, oauth_user_id=oauth_user_id)
         except UserOAuthServices.DoesNotExist:
             raise ErrOauthUserNotFound
 
-    def user_oauth_exists(self, service_id, oauth_user_id):
+    def user_oauth_exists(self, service_id: str, oauth_user_id: str) -> Optional[UserOAuthServices]:
         try:
             oauth_user = UserOAuthServices.objects.get(service_id=service_id, oauth_user_id=oauth_user_id)
             return oauth_user
         except UserOAuthServices.DoesNotExist:
             return None
 
-    def get_by_oauths_user_id(self, service_ids, user_id):
+    def get_by_oauths_user_id(self, service_ids: Any, user_id: str) -> "QuerySet[UserOAuthServices]":
         return UserOAuthServices.objects.filter(service_id__in=service_ids, user_id=user_id)
 
 
-    def get_all_user_oauth(self, user_id):
+    def get_all_user_oauth(self, user_id: str) -> "QuerySet[UserOAuthServices]":
         return UserOAuthServices.objects.filter(user_id=user_id)
 
-    def get_user_oauth_by_user_id(self, service_id, user_id):
+    def get_user_oauth_by_user_id(self, service_id: str, user_id: str) -> Optional[UserOAuthServices]:
         try:
             oauth_user = UserOAuthServices.objects.get(service_id=service_id, user_id=user_id)
             return oauth_user
         except UserOAuthServices.DoesNotExist:
             return None
 
-    def get_enterprise_center_user_by_user_id(self, user_id):
+    def get_enterprise_center_user_by_user_id(
+            self, user_id: str) -> Tuple[Optional[UserOAuthServices], Optional[OAuthServices]]:
         try:
             oauth_service = OAuthServices.objects.get(oauth_type="enterprisecenter", ID=1)
             pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
@@ -242,41 +249,42 @@ class UserOAuthRepo(object):
         except (OAuthServices.DoesNotExist, UserOAuthServices.DoesNotExist):
             return None, None
 
-    def get_user_oauth_by_id(self, service_id, id):
+    def get_user_oauth_by_id(self, service_id: str, id: str) -> Optional[UserOAuthServices]:
         try:
             oauth_user = UserOAuthServices.objects.get(service_id=service_id, ID=id)
             return oauth_user
         except UserOAuthServices.DoesNotExist:
             return None
 
-    def get_user_oauth_by_code(self, service_id, code):
+    def get_user_oauth_by_code(self, service_id: str, code: str) -> Optional[UserOAuthServices]:
         try:
             oauth_user = UserOAuthServices.objects.get(service_id=service_id, code=code)
             return oauth_user
         except UserOAuthServices.DoesNotExist:
             return None
 
-    def get_user_oauth_by_oauth_user_name(self, service_id, oauth_user_name):
+    def get_user_oauth_by_oauth_user_name(self, service_id: str, oauth_user_name: str) -> Optional[UserOAuthServices]:
         try:
             oauth_user = UserOAuthServices.objects.get(service_id=service_id, oauth_user_name=oauth_user_name)
             return oauth_user
         except UserOAuthServices.DoesNotExist:
             return None
 
-    def user_oauth_is_link(self, service_id, oauth_user_id):
+    def user_oauth_is_link(self, service_id: str, oauth_user_id: str) -> bool:
         data = UserOAuthServices.objects.get(service_id=service_id, oauth_user_id=oauth_user_id)
-        if data["user_id"]:
+        if data["user_id"]:  # type: ignore[index]  # model instance, not subscriptable (latent bug)
             return True
         else:
             return False
 
-    def get_user_oauth_services_info(self, eid, user_id):
+    def get_user_oauth_services_info(self, eid: str, user_id: str) -> List[dict]:
         oauth_services = []
         system_services = OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True, system=True)
         user_services = OAuthServices.objects.filter(eid=eid, is_deleted=False, enable=True, user_id=user_id)
         services = system_services.union(user_services)
         for service in services:
-            user_service = self.get_user_oauth_by_user_id(service_id=service.ID, user_id=user_id)
+            user_service = self.get_user_oauth_by_user_id(
+                service_id=service.ID, user_id=user_id)  # type: ignore[arg-type]  # service.ID is int PK
             api = get_oauth_instance(service.oauth_type, service, None)
             authorize_url = api.get_authorize_url()
             if user_service:
@@ -309,7 +317,7 @@ class UserOAuthRepo(object):
                 })
         return oauth_services
 
-    def delete_users_by_services_id(self, service_id):
+    def delete_users_by_services_id(self, service_id: str) -> None:
         users = UserOAuthServices.objects.filter(service_id=service_id)
         users.delete()
 

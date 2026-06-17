@@ -25,6 +25,11 @@ class DummyQ(object):
         return self
 
 
+class DummyQuerySet(object):
+    def __class_getitem__(cls, item):
+        return cls
+
+
 def install_stub(module_name, **attrs):
     module = types.ModuleType(module_name)
     for key, value in attrs.items():
@@ -50,7 +55,7 @@ class TenantServiceVolumnRepositoryTests(TestCase):
         install_stub("console.utils.shortcuts", get_object_or_404=lambda *args, **kwargs: None)
         install_stub("django", db=types.SimpleNamespace(models=types.SimpleNamespace(Q=DummyQ)))
         install_stub("django.db", models=types.SimpleNamespace(Q=DummyQ))
-        install_stub("django.db.models", Q=DummyQ)
+        install_stub("django.db.models", Q=DummyQ, QuerySet=DummyQuerySet)
         install_stub("www.db.base", BaseConnection=object)
         install_stub(
             "www.models.service_publish",
@@ -68,6 +73,8 @@ class TenantServiceVolumnRepositoryTests(TestCase):
             TenantServiceEnvVar=DummyModel,
             TenantServiceMountRelation=DummyModel,
             TenantServiceRelation=DummyModel,
+            TenantServiceInfo=DummyModel,
+            Tenants=DummyModel,
             TenantServicesPort=DummyModel,
             TenantServiceVolume=TenantServiceVolumeStub,
             ThirdPartyServiceEndpoints=DummyModel,
@@ -109,7 +116,7 @@ class TenantServiceEnvVarRepositoryTests(TestCase):
         install_stub("console.utils.shortcuts", get_object_or_404=lambda *args, **kwargs: None)
         install_stub("django", db=types.SimpleNamespace(models=types.SimpleNamespace(Q=DummyQ)))
         install_stub("django.db", models=types.SimpleNamespace(Q=DummyQ))
-        install_stub("django.db.models", Q=DummyQ)
+        install_stub("django.db.models", Q=DummyQ, QuerySet=DummyQuerySet)
         install_stub("www.db.base", BaseConnection=object)
         install_stub(
             "www.models.service_publish",
@@ -127,6 +134,8 @@ class TenantServiceEnvVarRepositoryTests(TestCase):
             TenantServiceEnvVar=DummyModel,
             TenantServiceMountRelation=DummyModel,
             TenantServiceRelation=DummyModel,
+            TenantServiceInfo=DummyModel,
+            Tenants=DummyModel,
             TenantServicesPort=DummyModel,
             TenantServiceVolume=TenantServiceVolumeStub,
             ThirdPartyServiceEndpoints=DummyModel,
@@ -176,7 +185,7 @@ class ServiceExtendRepositoryTests(TestCase):
         install_stub("console.utils.shortcuts", get_object_or_404=lambda *args, **kwargs: None)
         install_stub("django", db=types.SimpleNamespace(models=types.SimpleNamespace(Q=DummyQ)))
         install_stub("django.db", models=types.SimpleNamespace(Q=DummyQ))
-        install_stub("django.db.models", Q=DummyQ)
+        install_stub("django.db.models", Q=DummyQ, QuerySet=DummyQuerySet)
         install_stub("www.db.base", BaseConnection=object)
         install_stub(
             "www.models.service_publish",
@@ -194,6 +203,8 @@ class ServiceExtendRepositoryTests(TestCase):
             TenantServiceEnvVar=DummyModel,
             TenantServiceMountRelation=DummyModel,
             TenantServiceRelation=DummyModel,
+            TenantServiceInfo=DummyModel,
+            Tenants=DummyModel,
             TenantServicesPort=DummyModel,
             TenantServiceVolume=TenantServiceVolumeStub,
             ThirdPartyServiceEndpoints=DummyModel,

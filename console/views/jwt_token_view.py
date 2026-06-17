@@ -1,26 +1,34 @@
 # coding:utf-8
 import logging
 import datetime
+from typing import Any
 
 from console.login.login_event import LoginEvent
 from console.repositories.login_event import login_event_repo
 from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.utils.cache import cache
 from rest_framework import status
+from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework_jwt.settings import api_settings
-from rest_framework_jwt.views import JSONWebTokenAPIView, jwt_response_payload_handler
+from rest_framework.views import APIView
 
 from console.serializer import CustomJWTSerializer
 from console.login.jwt_manager import JwtManager
+from console.utils import jwt_issuer
 from www.services import user_svc
 from www.utils.return_message import general_message, error_message
 
 
-class JWTTokenView(JSONWebTokenAPIView):
+class JWTTokenView(APIView):
+    permission_classes = (AllowAny, )
+    authentication_classes = ()
     serializer_class = CustomJWTSerializer
 
-    def post(self, request, *args, **kwargs):
+    def get_serializer(self, *args: Any, **kwargs: Any) -> CustomJWTSerializer:
+        return self.serializer_class(*args, **kwargs)
+
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         用户登录接口
         ---
@@ -42,13 +50,14 @@ class JWTTokenView(JSONWebTokenAPIView):
         real_captcha_code = request.session.get("captcha_code")
         is_validate = request.POST.get("is_validate", False)
         times = cache.get(nick_name)
-        pass_error_times = cache.get(nick_name + "pass_error_times")
+        # NOTE: nick_name from POST.get is str|None; legacy concat assumes str (operator backlog).
+        pass_error_times = cache.get(nick_name + "pass_error_times")  # type: ignore[operator]
         if pass_error_times and int(pass_error_times) >= 4:
-            ten_min = cache.get(nick_name + "freeze")
+            ten_min = cache.get(nick_name + "freeze")  # type: ignore[operator]
             if not ten_min:
                 ten_min = (datetime.datetime.now() + datetime.timedelta(minutes=10)).strftime('%H:%M:%S')
-                cache.set(nick_name + "freeze", ten_min, 600)
-                cache.set(nick_name + "pass_error_times", pass_error_times, 600)
+                cache.set(nick_name + "freeze", ten_min, 600)  # type: ignore[operator]
+                cache.set(nick_name + "pass_error_times", pass_error_times, 600)  # type: ignore[operator]
                 freeze_time = ten_min
             elif type(ten_min) == bytes:
                 freeze_time = str(ten_min, encoding='utf-8')
@@ -86,23 +95,25 @@ class JWTTokenView(JSONWebTokenAPIView):
                 return Response(result, status=code)
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
-                user = serializer.object.get('user') or request.user
-                token = serializer.object.get('token')
-                response_data = jwt_response_payload_handler(token, user, request)
+                user = serializer.validated_data.get('user') or request.user
+                token = serializer.validated_data.get('token')
+                response_data = jwt_issuer.jwt_response_payload(token, user, request)
                 result = general_message(200, "login success", "登录成功", bean=response_data)
                 response = Response(result)
-                if api_settings.JWT_AUTH_COOKIE:
+                if jwt_issuer.JWT_AUTH_COOKIE:
                     # 设置10年过期时间，相当于永久
                     expiration = (datetime.datetime.now() + datetime.timedelta(days=3650))
-                    response.set_cookie(api_settings.JWT_AUTH_COOKIE, token, expires=expiration)
+                    response.set_cookie(jwt_issuer.JWT_AUTH_COOKIE, token, expires=expiration)
                 jwt_manager = JwtManager()
-                jwt_manager.set(response_data["token"], user.user_id)
+                # NOTE: user resolves to Any|User|AnonymousUser; user_id/enterprise_id are on
+                # the concrete Users model (union-attr backlog).
+                jwt_manager.set(response_data["token"], user.user_id)  # type: ignore[union-attr]
                 login_event = LoginEvent(user, login_event_repo, request=request)
                 login_event.login()
                 comment = operation_log_service.generate_generic_comment(
                     operation=Operation.FINISH, module=OperationModule.LOGIN, module_name="")
                 operation_log_service.create_enterprise_log(user=user, comment=comment,
-                                                            enterprise_id=user.enterprise_id)
+                                                            enterprise_id=user.enterprise_id)  # type: ignore[union-attr]
                 return response
             result = general_message(400, "login failed", "{}".format(list(dict(serializer.errors).values())[0][0]))
             return Response(result, status=status.HTTP_400_BAD_REQUEST)

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # create by: panda-zxs
+from typing import Any
 
 from openapi.serializer.app_serializer import ServiceBaseInfoSerializer
 from openapi.serializer.utils import DateCharField
@@ -47,14 +48,14 @@ class AppCopyLSerializer(serializers.Serializer):
     app_name = serializers.CharField(max_length=64, allow_null=True, help_text="应用名称")
     min_memory = serializers.CharField(max_length=32, allow_null=True, help_text="组件运行内存")
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Any) -> Any:
         return data
 
-    def get_build_source(self, instance):
+    def get_build_source(self, instance: Any) -> Any:
         build_source = instance.get("build_source")
         service_source = build_source.get("service_source")
         if service_source == "docker_image":
-            serializer = CompomentDockerImageBuildSourceSerializer(data=build_source)
+            serializer: CompomentBuildSourceSerializer = CompomentDockerImageBuildSourceSerializer(data=build_source)
             serializer.is_valid(raise_exception=True)
         elif service_source == "market":
             serializer = CompomentMarketBuildSourceSerializer(data=build_source)
@@ -76,7 +77,7 @@ class AppModifyInfoSerializer(serializers.Serializer):
     build_source = serializers.SerializerMethodField()
     envs = serializers.DictField(default=dict())
 
-    def get_build_source(self, instance):
+    def get_build_source(self, instance: Any) -> Any:
         default_build_source = {"version": None}
         build_source = instance.get("build_source")
         if not build_source:
@@ -86,7 +87,7 @@ class AppModifyInfoSerializer(serializers.Serializer):
             serializer.is_valid(raise_exception=True)
             return serializer.data
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Any) -> Any:
         return data
 
 
@@ -94,7 +95,7 @@ class AppCopyModifySerializer(serializers.Serializer):
     service_id = serializers.CharField(max_length=32, help_text="id")
     change = serializers.SerializerMethodField()
 
-    def get_change(self, instance):
+    def get_change(self, instance: Any) -> Any:
         default_change = {"build_source": {"version": None}, "envs": {}}
         change = instance.get("change")
         if not change:
@@ -111,12 +112,12 @@ class AppCopyCSerializer(serializers.Serializer):
     target_region_name = serializers.CharField(max_length=32, help_text="数据中心名称")
     target_app_id = serializers.IntegerField(help_text="应用id")
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Any) -> Any:
         return data
 
 
 class AppCopyCResSerializer(serializers.Serializer):
     services = ServiceBaseInfoSerializer(many=True)
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Any) -> Any:
         return data

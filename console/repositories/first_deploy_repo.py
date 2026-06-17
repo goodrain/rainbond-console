@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import json
+from typing import Any, Optional, Tuple
 
 from django.db import IntegrityError, transaction
+from django.db.models import QuerySet
 
 from console.models.main import ConsoleSysConfig
 
@@ -12,25 +14,25 @@ class EnterpriseFirstDeployRepository(object):
     DESC = "enterprise first deploy tracking"
 
     @classmethod
-    def build_key(cls, enterprise_id):
+    def build_key(cls, enterprise_id: str) -> str:
         digest = hashlib.md5(str(enterprise_id).encode("utf-8")).hexdigest()[:16]
         return "{}{}".format(cls.KEY_PREFIX, digest)
 
-    def get_by_enterprise_id(self, enterprise_id):
+    def get_by_enterprise_id(self, enterprise_id: str) -> Optional[ConsoleSysConfig]:
         key = self.build_key(enterprise_id)
         return ConsoleSysConfig.objects.filter(key=key).first()
 
     @staticmethod
-    def get_by_key(key):
+    def get_by_key(key: str) -> Optional[ConsoleSysConfig]:
         return ConsoleSysConfig.objects.filter(key=key).first()
 
-    def list_tracking_records(self):
+    def list_tracking_records(self) -> QuerySet[ConsoleSysConfig]:
         return ConsoleSysConfig.objects.filter(
             desc=self.DESC,
             enable=True,
             key__startswith=self.KEY_PREFIX).all()
 
-    def create_if_absent(self, enterprise_id, payload):
+    def create_if_absent(self, enterprise_id: str, payload: dict) -> Tuple[Any, bool]:
         key = self.build_key(enterprise_id)
         value = json.dumps(payload, ensure_ascii=False)
         defaults = {
@@ -46,7 +48,7 @@ class EnterpriseFirstDeployRepository(object):
         except IntegrityError:
             return self.get_by_enterprise_id(enterprise_id), False
 
-    def update_payload(self, record, payload):
+    def update_payload(self, record: ConsoleSysConfig, payload: dict) -> ConsoleSysConfig:
         record.type = "json"
         record.value = json.dumps(payload, ensure_ascii=False)
         record.desc = self.DESC
@@ -55,7 +57,7 @@ class EnterpriseFirstDeployRepository(object):
         return record
 
     @staticmethod
-    def load_payload(record):
+    def load_payload(record: Optional[ConsoleSysConfig]) -> dict:
         if not record or not record.value:
             return {}
         if isinstance(record.value, dict):

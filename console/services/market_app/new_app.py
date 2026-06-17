@@ -1,8 +1,10 @@
 # -*- coding: utf8 -*-
 import logging
+from typing import Any, Dict, List, Optional
 
 from .plugin import Plugin
 from .component_group import ComponentGroup
+from .component import Component
 # repository
 from console.services.app_config.service_monitor import service_monitor_repo
 from console.repositories.service_repo import service_repo
@@ -44,22 +46,22 @@ class NewApp(object):
     """
 
     def __init__(self,
-                 tenant,
-                 region_name,
+                 tenant: Any,
+                 region_name: str,
                  app: ServiceGroup,
                  component_group: ComponentGroup,
-                 new_components,
-                 update_components,
-                 component_deps,
-                 volume_deps,
-                 plugins: [Plugin],
-                 plugin_deps,
-                 plugin_configs,
-                 new_plugins: [Plugin] = None,
-                 config_groups=None,
-                 config_group_items=None,
-                 config_group_components=None,
-                 k8s_resources=None):
+                 new_components: List[Component],
+                 update_components: List[Component],
+                 component_deps: Any,
+                 volume_deps: Any,
+                 plugins: List[Plugin],
+                 plugin_deps: Any,
+                 plugin_configs: Any,
+                 new_plugins: Optional[List[Plugin]] = None,
+                 config_groups: Optional[List[Any]] = None,
+                 config_group_items: Optional[List[Any]] = None,
+                 config_group_components: Optional[List[Any]] = None,
+                 k8s_resources: Optional[List[Any]] = None) -> None:
         self.tenant = tenant
         self.tenant_id = tenant.tenant_id
         self.region_name = region_name
@@ -91,7 +93,7 @@ class NewApp(object):
         # k8s resources
         self.k8s_resources = k8s_resources if k8s_resources else []
 
-    def save(self):
+    def save(self) -> None:
         # component
         self._save_components()
         self._update_components()
@@ -110,54 +112,55 @@ class NewApp(object):
         # k8s resources
         self._save_k8s_resources()
 
-    def components(self):
+    def components(self) -> List[Component]:
         return self._ensure_components(self._components())
 
-    def list_update_components(self):
+    def list_update_components(self) -> List[Component]:
         return self._ensure_components(self.update_components)
 
-    def _ensure_components(self, components):
+    def _ensure_components(self, components: List[Component]) -> List[Component]:
         # component dependency
-        component_deps = {}
+        component_deps: Dict[str, List[Any]] = {}
         for dep in self.component_deps:
             deps = component_deps.get(dep.service_id, [])
             deps.append(dep)
             component_deps[dep.service_id] = deps
         # volume dependency
-        volume_deps = {}
+        volume_deps: Dict[str, List[Any]] = {}
         for dep in self.volume_deps:
             deps = volume_deps.get(dep.service_id, [])
             deps.append(dep)
             volume_deps[dep.service_id] = deps
         # application config groups
-        config_group_components = {}
+        config_group_components: Dict[str, List[Any]] = {}
         for cgc in self.config_group_components:
             cgcs = config_group_components.get(cgc.service_id, [])
             cgcs.append(cgc)
             config_group_components[cgc.service_id] = cgcs
         # plugins
-        plugin_deps = {}
+        plugin_deps: Dict[str, List[Any]] = {}
         for plugin_dep in self.plugin_deps:
             pds = plugin_deps.get(plugin_dep.service_id, [])
             pds.append(plugin_dep)
             plugin_deps[plugin_dep.service_id] = pds
-        plugin_configs = {}
+        plugin_configs: Dict[str, List[Any]] = {}
         for plugin_config in self.plugin_configs:
             pcs = plugin_configs.get(plugin_config.service_id, [])
             pcs.append(plugin_config)
             plugin_configs[plugin_config.service_id] = pcs
         for cpt in components:
-            cpt.component_deps = component_deps.get(cpt.component.component_id)
-            cpt.volume_deps = volume_deps.get(cpt.component.component_id)
-            cpt.app_config_groups = config_group_components.get(cpt.component.component_id)
-            cpt.plugin_deps = plugin_deps.get(cpt.component.component_id)
-            cpt.plugin_configs = plugin_configs.get(cpt.component.component_id)
+            cpt.component_deps = component_deps.get(cpt.component.component_id)  # type: ignore[assignment]
+            cpt.volume_deps = volume_deps.get(cpt.component.component_id)  # type: ignore[assignment]
+            cpt.app_config_groups = config_group_components.get(cpt.component.component_id)  # type: ignore[assignment]
+            cpt.plugin_deps = plugin_deps.get(cpt.component.component_id)  # type: ignore[assignment]
+            cpt.plugin_configs = plugin_configs.get(cpt.component.component_id)  # type: ignore[attr-defined]
+            # NOTE: Component class does not define plugin_configs attribute; set dynamically here
         return components
 
-    def _components(self):
+    def _components(self) -> List[Component]:
         return self.new_components + self.update_components
 
-    def _save_components(self):
+    def _save_components(self) -> None:
         """
         create new components
         """
@@ -207,11 +210,12 @@ class NewApp(object):
         extend_repo.bulk_create_or_update(extend_infos)
         service_monitor_repo.bulk_create(monitors)
         component_graph_repo.bulk_create(graphs)
-        service_group_relation_repo.bulk_create(service_group_rels)
+        service_group_relation_repo.bulk_create(service_group_rels)  # type: ignore[arg-type]
+        # NOTE: service_group_rels can contain None when cpt.service_group_rel is None
         service_label_repo.bulk_create(labels)
         k8s_attribute_repo.overwrite_by_component_ids([cpt.component_id for cpt in components], k8s_attributes)
 
-    def _update_components(self):
+    def _update_components(self) -> None:
         """
         update existing components
         """
@@ -261,18 +265,18 @@ class NewApp(object):
         service_label_repo.overwrite_by_component_ids(component_ids, labels)
         k8s_attribute_repo.overwrite_by_component_ids(component_ids, k8s_attributes)
 
-    def _save_component_deps(self):
+    def _save_component_deps(self) -> None:
         dep_relation_repo.overwrite_by_component_id(self.component_ids, self.component_deps)
 
-    def _save_volume_deps(self):
+    def _save_volume_deps(self) -> None:
         volume_dep_repo.overwrite_by_component_id(self.component_ids, self.volume_deps)
 
-    def _save_config_groups(self):
+    def _save_config_groups(self) -> None:
         app_config_group_repo.bulk_create_or_update(self.config_groups)
         app_config_group_item_repo.bulk_create_or_update(self.config_group_items)
         app_config_group_service_repo.bulk_create_or_update(self.config_group_components)
 
-    def _save_k8s_resources(self):
+    def _save_k8s_resources(self) -> None:
         resources = []
         old_resources = k8s_resources_repo.list_by_app_id(self.app_id)
         old_resources_map = {r.name + r.kind: r for r in old_resources}
@@ -290,14 +294,14 @@ class NewApp(object):
                 ))
         k8s_resources_repo.bulk_create(resources)
 
-    def _existing_volume_deps(self):
+    def _existing_volume_deps(self) -> Dict[str, Any]:
         components = self._components()
         volume_deps = volume_dep_repo.list_mnt_relations_by_service_ids(self.tenant_id,
                                                                         [cpt.component.component_id for cpt in components])
         return {dep.key(): dep for dep in volume_deps}
 
-    def _save_plugin_deps(self):
+    def _save_plugin_deps(self) -> None:
         app_plugin_relation_repo.overwrite_by_component_ids(self.component_ids, self.plugin_deps)
 
-    def _save_plugin_configs(self):
+    def _save_plugin_configs(self) -> None:
         service_plugin_config_repo.overwrite_by_component_ids(self.component_ids, self.plugin_configs)
