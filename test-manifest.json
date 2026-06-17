@@ -5768,6 +5768,25 @@
       "status": "active"
     },
     {
+      "id": "console.image.python36-websocket-client",
+      "title": "Console image Python 3.6 websocket-client compatibility",
+      "title_zh": "Console 镜像 Python 3.6 websocket-client 兼容性",
+      "interface_type": "other",
+      "interface": "requirements.txt",
+      "code_paths": [
+        "Dockerfile",
+        "requirements.txt"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/dependency_compat_test.py",
+          "selector": "ConsoleImageDependencyCompatibilityTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.image.runner-detect",
       "title": "Detect runner images by their repository prefix",
       "title_zh": "根据仓库前缀识别 runner 镜像",
@@ -7352,6 +7371,116 @@
         {
           "path": "console/tests/utils/randomutil_test.py",
           "selector": "RandomUtilTests.test_make_default_version"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.http-forward",
+      "title": "Realtime proxy HTTP forward",
+      "title_zh": "实时代理 HTTP 转发",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.proxy_http_request",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_http_proxy_forwards_upload_request_to_region_websocket_service"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.internal-target-override",
+      "title": "Realtime proxy internal target override",
+      "title_zh": "实时代理内部目标覆盖",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_region_realtime_proxy_url",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_region_proxy_target_prefers_internal_override_for_builtin_region"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.region-target-url",
+      "title": "Realtime proxy region target URL",
+      "title_zh": "实时代理 Region 目标 URL",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_region_realtime_proxy_url",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_region_proxy_target_keeps_region_websocket_host_for_http"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.secure-websocket-url",
+      "title": "Realtime proxy secure websocket URL",
+      "title_zh": "实时代理安全 WebSocket URL",
+      "interface_type": "package_function",
+      "interface": "console.utils.realtime_proxy.build_console_realtime_proxy_url",
+      "code_paths": [
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_console_proxy_url_uses_wss_when_request_is_https"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.upload-url",
+      "title": "Realtime proxy upload URL",
+      "title_zh": "实时代理上传 URL",
+      "interface_type": "service_method",
+      "interface": "console.services.app_import_and_export_service.get_upload_package_url",
+      "code_paths": [
+        "console/services/app_import_and_export_service.py",
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_upload_package_url_returns_console_proxy_path"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
+      "id": "console.realtime-proxy.websocket-url",
+      "title": "Realtime proxy websocket URL",
+      "title_zh": "实时代理 WebSocket URL",
+      "interface_type": "service_method",
+      "interface": "console.services.app_actions.app_log.AppWebSocketService.get_event_log_ws",
+      "code_paths": [
+        "console/services/app_actions/app_log.py",
+        "console/utils/realtime_proxy.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/realtime_proxy_url_test.py",
+          "selector": "RealtimeProxyUrlTests.test_websocket_service_returns_console_proxy_url_without_6060"
         }
       ],
       "test_type": "regression",

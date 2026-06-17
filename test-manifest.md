@@ -310,6 +310,7 @@
 | console.helm.build | 构建 Helm 应用模板 | active | regression | console.services.mcp_query_service.call_tool[rainbond_build_helm_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_build_helm_app_generates_template |
 | console.helm.check | 检查 Helm 应用 | active | regression | console.services.mcp_query_service.call_tool[rainbond_check_helm_app] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_check_helm_app_returns_check_result |
 | console.helm.daemonset-template | Helm DaemonSet 资源映射为组件模板 | active | regression | console.services.helm_app_yaml.HelmAppService.generate_template | console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_helm_template_maps_daemonset_resource_type |
+| console.image.python36-websocket-client | Console 镜像 Python 3.6 websocket-client 兼容性 | active | regression | requirements.txt | console/tests/dependency_compat_test.py::ConsoleImageDependencyCompatibilityTests |
 | console.image.runner-detect | 根据仓库前缀识别 runner 镜像 | active | regression | console.utils.runner_util.is_runner | console/tests/utils/image_classify_test.py::ImageClassifyTests.test_is_runner |
 | console.image.slug-detect | 为非 docker 类语言识别基于 runner 的 slug 镜像 | active | regression | console.utils.slug_util.is_slug | console/tests/utils/image_classify_test.py::ImageClassifyTests.test_is_slug |
 | console.init-cluster.prefer-latest-pending | 初始化时优先选择最新待处理集群 | active | regression | console.repositories.init_cluster.Cluster.get_rke_cluster_exclude_integrated | console/tests/init_cluster_test.py::ClusterRepositoryTests.test_get_rke_cluster_exclude_integrated_prefers_latest_pending_cluster |
@@ -395,6 +396,12 @@
 | console.pod.detail-kubeblocks | Pod Detail Kubeblocks | active | regression | console.services.mcp_query_service.call_tool[console.pod.detail-kubeblocks] | console/tests/mcp_query_service_test.py::MCPQueryServiceApplicationToolTests.test_get_pod_detail_uses_kubeblocks_endpoint_for_kubeblocks_component |
 | console.port-inner.env-sync-idempotent | Treat duplicate region env create as idempotent during inner port enable | active | regression | console.services.app_config.env_service.AppEnvVarService.add_service_env_var | console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_updates_region_when_env_already_exists<br>console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_retries_add_when_region_update_reports_record_not_found<br>console/tests/env_service_region_idempotency_test.py::EnvServiceRegionIdempotencyTests.test_add_service_env_var_treats_second_add_conflict_as_success |
 | console.random.default-version | 生成默认随机版本标识 | active | regression | console.utils.randomutil.make_default_version | console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version |
+| console.realtime-proxy.http-forward | 实时代理 HTTP 转发 | active | regression | console.utils.realtime_proxy.proxy_http_request | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_forwards_upload_request_to_region_websocket_service |
+| console.realtime-proxy.internal-target-override | 实时代理内部目标覆盖 | active | regression | console.utils.realtime_proxy.build_region_realtime_proxy_url | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_region_proxy_target_prefers_internal_override_for_builtin_region |
+| console.realtime-proxy.region-target-url | 实时代理 Region 目标 URL | active | regression | console.utils.realtime_proxy.build_region_realtime_proxy_url | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_region_proxy_target_keeps_region_websocket_host_for_http |
+| console.realtime-proxy.secure-websocket-url | 实时代理安全 WebSocket URL | active | regression | console.utils.realtime_proxy.build_console_realtime_proxy_url | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_console_proxy_url_uses_wss_when_request_is_https |
+| console.realtime-proxy.upload-url | 实时代理上传 URL | active | regression | console.services.app_import_and_export_service.get_upload_package_url | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_upload_package_url_returns_console_proxy_path |
+| console.realtime-proxy.websocket-url | 实时代理 WebSocket URL | active | regression | console.services.app_actions.app_log.AppWebSocketService.get_event_log_ws | console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_websocket_service_returns_console_proxy_url_without_6060 |
 | console.region-api.batch-create-error-bean | Region Api Batch Create Error Bean | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_preserves_batch_create_result_bean_for_coded_errors |
 | console.region-api.domain-conflict-msg | 将上游域名冲突保留为可操作的 409 错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_keeps_domain_conflict_as_conflict_error |
 | console.region-api.helm-resource-conflict-msg | 将 Helm 资源归属冲突转换为可操作错误提示 | active | regression | www.apiclient.regionapibaseclient.RegionApiBaseHttpClient._check_status | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_check_status_translates_helm_ownership_conflict_to_actionable_msg_show |
@@ -3555,6 +3562,16 @@
 - 代码路径: `console/services/helm_app_yaml.py`
 - 测试路径: `console/tests/app_manage_test.py::ComponentDaemonSetSupportTests.test_helm_template_maps_daemonset_resource_type`
 
+### Console 镜像 Python 3.6 websocket-client 兼容性
+
+- Capability ID: `console.image.python36-websocket-client`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `other`
+- 业务入口: `requirements.txt`
+- 代码路径: `Dockerfile`, `requirements.txt`
+- 测试路径: `console/tests/dependency_compat_test.py::ConsoleImageDependencyCompatibilityTests`
+
 ### 根据仓库前缀识别 runner 镜像
 
 - Capability ID: `console.image.runner-detect`
@@ -4404,6 +4421,66 @@
 - 业务入口: `console.utils.randomutil.make_default_version`
 - 代码路径: `console/utils/randomutil.py`
 - 测试路径: `console/tests/utils/randomutil_test.py::RandomUtilTests.test_make_default_version`
+
+### 实时代理 HTTP 转发
+
+- Capability ID: `console.realtime-proxy.http-forward`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.utils.realtime_proxy.proxy_http_request`
+- 代码路径: `console/utils/realtime_proxy.py`
+- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_http_proxy_forwards_upload_request_to_region_websocket_service`
+
+### 实时代理内部目标覆盖
+
+- Capability ID: `console.realtime-proxy.internal-target-override`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.utils.realtime_proxy.build_region_realtime_proxy_url`
+- 代码路径: `console/utils/realtime_proxy.py`
+- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_region_proxy_target_prefers_internal_override_for_builtin_region`
+
+### 实时代理 Region 目标 URL
+
+- Capability ID: `console.realtime-proxy.region-target-url`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.utils.realtime_proxy.build_region_realtime_proxy_url`
+- 代码路径: `console/utils/realtime_proxy.py`
+- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_region_proxy_target_keeps_region_websocket_host_for_http`
+
+### 实时代理安全 WebSocket URL
+
+- Capability ID: `console.realtime-proxy.secure-websocket-url`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `package_function`
+- 业务入口: `console.utils.realtime_proxy.build_console_realtime_proxy_url`
+- 代码路径: `console/utils/realtime_proxy.py`
+- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_console_proxy_url_uses_wss_when_request_is_https`
+
+### 实时代理上传 URL
+
+- Capability ID: `console.realtime-proxy.upload-url`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_import_and_export_service.get_upload_package_url`
+- 代码路径: `console/services/app_import_and_export_service.py`, `console/utils/realtime_proxy.py`
+- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_upload_package_url_returns_console_proxy_path`
+
+### 实时代理 WebSocket URL
+
+- Capability ID: `console.realtime-proxy.websocket-url`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.app_actions.app_log.AppWebSocketService.get_event_log_ws`
+- 代码路径: `console/services/app_actions/app_log.py`, `console/utils/realtime_proxy.py`
+- 测试路径: `console/tests/realtime_proxy_url_test.py::RealtimeProxyUrlTests.test_websocket_service_returns_console_proxy_url_without_6060`
 
 ### Region Api Batch Create Error Bean
 
