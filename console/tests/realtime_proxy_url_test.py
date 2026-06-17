@@ -49,6 +49,7 @@ from console.utils.realtime_proxy import (  # noqa: E402
     _backend_websocket_subprotocols,
     build_console_realtime_proxy_url,
     build_region_realtime_proxy_url,
+    open_backend_websocket,
     proxy_http_request,
 )
 
@@ -205,3 +206,17 @@ class RealtimeProxyUrlTests(SimpleTestCase):
         protocols = _backend_websocket_subprotocols(request, "docker_console")
 
         self.assertEqual(protocols, ["webtty", "other"])
+
+    # capability_id: console.realtime-proxy.websocket-idle-timeout
+    def test_backend_websocket_disables_read_timeout_after_connect(self):
+        request = self.factory.get("/console/regions/rainbond/websocket/docker_console")
+        backend_ws = mock.Mock()
+        create_connection = mock.Mock(return_value=backend_ws)
+
+        result = open_backend_websocket(create_connection, "ws://127.0.0.1:6060/docker_console", request, "docker_console")
+
+        self.assertIs(result, backend_ws)
+        _, kwargs = create_connection.call_args
+        self.assertEqual(kwargs["timeout"], 10)
+        self.assertEqual(kwargs["subprotocols"], ["webtty"])
+        backend_ws.settimeout.assert_called_once_with(None)

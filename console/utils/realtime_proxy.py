@@ -227,6 +227,17 @@ def _websocket_headers(request):
     return headers
 
 
+def open_backend_websocket(create_connection, target_url, request, proxy_path):
+    backend_ws = create_connection(
+        target_url,
+        timeout=10,
+        header=_websocket_headers(request),
+        subprotocols=_backend_websocket_subprotocols(request, proxy_path),
+    )
+    backend_ws.settimeout(None)
+    return backend_ws
+
+
 def proxy_websocket_request(request, region_name, proxy_path):
     client_ws = getattr(request, "environ", {}).get("wsgi.websocket")
     if client_ws is None:
@@ -249,11 +260,11 @@ def proxy_websocket_request(request, region_name, proxy_path):
         request=request,
         scheme_type="ws",
     )
-    backend_ws = create_connection(
+    backend_ws = open_backend_websocket(
+        create_connection,
         target_url,
-        timeout=10,
-        header=_websocket_headers(request),
-        subprotocols=_backend_websocket_subprotocols(request, proxy_path),
+        request,
+        proxy_path,
     )
 
     def client_to_backend():
