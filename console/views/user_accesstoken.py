@@ -74,12 +74,13 @@ class UserAccessTokenRUDView(JWTAuthApiView):
         return Response(result, status=200)
 
     def delete(self, request: Request, id: str, **kwargs: Any) -> Response:
+        access_key = user_access_services.get_user_access_key_by_id(
+            request.user.user_id, id).first()  # type: ignore[union-attr]
         user_access_services.delete_user_access_key_by_id(request.user.user_id, id)  # type: ignore[union-attr]
         result = general_message(200, "success", None)
         comment = operation_log_service.generate_generic_comment(
             operation=Operation.DELETE, module=OperationModule.ACCESSKEY,
-            # NOTE: latent bug — `access_key` is undefined in delete(); behavior preserved.
-            module_name=access_key.note if access_key else "")  # type: ignore[name-defined]
+            module_name=access_key.note if access_key else "")
         operation_log_service.create_enterprise_log(user=self.user, comment=comment,
                                                     enterprise_id=self.user.enterprise_id)  # type: ignore[arg-type]
         return Response(result, status=200)

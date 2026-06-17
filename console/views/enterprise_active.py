@@ -104,8 +104,7 @@ class BindMarketEnterpriseOptimizAccessTokenView(JWTAuthApiView):
         """
         logger.debug("bind market access token")
         ret = request.data.get('market_info')
-        # NOTE: base64.decodestring was removed in Python 3.9; this is a latent runtime bug (backlog).
-        market_info = eval(base64.decodestring(ret))  # type: ignore[attr-defined]
+        market_info = eval(base64.b64decode(ret))  # type: ignore[arg-type]
         market_client_id = market_info.get('eid')
         market_client_token = market_info.get('token')
         if not enterprise_id or not market_client_id or not market_client_token:

@@ -154,9 +154,9 @@ class AddTeamView(JWTAuthApiView):
             if bind_existing_namespace and not namespace:
                 return Response(general_message(400, "failed", "namespace 不能为空"), status=400)
             if not is_qualified_name(namespace):
-                # NOTE: latent bug — msg_show string has ASCII quotes around "-" so Python
-                # tokenizes it as "str" - "str" (runtime TypeError if reached); preserved.
-                raise ErrQualifiedName(msg="invalid namespace name", msg_show="命名空间只能由小写字母、数字或"-"组成，并且必须以字母开始、以数字或字母结尾")  # type: ignore[operator]
+                raise ErrQualifiedName(
+                    msg="invalid namespace name",
+                    msg_show="命名空间只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
             regions = []
             if not team_alias:
                 result = general_message(400, "failed", "团队名不能为空")
